@@ -329,8 +329,8 @@
     .updates-meta { display:flex; flex-direction:column; gap:.15rem; font-size:.92rem; color: color-mix(in srgb, var(--muted) 80%, transparent); }
     .updates-meta span { line-height:1.4; }
     .updates-header-actions { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
-    #btnSystemSelect[data-state="busy"] { pointer-events:none; opacity:.82; }
-    #btnSystemSelect[data-state="busy"]::after { content:''; display:inline-block; width:1rem; height:1rem; margin-left:.5rem; border:2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-top-color: color-mix(in srgb, var(--primary) 86%, transparent); border-radius:50%; animation: press-updates-spin .85s linear infinite; vertical-align:middle; }
+    #btnSystemDownload[data-state="busy"], #btnSystemSelect[data-state="busy"] { pointer-events:none; opacity:.82; }
+    #btnSystemDownload[data-state="busy"]::after, #btnSystemSelect[data-state="busy"]::after { content:''; display:inline-block; width:1rem; height:1rem; margin-left:.5rem; border:2px solid color-mix(in srgb, var(--primary) 40%, transparent); border-top-color: color-mix(in srgb, var(--primary) 86%, transparent); border-radius:50%; animation: press-updates-spin .85s linear infinite; vertical-align:middle; }
     .updates-download[aria-disabled="true"] { pointer-events:none; opacity:.55; }
     @keyframes press-updates-spin { to { transform: rotate(360deg); } }
     .updates-status { margin:0; font-size:.95rem; color: color-mix(in srgb, var(--muted) 82%, transparent); }
@@ -2253,7 +2253,8 @@
               <input type="file" id="themeImportFileInput" accept=".zip,application/zip,application/x-zip-compressed" hidden>
             </div>
             <div class="editor-modal-header-actions" id="editorModalUpdateActions" hidden>
-              <button class="btn-primary" type="button" id="btnSystemSelect" data-i18n="editor.systemUpdates.selectArchive">Select downloaded ZIP</button>
+              <button class="btn-primary" type="button" id="btnSystemDownload" data-i18n="editor.systemUpdates.downloadAndCheck">Download and check</button>
+              <button class="btn-secondary" type="button" id="btnSystemSelect" data-i18n="editor.systemUpdates.selectArchive">Select downloaded ZIP</button>
               <input type="file" id="systemUpdateFileInput" accept=".zip,application/zip,application/x-zip-compressed" hidden>
             </div>
             <div class="editor-modal-header-actions" id="editorModalSyncActions" hidden>

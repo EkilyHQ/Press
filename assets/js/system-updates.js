@@ -31,6 +31,7 @@ const elements = {
   root: null,
   status: null,
   downloadLink: null,
+  downloadButton: null,
   selectButton: null,
   fileInput: null,
   fileSection: null,
@@ -122,6 +123,10 @@ function setStatus(text, options = {}) {
 
 function setBusy(flag) {
   busy = !!flag;
+  if (elements.downloadButton) {
+    elements.downloadButton.disabled = busy;
+    elements.downloadButton.dataset.state = busy ? 'busy' : 'idle';
+  }
   if (elements.selectButton) {
     elements.selectButton.disabled = busy;
     elements.selectButton.dataset.state = busy ? 'busy' : 'idle';
@@ -269,6 +274,27 @@ export function selectSystemUpdateAsset(releaseData) {
   };
 }
 
+function parseReleaseTag(tag) {
+  const match = String(tag || '').trim().match(/^v(\d+)\.(\d+)\.(\d+)$/i);
+  if (!match) return null;
+  return match.slice(1).map((part) => Number(part));
+}
+
+function compareReleaseTags(a, b) {
+  const left = parseReleaseTag(a);
+  const right = parseReleaseTag(b);
+  if (!left || !right) return String(a || '') === String(b || '') ? 0 : null;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return left[i] > right[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+function isFetchableSystemUpdateAssetUrl(url) {
+  return /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/Press\/release-artifacts\/v\d+\.\d+\.\d+\/press-system-v\d+\.\d+\.\d+\.zip$/i
+    .test(String(url || '').trim());
+}
+
 function isObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -289,7 +315,7 @@ function normalizeReleaseCache(data) {
     publishedAt: data.published_at || data.created_at || '',
     notes: data.body || '',
     htmlUrl: data.html_url || '',
-    asset
+    asset: asset ? { ...asset, fetchable: false } : asset
   };
 }
 
@@ -326,7 +352,8 @@ export function normalizeSystemReleaseManifest(manifest) {
     asset: {
       ...asset,
       size,
-      digest
+      digest,
+      fetchable: isFetchableSystemUpdateAssetUrl(asset.url)
     }
   };
 }
@@ -432,25 +459,57 @@ async function fetchLatestReleaseFromManifest() {
 
 async function fetchLatestRelease() {
   if (releaseCache) return releaseCache;
+  let apiRelease = null;
   let apiError = null;
+  let manifestRelease = null;
+  let manifestError = null;
   try {
-    releaseCache = await fetchLatestReleaseFromApi();
+    apiRelease = await fetchLatestReleaseFromApi();
   } catch (err) {
     apiError = err;
-    try {
-      releaseCache = await fetchLatestReleaseFromManifest();
-    } catch (manifestError) {
-      const message = apiError && apiError.rateLimited
-        ? t('editor.systemUpdates.errors.releaseRateLimited')
-        : t('editor.systemUpdates.errors.releaseFetch');
-      const error = new Error(message);
-      error.apiError = apiError;
-      error.manifestError = manifestError;
-      throw error;
-    }
   }
+  try {
+    manifestRelease = await fetchLatestReleaseFromManifest();
+  } catch (err) {
+    manifestError = err;
+  }
+
+  const manifestComparison = apiRelease && manifestRelease
+    ? compareReleaseTags(manifestRelease.tag, apiRelease.tag)
+    : null;
+  if (apiRelease && manifestRelease && manifestComparison !== null && manifestComparison >= 0) {
+    releaseCache = manifestRelease;
+  } else if (apiRelease) {
+    releaseCache = apiRelease;
+  } else if (manifestRelease) {
+    releaseCache = manifestRelease;
+  } else {
+    const message = apiError && apiError.rateLimited
+      ? t('editor.systemUpdates.errors.releaseRateLimited')
+      : t('editor.systemUpdates.errors.releaseFetch');
+    const error = new Error(message);
+    error.apiError = apiError;
+    error.manifestError = manifestError;
+    throw error;
+  }
+
   renderRelease();
   return releaseCache;
+}
+
+async function fetchSystemUpdateAsset(url) {
+  let response = null;
+  try {
+    response = await fetch(url, { cache: 'no-store' });
+  } catch (err) {
+    const error = new Error(t('editor.systemUpdates.errors.downloadFailed'));
+    error.cause = err;
+    throw error;
+  }
+  if (!response || !response.ok) {
+    throw new Error(t('editor.systemUpdates.errors.downloadFailed'));
+  }
+  return response.arrayBuffer();
 }
 
 function renderReleaseMeta() {
@@ -613,9 +672,39 @@ export async function analyzeArchive(buffer, filename) {
   setStatus(t('editor.systemUpdates.status.changes', { count }), { tone: 'warn' });
 }
 
+export async function stageLatestSystemUpdate() {
+  const release = await fetchLatestRelease();
+  if (!release || !release.asset || !release.asset.url) {
+    throw new Error(t('editor.systemUpdates.noAsset'));
+  }
+  if (release.asset.fetchable !== true) {
+    throw new Error(t('editor.systemUpdates.errors.downloadFailed'));
+  }
+  const fileName = release.asset.name || release.name || 'press-system.zip';
+  setStatus(t('editor.systemUpdates.status.downloading'));
+  applySummary([], []);
+  const buffer = await fetchSystemUpdateAsset(release.asset.url);
+  await analyzeArchive(buffer, fileName);
+}
+
 function handleSelectClick() {
   if (busy || !elements.fileInput) return;
   elements.fileInput.click();
+}
+
+async function handleDownloadClick() {
+  if (busy) return;
+  setBusy(true);
+  try {
+    await stageLatestSystemUpdate();
+  } catch (err) {
+    console.error('System update download failed', err);
+    const message = err && err.message ? err.message : t('editor.systemUpdates.errors.downloadFailed');
+    setStatus(message, { tone: 'error' });
+    applySummary([], []);
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function handleFileInputChange(event) {
@@ -650,6 +739,7 @@ export function initSystemUpdates(options = {}) {
   elements.root = document.getElementById('mode-updates');
   elements.status = document.getElementById('systemUpdateStatus');
   elements.downloadLink = document.getElementById('systemUpdateDownloadLink');
+  elements.downloadButton = document.getElementById('btnSystemDownload');
   elements.selectButton = document.getElementById('btnSystemSelect');
   elements.fileInput = document.getElementById('systemUpdateFileInput');
   elements.fileSection = document.getElementById('systemUpdateFileSection');
@@ -661,6 +751,10 @@ export function initSystemUpdates(options = {}) {
 
   if (options && typeof options.onStateChange === 'function') listeners.add(options.onStateChange);
 
+  if (elements.downloadButton) {
+    elements.downloadButton.dataset.state = 'idle';
+    elements.downloadButton.addEventListener('click', handleDownloadClick);
+  }
   if (elements.selectButton) {
     elements.selectButton.dataset.state = 'idle';
     elements.selectButton.addEventListener('click', handleSelectClick);

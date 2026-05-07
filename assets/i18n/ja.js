@@ -222,6 +222,7 @@ const translations = {
         openDownload: 'リリース ZIP をダウンロード',
         downloadAssetLink: ({ name }) => `${name} をダウンロード`,
         openReleasePage: 'GitHub でリリースを開く',
+        downloadAndCheck: 'ダウンロードして確認',
         selectArchive: 'ダウンロードした ZIP を選択',
         filesHeading: '更新待ちのシステムファイル',
         releaseNotes: 'リリースノート',
@@ -232,7 +233,8 @@ const translations = {
         assetWithHash: ({ name, size, hash }) => `アセット：${name}（${size}） — SHA-256 ${hash}`,
         noAsset: 'このリリースにはダウンロード可能な Press システム更新パッケージがありません。',
         status: {
-          idle: '最新のリリース ZIP をダウンロードしてから、更新を確認するために選択してください。',
+          idle: '最新リリースをダウンロードして確認するか、ダウンロード済み ZIP を選択してください。',
+          downloading: '最新リリース ZIP をダウンロードしています…',
           reading: 'アーカイブを読み込み中…',
           verifying: 'アーカイブを検証しています…',
           noChanges: 'システムファイルは最新です。',
@@ -244,6 +246,7 @@ const translations = {
           releaseRateLimited: 'GitHub API のレート制限に達しました。しばらくしてから再試行するか、ダウンロード済み ZIP を手動で選択してください。',
           emptyFile: '選択したファイルは空です。',
           invalidArchive: '選択した ZIP を Press リリースとして読み込めませんでした。',
+          downloadFailed: '最新のシステム更新パッケージをダウンロードできませんでした。ダウンロード済み ZIP を選択してください。',
           sizeMismatch: ({ expected, actual }) => `選択したアーカイブのサイズ（${actual}）がリリースアセット（${expected}）と一致しません。`,
           digestMismatch: '選択したアーカイブの SHA-256 がリリースアセットと一致しません。',
           generic: 'システム更新に失敗しました。再試行してください。'

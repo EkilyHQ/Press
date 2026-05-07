@@ -133,6 +133,31 @@ if ! grep -F 'Update static release manifest' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'Publish fetchable artifact' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish a CORS-readable system package artifact" >&2
+  exit 1
+fi
+
+if ! grep -F 'artifact_branch="release-artifacts"' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish system packages to the release-artifacts branch" >&2
+  exit 1
+fi
+
+if ! grep -F 'artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must expose system packages through raw.githubusercontent.com" >&2
+  exit 1
+fi
+
+if ! grep -F 'FETCHABLE_ASSET_URL: ${{ steps.artifact.outputs.url }}' "${workflow}" >/dev/null; then
+  echo "system release manifest must receive the fetchable artifact URL" >&2
+  exit 1
+fi
+
+if ! grep -F '"url": os.environ["FETCHABLE_ASSET_URL"]' "${workflow}" >/dev/null; then
+  echo "system release manifest must point asset.url at the fetchable artifact URL" >&2
+  exit 1
+fi
+
 if ! grep -F 'Notify YAP template' "${workflow}" >/dev/null; then
   echo "system release workflow must notify the YAP template after publishing" >&2
   exit 1

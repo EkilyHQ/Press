@@ -3,6 +3,7 @@ import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';
 const REQUIRED_CONTRACT_VERSION = 1;
+export const OFFICIAL_THEME_CATALOG_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Catalog/main/catalog.json';
 const THEME_SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const THEME_RELEASE_ASSET_PATTERN = /^press-theme-[a-z0-9_-]+-v\d+\.\d+\.\d+\.zip$/i;
 const THEME_ARCHIVE_ALLOWED_EXTENSIONS = new Set([
@@ -20,6 +21,7 @@ let initialized = false;
 let busy = false;
 let registryCache = null;
 let catalogCache = null;
+let catalogLoadError = '';
 let currentSummary = [];
 let currentFiles = [];
 let currentThemeDigest = '';
@@ -631,7 +633,7 @@ async function inferLocalThemeFiles(slug) {
 
 async function inferCatalogThemeFiles(slug) {
   try {
-    const catalog = await loadCatalog();
+    const catalog = await loadOfficialThemeCatalog();
     const entry = catalog.find((item) => item.value === slug);
     if (!entry || !entry.manifestUrl) return [];
     const manifest = normalizeThemeReleaseManifest(await fetchJson(entry.manifestUrl));
@@ -682,14 +684,20 @@ async function loadRegistry(options = {}) {
   return registryCache.slice();
 }
 
-async function loadCatalog(options = {}) {
+export function getOfficialThemeCatalogStatus() {
+  return { error: catalogLoadError };
+}
+
+export async function loadOfficialThemeCatalog(options = {}) {
   if (catalogCache && !options.force) return catalogCache.slice();
+  catalogLoadError = '';
   try {
-    const response = await fetch('assets/themes/catalog.json', { cache: 'no-store' });
+    const response = await fetch(OFFICIAL_THEME_CATALOG_URL, { cache: 'no-store' });
     if (!response || !response.ok) throw new Error('Unable to load theme catalog.');
     catalogCache = normalizeThemeCatalog(await response.json());
-  } catch (_) {
+  } catch (err) {
     catalogCache = [];
+    catalogLoadError = err && err.message ? `Official theme catalog is unavailable: ${err.message}` : 'Official theme catalog is unavailable.';
   }
   return catalogCache.slice();
 }
@@ -1023,7 +1031,7 @@ function renderAvailableThemes(registry, catalog) {
   if (!catalog.length) {
     const empty = document.createElement('p');
     empty.className = 'muted';
-    empty.textContent = 'No official theme catalog is available.';
+    empty.textContent = catalogLoadError || 'No official themes are available.';
     elements.availableList.appendChild(empty);
     return;
   }
@@ -1065,7 +1073,7 @@ async function renderThemeManager(options = {}) {
   if (!elements.root) return;
   const [registry, catalog] = await Promise.all([
     loadRegistry(options),
-    loadCatalog(options)
+    loadOfficialThemeCatalog(options)
   ]);
   renderInstalledThemes(registry, catalog);
   renderAvailableThemes(registry, catalog);
@@ -1150,7 +1158,11 @@ export function initThemeManager(options = {}) {
       setBusy(true);
       try {
         await renderThemeManager({ force: true });
-        setStatus('Theme catalog refreshed.', { tone: 'success' });
+        if (catalogLoadError) {
+          setStatus(catalogLoadError, { tone: 'error' });
+        } else {
+          setStatus('Theme catalog refreshed.', { tone: 'success' });
+        }
       } catch (err) {
         setStatus(err && err.message ? err.message : 'Unable to refresh theme catalog.', { tone: 'error' });
       } finally {
@@ -1186,6 +1198,10 @@ export function clearThemeManagerState(options = {}) {
   currentThemeAssetName = '';
   if (options && options.keepRegistryCache !== true) {
     registryCache = null;
+    if (options.keepCatalogCache !== true) {
+      catalogCache = null;
+      catalogLoadError = '';
+    }
     renderThemeManager({ force: true }).catch(() => {});
   }
   if (options && options.keepStatus !== true) {

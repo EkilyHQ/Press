@@ -43,9 +43,9 @@ jobs:
           fi
 
           if [[ -n "${latest_tag}" ]]; then
-            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html assets/main.js assets/js assets/i18n assets/schema assets/themes/native assets/themes/catalog.json)"
+            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
           else
-            changed_files="$(git ls-files -- index.html index_editor.html assets/main.js assets/js assets/i18n assets/schema assets/themes/native assets/themes/catalog.json)"
+            changed_files="$(git ls-files -- index.html index_editor.html assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
           fi
 
           if [[ -z "${changed_files}" ]]; then

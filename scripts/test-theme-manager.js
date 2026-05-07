@@ -29,12 +29,15 @@ const {
   analyzeThemeArchive,
   clearThemeManagerState,
   collectThemeArchiveEntries,
+  getOfficialThemeCatalogStatus,
   getThemeManagerCommitFiles,
   handleImportFile,
   initThemeManager,
+  loadOfficialThemeCatalog,
   normalizeThemeCatalog,
   normalizeThemeRegistry,
   normalizeThemeReleaseManifest,
+  OFFICIAL_THEME_CATALOG_URL,
   sanitizeThemeSlug,
   stageThemeUninstall,
   verifyThemeAsset
@@ -110,7 +113,10 @@ function mockFetchRegistry(registry, options = {}) {
     if (url === 'assets/themes/packs.json') {
       return { ok: true, json: async () => registry };
     }
-    if (url === 'assets/themes/catalog.json') {
+    if (url === OFFICIAL_THEME_CATALOG_URL) {
+      if (options.catalogFailure) {
+        return { ok: false, json: async () => ({}) };
+      }
       return { ok: true, json: async () => catalog };
     }
     if (Object.prototype.hasOwnProperty.call(jsonFiles, url)) {
@@ -174,9 +180,61 @@ await run('normalizes registry and catalog metadata', async () => {
 
 await run('keeps Press repository installed registry native-only', async () => {
   const packs = JSON.parse(readFileSync(new URL('../assets/themes/packs.json', import.meta.url), 'utf8'));
-  const catalog = JSON.parse(readFileSync(new URL('../assets/themes/catalog.json', import.meta.url), 'utf8'));
   assert.deepEqual(packs.map((entry) => entry.value), ['native']);
-  assert.deepEqual(catalog.themes.map((entry) => entry.value).sort(), ['arcus', 'cartograph', 'solstice']);
+});
+
+await run('loads official theme catalog from the remote catalog URL', async () => {
+  const catalog = {
+    schemaVersion: 1,
+    themes: [
+      { value: 'arcus', label: 'Arcus', repo: 'EkilyHQ/Press-Theme-Arcus', manifestUrl: 'https://example.test/arcus.json' },
+      { value: 'cartograph', label: 'Cartograph', repo: 'EkilyHQ/Press-Theme-Cartograph', manifestUrl: 'https://example.test/cartograph.json' },
+      { value: 'solstice', label: 'Solstice', repo: 'EkilyHQ/Press-Theme-Solstice', manifestUrl: 'https://example.test/solstice.json' }
+    ]
+  };
+  const seen = [];
+  mockFetchRegistry([{ value: 'native', label: 'Native' }], { catalog });
+  const loaded = await loadOfficialThemeCatalog({ force: true });
+  assert.deepEqual(loaded.map((entry) => entry.value), ['arcus', 'cartograph', 'solstice']);
+  globalThis.fetch = async (input) => {
+    seen.push(String(input || '').split('?')[0]);
+    return { ok: true, json: async () => ({ schemaVersion: 1, themes: [{ value: 'refreshed', manifestUrl: 'https://example.test/refreshed.json' }] }) };
+  };
+  assert.equal((await loadOfficialThemeCatalog())[0].value, 'arcus');
+  assert.equal(seen.length, 0);
+  assert.equal((await loadOfficialThemeCatalog({ force: true }))[0].value, 'refreshed');
+  assert.deepEqual(seen, [OFFICIAL_THEME_CATALOG_URL]);
+});
+
+await run('returns an empty catalog and status when remote catalog fails', async () => {
+  mockFetchRegistry([{ value: 'native', label: 'Native' }], { catalogFailure: true });
+  const loaded = await loadOfficialThemeCatalog({ force: true });
+  assert.deepEqual(loaded, []);
+  assert.match(getOfficialThemeCatalogStatus().error, /unavailable/i);
+});
+
+await run('returns an empty catalog and status when remote catalog is malformed', async () => {
+  mockFetchRegistry([{ value: 'native', label: 'Native' }], {
+    catalog: { schemaVersion: 1, themes: [{ value: 'broken' }] }
+  });
+  const loaded = await loadOfficialThemeCatalog({ force: true });
+  assert.deepEqual(loaded, []);
+  assert.match(getOfficialThemeCatalogStatus().error, /manifestUrl/i);
+});
+
+await run('deduplicates remote catalog slugs', async () => {
+  mockFetchRegistry([{ value: 'native', label: 'Native' }], {
+    catalog: {
+      schemaVersion: 1,
+      themes: [
+        { value: 'arcus', label: 'Arcus', manifestUrl: 'https://example.test/arcus.json' },
+        { value: 'arcus', label: 'Duplicate Arcus', manifestUrl: 'https://example.test/duplicate.json' }
+      ]
+    }
+  });
+  const loaded = await loadOfficialThemeCatalog({ force: true });
+  assert.equal(loaded.length, 1);
+  assert.equal(loaded[0].label, 'Arcus');
 });
 
 await run('normalizes release manifests and rejects contract mismatch', async () => {

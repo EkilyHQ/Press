@@ -41,13 +41,13 @@ The minimal user starter will live in a separate repository named `Press-Starter
 
 `native` belongs to Press core and is the permanent fallback. Other official themes are developed in one repository per theme, for example `Press-Theme-Arcus`. Those repositories own theme source, contract checks, release ZIPs, checksums, and root `theme-release.json` manifests.
 
-Press sites load themes only from local `assets/themes/<slug>` directories. Theme Manager installs official catalog themes or manually imported ZIPs by staging file additions/deletions plus `assets/themes/packs.json` changes for Publish. Press system updates must not overwrite arbitrary external theme directories.
+Press sites load themes only from local `assets/themes/<slug>` directories. Theme Manager loads the official theme catalog from `EkilyHQ/Press-Theme-Catalog` and installs official themes or manually imported ZIPs by staging file additions/deletions plus `assets/themes/packs.json` changes for Publish. Press system updates must not overwrite arbitrary external theme directories.
 
 ## System Release Packages
 
 `main` publishes GitHub Pages directly from the repository root, but system updates use a separate release ZIP. After a push to `main`, the release workflow checks whether runtime files changed since the latest release tag. If only documentation or content changed under `wwwroot/`, no release is created.
 
-When runtime files changed, the workflow bumps the patch version, creates a GitHub Release, and uploads exactly one package named `press-system-vX.Y.Z.zip`. That package is an allowlisted runtime bundle only: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, `assets/themes/native/**`, and `assets/themes/catalog.json`.
+When runtime files changed, the workflow bumps the patch version, creates a GitHub Release, and uploads exactly one package named `press-system-vX.Y.Z.zip`. That package is an allowlisted runtime bundle only: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`.
 
 The package must not include user-controlled content or site configuration such as `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, scripts, workflow files, repo-specific root media, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`. Users who customize files under `assets/js/` are modifying the system namespace, and those files may be overwritten by system updates. Non-native themes should be managed through Theme Manager so their file inventory remains explicit in site-owned `packs.json`.
 

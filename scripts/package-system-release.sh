@@ -21,7 +21,6 @@ system_paths=(
   "assets/i18n"
   "assets/schema"
   "assets/themes/native"
-  "assets/themes/catalog.json"
 )
 
 mkdir -p "${output_dir}"

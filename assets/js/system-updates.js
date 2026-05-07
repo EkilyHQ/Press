@@ -274,6 +274,27 @@ export function selectSystemUpdateAsset(releaseData) {
   };
 }
 
+function parseReleaseTag(tag) {
+  const match = String(tag || '').trim().match(/^v(\d+)\.(\d+)\.(\d+)$/i);
+  if (!match) return null;
+  return match.slice(1).map((part) => Number(part));
+}
+
+function compareReleaseTags(a, b) {
+  const left = parseReleaseTag(a);
+  const right = parseReleaseTag(b);
+  if (!left || !right) return String(a || '') === String(b || '') ? 0 : null;
+  for (let i = 0; i < left.length; i += 1) {
+    if (left[i] !== right[i]) return left[i] > right[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+function isFetchableSystemUpdateAssetUrl(url) {
+  return /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/Press\/release-artifacts\/v\d+\.\d+\.\d+\/press-system-v\d+\.\d+\.\d+\.zip$/i
+    .test(String(url || '').trim());
+}
+
 function isObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -294,7 +315,7 @@ function normalizeReleaseCache(data) {
     publishedAt: data.published_at || data.created_at || '',
     notes: data.body || '',
     htmlUrl: data.html_url || '',
-    asset
+    asset: asset ? { ...asset, fetchable: false } : asset
   };
 }
 
@@ -331,7 +352,8 @@ export function normalizeSystemReleaseManifest(manifest) {
     asset: {
       ...asset,
       size,
-      digest
+      digest,
+      fetchable: isFetchableSystemUpdateAssetUrl(asset.url)
     }
   };
 }
@@ -437,23 +459,37 @@ async function fetchLatestReleaseFromManifest() {
 
 async function fetchLatestRelease() {
   if (releaseCache) return releaseCache;
+  let apiRelease = null;
+  let apiError = null;
+  let manifestRelease = null;
   let manifestError = null;
   try {
-    releaseCache = await fetchLatestReleaseFromManifest();
+    apiRelease = await fetchLatestReleaseFromApi();
+  } catch (err) {
+    apiError = err;
+  }
+  try {
+    manifestRelease = await fetchLatestReleaseFromManifest();
   } catch (err) {
     manifestError = err;
-    try {
-      releaseCache = await fetchLatestReleaseFromApi();
-    } catch (apiError) {
-      const message = apiError && apiError.rateLimited
-        ? t('editor.systemUpdates.errors.releaseRateLimited')
-        : t('editor.systemUpdates.errors.releaseFetch');
-      const error = new Error(message);
-      error.apiError = apiError;
-      error.manifestError = manifestError;
-      throw error;
-    }
   }
+
+  if (apiRelease && manifestRelease && compareReleaseTags(apiRelease.tag, manifestRelease.tag) === 0) {
+    releaseCache = manifestRelease;
+  } else if (apiRelease) {
+    releaseCache = apiRelease;
+  } else if (manifestRelease) {
+    releaseCache = manifestRelease;
+  } else {
+    const message = apiError && apiError.rateLimited
+      ? t('editor.systemUpdates.errors.releaseRateLimited')
+      : t('editor.systemUpdates.errors.releaseFetch');
+    const error = new Error(message);
+    error.apiError = apiError;
+    error.manifestError = manifestError;
+    throw error;
+  }
+
   renderRelease();
   return releaseCache;
 }
@@ -637,6 +673,9 @@ export async function stageLatestSystemUpdate() {
   const release = await fetchLatestRelease();
   if (!release || !release.asset || !release.asset.url) {
     throw new Error(t('editor.systemUpdates.noAsset'));
+  }
+  if (release.asset.fetchable !== true) {
+    throw new Error(t('editor.systemUpdates.errors.downloadFailed'));
   }
   const fileName = release.asset.name || release.name || 'press-system.zip';
   setStatus(t('editor.systemUpdates.status.downloading'));

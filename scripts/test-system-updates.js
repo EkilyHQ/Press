@@ -192,7 +192,7 @@ await run('hides stale release notes when no Press system package is attached', 
   }), 'Use `press-system-v3.3.37.zip`.');
 });
 
-await run('uses the static release manifest before the GitHub API', async () => {
+await run('uses the static manifest artifact when the GitHub API tag matches', async () => {
   clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
   const buffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>manifest</p>' });
   const digest = await sha256(buffer);
@@ -203,10 +203,15 @@ await run('uses the static release manifest before the GitHub API', async () => 
     const url = String(input || '');
     if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
       apiCalls += 1;
-      return jsonResponse({ message: 'rate limited' }, {
-        ok: false,
-        status: 403,
-        headers: { 'x-ratelimit-remaining': '0' }
+      return jsonResponse({
+        name: 'v3.3.5',
+        tag_name: 'v3.3.5',
+        assets: [{
+          name: 'press-system-v3.3.5.zip',
+          browser_download_url: 'https://github.com/EkilyHQ/Press/releases/download/v3.3.5/press-system-v3.3.5.zip',
+          size: buffer.byteLength,
+          digest: `sha256:${digest}`
+        }]
       });
     }
     if (url.includes('assets/system-release.json')) {
@@ -234,8 +239,68 @@ await run('uses the static release manifest before the GitHub API', async () => 
 
   await analyzeArchive(buffer, 'press-system-v3.3.5.zip');
 
-  assert.equal(apiCalls, 0);
+  assert.equal(apiCalls, 1);
   assert.equal(manifestCalls, 1);
+  delete globalThis.fetch;
+});
+
+await run('uses GitHub API metadata when the static manifest is stale', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  const oldBuffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>old</p>' });
+  const newBuffer = makeZip({ 'press-system-v3.3.6/index.html': '<!doctype html><p>new</p>' });
+  const oldDigest = await sha256(oldBuffer);
+  const newDigest = await sha256(newBuffer);
+  const oldAssetUrl = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.5/press-system-v3.3.5.zip';
+  let oldAssetCalls = 0;
+
+  globalThis.fetch = async (input) => {
+    const url = String(input || '');
+    if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
+      return jsonResponse({
+        name: 'v3.3.6',
+        tag_name: 'v3.3.6',
+        assets: [{
+          name: 'press-system-v3.3.6.zip',
+          browser_download_url: 'https://github.com/EkilyHQ/Press/releases/download/v3.3.6/press-system-v3.3.6.zip',
+          size: newBuffer.byteLength,
+          digest: `sha256:${newDigest}`
+        }]
+      });
+    }
+    if (url.includes('assets/system-release.json')) {
+      return jsonResponse({
+        schemaVersion: 1,
+        name: 'v3.3.5',
+        tag: 'v3.3.5',
+        publishedAt: '2026-04-29T08:18:39Z',
+        notes: 'Old manifest release notes',
+        htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.5',
+        asset: {
+          name: 'press-system-v3.3.5.zip',
+          url: oldAssetUrl,
+          size: oldBuffer.byteLength,
+          digest: `sha256:${oldDigest}`
+        }
+      });
+    }
+    if (url === oldAssetUrl) {
+      oldAssetCalls += 1;
+      return arrayBufferResponse(oldBuffer);
+    }
+    return {
+      ok: false,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    };
+  };
+
+  await analyzeArchive(newBuffer, 'press-system-v3.3.6.zip');
+  assert.deepEqual(getSystemUpdateCommitFiles().map((file) => file.path), ['index.html']);
+  assert.equal(oldAssetCalls, 0);
+  await assert.rejects(
+    () => stageLatestSystemUpdate(),
+    /download|下载|ダウンロード/i
+  );
+  assert.equal(oldAssetCalls, 0);
   delete globalThis.fetch;
 });
 
@@ -248,10 +313,6 @@ await run('falls back to the GitHub API when the static manifest is unavailable'
 
   globalThis.fetch = async (input) => {
     const url = String(input || '');
-    if (url.includes('assets/system-release.json')) {
-      manifestCalls += 1;
-      return jsonResponse({ message: 'not found' }, { ok: false, status: 404 });
-    }
     if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
       apiCalls += 1;
       return jsonResponse({
@@ -264,6 +325,10 @@ await run('falls back to the GitHub API when the static manifest is unavailable'
           digest: `sha256:${digest}`
         }]
       });
+    }
+    if (url.includes('assets/system-release.json')) {
+      manifestCalls += 1;
+      return jsonResponse({ message: 'not found' }, { ok: false, status: 404 });
     }
     return {
       ok: false,
@@ -331,7 +396,16 @@ await run('downloads the manifest asset and stages system files', async () => {
     const url = String(input || '');
     if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
       apiCalls += 1;
-      return jsonResponse({ message: 'api should not be needed' });
+      return jsonResponse({
+        name: 'v3.3.5',
+        tag_name: 'v3.3.5',
+        assets: [{
+          name: 'press-system-v3.3.5.zip',
+          browser_download_url: 'https://github.com/EkilyHQ/Press/releases/download/v3.3.5/press-system-v3.3.5.zip',
+          size: buffer.byteLength,
+          digest: `sha256:${digest}`
+        }]
+      });
     }
     if (url.includes('assets/system-release.json')) {
       return jsonResponse({
@@ -362,7 +436,7 @@ await run('downloads the manifest asset and stages system files', async () => {
   await stageLatestSystemUpdate();
 
   const files = getSystemUpdateCommitFiles();
-  assert.equal(apiCalls, 0);
+  assert.equal(apiCalls, 1);
   assert.equal(assetCalls, 1);
   assert.deepEqual(files.map((file) => file.path), ['index.html']);
   assert.equal(files[0].kind, 'system');

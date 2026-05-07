@@ -35,15 +35,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-payload_dir="${tmp_dir}/${prefix%/}"
-mkdir -p "${payload_dir}"
-
-while IFS= read -r file; do
-  [[ -n "${file}" ]] || continue
-  [[ -f "${file}" ]] || continue
-  mkdir -p "${payload_dir}/$(dirname "${file}")"
-  cp "${file}" "${payload_dir}/${file}"
-done < <(git ls-files --cached -- "${system_paths[@]}" | sort -u)
+git archive --format=tar --prefix="${prefix}" HEAD -- "${system_paths[@]}" | tar -xf - -C "${tmp_dir}"
 
 (
   cd "${tmp_dir}"

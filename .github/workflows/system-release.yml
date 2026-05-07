@@ -258,12 +258,12 @@ jobs:
           PY
           gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" --input dist/publish-release.json >/dev/null
 
-      - name: Notify starter template
+      - name: Notify YAP template
         if: steps.plan.outputs.should_release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           STARTER_SYNC_TOKEN: ${{ secrets.STARTER_SYNC_TOKEN }}
-          STARTER_REPOSITORY: ${{ vars.STARTER_REPOSITORY || 'EkilyHQ/Press-Starter' }}
+          STARTER_REPOSITORY: ${{ vars.STARTER_REPOSITORY || 'EkilyHQ/YAP' }}
           NEXT_TAG: ${{ steps.plan.outputs.next_tag }}
           ASSET_NAME: ${{ steps.plan.outputs.asset_name }}
           ASSET_SIZE: ${{ steps.package.outputs.archive_size }}
@@ -272,12 +272,12 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${STARTER_SYNC_TOKEN}" ]]; then
-            echo "STARTER_SYNC_TOKEN is not configured; skipping Press-Starter sync dispatch."
+            echo "STARTER_SYNC_TOKEN is not configured; skipping YAP sync dispatch."
             exit 0
           fi
 
           if ! gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" > dist/starter-release.json; then
-            echo "::warning title=Press-Starter sync skipped::Unable to read the published release for Starter dispatch."
+            echo "::warning title=YAP sync skipped::Unable to read the published release for YAP dispatch."
             exit 0
           fi
           node <<'NODE' > dist/starter-dispatch.json
@@ -301,7 +301,7 @@ jobs:
             --method POST \
             "repos/${STARTER_REPOSITORY}/dispatches" \
             --input dist/starter-dispatch.json; then
-            echo "::warning title=Press-Starter sync dispatch failed::Release ${NEXT_TAG} was published, but the optional dispatch to ${STARTER_REPOSITORY} failed."
+            echo "::warning title=YAP sync dispatch failed::Release ${NEXT_TAG} was published, but the optional dispatch to ${STARTER_REPOSITORY} failed."
             exit 0
           fi
 

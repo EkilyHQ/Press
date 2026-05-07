@@ -133,13 +133,18 @@ if ! grep -F 'Update static release manifest' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'Notify starter template' "${workflow}" >/dev/null; then
-  echo "system release workflow must notify the Starter template after publishing" >&2
+if ! grep -F 'Notify YAP template' "${workflow}" >/dev/null; then
+  echo "system release workflow must notify the YAP template after publishing" >&2
   exit 1
 fi
 
 if ! grep -F 'STARTER_SYNC_TOKEN' "${workflow}" >/dev/null; then
-  echo "system release workflow must use STARTER_SYNC_TOKEN for cross-repository Starter dispatch" >&2
+  echo "system release workflow must use STARTER_SYNC_TOKEN for cross-repository YAP dispatch" >&2
+  exit 1
+fi
+
+if ! grep -F "STARTER_REPOSITORY: \${{ vars.STARTER_REPOSITORY || 'EkilyHQ/YAP' }}" "${workflow}" >/dev/null; then
+  echo "system release workflow must default dispatches to EkilyHQ/YAP" >&2
   exit 1
 fi
 
@@ -149,12 +154,12 @@ if ! grep -F "event_type: 'press-system-release'" "${workflow}" >/dev/null; then
 fi
 
 if ! grep -F '"repos/${STARTER_REPOSITORY}/dispatches"' "${workflow}" >/dev/null; then
-  echo "system release workflow must call the Starter repository dispatch endpoint" >&2
+  echo "system release workflow must call the YAP repository dispatch endpoint" >&2
   exit 1
 fi
 
 if ! grep -F 'asset_sha256: process.env.ASSET_SHA256' "${workflow}" >/dev/null; then
-  echo "system release workflow must pass the system package digest to Starter" >&2
+  echo "system release workflow must pass the system package digest to YAP" >&2
   exit 1
 fi
 

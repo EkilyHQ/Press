@@ -496,6 +496,28 @@ const maliciousRenderedHtml = [
 const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href="java&#10;script:alert&#40;1&#41;" onclick="alert(1)">Bad</a><img src="javascript:alert(2)" onerror="alert(2)" alt="x"></li></ul></li></ul>';
 
 {
+  const limited = mdParse('> [x](javascript:alert(1)) **bold**', baseDir, { maxDepth: 0 }).post;
+  assert.equal(collectRawTags(limited, 'a').length, 0);
+  assert.equal(collectRawTags(limited, 'strong').length, 0);
+  assert.match(limited, /\[x\]\(javascript:alert\(1\)\) \*\*bold\*\*/);
+}
+
+{
+  const limited = mdParse(['## A', '## B', '## C'].join('\n'), baseDir, { maxLines: 2 });
+  assert.match(limited.post, /A/);
+  assert.match(limited.post, /B/);
+  assert.doesNotMatch(limited.post, /C/);
+  assert.deepEqual(collectRawTags(limited.toc, 'a').map(link => link.attrs.get('href')), ['#0', '#1']);
+  assert.doesNotMatch(limited.toc, /C/);
+}
+
+{
+  const limited = mdParse('abcdef', baseDir, { maxInputLength: 3 }).post;
+  assert.match(limited, /abc/);
+  assert.doesNotMatch(limited, /def/);
+}
+
+{
   const { html, target } = renderMarkdown([
     '<script>alert(1)</script>',
     '<!-- hidden -->',

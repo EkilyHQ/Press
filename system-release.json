@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": "v3.3.46",
+  "tag": "v3.3.46",
+  "publishedAt": "2026-05-07T15:39:59Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.46.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.46.zip`\n- SHA-256: `d94f1e157f049278721583b92fa7733a06bbf11e6a80b961e37b450d40c96c1c`\n\n## Changed System Files\n\n- assets/js/system-updates.js\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.45...v3.3.46\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.46",
+  "asset": {
+    "name": "press-system-v3.3.46.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.46/press-system-v3.3.46.zip",
+    "size": 515979,
+    "digest": "sha256:d94f1e157f049278721583b92fa7733a06bbf11e6a80b961e37b450d40c96c1c"
+  }
+}

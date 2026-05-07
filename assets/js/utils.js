@@ -46,12 +46,38 @@ export function escapeMarkdown(text) {
   return result;
 }
 
+function decodeUrlEntitiesForSchemeCheck(value) {
+  const named = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' '
+  };
+  return String(value || '').replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][\w:-]*);/g, (match, entity) => {
+    if (!entity) return match;
+    if (entity[0] === '#') {
+      const isHex = entity[1] === 'x' || entity[1] === 'X';
+      const codePoint = isHex ? parseInt(entity.slice(2), 16) : parseInt(entity.slice(1), 10);
+      if (!Number.isFinite(codePoint) || codePoint < 0) return match;
+      try { return String.fromCodePoint(codePoint); } catch (_) { return match; }
+    }
+    const decoded = named[entity.toLowerCase()];
+    return typeof decoded === 'string' ? decoded : match;
+  });
+}
+
+function getUrlSchemeForCheck(value) {
+  const decoded = decodeUrlEntitiesForSchemeCheck(value).replace(/[\u0000-\u0020\u007f]+/g, '');
+  const proto = decoded.toLowerCase().match(/^([a-z][a-z0-9+.-]*):/);
+  return proto ? proto[1] : '';
+}
+
 export function sanitizeUrl(url) {
   const s = String(url || '').trim();
-  const lower = s.toLowerCase();
-  const proto = lower.match(/^([a-z][a-z0-9+.-]*):/);
-  if (!proto) return s; // relative URL
-  const p = proto[1];
+  const p = getUrlSchemeForCheck(s);
+  if (!p) return s; // relative URL
   return ['http', 'https', 'mailto', 'tel'].includes(p) ? s : '#';
 }
 

@@ -304,6 +304,62 @@ await run('uses GitHub API metadata when the static manifest is stale', async ()
   delete globalThis.fetch;
 });
 
+await run('uses newer fetchable manifest metadata when the GitHub API lags', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  const oldBuffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>old</p>' });
+  const newBuffer = makeZip({ 'press-system-v3.3.6/index.html': '<!doctype html><p>new</p>' });
+  const oldDigest = await sha256(oldBuffer);
+  const newDigest = await sha256(newBuffer);
+  const newAssetUrl = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.6/press-system-v3.3.6.zip';
+  let newAssetCalls = 0;
+
+  globalThis.fetch = async (input) => {
+    const url = String(input || '');
+    if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
+      return jsonResponse({
+        name: 'v3.3.5',
+        tag_name: 'v3.3.5',
+        assets: [{
+          name: 'press-system-v3.3.5.zip',
+          browser_download_url: 'https://github.com/EkilyHQ/Press/releases/download/v3.3.5/press-system-v3.3.5.zip',
+          size: oldBuffer.byteLength,
+          digest: `sha256:${oldDigest}`
+        }]
+      });
+    }
+    if (url.includes('assets/system-release.json')) {
+      return jsonResponse({
+        schemaVersion: 1,
+        name: 'v3.3.6',
+        tag: 'v3.3.6',
+        publishedAt: '2026-04-29T08:18:39Z',
+        notes: 'New manifest release notes',
+        htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.6',
+        asset: {
+          name: 'press-system-v3.3.6.zip',
+          url: newAssetUrl,
+          size: newBuffer.byteLength,
+          digest: `sha256:${newDigest}`
+        }
+      });
+    }
+    if (url === newAssetUrl) {
+      newAssetCalls += 1;
+      return arrayBufferResponse(newBuffer);
+    }
+    return {
+      ok: false,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    };
+  };
+
+  await stageLatestSystemUpdate();
+
+  assert.equal(newAssetCalls, 1);
+  assert.deepEqual(getSystemUpdateCommitFiles().map((file) => file.path), ['index.html']);
+  delete globalThis.fetch;
+});
+
 await run('falls back to the GitHub API when the static manifest is unavailable', async () => {
   clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
   const buffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>api</p>' });

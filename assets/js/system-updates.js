@@ -474,7 +474,10 @@ async function fetchLatestRelease() {
     manifestError = err;
   }
 
-  if (apiRelease && manifestRelease && compareReleaseTags(apiRelease.tag, manifestRelease.tag) === 0) {
+  const manifestComparison = apiRelease && manifestRelease
+    ? compareReleaseTags(manifestRelease.tag, apiRelease.tag)
+    : null;
+  if (apiRelease && manifestRelease && manifestComparison !== null && manifestComparison >= 0) {
     releaseCache = manifestRelease;
   } else if (apiRelease) {
     releaseCache = apiRelease;

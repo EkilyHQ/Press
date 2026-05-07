@@ -599,11 +599,12 @@ function themeFilesFromManifest(manifest) {
   return normalizeFileList(files);
 }
 
-async function filterExistingThemeFiles(slug, files) {
+async function filterExistingThemeFiles(slug, files, options = {}) {
   const normalized = normalizeFileList(files);
   const existing = [];
+  const assumeThemeJsonExists = options.assumeThemeJsonExists === true;
   for (const relPath of normalized) {
-    if (relPath === 'theme.json') {
+    if (relPath === 'theme.json' && assumeThemeJsonExists) {
       existing.push(relPath);
       continue;
     }
@@ -617,7 +618,7 @@ async function inferLocalThemeFiles(slug) {
     const manifestPath = themeCommitPath(slug, 'theme.json');
     const existing = await fetchText(manifestPath);
     if (!existing.exists || !existing.content) return [];
-    return await filterExistingThemeFiles(slug, themeFilesFromManifest(JSON.parse(existing.content)));
+    return await filterExistingThemeFiles(slug, themeFilesFromManifest(JSON.parse(existing.content)), { assumeThemeJsonExists: true });
   } catch (_) {
     return [];
   }
@@ -637,9 +638,9 @@ async function inferCatalogThemeFiles(slug) {
 
 async function resolveThemeFileInventory(entry) {
   if (!entry || !entry.value) return [];
-  const explicit = normalizeFileList(entry.files);
-  if (explicit.length) return explicit;
   const value = sanitizeThemeSlug(entry.value);
+  const explicit = normalizeFileList(entry.files);
+  if (explicit.length) return await filterExistingThemeFiles(value, explicit);
   const local = await inferLocalThemeFiles(value);
   if (local.length) return local;
   const catalog = await inferCatalogThemeFiles(value);

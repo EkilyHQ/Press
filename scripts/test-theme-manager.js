@@ -131,6 +131,15 @@ function mockFetchRegistry(registry, options = {}) {
   };
 }
 
+function themeTextFiles(slug, files) {
+  const out = {};
+  (Array.isArray(files) ? files : []).forEach((file) => {
+    const path = `assets/themes/${slug}/${file}`;
+    out[path] = file.endsWith('.json') ? '{}' : '';
+  });
+  return out;
+}
+
 async function run(name, fn) {
   try {
     clearThemeManagerState({ keepStatus: true });
@@ -357,7 +366,9 @@ await run('stages removed old files during theme update', async () => {
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
     { value: 'test', label: 'Test', version: '0.9.0', contractVersion: 1, files: ['theme.json', 'theme.css', 'modules/old.js'] }
-  ]);
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css', 'modules/old.js'])
+  });
   await analyzeThemeArchive(makeThemeZip(), 'press-theme-test-v1.0.0.zip');
   const files = getThemeManagerCommitFiles();
   assert(files.some((file) => file.path === 'assets/themes/test/modules/old.js' && file.deleted));
@@ -402,7 +413,9 @@ await run('stages uninstall deletions and falls back current default to native',
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
     { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
-  ]);
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
+  });
   await stageThemeUninstall('test');
   const files = getThemeManagerCommitFiles();
   assert.equal(themePack, 'native');
@@ -436,6 +449,31 @@ await run('infers old registry file inventory during uninstall', async () => {
   assert(files.some((file) => file.path === 'assets/themes/legacy/theme.css' && file.deleted));
   assert(files.some((file) => file.path === 'assets/themes/legacy/modules/layout.js' && file.deleted));
   assert(files.some((file) => file.path === 'assets/themes/packs.json' && !file.content.includes('"value": "legacy"')));
+});
+
+await run('filters explicit registry inventory to existing files during uninstall', async () => {
+  initThemeManager({
+    getCurrentThemePack: () => 'native',
+    setSiteThemePack: () => {}
+  });
+  mockFetchRegistry([
+    { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
+    {
+      value: 'explicit',
+      label: 'Explicit',
+      removable: true,
+      files: ['theme.json', 'theme.css', 'modules/missing.js', 'modules/present.js']
+    }
+  ], {
+    textFiles: themeTextFiles('explicit', ['theme.json', 'modules/present.js'])
+  });
+  await stageThemeUninstall('explicit');
+  const files = getThemeManagerCommitFiles();
+  assert(files.some((file) => file.path === 'assets/themes/explicit/theme.json' && file.deleted));
+  assert(files.some((file) => file.path === 'assets/themes/explicit/modules/present.js' && file.deleted));
+  assert(!files.some((file) => file.path === 'assets/themes/explicit/theme.css' && file.deleted));
+  assert(!files.some((file) => file.path === 'assets/themes/explicit/modules/missing.js' && file.deleted));
+  assert(files.some((file) => file.path === 'assets/themes/packs.json' && !file.content.includes('"value": "explicit"')));
 });
 
 await run('filters catalog-inferred inventory to existing files during uninstall', async () => {
@@ -493,7 +531,9 @@ await run('clearing uninstall staging restores the previous default theme', asyn
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
     { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
-  ]);
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
+  });
   await stageThemeUninstall('test');
   assert.equal(themePack, 'native');
   clearThemeManagerState({ keepStatus: true });
@@ -510,7 +550,9 @@ await run('failed replacement staging keeps uninstall fallback active', async ()
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
     { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
-  ]);
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
+  });
   await stageThemeUninstall('test');
   assert.equal(themePack, 'native');
   assert(getThemeManagerCommitFiles().some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
@@ -532,7 +574,9 @@ await run('successful replacement staging clears uninstall fallback', async () =
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
     { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
-  ]);
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
+  });
   await stageThemeUninstall('test');
   assert.equal(themePack, 'native');
   await analyzeThemeArchive(makeThemeZip({ slug: 'replacement', name: 'Replacement' }), 'press-theme-replacement-v1.0.0.zip');
@@ -551,7 +595,9 @@ await run('post-commit theme cleanup keeps the published fallback default', asyn
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
     { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
-  ]);
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
+  });
   await stageThemeUninstall('test');
   assert.equal(themePack, 'native');
   clearThemeManagerState({ keepStatus: true, keepSiteThemeFallback: true });

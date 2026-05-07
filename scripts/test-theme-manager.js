@@ -30,6 +30,7 @@ const {
   clearThemeManagerState,
   collectThemeArchiveEntries,
   getThemeManagerCommitFiles,
+  handleImportFile,
   initThemeManager,
   normalizeThemeCatalog,
   normalizeThemeRegistry,
@@ -563,6 +564,37 @@ await run('failed replacement staging keeps uninstall fallback active', async ()
   assert.equal(themePack, 'native');
   const files = getThemeManagerCommitFiles();
   assert(files.some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
+});
+
+await run('failed import keeps existing uninstall staging active', async () => {
+  let themePack = 'test';
+  initThemeManager({
+    getCurrentThemePack: () => themePack,
+    setSiteThemePack: (value) => { themePack = value; }
+  });
+  mockFetchRegistry([
+    { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+  ], {
+    textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
+  });
+  await stageThemeUninstall('test');
+  assert.equal(themePack, 'native');
+  assert(getThemeManagerCommitFiles().some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    await handleImportFile({
+      name: 'press-theme-bad-v1.0.0.zip',
+      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 2 })
+    });
+  } finally {
+    console.error = originalError;
+  }
+  assert.equal(themePack, 'native');
+  const files = getThemeManagerCommitFiles();
+  assert(files.some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
+  assert(files.some((file) => file.path === 'assets/themes/packs.json' && !file.content.includes('"value": "test"')));
 });
 
 await run('successful replacement staging clears uninstall fallback', async () => {

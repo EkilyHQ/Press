@@ -1085,7 +1085,7 @@ function setActiveThemeManagerView(view) {
   }
 }
 
-async function handleImportFile(file) {
+export async function handleImportFile(file) {
   if (!file) return;
   setBusy(true);
   try {
@@ -1095,7 +1095,6 @@ async function handleImportFile(file) {
     setActiveThemeManagerView('installed');
   } catch (err) {
     console.error('Theme import failed', err);
-    applySummary([], []);
     setStatus(err && err.message ? err.message : 'Theme import failed.', { tone: 'error' });
   } finally {
     setBusy(false);

@@ -75,6 +75,9 @@ function loadRepoInferenceHelpers() {
     extractFunctionDeclaration(source, 'resolveEditorStorageScope'),
     extractFunctionDeclaration(source, 'inferRepoConfigFromGitHubPagesUrl'),
     extractFunctionDeclaration(source, 'isPlaceholderRepoConfig'),
+    extractFunctionDeclaration(source, 'isSameRepoConfig'),
+    extractFunctionDeclaration(source, 'shouldAutofillRepoFromPages'),
+    extractFunctionDeclaration(source, 'clearRepoAutofillFromPagesMarker'),
     extractFunctionDeclaration(source, 'applyInferredRepoConfig')
   ].join('\n');
   return Function(`${helpers}\nreturn { resolveEditorStorageScope, inferRepoConfigFromGitHubPagesUrl, isPlaceholderRepoConfig, applyInferredRepoConfig };`)();
@@ -96,8 +99,8 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=scoped-editor-state-20260507/,
-  'editor HTML should cache-bust composer.js when editor storage scoping changes'
+  /assets\/js\/composer\.js\?v=repo-autofill-marker-20260507/,
+  'editor HTML should cache-bust composer.js when repository autofill marker handling changes'
 );
 
 assert.notEqual(
@@ -205,6 +208,44 @@ assert.equal(
     'empty starter repositories should accept inferred owner and name'
   );
   assert.deepEqual(site.repo, { owner: 'deemoe404', name: 'test1', branch: 'docs' });
+}
+
+{
+  const site = { repo: { owner: 'EkilyHQ', name: 'YAP', branch: 'main' } };
+  assert.equal(
+    repoInference.applyInferredRepoConfig(site, { owner: 'deemoe404', name: 'test1', branch: 'main' }),
+    false,
+    'real YAP repository settings should be preserved without an explicit autofill marker'
+  );
+  assert.deepEqual(site.repo, { owner: 'EkilyHQ', name: 'YAP', branch: 'main' });
+}
+
+{
+  const site = {
+    repo: { owner: 'EkilyHQ', name: 'YAP', branch: 'main' },
+    __extras: { repoAutofillFromPages: true }
+  };
+  assert.equal(
+    repoInference.applyInferredRepoConfig(site, { owner: 'deemoe404', name: 'test1', branch: 'main' }),
+    true,
+    'explicit repo autofill markers should accept inferred repo config on derived Pages sites'
+  );
+  assert.deepEqual(site.repo, { owner: 'deemoe404', name: 'test1', branch: 'main' });
+  assert.deepEqual(site.__extras, {}, 'repo autofill marker should be removed after first use');
+}
+
+{
+  const site = {
+    repo: { owner: 'EkilyHQ', name: 'YAP', branch: 'main' },
+    __extras: { repoAutofillFromPages: true }
+  };
+  assert.equal(
+    repoInference.applyInferredRepoConfig(site, { owner: 'ekilyhq', name: 'YAP', branch: 'main' }),
+    false,
+    'repo autofill markers should not dirty sites when the URL already matches'
+  );
+  assert.deepEqual(site.repo, { owner: 'EkilyHQ', name: 'YAP', branch: 'main' });
+  assert.deepEqual(site.__extras, { repoAutofillFromPages: true });
 }
 
 {

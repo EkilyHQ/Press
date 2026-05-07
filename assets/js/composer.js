@@ -431,6 +431,29 @@ function isPlaceholderRepoConfig(repo) {
   return ownerIsPlaceholder && nameIsPlaceholder;
 }
 
+function isSameRepoConfig(repo, inferred) {
+  const source = repo && typeof repo === 'object' ? repo : {};
+  const inferredSource = inferred && typeof inferred === 'object' ? inferred : {};
+  const owner = String(source.owner || '').trim().toLowerCase();
+  const name = String(source.name || '').trim().toLowerCase();
+  const inferredOwner = String(inferredSource.owner || '').trim().toLowerCase();
+  const inferredName = String(inferredSource.name || '').trim().toLowerCase();
+  return !!owner && !!name && owner === inferredOwner && name === inferredName;
+}
+
+function shouldAutofillRepoFromPages(site) {
+  const extras = site && site.__extras && typeof site.__extras === 'object' ? site.__extras : {};
+  const value = extras.repoAutofillFromPages;
+  return value === true || String(value || '').trim().toLowerCase() === 'true';
+}
+
+function clearRepoAutofillFromPagesMarker(site) {
+  if (!site.__extras || typeof site.__extras !== 'object') return;
+  if (Object.prototype.hasOwnProperty.call(site.__extras, 'repoAutofillFromPages')) {
+    delete site.__extras.repoAutofillFromPages;
+  }
+}
+
 function applyInferredRepoConfig(site, inferred) {
   if (!site || typeof site !== 'object') return false;
   if (!inferred || typeof inferred !== 'object') return false;
@@ -440,7 +463,9 @@ function applyInferredRepoConfig(site, inferred) {
   if (!owner || !name) return false;
 
   const repo = site.repo && typeof site.repo === 'object' ? site.repo : {};
-  if (!isPlaceholderRepoConfig(repo)) return false;
+  const canAutofill = isPlaceholderRepoConfig(repo)
+    || (shouldAutofillRepoFromPages(site) && !isSameRepoConfig(repo, inferred));
+  if (!canAutofill) return false;
 
   const previousOwner = String(repo.owner || '').trim();
   const previousName = String(repo.name || '').trim();
@@ -449,6 +474,7 @@ function applyInferredRepoConfig(site, inferred) {
   repo.owner = owner;
   repo.name = name;
   if (!previousBranch) repo.branch = branch;
+  clearRepoAutofillFromPagesMarker(site);
 
   return previousOwner !== String(repo.owner || '').trim()
     || previousName !== String(repo.name || '').trim()

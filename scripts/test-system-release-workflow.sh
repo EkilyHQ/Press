@@ -10,8 +10,8 @@ if [[ ! -f "${workflow}" ]]; then
   exit 1
 fi
 
-if ! grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
-  echo "system release workflow must be allowed to create manifest pull requests" >&2
+if grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
+  echo "system release workflow must not request pull request permissions" >&2
   exit 1
 fi
 
@@ -133,8 +133,8 @@ if ! grep -F 'git tag -d "${next_tag}"' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'Update static release manifest' "${workflow}" >/dev/null; then
-  echo "system release workflow must update the static release manifest after publishing" >&2
+if grep -F 'Update static release manifest' "${workflow}" >/dev/null; then
+  echo "system release workflow must not update a main-branch static release manifest" >&2
   exit 1
 fi
 
@@ -153,13 +153,41 @@ if ! grep -F 'artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITOR
   exit 1
 fi
 
-if ! grep -F 'FETCHABLE_ASSET_URL: ${{ steps.artifact.outputs.url }}' "${workflow}" >/dev/null; then
+if ! grep -F 'manifest_path="system-release.json"' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish the static manifest at the release-artifacts root" >&2
+  exit 1
+fi
+
+if ! grep -F 'export FETCHABLE_ASSET_URL="${artifact_url}"' "${workflow}" >/dev/null; then
   echo "system release manifest must receive the fetchable artifact URL" >&2
   exit 1
 fi
 
 if ! grep -F '"url": os.environ["FETCHABLE_ASSET_URL"]' "${workflow}" >/dev/null; then
   echo "system release manifest must point asset.url at the fetchable artifact URL" >&2
+  exit 1
+fi
+
+if ! grep -F 'Path("dist/system-release.json").write_text' "${workflow}" >/dev/null; then
+  echo "system release workflow must write the static release manifest into dist" >&2
+  exit 1
+fi
+
+if ! grep -F 'cp dist/system-release.json "artifacts-worktree/${manifest_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must copy the manifest into release-artifacts" >&2
+  exit 1
+fi
+
+if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${manifest_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must commit the ZIP and manifest together on release-artifacts" >&2
+  exit 1
+fi
+
+publish_line="$(grep -nF -- '- name: Publish release' "${workflow}" | head -n 1 | cut -d: -f1)"
+artifact_line="$(grep -nF -- '- name: Publish fetchable artifact' "${workflow}" | head -n 1 | cut -d: -f1)"
+notify_line="$(grep -nF -- '- name: Notify YAP template' "${workflow}" | head -n 1 | cut -d: -f1)"
+if [[ -z "${publish_line}" || -z "${artifact_line}" || -z "${notify_line}" || "${publish_line}" -ge "${artifact_line}" || "${artifact_line}" -ge "${notify_line}" ]]; then
+  echo "system release workflow must publish the release-artifacts manifest after release publication and before YAP notification" >&2
   exit 1
 fi
 
@@ -198,38 +226,38 @@ if ! grep -F 'dist/release-published.json' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'git add assets/system-release.json' "${workflow}" >/dev/null; then
-  echo "system release workflow must commit assets/system-release.json" >&2
+if grep -F 'git add assets/system-release.json' "${workflow}" >/dev/null; then
+  echo "system release workflow must not commit assets/system-release.json to main" >&2
   exit 1
 fi
 
-if ! grep -F 'git commit -m "Update system release manifest"' "${workflow}" >/dev/null; then
-  echo "system release workflow must use a stable manifest commit message" >&2
+if grep -F 'git commit -m "Update system release manifest"' "${workflow}" >/dev/null; then
+  echo "system release workflow must not create main manifest commits" >&2
   exit 1
 fi
 
-if ! grep -F 'manifest_branch="codex/system-release-manifest-${{ steps.plan.outputs.next_tag }}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must publish manifest commits to a dedicated branch" >&2
+if grep -F 'manifest_branch=' "${workflow}" >/dev/null; then
+  echo "system release workflow must not create manifest PR branches" >&2
   exit 1
 fi
 
-if ! grep -F 'git push --force-with-lease origin "HEAD:${manifest_branch}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must push the manifest commit to a PR branch" >&2
+if grep -F 'git push --force-with-lease origin "HEAD:${manifest_branch}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must not push manifest PR branches" >&2
   exit 1
 fi
 
-if ! grep -F 'gh pr create' "${workflow}" >/dev/null; then
-  echo "system release workflow must open a pull request for manifest updates" >&2
+if grep -F 'gh pr create' "${workflow}" >/dev/null; then
+  echo "system release workflow must not open pull requests for manifest updates" >&2
   exit 1
 fi
 
-if ! grep -F 'gh pr edit "${pr_number}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must update an existing manifest pull request" >&2
+if grep -F 'gh pr edit' "${workflow}" >/dev/null; then
+  echo "system release workflow must not edit pull requests for manifest updates" >&2
   exit 1
 fi
 
-if ! grep -F 'pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:${manifest_branch}' "${workflow}" >/dev/null; then
-  echo "system release workflow must look up manifest pull requests by exact head owner and branch" >&2
+if grep -F 'pulls?state=open&head=' "${workflow}" >/dev/null; then
+  echo "system release workflow must not look up manifest pull requests" >&2
   exit 1
 fi
 

@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: system-release
@@ -88,41 +87,6 @@ jobs:
             echo "archive_size=${archive_size}"
             echo "archive_sha256=${archive_sha256}"
           } >> "${GITHUB_OUTPUT}"
-
-      - name: Publish fetchable artifact
-        if: steps.plan.outputs.should_release == 'true'
-        id: artifact
-        run: |
-          set -euo pipefail
-          tag="${{ steps.plan.outputs.next_tag }}"
-          asset="${{ steps.plan.outputs.asset_name }}"
-          artifact_branch="release-artifacts"
-          artifact_path="${tag}/${asset}"
-          artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "${artifact_branch}" || true
-          rm -rf artifacts-worktree
-          if git show-ref --verify --quiet "refs/remotes/origin/${artifact_branch}"; then
-            git worktree add artifacts-worktree "origin/${artifact_branch}"
-          else
-            git worktree add --detach artifacts-worktree
-            git -C artifacts-worktree checkout --orphan "${artifact_branch}"
-            git -C artifacts-worktree rm -rf . >/dev/null 2>&1 || true
-          fi
-
-          mkdir -p "artifacts-worktree/${tag}"
-          cp "${{ steps.package.outputs.archive_path }}" "artifacts-worktree/${artifact_path}"
-          git -C artifacts-worktree add "${artifact_path}"
-          if git -C artifacts-worktree diff --cached --quiet; then
-            echo "Artifact ${artifact_path} is already published."
-          else
-            git -C artifacts-worktree commit -m "Publish ${asset}"
-            git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
-          fi
-          git worktree remove artifacts-worktree --force
-          echo "url=${artifact_url}" >> "${GITHUB_OUTPUT}"
 
       - name: Create draft release
         if: steps.plan.outputs.should_release == 'true'
@@ -293,6 +257,88 @@ jobs:
           PY
           gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" --input dist/publish-release.json >/dev/null
 
+      - name: Publish fetchable artifact
+        if: steps.plan.outputs.should_release == 'true'
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_ASSET: ${{ steps.plan.outputs.asset_name }}
+          EXPECTED_SIZE: ${{ steps.package.outputs.archive_size }}
+          EXPECTED_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.plan.outputs.next_tag }}"
+          asset="${{ steps.plan.outputs.asset_name }}"
+          artifact_branch="release-artifacts"
+          artifact_path="${tag}/${asset}"
+          manifest_path="system-release.json"
+          artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"
+          export FETCHABLE_ASSET_URL="${artifact_url}"
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" > dist/release-published.json
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          with open("dist/release-published.json", "r", encoding="utf-8") as fh:
+              release = json.load(fh)
+
+          expected_name = os.environ["EXPECTED_ASSET"]
+          expected_size = int(os.environ["EXPECTED_SIZE"])
+          expected_sha = os.environ["EXPECTED_SHA256"].lower()
+          assets = [asset for asset in release.get("assets", []) if asset.get("name") == expected_name]
+          if len(assets) != 1:
+              sys.exit(f"expected exactly one release asset named {expected_name}, found {len(assets)}")
+
+          asset = assets[0]
+          digest = str(asset.get("digest") or "").lower() or f"sha256:{expected_sha}"
+          manifest = {
+              "schemaVersion": 1,
+              "name": release.get("name") or release.get("tag_name") or "",
+              "tag": release.get("tag_name") or "",
+              "publishedAt": release.get("published_at") or release.get("created_at") or "",
+              "notes": release.get("body") or "",
+              "htmlUrl": release.get("html_url") or "",
+              "asset": {
+                  "name": asset.get("name") or expected_name,
+                  "url": os.environ["FETCHABLE_ASSET_URL"],
+                  "size": int(asset.get("size") or expected_size),
+                  "digest": digest
+              }
+          }
+          Path("dist/system-release.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${artifact_branch}" || true
+          rm -rf artifacts-worktree
+          if git show-ref --verify --quiet "refs/remotes/origin/${artifact_branch}"; then
+            git worktree add artifacts-worktree "origin/${artifact_branch}"
+          else
+            git worktree add --detach artifacts-worktree
+            git -C artifacts-worktree checkout --orphan "${artifact_branch}"
+            git -C artifacts-worktree rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p "artifacts-worktree/${tag}"
+          cp "${{ steps.package.outputs.archive_path }}" "artifacts-worktree/${artifact_path}"
+          cp dist/system-release.json "artifacts-worktree/${manifest_path}"
+          git -C artifacts-worktree add "${artifact_path}" "${manifest_path}"
+          if git -C artifacts-worktree diff --cached --quiet; then
+            echo "Artifact ${artifact_path} and ${manifest_path} are already published."
+          else
+            git -C artifacts-worktree commit -m "Publish ${asset}"
+            git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
+          fi
+          git worktree remove artifacts-worktree --force
+          echo "url=${artifact_url}" >> "${GITHUB_OUTPUT}"
+
       - name: Notify YAP template
         if: steps.plan.outputs.should_release == 'true'
         env:
@@ -338,93 +384,4 @@ jobs:
             --input dist/starter-dispatch.json; then
             echo "::warning title=YAP sync dispatch failed::Release ${NEXT_TAG} was published, but the optional dispatch to ${STARTER_REPOSITORY} failed."
             exit 0
-          fi
-
-      - name: Update static release manifest
-        if: steps.plan.outputs.should_release == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_ASSET: ${{ steps.plan.outputs.asset_name }}
-          EXPECTED_SIZE: ${{ steps.package.outputs.archive_size }}
-          EXPECTED_SHA256: ${{ steps.package.outputs.archive_sha256 }}
-          FETCHABLE_ASSET_URL: ${{ steps.artifact.outputs.url }}
-        run: |
-          set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" > dist/release-published.json
-          python3 - <<'PY'
-          import json
-          import os
-          import sys
-          from pathlib import Path
-
-          with open("dist/release-published.json", "r", encoding="utf-8") as fh:
-              release = json.load(fh)
-
-          expected_name = os.environ["EXPECTED_ASSET"]
-          expected_size = int(os.environ["EXPECTED_SIZE"])
-          expected_sha = os.environ["EXPECTED_SHA256"].lower()
-          assets = [asset for asset in release.get("assets", []) if asset.get("name") == expected_name]
-          if len(assets) != 1:
-              sys.exit(f"expected exactly one release asset named {expected_name}, found {len(assets)}")
-
-          asset = assets[0]
-          digest = str(asset.get("digest") or "").lower() or f"sha256:{expected_sha}"
-          manifest = {
-              "schemaVersion": 1,
-              "name": release.get("name") or release.get("tag_name") or "",
-              "tag": release.get("tag_name") or "",
-              "publishedAt": release.get("published_at") or release.get("created_at") or "",
-              "notes": release.get("body") or "",
-              "htmlUrl": release.get("html_url") or "",
-              "asset": {
-                  "name": asset.get("name") or expected_name,
-                  "url": os.environ["FETCHABLE_ASSET_URL"],
-                  "size": int(asset.get("size") or expected_size),
-                  "digest": digest
-              }
-          }
-          Path("assets/system-release.json").write_text(
-              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8"
-          )
-          PY
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/system-release.json
-          if git diff --cached --quiet; then
-            echo "System release manifest already up to date."
-            exit 0
-          fi
-          git commit -m "Update system release manifest"
-          manifest_branch="codex/system-release-manifest-${{ steps.plan.outputs.next_tag }}"
-          manifest_title="Update system release manifest for ${{ steps.plan.outputs.next_tag }}"
-          manifest_body="$(mktemp)"
-          cat > "${manifest_body}" <<EOF
-          Automated manifest refresh for ${{ steps.plan.outputs.next_tag }}.
-
-          This updates assets/system-release.json after the system release has been published. It is intentionally excluded from release planning, so merging this PR will not publish another system release.
-          EOF
-
-          git fetch origin "${GITHUB_REF_NAME}"
-          git rebase "origin/${GITHUB_REF_NAME}"
-          git push --force-with-lease origin "HEAD:${manifest_branch}"
-
-          pr_number="$(
-            gh api \
-              "repos/${GITHUB_REPOSITORY}/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:${manifest_branch}" \
-              --jq '.[0].number // empty'
-          )"
-          if [[ -n "${pr_number}" ]]; then
-            gh pr edit "${pr_number}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "${manifest_title}" \
-              --body-file "${manifest_body}"
-          else
-            gh pr create \
-              --repo "${GITHUB_REPOSITORY}" \
-              --base "${GITHUB_REF_NAME}" \
-              --head "${manifest_branch}" \
-              --title "${manifest_title}" \
-              --body-file "${manifest_body}"
           fi

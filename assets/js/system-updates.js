@@ -31,6 +31,7 @@ const elements = {
   root: null,
   status: null,
   downloadLink: null,
+  downloadButton: null,
   selectButton: null,
   fileInput: null,
   fileSection: null,
@@ -122,6 +123,10 @@ function setStatus(text, options = {}) {
 
 function setBusy(flag) {
   busy = !!flag;
+  if (elements.downloadButton) {
+    elements.downloadButton.disabled = busy;
+    elements.downloadButton.dataset.state = busy ? 'busy' : 'idle';
+  }
   if (elements.selectButton) {
     elements.selectButton.disabled = busy;
     elements.selectButton.dataset.state = busy ? 'busy' : 'idle';
@@ -432,14 +437,14 @@ async function fetchLatestReleaseFromManifest() {
 
 async function fetchLatestRelease() {
   if (releaseCache) return releaseCache;
-  let apiError = null;
+  let manifestError = null;
   try {
-    releaseCache = await fetchLatestReleaseFromApi();
+    releaseCache = await fetchLatestReleaseFromManifest();
   } catch (err) {
-    apiError = err;
+    manifestError = err;
     try {
-      releaseCache = await fetchLatestReleaseFromManifest();
-    } catch (manifestError) {
+      releaseCache = await fetchLatestReleaseFromApi();
+    } catch (apiError) {
       const message = apiError && apiError.rateLimited
         ? t('editor.systemUpdates.errors.releaseRateLimited')
         : t('editor.systemUpdates.errors.releaseFetch');
@@ -451,6 +456,21 @@ async function fetchLatestRelease() {
   }
   renderRelease();
   return releaseCache;
+}
+
+async function fetchSystemUpdateAsset(url) {
+  let response = null;
+  try {
+    response = await fetch(url, { cache: 'no-store' });
+  } catch (err) {
+    const error = new Error(t('editor.systemUpdates.errors.downloadFailed'));
+    error.cause = err;
+    throw error;
+  }
+  if (!response || !response.ok) {
+    throw new Error(t('editor.systemUpdates.errors.downloadFailed'));
+  }
+  return response.arrayBuffer();
 }
 
 function renderReleaseMeta() {
@@ -613,9 +633,36 @@ export async function analyzeArchive(buffer, filename) {
   setStatus(t('editor.systemUpdates.status.changes', { count }), { tone: 'warn' });
 }
 
+export async function stageLatestSystemUpdate() {
+  const release = await fetchLatestRelease();
+  if (!release || !release.asset || !release.asset.url) {
+    throw new Error(t('editor.systemUpdates.noAsset'));
+  }
+  const fileName = release.asset.name || release.name || 'press-system.zip';
+  setStatus(t('editor.systemUpdates.status.downloading'));
+  applySummary([], []);
+  const buffer = await fetchSystemUpdateAsset(release.asset.url);
+  await analyzeArchive(buffer, fileName);
+}
+
 function handleSelectClick() {
   if (busy || !elements.fileInput) return;
   elements.fileInput.click();
+}
+
+async function handleDownloadClick() {
+  if (busy) return;
+  setBusy(true);
+  try {
+    await stageLatestSystemUpdate();
+  } catch (err) {
+    console.error('System update download failed', err);
+    const message = err && err.message ? err.message : t('editor.systemUpdates.errors.downloadFailed');
+    setStatus(message, { tone: 'error' });
+    applySummary([], []);
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function handleFileInputChange(event) {
@@ -650,6 +697,7 @@ export function initSystemUpdates(options = {}) {
   elements.root = document.getElementById('mode-updates');
   elements.status = document.getElementById('systemUpdateStatus');
   elements.downloadLink = document.getElementById('systemUpdateDownloadLink');
+  elements.downloadButton = document.getElementById('btnSystemDownload');
   elements.selectButton = document.getElementById('btnSystemSelect');
   elements.fileInput = document.getElementById('systemUpdateFileInput');
   elements.fileSection = document.getElementById('systemUpdateFileSection');
@@ -661,6 +709,10 @@ export function initSystemUpdates(options = {}) {
 
   if (options && typeof options.onStateChange === 'function') listeners.add(options.onStateChange);
 
+  if (elements.downloadButton) {
+    elements.downloadButton.dataset.state = 'idle';
+    elements.downloadButton.addEventListener('click', handleDownloadClick);
+  }
   if (elements.selectButton) {
     elements.selectButton.dataset.state = 'idle';
     elements.selectButton.addEventListener('click', handleSelectClick);

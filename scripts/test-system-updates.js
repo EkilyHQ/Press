@@ -28,8 +28,10 @@ const {
   collectSystemUpdateArchiveEntries,
   clearSystemUpdateState,
   getDisplayReleaseNotes,
+  getSystemUpdateCommitFiles,
   normalizeSystemReleaseManifest,
   selectSystemUpdateAsset,
+  stageLatestSystemUpdate,
   verifySystemUpdateAsset
 } = await import('../assets/js/system-updates.js?system-updates-test');
 
@@ -65,6 +67,20 @@ function jsonResponse(data, options = {}) {
     },
     json: async () => data,
     arrayBuffer: async () => new ArrayBuffer(0)
+  };
+}
+
+function arrayBufferResponse(buffer, options = {}) {
+  const {
+    ok = true,
+    status = ok ? 200 : 500
+  } = options;
+  return {
+    ok,
+    status,
+    headers: { get: () => null },
+    json: async () => ({}),
+    arrayBuffer: async () => buffer
   };
 }
 
@@ -176,7 +192,7 @@ await run('hides stale release notes when no Press system package is attached', 
   }), 'Use `press-system-v3.3.37.zip`.');
 });
 
-await run('falls back to the static release manifest when the GitHub API is rate limited', async () => {
+await run('uses the static release manifest before the GitHub API', async () => {
   clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
   const buffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>manifest</p>' });
   const digest = await sha256(buffer);
@@ -218,8 +234,47 @@ await run('falls back to the static release manifest when the GitHub API is rate
 
   await analyzeArchive(buffer, 'press-system-v3.3.5.zip');
 
-  assert.equal(apiCalls, 1);
+  assert.equal(apiCalls, 0);
   assert.equal(manifestCalls, 1);
+  delete globalThis.fetch;
+});
+
+await run('falls back to the GitHub API when the static manifest is unavailable', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  const buffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>api</p>' });
+  const digest = await sha256(buffer);
+  let apiCalls = 0;
+  let manifestCalls = 0;
+
+  globalThis.fetch = async (input) => {
+    const url = String(input || '');
+    if (url.includes('assets/system-release.json')) {
+      manifestCalls += 1;
+      return jsonResponse({ message: 'not found' }, { ok: false, status: 404 });
+    }
+    if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
+      apiCalls += 1;
+      return jsonResponse({
+        name: 'v3.3.5',
+        tag_name: 'v3.3.5',
+        assets: [{
+          name: 'press-system-v3.3.5.zip',
+          browser_download_url: 'https://example.test/press-system-v3.3.5.zip',
+          size: buffer.byteLength,
+          digest: `sha256:${digest}`
+        }]
+      });
+    }
+    return {
+      ok: false,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    };
+  };
+
+  await analyzeArchive(buffer, 'press-system-v3.3.5.zip');
+
+  assert.ok(manifestCalls >= 1);
+  assert.equal(apiCalls, 1);
   delete globalThis.fetch;
 });
 
@@ -261,6 +316,95 @@ await run('uses the static manifest digest when verifying a selected archive', a
     () => analyzeArchive(buffer, 'press-system-v3.3.5.zip'),
     /sha-?256|digest|hash/i
   );
+  delete globalThis.fetch;
+});
+
+await run('downloads the manifest asset and stages system files', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  const buffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>downloaded</p>' });
+  const digest = await sha256(buffer);
+  const assetUrl = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.5/press-system-v3.3.5.zip';
+  let apiCalls = 0;
+  let assetCalls = 0;
+
+  globalThis.fetch = async (input) => {
+    const url = String(input || '');
+    if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
+      apiCalls += 1;
+      return jsonResponse({ message: 'api should not be needed' });
+    }
+    if (url.includes('assets/system-release.json')) {
+      return jsonResponse({
+        schemaVersion: 1,
+        name: 'v3.3.5',
+        tag: 'v3.3.5',
+        publishedAt: '2026-04-29T08:18:39Z',
+        notes: 'Manifest release notes',
+        htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.5',
+        asset: {
+          name: 'press-system-v3.3.5.zip',
+          url: assetUrl,
+          size: buffer.byteLength,
+          digest: `sha256:${digest}`
+        }
+      });
+    }
+    if (url === assetUrl) {
+      assetCalls += 1;
+      return arrayBufferResponse(buffer);
+    }
+    return {
+      ok: false,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    };
+  };
+
+  await stageLatestSystemUpdate();
+
+  const files = getSystemUpdateCommitFiles();
+  assert.equal(apiCalls, 0);
+  assert.equal(assetCalls, 1);
+  assert.deepEqual(files.map((file) => file.path), ['index.html']);
+  assert.equal(files[0].kind, 'system');
+  delete globalThis.fetch;
+});
+
+await run('keeps manual fallback available when automatic download fails', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  const assetUrl = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.5/press-system-v3.3.5.zip';
+
+  globalThis.fetch = async (input) => {
+    const url = String(input || '');
+    if (url.includes('assets/system-release.json')) {
+      return jsonResponse({
+        schemaVersion: 1,
+        name: 'v3.3.5',
+        tag: 'v3.3.5',
+        publishedAt: '2026-04-29T08:18:39Z',
+        notes: 'Manifest release notes',
+        htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.5',
+        asset: {
+          name: 'press-system-v3.3.5.zip',
+          url: assetUrl,
+          size: 123,
+          digest: 'sha256:535de2ddd3c612310760365196c21bb7ab7a5ffacbebb0dcdbd17f59bedc861a'
+        }
+      });
+    }
+    if (url === assetUrl) {
+      return arrayBufferResponse(new ArrayBuffer(0), { ok: false, status: 503 });
+    }
+    return {
+      ok: false,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    };
+  };
+
+  await assert.rejects(
+    () => stageLatestSystemUpdate(),
+    /download|下载|ダウンロード/i
+  );
+  assert.deepEqual(getSystemUpdateCommitFiles(), []);
   delete globalThis.fetch;
 });
 

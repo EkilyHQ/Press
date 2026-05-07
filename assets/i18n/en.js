@@ -224,6 +224,7 @@ const translations = {
         openDownload: 'Download release ZIP',
         downloadAssetLink: ({ name }) => `Download ${name}`,
         openReleasePage: 'View release on GitHub',
+        downloadAndCheck: 'Download and check',
         selectArchive: 'Select downloaded ZIP',
         filesHeading: 'Pending system files',
         releaseNotes: 'Release notes',
@@ -234,7 +235,8 @@ const translations = {
         assetWithHash: ({ name, size, hash }) => `Asset: ${name} (${size}) — SHA-256 ${hash}`,
         noAsset: 'No Press system update package was attached to this release.',
         status: {
-          idle: 'Download the latest release ZIP, then select it to check for updates.',
+          idle: 'Download and check the latest release, or select a downloaded ZIP.',
+          downloading: 'Downloading latest release ZIP…',
           reading: 'Reading archive…',
           verifying: 'Verifying archive…',
           noChanges: 'System files are up to date.',
@@ -246,6 +248,7 @@ const translations = {
           releaseRateLimited: 'GitHub API is rate limited. Try again later, or manually select a downloaded ZIP.',
           emptyFile: 'The selected file is empty.',
           invalidArchive: 'The selected ZIP could not be read as a Press release.',
+          downloadFailed: 'Unable to download the latest system update package. Select a downloaded ZIP instead.',
           sizeMismatch: ({ expected, actual }) => `The selected archive size (${actual}) does not match the release asset (${expected}).`,
           digestMismatch: 'The selected archive SHA-256 does not match the release asset.',
           generic: 'System update failed. Please try again.'

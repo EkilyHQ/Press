@@ -89,6 +89,41 @@ jobs:
             echo "archive_sha256=${archive_sha256}"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: Publish fetchable artifact
+        if: steps.plan.outputs.should_release == 'true'
+        id: artifact
+        run: |
+          set -euo pipefail
+          tag="${{ steps.plan.outputs.next_tag }}"
+          asset="${{ steps.plan.outputs.asset_name }}"
+          artifact_branch="release-artifacts"
+          artifact_path="${tag}/${asset}"
+          artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${artifact_branch}" || true
+          rm -rf artifacts-worktree
+          if git show-ref --verify --quiet "refs/remotes/origin/${artifact_branch}"; then
+            git worktree add artifacts-worktree "origin/${artifact_branch}"
+          else
+            git worktree add --detach artifacts-worktree
+            git -C artifacts-worktree checkout --orphan "${artifact_branch}"
+            git -C artifacts-worktree rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p "artifacts-worktree/${tag}"
+          cp "${{ steps.package.outputs.archive_path }}" "artifacts-worktree/${artifact_path}"
+          git -C artifacts-worktree add "${artifact_path}"
+          if git -C artifacts-worktree diff --cached --quiet; then
+            echo "Artifact ${artifact_path} is already published."
+          else
+            git -C artifacts-worktree commit -m "Publish ${asset}"
+            git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
+          fi
+          git worktree remove artifacts-worktree --force
+          echo "url=${artifact_url}" >> "${GITHUB_OUTPUT}"
+
       - name: Create draft release
         if: steps.plan.outputs.should_release == 'true'
         id: create
@@ -312,6 +347,7 @@ jobs:
           EXPECTED_ASSET: ${{ steps.plan.outputs.asset_name }}
           EXPECTED_SIZE: ${{ steps.package.outputs.archive_size }}
           EXPECTED_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+          FETCHABLE_ASSET_URL: ${{ steps.artifact.outputs.url }}
         run: |
           set -euo pipefail
           gh api "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" > dist/release-published.json
@@ -342,7 +378,7 @@ jobs:
               "htmlUrl": release.get("html_url") or "",
               "asset": {
                   "name": asset.get("name") or expected_name,
-                  "url": asset.get("browser_download_url") or f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/{release.get('tag_name')}/{expected_name}",
+                  "url": os.environ["FETCHABLE_ASSET_URL"],
                   "size": int(asset.get("size") or expected_size),
                   "digest": digest
               }

@@ -222,6 +222,7 @@ const translations = {
         openDownload: '下載釋出 ZIP',
         downloadAssetLink: ({ name }) => `下載 ${name}`,
         openReleasePage: '在 GitHub 檢視釋出頁',
+        downloadAndCheck: '下載並檢查更新',
         selectArchive: '選擇已下載的 ZIP',
         filesHeading: '待更新的系統檔案',
         releaseNotes: '釋出說明',
@@ -232,7 +233,8 @@ const translations = {
         assetWithHash: ({ name, size, hash }) => `附件：${name}（${size}） — SHA-256 ${hash}`,
         noAsset: '此釋出沒有可下載的 Press 系統更新包。',
         status: {
-          idle: '先下載最新的釋出 ZIP，然後選擇該檔案以檢查更新。',
+          idle: '下載並檢查最新釋出，或選擇已下載的 ZIP。',
+          downloading: '正在下載最新釋出 ZIP…',
           reading: '正在讀取壓縮包…',
           verifying: '正在校驗壓縮包…',
           noChanges: '系統檔案已是最新狀態。',
@@ -244,6 +246,7 @@ const translations = {
           releaseRateLimited: 'GitHub API 已限流。請稍後重試，或手動選擇已下載的 ZIP。',
           emptyFile: '選擇的檔案為空。',
           invalidArchive: '選中的 ZIP 無法作為 Press 釋出讀取。',
+          downloadFailed: '無法下載最新系統更新包。請改為選擇已下載的 ZIP。',
           sizeMismatch: ({ expected, actual }) => `選中的壓縮包大小（${actual}）與釋出附件（${expected}）不一致。`,
           digestMismatch: '選中的壓縮包 SHA-256 與釋出附件不一致。',
           generic: '系統更新失敗，請重試。'

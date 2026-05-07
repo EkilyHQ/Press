@@ -2110,7 +2110,7 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=20260505welcome';/,
+  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=theme-manager-20260507';/,
   'composer should use the shared editor content tree model'
 );
 

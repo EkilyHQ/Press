@@ -12,7 +12,7 @@ import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=20260506them
 import { generateSitemapData, resolveSiteBaseUrl } from './seo.js';
 import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js';
 import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=20260505welcome';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -4350,7 +4350,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=20260506theme"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=theme-manager-20260507"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

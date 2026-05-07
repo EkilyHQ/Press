@@ -22,6 +22,7 @@ let layoutPromise = null;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
+const NATIVE_MODULE_CACHE_KEY = 'markdown-safety-20260508';
 
 const EFFECT_VIEW_NAMES = {
   renderPostView: 'post',
@@ -278,11 +279,25 @@ async function loadManifest(pack) {
   return manifest;
 }
 
+function appendImportCacheKey(entry, cacheKey) {
+  const raw = String(entry || '');
+  const key = String(cacheKey || '').trim();
+  if (!raw || !key) return raw;
+  const hashIndex = raw.indexOf('#');
+  const pathAndQuery = hashIndex >= 0 ? raw.slice(0, hashIndex) : raw;
+  const hash = hashIndex >= 0 ? raw.slice(hashIndex) : '';
+  const joiner = pathAndQuery.includes('?') ? '&' : '?';
+  return `${pathAndQuery}${joiner}v=${encodeURIComponent(key)}${hash}`;
+}
+
 async function mountModule(pack, entry, context, manifest) {
   const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
   if (!safeEntry) return;
   if (safeEntry.includes('..') || safeEntry.includes('\\')) return;
-  const path = `../themes/${encodeURIComponent(pack)}/${safeEntry}`;
+  const moduleEntry = pack === DEFAULT_PACK
+    ? appendImportCacheKey(safeEntry, NATIVE_MODULE_CACHE_KEY)
+    : safeEntry;
+  const path = `../themes/${encodeURIComponent(pack)}/${moduleEntry}`;
   const mod = await import(path);
   const modApi = extractThemeApi(mod);
   if (modApi) mergeThemeApi(context.theme, modApi);

@@ -1,5 +1,44 @@
-import { escapeHtml, escapeMarkdown, sanitizeUrl, resolveImageSrc } from './utils.js';
+import { resolveImageSrc, sanitizeUrl } from './safe-html.js';
+import { escapeHtml, escapeMarkdown } from './utils.js';
 import { stripFrontMatter } from './content.js';
+
+const DEFAULT_PARSE_LIMITS = {
+  maxDepth: 8,
+  maxInputLength: 512 * 1024,
+  maxLines: 12000
+};
+
+function positiveInt(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.floor(n);
+}
+
+function nonNegativeInt(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.floor(n);
+}
+
+function normalizeParseOptions(options = {}) {
+  const input = options && typeof options === 'object' ? options : {};
+  const limits = input.limits && typeof input.limits === 'object' ? input.limits : {};
+  return {
+    depth: Math.max(0, Math.floor(Number(input.depth) || 0)),
+    maxDepth: nonNegativeInt(input.maxDepth ?? limits.maxDepth, DEFAULT_PARSE_LIMITS.maxDepth),
+    maxInputLength: positiveInt(input.maxInputLength ?? limits.maxInputLength, DEFAULT_PARSE_LIMITS.maxInputLength),
+    maxLines: positiveInt(input.maxLines ?? limits.maxLines, DEFAULT_PARSE_LIMITS.maxLines)
+  };
+}
+
+function renderMarkdownAsText(markdown) {
+  const text = escapeHtml(String(markdown || ''));
+  return text ? `<p>${text}</p>` : '';
+}
+
+function parseNestedMarkdown(markdown, baseDir, options) {
+  return mdParse(markdown, baseDir, { ...options, depth: options.depth + 1 });
+}
 
 function isPipeTableSeparator(line) {
   // Matches a classic Markdown table separator like:
@@ -169,10 +208,20 @@ function isFenceCloseLine(line, fence) {
   return re.test(text);
 }
 
-export function mdParse(markdown, baseDir) {
+export function mdParse(markdown, baseDir, options = {}) {
+  const parseOptions = normalizeParseOptions(options);
+  if (parseOptions.depth > parseOptions.maxDepth) {
+    return { post: renderMarkdownAsText(markdown), toc: '' };
+  }
+
   // Strip front matter before parsing
-  const cleanedMarkdown = stripFrontMatter(markdown);
-  const lines = String(cleanedMarkdown || '').split('\n');
+  const rawMarkdown = String(markdown || '');
+  const boundedMarkdown = rawMarkdown.length > parseOptions.maxInputLength
+    ? rawMarkdown.slice(0, parseOptions.maxInputLength)
+    : rawMarkdown;
+  const cleanedMarkdown = stripFrontMatter(boundedMarkdown);
+  let lines = String(cleanedMarkdown || '').split('\n');
+  if (lines.length > parseOptions.maxLines) lines = lines.slice(0, parseOptions.maxLines);
   let html = '', tochtml = [], tochirc = [];
   let activeCodeFence = null, isInTable = false, isInTodo = false, isInPara = false;
   let codeLang = '';
@@ -266,15 +315,15 @@ export function mdParse(markdown, baseDir) {
           })[t] || '📝';
           const role = (type === 'warning' || type === 'caution' || type === 'danger' || type === 'error') ? 'alert' : 'note';
           const body = qLines.slice(1).join('\n');
-          const bodyHtml = mdParse(body, baseDir).post;
+          const bodyHtml = parseNestedMarkdown(body, baseDir, parseOptions).post;
           const titleHtml = replaceInline(escapeHtml(label), baseDir);
           html += `<div class="callout callout-${type}" data-callout="${type}" role="${role}"><div class="callout-title"><span class="callout-icon" aria-hidden="true">${escapeHtml(iconFor(type))}</span><span class="callout-label">${titleHtml}</span></div><div class="callout-body">${bodyHtml}</div></div>`;
         } else {
-          html += `<blockquote>${mdParse(quote, baseDir).post}</blockquote>`;
+          html += `<blockquote>${parseNestedMarkdown(quote, baseDir, parseOptions).post}</blockquote>`;
         }
       } catch (_) {
         // Fallback to plain blockquote rendering on any parsing error
-        try { html += `<blockquote>${mdParse(quote, baseDir).post}</blockquote>`; } catch (_) { html += `<blockquote>${escapeHtml(quote)}</blockquote>`; }
+        try { html += `<blockquote>${parseNestedMarkdown(quote, baseDir, parseOptions).post}</blockquote>`; } catch (_) { html += `<blockquote>${escapeHtml(quote)}</blockquote>`; }
       }
       i = j - 1;
       continue;
@@ -289,7 +338,7 @@ export function mdParse(markdown, baseDir) {
         if (i + 1 < lines.length && isPipeTableSeparator(lines[i + 1])) {
           isInTable = true;
           html += '<div class="table-wrap"><table><thead><tr>';
-          for (let j = 1; j < tabs.length - 1; j++) html += `<th>${mdParse(tabs[j].trim(), baseDir).post}</th>`;
+          for (let j = 1; j < tabs.length - 1; j++) html += `<th>${parseNestedMarkdown(tabs[j].trim(), baseDir, parseOptions).post}</th>`;
           html += '</tr></thead><tbody>';
           // Skip the separator line
           i += 1;
@@ -303,7 +352,7 @@ export function mdParse(markdown, baseDir) {
         // Inside a table body: ignore any stray separator lines
         if (isPipeTableSeparator(line)) { continue; }
         html += '<tr>';
-        for (let j = 1; j < tabs.length - 1; j++) html += `<td>${mdParse(tabs[j].trim(), baseDir).post}</td>`;
+        for (let j = 1; j < tabs.length - 1; j++) html += `<td>${parseNestedMarkdown(tabs[j].trim(), baseDir, parseOptions).post}</td>`;
         html += '</tr>';
       }
       // Close table if the next line is not a pipe row

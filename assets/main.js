@@ -1,13 +1,14 @@
 import { configureFetchCachePolicy } from './js/cache-control.js';
 import './js/components.js';
 import { createContentModel } from './js/content-model.js';
-import { mdParse } from './js/markdown.js';
+import { mdParse } from './js/markdown.js?v=markdown-safety-20260508';
 import { setupAnchors, setupTOC } from './js/toc.js';
 import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=markdown-safety-20260508';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
-import { getQueryVariable, setDocTitle, setBaseSiteTitle, cardImageSrc, fallbackCover, renderTags, slugifyTab, formatDisplayDate, isModifiedClick, getContentRoot, sanitizeImageUrl, sanitizeUrl } from './js/utils.js';
+import { getContentRoot, setSafeHtml } from './js/safe-html.js';
+import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
 import {
   initI18n,
   t,
@@ -749,7 +750,8 @@ function createThemeRuntimeContext({
       setupTOC,
       ensureAutoHeight,
       getFile,
-      getContentRoot
+      getContentRoot,
+      setSafeHtml
     },
     themeConfig: siteConfig,
     manifest: layout && layout.manifest,
@@ -854,6 +856,7 @@ function displayPost(postname) {
       tocHtml: output.toc,
       rawMarkdown: markdown,
       markdown,
+      baseDir,
       fallbackTitle,
       postMetadata,
       postId: postname,
@@ -880,6 +883,7 @@ function displayPost(postname) {
         ensureAutoHeight,
         getFile,
         getContentRoot,
+        setSafeHtml,
         withLangParam,
         fetchMarkdown: (loc) => getFile(`${getContentRoot()}/${loc}`),
         makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
@@ -1342,6 +1346,7 @@ function displayStaticTab(slug) {
         tocHtml: output.toc,
         rawMarkdown: md,
         markdown: md,
+        baseDir,
         tab,
         slug,
         siteConfig,
@@ -1365,6 +1370,7 @@ function displayStaticTab(slug) {
           ensureAutoHeight,
           getFile,
           getContentRoot,
+          setSafeHtml,
           withLangParam,
           fetchMarkdown: (loc) => getFile(`${getContentRoot()}/${loc}`),
           makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)

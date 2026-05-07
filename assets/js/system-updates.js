@@ -1,5 +1,5 @@
-import { mdParse } from './markdown.js';
-import { setSafeHtml } from './utils.js';
+import { mdParse } from './markdown.js?v=markdown-safety-20260508';
+import { setSafeHtml } from './safe-html.js';
 import { t } from './i18n.js?v=20260506theme';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 

@@ -1,5 +1,5 @@
 import { parseFrontMatter, stripFrontMatter, stripMarkdownToText } from './content.js';
-import { sanitizeUrl } from './utils.js';
+import { sanitizeUrl } from './safe-html.js';
 
 const VIDEO_EXT_RE = /\.(mp4|mov|webm|ogg)(\?.*)?$/i;
 

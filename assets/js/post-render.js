@@ -1,4 +1,4 @@
-import { sanitizeImageUrl, sanitizeUrl } from './utils.js';
+import { sanitizeImageUrl, sanitizeUrl } from './safe-html.js';
 
 // Ensure images defer offscreen loading for performance
 export function applyLazyLoadingIn(container) {

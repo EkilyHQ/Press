@@ -10,7 +10,7 @@ import {
 } from './yaml.js';
 import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=20260506theme';
 import { generateSitemapData, resolveSiteBaseUrl } from './seo.js';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=markdown-safety-20260508';
 import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=theme-catalog-remote-20260507';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 
@@ -4519,7 +4519,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=post-card-slot-safety-20260507"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=markdown-safety-20260508"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

@@ -1,5 +1,6 @@
 import { installLightbox } from '../../../js/lightbox.js';
-import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, sanitizeImageUrl, renderSkeletonArticle } from '../../../js/utils.js';
+import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
+import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
 import { attachHoverTooltip } from '../../../js/tags.js';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
 import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js';
@@ -156,6 +157,82 @@ function getUtility(params = {}, key, fallback) {
   } catch (_) {
     return fallback;
   }
+}
+
+function getRenderedMarkdownBaseDir(params = {}) {
+  try {
+    if (params.baseDir != null) return String(params.baseDir || '');
+    if (params.content && params.content.baseDir != null) return String(params.content.baseDir || '');
+    if (params.ctx && params.ctx.content && params.ctx.content.baseDir != null) return String(params.ctx.content.baseDir || '');
+  } catch (_) {}
+  return '';
+}
+
+function clearElementChildren(target) {
+  if (!target) return;
+  try {
+    if (typeof target.replaceChildren === 'function') {
+      target.replaceChildren();
+      return;
+    }
+  } catch (_) {}
+  try { target.textContent = ''; } catch (_) {
+    try { target.innerHTML = ''; } catch (__) {}
+  }
+}
+
+function moveChildNodes(source, target) {
+  if (!source || !target) return false;
+  let moved = false;
+  try {
+    while (source.firstChild) {
+      target.appendChild(source.firstChild);
+      moved = true;
+    }
+  } catch (_) {}
+  if (!moved && source.childNodes && source.childNodes.length) {
+    try {
+      Array.from(source.childNodes).forEach(node => target.appendChild(node));
+      moved = true;
+    } catch (_) {}
+  }
+  return moved;
+}
+
+function appendTrustedHtml(target, html, documentRef = defaultDocument) {
+  const markup = String(html || '');
+  if (!target || !markup) return false;
+  try {
+    if (documentRef && typeof documentRef.createElement === 'function') {
+      const holder = documentRef.createElement('div');
+      holder.innerHTML = markup;
+      if (moveChildNodes(holder, target)) return true;
+    }
+  } catch (_) {}
+  try {
+    if (typeof target.insertAdjacentHTML === 'function') {
+      target.insertAdjacentHTML('beforeend', markup);
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+function appendRenderedMarkdownHtml(target, html, baseDir, documentRef = defaultDocument) {
+  const markup = String(html || '');
+  if (!target || !markup) return false;
+  try {
+    if (documentRef && typeof documentRef.createElement === 'function') {
+      const holder = documentRef.createElement('div');
+      setSafeHtml(holder, markup, baseDir, { alreadySanitized: true });
+      return moveChildNodes(holder, target);
+    }
+  } catch (_) {}
+  try {
+    setSafeHtml(target, markup, baseDir, { alreadySanitized: true });
+    return true;
+  } catch (_) {}
+  return false;
 }
 
 function getFetcher(windowRef = defaultWindow) {
@@ -660,11 +737,13 @@ function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowR
   const translate = params.translate || params.translator || t;
   const title = params.articleTitle != null ? String(params.articleTitle) : '';
   const tocHtml = params.tocHtml || '';
+  const baseDir = getRenderedMarkdownBaseDir(params);
   if (typeof toc.renderToc === 'function') {
     try { toc.setAttribute('toggle-label', translate('toc.toggleAria') || 'Toggle section'); } catch (_) {}
     toc.renderToc({
       articleTitle: title,
       tocHtml,
+      baseDir,
       topLabel: translate('ui.top'),
       topAria: translate('ui.backToTop') || translate('ui.top') || 'Back to top',
       contentRoot: scope.mainElement || getMainRegion(documentRef)
@@ -678,7 +757,9 @@ function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowR
   const topLabel = translate('ui.top');
   const aria = translate('ui.backToTop') || translate('ui.top') || 'Back to top';
   const safeTitle = title ? `<span>${escapeHtml(title)}</span>` : '';
-  toc.innerHTML = `<div class="toc-header">${safeTitle}<button type="button" class="toc-top" aria-label="${escapeHtml(String(aria || 'Back to top'))}">${escapeHtml(String(topLabel || 'Top'))}</button></div>${tocHtml}`;
+  clearElementChildren(toc);
+  appendTrustedHtml(toc, `<div class="toc-header">${safeTitle}<button type="button" class="toc-top" aria-label="${escapeHtml(String(aria || 'Back to top'))}">${escapeHtml(String(topLabel || 'Top'))}</button></div>`, documentRef);
+  appendRenderedMarkdownHtml(toc, tocHtml, baseDir, documentRef);
   const btn = toc.querySelector('.toc-top');
   if (btn) {
     btn.addEventListener('click', (e) => {
@@ -1106,7 +1187,12 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
   let outdated = '';
   try { outdated = renderOutdatedFn(metadata, siteConfig) || ''; } catch (_) { outdated = ''; }
 
-  container.innerHTML = `${outdated}${topMeta}${markdownHtml}${bottomMeta}`;
+  const markdownBaseDir = getRenderedMarkdownBaseDir(params);
+  clearElementChildren(container);
+  appendTrustedHtml(container, outdated, documentRef);
+  appendTrustedHtml(container, topMeta, documentRef);
+  appendRenderedMarkdownHtml(container, markdownHtml, markdownBaseDir, documentRef);
+  appendTrustedHtml(container, bottomMeta, documentRef);
 
   const renderNav = getUtility(params, 'renderPostNav', renderPostNav);
   try { renderNav(container, postsIndex, postId); } catch (_) {}
@@ -1218,7 +1304,7 @@ function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, w
   if (!container) return { handled: false, title: params && params.tab && params.tab.title ? String(params.tab.title) : '' };
 
   const markdownHtml = params.markdownHtml || '';
-  container.innerHTML = markdownHtml;
+  setSafeHtml(container, markdownHtml, getRenderedMarkdownBaseDir(params), { alreadySanitized: true });
 
   const hydrateImages = getUtility(params, 'hydratePostImages', (selector) => hydratePostImages(selector));
   try { hydrateImages(container); } catch (_) {}

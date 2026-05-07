@@ -16,6 +16,7 @@ const toc = read('assets/js/toc.js');
 const nativeSearch = read('assets/themes/native/modules/search-box.js');
 const nativeToc = read('assets/themes/native/modules/toc.js');
 const nativeInteractions = read('assets/themes/native/modules/interactions.js');
+const themeLayout = read('assets/js/theme-layout.js');
 const postCardHtml = read('assets/js/post-card-html.js');
 const nativeCss = read('assets/themes/native/base.css');
 
@@ -78,9 +79,13 @@ assert.notEqual(tocBoundGuard, -1, 'press-toc should keep a listener binding gua
 assert.ok(tocMapSet < tocBoundGuard, 'press-toc should rebuild _idToLink before skipping already-bound anchors');
 
 assert.match(main, /import '\.\/js\/components\.js';/, 'main should register custom elements before theme layout mounting');
+assert.match(main, /from '\.\/js\/markdown\.js\?v=markdown-safety-20260508';/, 'main should cache-bust markdown parser when sanitizer boundaries change');
+assert.match(main, /from '\.\/js\/theme-layout\.js\?v=markdown-safety-20260508';/, 'main should cache-bust theme layout when native module cache keys change');
 assert.match(main, /from '\.\/js\/i18n\.js\?v=20260506theme';/, 'main should use the same versioned i18n module instance as shared UI modules');
-assert.match(indexHtml, /src="assets\/main\.js\?v=post-card-slot-safety-20260507"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=post-card-slot-safety-20260507"/, 'composer export template should use the same main module URL as index');
+assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = 'markdown-safety-20260508'/, 'theme layout should cache-bust native modules when sanitizer boundaries change');
+assert.match(themeLayout, /appendImportCacheKey\(safeEntry, NATIVE_MODULE_CACHE_KEY\)/, 'theme layout should apply the native module cache key at import time');
+assert.match(indexHtml, /src="assets\/main\.js\?v=markdown-safety-20260508"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=markdown-safety-20260508"/, 'composer export template should use the same main module URL as index');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');

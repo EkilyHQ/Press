@@ -124,6 +124,14 @@ About:
 与文章不同，页面对应的 Markdown 文件可以不包含前言区。
 
 
+## Press Markdown 语法
+Press 使用一套为 Press 站点设计的小型、安全的类 Markdown 渲染器。它不是完整的 CommonMark 或 GitHub Flavored Markdown 实现。
+
+支持的语法包括标题、段落、粗体、斜体、删除线、行内代码、围栏代码块、普通链接、普通图片、简单有序/无序列表、引用块、简单管道表格、`- [ ]` / `- [x]` 任务列表、Press 站内链接卡片、Obsidian 风格 callout，以及 `![[...]]` 嵌入。图片与视频路径会相对于当前 Markdown 文件解析。
+
+Press 不支持 raw HTML。`<div>`、`<script>` 和 HTML 注释等内容会作为文本显示，而不会被插入页面。对于不支持或风险较高的语法，编辑器的块视图也可能将其保留为 Markdown 源码，而不是转换成结构化可编辑块。
+
+
 ## 图片与视频
 Press 支持在 Markdown 中插入图片和视频。所有 Markdown 文件中的图片和视频都会以该文件的相对路径进行引用。例如在 [为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md&lang=chs) 这篇文章中，其于内容开头处插入了一张图片：
 

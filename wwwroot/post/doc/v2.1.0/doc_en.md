@@ -124,6 +124,14 @@ About:
 Unlike posts, page Markdown files may omit front matter.
 
 
+## Press Markdown Syntax
+Press uses a small, safe Markdown-like renderer built for Press sites. It is not a full CommonMark or GitHub Flavored Markdown implementation.
+
+Supported syntax includes headings, paragraphs, bold, italic, strikethrough, inline code, fenced code blocks, ordinary links, ordinary images, simple ordered and unordered lists, blockquotes, simple pipe tables, `- [ ]` / `- [x]` task lists, Press link cards, Obsidian-style callouts, and `![[...]]` embeds. Images and videos resolve relative to the current Markdown file.
+
+Raw HTML is not supported. Tags such as `<div>`, `<script>`, and HTML comments are displayed as text rather than inserted into the page. Unsupported or risky syntax may also stay as Markdown source in the editor block view instead of becoming a structured editable block.
+
+
 ## Images and Videos
 Press supports images and videos in Markdown. Paths resolve relative to the current Markdown file. In Configure GitHub Pages for Press, the content begins with an image:
 

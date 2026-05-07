@@ -241,13 +241,15 @@ function validateThemeManifestContract(themeManifest, availablePaths) {
   }
 
   const modules = validateThemeManifestFiles(themeManifest, availablePaths);
-  const views = requireThemeObject(themeManifest.views, 'views');
-  REQUIRED_THEME_VIEWS.forEach((view) => {
-    validateThemeViewDeclaration(views, view, modules);
-  });
-  OPTIONAL_THEME_VIEWS.forEach((view) => {
-    if (views[view] != null) validateThemeViewDeclaration(views, view, modules);
-  });
+  if (themeManifest.views != null) {
+    const views = requireThemeObject(themeManifest.views, 'views');
+    REQUIRED_THEME_VIEWS.forEach((view) => {
+      validateThemeViewDeclaration(views, view, modules);
+    });
+    OPTIONAL_THEME_VIEWS.forEach((view) => {
+      if (views[view] != null) validateThemeViewDeclaration(views, view, modules);
+    });
+  }
 
   const regions = requireThemeObject(themeManifest.regions, 'regions');
   REQUIRED_THEME_REGIONS.forEach((region) => {

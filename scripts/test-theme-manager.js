@@ -301,6 +301,18 @@ await run('accepts theme manifests without optional view states', async () => {
   assert.equal(archive.files.some((file) => file.path === 'theme.json'), true);
 });
 
+await run('accepts theme manifests without top-level views', async () => {
+  const manifest = makeThemeManifest();
+  delete manifest.views;
+  const archive = collectThemeArchiveEntries(makeZip({
+    'press-theme-test/theme.json': JSON.stringify(manifest, null, 2),
+    'press-theme-test/theme.css': ':root{}',
+    'press-theme-test/modules/layout.js': 'export default { views: { post() {}, posts() {}, search() {}, tab() {} } };'
+  }));
+  assert.equal(archive.slug, 'test');
+  assert.equal(archive.files.some((file) => file.path === 'theme.json'), true);
+});
+
 await run('verifies ZIP size and digest before official install', async () => {
   const buffer = makeThemeZip();
   const digest = await sha256(buffer);

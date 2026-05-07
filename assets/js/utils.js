@@ -68,17 +68,29 @@ function decodeUrlEntitiesForSchemeCheck(value) {
   });
 }
 
-function getUrlSchemeForCheck(value) {
-  const decoded = decodeUrlEntitiesForSchemeCheck(value).replace(/[\u0000-\u0020\u007f]+/g, '');
-  const proto = decoded.toLowerCase().match(/^([a-z][a-z0-9+.-]*):/);
+function normalizeUrlForSchemeCheck(value) {
+  return decodeUrlEntitiesForSchemeCheck(value).replace(/[\u0000-\u0020\u007f]+/g, '');
+}
+
+function getUrlSchemeFromNormalized(value) {
+  const proto = String(value || '').toLowerCase().match(/^([a-z][a-z0-9+.-]*):/);
   return proto ? proto[1] : '';
 }
 
 export function sanitizeUrl(url) {
   const s = String(url || '').trim();
-  const p = getUrlSchemeForCheck(s);
+  const normalized = normalizeUrlForSchemeCheck(s);
+  const p = getUrlSchemeFromNormalized(normalized);
   if (!p) return s; // relative URL
   return ['http', 'https', 'mailto', 'tel'].includes(p) ? s : '#';
+}
+
+function sanitizeUrlForDomAttribute(url) {
+  const s = String(url || '').trim();
+  const normalized = normalizeUrlForSchemeCheck(s);
+  const p = getUrlSchemeFromNormalized(normalized);
+  if (!p) return s;
+  return ['http', 'https', 'mailto', 'tel'].includes(p) ? normalized : '#';
 }
 
 // Stricter URL sanitizer for image sources.
@@ -174,7 +186,10 @@ function __press_rewriteHref(val, baseDir) {
   const s = String(val || '').trim();
   if (!s) return s;
   if (s.startsWith('#') || s.startsWith('?')) return s;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return sanitizeUrl(s);
+  const scheme = getUrlSchemeFromNormalized(normalizeUrlForSchemeCheck(s));
+  const checked = sanitizeUrlForDomAttribute(s);
+  if (checked === '#') return '#';
+  if (scheme) return checked;
   if (s.startsWith('/')) return s;
   return resolveImageSrc(s, baseDir);
 }
@@ -182,7 +197,10 @@ function __press_rewriteSrc(val, baseDir) {
   const s = String(val || '').trim();
   if (!s) return s;
   if (/^(data:|blob:)/i.test(s)) return s;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return sanitizeUrl(s);
+  const scheme = getUrlSchemeFromNormalized(normalizeUrlForSchemeCheck(s));
+  const checked = sanitizeUrlForDomAttribute(s);
+  if (checked === '#') return '#';
+  if (scheme) return checked;
   if (s.startsWith('/')) return s;
   return resolveImageSrc(s, baseDir);
 }
@@ -344,7 +362,7 @@ export function setSafeHtml(target, html, baseDir, options = {}) {
         const rawVal = a[3] ?? a[4] ?? a[5] ?? '';
         let val = unescapeHtml(rawVal);
         if (name === 'href') val = __press_rewriteHref(val, baseDir);
-        else if (name === 'src') val = __press_rewriteSrc(val, baseDir);
+        else if (name === 'src' || name === 'poster') val = __press_rewriteSrc(val, baseDir);
         try { el.setAttribute(name, val); } catch (_) {}
       }
 

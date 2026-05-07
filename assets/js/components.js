@@ -1,4 +1,4 @@
-import { escapeHtml } from './utils.js';
+import { escapeHtml, setSafeHtml } from './utils.js';
 export { renderPressPostCardHtml } from './post-card-html.js';
 
 const safe = (value) => escapeHtml(String(value ?? '')) || '';
@@ -515,6 +515,7 @@ export class PressToc extends HTMLElement {
   constructor() {
     super();
     this._tocHtml = '';
+    this._baseDir = '';
     this._articleTitle = '';
     this._headings = [];
     this._positions = [];
@@ -540,6 +541,7 @@ export class PressToc extends HTMLElement {
   renderToc(options = {}) {
     this._cleanupListeners();
     this._tocHtml = String(options.tocHtml || '');
+    this._baseDir = String(options.baseDir || '');
     this._articleTitle = String(options.articleTitle || '');
     this._contentRootElement = isDomElement(options.contentRoot) ? options.contentRoot : null;
     this._scrollRootElement = isDomElement(options.scrollRoot) ? options.scrollRoot : null;
@@ -551,6 +553,10 @@ export class PressToc extends HTMLElement {
       return false;
     }
     this.innerHTML = this._markup();
+    const tocBody = this.querySelector('[data-press-toc-body]');
+    if (tocBody) {
+      setSafeHtml(tocBody, this._tocHtml, this._baseDir, { alreadySanitized: true });
+    }
     this.enhance();
     return true;
   }
@@ -558,6 +564,7 @@ export class PressToc extends HTMLElement {
   clear() {
     this._cleanupListeners();
     this._tocHtml = '';
+    this._baseDir = '';
     this._contentRootElement = null;
     this._scrollRootElement = null;
     this.innerHTML = '';
@@ -583,12 +590,12 @@ export class PressToc extends HTMLElement {
     const showTop = this.getAttribute('show-top') !== 'false';
     if (innerClass || titleClass || !showTop) {
       const heading = title || safe(this.getAttribute('fallback-title') || 'Table of contents');
-      return `<div class="${innerClass || 'press-toc__inner'}" part="toc"><div class="${titleClass || 'press-toc__title'}" part="title">${heading}</div>${this._tocHtml}</div>`;
+      return `<div class="${innerClass || 'press-toc__inner'}" part="toc"><div class="${titleClass || 'press-toc__title'}" part="title">${heading}</div><div data-press-toc-body></div></div>`;
     }
     const topLabel = safe(this.getAttribute('top-label') || 'Top');
     const topAria = safe(this.getAttribute('top-aria') || 'Back to top');
     const titleHtml = title ? `<span>${title}</span>` : '';
-    return `<div class="toc-header" part="header">${titleHtml}<button type="button" class="toc-top" part="top-button" aria-label="${topAria}">${topLabel}</button></div><div part="toc">${this._tocHtml}</div>`;
+    return `<div class="toc-header" part="header">${titleHtml}<button type="button" class="toc-top" part="top-button" aria-label="${topAria}">${topLabel}</button></div><div part="toc" data-press-toc-body></div>`;
   }
 
   _enhanceRows() {

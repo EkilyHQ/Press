@@ -4,13 +4,46 @@ class TestNode {
   constructor() {
     this.childNodes = [];
     this.parentNode = null;
+    this.ownerDocument = null;
   }
 
   appendChild(node) {
     if (!node) return node;
+    if (node instanceof TestDocumentFragment) {
+      while (node.firstChild) this.appendChild(node.firstChild);
+      return node;
+    }
+    if (node.parentNode && Array.isArray(node.parentNode.childNodes)) {
+      const index = node.parentNode.childNodes.indexOf(node);
+      if (index >= 0) node.parentNode.childNodes.splice(index, 1);
+    }
     this.childNodes.push(node);
     node.parentNode = this;
+    if (!node.ownerDocument) node.ownerDocument = this.ownerDocument;
     return node;
+  }
+
+  insertBefore(node, before) {
+    if (!node) return node;
+    if (!before) return this.appendChild(node);
+    if (node instanceof TestDocumentFragment) {
+      while (node.firstChild) this.insertBefore(node.firstChild, before);
+      return node;
+    }
+    if (node.parentNode && Array.isArray(node.parentNode.childNodes)) {
+      const oldIndex = node.parentNode.childNodes.indexOf(node);
+      if (oldIndex >= 0) node.parentNode.childNodes.splice(oldIndex, 1);
+    }
+    const index = this.childNodes.indexOf(before);
+    if (index < 0) return this.appendChild(node);
+    this.childNodes.splice(index, 0, node);
+    node.parentNode = this;
+    if (!node.ownerDocument) node.ownerDocument = this.ownerDocument;
+    return node;
+  }
+
+  get firstChild() {
+    return this.childNodes[0] || null;
   }
 }
 
@@ -18,56 +51,312 @@ class TestElement extends TestNode {
   constructor(tagName) {
     super();
     this.tagName = String(tagName || '').toUpperCase();
+    this.nodeType = 1;
     this.attributes = new Map();
+    this.dataset = {};
+    this.style = { setProperty() {} };
+    this.eventListeners = new Map();
+    this._className = '';
   }
 
   setAttribute(name, value) {
-    this.attributes.set(String(name), String(value));
+    const key = String(name);
+    const val = String(value);
+    this.attributes.set(key, val);
+    if (key.toLowerCase() === 'class') this._className = val;
+    if (key.toLowerCase().startsWith('data-')) {
+      const prop = key
+        .slice(5)
+        .replace(/-([a-z])/g, (_, char) => String(char || '').toUpperCase());
+      this.dataset[prop] = val;
+    }
   }
 
   getAttribute(name) {
     return this.attributes.has(String(name)) ? this.attributes.get(String(name)) : null;
   }
 
+  hasAttribute(name) {
+    return this.attributes.has(String(name));
+  }
+
+  get id() {
+    return this.getAttribute('id') || '';
+  }
+
+  set id(value) {
+    this.setAttribute('id', value);
+  }
+
+  get className() {
+    return this._className || this.getAttribute('class') || '';
+  }
+
+  set className(value) {
+    this.setAttribute('class', value);
+  }
+
+  get classList() {
+    const el = this;
+    const values = () => new Set(String(el.className || '').split(/\s+/).filter(Boolean));
+    const write = (set) => {
+      el.className = Array.from(set).join(' ');
+    };
+    return {
+      contains(name) {
+        return values().has(String(name));
+      },
+      add(...names) {
+        const set = values();
+        names.forEach(name => { if (name) set.add(String(name)); });
+        write(set);
+      },
+      remove(...names) {
+        const set = values();
+        names.forEach(name => set.delete(String(name)));
+        write(set);
+      },
+      toggle(name) {
+        const set = values();
+        const key = String(name);
+        const next = !set.has(key);
+        if (next) set.add(key);
+        else set.delete(key);
+        write(set);
+        return next;
+      }
+    };
+  }
+
+  get parentElement() {
+    return this.parentNode && this.parentNode.nodeType === 1 ? this.parentNode : null;
+  }
+
   replaceChildren(...nodes) {
     this.childNodes = [];
     nodes.forEach(node => this.appendChild(node));
+  }
+
+  addEventListener(type, handler) {
+    const key = String(type || '');
+    const list = this.eventListeners.get(key) || [];
+    list.push(handler);
+    this.eventListeners.set(key, list);
+  }
+
+  removeEventListener(type, handler) {
+    const key = String(type || '');
+    const list = this.eventListeners.get(key) || [];
+    this.eventListeners.set(key, list.filter(item => item !== handler));
+  }
+
+  dispatchEvent() {
+    return true;
+  }
+
+  scrollIntoView() {}
+
+  getBoundingClientRect() {
+    return { top: 0, left: 0, width: 100, height: 24, bottom: 24, right: 100 };
+  }
+
+  get innerHTML() {
+    return '';
+  }
+
+  set innerHTML(markup) {
+    parseHtmlInto(this, markup, this.ownerDocument || documentRef);
+  }
+
+  get textContent() {
+    return this.childNodes.map(child => child.textContent || '').join('');
+  }
+
+  set textContent(value) {
+    this.childNodes = [new TestTextNode(String(value || ''))];
+  }
+
+  querySelector(selector) {
+    return this.querySelectorAll(selector)[0] || null;
+  }
+
+  querySelectorAll(selector) {
+    const raw = String(selector || '').trim();
+    if (!raw) return [];
+    const direct = raw.startsWith(':scope > ');
+    const selectors = (direct ? raw.slice(9) : raw).split(',').map(part => part.trim()).filter(Boolean);
+    const nodes = direct ? this.childNodes : getDescendants(this);
+    return nodes.filter(node => node && node.nodeType === 1 && selectors.some(part => matchesSelector(node, part)));
   }
 }
 
 class TestTextNode extends TestNode {
   constructor(text) {
     super();
+    this.nodeType = 3;
     this.textContent = String(text || '');
   }
 }
 
-class TestDocumentFragment extends TestNode {}
+class TestDocumentFragment extends TestNode {
+  constructor() {
+    super();
+    this.nodeType = 11;
+  }
+}
+
+class TestHTMLElement extends TestElement {
+  constructor() {
+    super('element');
+  }
+}
 
 const documentRef = {
   baseURI: 'http://127.0.0.1:8000/index.html',
+  title: 'Press',
+  documentElement: new TestElement('html'),
+  body: new TestElement('body'),
   createDocumentFragment() {
-    return new TestDocumentFragment();
+    const fragment = new TestDocumentFragment();
+    fragment.ownerDocument = this;
+    return fragment;
   },
   createElement(tagName) {
-    return new TestElement(tagName);
+    const element = new TestElement(tagName);
+    element.ownerDocument = this;
+    return element;
   },
   createTextNode(text) {
-    return new TestTextNode(text);
+    const node = new TestTextNode(text);
+    node.ownerDocument = this;
+    return node;
+  },
+  querySelector(selector) {
+    return this.body.querySelector(selector);
+  },
+  querySelectorAll(selector) {
+    return this.body.querySelectorAll(selector);
+  },
+  getElementById(id) {
+    return this.body.querySelector(`#${String(id || '')}`);
   }
 };
+documentRef.documentElement.ownerDocument = documentRef;
+documentRef.body.ownerDocument = documentRef;
 
 globalThis.window = {
   __press_content_root: 'wwwroot',
-  location: { protocol: 'http:' }
+  location: { protocol: 'http:', href: 'http://127.0.0.1:8000/index.html', hash: '' },
+  scrollY: 0,
+  addEventListener() {},
+  removeEventListener() {},
+  scrollTo() {},
+  setTimeout,
+  clearTimeout
 };
 globalThis.document = documentRef;
-globalThis.location = { origin: 'http://127.0.0.1:8000' };
+globalThis.HTMLElement = TestHTMLElement;
+globalThis.customElements = { get() { return null; }, define() {} };
+globalThis.location = { origin: 'http://127.0.0.1:8000', hash: '' };
+globalThis.history = { replaceState() {} };
+globalThis.requestAnimationFrame = (callback) => setTimeout(callback, 0);
 
 const { mdParse } = await import('../assets/js/markdown.js?markdown-security');
 const { setSafeHtml } = await import('../assets/js/utils.js?markdown-security');
+const { PressToc } = await import('../assets/js/components.js?markdown-security');
+const nativeInteractions = await import('../assets/themes/native/modules/interactions.js?markdown-security');
 
 const baseDir = 'wwwroot/post/security';
+
+function decodeEntities(value) {
+  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00A0' };
+  return String(value || '').replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][\w:-]*);/g, (match, entity) => {
+    if (!entity) return match;
+    if (entity[0] === '#') {
+      const isHex = entity[1] === 'x' || entity[1] === 'X';
+      try { return String.fromCodePoint(parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10)); } catch (_) { return match; }
+    }
+    const decoded = named[entity.toLowerCase()];
+    return typeof decoded === 'string' ? decoded : match;
+  });
+}
+
+function parseHtmlInto(target, markup, ownerDocument = documentRef) {
+  target.childNodes = [];
+  const stack = [target];
+  const append = (node) => stack[stack.length - 1].appendChild(node);
+  const tagRe = /<\/?([a-zA-Z][\w:-]*)\b([^>]*)>/g;
+  const voidTags = new Set(['br', 'hr', 'img', 'input', 'source']);
+  let last = 0;
+  let tagMatch;
+  while ((tagMatch = tagRe.exec(String(markup || '')))) {
+    const text = String(markup || '').slice(last, tagMatch.index);
+    if (text) append(ownerDocument.createTextNode(decodeEntities(text)));
+    last = tagRe.lastIndex;
+    const raw = tagMatch[0] || '';
+    const tag = (tagMatch[1] || '').toLowerCase();
+    const attrs = tagMatch[2] || '';
+    if (raw.startsWith('</')) {
+      for (let i = stack.length - 1; i > 0; i -= 1) {
+        if (stack[i].tagName && stack[i].tagName.toLowerCase() === tag) {
+          stack.length = i;
+          break;
+        }
+      }
+      continue;
+    }
+    const el = ownerDocument.createElement(tag);
+    const attrRe = /([a-zA-Z_:][\w:.-]*)(?:\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'<>`]+)))?/g;
+    let attrMatch;
+    while ((attrMatch = attrRe.exec(attrs))) {
+      el.setAttribute(attrMatch[1], decodeEntities(attrMatch[3] ?? attrMatch[4] ?? attrMatch[5] ?? ''));
+    }
+    append(el);
+    if (!voidTags.has(tag)) stack.push(el);
+  }
+  const tail = String(markup || '').slice(last);
+  if (tail) append(ownerDocument.createTextNode(decodeEntities(tail)));
+}
+
+function getDescendants(root, out = []) {
+  (root.childNodes || []).forEach(child => {
+    if (child && child.nodeType === 1) out.push(child);
+    getDescendants(child, out);
+  });
+  return out;
+}
+
+function matchesSelector(element, selector) {
+  const part = String(selector || '').trim();
+  if (!part) return false;
+  if (part === '*') return true;
+  if (part === 'a[href^="#"]:not(.toc-anchor)') {
+    return element.tagName === 'A'
+      && String(element.getAttribute('href') || '').startsWith('#')
+      && !element.classList.contains('toc-anchor');
+  }
+  const tagAttrMatch = part.match(/^([a-z0-9]+)\[([^\]=]+)(?:="([^"]*)")?\]$/i);
+  if (tagAttrMatch) {
+    const [, tag, attr, value] = tagAttrMatch;
+    if (element.tagName.toLowerCase() !== tag.toLowerCase()) return false;
+    if (!element.hasAttribute(attr)) return false;
+    return value == null || element.getAttribute(attr) === value;
+  }
+  const attrMatch = part.match(/^\[([^\]=]+)(?:="([^"]*)")?\]$/);
+  if (attrMatch) {
+    const [, attr, value] = attrMatch;
+    if (!element.hasAttribute(attr)) return false;
+    return value == null || element.getAttribute(attr) === value;
+  }
+  const tagClassMatch = part.match(/^([a-z0-9]+)\.([a-z0-9_-]+)$/i);
+  if (tagClassMatch) {
+    return element.tagName.toLowerCase() === tagClassMatch[1].toLowerCase()
+      && element.classList.contains(tagClassMatch[2]);
+  }
+  if (part.startsWith('.')) return element.classList.contains(part.slice(1));
+  if (part.startsWith('#')) return element.id === part.slice(1);
+  return element.tagName.toLowerCase() === part.toLowerCase();
+}
 
 function collectElements(node, tagName, out = []) {
   if (!node) return out;
@@ -155,6 +444,57 @@ function renderMarkdown(markdown) {
   return { html, toc, target, tocTarget };
 }
 
+function createNativeRuntime() {
+  const main = documentRef.createElement('main');
+  main.className = 'native-mainview';
+  main.setAttribute('data-theme-region', 'main');
+
+  const toc = new PressToc();
+  toc.tagName = 'PRESS-TOC';
+  toc.ownerDocument = documentRef;
+  toc.className = 'native-toc';
+  toc.setAttribute('data-theme-region', 'toc');
+
+  documentRef.body.replaceChildren(main, toc);
+
+  const regions = {
+    main,
+    toc,
+    get(name) {
+      if (name === 'main') return main;
+      if (name === 'toc' || name === 'tocBox') return toc;
+      return null;
+    }
+  };
+  const mounted = nativeInteractions.mount({
+    document: documentRef,
+    window: globalThis.window,
+    regions,
+    i18n: { t: (key) => ({ 'ui.top': 'Top', 'ui.backToTop': 'Back to top' }[key] || key) }
+  });
+  return { main, toc, effects: mounted.effects };
+}
+
+const noopUtilities = {
+  renderPostNav: () => {},
+  hydratePostImages: () => {},
+  hydratePostVideos: () => {},
+  hydrateInternalLinkCards: () => {},
+  applyLazyLoadingIn: () => {},
+  applyLangHints: () => {},
+  setupAnchors: () => {},
+  setupTOC: () => {},
+  ensureAutoHeight: () => {}
+};
+
+const maliciousRenderedHtml = [
+  '<h2 id="heading"><a href="java&#115;cript:alert&#40;1&#41;" onclick="alert(1)">Heading</a> <a href="http&#115;://example.com/safe">Safe</a></h2>',
+  '<p><img src="javascript:alert(2)" onerror="alert(2)" alt="x"></p>',
+  '<video poster="java&#115;cript:alert&#40;4&#41;"><source src="http&#115;://example.com/video.mp4"></video>',
+  '<script>alert(3)</script>'
+].join('');
+const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href="java&#10;script:alert&#40;1&#41;" onclick="alert(1)">Bad</a><img src="javascript:alert(2)" onerror="alert(2)" alt="x"></li></ul></li></ul>';
+
 {
   const { html, target } = renderMarkdown([
     '<script>alert(1)</script>',
@@ -193,6 +533,21 @@ function renderMarkdown(markdown) {
     assertRawMarkdownHtmlIsSafe(html);
     assertNoEventHandlerAttributes(target);
   }
+}
+
+{
+  const { html, target } = renderMarkdown('[safe](https://example.com/&#34;onclick=alert&#40;1&#41;)');
+  const rawLinks = collectRawTags(html, 'a');
+  const links = collectElements(target, 'a');
+
+  assert.equal(rawLinks.length, 1);
+  assert.equal(rawLinks[0].attrs.has('onclick'), false);
+  assert.match(rawLinks[0].attrs.get('href'), /^https:\/\/example\.com\//);
+  assert.equal(links.length, 1);
+  assert.equal(links[0].getAttribute('onclick'), null);
+  assert.match(links[0].getAttribute('href'), /^https:\/\/example\.com\//);
+  assertRawMarkdownHtmlIsSafe(html);
+  assertNoEventHandlerAttributes(target);
 }
 
 {
@@ -306,19 +661,90 @@ function renderMarkdown(markdown) {
 }
 
 {
+  const { main, toc, effects } = createNativeRuntime();
+  const result = effects.renderPostView({
+    containers: { mainElement: main, tocElement: toc },
+    markdownHtml: maliciousRenderedHtml,
+    tocHtml: maliciousTocHtml,
+    baseDir,
+    content: { baseDir },
+    postMetadata: { title: 'Unsafe' },
+    fallbackTitle: 'Unsafe',
+    siteConfig: {},
+    postsIndex: {},
+    utilities: noopUtilities
+  });
+  const bodyLinks = collectElements(main, 'a');
+  const bodyImages = collectElements(main, 'img');
+  const bodyVideos = collectElements(main, 'video');
+  const bodySources = collectElements(main, 'source');
+  const tocLinks = collectElements(toc, 'a');
+  const tocImages = collectElements(toc, 'img');
+
+  assert.equal(result.handled, true);
+  assert.equal(collectElements(main, 'script').length, 0);
+  assert.equal(bodyLinks[0].getAttribute('href'), '#');
+  assert.equal(bodyLinks[0].getAttribute('onclick'), null);
+  assert.equal(bodyLinks[1].getAttribute('href'), 'https://example.com/safe');
+  assert.equal(bodyImages[0].getAttribute('src'), '#');
+  assert.equal(bodyImages[0].getAttribute('onerror'), null);
+  assert.equal(bodyVideos[0].getAttribute('poster'), '#');
+  assert.equal(bodySources[0].getAttribute('src'), 'https://example.com/video.mp4');
+  assert.equal(tocLinks.some(link => link.getAttribute('href') === '#heading'), true);
+  assert.equal(tocLinks.some(link => link.getAttribute('href') === '#'), true);
+  assert.equal(tocLinks.some(link => link.getAttribute('onclick') != null), false);
+  assert.equal(tocImages[0].getAttribute('src'), '#');
+  assert.equal(tocImages[0].getAttribute('onerror'), null);
+  assertNoEventHandlerAttributes(main);
+  assertNoEventHandlerAttributes(toc);
+}
+
+{
+  const { main, effects } = createNativeRuntime();
+  const result = effects.renderStaticTabView({
+    containers: { mainElement: main },
+    markdownHtml: maliciousRenderedHtml,
+    baseDir,
+    content: { baseDir },
+    tab: { title: 'Tab' },
+    siteConfig: {},
+    utilities: noopUtilities
+  });
+  const links = collectElements(main, 'a');
+  const images = collectElements(main, 'img');
+  const videos = collectElements(main, 'video');
+  const sources = collectElements(main, 'source');
+
+  assert.equal(result.handled, true);
+  assert.equal(collectElements(main, 'script').length, 0);
+  assert.equal(links[0].getAttribute('href'), '#');
+  assert.equal(links[0].getAttribute('onclick'), null);
+  assert.equal(links[1].getAttribute('href'), 'https://example.com/safe');
+  assert.equal(images[0].getAttribute('src'), '#');
+  assert.equal(images[0].getAttribute('onerror'), null);
+  assert.equal(videos[0].getAttribute('poster'), '#');
+  assert.equal(sources[0].getAttribute('src'), 'https://example.com/video.mp4');
+  assertNoEventHandlerAttributes(main);
+}
+
+{
   const target = documentRef.createElement('div');
   setSafeHtml(
     target,
-    '<script>alert(1)</script><img src="javascript:alert(1)" onerror="alert(2)" alt="x">',
+    '<script>alert(1)</script><img src="javascript:alert(1)" onerror="alert(2)" alt="x"><video poster="java&#115;cript:alert(3)"><source src="http&#115;://example.com/video.mp4"></video>',
     baseDir,
     { alreadySanitized: true }
   );
 
   const images = collectElements(target, 'img');
+  const videos = collectElements(target, 'video');
+  const sources = collectElements(target, 'source');
   assert.equal(collectElements(target, 'script').length, 0);
   assert.equal(images.length, 1);
   assert.equal(images[0].getAttribute('src'), '#');
   assert.equal(images[0].getAttribute('onerror'), null);
+  assert.equal(videos[0].getAttribute('poster'), '#');
+  assert.equal(sources[0].getAttribute('src'), 'https://example.com/video.mp4');
   assertNoEventHandlerAttributes(target);
 }
 

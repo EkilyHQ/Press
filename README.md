@@ -20,13 +20,13 @@ The `wwwroot/` folder is intentionally not minimal. It hosts the official Press 
 
 ## For New Sites
 
-The clean starter template lives in [EkilyHQ/Press-Starter](https://github.com/EkilyHQ/Press-Starter).
+The clean starter template lives in [EkilyHQ/YAP](https://github.com/EkilyHQ/YAP).
 
 Use that starter repository when you want to create your own site. This repository is useful when you want to develop Press itself, inspect the official documentation source, or test behavior against the full documentation corpus.
 
 The theme starter template lives in [EkilyHQ/Press-Theme-Starter](https://github.com/EkilyHQ/Press-Theme-Starter). Use it when you want to create a new Press theme repository with the release workflow and contract-compatible starter theme already wired up.
 
-This repository carries the implementation template input for `Press-Starter` under `templates/press-starter`. The official documentation site remains the full setup guide:
+This repository carries the implementation template input for YAP under `templates/press-starter`. The official documentation site remains the full setup guide:
 
 - Official site: [https://ekilyhq.github.io/Press/](https://ekilyhq.github.io/Press/)
 - Documentation: [Documentation for Press](https://ekilyhq.github.io/Press/?id=post%2Fdoc%2Fv2.1.0%2Fdoc_en.md&lang=en)
@@ -43,7 +43,7 @@ This repository carries the implementation template input for `Press-Starter` un
 - `wwwroot/` - official documentation site content and Markdown regression corpus.
 - `site.yaml` - official documentation site configuration.
 - `scripts/` - repository checks and focused regression scripts.
-- `templates/` - repository template input for `Press-Starter`.
+- `templates/` - repository template input for YAP.
 
 ## Development Workflow
 
@@ -76,7 +76,7 @@ Merges to `main` that change Press runtime files automatically publish a patch r
 
 Official documentation, site content, installed theme registry state, and external theme directories stay out of system update packages. Changes that only touch `wwwroot/` do not create a system release, and update packages must never include `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, workflow files, scripts, site-specific media such as `assets/avatar.png` and `assets/hero.jpeg`, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`.
 
-After a system release is published, the release workflow can dispatch `EkilyHQ/Press-Starter` to rebuild the template from that release package. Configure `STARTER_SYNC_TOKEN` in this repository with permission to call repository dispatch on the starter repository. `STARTER_REPOSITORY` can be set as a repository variable when the starter repository name differs from `EkilyHQ/Press-Starter`.
+After a system release is published, the release workflow can dispatch `EkilyHQ/YAP` to rebuild the template from that release package. Configure `STARTER_SYNC_TOKEN` in this repository with permission to call repository dispatch on the YAP repository. `STARTER_REPOSITORY` can be set as a repository variable when the target repository name differs from `EkilyHQ/YAP`.
 
 ## Branching
 

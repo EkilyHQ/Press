@@ -73,6 +73,61 @@ const LS_KEYS = {
 const EDITOR_STATE_VERSION = 3;
 const EDITOR_SCROLL_SAVE_DELAY = 120;
 
+function normalizeStorageScopePart(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return raw.replace(/[^a-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '') || 'root';
+}
+
+function resolveEditorStorageScope(locationLike) {
+  let protocol = '';
+  let host = '';
+  let pathname = '';
+  try {
+    if (typeof locationLike === 'string') {
+      const url = new URL(locationLike);
+      protocol = url.protocol;
+      host = url.host;
+      pathname = url.pathname;
+    } else if (locationLike && typeof locationLike === 'object') {
+      if (locationLike.href) {
+        const url = new URL(String(locationLike.href));
+        protocol = url.protocol;
+        host = url.host;
+        pathname = url.pathname;
+      } else {
+        protocol = String(locationLike.protocol || '');
+        host = String(locationLike.host || locationLike.hostname || '');
+        pathname = String(locationLike.pathname || '');
+      }
+    }
+  } catch (_) {
+    return 'unknown';
+  }
+  const path = String(pathname || '');
+  const segments = path.split('/').filter(Boolean);
+  const firstSegment = segments[0] || '';
+  const isRootIndexFile = segments.length === 1
+    && (firstSegment === 'index.html' || firstSegment === 'index_editor.html')
+    && !path.endsWith('/');
+  const sitePath = firstSegment && !isRootIndexFile ? firstSegment : 'root';
+  const protocolPart = protocol ? protocol.replace(/:$/, '') : 'site';
+  return [
+    'v2',
+    normalizeStorageScopePart(protocolPart),
+    normalizeStorageScopePart(host || 'local'),
+    normalizeStorageScopePart(sitePath)
+  ].join(':');
+}
+
+const EDITOR_STORAGE_SCOPE = (() => {
+  try { return resolveEditorStorageScope(window.location); }
+  catch (_) { return 'unknown'; }
+})();
+
+function scopedEditorStorageKey(key) {
+  return `${key}:${EDITOR_STORAGE_SCOPE}`;
+}
+
 // Track additional markdown editor tabs spawned from Composer
 const dynamicEditorTabs = new Map();            // modeId -> { path, button, content, loaded, baseDir }
 const dynamicEditorTabsByLookupKey = new Map(); // lookupKey -> modeId
@@ -88,12 +143,12 @@ let activeEditorTreeNodeId = 'welcome';
 const expandedEditorTreeNodeIds = new Set(['articles', 'pages']);
 let hasEditorStateV3Snapshot = false;
 try {
-  const rawEditorState = window.localStorage.getItem(LS_KEYS.editorState);
+  const rawEditorState = window.localStorage.getItem(scopedEditorStorageKey(LS_KEYS.editorState));
   const parsedEditorState = rawEditorState ? JSON.parse(rawEditorState) : null;
   hasEditorStateV3Snapshot = !!(parsedEditorState && parsedEditorState.v === EDITOR_STATE_VERSION);
 } catch (_) {}
 try {
-  if (!hasEditorStateV3Snapshot && window.localStorage.getItem(LS_KEYS.systemTreeExpanded) === '1') {
+  if (!hasEditorStateV3Snapshot && window.localStorage.getItem(scopedEditorStorageKey(LS_KEYS.systemTreeExpanded)) === '1') {
     expandedEditorTreeNodeIds.add('system');
   }
 } catch (_) {}
@@ -1512,7 +1567,7 @@ function sleep(ms) {
 
 function getCachedFineGrainedToken() {
   try {
-    const value = sessionStorage.getItem(GITHUB_PAT_STORAGE_KEY);
+    const value = sessionStorage.getItem(scopedEditorStorageKey(GITHUB_PAT_STORAGE_KEY));
     if (typeof value === 'string' && value) {
       cachedFineGrainedTokenMemory = value;
       return value;
@@ -1527,8 +1582,8 @@ function setCachedFineGrainedToken(token) {
   const trimmed = String(token || '').trim();
   cachedFineGrainedTokenMemory = trimmed;
   try {
-    if (trimmed) sessionStorage.setItem(GITHUB_PAT_STORAGE_KEY, trimmed);
-    else sessionStorage.removeItem(GITHUB_PAT_STORAGE_KEY);
+    if (trimmed) sessionStorage.setItem(scopedEditorStorageKey(GITHUB_PAT_STORAGE_KEY), trimmed);
+    else sessionStorage.removeItem(scopedEditorStorageKey(GITHUB_PAT_STORAGE_KEY));
   } catch (_) {
     /* ignore storage errors */
   }
@@ -1536,7 +1591,7 @@ function setCachedFineGrainedToken(token) {
 
 function clearCachedFineGrainedToken() {
   cachedFineGrainedTokenMemory = '';
-  try { sessionStorage.removeItem(GITHUB_PAT_STORAGE_KEY); }
+  try { sessionStorage.removeItem(scopedEditorStorageKey(GITHUB_PAT_STORAGE_KEY)); }
   catch (_) { /* ignore */ }
 }
 
@@ -2857,7 +2912,7 @@ function computeTabsDiff(current, baseline) {
 
 function readDraftStore() {
   try {
-    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    const raw = localStorage.getItem(scopedEditorStorageKey(DRAFT_STORAGE_KEY));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -2869,10 +2924,10 @@ function readDraftStore() {
 function writeDraftStore(store) {
   try {
     if (!store || !Object.keys(store).length) {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      localStorage.removeItem(scopedEditorStorageKey(DRAFT_STORAGE_KEY));
       return;
     }
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(scopedEditorStorageKey(DRAFT_STORAGE_KEY), JSON.stringify(store));
   } catch (_) {
     /* ignore storage errors */
   }
@@ -3101,7 +3156,7 @@ try {
 
 function readMarkdownDraftStore() {
   try {
-    const raw = localStorage.getItem(MARKDOWN_DRAFT_STORAGE_KEY);
+    const raw = localStorage.getItem(scopedEditorStorageKey(MARKDOWN_DRAFT_STORAGE_KEY));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -3113,10 +3168,10 @@ function readMarkdownDraftStore() {
 function writeMarkdownDraftStore(store) {
   try {
     if (!store || !Object.keys(store).length) {
-      localStorage.removeItem(MARKDOWN_DRAFT_STORAGE_KEY);
+      localStorage.removeItem(scopedEditorStorageKey(MARKDOWN_DRAFT_STORAGE_KEY));
       return;
     }
-    localStorage.setItem(MARKDOWN_DRAFT_STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(scopedEditorStorageKey(MARKDOWN_DRAFT_STORAGE_KEY), JSON.stringify(store));
   } catch (_) {
     /* ignore storage errors */
   }
@@ -8345,7 +8400,7 @@ function scrollEditorContentToTop(behavior = 'smooth') {
 function persistSystemTreeExpandedState() {
   try {
     window.localStorage.setItem(
-      LS_KEYS.systemTreeExpanded,
+      scopedEditorStorageKey(LS_KEYS.systemTreeExpanded),
       expandedEditorTreeNodeIds.has('system') ? '1' : '0'
     );
   } catch (_) {}
@@ -8972,7 +9027,7 @@ function persistDynamicEditorState() {
       state.activeLookupKey = active && (active.lookupKey || active.path) ? (active.lookupKey || active.path) : null;
       state.activePath = active && active.path ? active.path : null;
     }
-    store.setItem(LS_KEYS.editorState, JSON.stringify(state));
+    store.setItem(scopedEditorStorageKey(LS_KEYS.editorState), JSON.stringify(state));
   } catch (_) {}
 }
 
@@ -8981,7 +9036,7 @@ function restoreDynamicEditorState() {
   try {
     const store = window.localStorage;
     if (!store) return false;
-    raw = store.getItem(LS_KEYS.editorState);
+    raw = store.getItem(scopedEditorStorageKey(LS_KEYS.editorState));
   } catch (_) {
     return false;
   }
@@ -10062,7 +10117,7 @@ function applyMode(mode, options = {}) {
 
 function getInitialComposerFile() {
   try {
-    const v = (localStorage.getItem(LS_KEYS.cfile) || '').toLowerCase();
+    const v = (localStorage.getItem(scopedEditorStorageKey(LS_KEYS.cfile)) || '').toLowerCase();
     if (v === 'site') return v;
   } catch (_) {}
   return 'site';
@@ -13174,7 +13229,7 @@ function bindComposerUI(state) {
     applyComposerFile(name, options);
     try {
       const normalized = name === 'tabs' ? 'tabs' : (name === 'site' ? 'site' : 'index');
-      localStorage.setItem(LS_KEYS.cfile, normalized);
+      localStorage.setItem(scopedEditorStorageKey(LS_KEYS.cfile), normalized);
     } catch (_) {}
   };
   links.forEach(a => a.addEventListener('click', (e) => { e.preventDefault(); setFile(a.dataset.cfile); }));

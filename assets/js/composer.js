@@ -312,6 +312,90 @@ function applyComposerEffectiveSiteConfig(siteConfig) {
   return effective;
 }
 
+function inferRepoConfigFromGitHubPagesUrl(locationLike) {
+  let protocol = '';
+  let hostname = '';
+  let pathname = '';
+
+  try {
+    if (typeof locationLike === 'string') {
+      const url = new URL(locationLike);
+      protocol = url.protocol;
+      hostname = url.hostname;
+      pathname = url.pathname;
+    } else if (locationLike && typeof locationLike === 'object') {
+      if (locationLike.href) {
+        const url = new URL(String(locationLike.href));
+        protocol = url.protocol;
+        hostname = url.hostname;
+        pathname = url.pathname;
+      } else {
+        protocol = String(locationLike.protocol || '');
+        hostname = String(locationLike.hostname || '');
+        pathname = String(locationLike.pathname || '');
+      }
+    }
+  } catch (_) {
+    return null;
+  }
+
+  if (protocol !== 'https:') return null;
+  const host = String(hostname || '').trim().toLowerCase();
+  const suffix = '.github.io';
+  if (!host.endsWith(suffix)) return null;
+  const owner = host.slice(0, -suffix.length);
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(owner)) return null;
+
+  const rawSegments = String(pathname || '').split('/').filter(Boolean);
+  const firstSegment = rawSegments[0] || '';
+  let name = '';
+  if (!firstSegment || firstSegment === 'index.html' || firstSegment === 'index_editor.html') {
+    name = `${owner}.github.io`;
+  } else {
+    try {
+      name = decodeURIComponent(firstSegment);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (!/^[A-Za-z0-9_.-]+$/.test(name)) return null;
+
+  return { owner, name, branch: 'main' };
+}
+
+function isPlaceholderRepoConfig(repo) {
+  const source = repo && typeof repo === 'object' ? repo : {};
+  const owner = String(source.owner || '').trim();
+  const name = String(source.name || '').trim();
+  const ownerIsPlaceholder = owner === '' || owner === 'OWNER';
+  const nameIsPlaceholder = name === '' || name === 'REPOSITORY';
+  return ownerIsPlaceholder && nameIsPlaceholder;
+}
+
+function applyInferredRepoConfig(site, inferred) {
+  if (!site || typeof site !== 'object') return false;
+  if (!inferred || typeof inferred !== 'object') return false;
+  const owner = String(inferred.owner || '').trim();
+  const name = String(inferred.name || '').trim();
+  const branch = String(inferred.branch || 'main').trim() || 'main';
+  if (!owner || !name) return false;
+
+  const repo = site.repo && typeof site.repo === 'object' ? site.repo : {};
+  if (!isPlaceholderRepoConfig(repo)) return false;
+
+  const previousOwner = String(repo.owner || '').trim();
+  const previousName = String(repo.name || '').trim();
+  const previousBranch = String(repo.branch || '').trim();
+  site.repo = repo;
+  repo.owner = owner;
+  repo.name = name;
+  if (!previousBranch) repo.branch = branch;
+
+  return previousOwner !== String(repo.owner || '').trim()
+    || previousName !== String(repo.name || '').trim()
+    || previousBranch !== String(repo.branch || '').trim();
+}
+
 async function fetchComposerTrackedSiteConfig() {
   const tracked = await fetchTrackedSiteConfig();
   composerSiteLocalOverride = await fetchSiteLocalOverride();
@@ -13619,6 +13703,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   activeComposerState = state;
   const restoredDrafts = loadDraftSnapshotsIntoState(state);
+  let inferredSiteRepoApplied = false;
+  try {
+    inferredSiteRepoApplied = applyInferredRepoConfig(
+      state.site,
+      inferRepoConfigFromGitHubPagesUrl(window.location)
+    );
+  } catch (_) {
+    inferredSiteRepoApplied = false;
+  }
   applyComposerEffectiveSiteConfig(state.site);
   updateMarkdownPushButton(getActiveDynamicTab());
 
@@ -13637,7 +13730,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   notifyComposerChange('index', { skipAutoSave: true });
   notifyComposerChange('tabs', { skipAutoSave: true });
-  notifyComposerChange('site', { skipAutoSave: true });
+  notifyComposerChange('site', inferredSiteRepoApplied ? {} : { skipAutoSave: true });
 
   refreshEditorContentTree();
   const restoredEditorState = restoreDynamicEditorState();

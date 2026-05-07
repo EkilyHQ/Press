@@ -52,6 +52,34 @@ function extractFunctionBody(text, name) {
   assert.fail(`${name} body should be balanced`);
 }
 
+function extractFunctionDeclaration(text, name) {
+  const start = text.indexOf(`function ${name}(`);
+  assert.notEqual(start, -1, `${name} should exist`);
+  const open = text.indexOf('{', start);
+  assert.notEqual(open, -1, `${name} should have a body`);
+  let depth = 0;
+  for (let index = open; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, index + 1);
+    }
+  }
+  assert.fail(`${name} declaration should be balanced`);
+}
+
+function loadRepoInferenceHelpers() {
+  const helpers = [
+    extractFunctionDeclaration(source, 'inferRepoConfigFromGitHubPagesUrl'),
+    extractFunctionDeclaration(source, 'isPlaceholderRepoConfig'),
+    extractFunctionDeclaration(source, 'applyInferredRepoConfig')
+  ].join('\n');
+  return Function(`${helpers}\nreturn { inferRepoConfigFromGitHubPagesUrl, isPlaceholderRepoConfig, applyInferredRepoConfig };`)();
+}
+
+const repoInference = loadRepoInferenceHelpers();
+
 assert.match(
   editorSource,
   /\.view-toggle \.vt-btn \.vt-dirty-badge\{position:absolute;top:-\.45rem;right:0;min-width:1\.15rem;height:1\.15rem[\s\S]*transform:translateX\(50%\) scale\(\.72\)/,
@@ -62,6 +90,84 @@ assert.doesNotMatch(
   editorSource,
   /\.view-toggle \.vt-btn\.has-draft::before/,
   'composer file switch dirty indicators should not render as inline orange dots'
+);
+
+assert.match(
+  editorSource,
+  /assets\/js\/composer\.js\?v=repo-autofill-20260507/,
+  'editor HTML should cache-bust composer.js when repository autofill changes'
+);
+
+assert.deepEqual(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/test1/index_editor.html'),
+  { owner: 'deemoe404', name: 'test1', branch: 'main' },
+  'GitHub project Pages editor URLs should infer owner and repository'
+);
+
+assert.deepEqual(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/test1/'),
+  { owner: 'deemoe404', name: 'test1', branch: 'main' },
+  'GitHub project Pages root URLs should infer owner and repository'
+);
+
+assert.deepEqual(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/index_editor.html'),
+  { owner: 'deemoe404', name: 'deemoe404.github.io', branch: 'main' },
+  'GitHub user Pages editor URLs should infer the owner.github.io repository'
+);
+
+assert.equal(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('http://localhost:8000/index_editor.html'),
+  null,
+  'localhost editor URLs should not infer a repository'
+);
+
+assert.equal(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://example.com/index_editor.html'),
+  null,
+  'custom-domain editor URLs should not infer a repository'
+);
+
+{
+  const site = { repo: { owner: 'OWNER', name: 'REPOSITORY', branch: '' } };
+  assert.equal(
+    repoInference.applyInferredRepoConfig(site, { owner: 'deemoe404', name: 'test1', branch: 'main' }),
+    true,
+    'placeholder starter repositories should accept inferred repo config'
+  );
+  assert.deepEqual(site.repo, { owner: 'deemoe404', name: 'test1', branch: 'main' });
+}
+
+{
+  const site = { repo: { owner: '', name: '', branch: 'docs' } };
+  assert.equal(
+    repoInference.applyInferredRepoConfig(site, { owner: 'deemoe404', name: 'test1', branch: 'main' }),
+    true,
+    'empty starter repositories should accept inferred owner and name'
+  );
+  assert.deepEqual(site.repo, { owner: 'deemoe404', name: 'test1', branch: 'docs' });
+}
+
+{
+  const site = { repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' } };
+  assert.equal(
+    repoInference.applyInferredRepoConfig(site, { owner: 'deemoe404', name: 'test1', branch: 'main' }),
+    false,
+    'real configured repositories should not be overwritten'
+  );
+  assert.deepEqual(site.repo, { owner: 'EkilyHQ', name: 'Press', branch: 'main' });
+}
+
+assert.match(
+  source,
+  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(window\.location\)[\s\S]*applyComposerEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(\$\(\'#composerSite\'\), state\);/,
+  'composer should infer starter repository config before rendering Site Settings'
+);
+
+assert.match(
+  source,
+  /notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
+  'composer should mark inferred site repo changes dirty while preserving normal initialization behavior'
 );
 
 assert.match(

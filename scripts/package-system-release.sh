@@ -20,7 +20,8 @@ system_paths=(
   "assets/js"
   "assets/i18n"
   "assets/schema"
-  "assets/themes"
+  "assets/themes/native"
+  "assets/themes/catalog.json"
 )
 
 mkdir -p "${output_dir}"
@@ -28,11 +29,17 @@ output_dir="$(cd "${output_dir}" && pwd)"
 archive_path="${output_dir}/${archive_name}"
 cd "${repo_root}"
 
-git archive \
-  --format=zip \
-  --prefix="${prefix}" \
-  --output="${archive_path}" \
-  HEAD \
-  -- "${system_paths[@]}"
+tmp_dir="$(mktemp -d)"
+cleanup() {
+  rm -rf "${tmp_dir}"
+}
+trap cleanup EXIT
+
+git archive --format=tar --prefix="${prefix}" HEAD -- "${system_paths[@]}" | tar -xf - -C "${tmp_dir}"
+
+(
+  cd "${tmp_dir}"
+  zip -qr "${archive_path}" "${prefix%/}"
+)
 
 printf '%s\n' "${archive_path}"

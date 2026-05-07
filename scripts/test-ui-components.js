@@ -79,8 +79,8 @@ assert.ok(tocMapSet < tocBoundGuard, 'press-toc should rebuild _idToLink before 
 
 assert.match(main, /import '\.\/js\/components\.js';/, 'main should register custom elements before theme layout mounting');
 assert.match(main, /from '\.\/js\/i18n\.js\?v=20260506theme';/, 'main should use the same versioned i18n module instance as shared UI modules');
-assert.match(indexHtml, /src="assets\/main\.js\?v=20260506theme"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=20260506theme"/, 'composer export template should use the same main module URL as index');
+assert.match(indexHtml, /src="assets\/main\.js\?v=post-card-slot-safety-20260507"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=post-card-slot-safety-20260507"/, 'composer export template should use the same main module URL as index');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');

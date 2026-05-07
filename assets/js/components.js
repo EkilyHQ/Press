@@ -52,6 +52,14 @@ function hasAssignedSlot(element, name) {
   }
 }
 
+function slottedNodeHtml(node) {
+  if (!node) return '';
+  const outerHtml = typeof node.outerHTML === 'string' ? node.outerHTML : '';
+  if (outerHtml) return outerHtml;
+  // Text-only fallbacks are text content, not explicit theme markup.
+  return safe(node.textContent || '');
+}
+
 export class PressSearch extends HTMLElement {
   static get observedAttributes() {
     return ['placeholder', 'value', 'label', 'field-class', 'icon-class', 'icon', 'use-shadow', 'render-root'];
@@ -841,7 +849,7 @@ export class PressPostCard extends HTMLElement {
       const template = this.querySelector(`template[data-slot="${name}"], template[slot="${name}"]`);
       const slotted = Array.from(this.querySelectorAll(`[slot="${name}"]`))
         .filter((node) => node.tagName !== 'TEMPLATE')
-        .map((node) => node.outerHTML || node.textContent || '')
+        .map((node) => slottedNodeHtml(node))
         .join('');
       const html = template ? (template.innerHTML || '') : slotted;
       if (name === 'cover' && html) this._coverHtml = html;

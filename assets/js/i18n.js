@@ -10,10 +10,11 @@
 // - Friendly language names come from assets/i18n/languages.json (or the language module's metadata).
 
 import { parseFrontMatter } from './content.js';
+import { isEncryptedMarkdown } from './encrypted-content.js?v=encrypted-articles-20260508';
 import { getContentRoot } from './utils.js';
 import { fetchConfigWithYamlFallback } from './yaml.js';
 import { getThemeRegion } from './theme-regions.js';
-import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=20260505welcome';
+import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=encrypted-articles-20260508';
 
 // Content fetch cache modes are normalized by cache-control.js.
 
@@ -87,6 +88,7 @@ async function performFrontMatterFetch(markdownPath) {
       return (baseDir + raw).replace(/\\+/g, '/');
     };
     const fm = frontMatter || {};
+    const isProtected = isEncryptedMarkdown(content) || interpretTruthyFlag(fm.protected);
     return {
       location: path,
       image: resolveImagePath(fm.image) || undefined,
@@ -96,6 +98,7 @@ async function performFrontMatterFetch(markdownPath) {
       versionLabel: fm.version || undefined,
       ai: interpretTruthyFlag(fm.ai || fm.aiGenerated || fm.llm) || undefined,
       draft: interpretTruthyFlag(fm.draft || fm.wip || fm.unfinished || fm.inprogress) || undefined,
+      protected: isProtected || undefined,
       __title: fm.title || undefined
     };
   } catch (error) {
@@ -420,7 +423,7 @@ export function normalizeLangKey(k) {
 // Attempt to transform a unified content JSON object into a flat map
 // for the current language with default fallback.
 function transformUnifiedContent(obj, lang) {
-  const RESERVED = new Set(['tag', 'tags', 'image', 'date', 'excerpt']);
+  const RESERVED = new Set(['tag', 'tags', 'image', 'date', 'excerpt', 'protected', 'encryption']);
   const out = {};
   const langsSeen = new Set();
   for (const [key, val] of Object.entries(obj || {})) {
@@ -442,7 +445,7 @@ function transformUnifiedContent(obj, lang) {
       const v = val[lk];
       if (v == null) return null;
       if (typeof v === 'string') return { title: null, location: v };
-      if (typeof v === 'object') return { title: v.title || null, location: v.location || null, excerpt: v.excerpt || null };
+      if (typeof v === 'object') return { title: v.title || null, location: v.location || null, excerpt: v.excerpt || null, protected: v.protected };
       return null;
     };
     // Try requested lang, then site default, then common English code, then legacy 'default'
@@ -462,6 +465,7 @@ function transformUnifiedContent(obj, lang) {
     if (!chosen || !chosen.location) continue;
     title = chosen.title || key;
     location = chosen.location;
+    const protectedValue = chosen && chosen.protected != null ? chosen.protected : val.protected;
     const meta = {
       location,
       image: val.image || undefined,
@@ -469,6 +473,7 @@ function transformUnifiedContent(obj, lang) {
       date: val.date || undefined,
       // Prefer language-specific excerpt; fall back to top-level excerpt for legacy data
       excerpt: (chosen && chosen.excerpt) || val.excerpt || undefined,
+      protected: interpretTruthyFlag(protectedValue) || undefined,
       title
     };
     out[title] = meta;
@@ -493,7 +498,8 @@ function buildEntryFromVariants(rawVariants, fallbackTitle) {
       excerpt: variant.excerpt || undefined,
       versionLabel: variant.versionLabel || undefined,
       ai: variant.ai || undefined,
-      draft: variant.draft || undefined
+      draft: variant.draft || undefined,
+      protected: variant.protected || undefined
     };
     if (variant.__title) item.__title = variant.__title;
     variants.push(item);
@@ -644,7 +650,7 @@ export async function loadContentJsonWithRaw(basePath, baseName) {
           
           // Check for unified format
           if ('default' in v) { isUnified = true; break; }
-          if (innerKeys.some(ik => !['tag','tags','image','date','excerpt','location'].includes(ik))) { isUnified = true; break; }
+          if (innerKeys.some(ik => !['tag','tags','image','date','excerpt','location','protected','encryption'].includes(ik))) { isUnified = true; break; }
         }
       }
       

@@ -38,7 +38,14 @@ const translations = {
       aiFlagLabel: 'AI 参加',
       aiFlagTooltip: 'AI 参加：本記事は生成系LLMで生成・編集されています',
       draftBadge: '下書き',
-      draftNotice: 'この記事は執筆中・編集中です。内容は変更される場合があります。'
+      draftNotice: 'この記事は執筆中・編集中です。内容は変更される場合があります。',
+      protectedBadge: '保護済み',
+      protectedExcerpt: '保護された記事',
+      protectedPostBody: 'この記事は暗号化されています。読むにはパスワードを入力してください。',
+      protectedPostPasswordLabel: 'パスワード',
+      protectedPostUnlock: '解除',
+      protectedPostUnlocking: '解除中…',
+      protectedPostWrongPassword: 'このパスワードでは記事を解除できません。'
     },
     code: {
       copy: 'コピー',
@@ -49,6 +56,8 @@ const translations = {
     errors: {
       postNotFoundTitle: '記事が見つかりません',
       postNotFoundBody: '要求された記事を読み込めませんでした。',
+      protectedPostInvalidTitle: '保護された記事を表示できません',
+      protectedPostInvalidBody: 'この保護された記事の暗号化メタデータが無効です。',
       pageUnavailableTitle: 'ページを表示できません',
       pageUnavailableBody: 'このページを読み込めませんでした。',
       indexUnavailableBody: '記事インデックスを読み込めませんでした。ネットワークやリポジトリ内容を確認してください。'

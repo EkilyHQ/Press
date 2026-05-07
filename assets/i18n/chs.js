@@ -38,7 +38,14 @@ const translations = {
       aiFlagLabel: 'AI 参与',
       aiFlagTooltip: 'AI 参与：本文由生成式 LLM 生成或修改',
       draftBadge: '草稿',
-      draftNotice: '本文仍在撰写/修改中，内容可能随时变更。'
+      draftNotice: '本文仍在撰写/修改中，内容可能随时变更。',
+      protectedBadge: '受保护',
+      protectedExcerpt: '受保护文章',
+      protectedPostBody: '这篇文章已加密。请输入密码后阅读。',
+      protectedPostPasswordLabel: '密码',
+      protectedPostUnlock: '解锁',
+      protectedPostUnlocking: '正在解锁…',
+      protectedPostWrongPassword: '这个密码无法解锁文章。'
     },
     code: {
       copy: '复制',
@@ -49,6 +56,8 @@ const translations = {
     errors: {
       postNotFoundTitle: '文章未找到',
       postNotFoundBody: '无法加载所请求的文章。',
+      protectedPostInvalidTitle: '受保护文章不可用',
+      protectedPostInvalidBody: '这篇受保护文章的加密元数据无效。',
       pageUnavailableTitle: '页面不可用',
       pageUnavailableBody: '无法加载该页面。',
       indexUnavailableBody: '无法加载文章索引。请检查网络或仓库内容。'

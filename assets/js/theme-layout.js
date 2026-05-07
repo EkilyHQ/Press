@@ -1,4 +1,4 @@
-import { getSavedThemePack, loadThemePack } from './theme.js';
+import { getSavedThemePack, loadThemePack } from './theme.js?v=encrypted-articles-20260508';
 import {
   t,
   withLangParam,
@@ -7,7 +7,7 @@ import {
   ensureLanguageBundle,
   getAvailableLangs,
   getLanguageLabel
-} from './i18n.js?v=20260506theme';
+} from './i18n.js?v=encrypted-articles-20260508';
 import {
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
@@ -22,7 +22,8 @@ let layoutPromise = null;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
-const NATIVE_MODULE_CACHE_KEY = 'markdown-safety-20260508';
+const NATIVE_MODULE_CACHE_KEY = 'encrypted-articles-20260508';
+const NATIVE_STYLE_CACHE_KEY = 'encrypted-articles-20260508';
 
 const EFFECT_VIEW_NAMES = {
   renderPostView: 'post',
@@ -149,7 +150,8 @@ function safeThemeAssetPath(pack, entry, extension) {
   if (!safeEntry || safeEntry.includes('..') || safeEntry.includes('\\') || !safeEntry.endsWith(extension)) {
     return '';
   }
-  return `assets/themes/${encodeURIComponent(pack)}/${safeEntry}`;
+  const href = `assets/themes/${encodeURIComponent(pack)}/${safeEntry}`;
+  return pack === DEFAULT_PACK ? `${href}?v=${NATIVE_STYLE_CACHE_KEY}` : href;
 }
 
 function applyManifestStyles(pack, manifest) {

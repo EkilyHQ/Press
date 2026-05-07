@@ -38,7 +38,14 @@ const translations = {
       aiFlagLabel: 'AI-assisted',
       aiFlagTooltip: 'AI-assisted: generated or edited with an LLM',
       draftBadge: 'Draft',
-      draftNotice: 'This post is a draft and may change.'
+      draftNotice: 'This post is a draft and may change.',
+      protectedBadge: 'Protected',
+      protectedExcerpt: 'Protected article',
+      protectedPostBody: 'This article is encrypted. Enter its password to read it.',
+      protectedPostPasswordLabel: 'Password',
+      protectedPostUnlock: 'Unlock',
+      protectedPostUnlocking: 'Unlocking…',
+      protectedPostWrongPassword: 'That password did not unlock this article.'
     },
     code: {
       copy: 'Copy',
@@ -49,6 +56,8 @@ const translations = {
     errors: {
       postNotFoundTitle: 'Post not found',
       postNotFoundBody: 'The requested post could not be loaded.',
+      protectedPostInvalidTitle: 'Protected post unavailable',
+      protectedPostInvalidBody: 'This protected article has invalid encryption metadata.',
       pageUnavailableTitle: 'Page unavailable',
       pageUnavailableBody: 'Could not load this tab.',
       indexUnavailableBody: 'Could not load the post index. Check network or repository contents.'

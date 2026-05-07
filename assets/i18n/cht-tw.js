@@ -38,7 +38,14 @@ const translations = {
       aiFlagLabel: 'AI 參與',
       aiFlagTooltip: 'AI 參與：本文由生成式 LLM 生成或修改',
       draftBadge: '草稿',
-      draftNotice: '本文仍在撰寫/修改中，內容可能隨時變更。'
+      draftNotice: '本文仍在撰寫/修改中，內容可能隨時變更。',
+      protectedBadge: '受保護',
+      protectedExcerpt: '受保護文章',
+      protectedPostBody: '這篇文章已加密。請輸入密碼後閱讀。',
+      protectedPostPasswordLabel: '密碼',
+      protectedPostUnlock: '解鎖',
+      protectedPostUnlocking: '正在解鎖…',
+      protectedPostWrongPassword: '這個密碼無法解鎖文章。'
     },
     code: {
       copy: '複製',
@@ -49,6 +56,8 @@ const translations = {
     errors: {
       postNotFoundTitle: '文章未找到',
       postNotFoundBody: '無法載入所請求的文章。',
+      protectedPostInvalidTitle: '受保護文章不可用',
+      protectedPostInvalidBody: '這篇受保護文章的加密中繼資料無效。',
       pageUnavailableTitle: '頁面不可用',
       pageUnavailableBody: '無法載入該頁面。',
       indexUnavailableBody: '無法載入文章索引。請檢查網路或儲存庫內容。'

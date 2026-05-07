@@ -15,10 +15,10 @@ import {
 import { getContentRoot, resolveImageSrc, setSafeHtml } from './safe-html.js?v=markdown-safety-20260508';
 import { initSyntaxHighlighting } from './syntax-highlight.js?v=blocks-code-gutter-20260505';
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post-render.js';
-import { hydrateInternalLinkCards } from './link-cards.js';
+import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-articles-20260508';
 import { applyLangHints } from './typography.js';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
-import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=20260506theme';
+import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=encrypted-articles-20260508';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';
 const LS_VIEW_KEY = 'press_editor_markdown_view';

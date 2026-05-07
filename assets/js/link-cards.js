@@ -1,11 +1,14 @@
 import { renderTags, escapeHtml, formatDisplayDate, cardImageSrc, fallbackCover, getContentRoot } from './utils.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './content.js';
+import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from './encrypted-content.js?v=encrypted-articles-20260508';
 import { hydrateCardCovers } from './post-render.js';
 
 const DEFAULT_STRINGS = {
   'ui.loading': 'Loading…',
   'ui.minRead': 'min read',
-  'ui.draftBadge': 'Draft'
+  'ui.draftBadge': 'Draft',
+  'ui.protectedBadge': 'Protected',
+  'ui.protectedExcerpt': 'Protected article'
 };
 
 const mdCache = new Map();
@@ -93,6 +96,16 @@ function mergeMetaWithFrontMatter(baseMeta, frontMatter, loc) {
       const norm = fm.draft.trim().toLowerCase();
       if (['true', 'yes', '1', 'draft'].includes(norm)) meta.draft = true;
       else if (['false', 'no', '0', 'published'].includes(norm)) meta.draft = false;
+    }
+  }
+
+  if (fm.protected != null && meta.protected == null) {
+    if (typeof fm.protected === 'boolean') meta.protected = fm.protected;
+    else if (typeof fm.protected === 'number') meta.protected = fm.protected !== 0;
+    else if (typeof fm.protected === 'string') {
+      const norm = fm.protected.trim().toLowerCase();
+      if (['true', 'yes', '1', 'protected'].includes(norm)) meta.protected = true;
+      else if (['false', 'no', '0', 'public'].includes(norm)) meta.protected = false;
     }
   }
 
@@ -247,13 +260,17 @@ export function hydrateInternalLinkCards(container, options = {}) {
       const href = buildCardHref(loc, parsed);
       const tagsHtml = renderTags(meta.tag);
       const dateHtml = meta && meta.date ? `<span class="card-date">${escapeHtml(formatDisplayDate(meta.date))}</span>` : '';
+      const protectedHtml = meta && meta.protected ? `<span class="card-draft">${escapeHtml(translate('ui.protectedBadge'))}</span>` : '';
       const draftHtml = meta && meta.draft ? `<span class="card-draft">${escapeHtml(translate('ui.draftBadge'))}</span>` : '';
       const cover = buildCoverHtml(meta, loc, resolvedTitle, siteConfig);
+      const initialExcerpt = meta && meta.excerpt
+        ? String(meta.excerpt)
+        : (meta && meta.protected ? translate('ui.protectedExcerpt') : translate('ui.loading'));
 
       const wrapper = document.createElement('div');
       wrapper.className = 'link-card-wrap';
-      const initialMeta = [dateHtml, draftHtml].filter(Boolean).join('<span class="card-sep">•</span>');
-      wrapper.innerHTML = `<a class="link-card" href="${href}">${cover}<div class="card-title">${escapeHtml(resolvedTitle)}</div><div class="card-excerpt">${escapeHtml(translate('ui.loading'))}</div><div class="card-meta">${initialMeta}</div>${tagsHtml}</a>`;
+      const initialMeta = [dateHtml, protectedHtml, draftHtml].filter(Boolean).join('<span class="card-sep">•</span>');
+      wrapper.innerHTML = `<a class="link-card" href="${href}">${cover}<div class="card-title">${escapeHtml(resolvedTitle)}</div><div class="card-excerpt">${escapeHtml(initialExcerpt)}</div><div class="card-meta">${initialMeta}</div>${tagsHtml}</a>`;
 
       try {
         const exNode = wrapper.querySelector('.card-excerpt');
@@ -279,14 +296,20 @@ export function hydrateInternalLinkCards(container, options = {}) {
 
       hydrateCardCovers(wrapper);
 
+      if (meta && meta.protected) return;
+
       ensureMarkdown(loc, fetchMarkdown).then(md => {
         if (!wrapper.isConnected) return;
-        const ex = extractExcerpt(String(md || ''), 50);
-        const minutes = computeReadTime(String(md || ''), 200);
+        const rawMarkdown = String(md || '');
+        const encrypted = isEncryptedMarkdown(rawMarkdown);
+        const publicMarkdown = encrypted ? stripEncryptedBodyForPublicUse(rawMarkdown) : rawMarkdown;
+        const ex = encrypted ? translate('ui.protectedExcerpt') : extractExcerpt(publicMarkdown, 50);
+        const minutes = encrypted ? 0 : computeReadTime(publicMarkdown, 200);
         const card = wrapper.querySelector('a.link-card');
         if (!card) return;
-        const { frontMatter } = parseFrontMatter(String(md || ''));
+        const { frontMatter } = parseFrontMatter(publicMarkdown);
         const mergedMeta = mergeMetaWithFrontMatter(meta, frontMatter, loc);
+        if (encrypted) mergedMeta.protected = true;
         const finalTitle = mergedMeta.title || resolvedTitle || loc;
 
         const existingCover = card.querySelector('.card-cover-wrap');
@@ -327,10 +350,18 @@ export function hydrateInternalLinkCards(container, options = {}) {
             }
             fragments.push(date);
           }
-          const read = document.createElement('span');
-          read.className = 'card-read';
-          read.textContent = `${minutes} ${translate('ui.minRead')}`;
-          fragments.push(read);
+          if (mergedMeta && mergedMeta.protected) {
+            const p = document.createElement('span');
+            p.className = 'card-draft';
+            p.textContent = translate('ui.protectedBadge');
+            fragments.push(p);
+          }
+          if (!encrypted) {
+            const read = document.createElement('span');
+            read.className = 'card-read';
+            read.textContent = `${minutes} ${translate('ui.minRead')}`;
+            fragments.push(read);
+          }
           if (mergedMeta && mergedMeta.draft) {
             const d = document.createElement('span');
             d.className = 'card-draft';

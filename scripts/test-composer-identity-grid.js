@@ -99,14 +99,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=markdown-safety-20260508/,
-  'editor HTML should cache-bust composer.js when sanitizer boundaries change'
+  /assets\/js\/editor-boot\.js\?v=encrypted-articles-20260508/,
+  'editor HTML should cache-bust editor boot when protected article i18n/cache boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=markdown-safety-20260508/,
-  'editor HTML should cache-bust editor-main.js when sanitizer boundaries change'
+  /assets\/js\/composer\.js\?v=encrypted-articles-20260508/,
+  'editor HTML should cache-bust composer.js when protected article runtime boundaries change'
+);
+
+assert.match(
+  editorSource,
+  /assets\/js\/editor-main\.js\?v=encrypted-articles-20260508/,
+  'editor HTML should cache-bust editor-main.js when protected article runtime boundaries change'
 );
 
 assert.match(
@@ -123,8 +129,8 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=markdown-safety-20260508'/,
-  'composer should cache-bust system update notes when sanitizer boundaries change'
+  /from '\.\/system-updates\.js\?v=encrypted-articles-20260508'/,
+  'composer should cache-bust system update notes when protected article i18n boundaries change'
 );
 
 assert.match(
@@ -1762,19 +1768,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=20260505welcome';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=encrypted-articles-20260508';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese article action'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=20260505welcome"[\s\S]*"\.\/chs\.js\?v=20260505welcome"[\s\S]*"\.\/cht-tw\.js\?v=20260505welcome"[\s\S]*"\.\/cht-hk\.js\?v=20260505welcome"[\s\S]*"\.\/ja\.js\?v=20260505welcome"/,
+  /"\.\/en\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/chs\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/cht-tw\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/cht-hk\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/ja\.js\?v=encrypted-articles-20260508"/,
   'language manifest should cache-bust language bundles changed by editor action labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=20260505welcome'/,
+  /from '\.\.\/i18n\/en\.js\?v=encrypted-articles-20260508'/,
   'default English bundle import should be cache-busted when editor action labels change'
 );
 

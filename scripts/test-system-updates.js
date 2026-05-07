@@ -214,7 +214,7 @@ await run('uses the static manifest artifact when the GitHub API tag matches', a
         }]
       });
     }
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       manifestCalls += 1;
       return jsonResponse({
         schemaVersion: 1,
@@ -267,7 +267,7 @@ await run('uses GitHub API metadata when the static manifest is stale', async ()
         }]
       });
     }
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       return jsonResponse({
         schemaVersion: 1,
         name: 'v3.3.5',
@@ -327,7 +327,7 @@ await run('uses newer fetchable manifest metadata when the GitHub API lags', asy
         }]
       });
     }
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       return jsonResponse({
         schemaVersion: 1,
         name: 'v3.3.6',
@@ -382,7 +382,7 @@ await run('falls back to the GitHub API when the static manifest is unavailable'
         }]
       });
     }
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       manifestCalls += 1;
       return jsonResponse({ message: 'not found' }, { ok: false, status: 404 });
     }
@@ -411,7 +411,7 @@ await run('uses the static manifest digest when verifying a selected archive', a
         status: 429
       });
     }
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       return jsonResponse({
         schemaVersion: 1,
         name: 'v3.3.5',
@@ -463,7 +463,7 @@ await run('downloads the manifest asset and stages system files', async () => {
         }]
       });
     }
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       return jsonResponse({
         schemaVersion: 1,
         name: 'v3.3.5',
@@ -505,7 +505,7 @@ await run('keeps manual fallback available when automatic download fails', async
 
   globalThis.fetch = async (input) => {
     const url = String(input || '');
-    if (url.includes('assets/system-release.json')) {
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
       return jsonResponse({
         schemaVersion: 1,
         name: 'v3.3.5',

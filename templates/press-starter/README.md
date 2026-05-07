@@ -2,7 +2,7 @@
 
 This is the minimal repository shape for `EkilyHQ/YAP`.
 
-Use the upstream repository as a GitHub template for new sites. It should include the Press runtime, editor, `native`, Theme Manager, `assets/themes/packs.json`, `assets/themes/catalog.json`, and minimal site content. It should not include the Press official documentation corpus or regression posts.
+Use the upstream repository as a GitHub template for new sites. It should include the Press runtime, editor, `native`, Theme Manager, `assets/themes/packs.json`, and minimal site content. It should not include the Press official documentation corpus, regression posts, or a bundled official theme catalog.
 
 ## Included
 

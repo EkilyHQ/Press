@@ -53,8 +53,13 @@ if awk '
   exit 1
 fi
 
-if ! grep -F 'assets/themes/native assets/themes/catalog.json' "${workflow}" >/dev/null; then
-  echo "system release planning must include only native plus the official theme catalog" >&2
+if ! grep -F 'assets/themes/native)' "${workflow}" >/dev/null && ! grep -F 'assets/themes/native"' "${workflow}" >/dev/null; then
+  echo "system release planning must include the native theme" >&2
+  exit 1
+fi
+
+if grep -F 'assets/themes/catalog.json' "${workflow}" >/dev/null; then
+  echo "system release planning must not include the external official theme catalog" >&2
   exit 1
 fi
 

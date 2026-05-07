@@ -37,9 +37,9 @@ This repository carries the implementation template input for YAP under `templat
 
 - `index.html` - public site entrypoint.
 - `index_editor.html` - browser editor entrypoint.
-- `assets/` - runtime JavaScript, i18n, schemas, the built-in `native` theme, installed theme registry, official theme catalog, and static assets.
+- `assets/` - runtime JavaScript, i18n, schemas, the built-in `native` theme, installed theme registry, and static assets.
 - `assets/themes/packs.json` - site-specific installed theme registry used by Site Settings and Theme Manager.
-- `assets/themes/catalog.json` - official theme catalog used by Theme Manager.
+- Official theme catalog - external list loaded by Theme Manager from `EkilyHQ/Press-Theme-Catalog`.
 - `wwwroot/` - official documentation site content and Markdown regression corpus.
 - `site.yaml` - official documentation site configuration.
 - `scripts/` - repository checks and focused regression scripts.
@@ -72,7 +72,7 @@ node scripts/test-content-model.js
 
 ## System Releases
 
-Merges to `main` that change Press runtime files automatically publish a patch release with a dedicated `press-system-vX.Y.Z.zip` update package. The package is intentionally limited to the application shell and runtime assets: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, `assets/themes/native/**`, and `assets/themes/catalog.json`.
+Merges to `main` that change Press runtime files automatically publish a patch release with a dedicated `press-system-vX.Y.Z.zip` update package. The package is intentionally limited to the application shell and runtime assets: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`.
 
 Official documentation, site content, installed theme registry state, and external theme directories stay out of system update packages. Changes that only touch `wwwroot/` do not create a system release, and update packages must never include `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, workflow files, scripts, site-specific media such as `assets/avatar.png` and `assets/hero.jpeg`, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`.
 
@@ -92,7 +92,7 @@ Want to list your site here? Open a PR with the site URL and a one-line descript
 
 ## Theme Repositories
 
-Official themes use separate repositories such as `EkilyHQ/Press-Theme-Arcus`. New theme repositories should start from [EkilyHQ/Press-Theme-Starter](https://github.com/EkilyHQ/Press-Theme-Starter). Each theme repository owns its theme source, contract checks, release workflow, `press-theme-<slug>-vX.Y.Z.zip` artifact, SHA-256 digest, and root `theme-release.json` manifest. Press owns only the runtime infrastructure, `native`, and `catalog.json`; each site owns its installed `packs.json`.
+Official themes use separate repositories such as `EkilyHQ/Press-Theme-Arcus`. New theme repositories should start from [EkilyHQ/Press-Theme-Starter](https://github.com/EkilyHQ/Press-Theme-Starter). Each theme repository owns its theme source, contract checks, release workflow, `press-theme-<slug>-vX.Y.Z.zip` artifact, SHA-256 digest, and root `theme-release.json` manifest. `EkilyHQ/Press-Theme-Catalog` owns the official theme list. Press owns only the runtime infrastructure and `native`; each site owns its installed `packs.json`.
 
 ## Roadmap
 

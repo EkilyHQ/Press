@@ -542,15 +542,13 @@ await run('normalizes a rooted system update archive to safe site-relative paths
   const buffer = makeZip({
     'press-system-v3.3.5/index.html': '<!doctype html>',
     'press-system-v3.3.5/assets/js/system-updates.js': 'export {};',
-    'press-system-v3.3.5/assets/themes/native/theme.json': '{"name":"Native","contractVersion":1}',
-    'press-system-v3.3.5/assets/themes/catalog.json': '{"themes":[]}'
+    'press-system-v3.3.5/assets/themes/native/theme.json': '{"name":"Native","contractVersion":1}'
   });
 
   const entries = collectSystemUpdateArchiveEntries(buffer);
 
   assert.deepEqual(entries.map((entry) => entry.path).sort(), [
     'assets/js/system-updates.js',
-    'assets/themes/catalog.json',
     'assets/themes/native/theme.json',
     'index.html'
   ]);
@@ -580,16 +578,23 @@ await run('rejects system packages that would overwrite installed theme registry
   );
 });
 
-await run('allows only native and official catalog under assets/themes', async () => {
+await run('allows only native under assets/themes', async () => {
   const buffer = makeZip({
-    'press-system-v3.3.5/assets/themes/native/theme.css': 'body{}',
-    'press-system-v3.3.5/assets/themes/catalog.json': '{"themes":[]}'
+    'press-system-v3.3.5/assets/themes/native/theme.css': 'body{}'
   });
   const entries = collectSystemUpdateArchiveEntries(buffer);
   assert.deepEqual(entries.map((entry) => entry.path).sort(), [
-    'assets/themes/catalog.json',
     'assets/themes/native/theme.css'
   ]);
+});
+
+await run('rejects system packages that would overwrite the external official catalog', async () => {
+  assert.throws(
+    () => collectSystemUpdateArchiveEntries(makeZip({
+      'press-system-v3.3.5/assets/themes/catalog.json': '{"themes":[]}'
+    })),
+    /unsafe|system update/i
+  );
 });
 
 await run('rejects archives that would overwrite user content or site config', async () => {

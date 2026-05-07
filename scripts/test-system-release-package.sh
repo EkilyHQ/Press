@@ -56,13 +56,13 @@ if ! grep -qx "press-system-${version}/assets/themes/native/theme.json" "${entri
   exit 1
 fi
 
-if ! grep -qx "press-system-${version}/assets/themes/catalog.json" "${entries_file}"; then
-  echo "expected package to include the official theme catalog" >&2
+if grep -qx "press-system-${version}/assets/themes/packs.json" "${entries_file}"; then
+  echo "system release package must not overwrite installed theme registry state" >&2
   exit 1
 fi
 
-if grep -qx "press-system-${version}/assets/themes/packs.json" "${entries_file}"; then
-  echo "system release package must not overwrite installed theme registry state" >&2
+if grep -qx "press-system-${version}/assets/themes/catalog.json" "${entries_file}"; then
+  echo "system release package must not ship the external official theme catalog" >&2
   exit 1
 fi
 
@@ -107,7 +107,7 @@ if grep -Eq "${blocked}" "${entries_file}"; then
   exit 1
 fi
 
-allowed="^press-system-${version}/(index\\.html|index_editor\\.html|assets/(main\\.js|js/.*|i18n/.*|schema/.*|themes/(native/.*|catalog\\.json)))$"
+allowed="^press-system-${version}/(index\\.html|index_editor\\.html|assets/(main\\.js|js/.*|i18n/.*|schema/.*|themes/native/.*))$"
 while IFS= read -r entry; do
   if [[ ! "${entry}" =~ ${allowed} ]]; then
     echo "unexpected file in system release package: ${entry}" >&2

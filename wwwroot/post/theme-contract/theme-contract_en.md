@@ -114,7 +114,8 @@ the current default theme also stages `site.yaml` back to `themePack: native`.
 `native` must be registered with `builtIn: true`, `removable: false`, and
 `source.type: "builtin"`.
 
-The official catalog lives at `assets/themes/catalog.json` and points to each
+The official catalog lives in `EkilyHQ/Press-Theme-Catalog` and is loaded by
+Theme Manager from the browser-readable raw `catalog.json`. It points to each
 official theme repository's release manifest. Site Settings still chooses the
 default `themePack`; installation, update, import, and uninstall actions belong
 to Theme Manager.
@@ -170,10 +171,10 @@ stage deletions and removes the theme entry from `packs.json`.
 ## Repository Boundary
 
 Press system releases may update runtime files, schemas, i18n, Theme Manager,
-`assets/themes/native/**`, and `assets/themes/catalog.json`. They must not
-overwrite `assets/themes/packs.json` or arbitrary external theme directories.
-Official theme source, checks, release ZIPs, checksums, and
-`theme-release.json` belong to each theme repository.
+and `assets/themes/native/**`. They must not overwrite `assets/themes/packs.json`,
+the external official theme catalog, or arbitrary external theme directories.
+Official theme source, checks, release ZIPs, checksums, and `theme-release.json`
+belong to each theme repository.
 
 ## Theme API
 

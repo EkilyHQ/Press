@@ -262,7 +262,7 @@ globalThis.history = { replaceState() {} };
 globalThis.requestAnimationFrame = (callback) => setTimeout(callback, 0);
 
 const { mdParse } = await import('../assets/js/markdown.js?markdown-security');
-const { setSafeHtml } = await import('../assets/js/utils.js?markdown-security');
+const { sanitizeImageUrl, setSafeHtml } = await import('../assets/js/safe-html.js?markdown-security');
 const { PressToc } = await import('../assets/js/components.js?markdown-security');
 const nativeInteractions = await import('../assets/themes/native/modules/interactions.js?markdown-security');
 
@@ -496,6 +496,13 @@ const maliciousRenderedHtml = [
 const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href="java&#10;script:alert&#40;1&#41;" onclick="alert(1)">Bad</a><img src="javascript:alert(2)" onerror="alert(2)" alt="x"></li></ul></li></ul>';
 
 {
+  assert.equal(sanitizeImageUrl('java&#10;script:alert(1)'), '');
+  assert.equal(sanitizeImageUrl('data:image/svg+xml,%3Csvg%20onload=alert(1)%3E'), '');
+  assert.equal(sanitizeImageUrl('data:image/png;base64,AAAA'), 'data:image/png;base64,AAAA');
+  assert.equal(sanitizeImageUrl('http&#115;://example.com/pic.png'), 'https://example.com/pic.png');
+}
+
+{
   const limited = mdParse('> [x](javascript:alert(1)) **bold**', baseDir, { maxDepth: 0 }).post;
   assert.equal(collectRawTags(limited, 'a').length, 0);
   assert.equal(collectRawTags(limited, 'strong').length, 0);
@@ -586,6 +593,32 @@ const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href=
   assert.equal(images[0].getAttribute('onerror'), null);
   assert.equal(images[0].getAttribute('onclick'), null);
   assertRawMarkdownHtmlIsSafe(html);
+}
+
+{
+  const { html, target } = renderMarkdown('![x](java&#10;script:payload)');
+  const rawImages = collectRawTags(html, 'img');
+  const images = collectElements(target, 'img');
+
+  assert.equal(rawImages.length, 1);
+  assert.equal(rawImages[0].attrs.get('src'), '#');
+  assert.equal(images.length, 1);
+  assert.equal(images[0].getAttribute('src'), '#');
+  assertRawMarkdownHtmlIsSafe(html);
+  assertNoEventHandlerAttributes(target);
+}
+
+{
+  const { html, target } = renderMarkdown('![x](http&#115;://example.com/pic.png)');
+  const rawImages = collectRawTags(html, 'img');
+  const images = collectElements(target, 'img');
+
+  assert.equal(rawImages.length, 1);
+  assert.equal(rawImages[0].attrs.get('src'), 'https://example.com/pic.png');
+  assert.equal(images.length, 1);
+  assert.equal(images[0].getAttribute('src'), 'https://example.com/pic.png');
+  assertRawMarkdownHtmlIsSafe(html);
+  assertNoEventHandlerAttributes(target);
 }
 
 {
@@ -747,6 +780,22 @@ const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href=
   assert.equal(videos[0].getAttribute('poster'), '#');
   assert.equal(sources[0].getAttribute('src'), 'https://example.com/video.mp4');
   assertNoEventHandlerAttributes(main);
+}
+
+{
+  const target = documentRef.createElement('div');
+  setSafeHtml(
+    target,
+    '<img src="data:image/svg+xml,%3Csvg%20onload=alert(1)%3E" alt="svg"><img src="data:image/png;base64,AAAA" alt="png">',
+    baseDir,
+    { alreadySanitized: true }
+  );
+  const images = collectElements(target, 'img');
+
+  assert.equal(images.length, 2);
+  assert.equal(images[0].getAttribute('src'), '#');
+  assert.equal(images[1].getAttribute('src'), 'data:image/png;base64,AAAA');
+  assertNoEventHandlerAttributes(target);
 }
 
 {

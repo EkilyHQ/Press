@@ -99,8 +99,38 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=repo-autofill-marker-20260507/,
-  'editor HTML should cache-bust composer.js when repository autofill marker handling changes'
+  /assets\/js\/composer\.js\?v=markdown-safety-20260508/,
+  'editor HTML should cache-bust composer.js when sanitizer boundaries change'
+);
+
+assert.match(
+  editorSource,
+  /assets\/js\/editor-main\.js\?v=markdown-safety-20260508/,
+  'editor HTML should cache-bust editor-main.js when sanitizer boundaries change'
+);
+
+assert.match(
+  editorMainSource,
+  /from '\.\/markdown\.js\?v=markdown-safety-20260508'/,
+  'editor preview should cache-bust the Markdown parser when sanitizer boundaries change'
+);
+
+assert.match(
+  editorMainSource,
+  /from '\.\/safe-html\.js\?v=markdown-safety-20260508'/,
+  'editor preview should import the cache-busted safe HTML helper directly'
+);
+
+assert.match(
+  source,
+  /from '\.\/system-updates\.js\?v=markdown-safety-20260508'/,
+  'composer should cache-bust system update notes when sanitizer boundaries change'
+);
+
+assert.match(
+  readFileSync(resolve(here, '../assets/js/system-updates.js'), 'utf8'),
+  /from '\.\/markdown\.js\?v=markdown-safety-20260508'/,
+  'system update notes should cache-bust the Markdown parser when sanitizer boundaries change'
 );
 
 assert.notEqual(

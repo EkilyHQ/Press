@@ -1,4 +1,5 @@
-import { escapeHtml, setSafeHtml } from './utils.js';
+import { setSafeHtml } from './safe-html.js';
+import { escapeHtml } from './utils.js';
 export { renderPressPostCardHtml } from './post-card-html.js';
 
 const safe = (value) => escapeHtml(String(value ?? '')) || '';

@@ -1,5 +1,6 @@
 import { installLightbox } from '../../../js/lightbox.js';
-import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, sanitizeImageUrl, setSafeHtml, renderSkeletonArticle } from '../../../js/utils.js';
+import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
+import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
 import { attachHoverTooltip } from '../../../js/tags.js';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
 import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js';

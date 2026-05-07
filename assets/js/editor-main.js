@@ -1,7 +1,7 @@
 import { configureFetchCachePolicy } from './cache-control.js';
 import { createMarkdownBlocksEditor } from './editor-blocks.js?v=action-menu-flip-20260505';
 import { createHiEditor } from './hieditor.js';
-import { mdParse } from './markdown.js';
+import { mdParse } from './markdown.js?v=markdown-safety-20260508';
 import { insertImageMarkdownAtSelection, normalizeDateInputValue } from './editor-markdown-ops.js';
 import {
   FRONT_MATTER_FIELD_DEFS,
@@ -12,7 +12,7 @@ import {
   resolveFrontMatterBindings,
   valueIsPresent
 } from './frontmatter-document.js';
-import { getContentRoot, resolveImageSrc, setSafeHtml } from './utils.js?v=editor-preview-images-20260504';
+import { getContentRoot, resolveImageSrc, setSafeHtml } from './safe-html.js?v=markdown-safety-20260508';
 import { initSyntaxHighlighting } from './syntax-highlight.js?v=blocks-code-gutter-20260505';
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post-render.js';
 import { hydrateInternalLinkCards } from './link-cards.js';

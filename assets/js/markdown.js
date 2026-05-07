@@ -1,4 +1,5 @@
-import { escapeHtml, escapeMarkdown, sanitizeUrl, resolveImageSrc } from './utils.js';
+import { resolveImageSrc, sanitizeUrl } from './safe-html.js';
+import { escapeHtml, escapeMarkdown } from './utils.js';
 import { stripFrontMatter } from './content.js';
 
 const DEFAULT_PARSE_LIMITS = {

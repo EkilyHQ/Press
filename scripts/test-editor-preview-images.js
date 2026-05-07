@@ -65,20 +65,20 @@ globalThis.window = {
 globalThis.document = documentRef;
 globalThis.location = { origin: 'http://127.0.0.1:8000' };
 
-const utilsSource = readFileSync('assets/js/utils.js', 'utf8');
+const safeHtmlSource = readFileSync('assets/js/safe-html.js', 'utf8');
 assert.equal(
-  utilsSource.includes('target.setHTML(input'),
+  safeHtmlSource.includes('target.setHTML(input'),
   false,
   'editor preview should not bypass Press sanitizer with native setHTML'
 );
 assert.equal(
-  utilsSource.includes("'Sanitizer' in window"),
+  safeHtmlSource.includes("'Sanitizer' in window"),
   false,
   'editor preview should not use native Sanitizer defaults that can drop rendered media'
 );
 
 const { mdParse } = await import('../assets/js/markdown.js?editor-preview-images');
-const { setSafeHtml } = await import('../assets/js/utils.js?editor-preview-images');
+const { setSafeHtml } = await import('../assets/js/safe-html.js?editor-preview-images');
 
 function collectElements(node, tagName, out = []) {
   if (!node) return out;

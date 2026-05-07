@@ -71,11 +71,13 @@ function extractFunctionDeclaration(text, name) {
 
 function loadRepoInferenceHelpers() {
   const helpers = [
+    extractFunctionDeclaration(source, 'normalizeStorageScopePart'),
+    extractFunctionDeclaration(source, 'resolveEditorStorageScope'),
     extractFunctionDeclaration(source, 'inferRepoConfigFromGitHubPagesUrl'),
     extractFunctionDeclaration(source, 'isPlaceholderRepoConfig'),
     extractFunctionDeclaration(source, 'applyInferredRepoConfig')
   ].join('\n');
-  return Function(`${helpers}\nreturn { inferRepoConfigFromGitHubPagesUrl, isPlaceholderRepoConfig, applyInferredRepoConfig };`)();
+  return Function(`${helpers}\nreturn { resolveEditorStorageScope, inferRepoConfigFromGitHubPagesUrl, isPlaceholderRepoConfig, applyInferredRepoConfig };`)();
 }
 
 const repoInference = loadRepoInferenceHelpers();
@@ -94,9 +96,48 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=repo-autofill-root-20260507/,
-  'editor HTML should cache-bust composer.js when repository autofill changes'
+  /assets\/js\/composer\.js\?v=scoped-editor-state-20260507/,
+  'editor HTML should cache-bust composer.js when editor storage scoping changes'
 );
+
+assert.notEqual(
+  repoInference.resolveEditorStorageScope('https://deemoe404.github.io/test1/index_editor.html'),
+  repoInference.resolveEditorStorageScope('https://deemoe404.github.io/test2/index_editor.html'),
+  'GitHub project Pages editor state should be scoped by repository path'
+);
+
+assert.equal(
+  repoInference.resolveEditorStorageScope('https://deemoe404.github.io/index_editor.html'),
+  repoInference.resolveEditorStorageScope('https://deemoe404.github.io/index.html'),
+  'GitHub user Pages root files should share the user-site storage scope'
+);
+
+assert.notEqual(
+  repoInference.resolveEditorStorageScope('https://deemoe404.github.io/index.html/'),
+  repoInference.resolveEditorStorageScope('https://deemoe404.github.io/index.html'),
+  'GitHub project repos named index.html should not share the user-site storage scope'
+);
+
+assert.match(
+  source,
+  /const EDITOR_STORAGE_SCOPE = [\s\S]*resolveEditorStorageScope\(window\.location\)[\s\S]*function scopedEditorStorageKey\(key\) \{[\s\S]*return `\$\{key\}:\$\{EDITOR_STORAGE_SCOPE\}`;/,
+  'composer should derive a site-scoped local storage key suffix from window.location'
+);
+
+[
+  'LS_KEYS.editorState',
+  'LS_KEYS.systemTreeExpanded',
+  'LS_KEYS.cfile',
+  'DRAFT_STORAGE_KEY',
+  'MARKDOWN_DRAFT_STORAGE_KEY',
+  'GITHUB_PAT_STORAGE_KEY'
+].forEach((keyName) => {
+  assert.match(
+    source,
+    new RegExp(`scopedEditorStorageKey\\(${keyName.replace('.', '\\.')}\\)`),
+    `${keyName} should use site-scoped browser storage`
+  );
+});
 
 assert.deepEqual(
   repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/test1/index_editor.html'),

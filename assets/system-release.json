@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.38",
-  "tag": "v3.3.38",
-  "publishedAt": "2026-05-06T16:48:32Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.38.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.38.zip`\n- SHA-256: `765f3455e03c332286b871bb378c5d92c0456b56e02d5990d8fbcfd15cc5c996`\n\n## Changed System Files\n\n- assets/js/components.js\n- assets/js/dom-utils.js\n- assets/js/editor-main.js\n- assets/js/i18n.js\n- assets/js/lightbox.js\n- assets/js/search.js\n- assets/js/tags.js\n- assets/js/theme-layout.js\n- assets/js/theme-regions.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/schema/theme.json\n- assets/themes/arcus/modules/interactions.js\n- assets/themes/arcus/modules/layout.js\n- assets/themes/arcus/theme.css\n- assets/themes/native/base.css\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/modules/mainview.js\n- assets/themes/native/modules/nav-tabs.js\n- assets/themes/native/modules/search-box.js\n- assets/themes/native/modules/tag-filter.js\n- assets/themes/native/modules/toc.js\n- assets/themes/native/theme.css\n- assets/themes/solstice/modules/interactions.js\n- assets/themes/solstice/modules/layout.js\n- assets/themes/solstice/theme.css\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.37...v3.3.38\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.38",
+  "name": "v3.3.39",
+  "tag": "v3.3.39",
+  "publishedAt": "2026-05-07T06:12:12Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.39.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.39.zip`\n- SHA-256: `108aedba44083193191032f7cfbaf33263d65bc4825f757e0e5751b6a213effc`\n\n## Changed System Files\n\n- assets/i18n/en.js\n- assets/js/components.js\n- assets/js/composer.js\n- assets/js/editor-content-tree.js\n- assets/js/system-updates.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/themes/catalog.json\n- index.html\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.38...v3.3.39\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.39",
   "asset": {
-    "name": "press-system-v3.3.38.zip",
-    "url": "https://github.com/EkilyHQ/Press/releases/download/v3.3.38/press-system-v3.3.38.zip",
-    "size": 573133,
-    "digest": "sha256:765f3455e03c332286b871bb378c5d92c0456b56e02d5990d8fbcfd15cc5c996"
+    "name": "press-system-v3.3.39.zip",
+    "url": "https://github.com/EkilyHQ/Press/releases/download/v3.3.39/press-system-v3.3.39.zip",
+    "size": 514169,
+    "digest": "sha256:108aedba44083193191032f7cfbaf33263d65bc4825f757e0e5751b6a213effc"
   }
 }

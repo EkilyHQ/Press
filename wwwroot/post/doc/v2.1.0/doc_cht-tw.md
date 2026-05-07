@@ -120,6 +120,13 @@ About:
 
 頁面 Markdown 可以省略 Front Matter。
 
+## Press Markdown 語法
+Press 使用一套為 Press 站點設計的小型、安全的類 Markdown 渲染器。它不是完整的 CommonMark 或 GitHub Flavored Markdown 實作。
+
+支援的語法包括標題、段落、粗體、斜體、刪除線、行內程式碼、圍欄程式碼區塊、一般連結、一般圖片、簡單有序/無序列表、引用區塊、簡單管線表格、`- [ ]` / `- [x]` 任務列表、Press 站內連結卡片、Obsidian 風格 callout，以及 `![[...]]` 嵌入。圖片與影片路徑會相對於目前 Markdown 檔案解析。
+
+Press 不支援 raw HTML。`<div>`、`<script>` 和 HTML 註解等內容會作為文字顯示，而不會被插入頁面。不支援或風險較高的語法，在編輯器區塊視圖中也可能保留為 Markdown 原始碼，而不是轉換成結構化可編輯區塊。
+
 ## 圖片與影片
 Markdown 中的圖片與影片路徑會相對於目前 Markdown 檔案解析：
 

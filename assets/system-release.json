@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.43",
-  "tag": "v3.3.43",
-  "publishedAt": "2026-05-07T09:43:15Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.43.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.43.zip`\n- SHA-256: `2ba92ea753d5438856d2f833dfae26f468d44f7bdc7d48248fe94fbbca2623dd`\n\n## Changed System Files\n\n- assets/i18n/chs.js\n- assets/i18n/cht-tw.js\n- assets/i18n/en.js\n- assets/i18n/ja.js\n- assets/js/system-updates.js\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.42...v3.3.43\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.43",
+  "name": "v3.3.44",
+  "tag": "v3.3.44",
+  "publishedAt": "2026-05-07T10:17:46Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.44.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.44.zip`\n- SHA-256: `dd2e2ed187e82718e57038d5e512ec12d7705497cf71bde5237b6d171e5efc3c`\n\n## Changed System Files\n\n- assets/js/composer.js\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.43...v3.3.44\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.44",
   "asset": {
-    "name": "press-system-v3.3.43.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.43/press-system-v3.3.43.zip",
-    "size": 516150,
-    "digest": "sha256:2ba92ea753d5438856d2f833dfae26f468d44f7bdc7d48248fe94fbbca2623dd"
+    "name": "press-system-v3.3.44.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.44/press-system-v3.3.44.zip",
+    "size": 516395,
+    "digest": "sha256:dd2e2ed187e82718e57038d5e512ec12d7705497cf71bde5237b6d171e5efc3c"
   }
 }

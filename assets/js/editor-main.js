@@ -11,7 +11,7 @@ import {
   parseMarkdownFrontMatter,
   resolveFrontMatterBindings,
   valueIsPresent
-} from './frontmatter-document.js';
+} from './frontmatter-document.js?v=encrypted-articles-20260508';
 import { getContentRoot, resolveImageSrc, setSafeHtml } from './safe-html.js?v=markdown-safety-20260508';
 import { initSyntaxHighlighting } from './syntax-highlight.js?v=blocks-code-gutter-20260505';
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post-render.js';
@@ -1168,6 +1168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (registry.size) return;
       if (panel.dataset.state === 'loading') panel.dataset.state = 'ready';
       FRONT_MATTER_FIELD_DEFS.forEach((def) => {
+        if (def && def.hidden) return;
         const entry = createField(def, { key: def.keys[0] });
         registry.set(def.id, entry);
         const parent = entry.section === 'advanced' ? extraFieldsEl : commonFieldsEl;

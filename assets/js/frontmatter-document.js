@@ -7,7 +7,9 @@ export const FRONT_MATTER_FIELD_DEFS = [
   { id: 'image', keys: ['image', 'thumb', 'thumbnail', 'cover', 'coverImage', 'cover_image', 'hero', 'banner'], type: 'text', section: 'advanced', labelKey: 'editor.frontMatter.fields.image', fallbackLabel: 'Primary image', hintKey: 'editor.frontMatter.hints.image' },
   { id: 'draft', keys: ['draft', 'wip', 'unfinished', 'inprogress'], type: 'boolean', section: 'common', labelKey: 'editor.frontMatter.fields.draft', fallbackLabel: 'Draft', hintKey: 'editor.frontMatter.hints.draft' },
   { id: 'version', keys: ['version'], type: 'text', section: 'advanced', labelKey: 'editor.frontMatter.fields.version', fallbackLabel: 'Version', hintKey: 'editor.frontMatter.hints.version' },
-  { id: 'ai', keys: ['ai', 'aiGenerated', 'llm'], type: 'boolean', section: 'advanced', labelKey: 'editor.frontMatter.fields.ai', fallbackLabel: 'AI generated', hintKey: 'editor.frontMatter.hints.ai' }
+  { id: 'ai', keys: ['ai', 'aiGenerated', 'llm'], type: 'boolean', section: 'advanced', labelKey: 'editor.frontMatter.fields.ai', fallbackLabel: 'AI generated', hintKey: 'editor.frontMatter.hints.ai' },
+  { id: 'protected', keys: ['protected'], type: 'boolean', section: 'advanced', hidden: true },
+  { id: 'encryption', keys: ['encryption'], type: 'json', section: 'advanced', hidden: true }
 ];
 
 export const FRONT_MATTER_ALIAS_TO_ID = new Map();
@@ -294,6 +296,44 @@ const parseListItems = (bodyLines) => {
   return values;
 };
 
+const parseJsonLikeScalar = (raw) => {
+  const text = stripInlineComment(String(raw == null ? '' : raw).trim());
+  if (!text) return undefined;
+  if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
+    try { return JSON.parse(text); } catch (_) {}
+  }
+  const scalar = parseQuotedString(text);
+  if (typeof scalar !== 'string') return scalar;
+  if (/^(?:true|false)$/i.test(scalar)) return /^true$/i.test(scalar);
+  if (/^null$/i.test(scalar)) return null;
+  if (/^[+-]?\d+(?:\.\d+)?$/.test(scalar)) {
+    const number = Number(scalar);
+    if (Number.isFinite(number)) return number;
+  }
+  if ((scalar.startsWith('{') && scalar.endsWith('}')) || (scalar.startsWith('[') && scalar.endsWith(']'))) {
+    try { return JSON.parse(scalar); } catch (_) {}
+  }
+  return scalar;
+};
+
+const parseIndentedJsonObject = (bodyLines) => {
+  const out = {};
+  let found = false;
+  const lines = Array.isArray(bodyLines) ? bodyLines : [];
+  for (const rawLine of lines) {
+    if (!rawLine || !rawLine.trim() || rawLine.trimStart().startsWith('#')) continue;
+    if (leadingIndent(rawLine) === 0) return undefined;
+    const trimmed = rawLine.trim();
+    const match = /^([A-Za-z0-9_.-]+)\s*:\s*(.*)$/.exec(trimmed);
+    if (!match) return undefined;
+    const value = parseJsonLikeScalar(match[2]);
+    if (value === undefined) return undefined;
+    out[match[1]] = value;
+    found = true;
+  }
+  return found ? out : undefined;
+};
+
 const parseEntryValue = (entry, def) => {
   if (!entry || !def || !Array.isArray(entry.bodyLines) || !entry.bodyLines.length) return undefined;
   const match = KEY_LINE_RE.exec(entry.bodyLines[0]);
@@ -327,6 +367,11 @@ const parseEntryValue = (entry, def) => {
     const items = parseListItems(continuation);
     return Array.isArray(items) ? items : undefined;
   }
+  if (def.type === 'json') {
+    if (!rest) return parseIndentedJsonObject(continuation);
+    const value = parseJsonLikeScalar(rest);
+    return value && typeof value === 'object' ? value : undefined;
+  }
   if (!rest) return undefined;
   return parseQuotedString(rest);
 };
@@ -351,6 +396,9 @@ const formatYamlScalar = (value) => {
 
 const emitKnownEntryLines = (key, value) => {
   if (!valueIsPresent(value)) return [];
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return [`${key}: ${JSON.stringify(value)}`];
+  }
   if (Array.isArray(value)) {
     const items = value.filter((item) => valueIsPresent(item));
     if (!items.length) return [];

@@ -94,7 +94,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=repo-autofill-20260507/,
+  /assets\/js\/composer\.js\?v=repo-autofill-root-20260507/,
   'editor HTML should cache-bust composer.js when repository autofill changes'
 );
 
@@ -114,6 +114,24 @@ assert.deepEqual(
   repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/index_editor.html'),
   { owner: 'deemoe404', name: 'deemoe404.github.io', branch: 'main' },
   'GitHub user Pages editor URLs should infer the owner.github.io repository'
+);
+
+assert.deepEqual(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/index.html'),
+  { owner: 'deemoe404', name: 'deemoe404.github.io', branch: 'main' },
+  'GitHub user Pages root index URLs should infer the owner.github.io repository'
+);
+
+assert.deepEqual(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/index.html/'),
+  { owner: 'deemoe404', name: 'index.html', branch: 'main' },
+  'GitHub project Pages repos named index.html should not be treated as user Pages root files'
+);
+
+assert.deepEqual(
+  repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/index_editor.html/index_editor.html'),
+  { owner: 'deemoe404', name: 'index_editor.html', branch: 'main' },
+  'GitHub project Pages repos named index_editor.html should not be treated as user Pages root files'
 );
 
 assert.equal(

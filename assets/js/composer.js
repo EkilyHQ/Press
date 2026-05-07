@@ -346,10 +346,14 @@ function inferRepoConfigFromGitHubPagesUrl(locationLike) {
   const owner = host.slice(0, -suffix.length);
   if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(owner)) return null;
 
-  const rawSegments = String(pathname || '').split('/').filter(Boolean);
+  const path = String(pathname || '');
+  const rawSegments = path.split('/').filter(Boolean);
   const firstSegment = rawSegments[0] || '';
+  const isRootIndexFile = rawSegments.length === 1
+    && (firstSegment === 'index.html' || firstSegment === 'index_editor.html')
+    && !path.endsWith('/');
   let name = '';
-  if (!firstSegment || firstSegment === 'index.html' || firstSegment === 'index_editor.html') {
+  if (!firstSegment || isRootIndexFile) {
     name = `${owner}.github.io`;
   } else {
     try {

@@ -7,8 +7,8 @@ import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeContro
 import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=markdown-safety-20260508';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
-import { getContentRoot, sanitizeImageUrl, sanitizeUrl, setSafeHtml } from './js/safe-html.js';
-import { getQueryVariable, setDocTitle, setBaseSiteTitle, cardImageSrc, fallbackCover, renderTags, slugifyTab, formatDisplayDate, isModifiedClick } from './js/utils.js';
+import { getContentRoot, setSafeHtml } from './js/safe-html.js';
+import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
 import {
   initI18n,
   t,

@@ -37,7 +37,7 @@ remote repository at runtime; a selected theme must exist locally under
   "version": "3.4.0",
   "contractVersion": 1,
   "styles": ["theme.css"],
-  "modules": ["modules/layout.js", "modules/interactions.js"],
+  "modules": ["modules/layout.js", "modules/interactions.js", "modules/views.js"],
   "views": {
     "post": { "module": "modules/views.js", "handler": "post" },
     "posts": { "module": "modules/views.js", "handler": "posts" },

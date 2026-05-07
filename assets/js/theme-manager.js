@@ -202,9 +202,12 @@ function requireThemeStringList(owner, key, label) {
 }
 
 function validateThemeManifestFiles(themeManifest, availablePaths) {
-  const styles = requireThemeStringList(themeManifest, 'styles', 'styles');
+  let styles = [];
+  if (themeManifest.styles != null) {
+    styles = requireThemeStringList(themeManifest, 'styles', 'styles');
+  }
+  if (!styles.length) styles = ['theme.css'];
   const modules = requireThemeStringList(themeManifest, 'modules', 'modules');
-  if (!styles.length) throw new Error('Theme manifest styles must not be empty.');
   if (!modules.length) throw new Error('Theme manifest modules must not be empty.');
 
   const normalizedModules = new Set();

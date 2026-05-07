@@ -313,6 +313,25 @@ await run('accepts theme manifests without top-level views', async () => {
   assert.equal(archive.files.some((file) => file.path === 'theme.json'), true);
 });
 
+await run('accepts theme manifests without explicit styles', async () => {
+  const manifest = makeThemeManifest();
+  delete manifest.styles;
+  const archive = collectThemeArchiveEntries(makeZip({
+    'press-theme-test/theme.json': JSON.stringify(manifest, null, 2),
+    'press-theme-test/theme.css': ':root{}',
+    'press-theme-test/modules/layout.js': 'export default {};'
+  }));
+  assert.equal(archive.slug, 'test');
+  assert.equal(archive.files.some((file) => file.path === 'theme.css'), true);
+  assert.throws(
+    () => collectThemeArchiveEntries(makeZip({
+      'press-theme-bad/theme.json': JSON.stringify(manifest, null, 2),
+      'press-theme-bad/modules/layout.js': 'export default {};'
+    })),
+    /styles.*missing file: theme\.css/i
+  );
+});
+
 await run('verifies ZIP size and digest before official install', async () => {
   const buffer = makeThemeZip();
   const digest = await sha256(buffer);

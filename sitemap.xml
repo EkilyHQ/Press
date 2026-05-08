@@ -241,10 +241,62 @@
                                                   <priority>0.8</priority>
                                                 </url>
                                                   <url>
-                                                    <loc>https://ekilyhq.github.io/Press/?id=post%2Ftestpost%2Fmain_en.md&amp;lang=en</loc>
-                                                    <xhtml:link rel="alternate" hreflang="en" href="https://ekilyhq.github.io/Press/?id=post%2Ftestpost%2Fmain_en.md&amp;lang=en"/>
-                                                    <xhtml:link rel="alternate" hreflang="x-default" href="https://ekilyhq.github.io/Press/?id=post%2Ftestpost%2Fmain_en.md"/>
-                                                    <lastmod>2025-10-01</lastmod>
+                                                    <loc>https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md&amp;lang=en</loc>
+                                                    <xhtml:link rel="alternate" hreflang="en" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md&amp;lang=en"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_chs.md&amp;lang=chs"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-TW" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-tw.md&amp;lang=cht-tw"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-HK" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-hk.md&amp;lang=cht-hk"/>
+                                                    <xhtml:link rel="alternate" hreflang="ja" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_ja.md&amp;lang=ja"/>
+                                                    <xhtml:link rel="alternate" hreflang="x-default" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md"/>
+                                                    <lastmod>2026-05-08</lastmod>
+                                                    <changefreq>monthly</changefreq>
+                                                    <priority>0.8</priority>
+                                                  </url>
+                                                  <url>
+                                                    <loc>https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_chs.md&amp;lang=chs</loc>
+                                                    <xhtml:link rel="alternate" hreflang="en" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md&amp;lang=en"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_chs.md&amp;lang=chs"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-TW" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-tw.md&amp;lang=cht-tw"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-HK" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-hk.md&amp;lang=cht-hk"/>
+                                                    <xhtml:link rel="alternate" hreflang="ja" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_ja.md&amp;lang=ja"/>
+                                                    <xhtml:link rel="alternate" hreflang="x-default" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md"/>
+                                                    <lastmod>2026-05-08</lastmod>
+                                                    <changefreq>monthly</changefreq>
+                                                    <priority>0.8</priority>
+                                                  </url>
+                                                  <url>
+                                                    <loc>https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-tw.md&amp;lang=cht-tw</loc>
+                                                    <xhtml:link rel="alternate" hreflang="en" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md&amp;lang=en"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_chs.md&amp;lang=chs"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-TW" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-tw.md&amp;lang=cht-tw"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-HK" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-hk.md&amp;lang=cht-hk"/>
+                                                    <xhtml:link rel="alternate" hreflang="ja" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_ja.md&amp;lang=ja"/>
+                                                    <xhtml:link rel="alternate" hreflang="x-default" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md"/>
+                                                    <lastmod>2026-05-08</lastmod>
+                                                    <changefreq>monthly</changefreq>
+                                                    <priority>0.8</priority>
+                                                  </url>
+                                                  <url>
+                                                    <loc>https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-hk.md&amp;lang=cht-hk</loc>
+                                                    <xhtml:link rel="alternate" hreflang="en" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md&amp;lang=en"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_chs.md&amp;lang=chs"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-TW" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-tw.md&amp;lang=cht-tw"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-HK" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-hk.md&amp;lang=cht-hk"/>
+                                                    <xhtml:link rel="alternate" hreflang="ja" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_ja.md&amp;lang=ja"/>
+                                                    <xhtml:link rel="alternate" hreflang="x-default" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md"/>
+                                                    <lastmod>2026-05-08</lastmod>
+                                                    <changefreq>monthly</changefreq>
+                                                    <priority>0.8</priority>
+                                                  </url>
+                                                  <url>
+                                                    <loc>https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_ja.md&amp;lang=ja</loc>
+                                                    <xhtml:link rel="alternate" hreflang="en" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md&amp;lang=en"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_chs.md&amp;lang=chs"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-TW" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-tw.md&amp;lang=cht-tw"/>
+                                                    <xhtml:link rel="alternate" hreflang="zh-Hant-HK" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_cht-hk.md&amp;lang=cht-hk"/>
+                                                    <xhtml:link rel="alternate" hreflang="ja" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_ja.md&amp;lang=ja"/>
+                                                    <xhtml:link rel="alternate" hreflang="x-default" href="https://ekilyhq.github.io/Press/?id=post%2Fencrypted-articles%2Fencrypted-articles_en.md"/>
+                                                    <lastmod>2026-05-08</lastmod>
                                                     <changefreq>monthly</changefreq>
                                                     <priority>0.8</priority>
                                                   </url>

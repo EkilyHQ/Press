@@ -1,4 +1,4 @@
-import { getSavedThemePack, loadThemePack } from './theme.js?v=encrypted-articles-20260508';
+import { getSavedThemePack, loadThemePack } from './theme.js?v=encrypted-demo-20260508';
 import {
   t,
   withLangParam,
@@ -7,7 +7,7 @@ import {
   ensureLanguageBundle,
   getAvailableLangs,
   getLanguageLabel
-} from './i18n.js?v=encrypted-articles-20260508';
+} from './i18n.js?v=encrypted-demo-20260508';
 import {
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
@@ -22,8 +22,8 @@ let layoutPromise = null;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
-const NATIVE_MODULE_CACHE_KEY = 'encrypted-articles-20260508';
-const NATIVE_STYLE_CACHE_KEY = 'encrypted-articles-20260508';
+const NATIVE_MODULE_CACHE_KEY = 'encrypted-demo-20260508';
+const NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508';
 
 const EFFECT_VIEW_NAMES = {
   renderPostView: 'post',

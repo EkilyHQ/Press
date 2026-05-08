@@ -37,5 +37,9 @@ seo:
   ja: post/seo/seo_ja.md
 themeContract:
   en: post/theme-contract/theme-contract_en.md
-testpost:
-  en: post/testpost/main_en.md
+encryptedArticles:
+  en: post/encrypted-articles/encrypted-articles_en.md
+  chs: post/encrypted-articles/encrypted-articles_chs.md
+  cht-tw: post/encrypted-articles/encrypted-articles_cht-tw.md
+  cht-hk: post/encrypted-articles/encrypted-articles_cht-hk.md
+  ja: post/encrypted-articles/encrypted-articles_ja.md

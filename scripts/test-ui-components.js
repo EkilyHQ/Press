@@ -82,20 +82,20 @@ assert.ok(tocMapSet < tocBoundGuard, 'press-toc should rebuild _idToLink before 
 
 assert.match(main, /import '\.\/js\/components\.js';/, 'main should register custom elements before theme layout mounting');
 assert.match(main, /from '\.\/js\/markdown\.js\?v=markdown-safety-20260508';/, 'main should cache-bust markdown parser when sanitizer boundaries change');
-assert.match(main, /from '\.\/js\/theme-layout\.js\?v=encrypted-articles-20260508';/, 'main should cache-bust theme layout when native module cache keys change');
-assert.match(main, /from '\.\/js\/theme\.js\?v=encrypted-articles-20260508';/, 'main should cache-bust theme helpers when native stylesheet cache keys change');
-assert.match(main, /from '\.\/js\/i18n\.js\?v=encrypted-articles-20260508';/, 'main should use the same versioned i18n module instance as shared UI modules');
-assert.match(main, /from '\.\/js\/link-cards\.js\?v=encrypted-articles-20260508';/, 'main should cache-bust internal link cards when protected preview handling changes');
-assert.match(main, /from '\.\/js\/seo\.js\?v=encrypted-articles-20260508';/, 'main should cache-bust SEO helpers after their i18n dependency changes');
-assert.match(main, /from '\.\/js\/toc\.js\?v=encrypted-articles-20260508';/, 'main should cache-bust TOC helpers after their i18n dependency changes');
-assert.match(main, /from '\.\/js\/tags\.js\?v=encrypted-articles-20260508';/, 'main should cache-bust tag helpers after their i18n dependency changes');
-assert.match(composer, /from '\.\/i18n\.js\?v=encrypted-articles-20260508';/, 'composer should share the encrypted-articles i18n cache key');
-assert.match(composer, /from '\.\/seo\.js\?v=encrypted-articles-20260508';/, 'composer should cache-bust SEO helpers after their i18n dependency changes');
-assert.match(composer, /from '\.\/system-updates\.js\?v=encrypted-articles-20260508';/, 'composer should cache-bust system updates after their i18n dependency changes');
-assert.match(composer, /from '\.\/theme-manager\.js\?v=encrypted-articles-20260508';/, 'composer should cache-bust theme manager after its i18n dependency changes');
-assert.match(composer, /from '\.\/encrypted-content\.js\?v=encrypted-articles-20260508';/, 'composer should use the encrypted markdown envelope helpers for protected editor flows');
-assert.match(themeLayout, /from '\.\/i18n\.js\?v=encrypted-articles-20260508';/, 'theme layout should share the encrypted-articles i18n cache key');
-assert.match(languageManifest, /en\.js\?v=encrypted-articles-20260508/, 'language manifest should cache-bust bundles when protected article strings change');
+assert.match(main, /from '\.\/js\/theme-layout\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust theme layout when native module cache keys change');
+assert.match(main, /from '\.\/js\/theme\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust theme helpers when native stylesheet cache keys change');
+assert.match(main, /from '\.\/js\/i18n\.js\?v=encrypted-demo-20260508';/, 'main should use the same versioned i18n module instance as shared UI modules');
+assert.match(main, /from '\.\/js\/link-cards\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust internal link cards when protected preview handling changes');
+assert.match(main, /from '\.\/js\/seo\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust SEO helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/toc\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust TOC helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/tags\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust tag helpers after their i18n dependency changes');
+assert.match(composer, /from '\.\/i18n\.js\?v=encrypted-demo-20260508';/, 'composer should share the encrypted-articles i18n cache key');
+assert.match(composer, /from '\.\/seo\.js\?v=encrypted-demo-20260508';/, 'composer should cache-bust SEO helpers after their i18n dependency changes');
+assert.match(composer, /from '\.\/system-updates\.js\?v=encrypted-demo-20260508';/, 'composer should cache-bust system updates after their i18n dependency changes');
+assert.match(composer, /from '\.\/theme-manager\.js\?v=encrypted-demo-20260508';/, 'composer should cache-bust theme manager after its i18n dependency changes');
+assert.match(composer, /from '\.\/encrypted-content\.js\?v=encrypted-demo-20260508';/, 'composer should use the encrypted markdown envelope helpers for protected editor flows');
+assert.match(themeLayout, /from '\.\/i18n\.js\?v=encrypted-demo-20260508';/, 'theme layout should share the encrypted-articles i18n cache key');
+assert.match(languageManifest, /en\.js\?v=encrypted-demo-20260508/, 'language manifest should cache-bust bundles when protected article strings change');
 assert.doesNotMatch(
   [main, composer, themeLayout, theme, toc, read('assets/js/seo.js'), read('assets/js/editor-boot.js'), read('assets/js/system-updates.js')].join('\n'),
   /i18n\.js\?v=20260506theme/,
@@ -105,6 +105,7 @@ assert.match(main, /parseEncryptedMarkdownEnvelope[\s\S]*renderProtectedPostUnlo
 assert.match(main, /function isPostProtectedByIndex[\s\S]*protectedByIndex[\s\S]*encryptedEnvelope\.encrypted \|\| protectedByIndex/, 'main should fail closed when public index metadata marks a post protected');
 assert.match(main, /protectedPostInvalid[\s\S]*encryptedEnvelope\.encrypted \? markdown : ''[\s\S]*extractSEOFromMarkdown[\s\S]*updateSEO/, 'invalid protected envelopes should replace stale decrypted SEO metadata without body fallback before returning');
 assert.match(main, /input\.autocomplete = 'off';[\s\S]*data-1p-ignore[\s\S]*data-lpignore/, 'protected post unlock field should not opt into browser password-manager storage');
+assert.match(main, /const excerpt = String\(publicMetadata\.excerpt \|\| ''\)\.trim\(\);[\s\S]*excerptEl\.className = 'protected-post-excerpt';[\s\S]*excerptEl\.textContent = excerpt;/, 'protected post unlock should render public excerpts as text content only');
 assert.match(main, /const unlockRequestId = __activePostRequestId;[\s\S]*currentPostname !== postname[\s\S]*displayPost\(postname, \{ markdown \}\)/, 'protected post unlock should ignore stale decrypt completions after navigation');
 assert.match(main, /function displayPost\(postname, options = \{\}\)[\s\S]*hasPreloadedMarkdown[\s\S]*Promise\.resolve\(String\(options\.markdown \|\| ''\)\)[\s\S]*getFile\(`\$\{getContentRoot\(\)\}\/\$\{postname\}`\)/, 'protected post unlock should render from the already-loaded encrypted markdown instead of fetching again after successful decrypt');
 assert.match(composer, /async function saveMarkdownDraftForTab[\s\S]*prepareMarkdownForProtectedStorage[\s\S]*saveMarkdownDraftEntry\(tab\.path, prepared\.content[\s\S]*encrypted: prepared\.encrypted/, 'protected markdown drafts should be encrypted before entering localStorage');
@@ -115,14 +116,14 @@ assert.match(composer, /function createDiscardedMarkdownProtectionState\(protect
 assert.match(composer, /Object\.defineProperty\(next, 'plaintextContent'[\s\S]*enumerable: false/, 'protected markdown commit plaintext baselines should stay non-enumerable in memory');
 assert.match(composer, /async function openMarkdownPushOnGitHub[\s\S]*const plaintextContent = normalizeMarkdownContent[\s\S]*prepareMarkdownForProtectedStorage\(tab, plaintextContent[\s\S]*nsCopyToClipboard\(preparedContent\)[\s\S]*computeTextSignature\(preparedContent\)/, 'manual GitHub edit flow should copy encrypted markdown and watch the encrypted remote signature');
 assert.match(composer, /configureMarkdownPasswordInput[\s\S]*data-1p-ignore[\s\S]*data-lpignore/, 'editor protection password fields should not opt into browser password-manager storage');
-assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = 'encrypted-articles-20260508'/, 'theme layout should cache-bust native modules when protected article boundaries change');
-assert.match(themeLayout, /from '\.\/theme\.js\?v=encrypted-articles-20260508';/, 'theme layout should cache-bust theme helper imports');
-assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-articles-20260508'/, 'theme loader should cache-bust native stylesheet changes');
-assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-articles-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
-assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-articles-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
+assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust native modules when protected article boundaries change');
+assert.match(themeLayout, /from '\.\/theme\.js\?v=encrypted-demo-20260508';/, 'theme layout should cache-bust theme helper imports');
+assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme loader should cache-bust native stylesheet changes');
+assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
+assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-demo-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
 assert.match(themeLayout, /appendImportCacheKey\(safeEntry, NATIVE_MODULE_CACHE_KEY\)/, 'theme layout should apply the native module cache key at import time');
-assert.match(indexHtml, /src="assets\/main\.js\?v=encrypted-articles-20260508"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=encrypted-articles-20260508"/, 'composer export template should use the same main module URL as index');
+assert.match(indexHtml, /src="assets\/main\.js\?v=encrypted-demo-20260508"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=encrypted-demo-20260508"/, 'composer export template should use the same main module URL as index');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');
@@ -141,16 +142,17 @@ assert.match(nativeToc, /createElement\('press-toc'\)/, 'native TOC module shoul
 assert.match(toc, /typeof tocRoot\.enhance === 'function'/, 'legacy setupTOC should delegate to press-toc when present');
 
 assert.match(nativeInteractions, /renderPressPostCardHtml\(/, 'native cards should render through press-post-card');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js\?v=encrypted-articles-20260508'/, 'native interactions should cache-bust theme helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/tags\.js\?v=encrypted-articles-20260508'/, 'native interactions should cache-bust tag helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/templates\.js\?v=encrypted-articles-20260508'/, 'native interactions should cache-bust template helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/errors\.js\?v=encrypted-articles-20260508'/, 'native interactions should cache-bust error helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=encrypted-articles-20260508'/, 'native interactions should cache-bust post navigation helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=encrypted-articles-20260508'/, 'native interactions should cache-bust internal link-card hydration');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust theme helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/tags\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust tag helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/templates\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust template helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/errors\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust error helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust post navigation helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust internal link-card hydration');
 assert.match(nativeInteractions, /if \(meta && meta\.protected\) \{[\s\S]*ui\.protectedExcerpt[\s\S]*updateMasonryItem[\s\S]*return;/, 'native cards should not fetch protected article bodies for previews and should refresh masonry spans');
 assert.match(linkCards, /if \(meta && meta\.protected\) return;/, 'internal link cards should not fetch protected article bodies when public metadata marks protection');
 assert.match(linkCards, /stripEncryptedBodyForPublicUse\(rawMarkdown\)/, 'internal link cards should strip encrypted bodies before extracting public metadata');
 
 assert.match(nativeCss, /press-search\.box,[\s\S]*press-theme-controls\.box,[\s\S]*press-toc\.box\s*\{\s*display: block;/, 'native component hosts should preserve block layout');
+assert.match(nativeCss, /\.protected-post-excerpt[\s\S]*color: var\(--text\);/, 'native locked article panel should style the public excerpt separately from the generic unlock copy');
 
 console.log('ok - ui component boundaries');

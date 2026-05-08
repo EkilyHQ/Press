@@ -8,16 +8,16 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=encrypted-articles-20260508';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=encrypted-articles-20260508';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=encrypted-articles-20260508';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=encrypted-articles-20260508';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=encrypted-demo-20260508';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=encrypted-demo-20260508';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=encrypted-demo-20260508';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=encrypted-demo-20260508';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=encrypted-articles-20260508';
+} from './encrypted-content.js?v=encrypted-demo-20260508';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -4764,7 +4764,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=encrypted-articles-20260508"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=encrypted-demo-20260508"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

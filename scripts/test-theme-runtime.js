@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, '..');
 let importCounter = 0;
 
 class TestElement {
@@ -204,7 +202,7 @@ await run('external theme fallback does not rewrite the saved pack', async () =>
     savedPack: 'broken',
     manifests: {
       broken: makeManifest('broken', ['modules/missing.js']),
-      native: makeManifest('native', ['modules/missing-native.js'])
+      native: { ...makeManifest('native', ['modules/missing-native.js']), styles: ['theme.css'] }
     }
   });
   const { ensureThemeLayout } = await freshThemeLayout();
@@ -214,31 +212,33 @@ await run('external theme fallback does not rewrite the saved pack', async () =>
 });
 
 await run('external theme fallback clears partial DOM and extra styles', async () => {
-  const themeDir = resolve(repoRoot, 'assets/themes/broken/modules');
-  mkdirSync(themeDir, { recursive: true });
-  writeFileSync(resolve(themeDir, 'layout.js'), `
-export function mount() {
-  const root = document.createElement('div');
-  root.className = 'broken-shell';
-  root.setAttribute('data-theme-root', 'container');
-  document.body.appendChild(root);
-  return { regions: { main: root } };
-}
-`);
-  try {
-    const { document } = installGlobals({
-      savedPack: 'broken',
-      manifests: {
-        broken: makeManifest('broken', ['modules/layout.js', 'modules/missing.js']),
-        native: makeManifest('native', ['modules/missing-native.js'])
-      }
-    });
-    const { ensureThemeLayout } = await freshThemeLayout();
-    await withQuietConsole(() => ensureThemeLayout());
-    assert.equal(document.body.dataset.themeLayout, 'native');
-    assert.equal(document.body.querySelector('.broken-shell'), null);
-    assert.equal(document.querySelectorAll('link[data-theme-pack-extra-style]').length, 0);
-  } finally {
-    rmSync(resolve(repoRoot, 'assets/themes/broken'), { recursive: true, force: true });
-  }
+  const loaded = [];
+  const { document } = installGlobals({
+    savedPack: 'partial',
+    manifests: {
+      partial: makeManifest('partial', ['modules/layout.js', 'modules/missing.js']),
+      native: { ...makeManifest('native', ['modules/missing-native.js']), styles: ['theme.css'] }
+    }
+  });
+  window.__pressThemeModuleLoader = async (path) => {
+    loaded.push(String(path || ''));
+    if (String(path || '').includes('/partial/modules/layout.js')) {
+      return {
+        mount() {
+          const root = document.createElement('div');
+          root.className = 'broken-shell';
+          root.setAttribute('data-theme-root', 'container');
+          document.body.appendChild(root);
+          return { regions: { main: root } };
+        }
+      };
+    }
+    throw new Error(`Missing module: ${path}`);
+  };
+  const { ensureThemeLayout } = await freshThemeLayout();
+  await withQuietConsole(() => ensureThemeLayout());
+  assert(loaded.some((path) => path.includes('/partial/modules/layout.js')));
+  assert.equal(document.body.dataset.themeLayout, 'native');
+  assert.equal(document.body.querySelector('.broken-shell'), null);
+  assert.equal(document.querySelectorAll('link[data-theme-pack-extra-style]').length, 0);
 });

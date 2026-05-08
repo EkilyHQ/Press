@@ -451,6 +451,27 @@ await run('stages a new theme install as the active site theme', async () => {
   assert(files.some((file) => file.path === 'assets/themes/packs.json' && file.content.includes('"value": "cartograph"')));
 });
 
+await run('staged inactive theme update preserves the current site theme', async () => {
+  let themePack = 'native';
+  initThemeManager({
+    getCurrentThemePack: () => themePack,
+    setSiteThemePack: (value) => { themePack = value; }
+  });
+  mockFetchRegistry([
+    { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
+    { value: 'cartograph', label: 'Cartograph', version: '1.0.0', contractVersion: 1, files: ['theme.json', 'theme.css', 'modules/layout.js'] }
+  ], {
+    textFiles: themeTextFiles('cartograph', ['theme.json', 'theme.css', 'modules/layout.js'])
+  });
+  await analyzeThemeArchive(
+    makeThemeZip({ slug: 'cartograph', name: 'Cartograph', version: '1.1.0' }),
+    'press-theme-cartograph-v1.1.0.zip',
+    { activate: false }
+  );
+  assert.equal(themePack, 'native');
+  assert(getThemeManagerCommitFiles().some((file) => file.path === 'assets/themes/cartograph/theme.json' && file.state === 'modified'));
+});
+
 await run('refuses to stage theme writes when registry cannot be loaded', async () => {
   globalThis.fetch = async (input) => {
     const url = String(input || '').split('?')[0];

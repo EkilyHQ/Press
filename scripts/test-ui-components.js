@@ -125,7 +125,7 @@ assert.match(themeLayout, /from '\.\/theme\.js\?v=local-connect-settings-2026050
 assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme loader should cache-bust native stylesheet changes');
 assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
 assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-demo-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
-assert.match(themeLayout, /appendImportCacheKey\(safeEntry, NATIVE_MODULE_CACHE_KEY\)/, 'theme layout should apply the native module cache key at import time');
+assert.match(themeLayout, /const cacheKey = pack === DEFAULT_PACK \? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey\(pack, manifest\);[\s\S]*appendImportCacheKey\(safeEntry, cacheKey\)/, 'theme layout should apply the native module cache key at import time');
 assert.match(indexHtml, /src="assets\/main\.js\?v=local-connect-settings-20260508"/, 'index should bump the main module URL when runtime imports change');
 assert.match(composer, /src="assets\/main\.js\?v=local-connect-settings-20260508"/, 'composer export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');

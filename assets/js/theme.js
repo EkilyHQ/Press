@@ -5,6 +5,9 @@ const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
 const THEME_CONTROLS_I18N_BOUND = Symbol('pressThemeControlsI18nBound');
 const NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508';
+const THEME_PACK_KEY = 'themePack';
+const THEME_PACK_PENDING_KEY = 'themePackPending';
+const suppressedThemePacks = new Set();
 let componentsReady = null;
 
 function ensurePressComponents() {
@@ -30,17 +33,111 @@ function sanitizePack(input) {
   return clean || 'native';
 }
 
+function getStoredPack(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? sanitizePack(raw) : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function setStoredPack(key, pack) {
+  try { localStorage.setItem(key, sanitizePack(pack)); } catch (_) {}
+}
+
+function removeStoredPack(key) {
+  try { localStorage.removeItem(key); } catch (_) {}
+}
+
+function buildThemePackHref(pack, options = {}) {
+  const baseHref = `assets/themes/${encodeURIComponent(pack)}/theme.css`;
+  const cacheKey = pack === 'native'
+    ? NATIVE_STYLE_CACHE_KEY
+    : String(options.cacheKey || '').trim();
+  return cacheKey ? `${baseHref}?v=${encodeURIComponent(cacheKey)}` : baseHref;
+}
+
+export function setThemePackStylesheet(name, options = {}) {
+  const pack = sanitizePack(name);
+  if (pack !== 'native' && suppressedThemePacks.has(pack) && options.allowSuppressed !== true) return '';
+  const link = document.getElementById(PACK_LINK_ID);
+  const href = buildThemePackHref(pack, options);
+  if (link) link.setAttribute('href', href);
+  try { window.__themePackHref = href; } catch (_) {}
+  return href;
+}
+
 export function loadThemePack(name) {
   const pack = sanitizePack(name);
-  try { localStorage.setItem('themePack', pack); } catch (_) {}
-  const link = document.getElementById(PACK_LINK_ID);
-  const baseHref = `assets/themes/${encodeURIComponent(pack)}/theme.css`;
-  const href = pack === 'native' ? `${baseHref}?v=${NATIVE_STYLE_CACHE_KEY}` : baseHref;
-  if (link) link.setAttribute('href', href);
+  setStoredPack(THEME_PACK_KEY, pack);
+  removeStoredPack(THEME_PACK_PENDING_KEY);
+  suppressedThemePacks.delete(pack);
+  setThemePackStylesheet(pack, { allowSuppressed: true });
 }
 
 export function getSavedThemePack() {
-  try { return sanitizePack(localStorage.getItem('themePack')) || 'native'; } catch (_) { return 'native'; }
+  return getStoredPack(THEME_PACK_KEY) || 'native';
+}
+
+export function getPendingThemePack() {
+  return getStoredPack(THEME_PACK_PENDING_KEY) || '';
+}
+
+export function getRequestedThemePack() {
+  const pending = getPendingThemePack();
+  if (pending) return pending;
+  const saved = getSavedThemePack();
+  if (saved !== 'native' && suppressedThemePacks.has(saved)) return 'native';
+  return saved;
+}
+
+function getThemeControlPack() {
+  const pending = getPendingThemePack();
+  if (pending && !suppressedThemePacks.has(pending)) return pending;
+  const saved = getSavedThemePack();
+  if (saved !== 'native' && suppressedThemePacks.has(saved)) return 'native';
+  return saved;
+}
+
+export function requestThemePackSwitch(name) {
+  const pack = sanitizePack(name);
+  suppressedThemePacks.delete(pack);
+  setStoredPack(THEME_PACK_PENDING_KEY, pack);
+}
+
+export function commitThemePack(name, options = {}) {
+  const pack = sanitizePack(name);
+  suppressedThemePacks.delete(pack);
+  setStoredPack(THEME_PACK_KEY, pack);
+  const pending = getPendingThemePack();
+  if (!pending || pending === pack || options.clearPending !== false) removeStoredPack(THEME_PACK_PENDING_KEY);
+  if (options.applyStyles !== false) {
+    setThemePackStylesheet(pack, { ...options, allowSuppressed: true });
+  }
+}
+
+export function clearPendingThemePack(name) {
+  const pending = getPendingThemePack();
+  if (!pending) return;
+  if (!name || pending === sanitizePack(name)) removeStoredPack(THEME_PACK_PENDING_KEY);
+}
+
+export function suppressThemePack(name) {
+  const pack = sanitizePack(name);
+  if (pack !== 'native') suppressedThemePacks.add(pack);
+}
+
+export function isThemePackSuppressed(name) {
+  const pack = sanitizePack(name);
+  return pack !== 'native' && suppressedThemePacks.has(pack);
+}
+
+function storeConfiguredThemePack(pack) {
+  if (!pack || isThemePackSuppressed(pack)) return;
+  setStoredPack(THEME_PACK_KEY, pack);
+  removeStoredPack(THEME_PACK_PENDING_KEY);
+  if (pack === 'native') setThemePackStylesheet(pack);
 }
 
 export function applySavedTheme() {
@@ -52,8 +149,8 @@ export function applySavedTheme() {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   } catch (_) { /* ignore */ }
-  // Ensure pack is applied too
-  loadThemePack(getSavedThemePack());
+  const pack = getRequestedThemePack();
+  if (pack === 'native') setThemePackStylesheet(pack);
 }
 
 // Apply theme according to site config. When override = true, it forces the
@@ -89,9 +186,7 @@ export function applyThemeConfig(siteConfig) {
       applySavedTheme();
     }
     if (pack) {
-      // Force pack and persist
-      try { localStorage.setItem('themePack', pack); } catch (_) {}
-      loadThemePack(pack);
+      storeConfiguredThemePack(pack);
     }
   } else {
     // Respect user choice; but if site provides a default and no user choice exists,
@@ -103,7 +198,7 @@ export function applyThemeConfig(siteConfig) {
       // When mode is 'user' and there's no saved user theme, do nothing here;
       // the boot code/applySavedTheme already applied system preference as a soft default.
     }
-    if (!hasUserPack && pack) loadThemePack(pack);
+    if (!hasUserPack && pack) storeConfiguredThemePack(pack);
   }
 }
 
@@ -146,13 +241,13 @@ export function bindThemePackPicker() {
   const sel = document.getElementById('themePack');
   if (!sel) return;
   // Initialize selection
-  const saved = getSavedThemePack();
+  const saved = getThemeControlPack();
   sel.value = saved;
   sel.addEventListener('change', () => {
     const val = sanitizePack(sel.value) || 'native';
-    const current = getSavedThemePack();
-    if (val === current) return;
-    loadThemePack(val);
+    const current = getThemeControlPack();
+    if (val === current && !isThemePackSuppressed(val)) return;
+    requestThemePackSwitch(val);
     try { window.location.reload(); } catch (_) {}
   });
 }
@@ -238,9 +333,9 @@ function bindThemeControlsComponent(component) {
   component.addEventListener('press:theme-pack-change', (event) => {
     const detail = event && event.detail ? event.detail : {};
     const val = sanitizePack(detail.value) || 'native';
-    const current = getSavedThemePack();
-    if (val === current) return;
-    loadThemePack(val);
+    const current = getThemeControlPack();
+    if (val === current && !isThemePackSuppressed(val)) return;
+    requestThemePackSwitch(val);
     try { window.location.reload(); } catch (_) {}
   });
   component.addEventListener('press:language-change', async (event) => {
@@ -278,17 +373,17 @@ function populateThemeControls(component) {
     fetch('assets/themes/packs.json', { cache: 'no-store' })
       .then(r => r && r.ok ? r.json() : Promise.reject())
       .then(list => {
-        component.setThemePacks(normalizePackList(list), getSavedThemePack());
+        component.setThemePacks(normalizePackList(list), getThemeControlPack());
       })
       .catch(() => {
         component.setThemePacks(normalizePackList([
           { value: 'native', label: 'Native' }
-        ]), getSavedThemePack());
+        ]), getThemeControlPack());
       });
   } catch (_) {
     component.setThemePacks(normalizePackList([
       { value: 'native', label: 'Native' }
-    ]), getSavedThemePack());
+    ]), getThemeControlPack());
   }
 }
 

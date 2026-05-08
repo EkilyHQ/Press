@@ -865,7 +865,8 @@ async function stageThemeArchive(buffer, fileName, options = {}) {
   applySummary(summary, fileChanges, { digest: `sha256:${digest}`, size: buffer.byteLength, assetName: assetMeta.assetName });
   const hadPendingSiteThemeFallback = !!pendingSiteThemeFallback;
   clearPendingSiteThemeFallback();
-  const activated = !hadPendingSiteThemeFallback && setActiveSiteThemePack(archive.slug);
+  const shouldActivate = options.activate !== false;
+  const activated = shouldActivate && !hadPendingSiteThemeFallback && setActiveSiteThemePack(archive.slug);
   setStatus(
     `${previous ? 'Updated' : 'Installed'} ${nextEntry.label}. Review and publish the staged theme files${activated ? ' and site.yaml theme setting' : ''}.`,
     { tone: 'success' }
@@ -886,7 +887,7 @@ async function fetchArrayBuffer(url) {
   return response.arrayBuffer();
 }
 
-async function stageCatalogTheme(catalogEntry) {
+async function stageCatalogTheme(catalogEntry, options = {}) {
   const releaseManifest = normalizeThemeReleaseManifest(await fetchJson(catalogEntry.manifestUrl));
   if (releaseManifest.value !== catalogEntry.value) {
     throw new Error('Official catalog entry does not match release manifest slug.');
@@ -894,6 +895,7 @@ async function stageCatalogTheme(catalogEntry) {
   const buffer = await fetchArrayBuffer(releaseManifest.asset.url);
   return stageThemeArchive(buffer, releaseManifest.asset.name, {
     releaseManifest,
+    activate: options.activate,
     source: {
       type: 'official',
       repo: catalogEntry.repo,
@@ -1028,7 +1030,7 @@ function renderInstalledThemes(registry, catalog) {
         setBusy(true);
         try {
           setStatus(`Downloading ${catalogEntry.label}...`);
-          await stageCatalogTheme(catalogEntry);
+          await stageCatalogTheme(catalogEntry, { activate: getCurrentThemePackValue() === entry.value });
         } catch (err) {
           console.error('Theme update failed', err);
           setStatus(err && err.message ? err.message : 'Theme update failed.', { tone: 'error' });
@@ -1087,7 +1089,9 @@ function renderAvailableThemes(registry, catalog) {
       setBusy(true);
       try {
         setStatus(`Downloading ${entry.label}...`);
-        await stageCatalogTheme(entry);
+        await stageCatalogTheme(entry, {
+          activate: !installed.has(entry.value) || getCurrentThemePackValue() === entry.value
+        });
       } catch (err) {
         console.error('Theme install failed', err);
         setStatus(err && err.message ? err.message : 'Theme install failed.', { tone: 'error' });

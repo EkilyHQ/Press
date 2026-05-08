@@ -1,4 +1,10 @@
-import { getSavedThemePack, loadThemePack } from './theme.js?v=local-connect-settings-20260508';
+import {
+  clearPendingThemePack,
+  commitThemePack,
+  getRequestedThemePack,
+  setThemePackStylesheet,
+  suppressThemePack
+} from './theme.js?v=local-connect-settings-20260508';
 import {
   t,
   withLangParam,
@@ -145,24 +151,32 @@ function getDeclaredRegionNames(manifest) {
   return [];
 }
 
-function safeThemeAssetPath(pack, entry, extension) {
+function getManifestCacheKey(pack, manifest) {
+  if (pack === DEFAULT_PACK) return NATIVE_STYLE_CACHE_KEY;
+  const version = manifest && manifest.version ? String(manifest.version).trim() : '';
+  return version || '';
+}
+
+function safeThemeAssetPath(pack, entry, extension, manifest) {
   const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
   if (!safeEntry || safeEntry.includes('..') || safeEntry.includes('\\') || !safeEntry.endsWith(extension)) {
     return '';
   }
   const href = `assets/themes/${encodeURIComponent(pack)}/${safeEntry}`;
-  return pack === DEFAULT_PACK ? `${href}?v=${NATIVE_STYLE_CACHE_KEY}` : href;
+  const cacheKey = getManifestCacheKey(pack, manifest);
+  return cacheKey ? `${href}?v=${encodeURIComponent(cacheKey)}` : href;
 }
 
 function applyManifestStyles(pack, manifest) {
   const styles = asStringList(manifest && manifest.styles);
   const declared = styles.length ? styles : ['theme.css'];
-  const hrefs = declared.map((entry) => safeThemeAssetPath(pack, entry, '.css')).filter(Boolean);
+  const hrefs = declared.map((entry) => safeThemeAssetPath(pack, entry, '.css', manifest)).filter(Boolean);
   if (!hrefs.length) return;
   const primary = hrefs[0];
   try {
     const link = document.getElementById('theme-pack');
     if (link && link.getAttribute('href') !== primary) link.setAttribute('href', primary);
+    try { window.__themePackHref = primary; } catch (_) {}
   } catch (_) {}
   try {
     document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
@@ -174,6 +188,23 @@ function applyManifestStyles(pack, manifest) {
       document.head.appendChild(link);
     });
   } catch (_) {}
+}
+
+function clearFailedThemeArtifacts(pack) {
+  try {
+    document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
+  } catch (_) {}
+  try {
+    const failedPrefix = `assets/themes/${encodeURIComponent(pack)}/`;
+    const link = document.getElementById('theme-pack');
+    const href = link ? String(link.getAttribute('href') || '') : '';
+    if (link && href.includes(failedPrefix)) setThemePackStylesheet(DEFAULT_PACK, { allowSuppressed: true });
+  } catch (_) {}
+  try {
+    document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
+  } catch (_) {}
+  try { delete document.body.dataset.themeLayout; } catch (_) {}
+  try { setThemeLayoutContext(null); } catch (_) {}
 }
 
 function warnUndeclaredRegions(pack, manifest, regions) {
@@ -292,15 +323,34 @@ function appendImportCacheKey(entry, cacheKey) {
   return `${pathAndQuery}${joiner}v=${encodeURIComponent(key)}${hash}`;
 }
 
-async function mountModule(pack, entry, context, manifest) {
+function resolveModuleEntry(pack, entry, manifest) {
   const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
-  if (!safeEntry) return;
-  if (safeEntry.includes('..') || safeEntry.includes('\\')) return;
+  if (!safeEntry) return '';
+  if (safeEntry.includes('..') || safeEntry.includes('\\')) return '';
+  const cacheKey = pack === DEFAULT_PACK ? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey(pack, manifest);
   const moduleEntry = pack === DEFAULT_PACK
-    ? appendImportCacheKey(safeEntry, NATIVE_MODULE_CACHE_KEY)
-    : safeEntry;
-  const path = `../themes/${encodeURIComponent(pack)}/${moduleEntry}`;
+    ? appendImportCacheKey(safeEntry, cacheKey)
+    : appendImportCacheKey(safeEntry, cacheKey);
+  return `../themes/${encodeURIComponent(pack)}/${moduleEntry}`;
+}
+
+async function loadThemeModule(pack, entry, manifest) {
+  const path = resolveModuleEntry(pack, entry, manifest);
+  if (!path) return null;
+  try {
+    if (typeof window !== 'undefined' && typeof window.__pressThemeModuleLoader === 'function') {
+      const mod = await window.__pressThemeModuleLoader(path, { pack, entry, manifest });
+      return { entry, mod };
+    }
+  } catch (err) {
+    throw err;
+  }
   const mod = await import(path);
+  return { entry, mod };
+}
+
+async function mountLoadedModule(pack, entry, mod, context, manifest) {
+  if (!mod) return;
   const modApi = extractThemeApi(mod);
   if (modApi) mergeThemeApi(context.theme, modApi);
   const fn = typeof mod.mount === 'function'
@@ -325,14 +375,6 @@ async function mountModule(pack, entry, context, manifest) {
   context.regions = ensureThemeRegionRegistry(context.regions);
 }
 
-function forceNativePack() {
-  try {
-    loadThemePack(DEFAULT_PACK);
-  } catch (err) {
-    console.error('[theme] Failed to force native pack', err);
-  }
-}
-
 async function mountPack(pack, allowFallback = true) {
   let manifest;
   try {
@@ -340,10 +382,28 @@ async function mountPack(pack, allowFallback = true) {
   } catch (err) {
     console.error(`[theme] Failed to load manifest for "${pack}"`, err);
     if (allowFallback && pack !== DEFAULT_PACK) {
-      forceNativePack();
+      suppressThemePack(pack);
+      clearPendingThemePack(pack);
+      clearFailedThemeArtifacts(pack);
       return mountPack(DEFAULT_PACK, false);
     }
     manifest = FALLBACK_MANIFEST;
+  }
+
+  const loadedModules = [];
+  for (const entry of manifest.modules) {
+    try {
+      const loaded = await loadThemeModule(pack, entry, manifest);
+      if (loaded) loadedModules.push(loaded);
+    } catch (err) {
+      console.error('[theme] Failed to load module', entry, err);
+      if (allowFallback && pack !== DEFAULT_PACK) {
+        suppressThemePack(pack);
+        clearPendingThemePack(pack);
+        clearFailedThemeArtifacts(pack);
+        return mountPack(DEFAULT_PACK, false);
+      }
+    }
   }
 
   const context = {
@@ -361,13 +421,15 @@ async function mountPack(pack, allowFallback = true) {
 
   applyManifestStyles(pack, manifest);
 
-  for (const entry of manifest.modules) {
+  for (const { entry, mod } of loadedModules) {
     try {
-      await mountModule(pack, entry, context, manifest);
+      await mountLoadedModule(pack, entry, mod, context, manifest);
     } catch (err) {
       console.error('[theme] Failed to mount module', entry, err);
       if (allowFallback && pack !== DEFAULT_PACK) {
-        forceNativePack();
+        suppressThemePack(pack);
+        clearPendingThemePack(pack);
+        clearFailedThemeArtifacts(pack);
         return mountPack(DEFAULT_PACK, false);
       }
     }
@@ -376,11 +438,14 @@ async function mountPack(pack, allowFallback = true) {
   document.body.dataset.themeLayout = pack;
   warnMissingRegions(pack, manifest, context);
   setThemeLayoutContext(context);
+  if (pack !== DEFAULT_PACK) {
+    commitThemePack(pack, { applyStyles: false });
+  }
   return context;
 }
 
 export async function ensureThemeLayout() {
-  const pack = getSavedThemePack();
+  const pack = getRequestedThemePack();
   const cachedContext = readThemeLayoutContext();
   if (cachedContext && document.body.dataset.themeLayout === pack) {
     return cachedContext;

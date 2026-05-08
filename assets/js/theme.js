@@ -1,9 +1,10 @@
-import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=20260506theme';
+import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=encrypted-articles-20260508';
 import { getThemeRegion } from './theme-regions.js';
 
 const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
 const THEME_CONTROLS_I18N_BOUND = Symbol('pressThemeControlsI18nBound');
+const NATIVE_STYLE_CACHE_KEY = 'encrypted-articles-20260508';
 let componentsReady = null;
 
 function ensurePressComponents() {
@@ -33,7 +34,8 @@ export function loadThemePack(name) {
   const pack = sanitizePack(name);
   try { localStorage.setItem('themePack', pack); } catch (_) {}
   const link = document.getElementById(PACK_LINK_ID);
-  const href = `assets/themes/${encodeURIComponent(pack)}/theme.css`;
+  const baseHref = `assets/themes/${encodeURIComponent(pack)}/theme.css`;
+  const href = pack === 'native' ? `${baseHref}?v=${NATIVE_STYLE_CACHE_KEY}` : baseHref;
   if (link) link.setAttribute('href', href);
 }
 

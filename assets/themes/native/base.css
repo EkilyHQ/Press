@@ -84,6 +84,31 @@ html {
 a { color: var(--primary); text-decoration: none; transition: color .15s ease; }
 a:hover { color: var(--primary-hover); text-decoration: underline; }
 
+.protected-post-unlock {
+  width: min(100%, 42rem);
+  margin: 2rem auto;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.protected-post-title { margin: 0 0 .5rem; font-size: clamp(1.5rem, 3vw, 2rem); }
+.protected-post-body { margin: 0 0 1rem; color: var(--muted); line-height: 1.6; text-align: left; }
+.protected-post-form { display: grid; gap: .75rem; }
+.protected-post-password-label { display: grid; gap: .35rem; font-weight: 600; }
+.protected-post-password {
+  width: 100%;
+  min-height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  color: var(--text);
+  padding: .5rem .65rem;
+  font: inherit;
+}
+.protected-post-error { margin: 0; color: #b91c1c; }
+
 /* Heading style */
 h1, h2, h3, h4, h5, h6 { font-weight: 700; color: var(--text); line-height: 1.25; }
 h1 { font-size: 1.9rem; margin: 1rem 0 .75rem; }

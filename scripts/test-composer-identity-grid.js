@@ -99,14 +99,32 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=markdown-safety-20260508/,
-  'editor HTML should cache-bust composer.js when sanitizer boundaries change'
+  /assets\/js\/editor-boot\.js\?v=encrypted-articles-20260508/,
+  'editor HTML should cache-bust editor boot when protected article i18n/cache boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=markdown-safety-20260508/,
-  'editor HTML should cache-bust editor-main.js when sanitizer boundaries change'
+  /assets\/js\/composer\.js\?v=encrypted-articles-20260508/,
+  'editor HTML should cache-bust composer.js when protected article runtime boundaries change'
+);
+
+assert.match(
+  editorSource,
+  /id="btnProtectMarkdown"[\s\S]*data-i18n="editor\.toolbar\.protection"/,
+  'editor toolbar should expose the article protection control'
+);
+
+assert.match(
+  editorSource,
+  /button#btnProtectMarkdown\.btn-secondary\[data-protected="true"\][\s\S]*\.composer-protection-modal[\s\S]*\.composer-protection-card/,
+  'editor stylesheet should include protected article password dialog and protected button state'
+);
+
+assert.match(
+  editorSource,
+  /assets\/js\/editor-main\.js\?v=encrypted-articles-20260508/,
+  'editor HTML should cache-bust editor-main.js when protected article runtime boundaries change'
 );
 
 assert.match(
@@ -123,8 +141,38 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=markdown-safety-20260508'/,
-  'composer should cache-bust system update notes when sanitizer boundaries change'
+  /from '\.\/system-updates\.js\?v=encrypted-articles-20260508'/,
+  'composer should cache-bust system update notes when protected article i18n boundaries change'
+);
+
+assert.match(
+  source,
+  /from '\.\/encrypted-content\.js\?v=encrypted-articles-20260508'/,
+  'composer should import encrypted article helpers through the encrypted-articles cache key'
+);
+
+assert.match(
+  source,
+  /const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*prepareMarkdownForProtectedStorage\(tab, text[\s\S]*saveMarkdownDraftEntry\(tab\.path, prepared\.content/,
+  'markdown draft persistence should encrypt protected article content before writing draft storage'
+);
+
+assert.match(
+  source,
+  /async function gatherLocalChangesForCommit\(options = \{\}\) \{[\s\S]*const prepared = alreadyEncrypted[\s\S]*await prepareMarkdownForProtectedStorage\(tab, text, \{ reason: 'commit' \}\)[\s\S]*content: prepared\.content/,
+  'composer commit gathering should stage protected article ciphertext'
+);
+
+assert.match(
+  source,
+  /function getLockedEncryptedMarkdownDraft\(tab\) \{[\s\S]*return normalizeMarkdownContent\(draft\.encryptedContent \|\| ''\);[\s\S]*const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft\(tab\);[\s\S]*alreadyEncrypted = true;/,
+  'composer commit gathering should preserve locked encrypted draft ciphertext after reload'
+);
+
+assert.match(
+  source,
+  /function bumpMarkdownDraftSaveGeneration\(tab\) \{[\s\S]*tab\.markdownDraftSaveGeneration = next;[\s\S]*const saveGeneration = getMarkdownDraftSaveGeneration\(tab\);[\s\S]*if \(saveGeneration !== getMarkdownDraftSaveGeneration\(tab\)\) return null;/,
+  'composer should cancel stale async encrypted draft saves after discard or tab close'
 );
 
 assert.match(
@@ -1762,19 +1810,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=20260505welcome';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=encrypted-articles-20260508';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese article action'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=20260505welcome"[\s\S]*"\.\/chs\.js\?v=20260505welcome"[\s\S]*"\.\/cht-tw\.js\?v=20260505welcome"[\s\S]*"\.\/cht-hk\.js\?v=20260505welcome"[\s\S]*"\.\/ja\.js\?v=20260505welcome"/,
+  /"\.\/en\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/chs\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/cht-tw\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/cht-hk\.js\?v=encrypted-articles-20260508"[\s\S]*"\.\/ja\.js\?v=encrypted-articles-20260508"/,
   'language manifest should cache-bust language bundles changed by editor action labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=20260505welcome'/,
+  /from '\.\.\/i18n\/en\.js\?v=encrypted-articles-20260508'/,
   'default English bundle import should be cache-busted when editor action labels change'
 );
 

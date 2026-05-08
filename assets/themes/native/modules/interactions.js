@@ -1,16 +1,17 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js';
+import { attachHoverTooltip } from '../../../js/tags.js?v=encrypted-articles-20260508';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js';
-import { showErrorOverlay } from '../../../js/errors.js';
-import { renderPostNav } from '../../../js/post-nav.js';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=encrypted-articles-20260508';
+import { showErrorOverlay } from '../../../js/errors.js?v=encrypted-articles-20260508';
+import { renderPostNav } from '../../../js/post-nav.js?v=encrypted-articles-20260508';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
-import { hydrateInternalLinkCards } from '../../../js/link-cards.js';
+import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=encrypted-articles-20260508';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=encrypted-articles-20260508';
+import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=encrypted-articles-20260508';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
@@ -1438,7 +1439,11 @@ function renderIndexViewNative(params = {}, documentRef = defaultDocument, windo
     const dateLabel = hasDate ? formatDisplayDate(value.date) : '';
     const verCount = (value && Array.isArray(value.versions)) ? value.versions.length : 0;
     const versionsLabel = verCount > 1 ? translate('ui.versionsCount', verCount) : '';
-    const draftLabel = (value && value.draft) ? translate('ui.draftBadge') : '';
+    const protectedLabel = (value && value.protected) ? translate('ui.protectedBadge') : '';
+    const draftLabel = [
+      protectedLabel,
+      (value && value.draft) ? translate('ui.draftBadge') : ''
+    ].filter(Boolean).join(' / ');
     const href = makeLangUrl(`?id=${encodeURIComponent(value && value.location ? String(value.location) : '')}`);
     html += renderPressPostCardHtml({
       title: String(key || ''),
@@ -1483,20 +1488,40 @@ function updateCardMetadata(entries = [], context = {}) {
     if (exEl && meta && meta.excerpt) {
       try { exEl.textContent = String(meta.excerpt); } catch (_) {}
     }
+    if (meta && meta.protected) {
+      if (exEl && !meta.excerpt) {
+        try { exEl.textContent = translate('ui.protectedExcerpt'); } catch (_) {}
+      }
+      if (typeof context.updateMasonryItem === 'function') {
+        const container = documentRef.querySelector('.index');
+        if (container && el) context.updateMasonryItem(container, el);
+      }
+      return;
+    }
     if (typeof context.getFile !== 'function' || typeof context.getContentRoot !== 'function' || typeof context.extractExcerpt !== 'function' || typeof context.computeReadTime !== 'function') return;
     context.getFile(`${context.getContentRoot()}/${loc}`).then(md => {
-      const ex = context.extractExcerpt(md, 50);
+      const rawMarkdown = String(md || '');
+      const encrypted = isEncryptedMarkdown(rawMarkdown);
+      const publicMarkdown = encrypted ? stripEncryptedBodyForPublicUse(rawMarkdown) : rawMarkdown;
+      const ex = encrypted ? translate('ui.protectedExcerpt') : context.extractExcerpt(publicMarkdown, 50);
       if (exEl && !(meta && meta.excerpt)) exEl.textContent = ex;
-      const minutes = context.computeReadTime(md, 200);
+      const minutes = encrypted ? 0 : context.computeReadTime(publicMarkdown, 200);
       const metaEl = el.querySelector('.card-meta');
       if (metaEl) {
         const items = [];
         const dateEl = metaEl.querySelector('.card-date');
         if (dateEl && dateEl.textContent.trim()) items.push(dateEl.cloneNode(true));
-        const read = documentRef.createElement('span');
-        read.className = 'card-read';
-        read.textContent = `${minutes} ${translate('ui.minRead')}`;
-        items.push(read);
+        if (encrypted) {
+          const p = documentRef.createElement('span');
+          p.className = 'card-draft';
+          p.textContent = translate('ui.protectedBadge');
+          items.push(p);
+        } else {
+          const read = documentRef.createElement('span');
+          read.className = 'card-read';
+          read.textContent = `${minutes} ${translate('ui.minRead')}`;
+          items.push(read);
+        }
         const verCount = (meta && Array.isArray(meta.versions)) ? meta.versions.length : 0;
         if (verCount > 1) {
           const v = documentRef.createElement('span');
@@ -1571,7 +1596,11 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
     const dateLabel = hasDate ? formatDisplayDate(value.date) : '';
     const verCount = (value && Array.isArray(value.versions)) ? value.versions.length : 0;
     const versionsLabel = verCount > 1 ? translate('ui.versionsCount', verCount) : '';
-    const draftLabel = (value && value.draft) ? translate('ui.draftBadge') : '';
+    const protectedLabel = (value && value.protected) ? translate('ui.protectedBadge') : '';
+    const draftLabel = [
+      protectedLabel,
+      (value && value.draft) ? translate('ui.draftBadge') : ''
+    ].filter(Boolean).join(' / ');
     const href = makeLangUrl(`?id=${encodeURIComponent(value && value.location ? String(value.location) : '')}`);
     html += renderPressPostCardHtml({
       title: String(key || ''),

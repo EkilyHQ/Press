@@ -105,6 +105,15 @@ Field meanings:
 
 > All front matter fields are optional. Leave any out if you don’t need them.
 
+### Protected Articles
+Articles can be password-protected from the editor. Use the Protection button while editing a post, set a per-article password, then save or publish normally.
+
+Protected posts keep public front matter such as `title`, `date`, `tags`, `image`, and `excerpt` visible so cards, search results, and social metadata can still describe the article. The Markdown body is replaced with a `press-encrypted-markdown-v1` ciphertext block using Web Crypto (`PBKDF2-SHA256` and `AES-GCM-256`).
+
+Press does not commit passwords, embed them in JavaScript, or store them in browser storage. The correct password exists only in the current page memory. Refreshing or reopening the article requires entering it again.
+
+Use `excerpt` for the public summary of a protected article. Press never derives protected previews or SEO descriptions from the encrypted body.
+
 ## Writing Pages
 Similar to Writing Posts, Press reads `wwwroot/tabs.yaml` for static pages. For example, the About page entry in `wwwroot/tabs.yaml` looks like:
 

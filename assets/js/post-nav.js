@@ -1,4 +1,4 @@
-import { withLangParam, t } from './i18n.js?v=20260506theme';
+import { withLangParam, t } from './i18n.js?v=encrypted-articles-20260508';
 import { escapeHtml } from './utils.js';
 
 export function renderPostNav(container, postsIndex, postname) {

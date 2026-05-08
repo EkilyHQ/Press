@@ -1,10 +1,15 @@
 import { configureFetchCachePolicy } from './js/cache-control.js';
 import './js/components.js';
 import { createContentModel } from './js/content-model.js';
+import {
+  decryptMarkdownDocument,
+  parseEncryptedMarkdownEnvelope,
+  stripEncryptedBodyForPublicUse
+} from './js/encrypted-content.js?v=encrypted-articles-20260508';
 import { mdParse } from './js/markdown.js?v=markdown-safety-20260508';
-import { setupAnchors, setupTOC } from './js/toc.js';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=markdown-safety-20260508';
+import { setupAnchors, setupTOC } from './js/toc.js?v=encrypted-articles-20260508';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=encrypted-articles-20260508';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=encrypted-articles-20260508';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js';
@@ -19,19 +24,19 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=20260506theme';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js';
+} from './js/i18n.js?v=encrypted-articles-20260508';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=encrypted-articles-20260508';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=encrypted-articles-20260508';
 import { initSyntaxHighlighting } from './js/syntax-highlight.js';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js';
-import { renderPostNav } from './js/post-nav.js';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=encrypted-articles-20260508';
+import { renderPostNav } from './js/post-nav.js?v=encrypted-articles-20260508';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos, hydrateCardCovers } from './js/post-render.js';
-import { hydrateInternalLinkCards } from './js/link-cards.js';
+import { hydrateInternalLinkCards } from './js/link-cards.js?v=encrypted-articles-20260508';
 
 // Lightweight content fetch helper; cache mode is normalized by cache-control.js.
 const getFile = (filename) => fetch(String(filename || ''), { cache: 'no-store' })
@@ -59,6 +64,7 @@ const SITE_VIEW_STATE_VERSION = 1;
 const SITE_SCROLL_SAVE_DELAY = 140;
 let siteScrollSaveTimer = 0;
 let siteViewStateBound = false;
+const protectedPostUnlockCache = new Map();
 
 // Compute a simple route key to help unify scroll behavior across navigations
 function getRouteKeyFromUrl(urlLike) {
@@ -759,7 +765,172 @@ function createThemeRuntimeContext({
   };
 }
 
-function displayPost(postname) {
+function getCachedProtectedMarkdown(postname, envelope) {
+  const key = String(postname || '');
+  if (!key || !envelope || !envelope.ciphertext) return '';
+  const cached = protectedPostUnlockCache.get(key);
+  if (!cached || cached.ciphertext !== envelope.ciphertext) return '';
+  return cached.markdown || '';
+}
+
+function cacheProtectedMarkdown(postname, envelope, markdown) {
+  const key = String(postname || '');
+  if (!key || !envelope || !envelope.ciphertext || !markdown) return;
+  protectedPostUnlockCache.set(key, {
+    ciphertext: envelope.ciphertext,
+    markdown: String(markdown || '')
+  });
+}
+
+function getProtectedPublicMetadata(markdown, postname, fallbackTitle) {
+  try {
+    const publicMarkdown = stripEncryptedBodyForPublicUse(markdown);
+    const frontMatter = parseFrontMatter(publicMarkdown).frontMatter || {};
+    const normalized = { ...frontMatter };
+    if (normalized.tags != null && normalized.tag == null) normalized.tag = normalized.tags;
+    if (normalized.version != null && normalized.versionLabel == null) normalized.versionLabel = normalized.version;
+    normalized.protected = true;
+    normalized.location = postname;
+    if (!normalized.title) normalized.title = fallbackTitle || postname;
+    return { markdown: publicMarkdown, metadata: normalized };
+  } catch (_) {
+    return {
+      markdown: '',
+      metadata: {
+        protected: true,
+        location: postname,
+        title: fallbackTitle || postname
+      }
+    };
+  }
+}
+
+function renderProtectedPostUnlock({
+  containers,
+  postname,
+  markdown,
+  envelope,
+  fallbackTitle
+} = {}) {
+  const mainEl = containers && containers.mainElement ? containers.mainElement : getViewContainer('post', 'main');
+  if (!mainEl) return;
+  resetTOCView('post', containers, { reason: 'protectedPost', immediate: true });
+  const publicInfo = getProtectedPublicMetadata(markdown, postname, fallbackTitle);
+  const publicMetadata = publicInfo.metadata || {};
+  const title = publicMetadata.title || fallbackTitle || postname;
+
+  const shell = document.createElement('section');
+  shell.className = 'protected-post-unlock';
+  shell.setAttribute('aria-live', 'polite');
+
+  const heading = document.createElement('h1');
+  heading.className = 'protected-post-title';
+  heading.textContent = title;
+  shell.appendChild(heading);
+
+  const body = document.createElement('p');
+  body.className = 'protected-post-body';
+  body.textContent = t('ui.protectedPostBody');
+  shell.appendChild(body);
+
+  const form = document.createElement('form');
+  form.className = 'protected-post-form';
+  const unlockRequestId = __activePostRequestId;
+  const label = document.createElement('label');
+  label.className = 'protected-post-password-label';
+  label.textContent = t('ui.protectedPostPasswordLabel');
+  const input = document.createElement('input');
+  input.type = 'password';
+  input.autocomplete = 'off';
+  input.required = true;
+  input.spellcheck = false;
+  input.setAttribute('autocapitalize', 'none');
+  input.setAttribute('data-1p-ignore', 'true');
+  input.setAttribute('data-lpignore', 'true');
+  input.className = 'protected-post-password';
+  label.appendChild(input);
+  const button = document.createElement('button');
+  button.type = 'submit';
+  button.className = 'btn-primary protected-post-submit';
+  button.textContent = t('ui.protectedPostUnlock');
+  const error = document.createElement('p');
+  error.className = 'protected-post-error';
+  error.hidden = true;
+  form.append(label, button, error);
+  shell.appendChild(form);
+
+  mainEl.replaceChildren(shell);
+  notifyThemeViewChange('post', { showSearch: false, showTags: false, protected: true });
+  try { setDocTitle(title); } catch (_) {}
+  try { renderTabs('post', title); } catch (_) {}
+  try {
+    const seoData = extractSEOFromMarkdown(publicInfo.markdown || '', {
+      ...publicMetadata,
+      title,
+      location: postname
+    }, siteConfig);
+    updateSEO(seoData, siteConfig);
+  } catch (_) {}
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    error.hidden = true;
+    const password = input.value || '';
+    if (!password) return;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    const originalLabel = button.textContent;
+    button.textContent = t('ui.protectedPostUnlocking');
+    try {
+      const decrypted = await decryptMarkdownDocument(markdown, password);
+      const currentPostname = getQueryVariable('id') || '';
+      if (!form.isConnected || unlockRequestId !== __activePostRequestId || currentPostname !== postname) {
+        input.value = '';
+        return;
+      }
+      cacheProtectedMarkdown(postname, envelope, decrypted);
+      input.value = '';
+      displayPost(postname, { markdown });
+    } catch (_) {
+      error.textContent = t('ui.protectedPostWrongPassword');
+      error.hidden = false;
+      try { input.focus({ preventScroll: true }); }
+      catch (__) { input.focus(); }
+    } finally {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = originalLabel || t('ui.protectedPostUnlock');
+    }
+  });
+}
+
+function isProtectedMetadataValue(value) {
+  if (value === true) return true;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return ['true', '1', 'yes', 'y', 'on', 'enabled', 'protected'].includes(normalized);
+}
+
+function isPostProtectedByIndex(postname) {
+  const loc = String(postname || '').trim();
+  if (!loc) return false;
+  try {
+    for (const [, meta] of Object.entries(postsIndexCache || {})) {
+      if (!meta || typeof meta !== 'object') continue;
+      if (String(meta.location || '') === loc) {
+        return isProtectedMetadataValue(meta.protected);
+      }
+      if (Array.isArray(meta.versions)) {
+        const match = meta.versions.find(ver => ver && String(ver.location || '') === loc);
+        if (match) {
+          return isProtectedMetadataValue(match.protected) || isProtectedMetadataValue(meta.protected);
+        }
+      }
+    }
+  } catch (_) {}
+  return false;
+}
+
+function displayPost(postname, options = {}) {
   // Bump request token to invalidate any in-flight older renders
   const reqId = (++__activePostRequestId);
   const containers = getViewContainers('post');
@@ -779,19 +950,77 @@ function displayPost(postname) {
 
   notifyThemeViewChange('post', { showSearch: false, showTags: false });
 
-  return getFile(`${getContentRoot()}/${postname}`).then(markdown => {
+  const hasPreloadedMarkdown = Object.prototype.hasOwnProperty.call(options || {}, 'markdown');
+  const markdownSource = hasPreloadedMarkdown
+    ? Promise.resolve(String(options.markdown || ''))
+    : getFile(`${getContentRoot()}/${postname}`);
+
+  return markdownSource.then(markdown => {
     // Ignore stale responses if a newer navigation started
     if (reqId !== __activePostRequestId) return;
+    const encryptedEnvelope = parseEncryptedMarkdownEnvelope(markdown);
+    let markdownForRender = markdown;
+    const protectedByIndex = isPostProtectedByIndex(postname);
+    if (encryptedEnvelope.encrypted || protectedByIndex) {
+      if (!encryptedEnvelope.valid) {
+        updateLayoutLoadingState('post', false, containers);
+        resetTOCView('post', containers, { reason: 'protectedPostInvalid', immediate: true });
+        const publicInfo = getProtectedPublicMetadata(
+          encryptedEnvelope.encrypted ? markdown : '',
+          postname,
+          postsByLocationTitle[postname] || postname
+        );
+        const publicMetadata = publicInfo.metadata || {};
+        const invalidTitle = t('errors.protectedPostInvalidTitle');
+        const backHref = withLangParam(`?tab=${encodeURIComponent(getHomeSlug())}`);
+        const backText = postsEnabled() ? t('ui.backToAllPosts') : (t('ui.backToHome') || t('ui.backToAllPosts'));
+        renderErrorState(containers.mainElement || getViewContainer('post', 'main'), {
+          title: invalidTitle,
+          message: t('errors.protectedPostInvalidBody'),
+          actions: [{ href: backHref, label: backText }],
+          view: 'post',
+          containers
+        });
+        setDocTitle(invalidTitle);
+        try {
+          const seoData = extractSEOFromMarkdown(publicInfo.markdown || '', {
+            ...publicMetadata,
+            title: invalidTitle,
+            description: t('errors.protectedPostInvalidBody'),
+            excerpt: '',
+            location: postname
+          }, siteConfig);
+          updateSEO(seoData, siteConfig);
+        } catch (_) {}
+        notifyThemeViewChange('post', { showSearch: false, showTags: false });
+        return;
+      }
+      const cachedMarkdown = getCachedProtectedMarkdown(postname, encryptedEnvelope);
+      if (cachedMarkdown) {
+        markdownForRender = cachedMarkdown;
+      } else {
+        updateLayoutLoadingState('post', false, containers);
+        const fallbackTitle = postsByLocationTitle[postname] || postname;
+        renderProtectedPostUnlock({
+          containers,
+          postname,
+          markdown,
+          envelope: encryptedEnvelope,
+          fallbackTitle
+        });
+        return;
+      }
+    }
     // Remove loading-state classes
     updateLayoutLoadingState('post', false, containers);
 
     const dir = (postname.lastIndexOf('/') >= 0) ? postname.slice(0, postname.lastIndexOf('/') + 1) : '';
     const baseDir = `${getContentRoot()}/${dir}`;
-    const output = mdParse(markdown, baseDir);
+    const output = mdParse(markdownForRender, baseDir);
     const fallbackTitle = postsByLocationTitle[postname] || postname;
     const frontMatterMetadata = (() => {
       try {
-        const frontMatter = parseFrontMatter(markdown).frontMatter || {};
+        const frontMatter = parseFrontMatter(markdownForRender).frontMatter || {};
         const normalized = { ...frontMatter };
         if (normalized.tags != null && normalized.tag == null) normalized.tag = normalized.tags;
         if (normalized.version != null && normalized.versionLabel == null) normalized.versionLabel = normalized.version;
@@ -828,7 +1057,7 @@ function displayPost(postname) {
       location: postname
     };
     const content = createContentModel({
-      rawMarkdown: markdown,
+      rawMarkdown: markdownForRender,
       html: output.post,
       tocHtml: output.toc,
       metadata: {
@@ -854,8 +1083,8 @@ function displayPost(postname) {
       content,
       markdownHtml: output.post,
       tocHtml: output.toc,
-      rawMarkdown: markdown,
-      markdown,
+      rawMarkdown: markdownForRender,
+      markdown: markdownForRender,
       baseDir,
       fallbackTitle,
       postMetadata,
@@ -904,7 +1133,7 @@ function displayPost(postname) {
         container: mainEl,
         articleTitle,
         postMetadata,
-        markdown,
+        markdown: markdownForRender,
         translate: t,
         document,
         window
@@ -917,7 +1146,7 @@ function displayPost(postname) {
     refreshTagSidebar({ view: 'post', containers, postsIndex: postsIndexCache });
 
     try {
-      const seoData = extractSEOFromMarkdown(markdown, {
+      const seoData = extractSEOFromMarkdown(markdownForRender, {
         ...postMetadata,
         title: articleTitle,
         location: postname
@@ -1001,7 +1230,7 @@ function displayIndex(parsed) {
       const siteDef = (typeof siteConfig === 'object' && (siteConfig.defaultLanguage || siteConfig.defaultLang)) || 'en';
       const defNorm = normalizeLangKey(siteDef);
 
-      const RESERVED = new Set(['tag','tags','image','date','excerpt','thumb','cover']);
+      const RESERVED = new Set(['tag','tags','image','date','excerpt','thumb','cover','protected','encryption']);
       const seen = new Set();
       const ordered = [];
 

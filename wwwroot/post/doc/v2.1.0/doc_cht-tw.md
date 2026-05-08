@@ -96,6 +96,15 @@ ai: true
 - `author` — 作者名稱。
 - `ai` — 是否有生成式 AI 參與撰寫。
 
+### 受保護文章
+文章可以在編輯器中設定密碼保護。編輯文章時點選「保護」按鈕，為該文章設定獨立密碼，然後像平常一樣儲存或發布。
+
+受保護文章會繼續公開 `title`、`date`、`tags`、`image`、`excerpt` 等 Front Matter 元資料，因此文章卡片、搜尋結果和社群分享資訊仍可顯示公開摘要。Markdown 正文會被替換成 `press-encrypted-markdown-v1` 密文區塊，並使用 Web Crypto 的 `PBKDF2-SHA256` 與 `AES-GCM-256` 加密。
+
+Press 不會提交密碼，不會把密碼寫入 JavaScript，也不會把密碼保存到瀏覽器儲存空間。正確密碼只保留在目前頁面記憶體中。重新整理或重新開啟文章後，需要再次輸入密碼。
+
+請使用 `excerpt` 撰寫受保護文章的公開摘要。Press 不會從加密正文中產生預覽或 SEO 描述。
+
 ## 頁面寫作
 靜態頁面由 `wwwroot/tabs.yaml` 管理：
 

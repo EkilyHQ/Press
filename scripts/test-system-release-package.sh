@@ -51,6 +51,11 @@ if ! grep -qx "press-system-${version}/assets/js/theme-manager.js" "${entries_fi
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/encrypted-content.js" "${entries_file}"; then
+  echo "expected package to include encrypted article runtime code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/themes/native/theme.json" "${entries_file}"; then
   echo "expected package to include the native fallback theme" >&2
   exit 1

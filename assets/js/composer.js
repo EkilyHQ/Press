@@ -8,11 +8,16 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=20260506theme';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=markdown-safety-20260508';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=theme-catalog-remote-20260507';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=encrypted-articles-20260508';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=encrypted-articles-20260508';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=encrypted-articles-20260508';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=encrypted-articles-20260508';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
+import {
+  decryptMarkdownDocument,
+  encryptMarkdownDocument,
+  parseEncryptedMarkdownEnvelope
+} from './encrypted-content.js?v=encrypted-articles-20260508';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -63,6 +68,12 @@ const getMarkdownSaveTooltip = (kind) => {
   const key = MARKDOWN_SAVE_TOOLTIP_KEYS[kind] || MARKDOWN_SAVE_TOOLTIP_KEYS.default;
   return t(key);
 };
+const getMarkdownProtectionLabel = (tab) => isMarkdownTabProtected(tab)
+  ? t('editor.composer.markdown.protection.labelProtected')
+  : t('editor.composer.markdown.protection.labelUnprotected');
+const getMarkdownProtectionTooltip = (tab) => isMarkdownTabProtected(tab)
+  ? t('editor.composer.markdown.protection.tooltipProtected')
+  : t('editor.composer.markdown.protection.tooltipUnprotected');
 
 // --- Persisted UI state keys ---
 const LS_KEYS = {
@@ -229,6 +240,7 @@ const GITHUB_PAT_STORAGE_KEY = 'press_fg_pat_cache';
 let markdownPushButton = null;
 let markdownDiscardButton = null;
 let markdownSaveButton = null;
+let markdownProtectionButton = null;
 let gitHubCommitInFlight = false;
 let cachedFineGrainedTokenMemory = '';
 
@@ -243,6 +255,85 @@ let composerOrderState = null;
 let composerDiffResizeHandler = null;
 let composerOrderPreviewElements = { index: null, tabs: null };
 let composerOrderPreviewState = { index: null, tabs: null };
+
+function createMarkdownProtectionState(overrides = {}) {
+  const source = overrides && typeof overrides === 'object' ? overrides : {};
+  return {
+    enabled: !!source.enabled,
+    password: source.password ? String(source.password) : '',
+    encryptedRemote: !!source.encryptedRemote,
+    encryptedDraft: !!source.encryptedDraft,
+    passwordChanged: !!source.passwordChanged,
+    remoteSignature: source.remoteSignature ? String(source.remoteSignature) : '',
+    remoteCiphertext: source.remoteCiphertext ? String(source.remoteCiphertext) : ''
+  };
+}
+
+function getMarkdownProtectionState(tab) {
+  if (!tab || typeof tab !== 'object') return createMarkdownProtectionState();
+  if (!tab.protection || typeof tab.protection !== 'object') {
+    tab.protection = createMarkdownProtectionState();
+  } else {
+    tab.protection = createMarkdownProtectionState(tab.protection);
+  }
+  return tab.protection;
+}
+
+function setMarkdownProtectionState(tab, state = {}) {
+  if (!tab || typeof tab !== 'object') return createMarkdownProtectionState();
+  tab.protection = createMarkdownProtectionState(state);
+  return tab.protection;
+}
+
+function createDiscardedMarkdownProtectionState(protection) {
+  const current = createMarkdownProtectionState(protection);
+  if (!current.encryptedRemote) return createMarkdownProtectionState();
+  return createMarkdownProtectionState({
+    enabled: true,
+    password: '',
+    encryptedRemote: true,
+    encryptedDraft: false,
+    passwordChanged: false,
+    remoteSignature: current.remoteSignature,
+    remoteCiphertext: current.remoteCiphertext
+  });
+}
+
+function isMarkdownTabProtected(tab) {
+  if (!tab) return false;
+  const protection = getMarkdownProtectionState(tab);
+  return !!protection.enabled;
+}
+
+function isEncryptedMarkdownDraftEntry(entry) {
+  return !!(entry && typeof entry === 'object' && (entry.encrypted === true || entry.protected === true));
+}
+
+function hasMarkdownDraftContent(tab) {
+  if (!tab || !tab.localDraft) return false;
+  const draft = tab.localDraft;
+  const plain = normalizeMarkdownContent(draft.content || '');
+  const encrypted = normalizeMarkdownContent(draft.encryptedContent || '');
+  return !!(plain || encrypted);
+}
+
+function getLockedEncryptedMarkdownDraft(tab) {
+  if (!tab || !tab.localDraft) return '';
+  const draft = tab.localDraft;
+  if (!draft.encrypted || draft.decrypted) return '';
+  return normalizeMarkdownContent(draft.encryptedContent || '');
+}
+
+function getMarkdownDraftSaveGeneration(tab) {
+  return Math.max(0, Math.floor(Number(tab && tab.markdownDraftSaveGeneration) || 0));
+}
+
+function bumpMarkdownDraftSaveGeneration(tab) {
+  if (!tab || typeof tab !== 'object') return 0;
+  const next = getMarkdownDraftSaveGeneration(tab) + 1;
+  tab.markdownDraftSaveGeneration = next;
+  return next;
+}
 let composerOrderPreviewActiveKind = 'index';
 let composerOrderPreviewResizeHandler = null;
 const composerOrderPreviewRelayoutTimers = { index: null, tabs: null };
@@ -1812,12 +1903,29 @@ async function fetchMarkdownRemoteSnapshot(tab) {
   };
 }
 
-function applyMarkdownRemoteSnapshot(tab, snapshot) {
+function applyMarkdownRemoteSnapshot(tab, snapshot, options = {}) {
   if (!tab) return;
   const normalized = normalizeMarkdownContent(snapshot && snapshot.content != null ? snapshot.content : '');
-  tab.remoteContent = normalized;
+  const envelope = parseEncryptedMarkdownEnvelope(normalized);
+  const protectedSnapshot = envelope.encrypted;
+  const remoteBaseline = protectedSnapshot
+    ? normalizeMarkdownContent((options && options.plaintextContent) || tab.content || '')
+    : normalized;
+  tab.remoteContent = remoteBaseline;
   tab.remoteSignature = computeTextSignature(normalized);
   tab.loaded = true;
+  if (protectedSnapshot) {
+    setMarkdownProtectionState(tab, {
+      ...getMarkdownProtectionState(tab),
+      enabled: true,
+      encryptedRemote: true,
+      passwordChanged: false,
+      remoteSignature: tab.remoteSignature,
+      remoteCiphertext: envelope.ciphertext || ''
+    });
+  } else if (!isMarkdownTabProtected(tab)) {
+    setMarkdownProtectionState(tab, createMarkdownProtectionState());
+  }
 
   const stateLabel = snapshot && snapshot.state === 'missing' ? 'missing' : 'existing';
   const statusCode = snapshot && snapshot.status;
@@ -1832,15 +1940,15 @@ function applyMarkdownRemoteSnapshot(tab, snapshot) {
     message: statusMessage
   });
 
-  if (!tab.localDraft || !tab.localDraft.content) {
+  if (!hasMarkdownDraftContent(tab)) {
     const currentNormalized = normalizeMarkdownContent(tab.content || '');
     tab.content = currentNormalized;
-    if (currentNormalized !== normalized) {
-      tab.content = normalized;
+    if (currentNormalized !== remoteBaseline) {
+      tab.content = remoteBaseline;
       if (currentMode === tab.mode) {
         const editorApi = getPrimaryEditorApi();
         if (editorApi && typeof editorApi.setValue === 'function') {
-          try { editorApi.setValue(normalized, { notify: false }); } catch (_) {}
+          try { editorApi.setValue(remoteBaseline, { notify: false }); } catch (_) {}
         }
       }
     }
@@ -1912,7 +2020,9 @@ function startMarkdownSyncWatcher(tab, options = {}) {
     },
     onSuccess: (result) => {
       if (result && result.data) {
-        applyMarkdownRemoteSnapshot(tab, result.data);
+        applyMarkdownRemoteSnapshot(tab, result.data, {
+          plaintextContent: options.plaintextContent || ''
+        });
         if (result.mismatch) {
           showToast('warn', t('editor.toasts.remoteMarkdownMismatch'), { duration: 4200 });
         } else {
@@ -1922,6 +2032,7 @@ function startMarkdownSyncWatcher(tab, options = {}) {
       updateMarkdownPushButton(tab);
       updateMarkdownDiscardButton(tab);
       updateMarkdownSaveButton(tab);
+      updateMarkdownProtectionButton(tab);
     },
     onCancel: () => {
       const fallbackStatus = (previousStatus && previousStatus.state)
@@ -1935,6 +2046,7 @@ function startMarkdownSyncWatcher(tab, options = {}) {
       updateMarkdownPushButton(tab);
       updateMarkdownDiscardButton(tab);
       updateMarkdownSaveButton(tab);
+      updateMarkdownProtectionButton(tab);
       showToast('info', t('editor.toasts.remoteCheckCanceledUseRefresh'));
     }
   });
@@ -3203,6 +3315,86 @@ function writeMarkdownDraftStore(store) {
   }
 }
 
+async function requestPasswordForProtectedMarkdown(tab, options = {}) {
+  const protection = getMarkdownProtectionState(tab);
+  if (protection.password) return protection.password;
+  const opts = options && typeof options === 'object' ? options : {};
+  const password = await requestMarkdownProtectionPassword({
+    title: opts.title || t('editor.composer.markdown.protection.openTitle'),
+    message: opts.message || t('editor.composer.markdown.protection.openMessage'),
+    confirmLabel: opts.confirmLabel || t('editor.composer.markdown.protection.unlock'),
+    confirm: false
+  });
+  if (!password) throw new Error(t('editor.composer.markdown.protection.passwordRequiredOpen'));
+  protection.password = password;
+  protection.enabled = true;
+  return password;
+}
+
+async function decryptProtectedMarkdownForTab(markdown, tab, options = {}) {
+  const envelope = parseEncryptedMarkdownEnvelope(markdown);
+  if (!envelope.encrypted) return normalizeMarkdownContent(markdown);
+  if (!envelope.valid) {
+    throw new Error(envelope.error || t('editor.composer.markdown.protection.invalidEnvelope'));
+  }
+  const opts = options && typeof options === 'object' ? options : {};
+  const protection = getMarkdownProtectionState(tab);
+  let lastError = null;
+  for (;;) {
+    let password = protection.password;
+    if (!password) {
+      password = await requestPasswordForProtectedMarkdown(tab, {
+        title: opts.title,
+        message: opts.message,
+        confirmLabel: opts.confirmLabel
+      });
+    }
+    try {
+      const decrypted = await decryptMarkdownDocument(markdown, password);
+      setMarkdownProtectionState(tab, {
+        enabled: true,
+        password,
+        encryptedRemote: opts.remote === true ? true : !!protection.encryptedRemote,
+        encryptedDraft: opts.draft === true,
+        passwordChanged: false,
+        remoteSignature: opts.remoteSignature || protection.remoteSignature || '',
+        remoteCiphertext: envelope.ciphertext || protection.remoteCiphertext || ''
+      });
+      return normalizeMarkdownContent(decrypted);
+    } catch (err) {
+      lastError = err;
+      protection.password = '';
+      showToast('error', t('editor.composer.markdown.protection.unlockFailed'));
+    }
+  }
+  throw lastError || new Error(t('editor.composer.markdown.protection.unlockFailed'));
+}
+
+async function prepareMarkdownForProtectedStorage(tab, markdown, options = {}) {
+  const text = normalizeMarkdownContent(markdown || '');
+  if (!isMarkdownTabProtected(tab)) {
+    return { content: text, encrypted: false };
+  }
+  const protection = getMarkdownProtectionState(tab);
+  let password = protection.password;
+  if (!password) {
+    password = await requestMarkdownProtectionPassword({
+      title: t('editor.composer.markdown.protection.passwordTitle'),
+      message: t('editor.composer.markdown.protection.passwordMessage'),
+      confirmLabel: t('editor.composer.markdown.protection.keepEncrypted'),
+      confirm: false
+    });
+    if (!password) throw new Error(t('editor.composer.markdown.protection.passwordRequired'));
+    protection.password = password;
+  }
+  const encrypted = await encryptMarkdownDocument(text, password);
+  return {
+    content: normalizeMarkdownContent(encrypted.markdown),
+    encrypted: true,
+    metadata: encrypted.metadata
+  };
+}
+
 function getMarkdownDraftEntry(path) {
   const norm = normalizeRelPath(path);
   if (!norm) return null;
@@ -3220,11 +3412,13 @@ function getMarkdownDraftEntry(path) {
     content,
     savedAt: Number.isFinite(savedAt) ? savedAt : Date.now(),
     remoteSignature,
-    assets
+    assets,
+    encrypted: isEncryptedMarkdownDraftEntry(entry),
+    protected: isEncryptedMarkdownDraftEntry(entry)
   };
 }
 
-function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = []) {
+function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = [], options = {}) {
   const norm = normalizeRelPath(path);
   if (!norm) return null;
   const text = normalizeMarkdownContent(content);
@@ -3239,13 +3433,20 @@ function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = []
     remoteSignature: String(remoteSignature || ''),
     assets: assetList
   };
+  if (options && (options.encrypted === true || options.protected === true)) {
+    store[norm].encrypted = true;
+    store[norm].protected = true;
+    store[norm].format = 'press-encrypted-markdown-v1';
+  }
   writeMarkdownDraftStore(store);
   return {
     path: norm,
     content: text,
     savedAt,
     remoteSignature: String(remoteSignature || ''),
-    assets: assetList
+    assets: assetList,
+    encrypted: !!(options && (options.encrypted === true || options.protected === true)),
+    protected: !!(options && (options.encrypted === true || options.protected === true))
   };
 }
 
@@ -3272,25 +3473,48 @@ function restoreMarkdownDraftForTab(tab) {
   }
   const assetsBucket = importMarkdownAssetsForPath(tab.path, entry.assets || []);
   tab.localDraft = {
-    content: entry.content,
+    content: entry.encrypted ? '' : entry.content,
+    encryptedContent: entry.encrypted ? entry.content : '',
+    encrypted: !!entry.encrypted,
+    protected: !!entry.protected,
+    decrypted: !entry.encrypted,
     savedAt: entry.savedAt,
     remoteSignature: entry.remoteSignature || '',
     manual: !!entry.manual,
     assets: exportMarkdownAssetBucket(tab.path)
   };
-  tab.content = entry.content;
+  if (entry.encrypted) {
+    setMarkdownProtectionState(tab, {
+      ...getMarkdownProtectionState(tab),
+      enabled: true,
+      encryptedDraft: true
+    });
+  } else {
+    tab.content = entry.content;
+  }
   tab.draftConflict = false;
   tab.isDirty = true;
   tab.pendingAssets = assetsBucket || ensureMarkdownAssetBucket(tab.path);
+  if (entry.encrypted) {
+    if (tab.button) {
+      try { tab.button.setAttribute('data-dirty', '1'); } catch (_) {}
+      try { tab.button.setAttribute('data-draft-state', 'saved'); } catch (_) {}
+    }
+    updateComposerMarkdownDraftIndicators({ path: tab.path });
+    try { updateUnsyncedSummary(); } catch (_) {}
+    return true;
+  }
   updateDynamicTabDirtyState(tab, { autoSave: false });
   return true;
 }
 
-function saveMarkdownDraftForTab(tab, options = {}) {
+async function saveMarkdownDraftForTab(tab, options = {}) {
   if (!tab || !tab.path) return null;
+  const saveGeneration = getMarkdownDraftSaveGeneration(tab);
   const text = normalizeMarkdownContent(tab.content || '');
   const remoteSig = tab.remoteSignature || '';
   if (!text) {
+    bumpMarkdownDraftSaveGeneration(tab);
     clearMarkdownDraftEntry(tab.path);
     tab.localDraft = null;
     tab.draftConflict = false;
@@ -3299,10 +3523,21 @@ function saveMarkdownDraftForTab(tab, options = {}) {
     return null;
   }
   const assets = exportMarkdownAssetBucket(tab.path);
-  const saved = saveMarkdownDraftEntry(tab.path, text, remoteSig, assets);
+  const prepared = await prepareMarkdownForProtectedStorage(tab, text, {
+    reason: options && options.reason ? options.reason : 'draft'
+  });
+  if (saveGeneration !== getMarkdownDraftSaveGeneration(tab)) return null;
+  const saved = saveMarkdownDraftEntry(tab.path, prepared.content, remoteSig, assets, {
+    encrypted: prepared.encrypted,
+    protected: prepared.encrypted
+  });
   if (saved) {
     tab.localDraft = {
-      content: saved.content,
+      content: text,
+      encryptedContent: saved.encrypted ? saved.content : '',
+      encrypted: !!saved.encrypted,
+      protected: !!saved.protected,
+      decrypted: true,
       savedAt: saved.savedAt,
       remoteSignature: saved.remoteSignature,
       manual: !!options.markManual,
@@ -3316,6 +3551,7 @@ function saveMarkdownDraftForTab(tab, options = {}) {
 
 function clearMarkdownDraftForTab(tab) {
   if (!tab || !tab.path) return;
+  bumpMarkdownDraftSaveGeneration(tab);
   try {
     if (tab.markdownDraftTimer) {
       clearTimeout(tab.markdownDraftTimer);
@@ -3351,27 +3587,36 @@ function scheduleMarkdownDraftSave(tab) {
       clearMarkdownDraftForTab(tab);
       return;
     }
-    saveMarkdownDraftForTab(tab);
-    if (currentMode === tab.mode) pushEditorCurrentFileInfo(tab);
+    saveMarkdownDraftForTab(tab)
+      .then(() => {
+        if (currentMode === tab.mode) pushEditorCurrentFileInfo(tab);
+      })
+      .catch((err) => {
+        console.error('Failed to save markdown draft', err);
+        showToast('error', t('editor.composer.markdown.save.toastError'));
+      });
   }, 720);
 }
 
-function flushMarkdownDraft(tab) {
-  if (!tab) return;
+async function flushMarkdownDraft(tab) {
+  if (!tab) return null;
   if (tab.markdownDraftTimer) {
     clearTimeout(tab.markdownDraftTimer);
     tab.markdownDraftTimer = null;
     if (tab.isDirty) {
-      saveMarkdownDraftForTab(tab);
+      return saveMarkdownDraftForTab(tab);
     }
   }
+  return null;
 }
 
 function updateDynamicTabDirtyState(tab, options = {}) {
   if (!tab || !tab.path) return;
   const normalizedContent = normalizeMarkdownContent(tab.content || '');
   const baseline = normalizeMarkdownContent(tab.remoteContent || '');
-  const dirty = normalizedContent !== baseline;
+  const protection = getMarkdownProtectionState(tab);
+  const protectionChanged = protection.enabled !== protection.encryptedRemote || protection.passwordChanged;
+  const dirty = normalizedContent !== baseline || protectionChanged;
   tab.isDirty = dirty;
 
   let conflict = false;
@@ -3427,7 +3672,7 @@ function hasUnsavedMarkdownDrafts() {
   for (const tab of dynamicEditorTabs.values()) {
     if (!tab) continue;
     if (tab.isDirty) return true;
-    if (tab.localDraft && normalizeMarkdownContent(tab.localDraft.content || '')) return true;
+    if (hasMarkdownDraftContent(tab)) return true;
   }
   try {
     const store = readMarkdownDraftStore();
@@ -3864,7 +4109,7 @@ function collectUnsyncedMarkdownEntries() {
     if (!tab || !tab.path) return;
     const path = normalizeRelPath(tab.path);
     if (!path || seen.has(path)) return;
-    const hasDraftContent = !!(tab.localDraft && normalizeMarkdownContent(tab.localDraft.content || ''));
+    const hasDraftContent = hasMarkdownDraftContent(tab);
     const hasDirtyChanges = !!tab.isDirty;
     if (!hasDirtyChanges && !hasDraftContent) return;
     let state = '';
@@ -4519,7 +4764,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=markdown-safety-20260508"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=encrypted-articles-20260508"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -4601,7 +4846,7 @@ async function generateSeoCommitFiles() {
 
 async function gatherCommitPayload(options = {}) {
   const { showSeoStatus = false } = options;
-  const base = gatherLocalChangesForCommit(options);
+  const base = await gatherLocalChangesForCommit(options);
   const files = Array.isArray(base.files) ? base.files.slice() : [];
   if (showSeoStatus) {
     try {
@@ -4615,7 +4860,7 @@ async function gatherCommitPayload(options = {}) {
   return { files, seoFiles };
 }
 
-function gatherLocalChangesForCommit(options = {}) {
+async function gatherLocalChangesForCommit(options = {}) {
   const { cleanupUnusedAssets = true } = options;
   const files = [];
   const seenPaths = new Set();
@@ -4624,11 +4869,26 @@ function gatherLocalChangesForCommit(options = {}) {
     const key = entry.path.replace(/\\+/g, '/');
     if (seenPaths.has(key)) return;
     seenPaths.add(key);
-    files.push({ ...entry, path: key });
+    const next = { ...entry, path: key };
+    if (entry.plaintextContent) {
+      Object.defineProperty(next, 'plaintextContent', {
+        value: String(entry.plaintextContent || ''),
+        enumerable: false,
+        configurable: true,
+        writable: true
+      });
+    }
+    files.push(next);
   };
 
   try {
-    dynamicEditorTabs.forEach((tab) => { flushMarkdownDraft(tab); });
+    const flushes = Array.from(dynamicEditorTabs.values()).map((tab) => (
+      flushMarkdownDraft(tab).catch((err) => {
+        console.warn('Failed to flush markdown draft before commit', err);
+        return null;
+      })
+    ));
+    await Promise.all(flushes);
   } catch (_) { /* ignore */ }
 
   const siteState = getStateSlice('site');
@@ -4669,17 +4929,22 @@ function gatherLocalChangesForCommit(options = {}) {
       catch (_) { activeValue = null; }
     }
     const draftStore = readMarkdownDraftStore();
-    markdownEntries.forEach((entry) => {
+    for (const entry of markdownEntries) {
       const rel = normalizeRelPath(entry.path);
-      if (!rel) return;
+      if (!rel) continue;
       const repoPath = `${rootPrefix}${rel}`;
       const tab = findDynamicTabByPath(rel);
       let text = '';
+      let alreadyEncrypted = false;
       if (tab) {
-        if (tab === activeTab && activeValue != null) {
+        const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft(tab);
+        if (lockedEncryptedDraft) {
+          text = lockedEncryptedDraft;
+          alreadyEncrypted = true;
+        } else if (tab === activeTab && activeValue != null) {
           tab.content = activeValue;
-        }
-        if (tab.content != null && tab.content !== undefined) {
+          text = normalizeMarkdownContent(tab.content);
+        } else if (tab.content != null && tab.content !== undefined) {
           text = normalizeMarkdownContent(tab.content);
         } else if (tab.localDraft && tab.localDraft.content != null) {
           text = normalizeMarkdownContent(tab.localDraft.content);
@@ -4687,14 +4952,20 @@ function gatherLocalChangesForCommit(options = {}) {
       } else if (draftStore && draftStore[rel] && typeof draftStore[rel] === 'object') {
         const draft = draftStore[rel];
         if (draft.content != null) text = normalizeMarkdownContent(draft.content);
+        alreadyEncrypted = isEncryptedMarkdownDraftEntry(draft);
       }
+      const prepared = alreadyEncrypted
+        ? { content: text, encrypted: true }
+        : await prepareMarkdownForProtectedStorage(tab, text, { reason: 'commit' });
       addFile({
         kind: 'markdown',
         label: rel,
         path: repoPath,
-        content: text,
+        content: prepared.content,
+        plaintextContent: prepared.encrypted && !alreadyEncrypted ? text : '',
         markdownPath: rel,
-        state: entry.state || ''
+        state: entry.state || '',
+        protected: !!prepared.encrypted
       });
 
       const assets = listMarkdownAssets(rel);
@@ -4704,7 +4975,7 @@ function gatherLocalChangesForCommit(options = {}) {
         assets.forEach((asset) => {
           if (!asset || !asset.path || !asset.base64) return;
           const commitPath = `${rootPrefix}${asset.path}`.replace(/\\+/g, '/');
-          if (!isAssetReferencedInContent(normalizedText, asset)) {
+          if (!alreadyEncrypted && !isAssetReferencedInContent(normalizedText, asset)) {
             unusedAssets.push(asset.path);
             return;
           }
@@ -4727,7 +4998,7 @@ function gatherLocalChangesForCommit(options = {}) {
           });
         }
       }
-    });
+    }
   }
 
   const systemFiles = getSystemUpdateCommitFiles();
@@ -5364,28 +5635,44 @@ function applyLocalPostCommitState(files = []) {
         updateMarkdownPushButton(getActiveDynamicTab());
         updateMarkdownDiscardButton(getActiveDynamicTab());
         updateMarkdownSaveButton(getActiveDynamicTab());
+        updateMarkdownProtectionButton(getActiveDynamicTab());
       }
     } else if (file.kind === 'markdown') {
       const norm = normalizeRelPath(file.markdownPath || file.label || '');
       if (!norm) return;
       handledMarkdown.add(norm);
-      const text = normalizeMarkdownContent(file.content || '');
+      const committedText = normalizeMarkdownContent(file.content || '');
       const tab = findDynamicTabByPath(norm);
-      const commitSignature = computeTextSignature(text);
+      const commitSignature = computeTextSignature(committedText);
+      const committedEnvelope = parseEncryptedMarkdownEnvelope(committedText);
+      const committedProtected = !!file.protected || committedEnvelope.encrypted;
       const checkedAt = Date.now();
       if (tab) {
+        const baselineText = committedProtected
+          ? normalizeMarkdownContent(file.plaintextContent || tab.content || '')
+          : committedText;
         const currentText = normalizeMarkdownContent(tab.content || '');
-        const hasNewerLocalContent = currentText !== text;
-        tab.remoteContent = text;
+        const hasNewerLocalContent = currentText !== baselineText;
+        tab.remoteContent = baselineText;
         tab.remoteSignature = commitSignature;
         tab.loaded = true;
+        if (committedProtected) {
+          setMarkdownProtectionState(tab, {
+            ...getMarkdownProtectionState(tab),
+            enabled: true,
+            encryptedRemote: true,
+            passwordChanged: false,
+            remoteSignature: commitSignature,
+            remoteCiphertext: committedEnvelope.ciphertext || ''
+          });
+        } else {
+          setMarkdownProtectionState(tab, createMarkdownProtectionState());
+        }
         if (hasNewerLocalContent) {
-          const saved = saveMarkdownDraftEntry(norm, tab.content, tab.remoteSignature, exportMarkdownAssetBucket(norm));
-          if (saved) {
-            tab.localDraft = { ...saved, manual: !!(tab.localDraft && tab.localDraft.manual) };
-          } else if (tab.localDraft) {
+          if (tab.localDraft) {
             tab.localDraft = { ...tab.localDraft, remoteSignature: tab.remoteSignature };
           }
+          scheduleMarkdownDraftSave(tab);
           updateDynamicTabDirtyState(tab, { autoSave: false });
           setDynamicTabStatus(tab, {
             state: 'existing',
@@ -5395,7 +5682,7 @@ function applyLocalPostCommitState(files = []) {
         } else {
           clearMarkdownDraftEntry(norm);
           clearMarkdownAssetsForPath(norm);
-          tab.content = text;
+          tab.content = baselineText;
           tab.localDraft = null;
           tab.draftConflict = false;
           tab.isDirty = false;
@@ -5438,6 +5725,7 @@ function applyLocalPostCommitState(files = []) {
   updateMarkdownPushButton(getActiveDynamicTab());
   updateMarkdownDiscardButton(getActiveDynamicTab());
   updateMarkdownSaveButton(getActiveDynamicTab());
+  updateMarkdownProtectionButton(getActiveDynamicTab());
 }
 
 async function performDirectGithubCommit(token, summaryEntries = []) {
@@ -7810,6 +8098,234 @@ function showComposerAddEntryPrompt(anchor, options) {
   });
 }
 
+let markdownProtectionPasswordDialogElements = null;
+
+function configureMarkdownPasswordInput(input) {
+  if (!input) return;
+  input.type = 'password';
+  input.autocomplete = 'off';
+  input.autocapitalize = 'none';
+  input.spellcheck = false;
+  input.setAttribute('spellcheck', 'false');
+  input.setAttribute('data-1p-ignore', 'true');
+  input.setAttribute('data-lpignore', 'true');
+}
+
+function ensureMarkdownProtectionPasswordDialogElements() {
+  if (markdownProtectionPasswordDialogElements) return markdownProtectionPasswordDialogElements;
+  if (typeof document === 'undefined') return null;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'composerMarkdownProtectionPasswordDialog';
+  overlay.className = 'composer-protection-modal';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.hidden = true;
+
+  const card = document.createElement('div');
+  card.className = 'composer-protection-card';
+
+  const title = document.createElement('h3');
+  title.className = 'composer-protection-title';
+  title.id = 'composerMarkdownProtectionPasswordTitle';
+  overlay.setAttribute('aria-labelledby', title.id);
+  card.appendChild(title);
+
+  const message = document.createElement('p');
+  message.className = 'composer-protection-message';
+  message.id = 'composerMarkdownProtectionPasswordMessage';
+  overlay.setAttribute('aria-describedby', message.id);
+  card.appendChild(message);
+
+  const passwordLabel = document.createElement('label');
+  passwordLabel.className = 'composer-protection-field';
+  passwordLabel.setAttribute('for', 'composerMarkdownProtectionPasswordInput');
+  const passwordText = document.createElement('span');
+  passwordText.className = 'composer-protection-label';
+  passwordText.textContent = t('editor.composer.markdown.protection.passwordLabel');
+  const passwordInput = document.createElement('input');
+  passwordInput.id = 'composerMarkdownProtectionPasswordInput';
+  passwordInput.className = 'composer-key-input composer-protection-input';
+  configureMarkdownPasswordInput(passwordInput);
+  passwordLabel.append(passwordText, passwordInput);
+  card.appendChild(passwordLabel);
+
+  const confirmLabel = document.createElement('label');
+  confirmLabel.className = 'composer-protection-field';
+  confirmLabel.setAttribute('for', 'composerMarkdownProtectionPasswordConfirm');
+  const confirmText = document.createElement('span');
+  confirmText.className = 'composer-protection-label';
+  confirmText.textContent = t('editor.composer.markdown.protection.confirmPasswordLabel');
+  const confirmInput = document.createElement('input');
+  confirmInput.id = 'composerMarkdownProtectionPasswordConfirm';
+  confirmInput.className = 'composer-key-input composer-protection-input';
+  configureMarkdownPasswordInput(confirmInput);
+  confirmLabel.append(confirmText, confirmInput);
+  card.appendChild(confirmLabel);
+
+  const error = document.createElement('div');
+  error.className = 'composer-key-error composer-protection-error';
+  error.id = 'composerMarkdownProtectionPasswordError';
+  error.setAttribute('role', 'alert');
+  card.appendChild(error);
+
+  const actions = document.createElement('div');
+  actions.className = 'composer-confirm-actions composer-protection-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'btn-secondary composer-confirm-cancel';
+  cancelBtn.textContent = t('editor.composer.dialogs.cancel');
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'btn-secondary composer-confirm-confirm';
+  confirmBtn.textContent = t('editor.composer.dialogs.confirm');
+
+  actions.append(cancelBtn, confirmBtn);
+  card.appendChild(actions);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  markdownProtectionPasswordDialogElements = {
+    overlay,
+    title,
+    message,
+    passwordText,
+    passwordInput,
+    confirmLabel,
+    confirmText,
+    confirmInput,
+    error,
+    cancelBtn,
+    confirmBtn
+  };
+  return markdownProtectionPasswordDialogElements;
+}
+
+function requestMarkdownProtectionPassword(options = {}) {
+  const elements = ensureMarkdownProtectionPasswordDialogElements();
+  if (!elements) return Promise.resolve('');
+  const {
+    overlay,
+    title,
+    message,
+    passwordText,
+    passwordInput,
+    confirmLabel,
+    confirmText,
+    confirmInput,
+    error,
+    cancelBtn,
+    confirmBtn
+  } = elements;
+  const opts = options && typeof options === 'object' ? options : {};
+  const requireConfirm = opts.confirm === true;
+
+  title.textContent = opts.title ? String(opts.title) : t('editor.composer.markdown.protection.dialogTitle');
+  message.textContent = opts.message ? String(opts.message) : t('editor.composer.markdown.protection.dialogMessage');
+  passwordText.textContent = t('editor.composer.markdown.protection.passwordLabel');
+  confirmText.textContent = t('editor.composer.markdown.protection.confirmPasswordLabel');
+  confirmBtn.textContent = opts.confirmLabel ? String(opts.confirmLabel) : t('editor.composer.dialogs.confirm');
+  cancelBtn.textContent = opts.cancelLabel ? String(opts.cancelLabel) : t('editor.composer.dialogs.cancel');
+  passwordInput.value = '';
+  confirmInput.value = '';
+  error.textContent = '';
+  passwordInput.setAttribute('aria-invalid', 'false');
+  confirmInput.setAttribute('aria-invalid', 'false');
+  confirmLabel.hidden = !requireConfirm;
+
+  return new Promise((resolve) => {
+    let closed = false;
+
+    const setError = (text) => {
+      const value = String(text || '');
+      error.textContent = value;
+      passwordInput.setAttribute('aria-invalid', value ? 'true' : 'false');
+      confirmInput.setAttribute('aria-invalid', value && requireConfirm ? 'true' : 'false');
+    };
+
+    const finish = (value) => {
+      if (closed) return;
+      closed = true;
+      overlay.classList.remove('is-visible');
+      overlay.hidden = true;
+      passwordInput.value = '';
+      confirmInput.value = '';
+      setError('');
+      cancelBtn.removeEventListener('click', onCancel);
+      confirmBtn.removeEventListener('click', onConfirm);
+      passwordInput.removeEventListener('keydown', onKeyDown, true);
+      confirmInput.removeEventListener('keydown', onKeyDown, true);
+      overlay.removeEventListener('mousedown', onOverlayMouseDown, true);
+      document.removeEventListener('keydown', onDocumentKeyDown, true);
+      resolve(value ? String(value) : '');
+    };
+
+    const validate = () => {
+      const password = String(passwordInput.value || '');
+      const confirmation = String(confirmInput.value || '');
+      if (!password) {
+        setError(t('editor.composer.markdown.protection.passwordRequired'));
+        try { passwordInput.focus({ preventScroll: true }); } catch (_) {}
+        return '';
+      }
+      if (requireConfirm && password !== confirmation) {
+        setError(t('editor.composer.markdown.protection.passwordMismatch'));
+        try { confirmInput.focus({ preventScroll: true }); } catch (_) {}
+        return '';
+      }
+      setError('');
+      return password;
+    };
+
+    function onCancel(event) {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      finish('');
+    }
+
+    function onConfirm(event) {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      const password = validate();
+      if (!password) return;
+      finish(password);
+    }
+
+    function onKeyDown(event) {
+      if (!event) return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const password = validate();
+        if (!password) return;
+        finish(password);
+      }
+    }
+
+    function onDocumentKeyDown(event) {
+      if (!event) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        finish('');
+      }
+    }
+
+    function onOverlayMouseDown(event) {
+      if (event && event.target === overlay) finish('');
+    }
+
+    cancelBtn.addEventListener('click', onCancel);
+    confirmBtn.addEventListener('click', onConfirm);
+    passwordInput.addEventListener('keydown', onKeyDown, true);
+    confirmInput.addEventListener('keydown', onKeyDown, true);
+    overlay.addEventListener('mousedown', onOverlayMouseDown, true);
+    document.addEventListener('keydown', onDocumentKeyDown, true);
+
+    overlay.hidden = false;
+    overlay.classList.add('is-visible');
+    try { passwordInput.focus({ preventScroll: true }); } catch (_) {}
+  });
+}
+
 function ensureComposerDiscardConfirmElements() {
   if (discardConfirmElements) return discardConfirmElements;
   if (typeof document === 'undefined') return null;
@@ -9178,7 +9694,7 @@ function updateMarkdownPushButton(tab) {
   const hasRepo = !!(repo.owner && repo.name);
 
   const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
-  const hasDraftContent = !!(active && active.localDraft && normalizeMarkdownContent(active.localDraft.content || ''));
+  const hasDraftContent = hasMarkdownDraftContent(active);
   const hasDirty = !!(active && active.isDirty);
   const hasLocalChanges = !!(active && active.path && (hasDirty || hasDraftContent));
 
@@ -9253,7 +9769,7 @@ function updateMarkdownDiscardButton(tab) {
   const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
   const hasBusy = btn.classList.contains('is-busy');
 
-  const hasDraftContent = !!(active && active.localDraft && normalizeMarkdownContent(active.localDraft.content || ''));
+  const hasDraftContent = hasMarkdownDraftContent(active);
   const dirty = !!(active && active.isDirty);
   const hasLocalChanges = !!(active && active.path && active.mode === currentMode && (dirty || hasDraftContent));
 
@@ -9334,7 +9850,36 @@ function updateMarkdownSaveButton(tab) {
   btn.setAttribute('aria-label', tooltip || getMarkdownSaveLabel());
 }
 
-function manualSaveActiveMarkdown(triggerButton) {
+function updateMarkdownProtectionButton(tab) {
+  if (!markdownProtectionButton) {
+    markdownProtectionButton = document.getElementById('btnProtectMarkdown');
+  }
+  if (!markdownProtectionButton) return;
+
+  const btn = markdownProtectionButton;
+  const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
+  const hasActive = !!(active && active.path && active.mode === currentMode);
+  const protectedState = hasActive && isMarkdownTabProtected(active);
+  const label = hasActive
+    ? getMarkdownProtectionLabel(active)
+    : t('editor.composer.markdown.protection.label');
+  const tooltip = hasActive
+    ? getMarkdownProtectionTooltip(active)
+    : t('editor.composer.markdown.protection.tooltipNoFile');
+
+  btn.hidden = false;
+  btn.removeAttribute('aria-hidden');
+  btn.disabled = !hasActive;
+  btn.setAttribute('aria-disabled', hasActive ? 'false' : 'true');
+  btn.setAttribute('data-protected', protectedState ? 'true' : 'false');
+  btn.classList.toggle('is-protected', protectedState);
+  setButtonLabel(btn, label);
+  if (tooltip) btn.title = tooltip;
+  else btn.removeAttribute('title');
+  btn.setAttribute('aria-label', tooltip || label);
+}
+
+async function manualSaveActiveMarkdown(triggerButton) {
   const active = getActiveDynamicTab();
   if (!active || !active.path) {
     showToast('info', getMarkdownSaveTooltip('noFile'));
@@ -9377,7 +9922,7 @@ function manualSaveActiveMarkdown(triggerButton) {
       active.markdownDraftTimer = null;
     }
 
-    const saved = saveMarkdownDraftForTab(active, { markManual: true });
+    const saved = await saveMarkdownDraftForTab(active, { markManual: true });
     if (saved) {
       pushEditorCurrentFileInfo(active);
       showToast('success', t('editor.composer.markdown.save.toastSuccess'));
@@ -9392,9 +9937,92 @@ function manualSaveActiveMarkdown(triggerButton) {
     updateMarkdownSaveButton(active);
     updateMarkdownDiscardButton(active);
     updateMarkdownPushButton(active);
+    updateMarkdownProtectionButton(active);
     try { updateUnsyncedSummary(); }
     catch (_) {}
   }
+}
+
+async function handleMarkdownProtectionButton(anchor) {
+  const active = getActiveDynamicTab();
+  if (!active || !active.path) {
+    showToast('info', t('editor.composer.markdown.protection.tooltipNoFile'));
+    updateMarkdownProtectionButton(null);
+    return;
+  }
+  const editorApi = getPrimaryEditorApi();
+  if (editorApi && typeof editorApi.getValue === 'function' && currentMode === active.mode) {
+    try { active.content = String(editorApi.getValue() || ''); } catch (_) {}
+  }
+  try {
+    if (active.pending) await active.pending;
+    else if (!active.loaded) await loadDynamicTabContent(active);
+  } catch (err) {
+    console.error('Failed to load markdown before changing protection', err);
+    showToast('error', t('editor.toasts.unableLoadLatestMarkdown'));
+    updateMarkdownProtectionButton(active);
+    return;
+  }
+
+  const currentProtection = getMarkdownProtectionState(active);
+  if (!currentProtection.enabled) {
+    const password = await requestMarkdownProtectionPassword({
+      title: t('editor.composer.markdown.protection.enableTitle'),
+      message: t('editor.composer.markdown.protection.enableMessage'),
+      confirmLabel: t('editor.composer.markdown.protection.enable'),
+      confirm: true
+    });
+    if (!password) return;
+    setMarkdownProtectionState(active, {
+      ...currentProtection,
+      enabled: true,
+      password,
+      passwordChanged: true
+    });
+    updateDynamicTabDirtyState(active);
+    updateMarkdownProtectionButton(active);
+    showToast('success', t('editor.composer.markdown.protection.enabledToast'));
+    return;
+  }
+
+  const changePassword = await showComposerDiscardConfirm(anchor, t('editor.composer.markdown.protection.changePrompt'), {
+    confirmLabel: t('editor.composer.markdown.protection.changePassword'),
+    cancelLabel: t('editor.composer.markdown.protection.disable')
+  });
+  if (changePassword) {
+    const password = await requestMarkdownProtectionPassword({
+      title: t('editor.composer.markdown.protection.changeTitle'),
+      message: t('editor.composer.markdown.protection.changeMessage'),
+      confirmLabel: t('editor.composer.markdown.protection.changePassword'),
+      confirm: true
+    });
+    if (!password) return;
+    setMarkdownProtectionState(active, {
+      ...currentProtection,
+      enabled: true,
+      password,
+      passwordChanged: true
+    });
+    updateDynamicTabDirtyState(active);
+    updateMarkdownProtectionButton(active);
+    showToast('success', t('editor.composer.markdown.protection.passwordChangedToast'));
+    return;
+  }
+
+  const disable = await showComposerDiscardConfirm(anchor, t('editor.composer.markdown.protection.disableConfirm'), {
+    confirmLabel: t('editor.composer.markdown.protection.disable'),
+    cancelLabel: t('editor.composer.dialogs.cancel')
+  });
+  if (!disable) return;
+  setMarkdownProtectionState(active, {
+    ...currentProtection,
+    enabled: false,
+    password: '',
+    passwordChanged: false
+  });
+  updateDynamicTabDirtyState(active);
+  updateMarkdownProtectionButton(active);
+  showToast('success', t('editor.composer.markdown.protection.disabledToast'));
 }
 
 async function openMarkdownPushOnGitHub(tab) {
@@ -9473,10 +10101,25 @@ async function openMarkdownPushOnGitHub(tab) {
     catch (_) {}
   }
 
-  try { nsCopyToClipboard(tab.content != null ? String(tab.content) : ''); }
+  const plaintextContent = normalizeMarkdownContent(tab.content != null ? String(tab.content) : '');
+  let preparedContent = '';
+  try {
+    const prepared = await prepareMarkdownForProtectedStorage(tab, plaintextContent, {
+      reason: 'github-edit'
+    });
+    preparedContent = prepared.content;
+  } catch (err) {
+    closePopupWindow(popup);
+    console.error('Failed to prepare protected markdown for GitHub edit', err);
+    showToast('error', t('editor.composer.markdown.protection.prepareFailed'));
+    updateMarkdownPushButton(tab);
+    return;
+  }
+
+  try { nsCopyToClipboard(preparedContent); }
   catch (_) {}
 
-  const expectedSignature = computeTextSignature(tab.content != null ? String(tab.content) : '');
+  const expectedSignature = computeTextSignature(preparedContent);
   const successMessage = isCreate
     ? t('editor.composer.markdown.toastCopiedCreate')
     : t('editor.composer.markdown.toastCopiedUpdate');
@@ -9488,6 +10131,7 @@ async function openMarkdownPushOnGitHub(tab) {
     startMarkdownSyncWatcher(tab, {
       expectedSignature,
       isCreate,
+      plaintextContent,
       label: filename || tab.path || t('editor.composer.markdown.fileFallback')
     });
   };
@@ -9509,6 +10153,7 @@ async function openMarkdownPushOnGitHub(tab) {
   }
 
   updateMarkdownPushButton(tab);
+  updateMarkdownProtectionButton(tab);
 }
 
 async function discardMarkdownLocalChanges(tab, anchor) {
@@ -9520,8 +10165,7 @@ async function discardMarkdownLocalChanges(tab, anchor) {
     return;
   }
 
-  flushMarkdownDraft(active);
-  const hasDraftContent = !!(active.localDraft && normalizeMarkdownContent(active.localDraft.content || ''));
+  const hasDraftContent = hasMarkdownDraftContent(active);
   const dirty = !!active.isDirty;
   if (!dirty && !hasDraftContent) {
     showToast('info', t('editor.toasts.noLocalMarkdownChanges'));
@@ -9591,6 +10235,8 @@ async function discardMarkdownLocalChanges(tab, anchor) {
     } catch (_) {}
 
     const baseline = normalizeMarkdownContent(active.remoteContent != null ? active.remoteContent : '');
+    const protection = getMarkdownProtectionState(active);
+    setMarkdownProtectionState(active, createDiscardedMarkdownProtectionState(protection));
     active.content = baseline;
     clearMarkdownDraftForTab(active);
     active.isDirty = false;
@@ -9648,6 +10294,7 @@ function pushEditorCurrentFileInfo(tab) {
   updateMarkdownPushButton(activeTab);
   updateMarkdownDiscardButton(activeTab);
   updateMarkdownSaveButton(activeTab);
+  updateMarkdownProtectionButton(activeTab);
 }
 
 function setDynamicTabStatus(tab, status) {
@@ -9687,7 +10334,7 @@ async function closeDynamicTab(modeId, options = {}) {
   if (!tab) return false;
 
   const opts = options && typeof options === 'object' ? options : {};
-  const hasLocalDraft = !!(tab.localDraft && normalizeMarkdownContent(tab.localDraft.content || ''));
+  const hasLocalDraft = hasMarkdownDraftContent(tab);
   const hasDirty = !!tab.isDirty;
 
   const resolveAnchor = (candidate) => {
@@ -9766,6 +10413,7 @@ async function closeDynamicTab(modeId, options = {}) {
   updateMarkdownPushButton(getActiveDynamicTab());
   updateMarkdownDiscardButton(getActiveDynamicTab());
   updateMarkdownSaveButton(getActiveDynamicTab());
+  updateMarkdownProtectionButton(getActiveDynamicTab());
   updateComposerMarkdownDraftIndicators({ path: tab.path });
   return true;
 }
@@ -9801,7 +10449,9 @@ function getOrCreateDynamicMode(path, options = {}) {
     localDraft: null,
     draftConflict: false,
     markdownDraftTimer: null,
+    markdownDraftSaveGeneration: 0,
     isDirty: false,
+    protection: createMarkdownProtectionState(),
     pendingAssets: ensureMarkdownAssetBucket(normalized)
   };
   restoreMarkdownDraftForTab(data);
@@ -9844,11 +10494,22 @@ async function loadDynamicTabContent(tab) {
     if (res.status === 404) {
       tab.remoteContent = '';
       tab.remoteSignature = computeTextSignature('');
-      tab.loaded = true;
-      if (!tab.localDraft || !tab.localDraft.content) {
+      if (tab.localDraft && tab.localDraft.encryptedContent) {
+        tab.content = await decryptProtectedMarkdownForTab(tab.localDraft.encryptedContent, tab, {
+          draft: true,
+          remote: false,
+          remoteSignature: tab.remoteSignature,
+          title: t('editor.composer.markdown.protection.draftTitle'),
+          message: t('editor.composer.markdown.protection.draftMessage')
+        });
+        tab.localDraft.content = tab.content;
+        tab.localDraft.decrypted = true;
+      } else if (!tab.localDraft || !tab.localDraft.content) {
         const template = getDefaultMarkdownForPath(rel);
         tab.content = template || '';
+        setMarkdownProtectionState(tab, createMarkdownProtectionState());
       }
+      tab.loaded = true;
       setDynamicTabStatus(tab, {
         state: 'missing',
         checkedAt,
@@ -9872,12 +10533,36 @@ async function loadDynamicTabContent(tab) {
     }
 
     const text = normalizeMarkdownContent(await res.text());
-    tab.remoteContent = text;
-    tab.remoteSignature = computeTextSignature(text);
-    tab.loaded = true;
-    if (!tab.localDraft || !tab.localDraft.content) {
-      tab.content = text;
+    const remoteEnvelope = parseEncryptedMarkdownEnvelope(text);
+    const remoteSignature = computeTextSignature(text);
+    let editorText = text;
+    if (remoteEnvelope.encrypted) {
+      editorText = await decryptProtectedMarkdownForTab(text, tab, {
+        remote: true,
+        draft: false,
+        remoteSignature,
+        title: t('editor.composer.markdown.protection.openTitle'),
+        message: t('editor.composer.markdown.protection.openMessage')
+      });
+    } else if (!isMarkdownTabProtected(tab)) {
+      setMarkdownProtectionState(tab, createMarkdownProtectionState());
     }
+    tab.remoteContent = editorText;
+    tab.remoteSignature = remoteSignature;
+    if (tab.localDraft && tab.localDraft.encryptedContent) {
+      tab.content = await decryptProtectedMarkdownForTab(tab.localDraft.encryptedContent, tab, {
+        draft: true,
+        remote: false,
+        remoteSignature,
+        title: t('editor.composer.markdown.protection.draftTitle'),
+        message: t('editor.composer.markdown.protection.draftMessage')
+      });
+      tab.localDraft.content = tab.content;
+      tab.localDraft.decrypted = true;
+    } else if (!tab.localDraft || !tab.localDraft.content) {
+      tab.content = editorText;
+    }
+    tab.loaded = true;
     setDynamicTabStatus(tab, {
       state: 'existing',
       checkedAt,
@@ -9887,7 +10572,15 @@ async function loadDynamicTabContent(tab) {
     return tab.content;
   };
 
-  tab.pending = runner().finally(() => {
+  tab.pending = runner().catch((err) => {
+    tab.loaded = false;
+    setDynamicTabStatus(tab, {
+      state: 'error',
+      checkedAt: Date.now(),
+      message: err && err.message ? err.message : 'Unable to load markdown'
+    });
+    throw err;
+  }).finally(() => {
     tab.pending = null;
   });
 
@@ -13724,6 +14417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } finally {
         setBusyState(false, originalLabel);
         updateMarkdownPushButton(active);
+        updateMarkdownProtectionButton(active);
       }
     });
     updateMarkdownPushButton(getActiveDynamicTab());
@@ -13737,6 +14431,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       manualSaveActiveMarkdown(saveBtn);
     });
     updateMarkdownSaveButton(getActiveDynamicTab());
+  }
+
+  const protectBtn = document.getElementById('btnProtectMarkdown');
+  if (protectBtn) {
+    markdownProtectionButton = protectBtn;
+    protectBtn.addEventListener('click', (event) => {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      handleMarkdownProtectionButton(protectBtn);
+    });
+    updateMarkdownProtectionButton(getActiveDynamicTab());
   }
 
   const discardBtn = document.getElementById('btnDiscardMarkdown');

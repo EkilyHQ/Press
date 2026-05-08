@@ -8,10 +8,10 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=repository-deletion-docs-20260508';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=repository-deletion-docs-20260508';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=repository-deletion-docs-20260508';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=repository-deletion-docs-20260508';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=connect-publish-20260508';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=connect-publish-20260508';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=connect-publish-20260508';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=connect-publish-20260508';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 import {
   decryptMarkdownDocument,
@@ -244,6 +244,9 @@ const MARKDOWN_SAVE_TOOLTIP_KEYS = {
   clean: 'editor.composer.markdown.save.tooltips.clean'
 };
 const GITHUB_PAT_STORAGE_KEY = 'press_fg_pat_cache';
+const CONNECT_PUBLISH_GRANT_STORAGE_KEY = 'press_connect_publish_grant_cache';
+const CONNECT_PUBLISH_FALLBACK_STORAGE_KEY = 'press_connect_publish_use_pat_fallback';
+const CONNECT_PUBLISH_MESSAGE_TYPE = 'press-connect-publish-authorized';
 
 let markdownPushButton = null;
 let markdownDiscardButton = null;
@@ -251,6 +254,8 @@ let markdownSaveButton = null;
 let markdownProtectionButton = null;
 let gitHubCommitInFlight = false;
 let cachedFineGrainedTokenMemory = '';
+let cachedConnectPublishGrantMemory = null;
+let cachedConnectPublishFallbackMemory = false;
 
 let activeComposerState = null;
 let remoteBaseline = { index: null, tabs: null, site: null };
@@ -1727,6 +1732,111 @@ function getFineGrainedTokenValue() {
   return value || getCachedFineGrainedToken();
 }
 
+function getConnectPublishConfig() {
+  const currentSite = getStateSlice('site') || {};
+  const site = composerSiteLocalOverride && typeof composerSiteLocalOverride === 'object'
+    ? mergeYamlConfig(currentSite, composerSiteLocalOverride)
+    : currentSite;
+  const extras = site.__extras && typeof site.__extras === 'object' ? site.__extras : {};
+  const connect = site.connect && typeof site.connect === 'object'
+    ? site.connect
+    : (extras.connect && typeof extras.connect === 'object' ? extras.connect : {});
+  const rawBaseUrl = safeString(connect.baseUrl || connect.url || '');
+  if (!rawBaseUrl) return null;
+  try {
+    const url = new URL(rawBaseUrl, window.location.href);
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhostHost(url.hostname))) return null;
+    return {
+      baseUrl: url.origin
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function getCachedConnectPublishGrant() {
+  if (cachedConnectPublishGrantMemory && isUsableConnectPublishGrant(cachedConnectPublishGrantMemory)) {
+    return cachedConnectPublishGrantMemory;
+  }
+  try {
+    const raw = sessionStorage.getItem(scopedEditorStorageKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (isUsableConnectPublishGrant(parsed)) {
+      cachedConnectPublishGrantMemory = parsed;
+      return parsed;
+    }
+  } catch (_) {
+    /* ignore unavailable storage */
+  }
+  return null;
+}
+
+function setCachedConnectPublishGrant(grant) {
+  cachedConnectPublishGrantMemory = grant && typeof grant === 'object' ? { ...grant } : null;
+  try {
+    if (cachedConnectPublishGrantMemory) {
+      sessionStorage.setItem(scopedEditorStorageKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY), JSON.stringify(cachedConnectPublishGrantMemory));
+    } else {
+      sessionStorage.removeItem(scopedEditorStorageKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY));
+    }
+  } catch (_) {
+    /* ignore storage errors */
+  }
+}
+
+function clearCachedConnectPublishGrant() {
+  cachedConnectPublishGrantMemory = null;
+  try { sessionStorage.removeItem(scopedEditorStorageKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY)); }
+  catch (_) { /* ignore */ }
+}
+
+function isUsableConnectPublishGrant(grant) {
+  if (!grant || typeof grant !== 'object' || !grant.token) return false;
+  const expiresAt = Number(grant.expiresAt || 0);
+  return Number.isFinite(expiresAt) && expiresAt > Math.floor(Date.now() / 1000) + 30;
+}
+
+function getUseFineGrainedTokenFallback() {
+  const input = document.getElementById('syncUseFineGrainedTokenFallbackInput');
+  if (input) return !!input.checked;
+  try {
+    const raw = sessionStorage.getItem(scopedEditorStorageKey(CONNECT_PUBLISH_FALLBACK_STORAGE_KEY));
+    cachedConnectPublishFallbackMemory = raw === '1';
+  } catch (_) {
+    /* ignore unavailable storage */
+  }
+  return cachedConnectPublishFallbackMemory;
+}
+
+function setUseFineGrainedTokenFallback(enabled) {
+  cachedConnectPublishFallbackMemory = !!enabled;
+  try {
+    if (enabled) sessionStorage.setItem(scopedEditorStorageKey(CONNECT_PUBLISH_FALLBACK_STORAGE_KEY), '1');
+    else sessionStorage.removeItem(scopedEditorStorageKey(CONNECT_PUBLISH_FALLBACK_STORAGE_KEY));
+  } catch (_) {
+    /* ignore storage errors */
+  }
+}
+
+function resolvePublishTransport() {
+  const connect = getConnectPublishConfig();
+  if (connect && !getUseFineGrainedTokenFallback()) {
+    return {
+      type: 'connect',
+      connect
+    };
+  }
+  return {
+    type: 'pat'
+  };
+}
+
+function isLocalhostHost(hostname) {
+  const value = String(hostname || '').toLowerCase();
+  return value === 'localhost' || value === '127.0.0.1' || value === '::1' || value === '[::1]';
+}
+
 function renderFineGrainedTokenSettings(host) {
   if (!host) return null;
   const wrapper = document.createElement('div');
@@ -1792,6 +1902,56 @@ function renderFineGrainedTokenSettings(host) {
 
   host.appendChild(wrapper);
   return { wrapper, input, btnForget };
+}
+
+function renderConnectPublishSettings(host, connectConfig) {
+  if (!host || !connectConfig) return null;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'cs-connect-publish-settings';
+
+  const status = document.createElement('div');
+  status.className = 'cs-connect-publish-status';
+  const title = document.createElement('strong');
+  title.textContent = t('editor.composer.github.modal.connectTitle');
+  const detail = document.createElement('span');
+  detail.className = 'muted';
+  detail.textContent = t('editor.composer.github.modal.connectHelp', { baseUrl: connectConfig.baseUrl });
+  status.append(title, detail);
+  wrapper.appendChild(status);
+
+  const cached = getCachedConnectPublishGrant();
+  const state = document.createElement('p');
+  state.className = 'muted cs-connect-publish-grant';
+  state.textContent = cached
+    ? t('editor.composer.github.modal.connectConnected')
+    : t('editor.composer.github.modal.connectReady');
+  wrapper.appendChild(state);
+
+  const fallback = document.createElement('label');
+  fallback.className = 'cs-connect-fallback';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.id = 'syncUseFineGrainedTokenFallbackInput';
+  input.checked = getUseFineGrainedTokenFallback();
+  const labelText = document.createElement('span');
+  labelText.textContent = t('editor.composer.github.modal.connectFallback');
+  fallback.append(input, labelText);
+  wrapper.appendChild(fallback);
+
+  const fallbackPanel = document.createElement('div');
+  fallbackPanel.className = 'cs-connect-fallback-token';
+  fallbackPanel.hidden = !input.checked;
+  wrapper.appendChild(fallbackPanel);
+  renderFineGrainedTokenSettings(fallbackPanel);
+
+  input.addEventListener('change', () => {
+    setUseFineGrainedTokenFallback(input.checked);
+    fallbackPanel.hidden = !input.checked;
+    scheduleSyncCommitPanelRefresh();
+  });
+
+  host.appendChild(wrapper);
+  return { wrapper, fallbackInput: input };
 }
 
 function startRemoteSyncWatcher(config = {}) {
@@ -2372,6 +2532,10 @@ function prepareSiteState(raw) {
     name: safeString(repo.name || ''),
     branch: safeString(repo.branch || '')
   };
+  const connect = (src.connect && typeof src.connect === 'object') ? src.connect : {};
+  site.connect = {
+    baseUrl: safeString(connect.baseUrl || connect.url || '')
+  };
   const assetWarnings = (src.assetWarnings && typeof src.assetWarnings === 'object') ? src.assetWarnings : {};
   const largeImage = (assetWarnings.largeImage && typeof assetWarnings.largeImage === 'object') ? assetWarnings.largeImage : {};
   site.assetWarnings = {
@@ -2385,7 +2549,7 @@ function prepareSiteState(raw) {
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'resourceURL', 'contentRoot',
     'profileLinks', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'postsPerPage',
     'defaultLanguage', 'themeMode', 'themePack', 'themeOverride', 'repo', 'assetWarnings', 'landingTab', 'showAllPosts',
-    'enableAllPosts', 'disableAllPosts'
+    'enableAllPosts', 'disableAllPosts', 'connect'
   ]);
   const deprecated = new Set(['links']);
 
@@ -2422,6 +2586,7 @@ function cloneSiteState(state) {
     showAllPosts: normalizeBoolean(state.showAllPosts),
     landingTab: safeString(state.landingTab || ''),
     repo: deepClone(state.repo || { owner: '', name: '', branch: '' }),
+    connect: deepClone(state.connect || { baseUrl: '' }),
     assetWarnings: deepClone(state.assetWarnings || { largeImage: { enabled: null, thresholdKB: null } }),
     __extras: deepClone(state.__extras || {})
   };
@@ -2492,6 +2657,13 @@ function repoForOutput(repo) {
   return Object.keys(out).length ? out : null;
 }
 
+function connectForOutput(connect) {
+  if (!connect || typeof connect !== 'object') return null;
+  const baseUrl = safeString(connect.baseUrl || connect.url || '');
+  if (!baseUrl) return null;
+  return { baseUrl };
+}
+
 function buildSiteSnapshot(state) {
   const site = cloneSiteState(state);
   const snapshot = {};
@@ -2523,6 +2695,8 @@ function buildSiteSnapshot(state) {
   if (site.landingTab) snapshot.landingTab = site.landingTab;
   const repo = repoForOutput(site.repo);
   if (repo) snapshot.repo = repo;
+  const connect = connectForOutput(site.connect);
+  if (connect) snapshot.connect = connect;
   const warnings = assetWarningsForOutput(site.assetWarnings);
   if (warnings) snapshot.assetWarnings = warnings;
 
@@ -2636,6 +2810,13 @@ function computeSiteDiff(current, baseline) {
   if (safeString(repoCur.branch) !== safeString(repoBase.branch)) repoFields.branch = true;
   if (Object.keys(repoFields).length) {
     diff.fields.repo = { type: 'object', fields: repoFields };
+    diff.hasChanges = true;
+  }
+
+  const connectCur = cur.connect || {};
+  const connectBase = base.connect || {};
+  if (safeString(connectCur.baseUrl) !== safeString(connectBase.baseUrl)) {
+    diff.fields.connect = { type: 'object', fields: { baseUrl: true } };
     diff.hasChanges = true;
   }
 
@@ -2772,7 +2953,7 @@ function toSiteYaml(data) {
   const keysInOrder = [
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'profileLinks', 'resourceURL',
     'contentRoot', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'defaultLanguage',
-    'themeMode', 'themePack', 'themeOverride', 'showAllPosts', 'landingTab', 'repo', 'assetWarnings'
+    'themeMode', 'themePack', 'themeOverride', 'showAllPosts', 'landingTab', 'repo', 'connect', 'assetWarnings'
   ];
   const ordered = {};
   keysInOrder.forEach((key) => {
@@ -5176,7 +5357,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=repository-deletion-docs-20260508"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=connect-publish-20260508"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -5864,6 +6045,23 @@ function appendGithubCommitSummary(summaryBlock, commitFiles = [], seoFiles = []
   }
 }
 
+function appendPublishTransportStatus(host) {
+  const transport = resolvePublishTransport();
+  const note = document.createElement('p');
+  note.className = 'muted sync-publish-transport';
+  if (transport.type === 'connect') {
+    const cached = getCachedConnectPublishGrant();
+    note.textContent = cached
+      ? t('editor.composer.github.modal.connectConnected')
+      : t('editor.composer.github.modal.connectReady');
+  } else if (getConnectPublishConfig()) {
+    note.textContent = t('editor.composer.github.modal.connectFallbackActive');
+  } else {
+    note.textContent = t('editor.composer.github.modal.subtitle');
+  }
+  host.appendChild(note);
+}
+
 function getSyncCommitPanelHost() {
   const syncPanel = document.getElementById('mode-sync');
   if (!syncPanel) return null;
@@ -5930,6 +6128,7 @@ async function refreshSyncCommitPanel(options = {}) {
 
   const summaryBlock = document.createElement('div');
   summaryBlock.className = 'sync-commit-summary';
+  appendPublishTransportStatus(form);
   appendGithubCommitSummary(summaryBlock, commitFiles, seoFiles, summaryEntries);
   form.appendChild(summaryBlock);
 
@@ -5949,23 +6148,35 @@ async function refreshSyncCommitPanel(options = {}) {
       refreshSyncCommitPanel();
       return;
     }
-    const input = document.getElementById('syncGithubTokenInput');
-    const value = getFineGrainedTokenValue();
-    if (!value) {
-      showError(t('editor.composer.github.modal.errorRequired'));
-      if (input && input.offsetParent) {
-        try { input.focus({ preventScroll: true }); }
-        catch (_) { input.focus(); }
+    const transport = resolvePublishTransport();
+    if (transport.type === 'pat') {
+      const input = document.getElementById('syncGithubTokenInput');
+      const value = getFineGrainedTokenValue();
+      if (!value) {
+        showError(t('editor.composer.github.modal.errorRequired'));
+        if (input && input.offsetParent) {
+          try { input.focus({ preventScroll: true }); }
+          catch (_) { input.focus(); }
+        }
+        return;
       }
-      return;
+      setCachedFineGrainedToken(value);
+      transport.token = value;
+    } else {
+      try {
+        await ensureConnectPublishGrant(transport.connect, getActiveSiteRepoConfig());
+      } catch (err) {
+        showError(err && err.message ? err.message : t('editor.composer.github.modal.connectAuthorizationFailed'));
+        return;
+      }
     }
-    setCachedFineGrainedToken(value);
     if (btnSubmit) {
       btnSubmit.disabled = true;
       btnSubmit.setAttribute('aria-busy', 'true');
     }
     try {
-      await performDirectGithubCommit(value, currentSummary);
+      if (transport.type === 'connect') await performConnectGithubCommit(transport.connect, currentSummary);
+      else await performDirectGithubCommit(transport.token, currentSummary);
     } finally {
       if (btnSubmit) btnSubmit.removeAttribute('aria-busy');
       refreshSyncCommitPanel();
@@ -6339,6 +6550,20 @@ function applyLocalPostCommitState(files = []) {
 }
 
 async function performDirectGithubCommit(token, summaryEntries = []) {
+  return performPublishCommit({
+    type: 'pat',
+    token
+  }, summaryEntries);
+}
+
+async function performConnectGithubCommit(connect, summaryEntries = []) {
+  return performPublishCommit({
+    type: 'connect',
+    connect
+  }, summaryEntries);
+}
+
+async function performPublishCommit(transport, summaryEntries = []) {
   const { owner, name, branch } = getActiveSiteRepoConfig();
   if (!owner || !name) {
     throw new Error('GitHub repository information is missing in site.yaml.');
@@ -6361,57 +6586,12 @@ async function performDirectGithubCommit(token, summaryEntries = []) {
       return;
     }
 
-    const branchRef = branch.startsWith('refs/') ? branch : `refs/heads/${branch}`;
-    setSyncOverlayStatus('Fetching repository state…');
-    const headQuery = `
-      query($owner:String!, $name:String!, $ref:String!) {
-        repository(owner:$owner, name:$name) {
-          ref(qualifiedName:$ref) {
-            target {
-              ... on Commit { oid }
-            }
-          }
-        }
-      }
-    `;
-    const headData = await githubGraphqlRequest(token, headQuery, { owner, name, ref: branchRef });
-    const refInfo = headData && headData.repository && headData.repository.ref;
-    const expectedHeadOid = refInfo && refInfo.target && refInfo.target.oid;
-    if (!expectedHeadOid) throw new Error('Unable to resolve the branch head on GitHub.');
-
-    setSyncOverlayStatus('Encoding files…');
-    const additions = files.filter((file) => !file.deleted).map((file) => {
-      const path = String(file.path || '').replace(/^\/+/, '');
-      if (file.base64) {
-        return { path, contents: String(file.base64) };
-      }
-      return { path, contents: encodeContentToBase64(file.content || '') };
-    });
-    const deletions = files.filter((file) => file && file.deleted).map((file) => ({
-      path: String(file.path || '').replace(/^\/+/, '')
-    })).filter((file) => file.path);
-    const fileChanges = {};
-    if (additions.length) fileChanges.additions = additions;
-    if (deletions.length) fileChanges.deletions = deletions;
-    if (!additions.length && !deletions.length) throw new Error('No file changes to commit.');
-
-    const commitMutation = `
-      mutation($input: CreateCommitOnBranchInput!) {
-        createCommitOnBranch(input: $input) {
-          commit { oid }
-        }
-      }
-    `;
     const headline = `chore: sync ${files.length === 1 ? 'draft' : 'drafts'} via Press`;
-    const mutationInput = {
-      branch: { repositoryNameWithOwner: `${owner}/${name}`, branchName: branch },
-      message: { headline },
-      expectedHeadOid,
-      fileChanges
-    };
-
-    setSyncOverlayStatus('Creating commit…');
-    await githubGraphqlRequest(token, commitMutation, { input: mutationInput });
+    if (transport && transport.type === 'connect') {
+      await createConnectPublishCommit(transport.connect, { owner, name, branch, headline, files });
+    } else {
+      await createFineGrainedTokenCommit(transport && transport.token, { owner, name, branch, headline, files });
+    }
 
     setSyncOverlayStatus('Updating editor state…');
     applyLocalPostCommitState(files);
@@ -6441,6 +6621,204 @@ async function performDirectGithubCommit(token, summaryEntries = []) {
   } finally {
     gitHubCommitInFlight = false;
   }
+}
+
+async function createFineGrainedTokenCommit(token, { owner, name, branch, headline, files }) {
+  const branchRef = branch.startsWith('refs/') ? branch : `refs/heads/${branch}`;
+  setSyncOverlayStatus('Fetching repository state…');
+  const headQuery = `
+    query($owner:String!, $name:String!, $ref:String!) {
+      repository(owner:$owner, name:$name) {
+        ref(qualifiedName:$ref) {
+          target {
+            ... on Commit { oid }
+          }
+        }
+      }
+    }
+  `;
+  const headData = await githubGraphqlRequest(token, headQuery, { owner, name, ref: branchRef });
+  const refInfo = headData && headData.repository && headData.repository.ref;
+  const expectedHeadOid = refInfo && refInfo.target && refInfo.target.oid;
+  if (!expectedHeadOid) throw new Error('Unable to resolve the branch head on GitHub.');
+
+  setSyncOverlayStatus('Encoding files…');
+  const fileChanges = buildGithubFileChanges(files);
+  const commitMutation = `
+    mutation($input: CreateCommitOnBranchInput!) {
+      createCommitOnBranch(input: $input) {
+        commit { oid }
+      }
+    }
+  `;
+  const mutationInput = {
+    branch: { repositoryNameWithOwner: `${owner}/${name}`, branchName: branch },
+    message: { headline },
+    expectedHeadOid,
+    fileChanges
+  };
+
+  setSyncOverlayStatus('Creating commit…');
+  await githubGraphqlRequest(token, commitMutation, { input: mutationInput });
+}
+
+async function createConnectPublishCommit(connect, { owner, name, branch, headline, files }) {
+  if (!connect || !connect.baseUrl) {
+    throw new Error(t('editor.composer.github.modal.connectMissing'));
+  }
+  setSyncOverlayStatus(t('editor.composer.github.modal.connectAuthorizing'));
+  const grant = await ensureConnectPublishGrant(connect, { owner, name, branch });
+  const endpoint = new URL('/api/press/publish', connect.baseUrl);
+  const body = {
+    repository: { owner, name, branch },
+    contentRoot: getTrackedPublishContentRoot(),
+    message: { headline },
+    files: files.map(serializeConnectPublishFile)
+  };
+  setSyncOverlayStatus(t('editor.composer.github.modal.connectPublishing'));
+  let response = null;
+  let payload = null;
+  try {
+    response = await fetch(endpoint.href, {
+      method: 'POST',
+      referrerPolicy: 'unsafe-url',
+      headers: {
+        'Authorization': `Bearer ${grant.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    payload = await response.json().catch(() => null);
+  } catch (err) {
+    const error = new Error(t('editor.composer.github.modal.connectNetworkError'));
+    error.cause = err;
+    throw error;
+  }
+  if (!response.ok || !payload || payload.ok === false) {
+    const error = new Error(payload && payload.error && payload.error.message
+      ? payload.error.message
+      : t('editor.composer.github.modal.connectPublishFailed'));
+    error.status = response.status;
+    error.response = payload;
+    if (response.status === 401) clearCachedConnectPublishGrant();
+    throw error;
+  }
+}
+
+function buildGithubFileChanges(files) {
+  const additions = files.filter((file) => !file.deleted).map((file) => {
+    const path = String(file.path || '').replace(/^\/+/, '');
+    if (file.base64) {
+      return { path, contents: String(file.base64) };
+    }
+    return { path, contents: encodeContentToBase64(file.content || '') };
+  });
+  const deletions = files.filter((file) => file && file.deleted).map((file) => ({
+    path: String(file.path || '').replace(/^\/+/, '')
+  })).filter((file) => file.path);
+  const fileChanges = {};
+  if (additions.length) fileChanges.additions = additions;
+  if (deletions.length) fileChanges.deletions = deletions;
+  if (!additions.length && !deletions.length) throw new Error('No file changes to commit.');
+  return fileChanges;
+}
+
+function serializeConnectPublishFile(file) {
+  const out = {
+    path: String(file.path || '').replace(/^\/+/, '')
+  };
+  if (file.kind) out.kind = file.kind;
+  if (file.deleted) {
+    out.deleted = true;
+    return out;
+  }
+  if (file.base64) {
+    out.base64 = String(file.base64 || '');
+    if (file.mime) out.mime = file.mime;
+    out.binary = true;
+  } else {
+    out.content = String(file.content || '');
+  }
+  return out;
+}
+
+async function ensureConnectPublishGrant(connect, repo) {
+  const cached = getCachedConnectPublishGrant();
+  if (cached
+    && cached.baseUrl === connect.baseUrl
+    && cached.owner === repo.owner
+    && cached.name === repo.name
+    && cached.branch === repo.branch) {
+    return cached;
+  }
+  return requestConnectPublishGrant(connect, repo);
+}
+
+function requestConnectPublishGrant(connect, repo) {
+  const startUrl = new URL('/github/press/start', connect.baseUrl);
+  startUrl.searchParams.set('origin', window.location.origin);
+  startUrl.searchParams.set('owner', repo.owner);
+  startUrl.searchParams.set('repo', repo.name);
+  startUrl.searchParams.set('branch', repo.branch || 'main');
+
+  const popupName = 'pressConnectPublish';
+  const popup = window.open('', popupName, 'popup,width=520,height=720');
+  if (!popup) {
+    return Promise.reject(new Error(t('editor.toasts.popupBlocked')));
+  }
+  const link = document.createElement('a');
+  link.href = startUrl.href;
+  link.target = popupName;
+  link.referrerPolicy = 'unsafe-url';
+  link.rel = 'opener';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  const connectOrigin = new URL(connect.baseUrl).origin;
+  return new Promise((resolve, reject) => {
+    let timer = 0;
+    let closeTimer = 0;
+    const cleanup = () => {
+      window.removeEventListener('message', onMessage);
+      if (timer) window.clearTimeout(timer);
+      if (closeTimer) window.clearInterval(closeTimer);
+    };
+    const onMessage = (event) => {
+      if (!event || event.origin !== connectOrigin) return;
+      const data = event.data && typeof event.data === 'object' ? event.data : null;
+      if (!data || data.type !== CONNECT_PUBLISH_MESSAGE_TYPE) return;
+      cleanup();
+      if (!data.ok || !data.grant || !data.grant.token) {
+        reject(new Error(data.error && data.error.message ? data.error.message : t('editor.composer.github.modal.connectAuthorizationFailed')));
+        return;
+      }
+      const grant = {
+        ...data.grant,
+        baseUrl: connect.baseUrl,
+        owner: repo.owner,
+        name: repo.name,
+        branch: repo.branch || 'main'
+      };
+      setCachedConnectPublishGrant(grant);
+      resolve(grant);
+    };
+    window.addEventListener('message', onMessage);
+    closeTimer = window.setInterval(() => {
+      try {
+        if (!popup.closed) return;
+      } catch (_) {
+        return;
+      }
+      cleanup();
+      reject(new Error(t('editor.composer.github.modal.connectAuthorizationCanceled')));
+    }, 500);
+    timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error(t('editor.composer.github.modal.connectAuthorizationTimedOut')));
+    }, 5 * 60 * 1000);
+  });
 }
 
 function computeOrderDiffDetails(kind) {
@@ -9443,6 +9821,14 @@ function getContentRootSafe() {
     }
   } catch (_) {}
   return 'wwwroot';
+}
+
+function getTrackedPublishContentRoot() {
+  const site = getStateSlice('site') || {};
+  const root = safeString(site.contentRoot || 'wwwroot')
+    .replace(/[\\]/g, '/')
+    .replace(/\/+$/g, '');
+  return root || 'wwwroot';
 }
 
 function computeBaseDirForPath(relPath) {
@@ -17555,7 +17941,9 @@ function buildSiteUI(root, state) {
     createRepoFieldGroup('cs-repo-field-group--branch', t('editor.composer.site.repoBranch'), branchWrap)
   );
   repoSection.appendChild(repoInputs);
-  renderFineGrainedTokenSettings(repoSection);
+  const connectConfig = getConnectPublishConfig();
+  if (connectConfig) renderConnectPublishSettings(repoSection, connectConfig);
+  else renderFineGrainedTokenSettings(repoSection);
 
   const identitySection = createSection(
     t('editor.composer.site.sections.identity.title'),

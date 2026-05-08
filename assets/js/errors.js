@@ -1,5 +1,5 @@
 // errors.js — lightweight global error overlay and reporter
-import { t } from './i18n.js?v=repository-deletion-docs-20260508';
+import { t } from './i18n.js?v=connect-publish-20260508';
 
 let reporterConfig = {
   reportUrl: null,

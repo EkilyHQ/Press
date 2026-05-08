@@ -1,5 +1,5 @@
 import './cache-control.js';
-import { initI18n, t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=repository-deletion-docs-20260508';
+import { initI18n, t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=connect-publish-20260508';
 
 function applyAttributeTranslation(el, target, value) {
   if (value == null) return;

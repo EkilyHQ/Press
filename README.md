@@ -59,6 +59,15 @@ For local-only content experiments, copy `site.local.example.yaml` to `site.loca
 
 When testing the editor Publish flow, deleting managed posts or pages now stages real repository deletions for the corresponding Markdown files. Same-document local `assets/...` media is only deleted when the editor can prove it is not still referenced.
 
+For GitHub App-backed publishing, install the Ekily Connect GitHub App on the site repository and add Connect to `site.yaml`:
+
+```yaml
+connect:
+  baseUrl: https://connect-8mr.pages.dev
+```
+
+With `connect.baseUrl` present, the editor asks the author to sign in with GitHub and sends commits through Connect. Fine-grained Personal Access Token publishing remains available as a fallback from the Repository settings panel.
+
 Run the focused checks before merging:
 
 ```bash

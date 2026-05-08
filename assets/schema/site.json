@@ -95,6 +95,18 @@
       },
       "additionalProperties": true
     },
+    "connect": {
+      "type": "object",
+      "description": "Ekily Connect settings for GitHub App-backed publishing.",
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "description": "Origin URL of the Connect deployment used for tokenless publishing.",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": true
+    },
     "errorOverlay": {
       "type": "boolean",
       "description": "Show error overlay in UI when enabled."

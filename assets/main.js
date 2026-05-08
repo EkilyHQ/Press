@@ -7,9 +7,9 @@ import {
   stripEncryptedBodyForPublicUse
 } from './js/encrypted-content.js?v=encrypted-demo-20260508';
 import { mdParse } from './js/markdown.js?v=markdown-safety-20260508';
-import { setupAnchors, setupTOC } from './js/toc.js?v=encrypted-demo-20260508';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=encrypted-demo-20260508';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=encrypted-demo-20260508';
+import { setupAnchors, setupTOC } from './js/toc.js?v=repository-deletion-docs-20260508';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=repository-deletion-docs-20260508';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=repository-deletion-docs-20260508';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js';
@@ -24,14 +24,14 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=encrypted-demo-20260508';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=encrypted-demo-20260508';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=encrypted-demo-20260508';
+} from './js/i18n.js?v=repository-deletion-docs-20260508';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=repository-deletion-docs-20260508';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=repository-deletion-docs-20260508';
 import { initSyntaxHighlighting } from './js/syntax-highlight.js';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=encrypted-demo-20260508';
-import { renderPostNav } from './js/post-nav.js?v=encrypted-demo-20260508';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=repository-deletion-docs-20260508';
+import { renderPostNav } from './js/post-nav.js?v=repository-deletion-docs-20260508';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 

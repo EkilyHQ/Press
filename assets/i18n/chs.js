@@ -356,6 +356,17 @@ const translations = {
         markdownOpenBeforeInsert: '请先打开一个 Markdown 文件再插入图片。',
         assetAttached: ({ label }) => `已附加 ${label}`,
         imageReplaceTargetMissing: '图片块已不存在。请选择一个图片块后重试。',
+        imageDeleteTargetMissing: '图片块已不存在。请选择一个图片块后重试。',
+        assetDeleteUnsupported: '只能删除当前 Markdown 文件旁边的本地资源。',
+        assetDeleteShared: '该图片资源仍被另一篇已知 Markdown 文档或另一个图片块引用。',
+        assetDeleteRejected: '暂时无法删除此图片资源。',
+        assetPendingRemoved: ({ label }) => `已移除待上传图片资源 ${label}。`,
+        assetDeleteStaged: ({ label }) => `已将 ${label} 标记为删除。`,
+        repositoryDeletionDraftsPending: '还有本地草稿时无法删除文件。',
+        repositoryDeletionDraftsBlocked: ({ sample, remaining }) => {
+          const suffix = remaining ? `，另有 ${remaining} 个` : '';
+          return `已阻止发布，因为待删除文件仍有本地草稿：${sample}${suffix}。请先恢复、发布或丢弃这些草稿，再删除文件。`;
+        },
         noPendingChanges: '没有待提交的更改。',
         siteWaitStopped: '已停止等待线上站点。提交已在 GitHub 上，但显示可能还需要几分钟。',
         siteWaitTimedOut: '已将文件提交到 GitHub，但线上站点未及时更新。请手动检查部署状态。',
@@ -404,6 +415,7 @@ const translations = {
         imageAlt: '替代文本',
         imagePath: '图片路径',
         replaceImage: '替换图片',
+        deleteImageResource: '删除资源',
         unordered: '项目符号',
         ordered: '编号',
         task: '清单',

@@ -1,5 +1,5 @@
 import { configureFetchCachePolicy } from './cache-control.js';
-import { createMarkdownBlocksEditor } from './editor-blocks.js?v=action-menu-flip-20260505';
+import { createMarkdownBlocksEditor } from './editor-blocks.js?v=asset-deletions-20260508';
 import { createHiEditor } from './hieditor.js';
 import { mdParse } from './markdown.js?v=markdown-safety-20260508';
 import { insertImageMarkdownAtSelection, normalizeDateInputValue } from './editor-markdown-ops.js';
@@ -18,7 +18,8 @@ import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post
 import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from './typography.js';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
-import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=encrypted-demo-20260508';
+import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=repository-deletion-docs-20260508';
+import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=asset-deletions-20260508';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';
 const LS_VIEW_KEY = 'press_editor_markdown_view';
@@ -1572,6 +1573,7 @@ document.addEventListener('DOMContentLoaded', () => {
     imageAlt: 'Alt text',
     imagePath: 'Image path',
     replaceImage: 'Replace image',
+    deleteImageResource: 'Delete resource',
     unordered: 'Bulleted',
     ordered: 'Numbered',
     task: 'Checklist',
@@ -1654,6 +1656,21 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPreview(getValue());
     notifyChange();
   };
+
+  const editorText = (key, fallback, params) => {
+    try {
+      const translated = t(key, params);
+      if (translated && translated !== key) return translated;
+    } catch (_) {}
+    return fallback;
+  };
+
+  const resolveCurrentImageResource = (src) => {
+    const markdownPath = getCurrentMarkdownPath();
+    if (!markdownPath) return null;
+    return resolveLocalMarkdownAssetReference(markdownPath, src, getContentRoot());
+  };
+
   if (blocksWrap) {
     markdownBlocksEditor = createMarkdownBlocksEditor(blocksWrap, {
       labels: blockLabels,
@@ -1690,6 +1707,54 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         openImageInputPicker();
+      },
+      canDeleteImageResource: (src) => !!resolveCurrentImageResource(src),
+      requestImageDelete: ({ index, blockId, src } = {}) => {
+        if (!markdownBlocksEditor || typeof markdownBlocksEditor.deleteImageBlock !== 'function') return;
+        const target = {
+          index: Number.isFinite(index) ? index : null,
+          blockId: typeof blockId === 'string' && blockId ? blockId : null
+        };
+        const source = typeof markdownBlocksEditor.getImageBlockSource === 'function'
+          ? markdownBlocksEditor.getImageBlockSource(target)
+          : src;
+        const markdownPath = getCurrentMarkdownPath();
+        if (!markdownPath) {
+          emitEditorToast('warn', t('editor.toasts.markdownOpenBeforeInsert'));
+          return;
+        }
+        const resolved = resolveLocalMarkdownAssetReference(markdownPath, source || src, getContentRoot());
+        if (!resolved) {
+          emitEditorToast('warn', editorText('editor.toasts.assetDeleteUnsupported', 'Only local assets next to the current Markdown file can be deleted.'));
+          return;
+        }
+        const detail = {
+          markdownPath,
+          src: source || src || '',
+          assetPath: resolved.contentPath,
+          commitPath: resolved.commitPath,
+          relativePath: resolved.relativePath
+        };
+        let accepted = true;
+        try {
+          accepted = window.dispatchEvent(new CustomEvent('press-editor-asset-delete-requested', {
+            detail,
+            cancelable: true
+          }));
+        } catch (_) {
+          accepted = false;
+        }
+        if (!accepted || detail.rejected) {
+          emitEditorToast('warn', detail.message || editorText('editor.toasts.assetDeleteRejected', 'This image resource cannot be deleted yet.'));
+          return;
+        }
+        const result = markdownBlocksEditor.deleteImageBlock(target);
+        if (!result) {
+          try {
+            window.dispatchEvent(new CustomEvent('press-editor-asset-delete-canceled', { detail }));
+          } catch (_) {}
+          emitEditorToast('warn', editorText('editor.toasts.imageDeleteTargetMissing', 'The image block no longer exists. Select an image block and try again.'));
+        }
       }
     });
     syncMarkdownBlocksFromSource = () => {

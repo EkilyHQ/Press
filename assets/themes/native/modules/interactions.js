@@ -1,16 +1,16 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js?v=encrypted-demo-20260508';
+import { attachHoverTooltip } from '../../../js/tags.js?v=repository-deletion-docs-20260508';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=encrypted-demo-20260508';
-import { showErrorOverlay } from '../../../js/errors.js?v=encrypted-demo-20260508';
-import { renderPostNav } from '../../../js/post-nav.js?v=encrypted-demo-20260508';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=repository-deletion-docs-20260508';
+import { showErrorOverlay } from '../../../js/errors.js?v=repository-deletion-docs-20260508';
+import { renderPostNav } from '../../../js/post-nav.js?v=repository-deletion-docs-20260508';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
 import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=encrypted-demo-20260508';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=repository-deletion-docs-20260508';
 import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=encrypted-demo-20260508';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;

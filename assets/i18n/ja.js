@@ -356,6 +356,17 @@ const translations = {
         markdownOpenBeforeInsert: '画像を挿入する前に Markdown ファイルを開いてください。',
         assetAttached: ({ label }) => `${label} を添付しました`,
         imageReplaceTargetMissing: '画像ブロックはもう存在しません。画像ブロックを選択してからやり直してください。',
+        imageDeleteTargetMissing: '画像ブロックはもう存在しません。画像ブロックを選択してからやり直してください。',
+        assetDeleteUnsupported: '現在の Markdown ファイルの隣にあるローカルアセットだけを削除できます。',
+        assetDeleteShared: 'この画像リソースは、別の既知の Markdown 文書または別の画像ブロックからまだ参照されています。',
+        assetDeleteRejected: 'この画像リソースはまだ削除できません。',
+        assetPendingRemoved: ({ label }) => `保留中の画像アセット ${label} を削除しました。`,
+        assetDeleteStaged: ({ label }) => `${label} を削除対象としてステージしました。`,
+        repositoryDeletionDraftsPending: 'ローカル下書きが残っている間はファイルを削除できません。',
+        repositoryDeletionDraftsBlocked: ({ sample, remaining }) => {
+          const suffix = remaining ? `、ほか ${remaining} 件` : '';
+          return `削除対象のファイルにローカル下書きが残っているため、公開をブロックしました: ${sample}${suffix}。ファイルを削除する前に、下書きを復元、公開、または破棄してください。`;
+        },
         noPendingChanges: 'コミットする変更はありません。',
         siteWaitStopped: 'ライブサイトの更新待機を停止しました。コミットは GitHub にありますが、反映まで数分かかる場合があります。',
         siteWaitTimedOut: 'GitHub にファイルをコミットしましたが、ライブサイトが時間内に更新されませんでした。デプロイ状況を手動で確認してください。',
@@ -404,6 +415,7 @@ const translations = {
         imageAlt: '代替テキスト',
         imagePath: '画像パス',
         replaceImage: '画像を置換',
+        deleteImageResource: 'リソースを削除',
         unordered: '箇条書き',
         ordered: '番号付き',
         task: 'チェックリスト',

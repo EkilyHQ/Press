@@ -4474,6 +4474,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const replace = button(text('replaceImage', 'Replace image'), 'blocks-btn blocks-image-replace');
     replace.title = text('replaceImage', 'Replace image');
     replace.setAttribute('aria-label', text('replaceImage', 'Replace image'));
+    const deleteResource = button(text('deleteImageResource', 'Delete resource'), 'blocks-btn blocks-image-delete-resource');
+    deleteResource.title = text('deleteImageResource', 'Delete resource');
+    deleteResource.setAttribute('aria-label', text('deleteImageResource', 'Delete resource'));
     const title = document.createElement('input');
     title.type = 'text';
     title.className = 'blocks-image-title';
@@ -4491,7 +4494,19 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         options.requestImageUpload({ replaceIndex: index, replaceBlockId: block.id });
       }
     });
-    controls.append(title, replace);
+    deleteResource.disabled = !(typeof options.canDeleteImageResource === 'function' && options.canDeleteImageResource(block.data.src || '', {
+      index,
+      blockId: block.id
+    }));
+    deleteResource.addEventListener('mousedown', (event) => event.preventDefault());
+    deleteResource.addEventListener('click', () => {
+      if (deleteResource.disabled) return;
+      setActive(index);
+      if (typeof options.requestImageDelete === 'function') {
+        options.requestImageDelete({ index, blockId: block.id, src: block.data.src || '' });
+      }
+    });
+    controls.append(title, replace, deleteResource);
     return controls;
   };
 
@@ -5259,6 +5274,27 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     requestStickyBlockHeadUpdate();
   }
 
+  const resolveImageBlockTarget = (target = state.activeIndex) => {
+    const targetIndex = target && typeof target === 'object' ? target.index : target;
+    const expectedBlockId = target && typeof target === 'object' && typeof target.blockId === 'string'
+      ? target.blockId
+      : '';
+    let safeIndex = Number.isInteger(targetIndex) ? targetIndex : state.activeIndex;
+    if (!Number.isInteger(safeIndex) || safeIndex < 0 || safeIndex >= state.blocks.length) {
+      if (!expectedBlockId) return null;
+      safeIndex = state.blocks.findIndex(item => item && item.id === expectedBlockId);
+      if (safeIndex < 0) return null;
+    }
+    let block = state.blocks[safeIndex];
+    if (expectedBlockId && (!block || block.id !== expectedBlockId)) {
+      safeIndex = state.blocks.findIndex(item => item && item.id === expectedBlockId);
+      if (safeIndex < 0) return null;
+      block = state.blocks[safeIndex];
+    }
+    if (!block || block.type !== 'image') return null;
+    return { block, index: safeIndex };
+  };
+
   const api = {
     setMarkdown(markdown) {
       state.blocks = parseMarkdownBlocks(markdown);
@@ -5285,27 +5321,23 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return { index: state.blocks.indexOf(block) };
     },
     replaceImageBlock(src, target = state.activeIndex) {
-      const targetIndex = target && typeof target === 'object' ? target.index : target;
-      const expectedBlockId = target && typeof target === 'object' && typeof target.blockId === 'string'
-        ? target.blockId
-        : '';
-      let safeIndex = Number.isInteger(targetIndex) ? targetIndex : state.activeIndex;
-      if (!Number.isInteger(safeIndex) || safeIndex < 0 || safeIndex >= state.blocks.length) {
-        if (!expectedBlockId) return null;
-        safeIndex = state.blocks.findIndex(item => item && item.id === expectedBlockId);
-        if (safeIndex < 0) return null;
-      }
-      let block = state.blocks[safeIndex];
-      if (expectedBlockId && (!block || block.id !== expectedBlockId)) {
-        safeIndex = state.blocks.findIndex(item => item && item.id === expectedBlockId);
-        if (safeIndex < 0) return null;
-        block = state.blocks[safeIndex];
-      }
-      if (!block || block.type !== 'image') return null;
-      updateFromControl(block, { src });
-      syncRenderedImageBlock(block);
+      const resolved = resolveImageBlockTarget(target);
+      if (!resolved) return null;
+      const { block, index: safeIndex } = resolved;
+      updateFromControl(block, { src }, true);
       setActive(safeIndex);
       return { index: safeIndex };
+    },
+    getImageBlockSource(target = state.activeIndex) {
+      const resolved = resolveImageBlockTarget(target);
+      return resolved ? String((resolved.block.data && resolved.block.data.src) || '') : '';
+    },
+    deleteImageBlock(target = state.activeIndex) {
+      const resolved = resolveImageBlockTarget(target);
+      if (!resolved) return null;
+      const src = String((resolved.block.data && resolved.block.data.src) || '');
+      deleteBlockAt(resolved.index);
+      return { index: resolved.index, src };
     },
     setCardEntries(entries) {
       state.cardEntries = Array.isArray(entries) ? entries.slice() : [];

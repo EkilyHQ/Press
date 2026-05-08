@@ -57,6 +57,8 @@ Then open `http://localhost:8000/`.
 
 For local-only content experiments, copy `site.local.example.yaml` to `site.local.yaml` and point it at `wwwroot.local/`. Both files are ignored by git, and the main guard prevents them from entering `main`.
 
+When testing the editor Publish flow, deleting managed posts or pages now stages real repository deletions for the corresponding Markdown files. Same-document local `assets/...` media is only deleted when the editor can prove it is not still referenced.
+
 Run the focused checks before merging:
 
 ```bash

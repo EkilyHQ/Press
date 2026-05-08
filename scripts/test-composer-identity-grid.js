@@ -3103,7 +3103,7 @@ assert.match(
 
 assert.match(
   source,
-  /const renderThemeGrid = \(section\) => \{[\s\S]*fetch\('assets\/themes\/packs\.json'\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
+  /const renderThemeGrid = \(section\) => \{[\s\S]*fetch\('assets\/themes\/packs\.json', \{ cache: 'no-store' \}\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
   'Theme compact grid should preserve dynamic theme pack loading with fallback options'
 );
 

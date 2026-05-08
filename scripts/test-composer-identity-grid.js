@@ -99,19 +99,19 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=connect-publish-20260508/,
+  /assets\/js\/editor-boot\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=connect-publish-20260508/,
+  /assets\/js\/editor-main\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=connect-publish-20260508/,
+  /assets\/js\/composer\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust composer.js when Connect publish boundaries change'
 );
 
@@ -129,7 +129,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=connect-publish-20260508/,
+  /assets\/js\/editor-main\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
@@ -147,7 +147,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=connect-publish-20260508'/,
+  /from '\.\/system-updates\.js\?v=local-connect-settings-20260508'/,
   'composer should cache-bust system update notes when asset deletion i18n boundaries change'
 );
 
@@ -1882,19 +1882,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=connect-publish-20260508';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=local-connect-settings-20260508';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=connect-publish-20260508"[\s\S]*"\.\/chs\.js\?v=connect-publish-20260508"[\s\S]*"\.\/cht-tw\.js\?v=connect-publish-20260508"[\s\S]*"\.\/cht-hk\.js\?v=connect-publish-20260508"[\s\S]*"\.\/ja\.js\?v=connect-publish-20260508"/,
+  /"\.\/en\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/chs\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/cht-tw\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/cht-hk\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/ja\.js\?v=local-connect-settings-20260508"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=connect-publish-20260508'/,
+  /from '\.\.\/i18n\/en\.js\?v=local-connect-settings-20260508'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 

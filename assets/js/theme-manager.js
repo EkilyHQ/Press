@@ -1,4 +1,4 @@
-import { t } from './i18n.js?v=connect-publish-20260508';
+import { t } from './i18n.js?v=local-connect-settings-20260508';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';

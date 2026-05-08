@@ -1793,6 +1793,12 @@ assert.match(
 
 assert.match(
   source,
+  /function collectDirtyMarkdownPathsForDeletion\(\) \{[\s\S]*const hasContent = entry\.content != null && normalizeMarkdownContent\(entry\.content\);[\s\S]*const hasAssets = Array\.isArray\(entry\.assets\) && entry\.assets\.length;[\s\S]*const hasDeletedAssets = draftHasAssetDeletions\(entry\);[\s\S]*if \(hasContent \|\| hasAssets \|\| hasDeletedAssets\) paths\.add\(key\);/,
+  'repository deletion blockers should treat stored deletion-only asset drafts as pending local draft state'
+);
+
+assert.match(
+  source,
   /const markdownDeletedAssetStore = new Map\(\);[\s\S]*function normalizeAssetDeletionDescriptor\(asset, markdownPath\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdown, relativePath, getContentRootSafe\(\)\)[\s\S]*if \(assetPath && assetPath !== resolved\.contentPath\) return null;[\s\S]*function stageMarkdownAssetDeletion\(path, resolved\) \{[\s\S]*bucket\.set\(assetPath, entry\);[\s\S]*updateMarkdownDraftStoreAssetDeletions\(norm, exportMarkdownAssetDeletionBucket\(norm\)\);[\s\S]*function handleEditorAssetDeleteRequested\(event\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source, getContentRootSafe\(\)\)[\s\S]*stageMarkdownAssetDeletion\(markdownPath, resolved\)[\s\S]*window\.addEventListener\('press-editor-asset-delete-requested', handleEditorAssetDeleteRequested\);/,
   'composer should stage and persist explicit local markdown asset deletions from visual image blocks'
 );

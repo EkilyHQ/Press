@@ -84,8 +84,8 @@ assert.ok(tocMapSet < tocBoundGuard, 'press-toc should rebuild _idToLink before 
 
 assert.match(main, /import '\.\/js\/components\.js';/, 'main should register custom elements before theme layout mounting');
 assert.match(main, /from '\.\/js\/markdown\.js\?v=markdown-safety-20260508';/, 'main should cache-bust markdown parser when sanitizer boundaries change');
-assert.match(main, /from '\.\/js\/theme-layout\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust theme layout when native module cache keys change');
-assert.match(main, /from '\.\/js\/theme\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust theme helpers when native i18n dependencies change');
+assert.match(main, /from '\.\/js\/theme-layout\.js\?v=theme-switch-fix-20260508';/, 'main should cache-bust theme layout when native module cache keys change');
+assert.match(main, /from '\.\/js\/theme\.js\?v=theme-switch-fix-20260508';/, 'main should cache-bust theme helpers when native i18n dependencies change');
 assert.match(main, /from '\.\/js\/i18n\.js\?v=local-connect-settings-20260508';/, 'main should use the same versioned i18n module instance as shared UI modules');
 assert.match(main, /from '\.\/js\/link-cards\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust internal link cards when protected preview handling changes');
 assert.match(main, /from '\.\/js\/seo\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust SEO helpers after their i18n dependency changes');
@@ -96,7 +96,7 @@ assert.match(main, /from '\.\/js\/post-nav\.js\?v=local-connect-settings-2026050
 assert.match(composer, /from '\.\/i18n\.js\?v=local-connect-settings-20260508';/, 'composer should share the repository deletion docs i18n cache key');
 assert.match(composer, /from '\.\/seo\.js\?v=local-connect-settings-20260508';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
 assert.match(composer, /from '\.\/system-updates\.js\?v=local-connect-settings-20260508';/, 'composer should cache-bust system updates after editor i18n dependency changes');
-assert.match(composer, /from '\.\/theme-manager\.js\?v=local-connect-settings-20260508';/, 'composer should cache-bust theme manager after editor i18n dependency changes');
+assert.match(composer, /from '\.\/theme-manager\.js\?v=theme-switch-fix-20260508';/, 'composer should cache-bust theme manager after editor i18n dependency changes');
 assert.match(composer, /from '\.\/encrypted-content\.js\?v=encrypted-demo-20260508';/, 'composer should use the encrypted markdown envelope helpers for protected editor flows');
 assert.match(themeLayout, /from '\.\/i18n\.js\?v=local-connect-settings-20260508';/, 'theme layout should share the repository deletion docs i18n cache key');
 assert.match(languageManifest, /en\.js\?v=local-connect-settings-20260508/, 'language manifest should cache-bust bundles when editor asset deletion strings change');
@@ -120,19 +120,20 @@ assert.match(composer, /function createDiscardedMarkdownProtectionState\(protect
 assert.match(composer, /Object\.defineProperty\(next, 'plaintextContent'[\s\S]*enumerable: false/, 'protected markdown commit plaintext baselines should stay non-enumerable in memory');
 assert.match(composer, /async function openMarkdownPushOnGitHub[\s\S]*const plaintextContent = normalizeMarkdownContent[\s\S]*prepareMarkdownForProtectedStorage\(tab, plaintextContent[\s\S]*nsCopyToClipboard\(preparedContent\)[\s\S]*computeTextSignature\(preparedContent\)/, 'manual GitHub edit flow should copy encrypted markdown and watch the encrypted remote signature');
 assert.match(composer, /configureMarkdownPasswordInput[\s\S]*data-1p-ignore[\s\S]*data-lpignore/, 'editor protection password fields should not opt into browser password-manager storage');
-assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = 'local-connect-settings-20260508'/, 'theme layout should cache-bust native modules when shared i18n boundaries change');
-assert.match(themeLayout, /from '\.\/theme\.js\?v=local-connect-settings-20260508';/, 'theme layout should cache-bust theme helper imports');
+assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = 'theme-switch-fix-20260508'/, 'theme layout should cache-bust native modules when shared i18n boundaries change');
+assert.match(themeLayout, /from '\.\/theme\.js\?v=theme-switch-fix-20260508';/, 'theme layout should cache-bust theme helper imports');
 assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme loader should cache-bust native stylesheet changes');
 assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
 assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-demo-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
 assert.match(themeLayout, /const cacheKey = pack === DEFAULT_PACK \? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey\(pack, manifest\);[\s\S]*appendImportCacheKey\(safeEntry, cacheKey\)/, 'theme layout should apply the native module cache key at import time');
-assert.match(indexHtml, /src="assets\/main\.js\?v=local-connect-settings-20260508"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=local-connect-settings-20260508"/, 'composer export template should use the same main module URL as index');
+assert.match(indexHtml, /src="assets\/main\.js\?v=theme-switch-fix-20260508"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=theme-switch-fix-20260508"/, 'composer export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');
 assert.doesNotMatch(themeLayout, /loadThemePack\(DEFAULT_PACK\)/, 'theme layout fallback should not persist Native over a failed external pack');
 assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fallback should clear partial external theme DOM and styles');
 assert.match(indexHtml, /src="assets\/js\/theme-boot\.js\?v=theme-switch-fix-20260508"/, 'index should cache-bust theme boot after external fallback changes');
 assert.match(indexEditorHtml, /src="assets\/js\/theme-boot\.js\?v=theme-switch-fix-20260508"/, 'editor should cache-bust theme boot after external fallback changes');
+assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=theme-switch-fix-20260508"/, 'editor should cache-bust composer after theme manager integration changes');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');
@@ -151,7 +152,7 @@ assert.match(nativeToc, /createElement\('press-toc'\)/, 'native TOC module shoul
 assert.match(toc, /typeof tocRoot\.enhance === 'function'/, 'legacy setupTOC should delegate to press-toc when present');
 
 assert.match(nativeInteractions, /renderPressPostCardHtml\(/, 'native cards should render through press-post-card');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust theme helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js\?v=theme-switch-fix-20260508'/, 'native interactions should cache-bust theme helper imports');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/tags\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust tag helper imports');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/templates\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust template helper imports');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/errors\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust error helper imports');

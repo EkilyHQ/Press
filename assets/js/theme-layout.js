@@ -4,7 +4,7 @@ import {
   getRequestedThemePack,
   setThemePackStylesheet,
   suppressThemePack
-} from './theme.js?v=local-connect-settings-20260508';
+} from './theme.js?v=theme-switch-fix-20260508';
 import {
   t,
   withLangParam,
@@ -28,7 +28,7 @@ let layoutPromise = null;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
-const NATIVE_MODULE_CACHE_KEY = 'local-connect-settings-20260508';
+const NATIVE_MODULE_CACHE_KEY = 'theme-switch-fix-20260508';
 const NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508';
 
 const EFFECT_VIEW_NAMES = {

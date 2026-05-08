@@ -1,4 +1,4 @@
-import { getCanonicalFrontMatterKey, parseMarkdownFrontMatter } from './frontmatter-document.js?v=encrypted-articles-20260508';
+import { getCanonicalFrontMatterKey, parseMarkdownFrontMatter } from './frontmatter-document.js?v=encrypted-demo-20260508';
 
 // Helpers for generating excerpts/snippets from markdown
 export function stripMarkdownToText(md) {

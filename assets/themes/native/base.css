@@ -94,7 +94,17 @@ a:hover { color: var(--primary-hover); text-decoration: underline; }
   box-shadow: var(--shadow);
 }
 .protected-post-title { margin: 0 0 .5rem; font-size: clamp(1.5rem, 3vw, 2rem); }
-.protected-post-body { margin: 0 0 1rem; color: var(--muted); line-height: 1.6; text-align: left; }
+.protected-post-body { margin: 0 0 .75rem; color: var(--muted); line-height: 1.6; text-align: left; }
+.protected-post-excerpt {
+  margin: 0 0 1rem;
+  padding: .75rem .85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  color: var(--text);
+  line-height: 1.6;
+  text-align: left;
+}
 .protected-post-form { display: grid; gap: .75rem; }
 .protected-post-password-label { display: grid; gap: .35rem; font-weight: 600; }
 .protected-post-password {

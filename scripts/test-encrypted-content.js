@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -13,6 +16,8 @@ const {
   stripEncryptedBodyForPublicUse
 } = await import('../assets/js/encrypted-content.js?test');
 const { parseFrontMatter } = await import('../assets/js/content.js?encrypted-test');
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(here, '..');
 
 const source = [
   '---',
@@ -191,4 +196,50 @@ await run('requires explicit valid KDF iterations in envelope metadata', async (
   const malformed = encrypted.markdown.replace(/"iterations":210000/, '"iterations":"nope"');
   assert.equal(isValidEncryptedMarkdown(malformed), false);
   await assert.rejects(() => decryptMarkdownDocument(malformed, 'secret'), /iteration count is invalid/);
+});
+
+await run('ships encrypted multi-language demo content without the old testpost entry', async () => {
+  const index = readFileSync(resolve(repoRoot, 'wwwroot/index.yaml'), 'utf8');
+  const sitemap = readFileSync(resolve(repoRoot, 'sitemap.xml'), 'utf8');
+  assert.match(index, /encryptedArticles:/);
+  assert.doesNotMatch(index, /testpost:/);
+  assert.match(sitemap, /post%2Fencrypted-articles%2Fencrypted-articles_en\.md/);
+  assert.doesNotMatch(sitemap, /post%2Ftestpost%2Fmain_en\.md/);
+  assert.equal(existsSync(resolve(repoRoot, 'wwwroot/post/testpost/main_en.md')), false);
+
+  const demoFiles = {
+    en: {
+      path: 'wwwroot/post/encrypted-articles/encrypted-articles_en.md',
+      bodyPhrase: 'The Markdown body you are reading now was encrypted'
+    },
+    chs: {
+      path: 'wwwroot/post/encrypted-articles/encrypted-articles_chs.md',
+      bodyPhrase: '你正在阅读的 Markdown 正文已经在发布前加密'
+    },
+    'cht-tw': {
+      path: 'wwwroot/post/encrypted-articles/encrypted-articles_cht-tw.md',
+      bodyPhrase: '你正在閱讀的 Markdown 正文已經在發佈前加密'
+    },
+    'cht-hk': {
+      path: 'wwwroot/post/encrypted-articles/encrypted-articles_cht-hk.md',
+      bodyPhrase: '你正在閱讀的 Markdown 正文已經在發布前加密'
+    },
+    ja: {
+      path: 'wwwroot/post/encrypted-articles/encrypted-articles_ja.md',
+      bodyPhrase: '今読んでいる Markdown 本文は公開前に暗号化されています'
+    }
+  };
+
+  for (const [lang, fixture] of Object.entries(demoFiles)) {
+    const raw = readFileSync(resolve(repoRoot, fixture.path), 'utf8');
+    assert.equal(isValidEncryptedMarkdown(raw), true, `${lang} demo should be a valid encrypted envelope`);
+    assert.ok(raw.includes('press-demo'), `${lang} demo should publish the demo password in public metadata`);
+    assert.ok(!raw.includes(fixture.bodyPhrase), `${lang} encrypted file should not expose plaintext body copy`);
+    const parsed = parseFrontMatter(stripEncryptedBodyForPublicUse(raw));
+    assert.equal(parsed.frontMatter.protected, true);
+    assert.equal(parsed.frontMatter.encryption.format, ENCRYPTED_MARKDOWN_FORMAT);
+    assert.ok(String(parsed.frontMatter.excerpt || '').includes('press-demo'));
+    const decrypted = await decryptMarkdownDocument(raw, 'press-demo');
+    assert.ok(decrypted.includes(fixture.bodyPhrase), `${lang} demo should decrypt with the public demo password`);
+  }
 });

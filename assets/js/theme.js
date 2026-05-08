@@ -1,10 +1,10 @@
-import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=encrypted-articles-20260508';
+import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=encrypted-demo-20260508';
 import { getThemeRegion } from './theme-regions.js';
 
 const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
 const THEME_CONTROLS_I18N_BOUND = Symbol('pressThemeControlsI18nBound');
-const NATIVE_STYLE_CACHE_KEY = 'encrypted-articles-20260508';
+const NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508';
 let componentsReady = null;
 
 function ensurePressComponents() {

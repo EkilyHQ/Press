@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.52",
-  "tag": "v3.3.52",
-  "publishedAt": "2026-05-08T05:48:00Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.52.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.52.zip`\n- SHA-256: `e6427b0112b4188ae2a6a66957a60af866b853cd56cac25e594076c37d2af1bd`\n\n## Changed System Files\n\n- assets/js/composer.js\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.51...v3.3.52\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.52",
+  "name": "v3.3.53",
+  "tag": "v3.3.53",
+  "publishedAt": "2026-05-08T11:49:54Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.53.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.53.zip`\n- SHA-256: `2090b0523aa90da518b835dc61368728a16f72cbcc4e013eb459eff5b4e215ca`\n\n## Changed System Files\n\n- assets/i18n/chs.js\n- assets/i18n/cht-hk.js\n- assets/i18n/cht-tw.js\n- assets/i18n/en.js\n- assets/i18n/ja.js\n- assets/i18n/languages.json\n- assets/js/composer.js\n- assets/js/editor-boot.js\n- assets/js/editor-main.js\n- assets/js/errors.js\n- assets/js/i18n.js\n- assets/js/post-nav.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/schema/site.json\n- assets/themes/native/modules/interactions.js\n- index.html\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.52...v3.3.53\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.53",
   "asset": {
-    "name": "press-system-v3.3.52.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.52/press-system-v3.3.52.zip",
-    "size": 541978,
-    "digest": "sha256:e6427b0112b4188ae2a6a66957a60af866b853cd56cac25e594076c37d2af1bd"
+    "name": "press-system-v3.3.53.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.53/press-system-v3.3.53.zip",
+    "size": 546032,
+    "digest": "sha256:2090b0523aa90da518b835dc61368728a16f72cbcc4e013eb459eff5b4e215ca"
   }
 }

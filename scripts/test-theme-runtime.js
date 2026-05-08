@@ -175,6 +175,11 @@ async function freshThemeLayout() {
   return import(`../assets/js/theme-layout.js?theme-runtime-test=${importCounter}`);
 }
 
+async function freshThemeHelpers() {
+  importCounter += 1;
+  return import(`../assets/js/theme.js?theme-runtime-test=${importCounter}`);
+}
+
 async function withQuietConsole(fn) {
   const originalError = console.error;
   console.error = () => {};
@@ -209,6 +214,21 @@ await run('external theme fallback does not rewrite the saved pack', async () =>
   await withQuietConsole(() => ensureThemeLayout());
   assert.equal(localStorage.getItem('themePack'), 'broken');
   assert.equal(document.body.dataset.themeLayout, 'native');
+});
+
+await run('unlocked site defaults do not clear a pending pack switch', async () => {
+  const { localStorage } = installGlobals({ savedPack: 'native' });
+  localStorage.removeItem('themePack');
+  const {
+    applyThemeConfig,
+    getPendingThemePack,
+    getRequestedThemePack,
+    requestThemePackSwitch
+  } = await freshThemeHelpers();
+  requestThemePackSwitch('cartograph');
+  applyThemeConfig({ themePack: 'native', themeOverride: false });
+  assert.equal(getPendingThemePack(), 'cartograph');
+  assert.equal(getRequestedThemePack(), 'cartograph');
 });
 
 await run('external theme fallback clears partial DOM and extra styles', async () => {

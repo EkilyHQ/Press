@@ -192,7 +192,10 @@ export function applyThemeConfig(siteConfig) {
     // Respect user choice; but if site provides a default and no user choice exists,
     // apply it once without persisting as an override
     const hasUserTheme = (() => { try { return !!localStorage.getItem('theme'); } catch (_) { return false; } })();
-    const hasUserPack = (() => { try { return !!localStorage.getItem('themePack'); } catch (_) { return false; } })();
+    const hasUserPack = (() => {
+      try { return !!localStorage.getItem(THEME_PACK_KEY) || !!getPendingThemePack(); }
+      catch (_) { return false; }
+    })();
     if (!hasUserTheme) {
       if (mode === 'dark' || mode === 'light' || mode === 'auto') setMode(mode);
       // When mode is 'user' and there's no saved user theme, do nothing here;

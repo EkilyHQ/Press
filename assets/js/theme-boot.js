@@ -9,14 +9,16 @@
     }
   } catch (_) { /* ignore */ }
 
-  // Compute pack href once so we can apply quickly when the link exists
+  // Compute native pack href once so we can apply quickly when the link exists.
+  // External packs wait for runtime validation before their stylesheet is applied.
   var pack = 'native';
   try { pack = (localStorage.getItem('themePack') || 'native'); } catch (_) {}
   // Sanitize pack to a safe slug and encode when building URL
   try {
     pack = String(pack || '').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '') || 'native';
   } catch (_) { pack = 'native'; }
-  var href = 'assets/themes/' + encodeURIComponent(pack) + '/theme.css';
+  if (pack !== 'native') return;
+  var href = 'assets/themes/' + encodeURIComponent(pack) + '/theme.css?v=encrypted-demo-20260508';
   window.__themePackHref = href;
 
   // If the link tag exists already, set it; otherwise try briefly until it does

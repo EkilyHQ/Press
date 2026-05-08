@@ -111,7 +111,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=local-connect-settings-20260508/,
+  /assets\/js\/composer\.js\?v=theme-switch-fix-20260508/,
   'editor HTML should cache-bust composer.js when Connect publish boundaries change'
 );
 
@@ -3103,7 +3103,7 @@ assert.match(
 
 assert.match(
   source,
-  /const renderThemeGrid = \(section\) => \{[\s\S]*fetch\('assets\/themes\/packs\.json'\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
+  /const renderThemeGrid = \(section\) => \{[\s\S]*fetch\('assets\/themes\/packs\.json', \{ cache: 'no-store' \}\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
   'Theme compact grid should preserve dynamic theme pack loading with fallback options'
 );
 

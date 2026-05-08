@@ -216,7 +216,7 @@ await run('external theme fallback clears partial DOM and extra styles', async (
   const { document } = installGlobals({
     savedPack: 'partial',
     manifests: {
-      partial: makeManifest('partial', ['modules/layout.js', 'modules/missing.js']),
+      partial: makeManifest('partial', ['modules/layout.js', 'modules/failing.js']),
       native: { ...makeManifest('native', ['modules/missing-native.js']), styles: ['theme.css'] }
     }
   });
@@ -233,11 +233,19 @@ await run('external theme fallback clears partial DOM and extra styles', async (
         }
       };
     }
+    if (String(path || '').includes('/partial/modules/failing.js')) {
+      return {
+        mount() {
+          throw new Error('mount failed after partial DOM');
+        }
+      };
+    }
     throw new Error(`Missing module: ${path}`);
   };
   const { ensureThemeLayout } = await freshThemeLayout();
   await withQuietConsole(() => ensureThemeLayout());
   assert(loaded.some((path) => path.includes('/partial/modules/layout.js')));
+  assert(loaded.some((path) => path.includes('/partial/modules/failing.js')));
   assert.equal(document.body.dataset.themeLayout, 'native');
   assert.equal(document.body.querySelector('.broken-shell'), null);
   assert.equal(document.querySelectorAll('link[data-theme-pack-extra-style]').length, 0);

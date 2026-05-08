@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.48",
-  "tag": "v3.3.48",
-  "publishedAt": "2026-05-07T23:05:31Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.48.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.48.zip`\n- SHA-256: `c4beac662aa9b461165c6cb0860815dff38fa25192bf2fe437cd3f13b63f08b8`\n\n## Changed System Files\n\n- assets/js/components.js\n- assets/js/composer.js\n- assets/js/content-model.js\n- assets/js/editor-main.js\n- assets/js/markdown.js\n- assets/js/post-render.js\n- assets/js/safe-html.js\n- assets/js/system-updates.js\n- assets/js/theme-layout.js\n- assets/js/utils.js\n- assets/main.js\n- assets/themes/native/modules/interactions.js\n- index.html\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.47...v3.3.48\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.48",
+  "name": "v3.3.49",
+  "tag": "v3.3.49",
+  "publishedAt": "2026-05-08T02:27:14Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.49.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.49.zip`\n- SHA-256: `45c5d41de4b44bdd0b402a9c3fb846746700e7e8245f6d44e72360b5d0e16a13`\n\n## Changed System Files\n\n- assets/i18n/chs.js\n- assets/i18n/cht-hk.js\n- assets/i18n/cht-tw.js\n- assets/i18n/en.js\n- assets/i18n/ja.js\n- assets/i18n/languages.json\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-boot.js\n- assets/js/editor-main.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/frontmatter-document.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/themes/native/base.css\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.48...v3.3.49\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.49",
   "asset": {
-    "name": "press-system-v3.3.48.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.48/press-system-v3.3.48.zip",
-    "size": 518234,
-    "digest": "sha256:c4beac662aa9b461165c6cb0860815dff38fa25192bf2fe437cd3f13b63f08b8"
+    "name": "press-system-v3.3.49.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.49/press-system-v3.3.49.zip",
+    "size": 532453,
+    "digest": "sha256:45c5d41de4b44bdd0b402a9c3fb846746700e7e8245f6d44e72360b5d0e16a13"
   }
 }

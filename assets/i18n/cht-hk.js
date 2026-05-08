@@ -1,4 +1,4 @@
-import chtTwTranslations from './cht-tw.js?v=repository-deletion-docs-20260508';
+import chtTwTranslations from './cht-tw.js?v=connect-publish-20260508';
 
 export const languageMeta = { label: '繁體中文（香港）' };
 

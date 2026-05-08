@@ -99,20 +99,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=repository-deletion-docs-20260508/,
+  /assets\/js\/editor-boot\.js\?v=connect-publish-20260508/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=repository-deletion-docs-20260508/,
+  /assets\/js\/editor-main\.js\?v=connect-publish-20260508/,
   'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=repository-deletion-docs-20260508/,
-  'editor HTML should cache-bust composer.js when repository deletion docs and i18n boundaries change'
+  /assets\/js\/composer\.js\?v=connect-publish-20260508/,
+  'editor HTML should cache-bust composer.js when Connect publish boundaries change'
 );
 
 assert.match(
@@ -129,7 +129,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=repository-deletion-docs-20260508/,
+  /assets\/js\/editor-main\.js\?v=connect-publish-20260508/,
   'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
@@ -147,7 +147,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=repository-deletion-docs-20260508'/,
+  /from '\.\/system-updates\.js\?v=connect-publish-20260508'/,
   'composer should cache-bust system update notes when asset deletion i18n boundaries change'
 );
 
@@ -1769,8 +1769,20 @@ assert.match(
 
 assert.match(
   source,
-  /async function refreshSyncCommitPanel\(options = \{\}\) \{[\s\S]*const headerSubmit = document\.getElementById\('btnSyncSubmit'\)[\s\S]*gatherCommitPayload\(\{ cleanupUnusedAssets: false, showSeoStatus: false \}\)[\s\S]*form\.id = 'syncCommitForm';[\s\S]*const btnSubmit = headerSubmit;[\s\S]*appendGithubCommitSummary\(summaryBlock, commitFiles, seoFiles, summaryEntries\)[\s\S]*const value = getFineGrainedTokenValue\(\);[\s\S]*performDirectGithubCommit\(value, currentSummary\);/,
-  'inline Sync page commit form should reuse existing payload and commit flow'
+  /async function refreshSyncCommitPanel\(options = \{\}\) \{[\s\S]*const headerSubmit = document\.getElementById\('btnSyncSubmit'\)[\s\S]*gatherCommitPayload\(\{ cleanupUnusedAssets: false, showSeoStatus: false \}\)[\s\S]*form\.id = 'syncCommitForm';[\s\S]*const btnSubmit = headerSubmit;[\s\S]*appendPublishTransportStatus\(form\);[\s\S]*appendGithubCommitSummary\(summaryBlock, commitFiles, seoFiles, summaryEntries\)[\s\S]*const transport = resolvePublishTransport\(\);[\s\S]*ensureConnectPublishGrant\(transport\.connect, getActiveSiteRepoConfig\(\)\)[\s\S]*performConnectGithubCommit\(transport\.connect, currentSummary\)[\s\S]*performDirectGithubCommit\(transport\.token, currentSummary\);/,
+  'inline Sync page commit form should reuse existing payload and route through the selected publish transport'
+);
+
+assert.match(
+  source,
+  /function requestConnectPublishGrant\(connect, repo\) \{[\s\S]*window\.open\('', popupName, 'popup,width=520,height=720'\)[\s\S]*link\.referrerPolicy = 'unsafe-url'[\s\S]*link\.click\(\);/,
+  'Connect publish authorization should send a full browser Referrer so Connect can bind project Pages paths'
+);
+
+assert.match(
+  source,
+  /async function createConnectPublishCommit\(connect,[\s\S]*fetch\(endpoint\.href, \{[\s\S]*referrerPolicy: 'unsafe-url'[\s\S]*Authorization/,
+  'Connect publish POST should send a full browser Referrer so grants stay bound to the editor path'
 );
 
 assert.match(
@@ -1870,19 +1882,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=repository-deletion-docs-20260508';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=connect-publish-20260508';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/chs\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/cht-tw\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/cht-hk\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/ja\.js\?v=repository-deletion-docs-20260508"/,
+  /"\.\/en\.js\?v=connect-publish-20260508"[\s\S]*"\.\/chs\.js\?v=connect-publish-20260508"[\s\S]*"\.\/cht-tw\.js\?v=connect-publish-20260508"[\s\S]*"\.\/cht-hk\.js\?v=connect-publish-20260508"[\s\S]*"\.\/ja\.js\?v=connect-publish-20260508"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=repository-deletion-docs-20260508'/,
+  /from '\.\.\/i18n\/en\.js\?v=connect-publish-20260508'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
@@ -3139,8 +3151,8 @@ assert.match(
 
 assert.match(
   source,
-  /repoSection\.appendChild\(repoInputs\);\s*renderFineGrainedTokenSettings\(repoSection\);/,
-  'Repository card should host the fine-grained token settings below the GitHub repository fields'
+  /repoSection\.appendChild\(repoInputs\);\s*const connectConfig = getConnectPublishConfig\(\);\s*if \(connectConfig\) renderConnectPublishSettings\(repoSection, connectConfig\);\s*else renderFineGrainedTokenSettings\(repoSection\);/,
+  'Repository card should host Connect settings when configured and fine-grained token settings otherwise'
 );
 
 assert.match(

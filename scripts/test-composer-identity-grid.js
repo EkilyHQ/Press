@@ -99,19 +99,19 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=connect-publish-20260508/,
+  /assets\/js\/editor-boot\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=connect-publish-20260508/,
+  /assets\/js\/editor-main\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=connect-publish-20260508/,
+  /assets\/js\/composer\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust composer.js when Connect publish boundaries change'
 );
 
@@ -129,7 +129,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=connect-publish-20260508/,
+  /assets\/js\/editor-main\.js\?v=local-connect-settings-20260508/,
   'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
@@ -147,7 +147,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=connect-publish-20260508'/,
+  /from '\.\/system-updates\.js\?v=local-connect-settings-20260508'/,
   'composer should cache-bust system update notes when asset deletion i18n boundaries change'
 );
 
@@ -1882,19 +1882,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=connect-publish-20260508';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=local-connect-settings-20260508';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=connect-publish-20260508"[\s\S]*"\.\/chs\.js\?v=connect-publish-20260508"[\s\S]*"\.\/cht-tw\.js\?v=connect-publish-20260508"[\s\S]*"\.\/cht-hk\.js\?v=connect-publish-20260508"[\s\S]*"\.\/ja\.js\?v=connect-publish-20260508"/,
+  /"\.\/en\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/chs\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/cht-tw\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/cht-hk\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/ja\.js\?v=local-connect-settings-20260508"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=connect-publish-20260508'/,
+  /from '\.\.\/i18n\/en\.js\?v=local-connect-settings-20260508'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
@@ -3151,8 +3151,32 @@ assert.match(
 
 assert.match(
   source,
-  /repoSection\.appendChild\(repoInputs\);\s*const connectConfig = getConnectPublishConfig\(\);\s*if \(connectConfig\) renderConnectPublishSettings\(repoSection, connectConfig\);\s*else renderFineGrainedTokenSettings\(repoSection\);/,
-  'Repository card should host Connect settings when configured and fine-grained token settings otherwise'
+  /repoSection\.appendChild\(repoInputs\);\s*renderPublishTransportSettings\(repoSection\);/,
+  'Repository card should host the browser-local publish transport settings'
+);
+
+assert.match(
+  source,
+  /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const CONNECT_PUBLISH_BASE_URL_STORAGE_KEY = 'press_connect_publish_base_url';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
+  'Connect publish settings should use scoped local browser storage with built-in remote presets'
+);
+
+assert.match(
+  source,
+  /function normalizeConnectPublishBaseUrl\(value\) \{[\s\S]*const url = new URL\(rawBaseUrl\);[\s\S]*url\.protocol !== 'https:' && !\(url\.protocol === 'http:' && isLocalhostHost\(url\.hostname\)\)[\s\S]*return url\.origin;/,
+  'Connect publish URL normalization should require absolute HTTPS or localhost HTTP URLs'
+);
+
+assert.match(
+  source,
+  /function resolvePublishTransport\(\) \{[\s\S]*const settings = getConnectPublishSettings\(\);[\s\S]*if \(settings\.enabled\) \{[\s\S]*invalid: true[\s\S]*type: 'connect'[\s\S]*\}\s*return \{\s*type: 'pat'\s*\};/,
+  'Publish transport should use Connect only when browser-local Connect mode is enabled'
+);
+
+assert.doesNotMatch(
+  source,
+  /function connectForOutput|snapshot\.connect|diff\.fields\.connect|getUseFineGrainedTokenFallback|CONNECT_PUBLISH_FALLBACK_STORAGE_KEY/,
+  'site.yaml connect output, diffing, and PAT fallback storage should be removed'
 );
 
 assert.match(

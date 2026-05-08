@@ -1,4 +1,4 @@
-import { withLangParam, t } from './i18n.js?v=connect-publish-20260508';
+import { withLangParam, t } from './i18n.js?v=local-connect-settings-20260508';
 import { escapeHtml } from './utils.js';
 
 export function renderPostNav(container, postsIndex, postname) {

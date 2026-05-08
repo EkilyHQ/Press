@@ -18,7 +18,7 @@ import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post
 import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from './typography.js';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
-import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=connect-publish-20260508';
+import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=local-connect-settings-20260508';
 import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=asset-deletions-20260508';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';

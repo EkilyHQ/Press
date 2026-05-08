@@ -3151,8 +3151,32 @@ assert.match(
 
 assert.match(
   source,
-  /repoSection\.appendChild\(repoInputs\);\s*const connectConfig = getConnectPublishConfig\(\);\s*if \(connectConfig\) renderConnectPublishSettings\(repoSection, connectConfig\);\s*else renderFineGrainedTokenSettings\(repoSection\);/,
-  'Repository card should host Connect settings when configured and fine-grained token settings otherwise'
+  /repoSection\.appendChild\(repoInputs\);\s*renderPublishTransportSettings\(repoSection\);/,
+  'Repository card should host the browser-local publish transport settings'
+);
+
+assert.match(
+  source,
+  /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const CONNECT_PUBLISH_BASE_URL_STORAGE_KEY = 'press_connect_publish_base_url';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
+  'Connect publish settings should use scoped local browser storage with built-in remote presets'
+);
+
+assert.match(
+  source,
+  /function normalizeConnectPublishBaseUrl\(value\) \{[\s\S]*const url = new URL\(rawBaseUrl\);[\s\S]*url\.protocol !== 'https:' && !\(url\.protocol === 'http:' && isLocalhostHost\(url\.hostname\)\)[\s\S]*return url\.origin;/,
+  'Connect publish URL normalization should require absolute HTTPS or localhost HTTP URLs'
+);
+
+assert.match(
+  source,
+  /function resolvePublishTransport\(\) \{[\s\S]*const settings = getConnectPublishSettings\(\);[\s\S]*if \(settings\.enabled\) \{[\s\S]*invalid: true[\s\S]*type: 'connect'[\s\S]*\}\s*return \{\s*type: 'pat'\s*\};/,
+  'Publish transport should use Connect only when browser-local Connect mode is enabled'
+);
+
+assert.doesNotMatch(
+  source,
+  /function connectForOutput|snapshot\.connect|diff\.fields\.connect|getUseFineGrainedTokenFallback|CONNECT_PUBLISH_FALLBACK_STORAGE_KEY/,
+  'site.yaml connect output, diffing, and PAT fallback storage should be removed'
 );
 
 assert.match(

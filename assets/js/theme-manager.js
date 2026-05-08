@@ -543,6 +543,17 @@ function clearPendingSiteThemeFallback(options = {}) {
   }
 }
 
+function setActiveSiteThemePack(value) {
+  if (typeof optionsRef.setSiteThemePack !== 'function') return false;
+  const slug = sanitizeThemeSlug(value);
+  try {
+    optionsRef.setSiteThemePack(slug);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 function applySummary(summary, files, meta = {}) {
   currentSummary = Array.isArray(summary) ? summary.slice() : [];
   currentFiles = Array.isArray(files) ? files.slice() : [];
@@ -852,8 +863,13 @@ async function stageThemeArchive(buffer, fileName, options = {}) {
   }));
   registryCache = nextRegistry;
   applySummary(summary, fileChanges, { digest: `sha256:${digest}`, size: buffer.byteLength, assetName: assetMeta.assetName });
+  const hadPendingSiteThemeFallback = !!pendingSiteThemeFallback;
   clearPendingSiteThemeFallback();
-  setStatus(`${previous ? 'Updated' : 'Installed'} ${nextEntry.label}. Review and publish the staged theme files.`, { tone: 'success' });
+  const activated = !hadPendingSiteThemeFallback && setActiveSiteThemePack(archive.slug);
+  setStatus(
+    `${previous ? 'Updated' : 'Installed'} ${nextEntry.label}. Review and publish the staged theme files${activated ? ' and site.yaml theme setting' : ''}.`,
+    { tone: 'success' }
+  );
   renderThemeManager();
   return { archive, registry: nextRegistry, files: fileChanges };
 }
@@ -947,6 +963,15 @@ function makeButton(label, className, onClick) {
   return button;
 }
 
+function stageSiteThemePack(value, label) {
+  const slug = sanitizeThemeSlug(value);
+  clearPendingSiteThemeFallback();
+  if (!setActiveSiteThemePack(slug)) return;
+  setStatus(`Using ${label || slug}. Review and publish site.yaml.`, { tone: 'success' });
+  notifyStateChange();
+  renderThemeManager();
+}
+
 function renderPendingFiles() {
   if (!elements.pendingSection || !elements.pendingList) return;
   clearElement(elements.pendingList);
@@ -971,6 +996,7 @@ function renderPendingFiles() {
 function renderInstalledThemes(registry, catalog) {
   if (!elements.installedList) return;
   clearElement(elements.installedList);
+  const currentThemePack = getCurrentThemePackValue() || 'native';
   registry.forEach((entry) => {
     const row = document.createElement('div');
     row.className = 'theme-manager-row';
@@ -989,6 +1015,12 @@ function renderInstalledThemes(registry, catalog) {
     body.appendChild(meta);
     const actions = document.createElement('div');
     actions.className = 'theme-manager-row-actions';
+    if (entry.value !== currentThemePack) {
+      actions.appendChild(makeButton('Use theme', 'btn-secondary', () => {
+        if (busy) return;
+        stageSiteThemePack(entry.value, entry.label || entry.value);
+      }));
+    }
     const catalogEntry = catalog.find((item) => item.value === entry.value);
     if (!entry.builtIn && catalogEntry) {
       actions.appendChild(makeButton('Update', 'btn-secondary', async () => {

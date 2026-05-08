@@ -17563,18 +17563,10 @@ function buildSiteUI(root, state) {
       }
       const nextValue = current && seen.has(current) ? current : firstOption || '';
       themePackSelect.value = nextValue;
-      const sanitized = sanitizeThemePackValue(nextValue);
-      if (sanitized && sanitized !== site.themePack) {
-        site.themePack = sanitized;
-        markDirty();
-      } else if (!sanitized && site.themePack) {
-        site.themePack = '';
-        markDirty();
-      }
     };
 
     applyThemePackOptions(fallbackThemePacks);
-    fetch('assets/themes/packs.json')
+    fetch('assets/themes/packs.json', { cache: 'no-store' })
       .then((response) => (response && response.ok ? response.json() : Promise.reject()))
       .then((list) => {
         if (!Array.isArray(list) || !normalizeThemePackList(list).length) throw new Error('empty theme pack list');

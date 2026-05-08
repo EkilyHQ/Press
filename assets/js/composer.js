@@ -18,7 +18,13 @@ import {
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
 } from './encrypted-content.js?v=encrypted-demo-20260508';
-import { planManagedContentDeletions } from './repository-deletions.js?v=repository-deletions-20260508';
+import {
+  collectLocalMarkdownAssetReferences,
+  collectManagedMarkdownReferences,
+  listLocalMarkdownAssetReferences,
+  planManagedContentDeletions,
+  resolveLocalMarkdownAssetReference
+} from './repository-deletions.js?v=asset-deletions-20260508';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -201,6 +207,7 @@ const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';
 
 // Track pending binary assets associated with markdown drafts
 const markdownAssetStore = new Map();
+const markdownDeletedAssetStore = new Map();
 
 const MARKDOWN_PUSH_LABEL_KEYS = {
   default: 'editor.composer.markdown.push.labelDefault',
@@ -315,7 +322,8 @@ function hasMarkdownDraftContent(tab) {
   const draft = tab.localDraft;
   const plain = normalizeMarkdownContent(draft.content || '');
   const encrypted = normalizeMarkdownContent(draft.encryptedContent || '');
-  return !!(plain || encrypted);
+  const deletedAssets = Array.isArray(draft.deletedAssets) && draft.deletedAssets.length;
+  return !!(plain || encrypted || deletedAssets);
 }
 
 function getLockedEncryptedMarkdownDraft(tab) {
@@ -3150,6 +3158,37 @@ function normalizeAssetDescriptor(asset, markdownPath) {
   };
 }
 
+function normalizeAssetDeletionDescriptor(asset, markdownPath) {
+  if (!asset) return null;
+  const markdown = normalizeRelPath(markdownPath || asset.markdownPath || '');
+  if (!markdown) return null;
+  const assetPath = normalizeRelPath(asset.assetPath || asset.path || asset.commitPath || '');
+  let relativePath = asset.assetRelativePath || asset.relativePath
+    ? String(asset.assetRelativePath || asset.relativePath).replace(/[\\]/g, '/')
+    : '';
+  if (!relativePath && assetPath) {
+    const idx = markdown.lastIndexOf('/');
+    const dir = idx >= 0 ? markdown.slice(0, idx) : '';
+    const prefix = dir ? `${dir}/assets/` : 'assets/';
+    if (!assetPath.startsWith(prefix)) return null;
+    relativePath = dir ? assetPath.slice(dir.length + 1) : assetPath;
+  }
+  const resolved = resolveLocalMarkdownAssetReference(markdown, relativePath, getContentRootSafe());
+  if (!resolved) return null;
+  if (assetPath && assetPath !== resolved.contentPath) return null;
+  return {
+    kind: 'asset',
+    category: 'content-asset',
+    label: resolved.relativePath || asset.label || resolved.contentPath,
+    path: resolved.contentPath,
+    markdownPath: markdown,
+    assetPath: resolved.contentPath,
+    assetRelativePath: resolved.relativePath || '',
+    state: 'deleted',
+    deleted: true
+  };
+}
+
 function importMarkdownAssetsForPath(path, assets = []) {
   const bucket = ensureMarkdownAssetBucket(path);
   if (!bucket) return null;
@@ -3179,6 +3218,31 @@ function exportMarkdownAssetBucket(path) {
   }));
 }
 
+function importMarkdownAssetDeletionsForPath(path, deletedAssets = []) {
+  const bucket = ensureMarkdownDeletedAssetBucket(path);
+  if (!bucket) return null;
+  bucket.clear();
+  if (Array.isArray(deletedAssets)) {
+    deletedAssets.forEach((entry) => {
+      const normalized = normalizeAssetDeletionDescriptor(entry, path);
+      if (normalized) bucket.set(normalized.assetPath, normalized);
+    });
+  }
+  return bucket;
+}
+
+function exportMarkdownAssetDeletionBucket(path) {
+  const bucket = markdownDeletedAssetStore.get(normalizeRelPath(path));
+  if (!bucket || !bucket.size) return [];
+  return Array.from(bucket.values()).map((asset) => ({
+    path: asset.assetPath || asset.path,
+    relativePath: asset.assetRelativePath || '',
+    label: asset.label || asset.assetPath || asset.path,
+    state: 'deleted',
+    deleted: true
+  }));
+}
+
 function updateMarkdownDraftStoreAssets(path, assets = []) {
   const norm = normalizeRelPath(path);
   if (!norm) return;
@@ -3192,12 +3256,35 @@ function updateMarkdownDraftStoreAssets(path, assets = []) {
   writeMarkdownDraftStore(store);
 }
 
+function updateMarkdownDraftStoreAssetDeletions(path, deletedAssets = []) {
+  const norm = normalizeRelPath(path);
+  if (!norm) return;
+  const store = readMarkdownDraftStore();
+  const entry = (store[norm] && typeof store[norm] === 'object') ? store[norm] : {};
+  const list = Array.isArray(deletedAssets)
+    ? deletedAssets.map(item => normalizeAssetDeletionDescriptor(item, norm)).filter(Boolean)
+    : [];
+  if (list.length) {
+    entry.deletedAssets = list;
+    if (!entry.savedAt) entry.savedAt = Date.now();
+  } else {
+    delete entry.deletedAssets;
+  }
+  const hasContent = entry.content != null && normalizeMarkdownContent(entry.content);
+  const hasAssets = Array.isArray(entry.assets) && entry.assets.length;
+  const hasDeletedAssets = Array.isArray(entry.deletedAssets) && entry.deletedAssets.length;
+  if (!hasContent && !hasAssets && !hasDeletedAssets) delete store[norm];
+  else store[norm] = entry;
+  writeMarkdownDraftStore(store);
+}
+
 function clearMarkdownAssetsForPath(path) {
   const norm = normalizeRelPath(path);
   if (!norm) return;
   const bucket = markdownAssetStore.get(norm);
   if (bucket) bucket.clear();
   markdownAssetStore.delete(norm);
+  clearMarkdownAssetDeletionsForPath(norm);
   updateMarkdownDraftStoreAssets(norm, []);
   broadcastMarkdownAssetPreview(norm);
 }
@@ -3212,6 +3299,86 @@ function removeMarkdownAsset(path, assetPath) {
   if (!bucket.size) markdownAssetStore.delete(norm);
   updateMarkdownDraftStoreAssets(norm, exportMarkdownAssetBucket(norm));
   broadcastMarkdownAssetPreview(norm);
+}
+
+function ensureMarkdownDeletedAssetBucket(path) {
+  const norm = normalizeRelPath(path);
+  if (!norm) return null;
+  let bucket = markdownDeletedAssetStore.get(norm);
+  if (!bucket) {
+    bucket = new Map();
+    markdownDeletedAssetStore.set(norm, bucket);
+  }
+  return bucket;
+}
+
+function clearMarkdownAssetDeletionsForPath(path) {
+  const norm = normalizeRelPath(path);
+  if (!norm) return;
+  const bucket = markdownDeletedAssetStore.get(norm);
+  if (bucket) bucket.clear();
+  markdownDeletedAssetStore.delete(norm);
+  updateMarkdownDraftStoreAssetDeletions(norm, []);
+}
+
+function removeMarkdownAssetDeletion(path, assetPath) {
+  const norm = normalizeRelPath(path);
+  const assetKey = normalizeRelPath(assetPath);
+  if (!norm || !assetKey) return;
+  const bucket = markdownDeletedAssetStore.get(norm);
+  if (!bucket || !bucket.has(assetKey)) return;
+  bucket.delete(assetKey);
+  if (!bucket.size) markdownDeletedAssetStore.delete(norm);
+  updateMarkdownDraftStoreAssetDeletions(norm, exportMarkdownAssetDeletionBucket(norm));
+}
+
+function stageMarkdownAssetDeletion(path, resolved) {
+  const norm = normalizeRelPath(path);
+  const assetPath = normalizeRelPath(resolved && resolved.contentPath);
+  if (!norm || !assetPath) return null;
+  const pendingBucket = getMarkdownAssetBucket(norm);
+  if (pendingBucket && pendingBucket.has(assetPath)) {
+    removeMarkdownAsset(norm, assetPath);
+    removeMarkdownAssetDeletion(norm, assetPath);
+    updateMarkdownDraftStoreAssetDeletions(norm, exportMarkdownAssetDeletionBucket(norm));
+    return { pendingOnly: true, assetPath };
+  }
+  const bucket = ensureMarkdownDeletedAssetBucket(norm);
+  if (!bucket) return null;
+  const entry = {
+    kind: 'asset',
+    category: 'content-asset',
+    label: (resolved && resolved.relativePath) || assetPath,
+    path: assetPath,
+    markdownPath: norm,
+    assetPath,
+    assetRelativePath: (resolved && resolved.relativePath) || '',
+    state: 'deleted',
+    deleted: true
+  };
+  bucket.set(assetPath, entry);
+  updateMarkdownDraftStoreAssetDeletions(norm, exportMarkdownAssetDeletionBucket(norm));
+  return entry;
+}
+
+function listMarkdownAssetDeletions(path = '') {
+  const norm = normalizeRelPath(path);
+  const buckets = norm
+    ? [[norm, markdownDeletedAssetStore.get(norm)]]
+    : Array.from(markdownDeletedAssetStore.entries());
+  const out = [];
+  buckets.forEach(([, bucket]) => {
+    if (!bucket || !bucket.size) return;
+    bucket.forEach((entry) => {
+      if (entry && entry.path && entry.deleted) out.push(entry);
+    });
+  });
+  out.sort((a, b) => String(a.path || '').localeCompare(String(b.path || '')));
+  return out;
+}
+
+function countMarkdownAssetDeletions(path) {
+  return listMarkdownAssetDeletions(path).length;
 }
 
 function listMarkdownAssets(path) {
@@ -3236,6 +3403,173 @@ function isAssetReferencedInContent(content, asset) {
   if (text.includes(rel)) return true;
   if (!rel.startsWith('./') && text.includes(`./${rel}`)) return true;
   return false;
+}
+
+function textWithFallback(key, fallback, params) {
+  try {
+    const translated = t(key, params);
+    if (translated && translated !== key) return translated;
+  } catch (_) {}
+  return fallback;
+}
+
+function knownMarkdownTextForAssetScan(tab, activeTab, activeValue) {
+  if (!tab) return '';
+  if (tab === activeTab && activeValue != null) return normalizeMarkdownContent(activeValue);
+  if (tab.content != null && tab.content !== undefined) return normalizeMarkdownContent(tab.content);
+  if (tab.localDraft && tab.localDraft.content != null) return normalizeMarkdownContent(tab.localDraft.content);
+  return '';
+}
+
+function draftHasAssetDeletions(draft) {
+  return !!(draft && Array.isArray(draft.deletedAssets) && draft.deletedAssets.length);
+}
+
+function countKnownMarkdownAssetReferences(assetPath, ownerPath) {
+  const normalizedAsset = normalizeRelPath(assetPath);
+  const owner = normalizeRelPath(ownerPath);
+  const contentRoot = getContentRootSafe();
+  const counts = { owner: 0, others: 0 };
+  if (!normalizedAsset) return counts;
+  const seen = new Set();
+  let activeTab = null;
+  let activeValue = null;
+  try {
+    activeTab = getActiveDynamicTab();
+    const editorApi = getPrimaryEditorApi();
+    if (activeTab && editorApi && typeof editorApi.getValue === 'function') {
+      activeValue = String(editorApi.getValue() || '');
+    }
+  } catch (_) {}
+  dynamicEditorTabs.forEach((tab) => {
+    const path = normalizeRelPath(tab && tab.path);
+    if (!path || seen.has(path)) return;
+    seen.add(path);
+    const content = knownMarkdownTextForAssetScan(tab, activeTab, activeValue);
+    if (!content) return;
+    const refs = listLocalMarkdownAssetReferences(content, path, contentRoot)
+      .filter(ref => ref && ref.contentPath === normalizedAsset);
+    if (!refs.length) return;
+    if (path === owner) counts.owner += refs.length;
+    else counts.others += refs.length;
+  });
+  const store = readMarkdownDraftStore();
+  if (store && typeof store === 'object') {
+    Object.keys(store).forEach((key) => {
+      const path = normalizeRelPath(key);
+      if (!path || seen.has(path)) return;
+      const entry = store[key];
+      if (!entry || typeof entry !== 'object') return;
+      const content = entry.content != null ? normalizeMarkdownContent(entry.content) : '';
+      if (!content && !draftHasAssetDeletions(entry)) return;
+      seen.add(path);
+      if (!content) return;
+      const refs = listLocalMarkdownAssetReferences(content, path, contentRoot)
+        .filter(ref => ref && ref.contentPath === normalizedAsset);
+      if (!refs.length) return;
+      if (path === owner) counts.owner += refs.length;
+      else counts.others += refs.length;
+    });
+  }
+  return counts;
+}
+
+function collectKnownCurrentMarkdownAssetReferenceData(options = {}) {
+  const refs = new Set();
+  const contentRoot = getContentRootSafe();
+  const excluded = new Set((Array.isArray(options.excludeMarkdownPaths) ? options.excludeMarkdownPaths : [])
+    .map(path => normalizeRelPath(path))
+    .filter(Boolean));
+  const seen = new Set();
+  let activeTab = null;
+  let activeValue = null;
+  try {
+    activeTab = getActiveDynamicTab();
+    const editorApi = getPrimaryEditorApi();
+    if (activeTab && editorApi && typeof editorApi.getValue === 'function') {
+      activeValue = String(editorApi.getValue() || '');
+    }
+  } catch (_) {}
+  dynamicEditorTabs.forEach((tab) => {
+    const path = normalizeRelPath(tab && tab.path);
+    if (!path || excluded.has(path) || seen.has(path)) return;
+    const content = knownMarkdownTextForAssetScan(tab, activeTab, activeValue);
+    const deletionOnlyDraft = !content && tab && tab.localDraft && draftHasAssetDeletions(tab.localDraft);
+    if (!content && !deletionOnlyDraft) return;
+    seen.add(path);
+    if (content) collectLocalMarkdownAssetReferences(content, path, contentRoot).forEach(ref => refs.add(ref));
+  });
+  const store = readMarkdownDraftStore();
+  if (store && typeof store === 'object') {
+    Object.keys(store).forEach((key) => {
+      const path = normalizeRelPath(key);
+      if (!path || excluded.has(path) || seen.has(path)) return;
+      const entry = store[key];
+      if (!entry || typeof entry !== 'object') return;
+      const content = entry.content != null ? normalizeMarkdownContent(entry.content) : '';
+      if (!content && !draftHasAssetDeletions(entry)) return;
+      seen.add(path);
+      if (!content) return;
+      collectLocalMarkdownAssetReferences(content, path, contentRoot).forEach(ref => refs.add(ref));
+    });
+  }
+  return { refs, seen };
+}
+
+function collectKnownCurrentMarkdownAssetReferences(options = {}) {
+  return collectKnownCurrentMarkdownAssetReferenceData(options).refs;
+}
+
+function currentManagedMarkdownPathsForAssetScan(contentRoot = 'wwwroot') {
+  const refs = collectManagedMarkdownReferences({
+    index: getStateSlice('index') || { __order: [] },
+    tabs: getStateSlice('tabs') || { __order: [] },
+    contentRoot
+  });
+  return Array.from(refs).sort((a, b) => a.localeCompare(b));
+}
+
+async function fetchMarkdownForAssetScan(contentPath, contentRoot = 'wwwroot') {
+  const rel = normalizeRelPath(contentPath);
+  if (!rel) return { text: '', failed: true };
+  const root = String(contentRoot || '').replace(/[\\]/g, '/').replace(/^\/+|\/+$/g, '') || 'wwwroot';
+  const path = `${root}/${rel}`.replace(/\/+/g, '/');
+  try {
+    const resp = await fetch(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
+    if (!resp.ok) return { text: '', failed: true };
+    return { text: normalizeMarkdownContent(await resp.text()), failed: false };
+  } catch (_) {
+    return { text: '', failed: true };
+  }
+}
+
+async function collectCurrentRepositoryMarkdownAssetReferences(options = {}) {
+  const currentRoot = options.currentContentRoot || getContentRootSafe();
+  const excluded = new Set((Array.isArray(options.excludeMarkdownPaths) ? options.excludeMarkdownPaths : [])
+    .map(path => normalizeRelPath(path))
+    .filter(Boolean));
+  const data = collectKnownCurrentMarkdownAssetReferenceData({ excludeMarkdownPaths: Array.from(excluded) });
+  const refs = data.refs;
+  const failures = [];
+  for (const markdownPath of currentManagedMarkdownPathsForAssetScan(currentRoot)) {
+    const norm = normalizeRelPath(markdownPath);
+    if (!norm || excluded.has(norm) || data.seen.has(norm)) continue;
+    const result = await fetchMarkdownForAssetScan(norm, currentRoot);
+    if (result.failed) {
+      failures.push(norm);
+      continue;
+    }
+    collectLocalMarkdownAssetReferences(result.text, norm, currentRoot).forEach(ref => refs.add(ref));
+  }
+  return { refs, failures };
+}
+
+function rejectAssetDeleteRequest(event, detail, message) {
+  if (detail && typeof detail === 'object') {
+    detail.rejected = true;
+    detail.message = message;
+  }
+  if (event && typeof event.preventDefault === 'function') event.preventDefault();
 }
 
 function handleEditorToastEvent(event) {
@@ -3272,6 +3606,7 @@ function handleEditorAssetAdded(event) {
   if (!descriptor) return;
   const bucket = ensureMarkdownAssetBucket(markdownPath);
   bucket.set(descriptor.path, descriptor);
+  removeMarkdownAssetDeletion(markdownPath, descriptor.path);
   updateMarkdownDraftStoreAssets(markdownPath, exportMarkdownAssetBucket(markdownPath));
   broadcastMarkdownAssetPreview(markdownPath);
   const tab = findDynamicTabByPath(markdownPath);
@@ -3286,10 +3621,62 @@ function handleEditorAssetAdded(event) {
   catch (_) {}
 }
 
+function handleEditorAssetDeleteRequested(event) {
+  if (!event || !event.detail) return;
+  const detail = event.detail;
+  const markdownPath = normalizeRelPath(detail.markdownPath || '');
+  const source = detail.src || detail.relativePath || '';
+  const resolved = resolveLocalMarkdownAssetReference(markdownPath, source, getContentRootSafe());
+  if (!markdownPath || !resolved) {
+    rejectAssetDeleteRequest(event, detail, textWithFallback(
+      'editor.toasts.assetDeleteUnsupported',
+      'Only local assets next to the current Markdown file can be deleted.'
+    ));
+    return;
+  }
+  const counts = countKnownMarkdownAssetReferences(resolved.contentPath, markdownPath);
+  if (counts.others > 0 || counts.owner > 1) {
+    rejectAssetDeleteRequest(event, detail, textWithFallback(
+      'editor.toasts.assetDeleteShared',
+      'This image resource is still referenced by another known Markdown document or another image block.'
+    ));
+    return;
+  }
+  const staged = stageMarkdownAssetDeletion(markdownPath, resolved);
+  if (!staged) {
+    rejectAssetDeleteRequest(event, detail, textWithFallback(
+      'editor.toasts.assetDeleteRejected',
+      'This image resource cannot be deleted yet.'
+    ));
+    return;
+  }
+  detail.assetPath = resolved.contentPath;
+  detail.commitPath = resolved.commitPath;
+  detail.relativePath = resolved.relativePath;
+  const label = resolved.relativePath || resolved.contentPath;
+  if (staged.pendingOnly) {
+    showToast('info', textWithFallback('editor.toasts.assetPendingRemoved', `Removed pending image asset ${label}.`, { label }));
+  } else {
+    showToast('success', textWithFallback('editor.toasts.assetDeleteStaged', `Staged ${label} for deletion.`, { label }));
+  }
+  try { updateUnsyncedSummary(); }
+  catch (_) {}
+}
+
+function handleEditorAssetDeleteCanceled(event) {
+  if (!event || !event.detail) return;
+  const detail = event.detail;
+  removeMarkdownAssetDeletion(detail.markdownPath || '', detail.assetPath || '');
+  try { updateUnsyncedSummary(); }
+  catch (_) {}
+}
+
 try {
   if (typeof window !== 'undefined' && window.addEventListener) {
     window.addEventListener('press-editor-toast', handleEditorToastEvent);
     window.addEventListener('press-editor-asset-added', handleEditorAssetAdded);
+    window.addEventListener('press-editor-asset-delete-requested', handleEditorAssetDeleteRequested);
+    window.addEventListener('press-editor-asset-delete-canceled', handleEditorAssetDeleteCanceled);
   }
 } catch (_) {}
 
@@ -3408,12 +3795,16 @@ function getMarkdownDraftEntry(path) {
   const assets = Array.isArray(entry.assets)
     ? entry.assets.map(item => normalizeAssetDescriptor(item, norm)).filter(Boolean)
     : [];
+  const deletedAssets = Array.isArray(entry.deletedAssets)
+    ? entry.deletedAssets.map(item => normalizeAssetDeletionDescriptor(item, norm)).filter(Boolean)
+    : [];
   return {
     path: norm,
     content,
     savedAt: Number.isFinite(savedAt) ? savedAt : Date.now(),
     remoteSignature,
     assets,
+    deletedAssets,
     encrypted: isEncryptedMarkdownDraftEntry(entry),
     protected: isEncryptedMarkdownDraftEntry(entry)
   };
@@ -3425,15 +3816,22 @@ function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = []
   const text = normalizeMarkdownContent(content);
   const store = readMarkdownDraftStore();
   const savedAt = Date.now();
+  const existing = store[norm] && typeof store[norm] === 'object' ? store[norm] : {};
   const assetList = Array.isArray(assets)
     ? assets.map(item => normalizeAssetDescriptor(item, norm)).filter(Boolean)
     : [];
+  const deletedAssetList = exportMarkdownAssetDeletionBucket(norm).length
+    ? exportMarkdownAssetDeletionBucket(norm)
+    : (Array.isArray(existing.deletedAssets)
+      ? existing.deletedAssets.map(item => normalizeAssetDeletionDescriptor(item, norm)).filter(Boolean)
+      : []);
   store[norm] = {
     content: text,
     savedAt,
     remoteSignature: String(remoteSignature || ''),
     assets: assetList
   };
+  if (deletedAssetList.length) store[norm].deletedAssets = deletedAssetList;
   if (options && (options.encrypted === true || options.protected === true)) {
     store[norm].encrypted = true;
     store[norm].protected = true;
@@ -3446,6 +3844,7 @@ function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = []
     savedAt,
     remoteSignature: String(remoteSignature || ''),
     assets: assetList,
+    deletedAssets: deletedAssetList,
     encrypted: !!(options && (options.encrypted === true || options.protected === true)),
     protected: !!(options && (options.encrypted === true || options.protected === true))
   };
@@ -3473,6 +3872,7 @@ function restoreMarkdownDraftForTab(tab) {
     return false;
   }
   const assetsBucket = importMarkdownAssetsForPath(tab.path, entry.assets || []);
+  importMarkdownAssetDeletionsForPath(tab.path, entry.deletedAssets || []);
   tab.localDraft = {
     content: entry.encrypted ? '' : entry.content,
     encryptedContent: entry.encrypted ? entry.content : '',
@@ -3482,7 +3882,8 @@ function restoreMarkdownDraftForTab(tab) {
     savedAt: entry.savedAt,
     remoteSignature: entry.remoteSignature || '',
     manual: !!entry.manual,
-    assets: exportMarkdownAssetBucket(tab.path)
+    assets: exportMarkdownAssetBucket(tab.path),
+    deletedAssets: exportMarkdownAssetDeletionBucket(tab.path)
   };
   if (entry.encrypted) {
     setMarkdownProtectionState(tab, {
@@ -3514,7 +3915,8 @@ async function saveMarkdownDraftForTab(tab, options = {}) {
   const saveGeneration = getMarkdownDraftSaveGeneration(tab);
   const text = normalizeMarkdownContent(tab.content || '');
   const remoteSig = tab.remoteSignature || '';
-  if (!text) {
+  const deletedAssets = exportMarkdownAssetDeletionBucket(tab.path);
+  if (!text && !deletedAssets.length) {
     bumpMarkdownDraftSaveGeneration(tab);
     clearMarkdownDraftEntry(tab.path);
     tab.localDraft = null;
@@ -3542,7 +3944,8 @@ async function saveMarkdownDraftForTab(tab, options = {}) {
       savedAt: saved.savedAt,
       remoteSignature: saved.remoteSignature,
       manual: !!options.markManual,
-      assets: saved.assets || []
+      assets: saved.assets || [],
+      deletedAssets: saved.deletedAssets || []
     };
     updateComposerMarkdownDraftIndicators({ path: tab.path });
     try { updateUnsyncedSummary(); } catch (_) {}
@@ -3617,7 +4020,8 @@ function updateDynamicTabDirtyState(tab, options = {}) {
   const baseline = normalizeMarkdownContent(tab.remoteContent || '');
   const protection = getMarkdownProtectionState(tab);
   const protectionChanged = protection.enabled !== protection.encryptedRemote || protection.passwordChanged;
-  const dirty = normalizedContent !== baseline || protectionChanged;
+  const assetDeletionDirty = countMarkdownAssetDeletions(tab.path) > 0;
+  const dirty = normalizedContent !== baseline || protectionChanged || assetDeletionDirty;
   tab.isDirty = dirty;
 
   let conflict = false;
@@ -4112,7 +4516,8 @@ function collectUnsyncedMarkdownEntries() {
     if (!path || seen.has(path)) return;
     const hasDraftContent = hasMarkdownDraftContent(tab);
     const hasDirtyChanges = !!tab.isDirty;
-    if (!hasDirtyChanges && !hasDraftContent) return;
+    const assetDeletionCount = countMarkdownAssetDeletions(path);
+    if (!hasDirtyChanges && !hasDraftContent && !assetDeletionCount) return;
     let state = '';
     if (tab.draftConflict) state = 'conflict';
     else if (hasDirtyChanges) state = 'dirty';
@@ -4125,6 +4530,7 @@ function collectUnsyncedMarkdownEntries() {
     };
     const assetCount = countMarkdownAssets(path);
     if (assetCount) entry.assetCount = assetCount;
+    if (assetDeletionCount) entry.assetDeletionCount = assetDeletionCount;
     entries.push(entry);
     seen.add(path);
   });
@@ -4137,8 +4543,10 @@ function collectUnsyncedMarkdownEntries() {
       const entry = store[key];
       if (!entry || typeof entry !== 'object') return;
       const content = entry.content != null ? normalizeMarkdownContent(entry.content) : '';
-      if (!content) return;
       importMarkdownAssetsForPath(path, entry.assets || []);
+      importMarkdownAssetDeletionsForPath(path, entry.deletedAssets || []);
+      const assetDeletionCount = countMarkdownAssetDeletions(path);
+      if (!content && !assetDeletionCount) return;
       const item = {
         kind: 'markdown',
         label: path,
@@ -4147,6 +4555,7 @@ function collectUnsyncedMarkdownEntries() {
       };
       const assetCount = countMarkdownAssets(path);
       if (assetCount) item.assetCount = assetCount;
+      if (assetDeletionCount) item.assetDeletionCount = assetDeletionCount;
       entries.push(item);
       seen.add(path);
     });
@@ -4207,6 +4616,8 @@ function computeUnsyncedSummary() {
   }
   const markdownEntries = collectUnsyncedMarkdownEntries();
   if (markdownEntries.length) entries.push(...markdownEntries);
+  const assetDeletionEntries = listMarkdownAssetDeletions();
+  if (assetDeletionEntries.length) entries.push(...assetDeletionEntries);
   return entries;
 }
 
@@ -4892,6 +5303,48 @@ function formatRepositoryDeletionBlockers(blocked = []) {
   return `Publish blocked because deleted files still have local drafts: ${sample}${suffix}. Restore, publish, or discard those drafts before deleting the files.`;
 }
 
+async function fetchMarkdownForRepositoryDeletion(file) {
+  const path = file && file.path ? String(file.path).replace(/\\+/g, '/').replace(/^\/+/, '') : '';
+  if (!path) return '';
+  try {
+    const resp = await fetch(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
+    if (!resp.ok) return '';
+    return normalizeMarkdownContent(await resp.text());
+  } catch (_) {
+    return '';
+  }
+}
+
+async function collectDeletedMarkdownAssetFiles(markdownDeletionFiles = [], options = {}) {
+  const contentRoot = options.contentRoot || 'wwwroot';
+  const referencedAssets = options.referencedAssets instanceof Set ? options.referencedAssets : new Set();
+  const out = [];
+  const seen = new Set();
+  for (const file of Array.isArray(markdownDeletionFiles) ? markdownDeletionFiles : []) {
+    if (!file || !file.deleted || !file.markdownPath) continue;
+    const markdown = await fetchMarkdownForRepositoryDeletion(file);
+    if (!markdown) continue;
+    listLocalMarkdownAssetReferences(markdown, file.markdownPath, contentRoot).forEach((resolved) => {
+      if (!resolved || !resolved.contentPath || !resolved.commitPath) return;
+      if (referencedAssets.has(resolved.contentPath)) return;
+      if (seen.has(resolved.commitPath)) return;
+      seen.add(resolved.commitPath);
+      out.push({
+        kind: 'asset',
+        category: 'content-asset',
+        label: resolved.relativePath || resolved.contentPath,
+        path: resolved.commitPath,
+        markdownPath: resolved.markdownPath,
+        assetPath: resolved.contentPath,
+        assetRelativePath: resolved.relativePath || '',
+        state: 'deleted',
+        deleted: true
+      });
+    });
+  }
+  return out;
+}
+
 async function gatherLocalChangesForCommit(options = {}) {
   const { cleanupUnusedAssets = true } = options;
   const files = [];
@@ -4976,6 +5429,22 @@ async function gatherLocalChangesForCommit(options = {}) {
     throw new Error(formatRepositoryDeletionBlockers(contentDeletionPlan.blocked));
   }
   contentDeletionPlan.files.forEach(addFile);
+  const assetReferenceScan = await collectCurrentRepositoryMarkdownAssetReferences({
+    excludeMarkdownPaths: contentDeletionPlan.files.map(file => file && file.markdownPath).filter(Boolean),
+    currentContentRoot: normalizedRoot || 'wwwroot',
+    baselineContentRoot: baselineRoot || 'wwwroot'
+  });
+  const referencedAssetPaths = assetReferenceScan.refs;
+  const assetReferenceScanComplete = !(assetReferenceScan.failures && assetReferenceScan.failures.length);
+  if (assetReferenceScanComplete) {
+    const deletedMarkdownAssetFiles = await collectDeletedMarkdownAssetFiles(contentDeletionPlan.files, {
+      contentRoot: baselineRoot || 'wwwroot',
+      referencedAssets: referencedAssetPaths
+    });
+    deletedMarkdownAssetFiles.forEach(addFile);
+  } else {
+    console.warn('Skipping repository asset deletions because some current markdown files could not be checked.', assetReferenceScan.failures);
+  }
 
   const markdownEntries = collectUnsyncedMarkdownEntries();
   if (markdownEntries && markdownEntries.length) {
@@ -5059,6 +5528,22 @@ async function gatherLocalChangesForCommit(options = {}) {
     }
   }
 
+  const assetDeletionRefs = referencedAssetPaths;
+  if (assetReferenceScanComplete) {
+    listMarkdownAssetDeletions().forEach((asset) => {
+      if (!asset || !asset.assetPath || !asset.deleted) return;
+      if (assetDeletionRefs.has(asset.assetPath)) return;
+      const commitPath = `${rootPrefix}${asset.assetPath}`.replace(/\\+/g, '/');
+      addFile({
+        ...asset,
+        label: asset.assetRelativePath || asset.label || asset.assetPath,
+        path: commitPath,
+        deleted: true,
+        state: 'deleted'
+      });
+    });
+  }
+
   const systemFiles = getSystemUpdateCommitFiles();
   if (systemFiles && systemFiles.length) {
     systemFiles.forEach((entry) => {
@@ -5125,7 +5610,10 @@ function describeSummaryEntry(entry) {
     const assetLabel = entry.assetCount
       ? ` – ${entry.assetCount} image${entry.assetCount === 1 ? '' : 's'}`
       : '';
-    return `${base}${status}${assetLabel}`;
+    const assetDeletionLabel = entry.assetDeletionCount
+      ? ` – ${entry.assetDeletionCount} image deletion${entry.assetDeletionCount === 1 ? '' : 's'}`
+      : '';
+    return `${base}${status}${assetLabel}${assetDeletionLabel}`;
   }
   if (entry.kind === 'index' || entry.kind === 'tabs') {
     const bits = [];
@@ -5143,6 +5631,9 @@ function describeSummaryEntry(entry) {
           ? 'Index HTML'
           : 'Meta tags';
     return `${base} – auto-generated SEO (${type})`;
+  }
+  if (entry.kind === 'asset' && (entry.deleted || entry.state === 'deleted')) {
+    return `${base} (deleted)`;
   }
   if (entry.kind === 'system') {
     let label = '';
@@ -5818,10 +6309,14 @@ function applyLocalPostCommitState(files = []) {
       const norm = normalizeRelPath(file.markdownPath || '');
       if (!norm) return;
       const assetPath = normalizeRelPath(file.assetPath || '');
-      if (assetPath) removeMarkdownAsset(norm, assetPath);
+      if (assetPath) {
+        removeMarkdownAsset(norm, assetPath);
+        removeMarkdownAssetDeletion(norm, assetPath);
+      }
       else if (file.path) {
         const withoutRoot = file.path.replace(/^\/?(?:wwwroot\/)?/, '');
         removeMarkdownAsset(norm, normalizeRelPath(withoutRoot));
+        removeMarkdownAssetDeletion(norm, normalizeRelPath(withoutRoot));
       }
     }
   });
@@ -10608,6 +11103,8 @@ async function loadDynamicTabContent(tab) {
         });
         tab.localDraft.content = tab.content;
         tab.localDraft.decrypted = true;
+      } else if (tab.localDraft && draftHasAssetDeletions(tab.localDraft)) {
+        tab.content = normalizeMarkdownContent(tab.localDraft.content || '');
       } else if (!tab.localDraft || !tab.localDraft.content) {
         const template = getDefaultMarkdownForPath(rel);
         tab.content = template || '';
@@ -10663,6 +11160,8 @@ async function loadDynamicTabContent(tab) {
       });
       tab.localDraft.content = tab.content;
       tab.localDraft.decrypted = true;
+    } else if (tab.localDraft && draftHasAssetDeletions(tab.localDraft)) {
+      tab.content = normalizeMarkdownContent(tab.localDraft.content || '');
     } else if (!tab.localDraft || !tab.localDraft.content) {
       tab.content = editorText;
     }

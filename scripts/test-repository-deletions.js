@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 
 const {
+  collectLocalMarkdownAssetReferences,
   collectManagedMarkdownReferences,
   collectRemovedManagedMarkdownReferences,
+  listLocalMarkdownAssetReferences,
   normalizeManagedContentMarkdownPath,
-  planManagedContentDeletions
+  planManagedContentDeletions,
+  resolveLocalMarkdownAssetReference
 } = await import('../assets/js/repository-deletions.js');
 
 assert.deepEqual(
@@ -17,6 +20,61 @@ assert.equal(
   normalizeManagedContentMarkdownPath('wwwroot/../site.yaml', 'wwwroot'),
   null,
   'repository deletion paths should reject traversal instead of normalizing it'
+);
+
+assert.deepEqual(
+  resolveLocalMarkdownAssetReference('post/guide/en.md', 'assets/photo.png', 'wwwroot'),
+  {
+    contentPath: 'post/guide/assets/photo.png',
+    commitPath: 'wwwroot/post/guide/assets/photo.png',
+    markdownPath: 'post/guide/en.md',
+    relativePath: 'assets/photo.png',
+    source: 'assets/photo.png'
+  },
+  'local markdown asset references should resolve under the current markdown directory'
+);
+
+assert.equal(
+  resolveLocalMarkdownAssetReference('post/guide/en.md', '../shared/photo.png', 'wwwroot'),
+  null,
+  'asset deletion should reject cross-document relative paths'
+);
+
+assert.equal(
+  resolveLocalMarkdownAssetReference('post/guide/en.md', '/assets/photo.png', 'wwwroot'),
+  null,
+  'asset deletion should reject root-relative site assets'
+);
+
+assert.equal(
+  resolveLocalMarkdownAssetReference('post/guide/en.md', 'https://example.com/photo.png', 'wwwroot'),
+  null,
+  'asset deletion should reject remote URLs'
+);
+
+assert.deepEqual(
+  Array.from(collectLocalMarkdownAssetReferences([
+    '![Hero](assets/hero.png)',
+    '![Remote](https://example.com/hero.png)',
+    '<img src="assets/inline.webp">',
+    '![[assets/embed.avif|Embedded image]]',
+    '![Shared](../shared/assets/logo.png)'
+  ].join('\n'), 'post/guide/en.md', 'wwwroot')).sort(),
+  [
+    'post/guide/assets/embed.avif',
+    'post/guide/assets/hero.png',
+    'post/guide/assets/inline.webp'
+  ],
+  'asset reference collector should keep local markdown, HTML, and Obsidian-style image references'
+);
+
+assert.equal(
+  listLocalMarkdownAssetReferences([
+    '![One](assets/shared.png)',
+    '![Two](assets/shared.png)'
+  ].join('\n'), 'post/guide/en.md', 'wwwroot').filter(ref => ref.contentPath === 'post/guide/assets/shared.png').length,
+  2,
+  'asset reference lister should preserve duplicate references for shared-resource protection'
 );
 
 const baselineIndex = {

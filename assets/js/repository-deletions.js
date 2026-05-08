@@ -1,4 +1,5 @@
 const MANAGED_MARKDOWN_PATH_RE = /^(?:post|tab)\/.+\.md$/i;
+const LOCAL_MARKDOWN_ASSET_RE = /^assets\/.+/i;
 
 export function normalizeRepositoryPath(path) {
   const raw = String(path || '').trim();
@@ -35,6 +36,71 @@ export function normalizeManagedContentMarkdownPath(path, contentRoot = 'wwwroot
     contentPath,
     commitPath: root ? `${root}/${contentPath}` : contentPath
   };
+}
+
+export function resolveLocalMarkdownAssetReference(markdownPath, src, contentRoot = 'wwwroot') {
+  const rawSrc = String(src || '').trim();
+  if (!rawSrc || rawSrc.includes('\0')) return null;
+  if (rawSrc.startsWith('/') || rawSrc.startsWith('#')) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(rawSrc) || rawSrc.startsWith('//')) return null;
+  const pathOnly = rawSrc.split(/[?#]/)[0].trim();
+  if (!pathOnly) return null;
+  const normalizedSrc = normalizeRepositoryPath(pathOnly);
+  if (!normalizedSrc || !LOCAL_MARKDOWN_ASSET_RE.test(normalizedSrc)) return null;
+  const markdown = normalizeManagedContentMarkdownPath(markdownPath, contentRoot);
+  if (!markdown) return null;
+  const idx = markdown.contentPath.lastIndexOf('/');
+  const markdownDir = idx >= 0 ? markdown.contentPath.slice(0, idx) : '';
+  const contentPath = normalizeRepositoryPath(markdownDir ? `${markdownDir}/${normalizedSrc}` : normalizedSrc);
+  if (!contentPath || !contentPath.startsWith(`${markdownDir ? `${markdownDir}/` : ''}assets/`)) return null;
+  const root = normalizeContentRoot(contentRoot);
+  return {
+    contentPath,
+    commitPath: root ? `${root}/${contentPath}` : contentPath,
+    markdownPath: markdown.contentPath,
+    relativePath: normalizedSrc,
+    source: rawSrc
+  };
+}
+
+function markdownImageSources(markdown) {
+  const text = String(markdown || '');
+  const sources = [];
+  const markdownImageRe = /!\[[^\]]*]\(\s*(<[^>\n]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\s*\)/g;
+  let match;
+  while ((match = markdownImageRe.exec(text))) {
+    const raw = String(match[1] || '').trim();
+    sources.push(raw.startsWith('<') && raw.endsWith('>') ? raw.slice(1, -1).trim() : raw);
+  }
+  const obsidianEmbedRe = /!\[\[(.+?)\]\]/g;
+  while ((match = obsidianEmbedRe.exec(text))) {
+    const raw = String(match[1] || '').trim();
+    if (!raw) continue;
+    const pipeIdx = raw.indexOf('|');
+    sources.push((pipeIdx >= 0 ? raw.slice(0, pipeIdx) : raw).trim());
+  }
+  const htmlImageRe = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi;
+  while ((match = htmlImageRe.exec(text))) {
+    sources.push(String(match[1] || match[2] || match[3] || '').trim());
+  }
+  return sources;
+}
+
+export function listLocalMarkdownAssetReferences(markdown, markdownPath, contentRoot = 'wwwroot') {
+  const refs = [];
+  markdownImageSources(markdown).forEach((src) => {
+    const resolved = resolveLocalMarkdownAssetReference(markdownPath, src, contentRoot);
+    if (resolved) refs.push(resolved);
+  });
+  return refs;
+}
+
+export function collectLocalMarkdownAssetReferences(markdown, markdownPath, contentRoot = 'wwwroot') {
+  const refs = new Set();
+  listLocalMarkdownAssetReferences(markdown, markdownPath, contentRoot).forEach((resolved) => {
+    refs.add(resolved.contentPath);
+  });
+  return refs;
 }
 
 function normalizeIndexValue(value) {

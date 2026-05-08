@@ -105,8 +105,14 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=repository-deletions-20260508/,
-  'editor HTML should cache-bust composer.js when repository deletion runtime boundaries change'
+  /assets\/js\/editor-main\.js\?v=asset-deletions-20260508/,
+  'editor HTML should cache-bust editor-main.js when asset deletion editor logic changes'
+);
+
+assert.match(
+  editorSource,
+  /assets\/js\/composer\.js\?v=asset-deletions-20260508/,
+  'editor HTML should cache-bust composer.js when asset deletion runtime boundaries change'
 );
 
 assert.match(
@@ -123,8 +129,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=encrypted-demo-20260508/,
-  'editor HTML should cache-bust editor-main.js when protected article runtime boundaries change'
+  /assets\/js\/editor-main\.js\?v=asset-deletions-20260508/,
+  'editor HTML should cache-bust editor-main.js when asset deletion runtime boundaries change'
 );
 
 assert.match(
@@ -935,8 +941,8 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const createImageMetadataControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-image-meta-controls';[\s\S]*const replace = button\(text\('replaceImage', 'Replace image'\), 'blocks-btn blocks-image-replace'\);[\s\S]*title\.className = 'blocks-image-title';[\s\S]*updateFromControl\(block, \{ title: inputValue\(title\) \}\);[\s\S]*options\.requestImageUpload\(\{ replaceIndex: index, replaceBlockId: block\.id \}\);[\s\S]*controls\.append\(title, replace\);/,
-  'image metadata controls should keep title and replace-image controls after moving alt editing into the caption'
+  /const createImageMetadataControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-image-meta-controls';[\s\S]*const replace = button\(text\('replaceImage', 'Replace image'\), 'blocks-btn blocks-image-replace'\);[\s\S]*const deleteResource = button\(text\('deleteImageResource', 'Delete resource'\), 'blocks-btn blocks-image-delete-resource'\);[\s\S]*title\.className = 'blocks-image-title';[\s\S]*updateFromControl\(block, \{ title: inputValue\(title\) \}\);[\s\S]*options\.requestImageUpload\(\{ replaceIndex: index, replaceBlockId: block\.id \}\);[\s\S]*options\.canDeleteImageResource\(block\.data\.src \|\| '',[\s\S]*options\.requestImageDelete\(\{ index, blockId: block\.id, src: block\.data\.src \|\| '' \}\);[\s\S]*controls\.append\(title, replace, deleteResource\);/,
+  'image metadata controls should keep title/replace controls and expose explicit local resource deletion'
 );
 
 assert.doesNotMatch(
@@ -959,8 +965,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /replaceImageBlock\(src, target = state\.activeIndex\) \{[\s\S]*const expectedBlockId = target && typeof target === 'object' && typeof target\.blockId === 'string'[\s\S]*if \(!Number\.isInteger\(safeIndex\) \|\| safeIndex < 0 \|\| safeIndex >= state\.blocks\.length\) \{[\s\S]*if \(!expectedBlockId\) return null;[\s\S]*state\.blocks\.findIndex\(item => item && item\.id === expectedBlockId\)[\s\S]*if \(expectedBlockId && \(!block \|\| block\.id !== expectedBlockId\)\) \{[\s\S]*block\.type !== 'image'[\s\S]*updateFromControl\(block, \{ src \}\);[\s\S]*syncRenderedImageBlock\(block\);[\s\S]*setActive\(safeIndex\);[\s\S]*return \{ index: safeIndex \};/,
-  'image replacement should validate the target image identity before updating an existing block'
+  /const resolveImageBlockTarget = \(target = state\.activeIndex\) => \{[\s\S]*const expectedBlockId = target && typeof target === 'object' && typeof target\.blockId === 'string'[\s\S]*if \(!Number\.isInteger\(safeIndex\) \|\| safeIndex < 0 \|\| safeIndex >= state\.blocks\.length\) \{[\s\S]*if \(!expectedBlockId\) return null;[\s\S]*state\.blocks\.findIndex\(item => item && item\.id === expectedBlockId\)[\s\S]*if \(expectedBlockId && \(!block \|\| block\.id !== expectedBlockId\)\) \{[\s\S]*block\.type !== 'image'[\s\S]*return \{ block, index: safeIndex \};[\s\S]*replaceImageBlock\(src, target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*updateFromControl\(block, \{ src \}, true\);[\s\S]*return \{ index: safeIndex \};/,
+  'image replacement should validate the target image identity and re-render toolbar controls after updating an existing block'
+);
+
+assert.match(
+  editorBlocksSource,
+  /getImageBlockSource\(target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*deleteImageBlock\(target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*deleteBlockAt\(resolved\.index\);[\s\S]*return \{ index: resolved\.index, src \};/,
+  'image resource deletion should validate identity before removing the image block'
 );
 
 assert.doesNotMatch(
@@ -973,6 +985,12 @@ assert.match(
   editorMainSource,
   /requestImageUpload: \(\{ index, replaceIndex, replaceBlockId \} = \{\}\) => \{[\s\S]*replaceIndex: Number\.isFinite\(replaceIndex\) \? replaceIndex : null,[\s\S]*replaceBlockId: typeof replaceBlockId === 'string' && replaceBlockId \? replaceBlockId : null[\s\S]*const replaceIndex = blockInsert && Number\.isFinite\(blockInsert\.replaceIndex\)[\s\S]*const replaceBlockId = blockInsert && typeof blockInsert\.replaceBlockId === 'string'[\s\S]*const replaceMarkdown = \(replaceIndex != null \|\| replaceBlockId\)[\s\S]*const result = markdownBlocksEditor\.replaceImageBlock\(relativePath, \{ index: replaceIndex, blockId: replaceBlockId \}\);[\s\S]*if \(!result\) return false;[\s\S]*singleImage: !!replaceMarkdown[\s\S]*if \(replaceMarkdown\) imageFileOptions\.insertAbortToast = t\('editor\.toasts\.imageReplaceTargetMissing'\);/,
   'image upload picker should support replacing one existing image block through an identity-checked target'
+);
+
+assert.match(
+  editorMainSource,
+  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=asset-deletions-20260508';[\s\S]*canDeleteImageResource: \(src\) => !!resolveCurrentImageResource\(src\),[\s\S]*requestImageDelete: \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*new CustomEvent\('press-editor-asset-delete-requested'[\s\S]*markdownBlocksEditor\.deleteImageBlock\(target\)[\s\S]*press-editor-asset-delete-canceled/,
+  'visual image blocks should request explicit repository asset deletion before removing the block'
 );
 
 assert.match(
@@ -1451,8 +1469,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /\.blocks-block-head \.blocks-heading-level, \.blocks-block-head \.blocks-list-type-select, \.blocks-block-head \.blocks-code-language, \.blocks-block-head \.blocks-image-meta-controls input, \.blocks-block-head \.blocks-image-replace \{[^}]*border:1px solid var\(--border\); border-radius:999px; background:var\(--card\);[\s\S]*\.blocks-image-meta-controls \{ display:flex; align-items:center; gap:\.24rem;[\s\S]*\.blocks-block-head \.blocks-image-replace \{ white-space:nowrap; cursor:pointer; \}/,
-  'image metadata fields and replace button should use compact floating-toolbar styling'
+  /\.blocks-block-head \.blocks-heading-level, \.blocks-block-head \.blocks-list-type-select, \.blocks-block-head \.blocks-code-language, \.blocks-block-head \.blocks-image-meta-controls input, \.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{[^}]*border:1px solid var\(--border\); border-radius:999px; background:var\(--card\);[\s\S]*\.blocks-image-meta-controls \{ display:flex; align-items:center; gap:\.24rem;[\s\S]*\.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{ white-space:nowrap; cursor:pointer; \}[\s\S]*\.blocks-block-head \.blocks-image-delete-resource:disabled \{ opacity:\.45; cursor:not-allowed; \}/,
+  'image metadata fields, replace button, and resource deletion button should use compact floating-toolbar styling'
 );
 
 assert.match(
@@ -1769,8 +1787,38 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/repository-deletions\.js\?v=repository-deletions-20260508';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
+  /from '\.\/repository-deletions\.js\?v=asset-deletions-20260508';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
   'composer should stage repository markdown deletions from article/page tombstones'
+);
+
+assert.match(
+  source,
+  /const markdownDeletedAssetStore = new Map\(\);[\s\S]*function normalizeAssetDeletionDescriptor\(asset, markdownPath\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdown, relativePath, getContentRootSafe\(\)\)[\s\S]*if \(assetPath && assetPath !== resolved\.contentPath\) return null;[\s\S]*function stageMarkdownAssetDeletion\(path, resolved\) \{[\s\S]*bucket\.set\(assetPath, entry\);[\s\S]*updateMarkdownDraftStoreAssetDeletions\(norm, exportMarkdownAssetDeletionBucket\(norm\)\);[\s\S]*function handleEditorAssetDeleteRequested\(event\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source, getContentRootSafe\(\)\)[\s\S]*stageMarkdownAssetDeletion\(markdownPath, resolved\)[\s\S]*window\.addEventListener\('press-editor-asset-delete-requested', handleEditorAssetDeleteRequested\);/,
+  'composer should stage and persist explicit local markdown asset deletions from visual image blocks'
+);
+
+assert.match(
+  source,
+  /function hasMarkdownDraftContent\(tab\) \{[\s\S]*const deletedAssets = Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length;[\s\S]*return !!\(plain \|\| encrypted \|\| deletedAssets\);[\s\S]*function draftHasAssetDeletions\(draft\) \{[\s\S]*Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*const deletedAssets = exportMarkdownAssetDeletionBucket\(tab\.path\);[\s\S]*if \(!text && !deletedAssets\.length\) \{[\s\S]*const assetDeletionDirty = countMarkdownAssetDeletions\(tab\.path\) > 0;[\s\S]*const dirty = normalizedContent !== baseline \|\| protectionChanged \|\| assetDeletionDirty;[\s\S]*tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\)[\s\S]*tab\.content = normalizeMarkdownContent\(tab\.localDraft\.content \|\| ''\);/,
+  'markdown draft persistence should preserve deletion-only asset drafts across empty-body autosaves, reloads, and remote loads'
+);
+
+assert.match(
+  source,
+  /dynamicEditorTabs\.forEach\(\(tab\) => \{[\s\S]*const content = knownMarkdownTextForAssetScan\(tab, activeTab, activeValue\);[\s\S]*const deletionOnlyDraft = !content && tab && tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\);[\s\S]*if \(!content && !deletionOnlyDraft\) return;[\s\S]*seen\.add\(path\);/,
+  'asset reference scan should only mark dynamic markdown paths checked after content or a deletion-only draft is known'
+);
+
+assert.match(
+  source,
+  /async function fetchMarkdownForAssetScan\(contentPath, contentRoot = 'wwwroot'\) \{[\s\S]*if \(!resp\.ok\) return \{ text: '', failed: true \};[\s\S]*return \{ text: normalizeMarkdownContent\(await resp\.text\(\)\), failed: false \};[\s\S]*async function collectCurrentRepositoryMarkdownAssetReferences\(options = \{\}\) \{[\s\S]*const failures = \[\];[\s\S]*currentManagedMarkdownPathsForAssetScan\(currentRoot\)[\s\S]*fetchMarkdownForAssetScan\(norm, currentRoot\)[\s\S]*if \(result\.failed\) \{[\s\S]*failures\.push\(norm\);[\s\S]*return \{ refs, failures \};[\s\S]*const assetReferenceScan = await collectCurrentRepositoryMarkdownAssetReferences\(\{[\s\S]*const assetReferenceScanComplete = !\(assetReferenceScan\.failures && assetReferenceScan\.failures\.length\);[\s\S]*if \(assetReferenceScanComplete\) \{[\s\S]*listMarkdownAssetDeletions\(\)\.forEach\(\(asset\) => \{/,
+  'commit payload should fail closed and include asset deletions only after scanning current published markdown references'
+);
+
+assert.match(
+  source,
+  /async function collectDeletedMarkdownAssetFiles\(markdownDeletionFiles = \[\], options = \{\}\) \{[\s\S]*fetchMarkdownForRepositoryDeletion\(file\)[\s\S]*listLocalMarkdownAssetReferences\(markdown, file\.markdownPath, contentRoot\)[\s\S]*if \(referencedAssets\.has\(resolved\.contentPath\)\) return;[\s\S]*deleted: true[\s\S]*collectDeletedMarkdownAssetFiles\(contentDeletionPlan\.files/,
+  'deleting an article or page should also stage same-directory local asset deletions unless known markdown still references them'
 );
 
 assert.doesNotMatch(

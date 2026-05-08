@@ -5286,7 +5286,8 @@ function collectDirtyMarkdownPathsForDeletion() {
         if (!entry || typeof entry !== 'object') return;
         const hasContent = entry.content != null && normalizeMarkdownContent(entry.content);
         const hasAssets = Array.isArray(entry.assets) && entry.assets.length;
-        if (hasContent || hasAssets) paths.add(key);
+        const hasDeletedAssets = draftHasAssetDeletions(entry);
+        if (hasContent || hasAssets || hasDeletedAssets) paths.add(key);
       });
     }
   } catch (_) {}

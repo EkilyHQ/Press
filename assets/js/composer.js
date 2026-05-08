@@ -18,6 +18,7 @@ import {
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
 } from './encrypted-content.js?v=encrypted-demo-20260508';
+import { planManagedContentDeletions } from './repository-deletions.js?v=repository-deletions-20260508';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -4860,6 +4861,37 @@ async function gatherCommitPayload(options = {}) {
   return { files, seoFiles };
 }
 
+function collectDirtyMarkdownPathsForDeletion() {
+  const paths = new Set();
+  dynamicEditorTabs.forEach((tab) => {
+    if (!tab || !tab.path) return;
+    if (tab.isDirty || hasMarkdownDraftContent(tab)) paths.add(tab.path);
+  });
+  try {
+    const store = readMarkdownDraftStore();
+    if (store && typeof store === 'object') {
+      Object.keys(store).forEach((key) => {
+        const entry = store[key];
+        if (!entry || typeof entry !== 'object') return;
+        const hasContent = entry.content != null && normalizeMarkdownContent(entry.content);
+        const hasAssets = Array.isArray(entry.assets) && entry.assets.length;
+        if (hasContent || hasAssets) paths.add(key);
+      });
+    }
+  } catch (_) {}
+  return Array.from(paths);
+}
+
+function formatRepositoryDeletionBlockers(blocked = []) {
+  const paths = (Array.isArray(blocked) ? blocked : [])
+    .map(item => item && item.path ? String(item.path) : '')
+    .filter(Boolean);
+  if (!paths.length) return 'Unable to delete files while local drafts are still pending.';
+  const sample = paths.slice(0, 5).join(', ');
+  const suffix = paths.length > 5 ? `, +${paths.length - 5} more` : '';
+  return `Publish blocked because deleted files still have local drafts: ${sample}${suffix}. Restore, publish, or discard those drafts before deleting the files.`;
+}
+
 async function gatherLocalChangesForCommit(options = {}) {
   const { cleanupUnusedAssets = true } = options;
   const files = [];
@@ -4902,6 +4934,15 @@ async function gatherLocalChangesForCommit(options = {}) {
   const normalizedRoot = String(root || '')
     .replace(/\\+/g, '/').replace(/\/?$/, '');
   const rootPrefix = normalizedRoot ? `${normalizedRoot}/` : '';
+  const baselineRoot = (() => {
+    const baselineSite = remoteBaseline && remoteBaseline.site && typeof remoteBaseline.site === 'object'
+      ? remoteBaseline.site
+      : {};
+    const raw = Object.prototype.hasOwnProperty.call(baselineSite, 'contentRoot')
+      ? safeString(baselineSite.contentRoot)
+      : '';
+    return String(raw || 'wwwroot').replace(/\\+/g, '/').replace(/\/?$/, '');
+  })();
 
   if (composerDiffCache.index && composerDiffCache.index.hasChanges) {
     const state = getStateSlice('index') || { __order: [] };
@@ -4918,6 +4959,23 @@ async function gatherLocalChangesForCommit(options = {}) {
     const yaml = toSiteYaml(state);
     addFile({ kind: 'site', label: 'site.yaml', path: 'site.yaml', content: yaml });
   }
+
+  const contentDeletionPlan = planManagedContentDeletions({
+    index: getStateSlice('index') || { __order: [] },
+    tabs: getStateSlice('tabs') || { __order: [] },
+    indexBaseline: remoteBaseline.index || { __order: [] },
+    tabsBaseline: remoteBaseline.tabs || { __order: [] },
+    indexDiff: composerDiffCache.index,
+    tabsDiff: composerDiffCache.tabs,
+    contentRoot: normalizedRoot || 'wwwroot',
+    currentContentRoot: normalizedRoot || 'wwwroot',
+    baselineContentRoot: baselineRoot || 'wwwroot',
+    dirtyMarkdownPaths: collectDirtyMarkdownPathsForDeletion()
+  });
+  if (contentDeletionPlan.blocked.length) {
+    throw new Error(formatRepositoryDeletionBlockers(contentDeletionPlan.blocked));
+  }
+  contentDeletionPlan.files.forEach(addFile);
 
   const markdownEntries = collectUnsyncedMarkdownEntries();
   if (markdownEntries && markdownEntries.length) {
@@ -5499,7 +5557,6 @@ async function waitForRemotePropagation(files = []) {
   const seen = new Set();
   files.forEach((file) => {
     if (!file || !file.path) return;
-    if (file.deleted) return;
     const normalized = String(file.path).replace(/\\+/g, '/').replace(/^\/+/, '');
     if (!normalized || normalized === 'site.yaml' || seen.has(normalized)) return;
     seen.add(normalized);
@@ -5523,45 +5580,69 @@ async function waitForRemotePropagation(files = []) {
     if (canceled || timedOut) break;
     const displayLabel = String(file.label || file.path || '').trim() || file.path;
     const expectedText = normalizeMarkdownContent(file.content || '');
-    const expectedBase64 = typeof file.base64 === 'string'
-      ? file.base64.replace(/\s+/g, '')
-      : '';
-    const candidates = buildCheckPaths(file);
-    let attempt = 0;
-    let confirmed = false;
-    while (!canceled && attempt < maxAttempts) {
-      attempt += 1;
-      setSyncOverlayStatus(`Checking ${displayLabel} (attempt ${attempt})…`);
-      let ok = false;
-      for (const path of candidates) {
-        if (!path) continue;
-        try {
-          const url = `${path}?ts=${Date.now()}`;
-          const resp = await fetch(url, { cache: 'no-store' });
-          if (!resp.ok) {
-            ok = false;
-            continue;
-          }
-          if (file.binary) {
-            const buffer = await resp.arrayBuffer();
-            const remoteBase64 = arrayBufferToBase64(buffer);
-            if (remoteBase64 && expectedBase64 && remoteBase64 === expectedBase64) {
-              ok = true;
-              break;
-            }
-          } else {
-            const text = normalizeMarkdownContent(await resp.text());
-            if (text === expectedText) {
-              ok = true;
-              break;
+      const expectedBase64 = typeof file.base64 === 'string'
+        ? file.base64.replace(/\s+/g, '')
+        : '';
+      const candidates = buildCheckPaths(file);
+      let attempt = 0;
+      let confirmed = false;
+      while (!canceled && attempt < maxAttempts) {
+        attempt += 1;
+        setSyncOverlayStatus(`Checking ${displayLabel} (attempt ${attempt})…`);
+        let ok = false;
+        if (file.deleted) {
+          let checked = false;
+          let stillExists = false;
+          let indeterminate = false;
+          for (const path of candidates) {
+            if (!path) continue;
+            try {
+              const url = `${path}?ts=${Date.now()}`;
+              const resp = await fetch(url, { cache: 'no-store' });
+              checked = true;
+              if (resp.ok) {
+                stillExists = true;
+                break;
+              }
+              if (resp.status !== 404 && resp.status !== 410) {
+                indeterminate = true;
+              }
+            } catch (_) {
+              indeterminate = true;
             }
           }
-        } catch (_) {
-          ok = false;
+          ok = checked && !stillExists && !indeterminate;
+        } else {
+          for (const path of candidates) {
+            if (!path) continue;
+            try {
+              const url = `${path}?ts=${Date.now()}`;
+              const resp = await fetch(url, { cache: 'no-store' });
+              if (!resp.ok) {
+                ok = false;
+                continue;
+              }
+              if (file.binary) {
+                const buffer = await resp.arrayBuffer();
+                const remoteBase64 = arrayBufferToBase64(buffer);
+                if (remoteBase64 && expectedBase64 && remoteBase64 === expectedBase64) {
+                  ok = true;
+                  break;
+                }
+              } else {
+                const text = normalizeMarkdownContent(await resp.text());
+                if (text === expectedText) {
+                  ok = true;
+                  break;
+                }
+              }
+            } catch (_) {
+              ok = false;
+            }
+          }
         }
-      }
-      if (canceled) break;
-      if (ok) {
+        if (canceled) break;
+        if (ok) {
         confirmed = true;
         break;
       }
@@ -5641,6 +5722,29 @@ function applyLocalPostCommitState(files = []) {
       const norm = normalizeRelPath(file.markdownPath || file.label || '');
       if (!norm) return;
       handledMarkdown.add(norm);
+      if (file.deleted) {
+        clearMarkdownDraftEntry(norm);
+        clearMarkdownAssetsForPath(norm);
+        const tab = findDynamicTabByPath(norm);
+        if (tab) {
+          tab.remoteContent = '';
+          tab.remoteSignature = computeTextSignature('');
+          tab.content = '';
+          tab.loaded = true;
+          tab.localDraft = null;
+          tab.draftConflict = false;
+          tab.isDirty = false;
+          setMarkdownProtectionState(tab, createMarkdownProtectionState());
+          setDynamicTabStatus(tab, {
+            state: 'missing',
+            checkedAt: Date.now(),
+            code: 404,
+            message: 'Deleted via Press'
+          });
+        }
+        updateComposerMarkdownDraftIndicators({ path: norm });
+        return;
+      }
       const committedText = normalizeMarkdownContent(file.content || '');
       const tab = findDynamicTabByPath(norm);
       const commitSignature = computeTextSignature(committedText);

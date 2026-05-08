@@ -105,8 +105,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=encrypted-demo-20260508/,
-  'editor HTML should cache-bust composer.js when protected article runtime boundaries change'
+  /assets\/js\/composer\.js\?v=repository-deletions-20260508/,
+  'editor HTML should cache-bust composer.js when repository deletion runtime boundaries change'
 );
 
 assert.match(
@@ -1763,8 +1763,14 @@ assert.match(
 
 assert.match(
   source,
-  /files\.forEach\(\(file\) => \{[\s\S]*if \(file\.deleted\) return;[\s\S]*unique\.push/,
-  'remote propagation checks should skip deletion-only commit entries'
+  /files\.forEach\(\(file\) => \{[\s\S]*unique\.push\(\{ \.\.\.file, path: normalized \}\);[\s\S]*if \(file\.deleted\) \{[\s\S]*resp\.status !== 404 && resp\.status !== 410[\s\S]*ok = checked && !stillExists && !indeterminate;/,
+  'remote propagation checks should verify deleted commit entries disappear'
+);
+
+assert.match(
+  source,
+  /from '\.\/repository-deletions\.js\?v=repository-deletions-20260508';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
+  'composer should stage repository markdown deletions from article/page tombstones'
 );
 
 assert.doesNotMatch(

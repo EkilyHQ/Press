@@ -364,6 +364,17 @@ const translations = {
         markdownOpenBeforeInsert: 'Open a markdown file before inserting images.',
         assetAttached: ({ label }) => `Attached ${label}`,
         imageReplaceTargetMissing: 'The image block no longer exists. Select an image block and try again.',
+        imageDeleteTargetMissing: 'The image block no longer exists. Select an image block and try again.',
+        assetDeleteUnsupported: 'Only local assets next to the current Markdown file can be deleted.',
+        assetDeleteShared: 'This image resource is still referenced by another known Markdown document or another image block.',
+        assetDeleteRejected: 'This image resource cannot be deleted yet.',
+        assetPendingRemoved: ({ label }) => `Removed pending image asset ${label}.`,
+        assetDeleteStaged: ({ label }) => `Staged ${label} for deletion.`,
+        repositoryDeletionDraftsPending: 'Unable to delete files while local drafts are still pending.',
+        repositoryDeletionDraftsBlocked: ({ sample, remaining }) => {
+          const suffix = remaining ? `, +${remaining} more` : '';
+          return `Publish blocked because deleted files still have local drafts: ${sample}${suffix}. Restore, publish, or discard those drafts before deleting the files.`;
+        },
         noPendingChanges: 'No pending changes to commit.',
         siteWaitStopped: 'Stopped waiting for the live site. Your commit is already on GitHub, but it may take a few minutes to appear.',
         siteWaitTimedOut: 'Committed files to GitHub, but the live site did not update in time. Check the deploy status manually.',
@@ -412,6 +423,7 @@ const translations = {
         imageAlt: 'Alt text',
         imagePath: 'Image path',
         replaceImage: 'Replace image',
+        deleteImageResource: 'Delete resource',
         unordered: 'Bulleted',
         ordered: 'Numbered',
         task: 'Checklist',

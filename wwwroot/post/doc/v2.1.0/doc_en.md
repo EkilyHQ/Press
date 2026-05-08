@@ -150,6 +150,13 @@ Press supports images and videos in Markdown. Paths resolve relative to the curr
 
 Because the article lives at `wwwroot/post/page/githubpages_en.md`, the image should be placed at `wwwroot/post/page/page.jpeg`. Videos work the same way; just ensure the path is correct — Press detects video files and renders them accordingly.
 
+### Deleting Content and Media
+When you delete a post, page, language, or version in the editor, Publish removes it from `index.yaml` or `tabs.yaml` and stages the managed Markdown file for deletion from GitHub. Deleted tree nodes remain restorable before Publish; the Publish preview labels deleted files as `deleted`.
+
+When a deleted Markdown file referenced local assets written as `assets/...` and stored in an `assets/` subfolder next to that Markdown file, Press deletes those assets only if the current content scan can confirm no remaining managed Markdown file still references them. Sibling files such as `page.jpeg`, site-level assets, absolute URLs, root-relative paths, shared assets, and cross-document assets are kept.
+
+Image blocks also offer **Delete resource** for same-document local `assets/...` files. The action removes the image block and stages the asset deletion; manually removing Markdown image syntax in source mode does not delete an already committed asset.
+
 ## Internal Link Cards (Previews)
 
 If a paragraph contains only a link to a post (`?id=...`), the link is upgraded to a card with cover image, excerpt, date, and read time (like the cards on the home page).

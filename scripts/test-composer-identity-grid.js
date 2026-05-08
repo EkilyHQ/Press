@@ -99,20 +99,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=encrypted-demo-20260508/,
-  'editor HTML should cache-bust editor boot when protected article i18n/cache boundaries change'
+  /assets\/js\/editor-boot\.js\?v=repository-deletion-docs-20260508/,
+  'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=asset-deletions-20260508/,
-  'editor HTML should cache-bust editor-main.js when asset deletion editor logic changes'
+  /assets\/js\/editor-main\.js\?v=repository-deletion-docs-20260508/,
+  'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=asset-deletions-20260508/,
-  'editor HTML should cache-bust composer.js when asset deletion runtime boundaries change'
+  /assets\/js\/composer\.js\?v=repository-deletion-docs-20260508/,
+  'editor HTML should cache-bust composer.js when repository deletion docs and i18n boundaries change'
 );
 
 assert.match(
@@ -129,8 +129,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=asset-deletions-20260508/,
-  'editor HTML should cache-bust editor-main.js when asset deletion runtime boundaries change'
+  /assets\/js\/editor-main\.js\?v=repository-deletion-docs-20260508/,
+  'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
 );
 
 assert.match(
@@ -147,8 +147,8 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=encrypted-demo-20260508'/,
-  'composer should cache-bust system update notes when protected article i18n boundaries change'
+  /from '\.\/system-updates\.js\?v=repository-deletion-docs-20260508'/,
+  'composer should cache-bust system update notes when asset deletion i18n boundaries change'
 );
 
 assert.match(
@@ -1864,20 +1864,20 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=encrypted-demo-20260508';/,
-  'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese article action'
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=repository-deletion-docs-20260508';/,
+  'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=encrypted-demo-20260508"[\s\S]*"\.\/chs\.js\?v=encrypted-demo-20260508"[\s\S]*"\.\/cht-tw\.js\?v=encrypted-demo-20260508"[\s\S]*"\.\/cht-hk\.js\?v=encrypted-demo-20260508"[\s\S]*"\.\/ja\.js\?v=encrypted-demo-20260508"/,
-  'language manifest should cache-bust language bundles changed by editor action labels'
+  /"\.\/en\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/chs\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/cht-tw\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/cht-hk\.js\?v=repository-deletion-docs-20260508"[\s\S]*"\.\/ja\.js\?v=repository-deletion-docs-20260508"/,
+  'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=encrypted-demo-20260508'/,
-  'default English bundle import should be cache-busted when editor action labels change'
+  /from '\.\.\/i18n\/en\.js\?v=repository-deletion-docs-20260508'/,
+  'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
 [
@@ -2417,8 +2417,13 @@ assert.match(
 [enI18nSource, chsI18nSource, chtTwI18nSource, jaI18nSource].forEach((i18nText, index) => {
   assert.match(
     i18nText,
-    /replaceImage:/,
-    `locale ${index} should expose image replacement toolbar text`
+    /replaceImage:[\s\S]*deleteImageResource:/,
+    `locale ${index} should expose image replacement and resource deletion toolbar text`
+  );
+  assert.match(
+    i18nText,
+    /assetDeleteUnsupported:[\s\S]*assetDeleteShared:[\s\S]*assetDeleteRejected:[\s\S]*assetPendingRemoved:[\s\S]*assetDeleteStaged:/,
+    `locale ${index} should expose image resource deletion toast text`
   );
 });
 

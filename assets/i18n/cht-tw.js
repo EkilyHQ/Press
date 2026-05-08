@@ -356,6 +356,17 @@ const translations = {
         markdownOpenBeforeInsert: '請先開啟一個 Markdown 檔案再插入圖片。',
         assetAttached: ({ label }) => `已附加 ${label}`,
         imageReplaceTargetMissing: '圖片區塊已不存在。請選擇一個圖片區塊後重試。',
+        imageDeleteTargetMissing: '圖片區塊已不存在。請選擇一個圖片區塊後重試。',
+        assetDeleteUnsupported: '只能刪除目前 Markdown 檔案旁邊的本地資源。',
+        assetDeleteShared: '這個圖片資源仍被另一份已知 Markdown 文件或另一個圖片區塊引用。',
+        assetDeleteRejected: '暫時無法刪除此圖片資源。',
+        assetPendingRemoved: ({ label }) => `已移除待上傳圖片資源 ${label}。`,
+        assetDeleteStaged: ({ label }) => `已將 ${label} 標記為刪除。`,
+        repositoryDeletionDraftsPending: '還有本地草稿時無法刪除檔案。',
+        repositoryDeletionDraftsBlocked: ({ sample, remaining }) => {
+          const suffix = remaining ? `，另有 ${remaining} 個` : '';
+          return `已阻止發布，因為待刪除檔案仍有本地草稿：${sample}${suffix}。請先恢復、發布或丟棄這些草稿，再刪除檔案。`;
+        },
         noPendingChanges: '沒有待提交的更改。',
         siteWaitStopped: '已停止等待線上站點。提交已在 GitHub 上，但顯示可能還需要幾分鐘。',
         siteWaitTimedOut: '已將檔案提交到 GitHub，但線上站點未及時更新。請手動檢查部署狀態。',
@@ -404,6 +415,7 @@ const translations = {
         imageAlt: '替代文字',
         imagePath: '圖片路徑',
         replaceImage: '替換圖片',
+        deleteImageResource: '刪除資源',
         unordered: '項目符號',
         ordered: '編號',
         task: '清單',

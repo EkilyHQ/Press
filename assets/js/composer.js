@@ -8,10 +8,10 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=encrypted-demo-20260508';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=encrypted-demo-20260508';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=encrypted-demo-20260508';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=encrypted-demo-20260508';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=repository-deletion-docs-20260508';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=repository-deletion-docs-20260508';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=repository-deletion-docs-20260508';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=repository-deletion-docs-20260508';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 import {
   decryptMarkdownDocument,
@@ -5176,7 +5176,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=encrypted-demo-20260508"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=repository-deletion-docs-20260508"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -5297,10 +5297,20 @@ function formatRepositoryDeletionBlockers(blocked = []) {
   const paths = (Array.isArray(blocked) ? blocked : [])
     .map(item => item && item.path ? String(item.path) : '')
     .filter(Boolean);
-  if (!paths.length) return 'Unable to delete files while local drafts are still pending.';
+  if (!paths.length) {
+    return textWithFallback(
+      'editor.toasts.repositoryDeletionDraftsPending',
+      'Unable to delete files while local drafts are still pending.'
+    );
+  }
   const sample = paths.slice(0, 5).join(', ');
-  const suffix = paths.length > 5 ? `, +${paths.length - 5} more` : '';
-  return `Publish blocked because deleted files still have local drafts: ${sample}${suffix}. Restore, publish, or discard those drafts before deleting the files.`;
+  const remaining = paths.length > 5 ? paths.length - 5 : 0;
+  const fallbackSuffix = remaining ? `, +${remaining} more` : '';
+  return textWithFallback(
+    'editor.toasts.repositoryDeletionDraftsBlocked',
+    `Publish blocked because deleted files still have local drafts: ${sample}${fallbackSuffix}. Restore, publish, or discard those drafts before deleting the files.`,
+    { sample, remaining }
+  );
 }
 
 async function fetchMarkdownForRepositoryDeletion(file) {

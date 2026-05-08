@@ -145,6 +145,13 @@ Markdown 中的圖片與影片路徑會相對於目前 Markdown 檔案解析：
 
 如果文章位於 `wwwroot/post/page/githubpages_chs.md`，圖片應放在 `wwwroot/post/page/page.jpeg`。影片檔案也使用相同規則，Press 會自動辨識並渲染。
 
+### 刪除內容與媒體
+在編輯器中刪除文章、頁面、語言或版本時，Publish 會從 `index.yaml` 或 `tabs.yaml` 移除引用，並將對應的受管理 Markdown 檔案作為 GitHub 檔案刪除提交。刪除後的樹狀節點在發布前仍可恢復；Publish 預覽會把刪除檔案標記為 `deleted`。
+
+如果被刪除的 Markdown 檔案引用寫作 `assets/...` 且存放在該 Markdown 檔案旁邊 `assets/` 子目錄中的本地資源，Press 只會在目前內容掃描確認沒有任何仍存在的受管理 Markdown 檔案引用它時，才一併刪除該資源。`page.jpeg` 這類同層檔案、站點級資源、絕對 URL、根路徑資源、共享資源和跨文件資源都會保留。
+
+圖片區塊也提供 **刪除資源** 操作，僅用於目前文件下的本地 `assets/...` 檔案。此操作會移除圖片區塊並暫存資源刪除；在原始碼模式中手動刪掉 Markdown 圖片語法，不會自動刪除已提交過的資源檔案。
+
 ## 站內連結卡片
 當一個段落只包含指向文章的連結時，Press 會將它升級成含封面、摘要、日期與閱讀時間的卡片：
 

@@ -34,6 +34,7 @@ import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?
 import { renderPostNav } from './js/post-nav.js?v=local-connect-settings-20260508';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
+import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=annotate-mvp-20260509';
 
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos, hydrateCardCovers } from './js/post-render.js';
 import { hydrateInternalLinkCards } from './js/link-cards.js?v=encrypted-demo-20260508';
@@ -1147,6 +1148,24 @@ function displayPost(postname, options = {}) {
         window
       });
     }
+
+    try {
+      const mainEl = containers.mainElement || getViewContainer('post', 'main');
+      const annotateContext = resolveAnnotateArticleContext({
+        rawIndex: rawIndexCache,
+        postId: postname,
+        postMetadata,
+        lang: getCurrentLang()
+      });
+      mountAnnotateComments({
+        container: mainEl,
+        siteConfig,
+        context: annotateContext,
+        fetchImpl: fetch,
+        document,
+        window
+      });
+    } catch (_) {}
 
     notifyThemeViewChange('post', { showSearch: false, showTags: false });
     try { setDocTitle(articleTitle); } catch (_) {}

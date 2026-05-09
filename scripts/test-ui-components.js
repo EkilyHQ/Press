@@ -93,6 +93,7 @@ assert.match(main, /from '\.\/js\/toc\.js\?v=local-connect-settings-20260508';/,
 assert.match(main, /from '\.\/js\/tags\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust tag helpers after their i18n dependency changes');
 assert.match(main, /from '\.\/js\/errors\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust error helpers after their i18n dependency changes');
 assert.match(main, /from '\.\/js\/post-nav\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust post navigation helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/annotate\.js\?v=annotate-mvp-20260509';/, 'main should cache-bust annotate runtime helpers when comments are mounted');
 assert.match(composer, /from '\.\/i18n\.js\?v=local-connect-settings-20260508';/, 'composer should share the repository deletion docs i18n cache key');
 assert.match(composer, /from '\.\/seo\.js\?v=local-connect-settings-20260508';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
 assert.match(composer, /from '\.\/system-updates\.js\?v=local-connect-settings-20260508';/, 'composer should cache-bust system updates after editor i18n dependency changes');
@@ -126,8 +127,8 @@ assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme
 assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
 assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-demo-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
 assert.match(themeLayout, /const cacheKey = pack === DEFAULT_PACK \? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey\(pack, manifest\);[\s\S]*appendImportCacheKey\(safeEntry, cacheKey\)/, 'theme layout should apply the native module cache key at import time');
-assert.match(indexHtml, /src="assets\/main\.js\?v=theme-switch-fix-20260508"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=theme-switch-fix-20260508"/, 'composer export template should use the same main module URL as index');
+assert.match(indexHtml, /src="assets\/main\.js\?v=annotate-mvp-20260509"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=annotate-mvp-20260509"/, 'composer export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');
 assert.doesNotMatch(themeLayout, /loadThemePack\(DEFAULT_PACK\)/, 'theme layout fallback should not persist Native over a failed external pack');
 assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fallback should clear partial external theme DOM and styles');

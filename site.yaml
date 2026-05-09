@@ -73,6 +73,11 @@ repo:
   name: Press
   branch: main
 
+annotate:
+  enabled: true
+  connectBaseUrl: https://connect-8mr.pages.dev
+  discussionCategory: General
+
 assetWarnings:
   largeImage:
     enabled: true

@@ -95,6 +95,27 @@
       },
       "additionalProperties": true
     },
+    "annotate": {
+      "type": "object",
+      "description": "Optional Press Annotate comments configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable article comments backed by Ekily Connect and GitHub Discussions."
+        },
+        "connectBaseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL of the Ekily Connect deployment that serves Annotate APIs."
+        },
+        "discussionCategory": {
+          "type": "string",
+          "description": "GitHub Discussions category name used for article comment containers.",
+          "default": "General"
+        }
+      },
+      "additionalProperties": false
+    },
     "errorOverlay": {
       "type": "boolean",
       "description": "Show error overlay in UI when enabled."

@@ -4,6 +4,7 @@ import {
   buildAnnotateCommentsUrl,
   isAnnotateEnabled,
   mountAnnotateComments,
+  normalizeGrantToken,
   normalizeAnnotateConfig,
   resolveAnnotateArticleContext
 } from '../assets/js/annotate.js';
@@ -117,6 +118,9 @@ assert.equal(config.connectBaseUrl, 'https://connect.example.com');
 assert.equal(config.repository.owner, 'EkilyHQ');
 assert.equal(isAnnotateEnabled(siteConfig), true);
 assert.equal(isAnnotateEnabled({ ...siteConfig, annotate: { enabled: false } }), false);
+assert.equal(normalizeGrantToken(' grant-token '), 'grant-token');
+assert.equal(normalizeGrantToken({ token: ' object-grant-token ', expiresAt: 123 }), 'object-grant-token');
+assert.equal(normalizeGrantToken({ expiresAt: 123 }), '');
 
 const context = resolveAnnotateArticleContext({
   rawIndex: {

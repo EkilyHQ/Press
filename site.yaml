@@ -74,7 +74,7 @@ repo:
   branch: main
 
 annotate:
-  enabled: true
+  enabled: false
   connectBaseUrl: https://connect-8mr.pages.dev
   discussionCategory: General
 

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.55",
-  "tag": "v3.3.55",
-  "publishedAt": "2026-05-08T16:26:01Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.55.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.55.zip`\n- SHA-256: `47336cf6fd53b0dc705ab527618e874fa09ab0c4c2b295df542c4fcb362f897e`\n\n## Changed System Files\n\n- assets/js/composer.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/main.js\n- assets/themes/native/modules/interactions.js\n- index.html\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.54...v3.3.55\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.55",
+  "name": "v3.3.56",
+  "tag": "v3.3.56",
+  "publishedAt": "2026-05-09T11:05:02Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.56.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.56.zip`\n- SHA-256: `f1dbe49c01c887448e284516ca4b8773ca9e4fcf5602fd4b3a03ff274b74a578`\n\n## Changed System Files\n\n- assets/js/annotate.js\n- assets/js/composer.js\n- assets/main.js\n- assets/schema/site.json\n- index.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.55...v3.3.56\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.56",
   "asset": {
-    "name": "press-system-v3.3.55.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.55/press-system-v3.3.55.zip",
-    "size": 548815,
-    "digest": "sha256:47336cf6fd53b0dc705ab527618e874fa09ab0c4c2b295df542c4fcb362f897e"
+    "name": "press-system-v3.3.56.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.56/press-system-v3.3.56.zip",
+    "size": 553707,
+    "digest": "sha256:f1dbe49c01c887448e284516ca4b8773ca9e4fcf5602fd4b3a03ff274b74a578"
   }
 }

@@ -55,10 +55,22 @@ function isPipeTableSeparator(line) {
 
 function replaceInline(text, baseDir) {
   const parts = String(text || '').split('`');
+  const mathTokens = [];
+  const stashMath = (segment) => String(segment || '').replace(/&#040;([\s\S]+?)&#041;/g, (m, tex) => {
+    const source = String(tex || '').trim();
+    if (!source) return m;
+    const token = `\u0000PRESS_MATH_${mathTokens.length}\u0000`;
+    mathTokens.push(`<span class="press-math press-math-inline" data-tex="${source}"></span>`);
+    return token;
+  });
+  const restoreMath = (segment) => String(segment || '').replace(/\u0000PRESS_MATH_(\d+)\u0000/g, (m, index) => {
+    const html = mathTokens[Number(index)];
+    return html || m;
+  });
   let result = '';
   for (let i = 0; i < parts.length; i++) {
     if (i % 2 === 0) {
-      result += parts[i]
+      result += restoreMath(stashMath(parts[i])
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         // Obsidian-style embeds: ![[path|optional alt or options]]
@@ -148,7 +160,7 @@ function replaceInline(text, baseDir) {
         })
         .replace(/~~(.*?)~~/g, '<del>$1</del>')
         .replace(/^\*\*\*$/gm, '<hr>')
-        .replace(/^---$/gm, '<hr>');
+        .replace(/^---$/gm, '<hr>'));
     } else { result += parts[i]; }
     if (i < parts.length - 1) { result += '`'; }
   }
@@ -276,6 +288,25 @@ export function mdParse(markdown, baseDir, options = {}) {
     }
 
     const rawLine = escapeMarkdown(line);
+
+    // Display math blocks. Only a line containing $$ opens/closes a block.
+    // Unclosed blocks fall back to ordinary Markdown text below.
+    if (String(line || '').trim() === '$$') {
+      let j = i + 1;
+      const mathLines = [];
+      for (; j < lines.length; j++) {
+        if (String(lines[j] || '').trim() === '$$') break;
+        mathLines.push(lines[j]);
+      }
+      if (j < lines.length) {
+        closeAllLists();
+        closePara();
+        const tex = escapeHtml(mathLines.join('\n'));
+        html += `<div class="press-math press-math-display" data-tex="${tex}"></div>`;
+        i = j;
+        continue;
+      }
+    }
 
     // If currently inside a list but the next line starts a fenced code/table/blockquote/header,
     // we'll close lists right before handling those blocks (see below after matches).

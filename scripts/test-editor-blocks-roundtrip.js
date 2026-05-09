@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   applyInlineLinkToRuns,
+  applyInlineMathToRuns,
   autofixMarkdownSourceBlock,
   insertInlineRunsAtRange,
   inlineRenderedTextLength,
@@ -67,6 +68,52 @@ run('supported blocks round-trip when untouched', () => {
     ''
   ].join('\n');
   assert.equal(serializeMarkdownBlocks(parseMarkdownBlocks(source)), source);
+});
+
+run('math markdown stays source-editable and round-trips', () => {
+  const source = [
+    'Inline math \\( E = mc^2 \\).',
+    '',
+    '$$',
+    '\\int_0^1 x^2 dx',
+    '$$',
+    ''
+  ].join('\n');
+  const blocks = parseMarkdownBlocks(source);
+  assert.deepEqual(blocks.map(block => block.type), ['paragraph', 'math']);
+  assert.equal(blocks[1].data.tex, '\\int_0^1 x^2 dx');
+  assert.equal(serializeMarkdownBlocks(blocks), source);
+});
+
+run('dirty math block serializes display math fence', () => {
+  const [block] = parseMarkdownBlocks('$$\na+b\n$$\n');
+  assert.equal(block.type, 'math');
+  block.dirty = true;
+  block.data.tex = '\\frac{a}{b}';
+  assert.equal(serializeMarkdownBlocks([block]), '$$\n\\frac{a}{b}\n$$\n');
+});
+
+run('inline math parses and serializes as an atomic inline run', () => {
+  const runs = parseInlineRuns('Area \\( A = \\pi r^2 \\) now');
+  assert.deepEqual(runs.map(run => ({ text: run.text, math: !!run.math })), [
+    { text: 'Area ', math: false },
+    { text: 'A = \\pi r^2', math: true },
+    { text: ' now', math: false }
+  ]);
+  assert.equal(serializeInlineRuns(runs), 'Area \\(A = \\pi r^2\\) now');
+});
+
+run('inline math is mutually exclusive with code, link, and emphasis marks', () => {
+  const code = toggleInlineMarkOnRuns(parseInlineRuns('x+y'), 0, 3, 'code');
+  const mathFromCode = applyInlineMathToRuns(code, 0, 3, 'x+y');
+  assert.deepEqual(mathFromCode, [{ text: 'x+y', bold: false, italic: false, strike: false, code: false, math: true, link: '', linkTitle: '' }]);
+
+  const linked = applyInlineLinkToRuns(parseInlineRuns('x+y'), 0, 3, 'https://example.com');
+  const mathFromLink = applyInlineMathToRuns(linked, 0, 3, 'x+y');
+  assert.deepEqual(mathFromLink, [{ text: 'x+y', bold: false, italic: false, strike: false, code: false, math: true, link: '', linkTitle: '' }]);
+
+  const emphasized = toggleInlineMarkOnRuns(parseInlineRuns('x+y'), 0, 3, 'bold');
+  assert.deepEqual(applyInlineMathToRuns(emphasized, 0, 3, 'x+y'), [{ text: 'x+y', bold: false, italic: false, strike: false, code: false, math: true, link: '', linkTitle: '' }]);
 });
 
 run('dirty supported blocks serialize edited markdown', () => {

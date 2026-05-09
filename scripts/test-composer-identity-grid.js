@@ -105,14 +105,14 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=local-connect-settings-20260508/,
-  'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
+  /assets\/js\/editor-main\.js\?v=katex-math-20260510/,
+  'editor HTML should cache-bust editor-main.js when Markdown math rendering changes'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=theme-switch-fix-20260508/,
-  'editor HTML should cache-bust composer.js when Connect publish boundaries change'
+  /assets\/js\/composer\.js\?v=katex-math-20260510/,
+  'editor HTML should cache-bust composer.js when exported runtime and system update imports change'
 );
 
 assert.match(
@@ -129,26 +129,32 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=local-connect-settings-20260508/,
-  'editor HTML should cache-bust editor-main.js when repository deletion docs and i18n boundaries change'
+  /assets\/js\/editor-main\.js\?v=katex-math-20260510/,
+  'editor HTML should cache-bust editor-main.js when Markdown math rendering changes'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/markdown\.js\?v=markdown-safety-20260508'/,
-  'editor preview should cache-bust the Markdown parser when sanitizer boundaries change'
+  /from '\.\/markdown\.js\?v=katex-math-20260510'/,
+  'editor preview should cache-bust the Markdown parser when math syntax changes'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/safe-html\.js\?v=markdown-safety-20260508'/,
+  /from '\.\/safe-html\.js\?v=katex-math-20260510'/,
   'editor preview should import the cache-busted safe HTML helper directly'
 );
 
 assert.match(
+  editorMainSource,
+  /from '\.\/math-render\.js\?v=katex-math-20260510'/,
+  'editor preview should cache-bust the math renderer when KaTeX support changes'
+);
+
+assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=local-connect-settings-20260508'/,
-  'composer should cache-bust system update notes when asset deletion i18n boundaries change'
+  /from '\.\/system-updates\.js\?v=katex-math-20260510'/,
+  'composer should cache-bust system update notes when math rendering changes'
 );
 
 assert.match(
@@ -183,8 +189,8 @@ assert.match(
 
 assert.match(
   readFileSync(resolve(here, '../assets/js/system-updates.js'), 'utf8'),
-  /from '\.\/markdown\.js\?v=markdown-safety-20260508'/,
-  'system update notes should cache-bust the Markdown parser when sanitizer boundaries change'
+  /from '\.\/markdown\.js\?v=katex-math-20260510'[\s\S]*from '\.\/math-render\.js\?v=katex-math-20260510'[\s\S]*from '\.\/safe-html\.js\?v=katex-math-20260510'/,
+  'system update notes should cache-bust Markdown, math renderer, and sanitizer when math rendering changes'
 );
 
 assert.notEqual(
@@ -1259,7 +1265,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /\.blocks-block-head, \.blocks-link-editor, \.blocks-image-meta-controls, \.blocks-inspector, \.blocks-card-picker, \.blocks-command-menu, \.blocks-action-menu, \.blocks-inline-more-menu \{ cursor:default; \}/,
+  /\.blocks-block-head, \.blocks-link-editor, \.blocks-math-editor, \.blocks-image-meta-controls, \.blocks-inspector, \.blocks-card-picker, \.blocks-command-menu, \.blocks-action-menu, \.blocks-inline-more-menu \{ cursor:default; \}/,
   'blocks controls and floating panels should not inherit the canvas text cursor'
 );
 
@@ -1277,7 +1283,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /\.blocks-rich-editable, \.blocks-code-preview code, \.blocks-block input, \.blocks-block textarea, \.blocks-link-editor input, \.blocks-card-search \{ cursor:text; \}/,
+  /\.blocks-rich-editable, \.blocks-code-preview code, \.blocks-block input, \.blocks-block textarea, \.blocks-link-editor input, \.blocks-math-editor textarea, \.blocks-card-search \{ cursor:text; \}/,
   'editable text surfaces and text inputs should keep text cursors'
 );
 
@@ -1469,7 +1475,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /\.blocks-block-head \.blocks-heading-level, \.blocks-block-head \.blocks-list-type-select, \.blocks-block-head \.blocks-code-language, \.blocks-block-head \.blocks-image-meta-controls input, \.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{[^}]*border:1px solid var\(--border\); border-radius:999px; background:var\(--card\);[\s\S]*\.blocks-image-meta-controls \{ display:flex; align-items:center; gap:\.24rem;[\s\S]*\.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{ white-space:nowrap; cursor:pointer; \}[\s\S]*\.blocks-block-head \.blocks-image-delete-resource:disabled \{ opacity:\.45; cursor:not-allowed; \}/,
+  /\.blocks-block-head \.blocks-heading-level, \.blocks-block-head \.blocks-list-type-select, \.blocks-block-head \.blocks-code-language, \.blocks-block-head \.blocks-image-meta-controls input, \.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource, \.blocks-block-head \.blocks-math-edit \{[^}]*border:1px solid var\(--border\); border-radius:999px; background:var\(--card\);[\s\S]*\.blocks-image-meta-controls \{ display:flex; align-items:center; gap:\.24rem;[\s\S]*\.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{ white-space:nowrap; cursor:pointer; \}[\s\S]*\.blocks-block-head \.blocks-image-delete-resource:disabled \{ opacity:\.45; cursor:not-allowed; \}/,
   'image metadata fields, replace button, and resource deletion button should use compact floating-toolbar styling'
 );
 

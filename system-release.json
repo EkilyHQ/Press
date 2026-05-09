@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.56",
-  "tag": "v3.3.56",
-  "publishedAt": "2026-05-09T11:05:02Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.56.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.56.zip`\n- SHA-256: `f1dbe49c01c887448e284516ca4b8773ca9e4fcf5602fd4b3a03ff274b74a578`\n\n## Changed System Files\n\n- assets/js/annotate.js\n- assets/js/composer.js\n- assets/main.js\n- assets/schema/site.json\n- index.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.55...v3.3.56\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.56",
+  "name": "v3.3.57",
+  "tag": "v3.3.57",
+  "publishedAt": "2026-05-09T11:31:10Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.57.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.57.zip`\n- SHA-256: `fe7a36c0bae2bb8618e45b2430eb4cc77194c720c0814f51d6bc965bae666502`\n\n## Changed System Files\n\n- assets/js/annotate.js\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.56...v3.3.57\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.57",
   "asset": {
-    "name": "press-system-v3.3.56.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.56/press-system-v3.3.56.zip",
-    "size": 553707,
-    "digest": "sha256:f1dbe49c01c887448e284516ca4b8773ca9e4fcf5602fd4b3a03ff274b74a578"
+    "name": "press-system-v3.3.57.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.57/press-system-v3.3.57.zip",
+    "size": 553774,
+    "digest": "sha256:fe7a36c0bae2bb8618e45b2430eb4cc77194c720c0814f51d6bc965bae666502"
   }
 }

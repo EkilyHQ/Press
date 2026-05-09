@@ -528,7 +528,8 @@ const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href=
   const { html, target } = renderMarkdown([
     '<script>alert(1)</script>',
     '<!-- hidden -->',
-    '<img src=x onerror=alert(1)>'
+    '<img src=x onerror=alert(1)>',
+    '<span class="press-math" data-tex="x"></span>'
   ].join('\n'));
 
   assert.equal(collectElements(target, 'script').length, 0);
@@ -537,6 +538,45 @@ const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href=
   assert.equal(collectRawTags(html, 'img').length, 0);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /&lt;!-- hidden --&gt;/);
+  assert.equal(collectElements(target, 'span').some(span => span.classList.contains('press-math')), false);
+  assertRawMarkdownHtmlIsSafe(html);
+  assertNoEventHandlerAttributes(target);
+}
+
+{
+  const { html, target } = renderMarkdown([
+    'Inline math \\( E = mc^2 \\) and \\( \\frac{a}{b} < 1 \\).',
+    'Markdown-looking TeX \\( a * b * c \\) stays intact.',
+    '',
+    '$$',
+    '\\int_0^1 x^2 dx',
+    '$$',
+    '',
+    '```',
+    '\\( not math \\)',
+    '$$',
+    'not display math',
+    '$$',
+    '```',
+    '',
+    '$$',
+    'unclosed'
+  ].join('\n'));
+  const spans = collectElements(target, 'span').filter(span => span.classList.contains('press-math-inline'));
+  const divs = collectElements(target, 'div').filter(div => div.classList.contains('press-math-display'));
+  const codes = collectElements(target, 'code');
+
+  assert.equal(spans.length, 3);
+  assert.equal(spans[0].getAttribute('data-tex'), 'E = mc^2');
+  assert.equal(spans[1].getAttribute('data-tex'), '\\frac{a}{b} < 1');
+  assert.equal(spans[2].getAttribute('data-tex'), 'a * b * c');
+  assert.doesNotMatch(spans[2].getAttribute('data-tex'), /<em>/);
+  assert.equal(divs.length, 1);
+  assert.equal(divs[0].getAttribute('data-tex'), '\\int_0^1 x^2 dx');
+  assert.equal(codes.length, 1);
+  assert.match(codes[0].textContent, /\\\( not math \\\)/);
+  assert.match(codes[0].textContent, /\$\$/);
+  assert.match(html, /\$\$/);
   assertRawMarkdownHtmlIsSafe(html);
   assertNoEventHandlerAttributes(target);
 }

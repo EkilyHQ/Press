@@ -1,5 +1,6 @@
-import { mdParse } from './markdown.js?v=markdown-safety-20260508';
-import { setSafeHtml } from './safe-html.js';
+import { mdParse } from './markdown.js?v=katex-math-20260510';
+import { renderPressMath } from './math-render.js?v=katex-math-20260510';
+import { setSafeHtml } from './safe-html.js?v=katex-math-20260510';
 import { t } from './i18n.js?v=local-connect-settings-20260508';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
@@ -154,6 +155,7 @@ function renderNotes(body) {
         : '';
     if (html) {
       setSafeHtml(elements.notes, html, '', { alreadySanitized: true });
+      try { renderPressMath(elements.notes); } catch (_) {}
       return;
     }
   }

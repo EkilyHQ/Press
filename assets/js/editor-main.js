@@ -1,7 +1,7 @@
 import { configureFetchCachePolicy } from './cache-control.js';
-import { createMarkdownBlocksEditor } from './editor-blocks.js?v=asset-deletions-20260508';
+import { createMarkdownBlocksEditor } from './editor-blocks.js?v=katex-blocks-20260510';
 import { createHiEditor } from './hieditor.js';
-import { mdParse } from './markdown.js?v=markdown-safety-20260508';
+import { mdParse } from './markdown.js?v=katex-math-20260510';
 import { insertImageMarkdownAtSelection, normalizeDateInputValue } from './editor-markdown-ops.js';
 import {
   FRONT_MATTER_FIELD_DEFS,
@@ -12,8 +12,9 @@ import {
   resolveFrontMatterBindings,
   valueIsPresent
 } from './frontmatter-document.js?v=encrypted-demo-20260508';
-import { getContentRoot, resolveImageSrc, setSafeHtml } from './safe-html.js?v=markdown-safety-20260508';
+import { getContentRoot, resolveImageSrc, setSafeHtml } from './safe-html.js?v=katex-math-20260510';
 import { initSyntaxHighlighting } from './syntax-highlight.js?v=blocks-code-gutter-20260505';
+import { renderPressMath } from './math-render.js?v=katex-math-20260510';
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post-render.js';
 import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from './typography.js';
@@ -755,6 +756,7 @@ function renderPreview(mdText) {
       fetchMarkdown: fetchMarkdownForLinkCard
     }); } catch (_) {}
     try { hydratePostVideos(target); } catch (_) {}
+    try { renderPressMath(target); } catch (_) {}
     try { initSyntaxHighlighting(target); } catch (_) {}
     try { applyPreviewAssetOverrides(target, previewAssetCurrentPath); } catch (_) {}
   } catch (_) {}
@@ -1558,6 +1560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     list: 'List',
     quote: 'Quote',
     code: 'Code',
+    math: 'Math',
     source: 'Markdown',
     articleCard: 'Article Card',
     uploadImage: 'Upload Image',
@@ -1586,18 +1589,23 @@ document.addEventListener('DOMContentLoaded', () => {
     inlineStrike: 'Strikethrough',
     inlineCode: 'Inline code',
     inlineLink: 'Link',
+    inlineMath: 'Math',
     inlineMore: 'More formatting',
     linkPrompt: 'Link URL',
     linkText: 'Link text',
     linkHref: 'Link URL',
     linkTitle: 'Link title',
     unlink: 'Unlink',
+    mathSource: 'LaTeX source',
+    removeMath: 'Remove',
+    editMath: 'Edit math',
     listAddItem: 'Add item',
     listRemoveItem: 'Remove item',
     imageTitle: 'Image title',
     'sourceReason.blank': 'This empty Markdown segment is preserved as source.',
     'sourceReason.frontMatter': 'Front matter is preserved as raw Markdown so document metadata stays intact.',
     'sourceReason.unclosedFence': 'This fenced code block is incomplete, so it is kept as Markdown source.',
+    'sourceReason.unclosedMath': 'This display math block is incomplete, so it is kept as Markdown source.',
     'sourceReason.callout': 'This block uses callout-style Markdown that the visual block editor does not edit directly.',
     'sourceReason.table': 'This table-like Markdown is kept as source because the visual block editor does not support table editing yet.',
     'sourceReason.indentedList': 'This list starts with indentation, so it is kept as source to avoid changing whether it means a nested list or code-like Markdown.',

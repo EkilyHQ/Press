@@ -6,13 +6,13 @@ import {
   parseEncryptedMarkdownEnvelope,
   stripEncryptedBodyForPublicUse
 } from './js/encrypted-content.js?v=encrypted-demo-20260508';
-import { mdParse } from './js/markdown.js?v=markdown-safety-20260508';
+import { mdParse } from './js/markdown.js?v=katex-math-20260510';
 import { setupAnchors, setupTOC } from './js/toc.js?v=local-connect-settings-20260508';
 import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=theme-switch-fix-20260508';
 import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-switch-fix-20260508';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
-import { getContentRoot, setSafeHtml } from './js/safe-html.js';
+import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=katex-math-20260510';
 import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
 import {
   initI18n,
@@ -28,13 +28,14 @@ import {
 import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=local-connect-settings-20260508';
 import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=local-connect-settings-20260508';
 import { initSyntaxHighlighting } from './js/syntax-highlight.js';
+import { renderPressMath } from './js/math-render.js?v=katex-math-20260510';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
 import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=local-connect-settings-20260508';
 import { renderPostNav } from './js/post-nav.js?v=local-connect-settings-20260508';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
-import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=annotate-mvp-20260509';
+import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=katex-math-20260510';
 
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos, hydrateCardCovers } from './js/post-render.js';
 import { hydrateInternalLinkCards } from './js/link-cards.js?v=encrypted-demo-20260508';
@@ -635,6 +636,13 @@ function initializeSyntaxHighlightingForView(view, { containers } = {}) {
   }
 }
 
+function initializeMathForView(view, { containers } = {}) {
+  const scope = containers && typeof containers === 'object' ? containers : {};
+  const root = scope.mainElement || getViewContainer(view, 'main');
+  if (!root) return;
+  try { renderPressMath(root); } catch (_) {}
+}
+
 function resetTOCView(view, containers, { reason, immediate } = {}) {
   const handled = callThemeEffect('resetTOC', {
     view,
@@ -1169,6 +1177,7 @@ function displayPost(postname, options = {}) {
 
     notifyThemeViewChange('post', { showSearch: false, showTags: false });
     try { setDocTitle(articleTitle); } catch (_) {}
+    initializeMathForView('post', { containers });
     initializeSyntaxHighlightingForView('post', { containers });
     refreshTagSidebar({ view: 'post', containers, postsIndex: postsIndexCache });
 
@@ -1639,6 +1648,7 @@ function displayStaticTab(slug) {
       }
 
       initializeSyntaxHighlightingForView('tab', { containers });
+      initializeMathForView('tab', { containers });
       refreshTagSidebar({ view: 'tab', containers, postsIndex: postsIndexCache });
 
       try {

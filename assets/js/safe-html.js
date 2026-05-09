@@ -144,7 +144,7 @@ const __NS_RENDERED_MARKDOWN_GLOBAL_ATTRS = new Set(['aria-hidden','aria-label',
 const __NS_RENDERED_MARKDOWN_TAG_ATTRS = {
   a: new Set(['href']),
   code: new Set(['class']),
-  div: new Set(['class','data-callout','role']),
+  div: new Set(['class','data-callout','data-tex','role']),
   h1: new Set(['id']),
   h2: new Set(['id']),
   h3: new Set(['id']),
@@ -157,7 +157,7 @@ const __NS_RENDERED_MARKDOWN_TAG_ATTRS = {
   ol: new Set(['start']),
   pre: new Set(['class']),
   source: new Set(['src','type']),
-  span: new Set(['aria-hidden','class']),
+  span: new Set(['aria-hidden','class','data-tex']),
   video: new Set(['aria-label','class','controls','playsinline','poster','preload','title'])
 };
 
@@ -212,6 +212,16 @@ export function setSafeHtml(target, html, baseDir, options = {}) {
       .replace(/&quot;/g, '"')
       .replace(/&#039;/g, "'")
       .replace(/&#39;/g, "'")
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+        const num = parseInt(hex, 16);
+        if (!Number.isFinite(num) || num < 0) return _;
+        try { return String.fromCodePoint(num); } catch (_) { return _; }
+      })
+      .replace(/&#([0-9]+);/g, (_, dec) => {
+        const num = parseInt(dec, 10);
+        if (!Number.isFinite(num) || num < 0) return _;
+        try { return String.fromCodePoint(num); } catch (_) { return _; }
+      })
       .replace(/&amp;/g, '&');
 
     // Decode HTML entities for text nodes so Markdown entities render as characters.

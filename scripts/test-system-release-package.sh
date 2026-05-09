@@ -56,6 +56,28 @@ if ! grep -qx "press-system-${version}/assets/js/encrypted-content.js" "${entrie
   exit 1
 fi
 
+if git -C "${repo_root}" cat-file -e HEAD:assets/js/vendor/katex/katex.min.js 2>/dev/null; then
+  if ! grep -qx "press-system-${version}/assets/js/vendor/katex/katex.min.js" "${entries_file}"; then
+    echo "expected package to include vendored KaTeX runtime code" >&2
+    exit 1
+  fi
+
+  if ! grep -qx "press-system-${version}/assets/js/vendor/katex/katex.min.css" "${entries_file}"; then
+    echo "expected package to include vendored KaTeX stylesheet" >&2
+    exit 1
+  fi
+
+  if ! grep -q "^press-system-${version}/assets/js/vendor/katex/fonts/" "${entries_file}"; then
+    echo "expected package to include vendored KaTeX fonts" >&2
+    exit 1
+  fi
+
+  if grep -q "press-system-${version}/assets/js/vendor/katex/.*auto-render" "${entries_file}"; then
+    echo "system release package must not include KaTeX auto-render" >&2
+    exit 1
+  fi
+fi
+
 if ! grep -qx "press-system-${version}/assets/themes/native/theme.json" "${entries_file}"; then
   echo "expected package to include the native fallback theme" >&2
   exit 1

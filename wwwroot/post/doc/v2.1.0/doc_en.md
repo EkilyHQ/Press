@@ -140,6 +140,31 @@ Supported syntax includes headings, paragraphs, bold, italic, strikethrough, inl
 
 Raw HTML is not supported. Tags such as `<div>`, `<script>`, and HTML comments are displayed as text rather than inserted into the page. Unsupported or risky syntax may also stay as Markdown source in the editor block view instead of becoming a structured editable block.
 
+### Math
+Press supports KaTeX-rendered math expressions in Markdown. Use `\(...\)` for inline math:
+
+For example, \( E = mc^2 \) renders inline with surrounding text.
+
+```markdown
+Einstein wrote \( E = mc^2 \).
+```
+
+Use `$$` on its own lines for display math:
+
+$$
+\int_0^1 x^2 dx
+$$
+
+```markdown
+$$
+\int_0^1 x^2 dx
+$$
+```
+
+The display form renders as its own centered math block.
+
+Press does not parse `$...$` inline math, and it does not compile complete LaTeX documents such as `\documentclass` or `\begin{document}`.
+
 
 ## Images and Videos
 Press supports images and videos in Markdown. Paths resolve relative to the current Markdown file. In Configure GitHub Pages for Press, the content begins with an image:

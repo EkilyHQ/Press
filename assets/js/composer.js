@@ -5466,7 +5466,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=theme-switch-fix-20260508"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=annotate-mvp-20260509"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

@@ -148,7 +148,7 @@ function readStoredGrant(windowRef, config) {
     const raw = windowRef.localStorage.getItem(getGrantStorageKey(config));
     if (!raw) return '';
     const parsed = JSON.parse(raw);
-    return asTrimmedString(parsed && parsed.grant);
+    return normalizeGrantToken(parsed && parsed.grant);
   } catch (_) {
     return '';
   }
@@ -156,12 +156,20 @@ function readStoredGrant(windowRef, config) {
 
 function writeStoredGrant(windowRef, config, grant) {
   try {
-    windowRef.localStorage.setItem(getGrantStorageKey(config), JSON.stringify({ grant, savedAt: Date.now() }));
+    const token = normalizeGrantToken(grant);
+    if (!token) return;
+    windowRef.localStorage.setItem(getGrantStorageKey(config), JSON.stringify({ grant: token, savedAt: Date.now() }));
   } catch (_) {}
 }
 
 function clearStoredGrant(windowRef, config) {
   try { windowRef.localStorage.removeItem(getGrantStorageKey(config)); } catch (_) {}
+}
+
+export function normalizeGrantToken(grant) {
+  if (typeof grant === 'string') return grant.trim();
+  if (asObject(grant)) return asTrimmedString(grant.token);
+  return '';
 }
 
 function injectAnnotateStyle(documentRef) {
@@ -394,11 +402,12 @@ export function mountAnnotateComments(options = {}) {
     if (event.origin !== expected) return;
     const data = event.data || {};
     if (data.source !== 'ekily-connect' || data.type !== 'press-annotate-grant') return;
-    if (!data.ok || !data.grant) {
+    const grantToken = normalizeGrantToken(data.grant);
+    if (!data.ok || !grantToken) {
       setStatus('GitHub sign in failed.');
       return;
     }
-    state.grant = String(data.grant);
+    state.grant = grantToken;
     writeStoredGrant(windowRef, config, state.grant);
     setStatus('Signed in with GitHub.');
   });

@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
+const mainPath = resolve(here, '../assets/main.js');
 const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
@@ -21,6 +22,7 @@ const jaI18nPath = resolve(here, '../assets/i18n/ja.js');
 const languagesManifestPath = resolve(here, '../assets/i18n/languages.json');
 const i18nPath = resolve(here, '../assets/js/i18n.js');
 const source = readFileSync(composerPath, 'utf8');
+const mainSource = readFileSync(mainPath, 'utf8');
 const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
@@ -1093,8 +1095,8 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /function resolveCodeHighlightLanguage\(language, codeText\) \{[\s\S]*CODE_PLAIN_LANGUAGES\.has\(normalized\)[\s\S]*CODE_HIGHLIGHT_LANGUAGES\.has\(normalized\)[\s\S]*const detected = String\(detectLanguage\(String\(codeText \|\| ''\)\) \|\| ''\)\.toLowerCase\(\);[\s\S]*return \{ language: 'plain', label: 'PLAIN', highlight: false \};/,
-  'blocks code highlight resolution should support plain flags, selected languages, and auto-detection'
+  /function resolveCodeHighlightLanguage\(language, codeText\) \{[\s\S]*const resolved = CODE_LANGUAGE_ALIASES\.get\(normalized\) \|\| normalized;[\s\S]*CODE_PLAIN_LANGUAGES\.has\(normalized\)[\s\S]*CODE_HIGHLIGHT_LANGUAGES\.has\(resolved\)[\s\S]*const detected = String\(detectLanguage\(String\(codeText \|\| ''\)\) \|\| ''\)\.toLowerCase\(\);[\s\S]*const detectedResolved = CODE_LANGUAGE_ALIASES\.get\(detected\) \|\| detected;[\s\S]*return \{ language: 'plain', label: 'PLAIN', highlight: false \};/,
+  'blocks code highlight resolution should support plain flags, aliases, selected languages, and auto-detection'
 );
 
 assert.match(
@@ -1111,14 +1113,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const CODE_LANGUAGE_OPTIONS = \['', 'plain', 'javascript', 'json', 'python', 'html', 'xml', 'css', 'markdown', 'bash', 'shell', 'yaml', 'yml', 'robots'\];/,
-  'code block language selector should expose only supported highlighter language options plus blank/plain'
+  /const CODE_LANGUAGE_OPTIONS = \[[\s\S]*'bash', 'c', 'cpp', 'csharp', 'css', 'diff', 'go', 'graphql', 'ini', 'java',[\s\S]*'javascript', 'json', 'kotlin', 'less', 'lua', 'makefile', 'markdown',[\s\S]*'objectivec', 'perl', 'php', 'php-template', 'plaintext', 'python',[\s\S]*'python-repl', 'r', 'ruby', 'rust', 'scss', 'shell', 'sql', 'swift',[\s\S]*'typescript', 'vbnet', 'wasm', 'xml', 'yaml',[\s\S]*'html', 'yml', 'robots'[\s\S]*\];/,
+  'code block language selector should expose all Highlight.js common languages plus aliases and plain flags'
 );
 
 assert.match(
   editorBlocksSource,
-  /const currentLang = String\(block\.data\.lang \|\| ''\)\.trim\(\);[\s\S]*const normalizedLang = currentLang\.toLowerCase\(\);[\s\S]*if \(currentLang && !CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\)\) \{[\s\S]*appendOption\(currentLang, `Unsupported: \$\{currentLang\}`, true\);[\s\S]*\}[\s\S]*lang\.value = CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\) \? normalizedLang : currentLang;/,
-  'code block language selector should normalize supported values and preserve unsupported legacy language values'
+  /const currentLang = String\(block\.data\.lang \|\| ''\)\.trim\(\);[\s\S]*const normalizedLang = currentLang\.toLowerCase\(\);[\s\S]*const resolvedLang = CODE_LANGUAGE_ALIASES\.get\(normalizedLang\) \|\| normalizedLang;[\s\S]*if \(currentLang && !CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\) && !CODE_LANGUAGE_OPTIONS\.includes\(resolvedLang\)\) \{[\s\S]*appendOption\(currentLang, `Unsupported: \$\{currentLang\}`, true\);[\s\S]*lang\.value = CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\)[\s\S]*\? normalizedLang[\s\S]*: \(CODE_LANGUAGE_OPTIONS\.includes\(resolvedLang\) \? resolvedLang : currentLang\);/,
+  'code block language selector should normalize supported aliases and preserve unsupported legacy language values'
 );
 
 assert.doesNotMatch(
@@ -1527,6 +1529,54 @@ assert.match(
   syntaxHighlightSource,
   /export function initSyntaxHighlighting\(root = document\) \{[\s\S]*const scope = root && typeof root\.querySelectorAll === 'function' \? root : document;[\s\S]*const codeBlocks = scope\.querySelectorAll\('pre code'\);[\s\S]*preElement\.classList\.contains\('blocks-code-preview'\)[\s\S]*preElement\.closest\('\.markdown-blocks-shell'\)[\s\S]*codeElement\.isContentEditable \|\| codeElement\.getAttribute\('contenteditable'\) === 'true'/,
   'syntax highlighting should be scoped and skip editable blocks code surfaces'
+);
+
+assert.match(
+  syntaxHighlightSource,
+  /import hljs from '\.\/vendor\/highlightjs\/highlight\.min\.js';[\s\S]*const HIGHLIGHT_LANGUAGES = \[[\s\S]*'bash', 'c', 'cpp', 'csharp', 'css', 'diff', 'go', 'graphql', 'ini', 'java',[\s\S]*'javascript', 'json', 'kotlin', 'less', 'lua', 'makefile', 'markdown',[\s\S]*'typescript', 'vbnet', 'wasm', 'xml', 'yaml'[\s\S]*\];/,
+  'syntax highlighter should use the vendored Highlight.js common bundle and register its common languages'
+);
+
+assert.match(
+  [mainSource, editorMainSource, editorBlocksSource, hiEditorSource].join('\n'),
+  /syntax-highlight\.js\?v=highlightjs-common-20260510/,
+  'runtime and editor entrypoints should cache-bust the Highlight.js-backed syntax highlighter'
+);
+
+assert.doesNotMatch(
+  [mainSource, editorMainSource, editorBlocksSource, hiEditorSource].join('\n'),
+  /syntax-highlight\.js(?:['"]|;)|syntax-highlight\.js\?v=blocks-code-gutter-20260505/,
+  'runtime and editor entrypoints should not keep stale syntax-highlight module URLs'
+);
+
+assert.doesNotMatch(
+  syntaxHighlightSource,
+  /https?:\/\/|cdnjs|unpkg|jsdelivr|import\(['"][^'"]*highlight/i,
+  'syntax highlighter should not load Highlight.js from a CDN or dynamic runtime package path'
+);
+
+assert.match(
+  syntaxHighlightSource,
+  /function highlightWithHighlightJs\(code, language\) \{[\s\S]*hljs\.highlight\(raw, \{ language: normalized, ignoreIllegals: true \}\)\.value[\s\S]*hljs\.highlightAuto\(raw, HIGHLIGHT_LANGUAGES\)\.value/,
+  'syntax highlighter should use explicit Highlight.js grammars and common-language auto-detection'
+);
+
+assert.match(
+  syntaxHighlightSource,
+  /function detectLanguage\(code\) \{[\s\S]*const detected = hljs\.highlightAuto\(raw, HIGHLIGHT_LANGUAGES\);[\s\S]*return HIGHLIGHT_LANGUAGE_SET\.has\(language\) \? language : null;[\s\S]*\}/,
+  'blank-language code blocks should use Highlight.js auto-detection directly'
+);
+
+assert.doesNotMatch(
+  syntaxHighlightSource,
+  /JSON\.parse|<\[\^>\]\+>|\\bdef\\s\+\\w\+|\\bfunction\\s\+\\w\+|yamlHeader|yamlKey|yamlList/,
+  'syntax highlighter should not restore Press deterministic language heuristics ahead of auto-detection'
+);
+
+assert.match(
+  syntaxHighlightSource,
+  /function mapHighlightHtml\(html\) \{[\s\S]*mapHighlightClasses[\s\S]*`<span class="\$\{mapped\.join\(' '\)\}">`[\s\S]*function toSafeFragment\(html\)/,
+  'syntax highlighter should map Highlight.js spans before passing markup through the safe fragment path'
 );
 
 assert.match(

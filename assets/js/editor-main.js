@@ -13,7 +13,7 @@ import {
   valueIsPresent
 } from './frontmatter-document.js?v=encrypted-demo-20260508';
 import { getContentRoot, resolveImageSrc, setSafeHtml } from './safe-html.js?v=katex-math-20260510';
-import { initSyntaxHighlighting } from './syntax-highlight.js?v=blocks-code-gutter-20260505';
+import { initSyntaxHighlighting } from './syntax-highlight.js?v=highlightjs-common-20260510';
 import { renderPressMath } from './math-render.js?v=katex-math-20260510';
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos } from './post-render.js';
 import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-demo-20260508';

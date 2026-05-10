@@ -27,7 +27,7 @@ import {
 } from './js/i18n.js?v=annotate-i18n-20260510';
 import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=annotate-i18n-20260510';
 import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=annotate-i18n-20260510';
-import { initSyntaxHighlighting } from './js/syntax-highlight.js';
+import { initSyntaxHighlighting } from './js/syntax-highlight.js?v=highlightjs-common-20260510';
 import { renderPressMath } from './js/math-render.js?v=katex-math-20260510';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';

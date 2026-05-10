@@ -56,6 +56,11 @@ if ! grep -qx "press-system-${version}/assets/js/encrypted-content.js" "${entrie
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/vendor/highlightjs/highlight.min.js" "${entries_file}"; then
+  echo "expected package to include vendored Highlight.js common bundle" >&2
+  exit 1
+fi
+
 if git -C "${repo_root}" cat-file -e HEAD:assets/js/vendor/katex/katex.min.js 2>/dev/null; then
   if ! grep -qx "press-system-${version}/assets/js/vendor/katex/katex.min.js" "${entries_file}"; then
     echo "expected package to include vendored KaTeX runtime code" >&2

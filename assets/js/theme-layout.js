@@ -25,6 +25,7 @@ import {
 
 let activePack = null;
 let layoutPromise = null;
+let layoutMountGeneration = 0;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
@@ -218,6 +219,15 @@ function clearMountedThemeArtifacts() {
   try { setThemeLayoutContext(null); } catch (_) {}
 }
 
+function getMountGeneration(options = {}) {
+  const generation = Number(options.mountGeneration);
+  return Number.isFinite(generation) ? generation : layoutMountGeneration;
+}
+
+function isCurrentMountGeneration(generation) {
+  return Number(generation) === layoutMountGeneration;
+}
+
 function warnUndeclaredRegions(pack, manifest, regions) {
   if (!isThemeDevMode()) return;
   const declared = new Set(getDeclaredRegionNames(manifest));
@@ -388,10 +398,13 @@ async function mountLoadedModule(pack, entry, mod, context, manifest) {
 
 async function mountPack(pack, allowFallback = true, options = {}) {
   const persist = options.persist !== false;
+  const mountGeneration = getMountGeneration(options);
   let manifest;
   try {
     manifest = await loadManifest(pack);
+    if (!isCurrentMountGeneration(mountGeneration)) return null;
   } catch (err) {
+    if (!isCurrentMountGeneration(mountGeneration)) return null;
     console.error(`[theme] Failed to load manifest for "${pack}"`, err);
     if (allowFallback && pack !== DEFAULT_PACK) {
       if (persist) {
@@ -408,8 +421,10 @@ async function mountPack(pack, allowFallback = true, options = {}) {
   for (const entry of manifest.modules) {
     try {
       const loaded = await loadThemeModule(pack, entry, manifest);
+      if (!isCurrentMountGeneration(mountGeneration)) return null;
       if (loaded) loadedModules.push(loaded);
     } catch (err) {
+      if (!isCurrentMountGeneration(mountGeneration)) return null;
       console.error('[theme] Failed to load module', entry, err);
       if (allowFallback && pack !== DEFAULT_PACK) {
         if (persist) {
@@ -435,12 +450,16 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     }
   };
 
+  if (!isCurrentMountGeneration(mountGeneration)) return null;
   applyManifestStyles(pack, manifest);
 
   for (const { entry, mod } of loadedModules) {
     try {
+      if (!isCurrentMountGeneration(mountGeneration)) return null;
       await mountLoadedModule(pack, entry, mod, context, manifest);
+      if (!isCurrentMountGeneration(mountGeneration)) return null;
     } catch (err) {
+      if (!isCurrentMountGeneration(mountGeneration)) return null;
       console.error('[theme] Failed to mount module', entry, err);
       if (allowFallback && pack !== DEFAULT_PACK) {
         if (persist) {
@@ -453,6 +472,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     }
   }
 
+  if (!isCurrentMountGeneration(mountGeneration)) return null;
   document.body.dataset.themeLayout = pack;
   warnMissingRegions(pack, manifest, context);
   setThemeLayoutContext(context);
@@ -465,7 +485,10 @@ async function mountPack(pack, allowFallback = true, options = {}) {
 export async function ensureThemeLayout(options = {}) {
   const requestedPack = options && options.pack ? String(options.pack) : '';
   const pack = requestedPack || getRequestedThemePack();
+  let mountGeneration = layoutMountGeneration;
   if (options && options.reset) {
+    mountGeneration = layoutMountGeneration + 1;
+    layoutMountGeneration = mountGeneration;
     clearMountedThemeArtifacts();
     activePack = null;
     layoutPromise = null;
@@ -478,7 +501,8 @@ export async function ensureThemeLayout(options = {}) {
     return layoutPromise;
   }
   activePack = pack;
-  layoutPromise = mountPack(pack, true, options).then((context) => {
+  layoutPromise = mountPack(pack, true, { ...options, mountGeneration }).then((context) => {
+    if (!isCurrentMountGeneration(mountGeneration)) return context;
     const resolvedPack = (context && context.pack) || document.body.dataset.themeLayout || DEFAULT_PACK;
     activePack = resolvedPack;
     return context;

@@ -579,6 +579,10 @@ const translations = {
               title: 'Theme',
               description: 'Pick default theme settings applied to visitors.'
             },
+            comments: {
+              title: 'Comments',
+              description: 'Configure Press Annotate comments backed by Ekily Connect.'
+            },
             repo: {
               title: 'Repository',
               description: 'Configure GitHub details for commits and issue links.'
@@ -632,6 +636,12 @@ const translations = {
             themeOverrideHelp: 'Force the selected theme even if visitors change it.',
             repo: 'GitHub repository',
             repoHelp: 'Required for commits, push to GitHub, and issue links.',
+            annotateEnabled: 'Article comments',
+            annotateEnabledHelp: 'Enable comments below article pages.',
+            annotateConnectBaseUrl: 'Connect URL',
+            annotateConnectBaseUrlHelp: 'Base URL for the Ekily Connect deployment that serves comment APIs.',
+            annotateDiscussionCategory: 'Discussion category',
+            annotateDiscussionCategoryHelp: 'GitHub Discussions category used for article comment threads.',
             assetLargeImage: 'Warn about large images',
             assetLargeImageHelp: 'Show a warning when attached images exceed the threshold.',
             assetLargeImageThreshold: 'Large image threshold (KB)',

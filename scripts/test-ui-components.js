@@ -148,7 +148,7 @@ assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fal
 assert.match(indexHtml, /src="assets\/js\/theme-boot\.js\?v=theme-switch-fix-20260508"/, 'index should cache-bust theme boot after external fallback changes');
 assert.match(indexEditorHtml, /src="assets\/js\/theme-boot\.js\?v=theme-switch-fix-20260508"/, 'editor should cache-bust theme boot after external fallback changes');
 assert.match(indexEditorHtml, /src="assets\/js\/editor-main\.js\?v=katex-math-20260510"/, 'editor should cache-bust editor-main after math wiring changes');
-assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=katex-math-20260510"/, 'editor should cache-bust composer after math update wiring changes');
+assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=annotate-settings-20260510"/, 'editor should cache-bust composer after site settings UI changes');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');

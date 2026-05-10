@@ -618,6 +618,7 @@ const SITE_FIELD_LABEL_MAP = {
   showAllPosts: { i18nKey: 'editor.composer.site.fields.showAllPosts' },
   landingTab: { i18nKey: 'editor.composer.site.fields.landingTab' },
   repo: { i18nKey: 'editor.composer.site.fields.repo' },
+  annotate: { i18nKey: 'editor.composer.site.sections.comments.title', fallback: 'Comments' },
   assetWarnings: { i18nKey: 'editor.composer.site.sections.assets.title', fallback: 'Asset warnings' },
   __extras: { i18nKey: 'editor.composer.site.fields.extras', fallback: 'Extras' }
 };
@@ -2662,6 +2663,12 @@ function prepareSiteState(raw) {
     name: safeString(repo.name || ''),
     branch: safeString(repo.branch || '')
   };
+  const annotate = (src.annotate && typeof src.annotate === 'object') ? src.annotate : {};
+  site.annotate = {
+    enabled: normalizeBoolean(annotate.enabled),
+    connectBaseUrl: safeString(annotate.connectBaseUrl || ''),
+    discussionCategory: safeString(annotate.discussionCategory || '')
+  };
   const assetWarnings = (src.assetWarnings && typeof src.assetWarnings === 'object') ? src.assetWarnings : {};
   const largeImage = (assetWarnings.largeImage && typeof assetWarnings.largeImage === 'object') ? assetWarnings.largeImage : {};
   site.assetWarnings = {
@@ -2674,7 +2681,7 @@ function prepareSiteState(raw) {
   const recognized = new Set([
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'resourceURL', 'contentRoot',
     'profileLinks', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'postsPerPage',
-    'defaultLanguage', 'themeMode', 'themePack', 'themeOverride', 'repo', 'assetWarnings', 'landingTab', 'showAllPosts',
+    'defaultLanguage', 'themeMode', 'themePack', 'themeOverride', 'repo', 'annotate', 'assetWarnings', 'landingTab', 'showAllPosts',
     'enableAllPosts', 'disableAllPosts', 'connect'
   ]);
   const deprecated = new Set(['links']);
@@ -2712,6 +2719,7 @@ function cloneSiteState(state) {
     showAllPosts: normalizeBoolean(state.showAllPosts),
     landingTab: safeString(state.landingTab || ''),
     repo: deepClone(state.repo || { owner: '', name: '', branch: '' }),
+    annotate: deepClone(state.annotate || { enabled: null, connectBaseUrl: '', discussionCategory: '' }),
     assetWarnings: deepClone(state.assetWarnings || { largeImage: { enabled: null, thresholdKB: null } }),
     __extras: deepClone(state.__extras || {})
   };
@@ -2782,6 +2790,19 @@ function repoForOutput(repo) {
   return Object.keys(out).length ? out : null;
 }
 
+function annotateForOutput(annotate) {
+  if (!annotate || typeof annotate !== 'object') return null;
+  const enabled = normalizeBoolean(annotate.enabled);
+  const connectBaseUrl = safeString(annotate.connectBaseUrl || '').trim();
+  const discussionCategory = safeString(annotate.discussionCategory || '').trim();
+  if (enabled == null && !connectBaseUrl && !discussionCategory) return null;
+  const out = {};
+  if (enabled != null) out.enabled = enabled;
+  if (connectBaseUrl) out.connectBaseUrl = connectBaseUrl;
+  if (discussionCategory) out.discussionCategory = discussionCategory;
+  return Object.keys(out).length ? out : null;
+}
+
 function buildSiteSnapshot(state) {
   const site = cloneSiteState(state);
   const snapshot = {};
@@ -2813,6 +2834,8 @@ function buildSiteSnapshot(state) {
   if (site.landingTab) snapshot.landingTab = site.landingTab;
   const repo = repoForOutput(site.repo);
   if (repo) snapshot.repo = repo;
+  const annotate = annotateForOutput(site.annotate);
+  if (annotate) snapshot.annotate = annotate;
   const warnings = assetWarningsForOutput(site.assetWarnings);
   if (warnings) snapshot.assetWarnings = warnings;
 
@@ -2926,6 +2949,17 @@ function computeSiteDiff(current, baseline) {
   if (safeString(repoCur.branch) !== safeString(repoBase.branch)) repoFields.branch = true;
   if (Object.keys(repoFields).length) {
     diff.fields.repo = { type: 'object', fields: repoFields };
+    diff.hasChanges = true;
+  }
+
+  const annotateCur = cur.annotate || {};
+  const annotateBase = base.annotate || {};
+  const annotateFields = {};
+  if (normalizeBoolean(annotateCur.enabled) !== normalizeBoolean(annotateBase.enabled)) annotateFields.enabled = true;
+  if (safeString(annotateCur.connectBaseUrl) !== safeString(annotateBase.connectBaseUrl)) annotateFields.connectBaseUrl = true;
+  if (safeString(annotateCur.discussionCategory) !== safeString(annotateBase.discussionCategory)) annotateFields.discussionCategory = true;
+  if (Object.keys(annotateFields).length) {
+    diff.fields.annotate = { type: 'object', fields: annotateFields };
     diff.hasChanges = true;
   }
 
@@ -3062,7 +3096,7 @@ function toSiteYaml(data) {
   const keysInOrder = [
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'profileLinks', 'resourceURL',
     'contentRoot', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'defaultLanguage',
-    'themeMode', 'themePack', 'themeOverride', 'showAllPosts', 'landingTab', 'repo', 'connect', 'assetWarnings'
+    'themeMode', 'themePack', 'themeOverride', 'showAllPosts', 'landingTab', 'repo', 'annotate', 'connect', 'assetWarnings'
   ];
   const ordered = {};
   keysInOrder.forEach((key) => {
@@ -16194,6 +16228,16 @@ function buildSiteUI(root, state) {
     return site.repo;
   };
 
+  const ensureAnnotate = () => {
+    if (!site.annotate || typeof site.annotate !== 'object') {
+      site.annotate = { enabled: null, connectBaseUrl: '', discussionCategory: '' };
+    }
+    if (!Object.prototype.hasOwnProperty.call(site.annotate, 'enabled')) site.annotate.enabled = null;
+    if (!Object.prototype.hasOwnProperty.call(site.annotate, 'connectBaseUrl')) site.annotate.connectBaseUrl = '';
+    if (!Object.prototype.hasOwnProperty.call(site.annotate, 'discussionCategory')) site.annotate.discussionCategory = '';
+    return site.annotate;
+  };
+
   const ensureAssetWarnings = () => {
     if (!site.assetWarnings || typeof site.assetWarnings !== 'object') site.assetWarnings = {};
     if (!site.assetWarnings.largeImage || typeof site.assetWarnings.largeImage !== 'object') {
@@ -17607,6 +17651,78 @@ function buildSiteUI(root, state) {
     syncSwitchState(checkbox, toggle, site.themeOverride, true);
   };
 
+  const renderAnnotateGrid = (section) => {
+    const annotate = ensureAnnotate();
+    const { addRow } = createSingleGridFieldset(section);
+    const rows = [];
+    const addAnnotateRow = (item) => {
+      const row = addRow(item, rows.length);
+      rows.push(row);
+      return row;
+    };
+
+    const { row: enabledRow, controlCell: enabledControl } = addAnnotateRow({
+      dataKey: 'annotate',
+      label: t('editor.composer.site.fields.annotateEnabled'),
+      description: t('editor.composer.site.fields.annotateEnabledHelp'),
+      checkboxLabel: t('editor.composer.site.toggleEnabled')
+    });
+    const { toggle, checkbox } = createSwitchControl(
+      enabledRow,
+      t('editor.composer.site.toggleEnabled'),
+      {
+        target: enabledControl,
+        classes: ['cs-single-grid-switch']
+      }
+    );
+    toggle.dataset.field = 'annotate';
+    toggle.dataset.subfield = 'enabled';
+    checkbox.addEventListener('change', () => {
+      annotate.enabled = checkbox.checked;
+      syncSwitchState(checkbox, toggle, checkbox.checked, true);
+      markDirty();
+    });
+    syncSwitchState(checkbox, toggle, annotate.enabled, true);
+
+    const createTextRow = (item) => {
+      const { controlCell, controlId } = addAnnotateRow(item);
+      const input = document.createElement('input');
+      input.id = controlId;
+      input.type = 'text';
+      input.className = 'cs-input';
+      input.dataset.field = 'annotate';
+      input.dataset.subfield = item.subfield;
+      input.value = item.get() || '';
+      input.placeholder = item.placeholder || '';
+      input.addEventListener('input', () => {
+        item.set(input.value);
+        markDirty();
+      });
+      controlCell.appendChild(input);
+      return input;
+    };
+
+    createTextRow({
+      dataKey: 'annotate',
+      subfield: 'connectBaseUrl',
+      label: t('editor.composer.site.fields.annotateConnectBaseUrl'),
+      description: t('editor.composer.site.fields.annotateConnectBaseUrlHelp'),
+      placeholder: 'https://connect.example.com',
+      get: () => annotate.connectBaseUrl,
+      set: (value) => { annotate.connectBaseUrl = value; }
+    });
+
+    createTextRow({
+      dataKey: 'annotate',
+      subfield: 'discussionCategory',
+      label: t('editor.composer.site.fields.annotateDiscussionCategory'),
+      description: t('editor.composer.site.fields.annotateDiscussionCategoryHelp'),
+      placeholder: 'General',
+      get: () => annotate.discussionCategory,
+      set: (value) => { annotate.discussionCategory = value; }
+    });
+  };
+
   const renderAssetWarningsGrid = (section) => {
     const warnings = ensureAssetWarnings();
     const { addRow } = createSingleGridFieldset(section);
@@ -18105,6 +18221,13 @@ function buildSiteUI(root, state) {
     t('editor.composer.site.sections.theme.description')
   );
   renderThemeGrid(themeSubsection);
+
+  const commentsSubsection = createConfigSubsection(
+    siteConfigSection,
+    t('editor.composer.site.sections.comments.title'),
+    t('editor.composer.site.sections.comments.description')
+  );
+  renderAnnotateGrid(commentsSubsection);
 
   const assetsSubsection = createConfigSubsection(
     siteConfigSection,

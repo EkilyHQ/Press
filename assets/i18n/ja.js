@@ -572,6 +572,10 @@ const translations = {
               title: 'テーマ',
               description: '訪問者に適用される既定のテーマ設定です。'
             },
+            comments: {
+              title: 'コメント',
+              description: 'Ekily Connect による Press Annotate コメントを設定します。'
+            },
             repo: {
               title: 'リポジトリ',
               description: 'GitHub へのコミットや「問題を報告」リンクに必要な情報です。'
@@ -625,6 +629,12 @@ const translations = {
             themeOverrideHelp: '訪問者が変更しても選択したテーマを強制します。',
             repo: 'GitHub リポジトリ',
             repoHelp: 'コミット、GitHub へのプッシュ、問題報告リンクに必要です。',
+            annotateEnabled: '記事コメント',
+            annotateEnabledHelp: '記事ページの末尾にコメント欄を表示します。',
+            annotateConnectBaseUrl: 'Connect URL',
+            annotateConnectBaseUrlHelp: 'コメント API を提供する Ekily Connect デプロイのベース URL。',
+            annotateDiscussionCategory: 'Discussion カテゴリ',
+            annotateDiscussionCategoryHelp: '記事コメントのスレッドに使う GitHub Discussions カテゴリ。',
             assetLargeImage: '大きな画像の警告',
             assetLargeImageHelp: '添付画像がしきい値を超えた際に警告します。',
             assetLargeImageThreshold: '画像のしきい値 (KB)',

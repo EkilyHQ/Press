@@ -572,6 +572,10 @@ const translations = {
               title: '主题',
               description: '设置访问者默认使用的主题方案。'
             },
+            comments: {
+              title: '评论区',
+              description: '配置由 Ekily Connect 支持的 Press Annotate 评论。'
+            },
             repo: {
               title: '仓库',
               description: '配置 GitHub 信息，以启用提交与“报告问题”链接。'
@@ -625,6 +629,12 @@ const translations = {
             themeOverrideHelp: '强制使用所选主题，忽略访问者的切换。',
             repo: 'GitHub 仓库',
             repoHelp: '用于提交、推送到 GitHub 以及“报告问题”链接。',
+            annotateEnabled: '文章评论',
+            annotateEnabledHelp: '在文章页底部启用评论区。',
+            annotateConnectBaseUrl: 'Connect URL',
+            annotateConnectBaseUrlHelp: '提供评论 API 的 Ekily Connect 部署基础地址。',
+            annotateDiscussionCategory: '讨论分类',
+            annotateDiscussionCategoryHelp: '用于文章评论主题的 GitHub Discussions 分类。',
             assetLargeImage: '大图警告',
             assetLargeImageHelp: '当附件图片超过阈值时提醒编辑。',
             assetLargeImageThreshold: '大图阈值（KB）',

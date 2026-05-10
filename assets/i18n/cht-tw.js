@@ -572,6 +572,10 @@ const translations = {
               title: '主題',
               description: '設定訪問者預設使用的主題方案。'
             },
+            comments: {
+              title: '評論區',
+              description: '配置由 Ekily Connect 支援的 Press Annotate 評論。'
+            },
             repo: {
               title: '儲存庫',
               description: '配置 GitHub 資訊，以啟用提交與“報告問題”連結。'
@@ -625,6 +629,12 @@ const translations = {
             themeOverrideHelp: '強制使用所選主題，忽略訪問者的切換。',
             repo: 'GitHub 儲存庫',
             repoHelp: '用於提交、推送到 GitHub 以及“報告問題”連結。',
+            annotateEnabled: '文章評論',
+            annotateEnabledHelp: '在文章頁底部啟用評論區。',
+            annotateConnectBaseUrl: 'Connect URL',
+            annotateConnectBaseUrlHelp: '提供評論 API 的 Ekily Connect 部署基礎地址。',
+            annotateDiscussionCategory: '討論分類',
+            annotateDiscussionCategoryHelp: '用於文章評論主題的 GitHub Discussions 分類。',
             assetLargeImage: '大圖警告',
             assetLargeImageHelp: '當附件圖片超過閾值時提醒編輯。',
             assetLargeImageThreshold: '大圖閾值（KB）',

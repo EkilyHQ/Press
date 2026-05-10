@@ -4,6 +4,10 @@ contentRoot: wwwroot
 defaultLanguage: en
 themeMode: auto
 themePack: native
+annotate:
+  enabled: true
+  connectBaseUrl: https://connect-8mr.pages.dev
+  discussionCategory: General
 repo:
   provider: github
   owner: OWNER

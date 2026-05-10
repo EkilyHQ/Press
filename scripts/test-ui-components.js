@@ -98,22 +98,22 @@ assert.match(indexEditorHtml, /blocks-math-editor[\s\S]*blocks-math-editor texta
 assert.match(editorBlocks, /mathSource\.className = 'blocks-math-source'/, 'block editor should create a math source popover field');
 assert.match(main, /from '\.\/js\/theme-layout\.js\?v=theme-switch-fix-20260508';/, 'main should cache-bust theme layout when native module cache keys change');
 assert.match(main, /from '\.\/js\/theme\.js\?v=theme-switch-fix-20260508';/, 'main should cache-bust theme helpers when native i18n dependencies change');
-assert.match(main, /from '\.\/js\/i18n\.js\?v=local-connect-settings-20260508';/, 'main should use the same versioned i18n module instance as shared UI modules');
+assert.match(main, /from '\.\/js\/i18n\.js\?v=annotate-i18n-20260510';/, 'main should use the same versioned i18n module instance as shared UI modules');
 assert.match(main, /from '\.\/js\/link-cards\.js\?v=encrypted-demo-20260508';/, 'main should cache-bust internal link cards when protected preview handling changes');
-assert.match(main, /from '\.\/js\/seo\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust SEO helpers after their i18n dependency changes');
-assert.match(main, /from '\.\/js\/toc\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust TOC helpers after their i18n dependency changes');
-assert.match(main, /from '\.\/js\/tags\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust tag helpers after their i18n dependency changes');
-assert.match(main, /from '\.\/js\/errors\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust error helpers after their i18n dependency changes');
-assert.match(main, /from '\.\/js\/post-nav\.js\?v=local-connect-settings-20260508';/, 'main should cache-bust post navigation helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/seo\.js\?v=annotate-i18n-20260510';/, 'main should cache-bust SEO helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/toc\.js\?v=annotate-i18n-20260510';/, 'main should cache-bust TOC helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/tags\.js\?v=annotate-i18n-20260510';/, 'main should cache-bust tag helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/errors\.js\?v=annotate-i18n-20260510';/, 'main should cache-bust error helpers after their i18n dependency changes');
+assert.match(main, /from '\.\/js\/post-nav\.js\?v=annotate-i18n-20260510';/, 'main should cache-bust post navigation helpers after their i18n dependency changes');
 assert.match(main, /from '\.\/js\/annotate\.js\?v=katex-math-20260510';/, 'main should cache-bust annotate runtime helpers when comments are mounted');
-assert.match(composer, /from '\.\/i18n\.js\?v=local-connect-settings-20260508';/, 'composer should share the repository deletion docs i18n cache key');
-assert.match(composer, /from '\.\/seo\.js\?v=local-connect-settings-20260508';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
+assert.match(composer, /from '\.\/i18n\.js\?v=annotate-i18n-20260510';/, 'composer should share the repository deletion docs i18n cache key');
+assert.match(composer, /from '\.\/seo\.js\?v=annotate-i18n-20260510';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
 assert.match(composer, /from '\.\/system-updates\.js\?v=katex-math-20260510';/, 'composer should cache-bust system updates after math renderer changes');
 assert.match(read('assets/js/system-updates.js'), /from '\.\/safe-html\.js\?v=katex-math-20260510';/, 'system updates should cache-bust sanitizer when release notes can contain math');
 assert.match(composer, /from '\.\/theme-manager\.js\?v=theme-switch-fix-20260508';/, 'composer should cache-bust theme manager after editor i18n dependency changes');
 assert.match(composer, /from '\.\/encrypted-content\.js\?v=encrypted-demo-20260508';/, 'composer should use the encrypted markdown envelope helpers for protected editor flows');
-assert.match(themeLayout, /from '\.\/i18n\.js\?v=local-connect-settings-20260508';/, 'theme layout should share the repository deletion docs i18n cache key');
-assert.match(languageManifest, /en\.js\?v=local-connect-settings-20260508/, 'language manifest should cache-bust bundles when editor asset deletion strings change');
+assert.match(themeLayout, /from '\.\/i18n\.js\?v=annotate-i18n-20260510';/, 'theme layout should share the repository deletion docs i18n cache key');
+assert.match(languageManifest, /en\.js\?v=annotate-i18n-20260510/, 'language manifest should cache-bust bundles when editor asset deletion strings change');
 assert.doesNotMatch(
   [main, composer, themeLayout, theme, toc, read('assets/js/seo.js'), read('assets/js/editor-boot.js'), read('assets/js/system-updates.js')].join('\n'),
   /i18n\.js\?v=20260506theme/,
@@ -148,7 +148,7 @@ assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fal
 assert.match(indexHtml, /src="assets\/js\/theme-boot\.js\?v=theme-switch-fix-20260508"/, 'index should cache-bust theme boot after external fallback changes');
 assert.match(indexEditorHtml, /src="assets\/js\/theme-boot\.js\?v=theme-switch-fix-20260508"/, 'editor should cache-bust theme boot after external fallback changes');
 assert.match(indexEditorHtml, /src="assets\/js\/editor-main\.js\?v=katex-math-20260510"/, 'editor should cache-bust editor-main after math wiring changes');
-assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=annotate-settings-20260510"/, 'editor should cache-bust composer after site settings UI changes');
+assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=annotate-combobox-20260510"/, 'editor should cache-bust composer after site settings UI changes');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');
@@ -168,10 +168,10 @@ assert.match(toc, /typeof tocRoot\.enhance === 'function'/, 'legacy setupTOC sho
 
 assert.match(nativeInteractions, /renderPressPostCardHtml\(/, 'native cards should render through press-post-card');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js\?v=theme-switch-fix-20260508'/, 'native interactions should cache-bust theme helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/tags\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust tag helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/templates\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust template helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/errors\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust error helper imports');
-assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=local-connect-settings-20260508'/, 'native interactions should cache-bust post navigation helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/tags\.js\?v=annotate-i18n-20260510'/, 'native interactions should cache-bust tag helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/templates\.js\?v=annotate-i18n-20260510'/, 'native interactions should cache-bust template helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/errors\.js\?v=annotate-i18n-20260510'/, 'native interactions should cache-bust error helper imports');
+assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=annotate-i18n-20260510'/, 'native interactions should cache-bust post navigation helper imports');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust internal link-card hydration');
 assert.match(nativeInteractions, /if \(meta && meta\.protected\) \{[\s\S]*ui\.protectedExcerpt[\s\S]*updateMasonryItem[\s\S]*return;/, 'native cards should not fetch protected article bodies for previews and should refresh masonry spans');
 assert.match(linkCards, /if \(meta && meta\.protected\) return;/, 'internal link cards should not fetch protected article bodies when public metadata marks protection');

@@ -1,11 +1,11 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js?v=local-connect-settings-20260508';
+import { attachHoverTooltip } from '../../../js/tags.js?v=annotate-i18n-20260510';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=local-connect-settings-20260508';
-import { showErrorOverlay } from '../../../js/errors.js?v=local-connect-settings-20260508';
-import { renderPostNav } from '../../../js/post-nav.js?v=local-connect-settings-20260508';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=annotate-i18n-20260510';
+import { showErrorOverlay } from '../../../js/errors.js?v=annotate-i18n-20260510';
+import { renderPostNav } from '../../../js/post-nav.js?v=annotate-i18n-20260510';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
 import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from '../../../js/typography.js';

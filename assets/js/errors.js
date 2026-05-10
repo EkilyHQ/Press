@@ -1,5 +1,5 @@
 // errors.js — lightweight global error overlay and reporter
-import { t } from './i18n.js?v=local-connect-settings-20260508';
+import { t } from './i18n.js?v=annotate-i18n-20260510';
 
 let reporterConfig = {
   reportUrl: null,

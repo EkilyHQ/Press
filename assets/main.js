@@ -7,7 +7,7 @@ import {
   stripEncryptedBodyForPublicUse
 } from './js/encrypted-content.js?v=encrypted-demo-20260508';
 import { mdParse } from './js/markdown.js?v=katex-math-20260510';
-import { setupAnchors, setupTOC } from './js/toc.js?v=local-connect-settings-20260508';
+import { setupAnchors, setupTOC } from './js/toc.js?v=annotate-i18n-20260510';
 import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=theme-switch-fix-20260508';
 import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-switch-fix-20260508';
 import { setupSearch } from './js/search.js';
@@ -24,15 +24,15 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=local-connect-settings-20260508';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=local-connect-settings-20260508';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=local-connect-settings-20260508';
+} from './js/i18n.js?v=annotate-i18n-20260510';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=annotate-i18n-20260510';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=annotate-i18n-20260510';
 import { initSyntaxHighlighting } from './js/syntax-highlight.js';
 import { renderPressMath } from './js/math-render.js?v=katex-math-20260510';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=local-connect-settings-20260508';
-import { renderPostNav } from './js/post-nav.js?v=local-connect-settings-20260508';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=annotate-i18n-20260510';
+import { renderPostNav } from './js/post-nav.js?v=annotate-i18n-20260510';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=katex-math-20260510';

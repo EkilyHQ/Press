@@ -1,7 +1,7 @@
 import { mdParse } from './markdown.js?v=katex-math-20260510';
 import { renderPressMath } from './math-render.js?v=katex-math-20260510';
 import { setSafeHtml } from './safe-html.js?v=katex-math-20260510';
-import { t } from './i18n.js?v=local-connect-settings-20260508';
+import { t } from './i18n.js?v=annotate-i18n-20260510';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const TEXT_EXTENSIONS = new Set([

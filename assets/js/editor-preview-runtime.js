@@ -21,6 +21,7 @@ const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
 
 let activePack = '';
+let latestRenderRequestId = 0;
 
 function postToParent(payload) {
   try { window.parent.postMessage(payload, window.location.origin); } catch (_) {}
@@ -29,6 +30,21 @@ function postToParent(payload) {
 function sanitizePack(value) {
   const clean = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
   return clean || 'native';
+}
+
+function normalizeRequestId(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function beginPreviewRender(payload) {
+  const requestId = normalizeRequestId(payload && payload.requestId);
+  latestRenderRequestId = requestId;
+  return requestId;
+}
+
+function isCurrentPreviewRender(requestId) {
+  return normalizeRequestId(requestId) === latestRenderRequestId;
 }
 
 function applyPreviewColorMode(siteConfig = {}) {
@@ -247,12 +263,13 @@ function createRuntimeContext({ payload, containers, content }) {
 }
 
 async function renderPreview(payload) {
-  const requestId = payload.requestId;
+  const requestId = beginPreviewRender(payload);
   const requestedPack = sanitizePack(payload.themePack || (payload.siteConfig && payload.siteConfig.themePack) || 'native');
   applyPreviewColorMode(payload.siteConfig || {});
   try {
     const reset = activePack !== requestedPack;
     const layout = await ensureThemeLayout({ pack: requestedPack, persist: false, reset });
+    if (!isCurrentPreviewRender(requestId)) return;
     activePack = (layout && layout.pack) || document.body.dataset.themeLayout || requestedPack;
     const markdown = String(payload.markdown || '');
     const baseDir = String(payload.baseDir || `${getContentRoot()}/`);
@@ -277,7 +294,7 @@ async function renderPreview(payload) {
     const allowedLocations = new Set(Array.isArray(payload.allowedLocations) ? payload.allowedLocations : []);
     const locationAliasMap = new Map(Array.isArray(payload.locationAliases) ? payload.locationAliases : []);
     const ctx = createRuntimeContext({ payload, containers, content });
-    const result = callThemeEffect('renderPostView', {
+    const result = await Promise.resolve(callThemeEffect('renderPostView', {
       view: 'post',
       containers,
       ctx,
@@ -325,10 +342,12 @@ async function renderPreview(payload) {
         fetchMarkdown: (loc) => fetch(`${getContentRoot()}/${loc}`, { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
         makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
       }
-    });
+    }));
+    if (!isCurrentPreviewRender(requestId)) return;
     if (!result && main) {
       setSafeHtml(main, output.post || '', baseDir, { alreadySanitized: true });
     }
+    if (!isCurrentPreviewRender(requestId)) return;
     applyAssetOverrides(main, payload);
     try { hydratePostImages(main); } catch (_) {}
     try { hydratePostVideos(main); } catch (_) {}
@@ -336,13 +355,16 @@ async function renderPreview(payload) {
     try { applyLangHints(main); } catch (_) {}
     try { renderPressMath(main); } catch (_) {}
     try { initSyntaxHighlighting(main); } catch (_) {}
+    if (!isCurrentPreviewRender(requestId)) return;
     restorePreviewThemeStyles(activePack, layout && layout.manifest);
     const status = document.getElementById('editorPreviewStatus');
     if (status) status.hidden = true;
     postToParent({ type: RENDERED_MESSAGE, requestId, themePack: activePack });
   } catch (err) {
+    if (!isCurrentPreviewRender(requestId)) return;
     if (requestedPack !== 'native') {
-      await renderPreview({ ...payload, themePack: 'native' });
+      await renderPreview({ ...payload, requestId, themePack: 'native' });
+      if (!isCurrentPreviewRender(requestId)) return;
       postToParent({
         type: ERROR_MESSAGE,
         requestId,
@@ -368,7 +390,9 @@ window.addEventListener('message', (event) => {
   if (event.origin !== window.location.origin) return;
   const payload = event.data && typeof event.data === 'object' ? event.data : {};
   if (payload.type !== RENDER_MESSAGE) return;
+  latestRenderRequestId = normalizeRequestId(payload.requestId);
   renderPreview(payload).catch((err) => {
+    if (!isCurrentPreviewRender(payload.requestId)) return;
     postToParent({
       type: ERROR_MESSAGE,
       requestId: payload.requestId,

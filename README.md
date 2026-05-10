@@ -20,13 +20,13 @@ The `wwwroot/` folder is intentionally not minimal. It hosts the official Press 
 
 ## For New Sites
 
-The clean starter template lives in [EkilyHQ/YAP](https://github.com/EkilyHQ/YAP).
+The clean starter template lives in [EkilyHQ/YAP](https://github.com/EkilyHQ/YAP). YAP owns starter content and site defaults, while this repository publishes runtime system packages that YAP syncs.
 
 Use that starter repository when you want to create your own site. This repository is useful when you want to develop Press itself, inspect the official documentation source, or test behavior against the full documentation corpus.
 
 The theme starter template lives in [EkilyHQ/Press-Theme-Starter](https://github.com/EkilyHQ/Press-Theme-Starter). Use it when you want to create a new Press theme repository with the release workflow and contract-compatible starter theme already wired up.
 
-This repository carries the implementation template input for YAP under `templates/press-starter`. The official documentation site remains the full setup guide:
+The official documentation site remains the full setup guide:
 
 - Official site: [https://ekilyhq.github.io/Press/](https://ekilyhq.github.io/Press/)
 - Documentation: [Documentation for Press](https://ekilyhq.github.io/Press/?id=post%2Fdoc%2Fv2.1.0%2Fdoc_en.md&lang=en)

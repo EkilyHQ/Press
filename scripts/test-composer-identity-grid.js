@@ -107,8 +107,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=katex-math-20260510/,
-  'editor HTML should cache-bust editor-main.js when Markdown math rendering changes'
+  /assets\/js\/editor-main\.js\?v=highlightjs-common-20260510/,
+  'editor HTML should cache-bust editor-main.js when Highlight.js editor handling changes'
 );
 
 assert.match(
@@ -131,8 +131,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=katex-math-20260510/,
-  'editor HTML should cache-bust editor-main.js when Markdown math rendering changes'
+  /assets\/js\/editor-main\.js\?v=highlightjs-common-20260510/,
+  'editor HTML should cache-bust editor-main.js when Highlight.js editor handling changes'
 );
 
 assert.match(

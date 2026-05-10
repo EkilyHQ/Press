@@ -1,4 +1,4 @@
-import { simpleHighlight } from './syntax-highlight.js';
+import { simpleHighlight } from './syntax-highlight.js?v=highlightjs-common-20260510';
 
 function escapeHtmlInline(text) {
   if (!text) return '';

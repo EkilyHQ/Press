@@ -23,6 +23,8 @@ const themeLayout = read('assets/js/theme-layout.js');
 const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
+const syntaxHighlight = read('assets/js/syntax-highlight.js');
+const highlightJsBundle = read('assets/js/vendor/highlightjs/highlight.min.js');
 const nativeCss = read('assets/themes/native/base.css');
 const languageManifest = read('assets/i18n/languages.json');
 
@@ -91,6 +93,8 @@ assert.match(main, /from '\.\/js\/math-render\.js\?v=katex-math-20260510';/, 'ma
 assert.match(mathRender, /querySelectorAll\('\.press-math\[data-tex\]'\)/, 'math renderer should only target parser-generated math nodes');
 assert.doesNotMatch(mathRender, /auto-render/i, 'math renderer must not use KaTeX auto-render');
 assert.match(mathRender, /vendor\/katex\/[\s\S]*katex\.min\.css[\s\S]*katex\.min\.js/, 'math renderer should load vendored KaTeX core assets');
+assert.match(syntaxHighlight, /vendor\/highlightjs\/highlight\.min\.js/, 'syntax highlighter should load the vendored Highlight.js common bundle');
+assert.match(highlightJsBundle, /Highlight\.js v11\.11\.1/, 'vendored Highlight.js bundle should stay pinned to the reviewed common browser build');
 assert.match(editorBlocks, /from '\.\/math-render\.js\?v=katex-math-20260510';/, 'block editor should reuse the vendored KaTeX math renderer');
 assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block editor should register a math block type');
 assert.match(editorBlocks, /\['∑', 'math', 'inlineMath', 'Math'\]/, 'block editor should expose an inline math command');

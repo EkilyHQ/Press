@@ -1,10 +1,30 @@
 import { renderPressMath } from './math-render.js?v=katex-math-20260510';
-import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js';
+import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=highlightjs-common-20260510';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'source', 'blank']);
-const CODE_LANGUAGE_OPTIONS = ['', 'plain', 'javascript', 'json', 'python', 'html', 'xml', 'css', 'markdown', 'bash', 'shell', 'yaml', 'yml', 'robots'];
-const CODE_HIGHLIGHT_LANGUAGES = new Set(CODE_LANGUAGE_OPTIONS.filter(value => value && value !== 'plain'));
-const CODE_PLAIN_LANGUAGES = new Set(['plain', 'text', 'none', 'raw', 'nohighlight']);
+const CODE_LANGUAGE_OPTIONS = [
+  '', 'plain', 'text', 'raw', 'none', 'nohighlight',
+  'bash', 'c', 'cpp', 'csharp', 'css', 'diff', 'go', 'graphql', 'ini', 'java',
+  'javascript', 'json', 'kotlin', 'less', 'lua', 'makefile', 'markdown',
+  'objectivec', 'perl', 'php', 'php-template', 'plaintext', 'python',
+  'python-repl', 'r', 'ruby', 'rust', 'scss', 'shell', 'sql', 'swift',
+  'typescript', 'vbnet', 'wasm', 'xml', 'yaml',
+  'html', 'yml', 'robots'
+];
+const CODE_PLAIN_LANGUAGES = new Set(['plain', 'text', 'none', 'raw', 'nohighlight', 'plaintext']);
+const CODE_LANGUAGE_ALIASES = new Map([
+  ['js', 'javascript'],
+  ['ts', 'typescript'],
+  ['sh', 'bash'],
+  ['zsh', 'bash'],
+  ['html', 'xml'],
+  ['htm', 'xml'],
+  ['yml', 'yaml'],
+  ['md', 'markdown']
+]);
+const CODE_HIGHLIGHT_LANGUAGES = new Set(CODE_LANGUAGE_OPTIONS
+  .map(value => CODE_LANGUAGE_ALIASES.get(value) || value)
+  .filter(value => value && !CODE_PLAIN_LANGUAGES.has(value)));
 
 function normalizeText(value) {
   return String(value == null ? '' : value).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -1378,19 +1398,18 @@ function insertPlainTextIntoEditable(editable, text) {
 function resolveCodeHighlightLanguage(language, codeText) {
   const raw = String(language || '').trim();
   const normalized = raw.toLowerCase();
+  const resolved = CODE_LANGUAGE_ALIASES.get(normalized) || normalized;
   if (CODE_PLAIN_LANGUAGES.has(normalized)) {
     return { language: 'plain', label: 'PLAIN', highlight: false };
   }
-  if (CODE_HIGHLIGHT_LANGUAGES.has(normalized)) {
-    return { language: normalized, label: normalized.toUpperCase(), highlight: true };
-  }
-  if (normalized === 'htm') {
-    return { language: 'html', label: 'HTML', highlight: true };
+  if (CODE_HIGHLIGHT_LANGUAGES.has(resolved)) {
+    return { language: resolved, label: resolved.toUpperCase(), highlight: true };
   }
   if (!normalized) {
     const detected = String(detectLanguage(String(codeText || '')) || '').toLowerCase();
-    if (CODE_HIGHLIGHT_LANGUAGES.has(detected)) {
-      return { language: detected, label: detected.toUpperCase(), highlight: true };
+    const detectedResolved = CODE_LANGUAGE_ALIASES.get(detected) || detected;
+    if (CODE_HIGHLIGHT_LANGUAGES.has(detectedResolved)) {
+      return { language: detectedResolved, label: detectedResolved.toUpperCase(), highlight: true };
     }
   }
   return { language: 'plain', label: 'PLAIN', highlight: false };
@@ -5002,6 +5021,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     lang.setAttribute('aria-label', text('codeLanguage', 'Language'));
     const currentLang = String(block.data.lang || '').trim();
     const normalizedLang = currentLang.toLowerCase();
+    const resolvedLang = CODE_LANGUAGE_ALIASES.get(normalizedLang) || normalizedLang;
     const labels = new Map([
       ['', 'Auto / blank'],
       ['plain', 'plain']
@@ -5017,10 +5037,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       lang.appendChild(option);
     };
     CODE_LANGUAGE_OPTIONS.forEach((value) => appendOption(value, labels.get(value) || value));
-    if (currentLang && !CODE_LANGUAGE_OPTIONS.includes(normalizedLang)) {
+    if (currentLang && !CODE_LANGUAGE_OPTIONS.includes(normalizedLang) && !CODE_LANGUAGE_OPTIONS.includes(resolvedLang)) {
       appendOption(currentLang, `Unsupported: ${currentLang}`, true);
     }
-    lang.value = CODE_LANGUAGE_OPTIONS.includes(normalizedLang) ? normalizedLang : currentLang;
+    lang.value = CODE_LANGUAGE_OPTIONS.includes(normalizedLang)
+      ? normalizedLang
+      : (CODE_LANGUAGE_OPTIONS.includes(resolvedLang) ? resolvedLang : currentLang);
     lang.addEventListener('change', () => updateFromControl(block, { lang: lang.value }, true));
     return lang;
   };

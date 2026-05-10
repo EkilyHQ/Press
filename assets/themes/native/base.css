@@ -283,53 +283,62 @@ pre.with-code-scroll { overflow: hidden; }
 .code-scroll .code-gutter span { display: block; line-height: 1.55; }
 .code-scroll code { display: block; white-space: pre; flex: 1 1 auto; min-width: 0; }
 
-/* 语法高亮样式 - 针对亮色主题优化 */
-.syntax-keyword { color: #d73a49; font-weight: 600; }
-.syntax-string { color: #22863a; }
-.syntax-number { color: #005cc5; }
-.syntax-comment { color: #6a737d; font-style: italic; opacity: 0.9; }
-.syntax-operator { color: #d73a49; }
-.syntax-punctuation { color: #586069; }
-.syntax-tag { color: #22863a; font-weight: 600; }
-.syntax-property { color: #005cc5; }
-.syntax-selector { color: #6f42c1; font-weight: 600; }
+/* Syntax tokens are mapped from Highlight.js output into Press-owned classes. */
+.syntax-keyword,
+.syntax-keywords,
+.syntax-tag,
+.syntax-tags { color: #8250df; font-weight: 600; }
+.syntax-title { color: #953800; font-weight: 600; }
+.syntax-string,
+.syntax-strings,
+.syntax-link { color: #116329; }
+.syntax-number,
+.syntax-numbers { color: #0550ae; }
+.syntax-comment,
+.syntax-comments { color: #6e7781; font-style: italic; }
+.syntax-property,
+.syntax-properties,
+.syntax-attributes { color: #0550ae; }
+.syntax-selector,
+.syntax-selectors { color: #116329; font-weight: 600; }
+.syntax-preprocessor { color: #cf222e; font-weight: 600; }
+.syntax-variables { color: #953800; }
+.syntax-operator,
+.syntax-operators,
+.syntax-punctuation { color: #57606a; }
+.syntax-code { color: #0550ae; }
+.syntax-emphasis { font-style: italic; }
+.syntax-strong { font-weight: 700; }
+.syntax-addition { color: #1a7f37; background: rgba(46, 160, 67, 0.12); }
+.syntax-deletion { color: #cf222e; background: rgba(248, 81, 73, 0.12); }
+.syntax-formula { color: #953800; }
 
-/* 保留复数形式的兼容性 */
-.syntax-keywords { color: #d73a49; font-weight: 600; }
-.syntax-strings { color: #22863a; }
-.syntax-numbers { color: #005cc5; }
-.syntax-comments { color: #6a737d; font-style: italic; opacity: 0.9; }
-.syntax-operators { color: #d73a49; }
-.syntax-tags { color: #22863a; font-weight: 600; }
-.syntax-attributes { color: #6f42c1; }
-.syntax-selectors { color: #6f42c1; font-weight: 600; }
-.syntax-properties { color: #005cc5; }
-.syntax-preprocessor { color: #e36209; font-weight: 600; }
-.syntax-variables { color: #e36209; }
-
-/* 深色主题下的语法高亮调整 */
-[data-theme="dark"] .syntax-keyword { color: #ff7b72; }
-[data-theme="dark"] .syntax-string { color: #a5d6ff; }
-[data-theme="dark"] .syntax-number { color: #79c0ff; }
-[data-theme="dark"] .syntax-comment { color: #8b949e; }
-[data-theme="dark"] .syntax-operator { color: #ff7b72; }
-[data-theme="dark"] .syntax-tag { color: #7ee787; }
-[data-theme="dark"] .syntax-property { color: #79c0ff; }
-[data-theme="dark"] .syntax-selector { color: #d2a8ff; }
-
-/* 深色主题下的复数形式兼容性 */
-[data-theme="dark"] .syntax-keywords { color: #ff7b72; }
-[data-theme="dark"] .syntax-strings { color: #a5d6ff; }
+[data-theme="dark"] .syntax-keyword,
+[data-theme="dark"] .syntax-keywords,
+[data-theme="dark"] .syntax-tag,
+[data-theme="dark"] .syntax-tags { color: #d2a8ff; }
+[data-theme="dark"] .syntax-title { color: #ffa657; }
+[data-theme="dark"] .syntax-string,
+[data-theme="dark"] .syntax-strings,
+[data-theme="dark"] .syntax-link { color: #a5d6ff; }
+[data-theme="dark"] .syntax-number,
 [data-theme="dark"] .syntax-numbers { color: #79c0ff; }
+[data-theme="dark"] .syntax-comment,
 [data-theme="dark"] .syntax-comments { color: #8b949e; }
-[data-theme="dark"] .syntax-operators { color: #ff7b72; }
-[data-theme="dark"] .syntax-punctuation { color: #c9d1d9; }
-[data-theme="dark"] .syntax-tags { color: #7ee787; }
-[data-theme="dark"] .syntax-attributes { color: #d2a8ff; }
-[data-theme="dark"] .syntax-selectors { color: #d2a8ff; }
-[data-theme="dark"] .syntax-properties { color: #79c0ff; }
-[data-theme="dark"] .syntax-preprocessor { color: #ffa657; }
+[data-theme="dark"] .syntax-property,
+[data-theme="dark"] .syntax-properties,
+[data-theme="dark"] .syntax-attributes { color: #79c0ff; }
+[data-theme="dark"] .syntax-selector,
+[data-theme="dark"] .syntax-selectors { color: #7ee787; }
+[data-theme="dark"] .syntax-preprocessor { color: #ff7b72; }
 [data-theme="dark"] .syntax-variables { color: #ffa657; }
+[data-theme="dark"] .syntax-operator,
+[data-theme="dark"] .syntax-operators,
+[data-theme="dark"] .syntax-punctuation { color: #c9d1d9; }
+[data-theme="dark"] .syntax-code { color: #79c0ff; }
+[data-theme="dark"] .syntax-addition { color: #7ee787; background: rgba(46, 160, 67, 0.18); }
+[data-theme="dark"] .syntax-deletion { color: #ff7b72; background: rgba(248, 81, 73, 0.18); }
+[data-theme="dark"] .syntax-formula { color: #ffa657; }
 
 /* 语言标签样式 */
 .syntax-language-label {

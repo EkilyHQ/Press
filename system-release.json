@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "v3.3.62",
-  "tag": "v3.3.62",
-  "publishedAt": "2026-05-10T07:29:30Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.62.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.62.zip`\n- SHA-256: `ac21326addcb4dfca99c8ae5b5e93ed8adaf9219ba454701c7533bffb819c388`\n\n## Changed System Files\n\n- assets/js/editor-main.js\n- assets/js/hieditor.js\n- assets/js/syntax-highlight.js\n- assets/themes/native/base.css\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.61...v3.3.62\n",
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.62",
+  "name": "v3.3.63",
+  "tag": "v3.3.63",
+  "publishedAt": "2026-05-10T07:34:34Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.3.63.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.3.63.zip`\n- SHA-256: `cf821d8134f1f65e5ce675545dd6046bf794d739e0308f58d45dad14f0c4d9c1`\n\n## Changed System Files\n\n- index_editor.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.3.62...v3.3.63\n",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.3.63",
   "asset": {
-    "name": "press-system-v3.3.62.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.62/press-system-v3.3.62.zip",
-    "size": 1565916,
-    "digest": "sha256:ac21326addcb4dfca99c8ae5b5e93ed8adaf9219ba454701c7533bffb819c388"
+    "name": "press-system-v3.3.63.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.3.63/press-system-v3.3.63.zip",
+    "size": 1565919,
+    "digest": "sha256:cf821d8134f1f65e5ce675545dd6046bf794d739e0308f58d45dad14f0c4d9c1"
   }
 }

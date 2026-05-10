@@ -477,6 +477,11 @@ function applyComposerEffectiveSiteConfig(siteConfig) {
       window.__press_site_repo = { owner: '', name: '', branch: 'main' };
     } catch (_) {}
   }
+  try {
+    window.dispatchEvent(new CustomEvent('press-editor-site-config-change', {
+      detail: { siteConfig: deepClone(effective) }
+    }));
+  } catch (_) {}
   return effective;
 }
 
@@ -5503,7 +5508,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=katex-math-20260510"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=theme-layout-generation-20260510"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -8707,6 +8712,9 @@ function notifyComposerChange(kind, options = {}) {
   else applyIndexDiffMarkers(diff);
   updateFileDirtyBadge(kind);
   if (!options.skipAutoSave) scheduleAutoDraft(kind);
+  if (kind === 'site') {
+    try { applyComposerEffectiveSiteConfig(getStateSlice('site') || {}); } catch (_) {}
+  }
 
   updateUnsyncedSummary();
   if ((kind === 'index' || kind === 'tabs') && composerOrderPreviewActiveKind === kind) updateComposerOrderPreview(kind);
@@ -11019,14 +11027,25 @@ function updateMarkdownProtectionButton(tab) {
   const tooltip = hasActive
     ? getMarkdownProtectionTooltip(active)
     : t('editor.composer.markdown.protection.tooltipNoFile');
+  const switchEl = btn.closest ? btn.closest('.frontmatter-switch') : null;
 
   btn.hidden = false;
   btn.removeAttribute('aria-hidden');
   btn.disabled = !hasActive;
+  if ('checked' in btn) btn.checked = protectedState;
   btn.setAttribute('aria-disabled', hasActive ? 'false' : 'true');
+  btn.setAttribute('aria-checked', protectedState ? 'true' : 'false');
   btn.setAttribute('data-protected', protectedState ? 'true' : 'false');
+  btn.dataset.state = protectedState ? 'on' : 'off';
   btn.classList.toggle('is-protected', protectedState);
-  setButtonLabel(btn, label);
+  if (switchEl) {
+    switchEl.dataset.state = protectedState ? 'on' : 'off';
+    switchEl.classList.toggle('is-protected', protectedState);
+    switchEl.classList.toggle('is-disabled', !hasActive);
+    if (tooltip) switchEl.title = tooltip;
+    else switchEl.removeAttribute('title');
+  }
+  setButtonLabel(switchEl || btn, label);
   if (tooltip) btn.title = tooltip;
   else btn.removeAttribute('title');
   btn.setAttribute('aria-label', tooltip || label);

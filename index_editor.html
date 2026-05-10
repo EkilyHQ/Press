@@ -4,17 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Markdown Editor - Press</title>
-  <script src="assets/js/theme-boot.js?v=theme-switch-fix-20260508"></script>
   <script>
-    // Early boot to avoid initial flash
     (function () {
       try {
+        var saved = localStorage.getItem('theme');
+        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        else if (saved === 'light') document.documentElement.removeAttribute('data-theme');
+        else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
         document.documentElement.removeAttribute('data-init-mode');
         document.documentElement.setAttribute('data-init-cfile', 'site');
       } catch (_) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" id="theme-pack">
+  <link rel="stylesheet" href="assets/themes/native/theme.css?v=encrypted-demo-20260508" data-editor-native-theme>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html { height: 100%; }
@@ -1702,20 +1706,27 @@
       border-color:color-mix(in srgb, var(--border) 85%, transparent) !important;
       font-weight:500;
     }
-    button#btnProtectMarkdown.btn-secondary {
-      border-color:color-mix(in srgb, var(--border) 88%, transparent);
-      background:color-mix(in srgb, var(--card) 94%, var(--text) 4%);
-      color:var(--text);
-      font-weight:600;
+    .frontmatter-protection-grid {
+      margin-top:0.1rem;
     }
-    button#btnProtectMarkdown.btn-secondary[data-protected="true"] {
-      border-color:color-mix(in srgb, #7c3aed 48%, var(--border));
-      background:color-mix(in srgb, #7c3aed 13%, var(--card));
-      color:#4c1d95;
+    .frontmatter-protection-switch {
+      position:relative;
     }
-    button#btnProtectMarkdown.btn-secondary:disabled {
+    .frontmatter-protection-switch.is-disabled {
       opacity:.56;
       cursor:not-allowed;
+    }
+    .frontmatter-protection-switch.is-disabled .frontmatter-switch-track {
+      cursor:not-allowed;
+    }
+    .frontmatter-protection-switch .btn-label {
+      position:absolute;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+      clip:rect(0 0 0 0);
+      clip-path:inset(50%);
+      white-space:nowrap;
     }
     button#btnDiscard.btn-secondary {
       background:#e15b5b !important;
@@ -1799,9 +1810,11 @@
     .wrap-toggle .vt-label { color:#6e7781; font-weight:500; margin-right:.25rem; }
     .view-toggle .dim { display:none; }
     .view-toggle .vt-slider { position:absolute; z-index:0; top:var(--vt-pad); left:var(--vt-pad); width:var(--vt-button-width); height:var(--vt-button-height); border-radius:10px; background:color-mix(in srgb, var(--card) 99%, transparent); box-shadow:0 4px 12px rgba(15,23,42,.12), 0 1px 2px rgba(15,23,42,.08); transform:translateX(0); transition:transform .22s var(--composer-inline-ease, cubic-bezier(0.16, 1, 0.3, 1)), box-shadow .18s ease; pointer-events:none; }
-    .view-toggle[data-view="blocks"] .vt-slider { transform:translateX(calc(var(--vt-button-width) + var(--vt-gap))); }
-    .view-toggle[data-view="preview"] .vt-slider { transform:translateX(calc((var(--vt-button-width) + var(--vt-gap)) * 2)); }
+    .view-toggle[data-view="edit"] .vt-slider { transform:translateX(calc(var(--vt-button-width) + var(--vt-gap))); }
     .view-toggle .vt-btn { position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center; width:var(--vt-button-width); height:var(--vt-button-height); border-radius:10px; color:color-mix(in srgb, var(--muted) 82%, var(--text)); text-decoration:none; line-height:1; transition:color .16s ease, transform .16s ease; }
+    .editor-preview-open { display:inline-flex; align-items:center; justify-content:center; width:2.35rem; height:2.125rem; min-height:2.125rem; padding:0; border-radius:10px; }
+    .editor-preview-open .vt-icon { width:1.2rem; height:1.2rem; display:block; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .editor-preview-open .vt-text { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
     .wrap-toggle .vt-btn { color:#0969da; text-decoration:none; padding:.1rem .25rem; border-radius:6px; position:relative; }
     .view-toggle .vt-btn:hover { color:color-mix(in srgb, var(--primary) 82%, var(--text)); text-decoration:none; }
     .wrap-toggle .vt-btn:hover { text-decoration:underline; }
@@ -1816,6 +1829,49 @@
     .view-toggle .vt-btn .vt-dirty-badge{position:absolute;top:-.45rem;right:0;min-width:1.15rem;height:1.15rem;padding:0 .32rem;border-radius:999px;background:#ef4444;color:#fff;font-size:.68rem;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(15,23,42,.2),0 0 0 2px var(--card);opacity:0;transform:translateX(50%) scale(.72);transition:opacity .16s ease,transform .16s ease;pointer-events:none;z-index:2;font-feature-settings:'tnum' 1,'case' 1}
     .view-toggle .vt-btn .vt-dirty-badge[hidden]{display:none}
     .view-toggle .vt-btn.has-draft .vt-dirty-badge{opacity:1;transform:translateX(50%) scale(1)}
+    .preview-theme-control { display:inline-flex; align-items:center; gap:.45rem; min-height:2rem; padding:.18rem .25rem .18rem .5rem; border:1px solid color-mix(in srgb, var(--border) 86%, transparent); border-radius:8px; background:color-mix(in srgb, var(--card) 96%, transparent); color:var(--text); }
+    .preview-theme-label { color:color-mix(in srgb, var(--muted) 92%, var(--text)); font-size:.78rem; font-weight:700; line-height:1; white-space:nowrap; }
+    .preview-theme-select { min-width:8.5rem; max-width:14rem; height:1.7rem; border:1px solid color-mix(in srgb, var(--border) 88%, transparent); border-radius:8px; background:var(--card); color:var(--text); font:inherit; font-size:.82rem; line-height:1.1; padding:.15rem 1.8rem .15rem .45rem; }
+    .editor-preview-overlay { position:fixed; inset:0; z-index:5000; display:grid; grid-template-rows:auto minmax(0, 1fr); width:100vw; height:100vh; min-width:0; min-height:0; margin:0; padding:0; border:0; border-radius:0; background:var(--bg); overflow:hidden; box-shadow:none; opacity:0; transform:translateY(10px) scale(.985); transform-origin:center; pointer-events:none; transition:opacity .22s ease, transform .26s cubic-bezier(.16, 1, .3, 1); will-change:opacity, transform; }
+    .editor-preview-overlay[hidden] { display:none !important; }
+    .editor-preview-overlay.is-open { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+    .editor-preview-overlay.is-closing { opacity:0; transform:translateY(8px) scale(.985); pointer-events:none; }
+    .editor-preview-toolbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; min-width:0; min-height:2.85rem; padding:.45rem .75rem; border-bottom:1px solid var(--border); background:color-mix(in srgb, var(--bg) 96%, var(--card) 4%); opacity:0; transform:translateY(-8px); transition:opacity .2s ease .04s, transform .24s cubic-bezier(.16, 1, .3, 1) .04s; will-change:opacity, transform; }
+    .editor-preview-overlay.is-open .editor-preview-toolbar { opacity:1; transform:translateY(0); }
+    .editor-preview-overlay.is-closing .editor-preview-toolbar { opacity:0; transform:translateY(-8px); transition-delay:0s; }
+    .editor-preview-toolbar-main { display:flex; align-items:center; gap:.7rem; min-width:0; }
+    .editor-preview-mode-label { flex:0 0 auto; font-size:.78rem; font-weight:800; letter-spacing:.02em; color:var(--primary); text-transform:uppercase; }
+    .editor-preview-path { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:color-mix(in srgb, var(--text) 88%, var(--muted)); font-size:.88rem; }
+    .editor-preview-toolbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:.55rem; flex:0 0 auto; }
+    .editor-preview-close { width:2rem; height:2rem; padding:0; border-radius:8px; font-size:1.2rem; line-height:1; }
+    .editor-preview-viewport-shell { min-width:0; min-height:0; overflow:hidden; display:flex; align-items:stretch; justify-content:center; background:var(--bg); opacity:0; transform:translateY(16px) scale(.992); transition:opacity .22s ease .06s, transform .28s cubic-bezier(.16, 1, .3, 1) .06s; will-change:opacity, transform; }
+    .editor-preview-overlay.is-open .editor-preview-viewport-shell { opacity:1; transform:translateY(0) scale(1); }
+    .editor-preview-overlay.is-closing .editor-preview-viewport-shell { opacity:0; transform:translateY(12px) scale(.992); transition-delay:0s; }
+    .editor-preview-frame-sizer { position:relative; width:calc(100% - 36px); max-width:calc(100% - 36px); min-width:min(360px, calc(100% - 36px)); height:100%; flex:0 1 auto; }
+    .editor-preview-frame-sizer.is-resizing .editor-preview-frame { pointer-events:none; }
+    .editor-preview-resize-handle { position:absolute; top:0; bottom:0; width:18px; z-index:2; display:flex; align-items:center; justify-content:center; cursor:ew-resize; border:0; padding:0; background:transparent; color:color-mix(in srgb, var(--muted) 78%, transparent); }
+    .editor-preview-resize-handle::before { content:""; width:3px; height:3rem; border-radius:999px; background:currentColor; opacity:.45; transition:opacity .14s ease, transform .14s ease; }
+    .editor-preview-resize-handle:hover::before,
+    .editor-preview-resize-handle:focus-visible::before,
+    .editor-preview-frame-sizer.is-resizing .editor-preview-resize-handle::before { opacity:.9; transform:scaleX(1.35); }
+    .editor-preview-resize-handle:focus-visible { outline:2px solid color-mix(in srgb, var(--primary) 54%, transparent); outline-offset:-2px; }
+    .editor-preview-resize-handle-left { left:-18px; }
+    .editor-preview-resize-handle-right { right:-18px; }
+    .editor-preview-frame { display:block; width:100%; height:100%; border:0; border-radius:0; background:var(--bg); }
+    @media (prefers-reduced-motion: reduce) {
+      .editor-preview-overlay,
+      .editor-preview-toolbar,
+      .editor-preview-viewport-shell {
+        transition:none !important;
+        transform:none !important;
+        will-change:auto;
+      }
+      .editor-preview-overlay.is-open,
+      .editor-preview-overlay.is-open .editor-preview-toolbar,
+      .editor-preview-overlay.is-open .editor-preview-viewport-shell {
+        opacity:1;
+      }
+    }
     .wrap-toggle .dim { color:#8c959f; }
     /* Editor: reuse SEO hi-editor rules for perfect alignment */
     .hi-editor pre.hi-pre { background-color: transparent; color: var(--code-text); padding: 1rem 1rem 1rem 0.5rem; overflow: hidden; border: 0; border-radius: 8px; line-height: 20px; font-size: 12px; tab-size: 4; position: relative; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Ubuntu Mono", monospace; font-weight: 400; font-variant-ligatures: none; letter-spacing: 0; }
@@ -2198,18 +2254,14 @@
                 <span class="current-file" id="currentFile" aria-live="polite"></span>
               </div>
               <div class="right-actions">
-                <div class="view-toggle" aria-label="View switch" data-view="edit" data-i18n-aria-label="editor.toolbar.viewAria">
+                <div class="view-toggle" aria-label="View switch" data-view="blocks" data-i18n-aria-label="editor.toolbar.viewAria">
                   <span class="vt-label" data-i18n="editor.toolbar.view">View:</span>
                   <span class="vt-slider" aria-hidden="true"></span>
-                  <a href="#" class="vt-btn active" data-view="edit" aria-label="Editor" data-i18n-aria-label="editor.toolbar.viewEdit"><span class="vt-code-icon" aria-hidden="true">&lt;/&gt;</span><span class="vt-text" data-i18n="editor.toolbar.viewEdit">Editor</span></a>
+                  <a href="#" class="vt-btn active" data-view="blocks" aria-label="Blocks" data-i18n-aria-label="editor.toolbar.viewBlocks"><span class="vt-blocks-icon" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span class="vt-text" data-i18n="editor.toolbar.viewBlocks">Blocks</span></a>
                   <span class="dim" aria-hidden="true">/</span>
-                  <a href="#" class="vt-btn" data-view="blocks" aria-label="Blocks" data-i18n-aria-label="editor.toolbar.viewBlocks"><span class="vt-blocks-icon" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span class="vt-text" data-i18n="editor.toolbar.viewBlocks">Blocks</span></a>
-                  <span class="dim" aria-hidden="true">/</span>
-                  <a href="#" class="vt-btn" data-view="preview" aria-label="Preview" data-i18n-aria-label="editor.toolbar.viewPreview"><svg class="vt-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg><span class="vt-text" data-i18n="editor.toolbar.viewPreview">Preview</span></a>
+                  <a href="#" class="vt-btn" data-view="edit" aria-label="Editor" data-i18n-aria-label="editor.toolbar.viewEdit"><span class="vt-code-icon" aria-hidden="true">&lt;/&gt;</span><span class="vt-text" data-i18n="editor.toolbar.viewEdit">Editor</span></a>
                 </div>
-                <button type="button" class="btn-secondary" id="btnProtectMarkdown" disabled>
-                  <span class="btn-label" data-i18n="editor.toolbar.protection">Protection</span>
-                </button>
+                <button type="button" class="btn-secondary editor-preview-open" id="btnOpenPreview" aria-label="Preview" title="Preview" data-i18n-aria-label="editor.toolbar.viewPreview" data-i18n-title="editor.toolbar.viewPreview"><svg class="vt-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg><span class="vt-text" data-i18n="editor.toolbar.viewPreview">Preview</span></button>
                 <button type="button" class="btn-secondary" id="btnSaveMarkdown" disabled>
                   <span class="btn-label" data-i18n="editor.toolbar.save">Save</span>
                 </button>
@@ -2255,9 +2307,6 @@
               <div id="blocks-wrap" hidden aria-hidden="true"></div>
             </div>
 
-            <div id="preview-wrap" style="display:none;">
-              <div id="preview-main" class="native-mainview" data-theme-region="main"></div>
-            </div>
           </div>
           <aside class="editor-workspace-meta" aria-label="Front matter panel">
             <div class="frontmatter-panel" id="frontMatterPanel" data-state="loading">
@@ -2275,11 +2324,53 @@
                     <h3 class="frontmatter-section-title" data-i18n="editor.frontMatter.advancedTitle">Advanced fields</h3>
                     <p class="frontmatter-section-description" data-i18n="editor.frontMatter.advancedDescription">Supplemental metadata for sharing images, version badges, and AI labels.</p>
                   </div>
+                  <div class="frontmatter-grid frontmatter-protection-grid">
+                    <div class="frontmatter-field frontmatter-field-boolean frontmatter-protection-action" data-field-id="article-protection" data-section="advanced">
+                      <div class="frontmatter-field-head">
+                        <div class="frontmatter-field-label-wrap">
+                          <span class="frontmatter-field-title" data-i18n="editor.toolbar.protection">Protection</span>
+                          <span class="frontmatter-help-tooltip-wrap">
+                            <button type="button" class="frontmatter-help-tooltip" aria-label="Protection: Encrypt this article with a per-article password." aria-describedby="frontmatter-help-article-protection">?</button>
+                            <span id="frontmatter-help-article-protection" class="frontmatter-help-tooltip-bubble" role="tooltip">Encrypt this article with a per-article password.</span>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="frontmatter-field-controls">
+                        <label class="frontmatter-switch frontmatter-protection-switch" data-state="off">
+                          <input type="checkbox" class="frontmatter-switch-input" id="btnProtectMarkdown" role="switch" aria-checked="false" disabled>
+                          <span class="frontmatter-switch-track" aria-hidden="true"><span class="frontmatter-switch-thumb"></span></span>
+                          <span class="btn-label" data-i18n="editor.toolbar.protection">Protection</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                   <div class="frontmatter-grid" id="frontMatterExtraFields"></div>
                 </div>
               </div>
             </div>
           </aside>
+        </div>
+        <div id="preview-wrap" class="editor-preview-overlay" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Preview mode" tabindex="-1">
+          <div class="editor-preview-toolbar">
+            <div class="editor-preview-toolbar-main">
+              <span class="editor-preview-mode-label">Preview</span>
+              <span class="editor-preview-path" id="previewPathLabel"></span>
+            </div>
+            <div class="editor-preview-toolbar-actions">
+              <label class="preview-theme-control" id="previewThemeControl">
+                <span class="preview-theme-label">Preview theme</span>
+                <select class="preview-theme-select" id="previewThemeSelect" aria-label="Preview theme"></select>
+              </label>
+              <button type="button" class="btn-secondary editor-preview-close" id="btnClosePreview" aria-label="Close preview" title="Close preview">×</button>
+            </div>
+          </div>
+          <div class="editor-preview-viewport-shell" id="previewViewportShell">
+            <div class="editor-preview-frame-sizer" id="previewFrameSizer">
+              <button type="button" class="editor-preview-resize-handle editor-preview-resize-handle-left" data-preview-resize="left" aria-label="Resize preview viewport from left"></button>
+              <iframe id="previewFrame" class="editor-preview-frame" title="Markdown preview" src="index_editor_preview.html" loading="lazy"></iframe>
+              <button type="button" class="editor-preview-resize-handle editor-preview-resize-handle-right" data-preview-resize="right" aria-label="Resize preview viewport from right"></button>
+            </div>
+          </div>
         </div>
           </section>
           <section class="editor-system-panel" id="editorSystemPanel" hidden aria-hidden="true" aria-live="polite">
@@ -2483,8 +2574,8 @@
     })();
   </script>
   <script type="module" src="assets/js/editor-boot.js?v=annotate-i18n-20260510"></script>
-  <script type="module" src="assets/js/editor-main.js?v=highlightjs-common-20260510"></script>
-  <script type="module" src="assets/js/composer.js?v=annotate-combobox-20260510"></script>
+  <script type="module" src="assets/js/editor-main.js?v=blocks-default-view-20260510"></script>
+  <script type="module" src="assets/js/composer.js?v=protection-native-switch-20260510"></script>
   <!-- Back to top button -->
   <button id="backToTop" class="back-to-top" aria-label="返回顶部" title="返回顶部" type="button" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

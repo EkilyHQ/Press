@@ -10,7 +10,7 @@ import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../
 import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=theme-switch-fix-20260508';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=local-theme-overlays-20260510';
 import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=encrypted-demo-20260508';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;

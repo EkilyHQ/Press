@@ -16,6 +16,7 @@ prefix="press-system-${version}/"
 system_paths=(
   "index.html"
   "index_editor.html"
+  "index_editor_preview.html"
   "assets/main.js"
   "assets/js"
   "assets/i18n"

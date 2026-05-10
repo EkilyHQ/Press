@@ -8,8 +8,8 @@ import {
 } from './js/encrypted-content.js?v=encrypted-demo-20260508';
 import { mdParse } from './js/markdown.js?v=katex-math-20260510';
 import { setupAnchors, setupTOC } from './js/toc.js?v=annotate-i18n-20260510';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=theme-switch-fix-20260508';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-switch-fix-20260508';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=local-theme-overlays-20260510';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-layout-generation-20260510';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=katex-math-20260510';

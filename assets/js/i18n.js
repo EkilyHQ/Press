@@ -14,7 +14,7 @@ import { isEncryptedMarkdown } from './encrypted-content.js?v=encrypted-demo-202
 import { getContentRoot } from './utils.js';
 import { fetchConfigWithYamlFallback } from './yaml.js';
 import { getThemeRegion } from './theme-regions.js';
-import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=local-connect-settings-20260508';
+import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=annotate-i18n-20260510';
 
 // Content fetch cache modes are normalized by cache-control.js.
 

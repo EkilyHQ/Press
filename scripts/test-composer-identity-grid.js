@@ -10,6 +10,7 @@ const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
+const starterSitePath = resolve(here, '../templates/press-starter/site.yaml');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
 const nativeThemePath = resolve(here, '../assets/themes/native/theme.css');
 const enI18nPath = resolve(here, '../assets/i18n/en.js');
@@ -25,6 +26,7 @@ const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
+const starterSiteSource = readFileSync(starterSitePath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
 const nativeThemeSource = readFileSync(nativeThemePath, 'utf8');
 const i18nSource = readFileSync(i18nPath, 'utf8');
@@ -99,7 +101,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=local-connect-settings-20260508/,
+  /assets\/js\/editor-boot\.js\?v=annotate-i18n-20260510/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
@@ -111,7 +113,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=annotate-settings-20260510/,
+  /assets\/js\/composer\.js\?v=annotate-combobox-20260510/,
   'editor HTML should cache-bust composer.js when site settings UI changes'
 );
 
@@ -1888,19 +1890,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=local-connect-settings-20260508';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=annotate-i18n-20260510';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/chs\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/cht-tw\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/cht-hk\.js\?v=local-connect-settings-20260508"[\s\S]*"\.\/ja\.js\?v=local-connect-settings-20260508"/,
+  /"\.\/en\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/chs\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/cht-tw\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/cht-hk\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/ja\.js\?v=annotate-i18n-20260510"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=local-connect-settings-20260508'/,
+  /from '\.\.\/i18n\/en\.js\?v=annotate-i18n-20260510'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
@@ -3165,6 +3167,18 @@ assert.match(
   source,
   /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const CONNECT_PUBLISH_BASE_URL_STORAGE_KEY = 'press_connect_publish_base_url';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
   'Connect publish settings should use scoped local browser storage with built-in remote presets'
+);
+
+assert.match(
+  source,
+  /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: CONNECT_PUBLISH_PRESETS[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: ANNOTATE_DISCUSSION_CATEGORY_PRESETS/,
+  'Annotate settings should expose editable datalist inputs for Connect URL and Discussion category'
+);
+
+assert.match(
+  starterSiteSource,
+  /annotate:\n  enabled: true\n  connectBaseUrl: https:\/\/connect-8mr\.pages\.dev\n  discussionCategory: General/,
+  'Press starter site.yaml should default new YAP sites to enabled Annotate comments'
 );
 
 assert.match(

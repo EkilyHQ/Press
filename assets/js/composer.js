@@ -8,8 +8,8 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=local-connect-settings-20260508';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=local-connect-settings-20260508';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=annotate-i18n-20260510';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=annotate-i18n-20260510';
 import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=katex-math-20260510';
 import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=theme-switch-fix-20260508';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
@@ -251,6 +251,9 @@ const CONNECT_PUBLISH_MESSAGE_TYPE = 'press-connect-publish-authorized';
 const CONNECT_PUBLISH_PRESETS = [
   { value: 'https://connect-8mr.pages.dev', label: 'Ekily Connect' },
   { value: 'http://127.0.0.1:8788', label: 'Local Connect' }
+];
+const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
+  { value: 'General', label: 'General' }
 ];
 
 let markdownPushButton = null;
@@ -17688,17 +17691,31 @@ function buildSiteUI(root, state) {
       const { controlCell, controlId } = addAnnotateRow(item);
       const input = document.createElement('input');
       input.id = controlId;
-      input.type = 'text';
+      input.type = item.type || 'text';
       input.className = 'cs-input';
       input.dataset.field = 'annotate';
       input.dataset.subfield = item.subfield;
       input.value = item.get() || '';
       input.placeholder = item.placeholder || '';
+      if (item.listId) input.setAttribute('list', item.listId);
+      input.spellcheck = false;
+      input.autocomplete = 'off';
       input.addEventListener('input', () => {
         item.set(input.value);
         markDirty();
       });
       controlCell.appendChild(input);
+      if (item.listId && Array.isArray(item.options)) {
+        const list = document.createElement('datalist');
+        list.id = item.listId;
+        item.options.forEach((entry) => {
+          const option = document.createElement('option');
+          option.value = entry.value;
+          option.label = entry.label || entry.value;
+          list.appendChild(option);
+        });
+        controlCell.appendChild(list);
+      }
       return input;
     };
 
@@ -17707,7 +17724,10 @@ function buildSiteUI(root, state) {
       subfield: 'connectBaseUrl',
       label: t('editor.composer.site.fields.annotateConnectBaseUrl'),
       description: t('editor.composer.site.fields.annotateConnectBaseUrlHelp'),
-      placeholder: 'https://connect.example.com',
+      type: 'url',
+      listId: 'siteAnnotateConnectBaseUrlPresets',
+      options: CONNECT_PUBLISH_PRESETS,
+      placeholder: CONNECT_PUBLISH_PRESETS[0].value,
       get: () => annotate.connectBaseUrl,
       set: (value) => { annotate.connectBaseUrl = value; }
     });
@@ -17717,6 +17737,8 @@ function buildSiteUI(root, state) {
       subfield: 'discussionCategory',
       label: t('editor.composer.site.fields.annotateDiscussionCategory'),
       description: t('editor.composer.site.fields.annotateDiscussionCategoryHelp'),
+      listId: 'siteAnnotateDiscussionCategoryPresets',
+      options: ANNOTATE_DISCUSSION_CATEGORY_PRESETS,
       placeholder: 'General',
       get: () => annotate.discussionCategory,
       set: (value) => { annotate.discussionCategory = value; }

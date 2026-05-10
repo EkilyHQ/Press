@@ -111,8 +111,8 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=katex-math-20260510/,
-  'editor HTML should cache-bust composer.js when exported runtime and system update imports change'
+  /assets\/js\/composer\.js\?v=annotate-settings-20260510/,
+  'editor HTML should cache-bust composer.js when site settings UI changes'
 );
 
 assert.match(

@@ -41,6 +41,11 @@ if ! grep -qx "press-system-${version}/index_editor.html" "${entries_file}"; the
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/index_editor_preview.html" "${entries_file}"; then
+  echo "expected package to include index_editor_preview.html" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/system-updates.js" "${entries_file}"; then
   echo "expected package to include system updater code" >&2
   exit 1
@@ -139,7 +144,7 @@ if grep -Eq "${blocked}" "${entries_file}"; then
   exit 1
 fi
 
-allowed="^press-system-${version}/(index\\.html|index_editor\\.html|assets/(main\\.js|js/.*|i18n/.*|schema/.*|themes/native/.*))$"
+allowed="^press-system-${version}/(index\\.html|index_editor\\.html|index_editor_preview\\.html|assets/(main\\.js|js/.*|i18n/.*|schema/.*|themes/native/.*))$"
 while IFS= read -r entry; do
   if [[ ! "${entry}" =~ ${allowed} ]]; then
     echo "unexpected file in system release package: ${entry}" >&2

@@ -4,7 +4,7 @@ import {
   getRequestedThemePack,
   setThemePackStylesheet,
   suppressThemePack
-} from './theme.js?v=theme-switch-fix-20260508';
+} from './theme.js?v=local-theme-overlays-20260510';
 import {
   t,
   withLangParam,
@@ -207,6 +207,17 @@ function clearFailedThemeArtifacts(pack) {
   try { setThemeLayoutContext(null); } catch (_) {}
 }
 
+function clearMountedThemeArtifacts() {
+  try {
+    document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
+  } catch (_) {}
+  try {
+    document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
+  } catch (_) {}
+  try { delete document.body.dataset.themeLayout; } catch (_) {}
+  try { setThemeLayoutContext(null); } catch (_) {}
+}
+
 function warnUndeclaredRegions(pack, manifest, regions) {
   if (!isThemeDevMode()) return;
   const declared = new Set(getDeclaredRegionNames(manifest));
@@ -375,17 +386,20 @@ async function mountLoadedModule(pack, entry, mod, context, manifest) {
   context.regions = ensureThemeRegionRegistry(context.regions);
 }
 
-async function mountPack(pack, allowFallback = true) {
+async function mountPack(pack, allowFallback = true, options = {}) {
+  const persist = options.persist !== false;
   let manifest;
   try {
     manifest = await loadManifest(pack);
   } catch (err) {
     console.error(`[theme] Failed to load manifest for "${pack}"`, err);
     if (allowFallback && pack !== DEFAULT_PACK) {
-      suppressThemePack(pack);
-      clearPendingThemePack(pack);
+      if (persist) {
+        suppressThemePack(pack);
+        clearPendingThemePack(pack);
+      }
       clearFailedThemeArtifacts(pack);
-      return mountPack(DEFAULT_PACK, false);
+      return mountPack(DEFAULT_PACK, false, options);
     }
     manifest = FALLBACK_MANIFEST;
   }
@@ -398,10 +412,12 @@ async function mountPack(pack, allowFallback = true) {
     } catch (err) {
       console.error('[theme] Failed to load module', entry, err);
       if (allowFallback && pack !== DEFAULT_PACK) {
-        suppressThemePack(pack);
-        clearPendingThemePack(pack);
+        if (persist) {
+          suppressThemePack(pack);
+          clearPendingThemePack(pack);
+        }
         clearFailedThemeArtifacts(pack);
-        return mountPack(DEFAULT_PACK, false);
+        return mountPack(DEFAULT_PACK, false, options);
       }
     }
   }
@@ -427,10 +443,12 @@ async function mountPack(pack, allowFallback = true) {
     } catch (err) {
       console.error('[theme] Failed to mount module', entry, err);
       if (allowFallback && pack !== DEFAULT_PACK) {
-        suppressThemePack(pack);
-        clearPendingThemePack(pack);
+        if (persist) {
+          suppressThemePack(pack);
+          clearPendingThemePack(pack);
+        }
         clearFailedThemeArtifacts(pack);
-        return mountPack(DEFAULT_PACK, false);
+        return mountPack(DEFAULT_PACK, false, options);
       }
     }
   }
@@ -438,14 +456,20 @@ async function mountPack(pack, allowFallback = true) {
   document.body.dataset.themeLayout = pack;
   warnMissingRegions(pack, manifest, context);
   setThemeLayoutContext(context);
-  if (pack !== DEFAULT_PACK) {
+  if (persist && pack !== DEFAULT_PACK) {
     commitThemePack(pack, { applyStyles: false });
   }
   return context;
 }
 
-export async function ensureThemeLayout() {
-  const pack = getRequestedThemePack();
+export async function ensureThemeLayout(options = {}) {
+  const requestedPack = options && options.pack ? String(options.pack) : '';
+  const pack = requestedPack || getRequestedThemePack();
+  if (options && options.reset) {
+    clearMountedThemeArtifacts();
+    activePack = null;
+    layoutPromise = null;
+  }
   const cachedContext = readThemeLayoutContext();
   if (cachedContext && document.body.dataset.themeLayout === pack) {
     return cachedContext;
@@ -454,7 +478,7 @@ export async function ensureThemeLayout() {
     return layoutPromise;
   }
   activePack = pack;
-  layoutPromise = mountPack(pack).then((context) => {
+  layoutPromise = mountPack(pack, true, options).then((context) => {
     const resolvedPack = (context && context.pack) || document.body.dataset.themeLayout || DEFAULT_PACK;
     activePack = resolvedPack;
     return context;

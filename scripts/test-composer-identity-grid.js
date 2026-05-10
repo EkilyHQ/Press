@@ -1541,6 +1541,12 @@ assert.match(
   'runtime and editor entrypoints should cache-bust the Highlight.js-backed syntax highlighter'
 );
 
+assert.match(
+  editorMainSource,
+  /from '\.\/hieditor\.js\?v=highlightjs-common-20260510';/,
+  'editor main should cache-bust hi-editor when Highlight.js span output changes'
+);
+
 assert.doesNotMatch(
   [mainSource, editorMainSource, editorBlocksSource, hiEditorSource].join('\n'),
   /syntax-highlight\.js(?:['"]|;)|syntax-highlight\.js\?v=blocks-code-gutter-20260505/,
@@ -1581,6 +1587,20 @@ assert.match(
   syntaxHighlightSource,
   /export function createSafeHighlightFragment\(code, language\) \{[\s\S]*return toSafeFragment\(simpleHighlight\(code \|\| '', language \|\| 'plain'\)\);[\s\S]*\}/,
   'syntax highlighter should expose a safe fragment helper for editor-owned highlight mirrors'
+);
+
+assert.ok(
+  hiEditorSource.includes("const isClassOk = (cls) => (")
+    && hiEditorSource.includes("/^syntax-[a-z-]+$/.test(cls)")
+    && hiEditorSource.includes("/^hljs-[A-Za-z0-9_-]+$/.test(cls)")
+    && hiEditorSource.includes("/^[A-Za-z]+_+$/.test(cls)"),
+  'hi-editor safe renderer should accept Highlight.js classes plus Press syntax classes'
+);
+
+assert.match(
+  hiEditorSource,
+  /if \(markup\.startsWith\('<span', i\)\) \{[\s\S]*split\(\/\\s\+\/\)\.filter\(isClassOk\)[\s\S]*i \+= match\[0\]\.length;[\s\S]*const nextLt = markup\.indexOf\('<', i\);[\s\S]*if \(nextLt === i\) \{[\s\S]*document\.createTextNode\('<'\)[\s\S]*i \+= 1;[\s\S]*continue;[\s\S]*\}/,
+  'hi-editor safe renderer should preserve unknown angle brackets as text and never stall on Highlight.js spans'
 );
 
 assert.match(

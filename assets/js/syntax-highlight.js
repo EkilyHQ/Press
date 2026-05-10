@@ -24,17 +24,72 @@ const LANGUAGE_ALIASES = new Map([
   ['none', 'plaintext'],
   ['nohighlight', 'plaintext']
 ]);
+const HIGHLIGHT_CLASS_ALLOWLIST = new Set([
+  'class_',
+  'constant_',
+  'dispatch_',
+  'escape_',
+  'function_',
+  'hljs-addition',
+  'hljs-attr',
+  'hljs-attribute',
+  'hljs-built_in',
+  'hljs-bullet',
+  'hljs-char',
+  'hljs-class',
+  'hljs-code',
+  'hljs-comment',
+  'hljs-deletion',
+  'hljs-doctag',
+  'hljs-emphasis',
+  'hljs-function',
+  'hljs-keyword',
+  'hljs-label',
+  'hljs-link',
+  'hljs-literal',
+  'hljs-meta',
+  'hljs-name',
+  'hljs-number',
+  'hljs-operator',
+  'hljs-params',
+  'hljs-property',
+  'hljs-punctuation',
+  'hljs-quote',
+  'hljs-regexp',
+  'hljs-section',
+  'hljs-selector-attr',
+  'hljs-selector-class',
+  'hljs-selector-id',
+  'hljs-selector-pseudo',
+  'hljs-selector-tag',
+  'hljs-string',
+  'hljs-strong',
+  'hljs-subst',
+  'hljs-symbol',
+  'hljs-tag',
+  'hljs-template-variable',
+  'hljs-title',
+  'hljs-type',
+  'hljs-variable',
+  'inherited__',
+  'invoke__',
+  'language_',
+  'prompt_'
+]);
 const TOKEN_CLASS_MAP = new Map([
   ['hljs-keyword', 'syntax-keyword'],
   ['hljs-built_in', 'syntax-keyword'],
   ['hljs-literal', 'syntax-keyword'],
   ['hljs-type', 'syntax-keyword'],
   ['hljs-symbol', 'syntax-keyword'],
+  ['hljs-class', 'syntax-keyword'],
+  ['hljs-function', 'syntax-keyword'],
   ['hljs-name', 'syntax-tag'],
   ['hljs-tag', 'syntax-tag'],
   ['hljs-attr', 'syntax-property'],
   ['hljs-attribute', 'syntax-property'],
   ['hljs-property', 'syntax-property'],
+  ['hljs-params', 'syntax-property'],
   ['hljs-variable', 'syntax-variables'],
   ['hljs-template-variable', 'syntax-variables'],
   ['hljs-selector-tag', 'syntax-selector'],
@@ -54,9 +109,11 @@ const TOKEN_CLASS_MAP = new Map([
   ['hljs-meta', 'syntax-preprocessor'],
   ['hljs-meta-keyword', 'syntax-preprocessor'],
   ['hljs-meta-string', 'syntax-string'],
+  ['hljs-label', 'syntax-preprocessor'],
   ['hljs-operator', 'syntax-operator'],
   ['hljs-punctuation', 'syntax-punctuation'],
   ['hljs-bullet', 'syntax-punctuation'],
+  ['hljs-char', 'syntax-string'],
   ['hljs-code', 'syntax-code'],
   ['hljs-emphasis', 'syntax-emphasis'],
   ['hljs-strong', 'syntax-strong'],
@@ -111,10 +168,17 @@ function robotsHighlight(raw) {
 function mapHighlightClasses(classText) {
   const mapped = [];
   String(classText || '').split(/\s+/).forEach((cls) => {
+    if (!cls) return;
+    if (HIGHLIGHT_CLASS_ALLOWLIST.has(cls) && !mapped.includes(cls)) mapped.push(cls);
     const value = TOKEN_CLASS_MAP.get(cls);
     if (value && !mapped.includes(value)) mapped.push(value);
   });
   return mapped;
+}
+
+function isAllowedHighlightClass(className) {
+  const value = String(className || '').trim();
+  return value.startsWith('syntax-') || HIGHLIGHT_CLASS_ALLOWLIST.has(value);
 }
 
 function mapHighlightHtml(html) {
@@ -171,7 +235,6 @@ function simpleHighlight(code, language) {
 function toSafeFragment(html) {
   const allowedTag = 'SPAN';
   const allowedAttr = 'class';
-  const classPrefix = 'syntax-';
 
   try {
     if (typeof window !== 'undefined' && 'Sanitizer' in window && typeof Element.prototype.setHTML === 'function') {
@@ -186,7 +249,7 @@ function toSafeFragment(html) {
           el.replaceWith(document.createTextNode(el.textContent || ''));
           return;
         }
-        const classes = (el.getAttribute('class') || '').split(/\s+/).filter(c => c && c.startsWith(classPrefix));
+        const classes = (el.getAttribute('class') || '').split(/\s+/).filter(isAllowedHighlightClass);
         if (classes.length) el.setAttribute('class', classes.join(' ')); else el.removeAttribute('class');
         for (const attr of Array.from(el.attributes)) {
           if (attr.name !== allowedAttr) el.removeAttribute(attr.name);
@@ -251,7 +314,7 @@ function toSafeFragment(html) {
       let classes = [];
       if (clsMatch) {
         const raw = (clsMatch[2] || clsMatch[3] || clsMatch[4] || '').trim();
-        classes = raw.split(/\s+/).filter(c => c && c.startsWith(classPrefix));
+        classes = raw.split(/\s+/).filter(isAllowedHighlightClass);
       }
       const el = document.createElement('span');
       if (classes.length) el.setAttribute('class', classes.join(' '));

@@ -284,7 +284,7 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
     // Fallback to plain escaped if markers still leak
     safeHtml = escapeHtmlInline(raw);
   }
-  // Render using a safe DOM builder that only allows <span class="syntax-*> wrappers
+  // Render using a safe DOM builder that only allows highlight span wrappers
   // and decodes entities for text nodes. This avoids interpreting arbitrary HTML.
   (function safeRender(target, markup) {
     // Minimal entity decoder matching escapeHtmlInline
@@ -298,25 +298,30 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
     const root = document.createDocumentFragment();
     const stack = [root];
     let i = 0;
-    const openStart = '<span class="syntax-';
-    const openEnd = '">';
     const closeTag = '</span>';
-    const isTypeOk = (t) => /^[a-z-]+$/.test(t);
+    const isClassOk = (cls) => (
+      /^syntax-[a-z-]+$/.test(cls)
+      || /^hljs-[A-Za-z0-9_-]+$/.test(cls)
+      || /^[A-Za-z]+_+$/.test(cls)
+    );
     while (i < markup.length) {
-      if (markup.startsWith(openStart, i)) {
-        const j = markup.indexOf(openEnd, i + openStart.length);
-        if (j !== -1) {
-          const cls = markup.slice(i + openStart.length, j);
-          if (isTypeOk(cls)) {
+      if (markup.startsWith('<span', i)) {
+        const match = markup.slice(i).match(/^<\s*span\b([^>]*)>/i);
+        if (match) {
+          const clsMatch = (match[1] || '').match(/\bclass\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i);
+          const classes = clsMatch
+            ? (clsMatch[2] || clsMatch[3] || clsMatch[4] || '').split(/\s+/).filter(isClassOk)
+            : [];
+          if (classes.length) {
             const el = document.createElement('span');
-            el.className = 'syntax-' + cls;
+            el.className = classes.join(' ');
             stack[stack.length - 1].appendChild(el);
             stack.push(el);
-            i = j + openEnd.length;
+            i += match[0].length;
             continue;
           }
         }
-        // Not a valid allowed opener; treat '<' as text
+        // Not a valid allowed opener; treat '<' as text and keep moving.
         stack[stack.length - 1].appendChild(document.createTextNode('<'));
         i += 1;
         continue;
@@ -327,6 +332,11 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
         continue;
       }
       const nextLt = markup.indexOf('<', i);
+      if (nextLt === i) {
+        stack[stack.length - 1].appendChild(document.createTextNode('<'));
+        i += 1;
+        continue;
+      }
       const end = nextLt === -1 ? markup.length : nextLt;
       const chunk = markup.slice(i, end);
       if (chunk) stack[stack.length - 1].appendChild(document.createTextNode(decode(chunk)));

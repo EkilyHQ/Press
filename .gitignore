@@ -7,3 +7,10 @@
 site.local.yaml
 site.local.yml
 wwwroot.local/
+
+# Local-only installed theme packs for preview/theme development.
+# Press tracks only the built-in native theme and the installed-pack registry.
+assets/themes/*
+!assets/themes/native/
+!assets/themes/native/**
+!assets/themes/packs.json

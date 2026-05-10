@@ -273,15 +273,31 @@ function getThemeControlLabels() {
 function normalizePackList(list) {
   const out = [];
   const seen = new Set();
-  (Array.isArray(list) ? list : []).forEach((item) => {
-    if (!item) return;
-    const value = sanitizePack(item.value || item.slug || item.name);
-    if (!value || seen.has(value)) return;
-    out.push({ value, label: String(item.label || item.name || value) });
-    seen.add(value);
+  const lists = Array.isArray(list) && Array.isArray(list[0]) ? list : [list];
+  lists.forEach((items) => {
+    (Array.isArray(items) ? items : []).forEach((item) => {
+      if (!item) return;
+      const value = sanitizePack(item.value || item.slug || item.name);
+      if (!value || seen.has(value)) return;
+      out.push({ value, label: String(item.label || item.name || value) });
+      seen.add(value);
+    });
   });
   if (!out.length) out.push({ value: 'native', label: 'Native' });
   return out;
+}
+
+function fetchThemePackList(path, optional = false) {
+  return fetch(path, { cache: 'no-store' })
+    .then(r => {
+      if (r && r.ok) return r.json();
+      if (optional) return [];
+      return Promise.reject(new Error(`Unable to load ${path}`));
+    })
+    .catch((err) => {
+      if (optional) return [];
+      throw err;
+    });
 }
 
 function getLanguageOptions() {
@@ -373,10 +389,12 @@ function populateThemeControls(component) {
       .catch(() => {});
   } catch (_) {}
   try {
-    fetch('assets/themes/packs.json', { cache: 'no-store' })
-      .then(r => r && r.ok ? r.json() : Promise.reject())
-      .then(list => {
-        component.setThemePacks(normalizePackList(list), getThemeControlPack());
+    Promise.all([
+      fetchThemePackList('assets/themes/packs.json'),
+      fetchThemePackList('assets/themes/packs.local.json', true)
+    ])
+      .then(lists => {
+        component.setThemePacks(normalizePackList(lists), getThemeControlPack());
       })
       .catch(() => {
         component.setThemePacks(normalizePackList([

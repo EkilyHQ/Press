@@ -76,7 +76,7 @@ githubpages:
 
 除了在 `wwwroot/index.yaml` 中指定文章的 Markdown 文件路径外，您还需要在每篇 Markdown 文件的开头添加前言区（Front Matter）来提供文章的元数据。以下是 `wwwroot/post/page/githubpages_chs.md` 的文件节选：
 
-```markdown
+```yaml
 ---
 title: 为 Press 配置 GitHub Pages
 date: 2025-08-21

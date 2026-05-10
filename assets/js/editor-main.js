@@ -1,6 +1,6 @@
 import { configureFetchCachePolicy } from './cache-control.js';
 import { createMarkdownBlocksEditor } from './editor-blocks.js?v=katex-blocks-20260510';
-import { createHiEditor } from './hieditor.js';
+import { createHiEditor } from './hieditor.js?v=highlightjs-common-20260510';
 import { mdParse } from './markdown.js?v=katex-math-20260510';
 import { insertImageMarkdownAtSelection, normalizeDateInputValue } from './editor-markdown-ops.js';
 import {

@@ -76,7 +76,7 @@ githubpages:
 
 `wwwroot/index.yaml` に記事パスを記載するほか、各 Markdown の先頭に Front Matter を入れてメタデータを提供します。`wwwroot/post/page/githubpages_ja.md` の例：
 
-```markdown
+```yaml
 ---
 title: Press を GitHub Pages で公開する設定
 date: 2025-08-21

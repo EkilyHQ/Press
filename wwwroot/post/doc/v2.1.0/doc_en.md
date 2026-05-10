@@ -76,7 +76,7 @@ githubpages:
 
 In addition to listing post paths in `wwwroot/index.yaml`, include front matter at the top of each Markdown file to supply metadata. Here’s an excerpt from `wwwroot/post/page/githubpages_en.md`:
 
-```markdown
+```yaml
 ---
 title: Configure GitHub Pages for Press
 date: 2025-08-21

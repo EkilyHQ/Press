@@ -283,61 +283,163 @@ pre.with-code-scroll { overflow: hidden; }
 .code-scroll .code-gutter span { display: block; line-height: 1.55; }
 .code-scroll code { display: block; white-space: pre; flex: 1 1 auto; min-width: 0; }
 
-/* Syntax tokens are mapped from Highlight.js output into Press-owned classes. */
+/* Syntax tokens keep Highlight.js classes and add Press-owned compatibility classes. */
+.hljs-keyword,
+.hljs-built_in,
+.hljs-literal,
+.hljs-type,
+.hljs-symbol,
+.hljs-class,
+.hljs-function,
+.hljs-function.dispatch_,
 .syntax-keyword,
 .syntax-keywords,
+.hljs-name,
+.hljs-tag,
 .syntax-tag,
 .syntax-tags { color: #8250df; font-weight: 600; }
+.hljs-title,
+.hljs-section,
+.hljs-title.function_,
+.hljs-title.function_.invoke__,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
 .syntax-title { color: #953800; font-weight: 600; }
+.hljs-string,
+.hljs-regexp,
+.hljs-subst,
+.hljs-char,
+.hljs-char.escape_,
+.hljs-link,
 .syntax-string,
 .syntax-strings,
 .syntax-link { color: #116329; }
+.hljs-number,
 .syntax-number,
 .syntax-numbers { color: #0550ae; }
+.hljs-comment,
+.hljs-quote,
 .syntax-comment,
 .syntax-comments { color: #6e7781; font-style: italic; }
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-params,
 .syntax-property,
 .syntax-properties,
 .syntax-attributes { color: #0550ae; }
+.hljs-selector-tag,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
 .syntax-selector,
 .syntax-selectors { color: #116329; font-weight: 600; }
+.hljs-doctag,
+.hljs-meta,
+.hljs-meta.prompt_,
+.hljs-meta-keyword,
+.hljs-label,
 .syntax-preprocessor { color: #cf222e; font-weight: 600; }
+.hljs-variable,
+.hljs-variable.constant_,
+.hljs-variable.language_,
+.hljs-template-variable,
 .syntax-variables { color: #953800; }
+.hljs-operator,
+.hljs-punctuation,
+.hljs-bullet,
 .syntax-operator,
 .syntax-operators,
 .syntax-punctuation { color: #57606a; }
+.hljs-code,
 .syntax-code { color: #0550ae; }
+.hljs-emphasis,
 .syntax-emphasis { font-style: italic; }
+.hljs-strong,
 .syntax-strong { font-weight: 700; }
+.hljs-addition,
 .syntax-addition { color: #1a7f37; background: rgba(46, 160, 67, 0.12); }
+.hljs-deletion,
 .syntax-deletion { color: #cf222e; background: rgba(248, 81, 73, 0.12); }
+.hljs-formula,
 .syntax-formula { color: #953800; }
 
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-built_in,
+[data-theme="dark"] .hljs-literal,
+[data-theme="dark"] .hljs-type,
+[data-theme="dark"] .hljs-symbol,
+[data-theme="dark"] .hljs-class,
+[data-theme="dark"] .hljs-function,
+[data-theme="dark"] .hljs-function.dispatch_,
 [data-theme="dark"] .syntax-keyword,
 [data-theme="dark"] .syntax-keywords,
+[data-theme="dark"] .hljs-name,
+[data-theme="dark"] .hljs-tag,
 [data-theme="dark"] .syntax-tag,
 [data-theme="dark"] .syntax-tags { color: #d2a8ff; }
+[data-theme="dark"] .hljs-title,
+[data-theme="dark"] .hljs-section,
+[data-theme="dark"] .hljs-title.function_,
+[data-theme="dark"] .hljs-title.function_.invoke__,
+[data-theme="dark"] .hljs-title.class_,
+[data-theme="dark"] .hljs-title.class_.inherited__,
 [data-theme="dark"] .syntax-title { color: #ffa657; }
+[data-theme="dark"] .hljs-string,
+[data-theme="dark"] .hljs-regexp,
+[data-theme="dark"] .hljs-subst,
+[data-theme="dark"] .hljs-char,
+[data-theme="dark"] .hljs-char.escape_,
+[data-theme="dark"] .hljs-link,
 [data-theme="dark"] .syntax-string,
 [data-theme="dark"] .syntax-strings,
 [data-theme="dark"] .syntax-link { color: #a5d6ff; }
+[data-theme="dark"] .hljs-number,
 [data-theme="dark"] .syntax-number,
 [data-theme="dark"] .syntax-numbers { color: #79c0ff; }
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-quote,
 [data-theme="dark"] .syntax-comment,
 [data-theme="dark"] .syntax-comments { color: #8b949e; }
+[data-theme="dark"] .hljs-attr,
+[data-theme="dark"] .hljs-attribute,
+[data-theme="dark"] .hljs-property,
+[data-theme="dark"] .hljs-params,
 [data-theme="dark"] .syntax-property,
 [data-theme="dark"] .syntax-properties,
 [data-theme="dark"] .syntax-attributes { color: #79c0ff; }
+[data-theme="dark"] .hljs-selector-tag,
+[data-theme="dark"] .hljs-selector-id,
+[data-theme="dark"] .hljs-selector-class,
+[data-theme="dark"] .hljs-selector-attr,
+[data-theme="dark"] .hljs-selector-pseudo,
 [data-theme="dark"] .syntax-selector,
 [data-theme="dark"] .syntax-selectors { color: #7ee787; }
+[data-theme="dark"] .hljs-doctag,
+[data-theme="dark"] .hljs-meta,
+[data-theme="dark"] .hljs-meta.prompt_,
+[data-theme="dark"] .hljs-meta-keyword,
+[data-theme="dark"] .hljs-label,
 [data-theme="dark"] .syntax-preprocessor { color: #ff7b72; }
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-variable.constant_,
+[data-theme="dark"] .hljs-variable.language_,
+[data-theme="dark"] .hljs-template-variable,
 [data-theme="dark"] .syntax-variables { color: #ffa657; }
+[data-theme="dark"] .hljs-operator,
+[data-theme="dark"] .hljs-punctuation,
+[data-theme="dark"] .hljs-bullet,
 [data-theme="dark"] .syntax-operator,
 [data-theme="dark"] .syntax-operators,
 [data-theme="dark"] .syntax-punctuation { color: #c9d1d9; }
+[data-theme="dark"] .hljs-code,
 [data-theme="dark"] .syntax-code { color: #79c0ff; }
+[data-theme="dark"] .hljs-addition,
 [data-theme="dark"] .syntax-addition { color: #7ee787; background: rgba(46, 160, 67, 0.18); }
+[data-theme="dark"] .hljs-deletion,
 [data-theme="dark"] .syntax-deletion { color: #ff7b72; background: rgba(248, 81, 73, 0.18); }
+[data-theme="dark"] .hljs-formula,
 [data-theme="dark"] .syntax-formula { color: #ffa657; }
 
 /* 语言标签样式 */

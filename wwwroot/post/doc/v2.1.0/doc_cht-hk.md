@@ -71,7 +71,7 @@ githubpages:
 
 每篇 Markdown 可以喺檔案開頭加入 Front Matter：
 
-```markdown
+```yaml
 ---
 title: 為 Press 設定 GitHub Pages
 date: 2025-08-21

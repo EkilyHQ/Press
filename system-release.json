@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.2",
-  "tag": "v3.4.2",
-  "version": "3.4.2",
-  "publishedAt": "2026-05-11T21:55:58Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.2.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.2.zip`\n- SHA-256: `e68cccfa832468625d2e749301ac5897e1eda4a520990d11ad7dfb52e7b3f09d`\n\n## Changed System Files\n\n- assets/js/composer.js\n- assets/js/editor-preview-runtime.js\n- assets/js/markdown.js\n- assets/js/system-updates.js\n- assets/main.js\n- assets/press-system.json\n- index.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.1...v3.4.2\n",
+  "name": "v3.4.3",
+  "tag": "v3.4.3",
+  "version": "3.4.3",
+  "publishedAt": "2026-05-11T23:44:33Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.3.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.3.zip`\n- SHA-256: `13a38d54fb4a9530a2937357f3035fbdb6fc7f078e692cb5cc27b6385e577d73`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer.js\n- assets/js/editor-boot.js\n- assets/js/editor-content-tree.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/errors.js\n- assets/js/i18n.js\n- assets/js/post-nav.js\n- assets/js/repository-deletions.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/schema/index.json\n- assets/themes/native/modules/interactions.js\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.2...v3.4.3\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.1 <3.4.2"
+      ">=3.4.2 <3.4.3"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.1 first."
+    "message": "Update to v3.4.2 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.2",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.3",
   "asset": {
-    "name": "press-system-v3.4.2.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.2/press-system-v3.4.2.zip",
-    "size": 1578547,
-    "digest": "sha256:e68cccfa832468625d2e749301ac5897e1eda4a520990d11ad7dfb52e7b3f09d"
+    "name": "press-system-v3.4.3.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.3/press-system-v3.4.3.zip",
+    "size": 1583800,
+    "digest": "sha256:13a38d54fb4a9530a2937357f3035fbdb6fc7f078e692cb5cc27b6385e577d73"
   }
 }

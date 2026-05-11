@@ -86,7 +86,7 @@ Merges to `main` that change Press runtime files automatically publish a patch r
 
 Official documentation, site content, installed theme registry state, and external theme directories stay out of system update packages. Changes that only touch `wwwroot/` do not create a system release, and update packages must never include `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, workflow files, scripts, site-specific media such as `assets/avatar.png` and `assets/hero.jpeg`, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`.
 
-After a system release is published, the release workflow can dispatch `EkilyHQ/YAP` to rebuild the template from that release package. Configure `STARTER_SYNC_TOKEN` in this repository with permission to call repository dispatch on the YAP repository. `STARTER_REPOSITORY` can be set as a repository variable when the target repository name differs from `EkilyHQ/YAP`.
+After a system release is published, the release workflow runs `scripts/dispatch-system-release.js` to notify downstream repositories. Configure the `Ekily Release` GitHub App for the `EkilyHQ` organization, install it on `YAP`, `Press-Theme-Starter`, and the official theme repositories, then set `EKILY_RELEASE_APP_ID` as a repository variable and `EKILY_RELEASE_PRIVATE_KEY` as a repository secret in `Press`. The workflow exchanges those credentials for an installation token and sends `press-system-release` repository dispatch events to rebuild YAP, refresh the theme starter version marker, and update official theme demo sites.
 
 ## Branching
 

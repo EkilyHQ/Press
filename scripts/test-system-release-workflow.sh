@@ -73,6 +73,11 @@ if grep -F '$((patch + 1))' "${workflow}" >/dev/null || grep -F 'next_tag="v0.0.
   exit 1
 fi
 
+if grep -Eq '^[[:space:]]+NODE$' "${workflow}"; then
+  echo "system release workflow must not use indented heredoc terminators inside shell blocks" >&2
+  exit 1
+fi
+
 if grep -F 'assets/themes/catalog.json' "${workflow}" >/dev/null; then
   echo "system release planning must not include the external official theme catalog" >&2
   exit 1

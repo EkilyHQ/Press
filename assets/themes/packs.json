@@ -4,6 +4,9 @@
     "label": "Native",
     "version": "3.4.0",
     "contractVersion": 1,
+    "engines": {
+      "press": ">=3.4.0 <4.0.0"
+    },
     "builtIn": true,
     "removable": false,
     "source": {

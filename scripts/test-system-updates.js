@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
+import {
+  satisfiesSemverRange,
+  setPressSystemManifestForTests
+} from '../assets/js/press-version.js?v=version-compat-20260512';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 if (!globalThis.btoa) {
@@ -84,7 +88,22 @@ function arrayBufferResponse(buffer, options = {}) {
   };
 }
 
+function setDefaultCurrentPressSystemForTests() {
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.3.64',
+    tag: 'v3.3.64',
+    upgradeFrom: {
+      ranges: ['>=3.3.0 <3.4.0'],
+      allowUnknownSource: true,
+      message: ''
+    }
+  });
+}
+
 async function run(name, fn) {
+  setDefaultCurrentPressSystemForTests();
   try {
     await fn();
     console.log(`ok - ${name}`);
@@ -107,6 +126,12 @@ await run('selects the dedicated Press system release asset', async () => {
   assert.equal(selectSystemUpdateAsset({
     assets: [{ name: 'Press-v3.3.5-source.zip', browser_download_url: 'https://example.test/source.zip' }]
   }), null);
+});
+
+await run('matches Press SemVer ranges', async () => {
+  assert.equal(satisfiesSemverRange('3.4.0', '>=3.4.0 <4.0.0'), true);
+  assert.equal(satisfiesSemverRange('v3.5.1', '3.4.0 || >=3.5.0 <4.0.0'), true);
+  assert.equal(satisfiesSemverRange('3.3.64', '>=3.4.0 <4.0.0'), false);
 });
 
 await run('verifies release asset size and digest before archive comparison', async () => {
@@ -134,8 +159,14 @@ await run('normalizes static system release manifests', async () => {
     schemaVersion: 1,
     name: 'v3.3.5',
     tag: 'v3.3.5',
+    version: '3.3.5',
     publishedAt: '2026-04-29T08:18:39Z',
     notes: 'Release notes',
+    upgradeFrom: {
+      ranges: ['>=3.3.0 <3.3.5'],
+      allowUnknownSource: true,
+      message: ''
+    },
     htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.5',
     asset: {
       name: 'press-system-v3.3.5.zip',
@@ -146,6 +177,8 @@ await run('normalizes static system release manifests', async () => {
   });
 
   assert.equal(release.tag, 'v3.3.5');
+  assert.equal(release.version, '3.3.5');
+  assert.deepEqual(release.upgradeFrom.ranges, ['>=3.3.0 <3.3.5']);
   assert.equal(release.asset.name, 'press-system-v3.3.5.zip');
   assert.throws(
     () => normalizeSystemReleaseManifest({
@@ -541,6 +574,7 @@ await run('keeps manual fallback available when automatic download fails', async
 await run('normalizes a rooted system update archive to safe site-relative paths', async () => {
   const buffer = makeZip({
     'press-system-v3.3.5/index.html': '<!doctype html>',
+    'press-system-v3.3.5/assets/press-system.json': '{"schemaVersion":1,"type":"press-system","version":"3.3.5","tag":"v3.3.5","upgradeFrom":{"ranges":[">=3.3.0 <3.3.5"],"allowUnknownSource":true,"message":""}}',
     'press-system-v3.3.5/assets/js/system-updates.js': 'export {};',
     'press-system-v3.3.5/assets/themes/native/theme.json': '{"name":"Native","contractVersion":1}'
   });
@@ -549,9 +583,81 @@ await run('normalizes a rooted system update archive to safe site-relative paths
 
   assert.deepEqual(entries.map((entry) => entry.path).sort(), [
     'assets/js/system-updates.js',
+    'assets/press-system.json',
     'assets/themes/native/theme.json',
     'index.html'
   ]);
+});
+
+await run('allows bootstrap system updates when current version is unknown', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests(null);
+  const buffer = makeZip({
+    'press-system-v3.4.0/index.html': '<!doctype html><p>bootstrap</p>',
+    'press-system-v3.4.0/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '3.4.0',
+      tag: 'v3.4.0',
+      upgradeFrom: {
+        ranges: ['>=3.3.0 <3.4.0'],
+        allowUnknownSource: true,
+        message: ''
+      }
+    })
+  });
+
+  globalThis.fetch = async () => ({
+    ok: false,
+    json: async () => ({}),
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+
+  await analyzeArchive(buffer, 'press-system-v3.4.0.zip');
+  assert.deepEqual(getSystemUpdateCommitFiles().map((file) => file.path).sort(), [
+    'assets/press-system.json',
+    'index.html'
+  ]);
+  delete globalThis.fetch;
+});
+
+await run('blocks system updates outside the declared source range', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.0',
+    tag: 'v3.4.0',
+    upgradeFrom: { ranges: ['>=3.3.0 <3.4.0'], allowUnknownSource: true, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v4.0.0/index.html': '<!doctype html><p>major</p>',
+    'press-system-v4.0.0/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '4.0.0',
+      tag: 'v4.0.0',
+      upgradeFrom: {
+        ranges: ['>=3.5.0 <4.0.0'],
+        allowUnknownSource: false,
+        message: ''
+      }
+    })
+  });
+
+  globalThis.fetch = async () => ({
+    ok: false,
+    json: async () => ({}),
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+
+  await assert.rejects(
+    () => analyzeArchive(buffer, 'press-system-v4.0.0.zip'),
+    /intermediate|source range|不能|直接更新|中間|Press/i
+  );
+  assert.deepEqual(getSystemUpdateCommitFiles(), []);
+  delete globalThis.fetch;
+  setPressSystemManifestForTests(null);
 });
 
 await run('rejects system packages that would overwrite external theme directories', async () => {

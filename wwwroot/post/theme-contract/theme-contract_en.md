@@ -36,6 +36,7 @@ remote repository at runtime; a selected theme must exist locally under
   "name": "Native",
   "version": "3.4.0",
   "contractVersion": 1,
+  "engines": { "press": ">=3.4.0 <4.0.0" },
   "styles": ["theme.css"],
   "modules": ["modules/layout.js", "modules/interactions.js", "modules/views.js"],
   "views": {
@@ -66,6 +67,9 @@ remote repository at runtime; a selected theme must exist locally under
 - `name` and `version`: Human-facing theme identity.
 - `contractVersion`: Press runtime contract version. The current value is
   `1`.
+- `engines.press`: Press system SemVer range the theme supports. Theme Manager
+  rejects official and manually imported themes outside the current Press
+  version.
 - `styles`: Ordered CSS files relative to the theme pack root.
 - `modules`: Ordered JavaScript modules relative to the theme pack root.
 - `views`: Public view states the theme supports. Required views are `post`,
@@ -93,6 +97,7 @@ changes to it through Publish, and Press system updates do not overwrite it.
   "label": "Arcus",
   "version": "3.4.0",
   "contractVersion": 1,
+  "engines": { "press": ">=3.4.0 <4.0.0" },
   "builtIn": false,
   "removable": true,
   "source": {
@@ -132,6 +137,7 @@ Official theme repositories publish a root `theme-release.json`:
   "label": "Arcus",
   "version": "3.4.0",
   "contractVersion": 1,
+  "engines": { "press": ">=3.4.0 <4.0.0" },
   "release": {
     "tag": "v3.4.0",
     "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.0",
@@ -153,7 +159,9 @@ same ZIP to a `release-artifacts` branch and keep the GitHub Release URL in
 `release.htmlUrl`.
 
 Theme Manager verifies `schemaVersion`, `type`, slug, version,
-`contractVersion`, ZIP size, and SHA-256 digest before staging changes.
+`contractVersion`, `engines.press`, ZIP size, and SHA-256 digest before staging
+changes. The release manifest and the packaged `theme.json` must agree on the
+Press engine range.
 
 ## Theme ZIP Format
 
@@ -161,7 +169,7 @@ A theme ZIP is a single-theme package. After removing one common archive root,
 it must contain `theme.json` at the theme root. Theme Manager rejects absolute
 paths, drive paths, URL paths, `.` and `..` segments, nested `*/theme.json`
 entries, unsupported file extensions, missing `theme.json`, and
-`contractVersion` mismatches.
+`contractVersion` or `engines.press` mismatches.
 
 Install and update operations map files to `assets/themes/<slug>/...`. Updates
 compare the new ZIP file list with the installed registry `files` list; removed

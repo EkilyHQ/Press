@@ -236,6 +236,9 @@ const translations = {
         filesHeading: '待更新的系統檔案',
         releaseNotes: '釋出說明',
         noNotes: '此次釋出未提供額外說明。',
+        currentVersionLabel: ({ version }) => `目前 Press：${version}`,
+        targetVersionLabel: ({ version }) => `目標 Press：${version}`,
+        unknownVersion: '未知',
         latestLabel: ({ name, tag }) => `最新發布：${name}${tag ? `（${tag}）` : ''}`,
         publishedLabel: ({ date }) => `釋出時間：${date}`,
         assetLabel: ({ name, size }) => `附件：${name}（${size}）`,
@@ -256,6 +259,7 @@ const translations = {
           emptyFile: '選擇的檔案為空。',
           invalidArchive: '選中的 ZIP 無法作為 Press 釋出讀取。',
           downloadFailed: '無法下載最新系統更新包。請改為選擇已下載的 ZIP。',
+          upgradeBlocked: ({ current, target, ranges }) => `不能從 ${current} 直接更新到 ${target}。請先套用中間版本的 Press 釋出。支援的來源範圍：${ranges}。`,
           sizeMismatch: ({ expected, actual }) => `選中的壓縮包大小（${actual}）與釋出附件（${expected}）不一致。`,
           digestMismatch: '選中的壓縮包 SHA-256 與釋出附件不一致。',
           generic: '系統更新失敗，請重試。'

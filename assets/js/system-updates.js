@@ -2,6 +2,15 @@ import { mdParse } from './markdown.js?v=katex-math-20260510';
 import { renderPressMath } from './math-render.js?v=katex-math-20260510';
 import { setSafeHtml } from './safe-html.js?v=katex-math-20260510';
 import { t } from './i18n.js?v=annotate-i18n-20260510';
+import {
+  compareSemver,
+  isUpgradeAllowed,
+  loadPressSystemManifest,
+  normalizePressSystemManifest,
+  normalizeSemver,
+  normalizeUpgradeFrom,
+  semverToTag
+} from './press-version.js?v=version-compat-20260512';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const TEXT_EXTENSIONS = new Set([
@@ -14,7 +23,7 @@ export const SYSTEM_UPDATE_ASSET_NAME_PATTERN = /^press-system-v\d+\.\d+\.\d+\.z
 
 const RELEASE_API_URL = 'https://api.github.com/repos/EkilyHQ/Press/releases/latest';
 const RELEASE_MANIFEST_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json';
-const SYSTEM_UPDATE_ALLOWED_PATH_PATTERN = /^(?:index\.html|index_editor\.html|index_editor_preview\.html|assets\/(?:main\.js|js\/.+|i18n\/.+|schema\/.+|themes\/native\/.+))$/;
+const SYSTEM_UPDATE_ALLOWED_PATH_PATTERN = /^(?:index\.html|index_editor\.html|index_editor_preview\.html|assets\/(?:press-system\.json|main\.js|js\/.+|i18n\/.+|schema\/.+|themes\/native\/.+))$/;
 const SYSTEM_UPDATE_BLOCKED_PATH_PATTERN = /^(?:\.git\/|\.github\/|wwwroot\/|site\.ya?ml$|site\.local\.ya?ml$|CNAME$|robots\.txt$|sitemap\.xml$|README(?:\.md)?$|BRANCHING\.md$|scripts\/|assets\/(?:avatar\.png|avatar\.jpe?g|hero\.jpeg)$)/i;
 
 let initialized = false;
@@ -25,6 +34,7 @@ let currentFiles = [];
 let assetSha256 = '';
 let assetSize = 0;
 let assetName = '';
+let currentPressSystem = null;
 
 const listeners = new Set();
 
@@ -39,6 +49,8 @@ const elements = {
   fileList: null,
   notes: null,
   notesWrap: null,
+  currentVersion: null,
+  targetVersion: null,
   metaTitle: null,
   metaPublished: null,
   assetMeta: null
@@ -276,20 +288,8 @@ export function selectSystemUpdateAsset(releaseData) {
   };
 }
 
-function parseReleaseTag(tag) {
-  const match = String(tag || '').trim().match(/^v(\d+)\.(\d+)\.(\d+)$/i);
-  if (!match) return null;
-  return match.slice(1).map((part) => Number(part));
-}
-
 function compareReleaseTags(a, b) {
-  const left = parseReleaseTag(a);
-  const right = parseReleaseTag(b);
-  if (!left || !right) return String(a || '') === String(b || '') ? 0 : null;
-  for (let i = 0; i < left.length; i += 1) {
-    if (left[i] !== right[i]) return left[i] > right[i] ? 1 : -1;
-  }
-  return 0;
+  return compareSemver(a, b);
 }
 
 function isFetchableSystemUpdateAssetUrl(url) {
@@ -311,11 +311,14 @@ function requireManifestString(manifest, key) {
 
 function normalizeReleaseCache(data) {
   const asset = selectSystemUpdateAsset(data);
+  const version = normalizeSemver(data.version || data.tag_name || '');
   return {
     name: data.name || data.tag_name || 'latest',
     tag: data.tag_name || '',
+    version,
     publishedAt: data.published_at || data.created_at || '',
     notes: data.body || '',
+    upgradeFrom: normalizeUpgradeFrom(data.upgradeFrom),
     htmlUrl: data.html_url || '',
     asset: asset ? { ...asset, fetchable: false } : asset
   };
@@ -327,6 +330,10 @@ export function normalizeSystemReleaseManifest(manifest) {
   }
   const name = requireManifestString(manifest, 'name');
   const tag = requireManifestString(manifest, 'tag');
+  const version = normalizeSemver(manifest.version || tag);
+  if (!version || semverToTag(version) !== semverToTag(tag)) {
+    throw new Error('Invalid system release manifest: invalid version');
+  }
   const publishedAt = requireManifestString(manifest, 'publishedAt');
   const notes = requireManifestString(manifest, 'notes');
   const htmlUrl = requireManifestString(manifest, 'htmlUrl');
@@ -348,8 +355,10 @@ export function normalizeSystemReleaseManifest(manifest) {
   return {
     name,
     tag,
+    version,
     publishedAt,
     notes,
+    upgradeFrom: normalizeUpgradeFrom(manifest.upgradeFrom),
     htmlUrl,
     asset: {
       ...asset,
@@ -410,6 +419,57 @@ function createReleaseFetchError(response) {
 export function getDisplayReleaseNotes(release) {
   if (!release || !release.asset) return '';
   return typeof release.notes === 'string' ? release.notes : '';
+}
+
+function versionLabel(version) {
+  const normalized = normalizeSemver(version);
+  return normalized ? `v${normalized}` : t('editor.systemUpdates.unknownVersion');
+}
+
+function renderCurrentPressVersion() {
+  if (!elements.currentVersion) return;
+  elements.currentVersion.textContent = t('editor.systemUpdates.currentVersionLabel', {
+    version: versionLabel(currentPressSystem && currentPressSystem.version)
+  });
+}
+
+async function refreshCurrentPressSystem(options = {}) {
+  try {
+    currentPressSystem = await loadPressSystemManifest(options);
+  } catch (_) {
+    currentPressSystem = null;
+  }
+  renderCurrentPressVersion();
+  return currentPressSystem;
+}
+
+function readArchivePressSystemManifest(entries) {
+  const entry = entries.find((item) => item && item.path === 'assets/press-system.json');
+  if (!entry) return null;
+  try {
+    return normalizePressSystemManifest(JSON.parse(strFromU8(entry.data)));
+  } catch (err) {
+    const error = new Error('System update press-system.json is invalid.');
+    error.cause = err;
+    throw error;
+  }
+}
+
+function assertSystemUpdateCompatibility(release, archiveSystem) {
+  const targetVersion = normalizeSemver(
+    (archiveSystem && archiveSystem.version) || (release && (release.version || release.tag)) || ''
+  );
+  const upgradeFrom = normalizeUpgradeFrom(
+    (archiveSystem && archiveSystem.upgradeFrom) || (release && release.upgradeFrom)
+  );
+  const currentVersion = currentPressSystem && currentPressSystem.version ? currentPressSystem.version : '';
+  if (isUpgradeAllowed(currentVersion, upgradeFrom)) return;
+  const message = upgradeFrom.message || t('editor.systemUpdates.errors.upgradeBlocked', {
+    current: versionLabel(currentVersion),
+    target: versionLabel(targetVersion),
+    ranges: upgradeFrom.ranges.join(', ') || t('editor.systemUpdates.unknownVersion')
+  });
+  throw new Error(message);
 }
 
 function renderRelease() {
@@ -511,6 +571,12 @@ async function fetchSystemUpdateAsset(url) {
 
 function renderReleaseMeta() {
   if (!releaseCache) return;
+  renderCurrentPressVersion();
+  if (elements.targetVersion) {
+    elements.targetVersion.textContent = t('editor.systemUpdates.targetVersionLabel', {
+      version: versionLabel(releaseCache.version || releaseCache.tag)
+    });
+  }
   if (elements.metaTitle) {
     const { name, tag } = releaseCache;
     elements.metaTitle.textContent = tag ? t('editor.systemUpdates.latestLabel', { name, tag }) : name;
@@ -608,8 +674,7 @@ async function compareArchive(entries) {
   return files;
 }
 
-async function processArchive(buffer) {
-  const entries = collectSystemUpdateArchiveEntries(buffer);
+async function processArchiveEntries(entries) {
   return compareArchive(entries);
 }
 
@@ -649,11 +714,18 @@ export async function analyzeArchive(buffer, filename) {
 
   setStatus(t('editor.systemUpdates.status.verifying'));
 
+  let entries = [];
+  let archiveSystem = null;
   let files = [];
   try {
-    files = await processArchive(buffer);
+    entries = collectSystemUpdateArchiveEntries(buffer);
+    archiveSystem = readArchivePressSystemManifest(entries);
+    await refreshCurrentPressSystem();
+    assertSystemUpdateCompatibility(release, archiveSystem);
+    files = await processArchiveEntries(entries);
   } catch (err) {
     console.error('Failed to unpack system update archive', err);
+    if (err && err.message && /upgrade|version|Press/i.test(err.message)) throw err;
     throw new Error(t('editor.systemUpdates.errors.invalidArchive'));
   }
 
@@ -742,6 +814,8 @@ export function initSystemUpdates(options = {}) {
   elements.fileSection = document.getElementById('systemUpdateFileSection');
   elements.fileList = document.getElementById('systemUpdateFileList');
   elements.notes = document.getElementById('systemUpdateReleaseNotes');
+  elements.currentVersion = document.getElementById('systemUpdateCurrentVersion');
+  elements.targetVersion = document.getElementById('systemUpdateTargetVersion');
   elements.metaTitle = document.getElementById('systemUpdateReleaseMeta');
   elements.metaPublished = document.getElementById('systemUpdateReleasePublished');
   elements.assetMeta = document.getElementById('systemUpdateAssetMeta');
@@ -762,6 +836,7 @@ export function initSystemUpdates(options = {}) {
 
   updateDownloadLink();
   setStatus(t('editor.systemUpdates.status.idle'));
+  refreshCurrentPressSystem().catch(() => {});
   fetchLatestRelease().catch((err) => {
     console.error('Failed to load system update metadata', err);
     setStatus(err && err.message ? err.message : t('editor.systemUpdates.errors.releaseFetch'), { tone: 'error' });

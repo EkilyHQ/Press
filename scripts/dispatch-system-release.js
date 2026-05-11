@@ -4,6 +4,7 @@ const fs = require('node:fs');
 
 const API_ROOT = process.env.GITHUB_API_URL || 'https://api.github.com';
 const API_VERSION = '2022-11-28';
+const PRESS_SYSTEM_MANIFEST = 'assets/press-system.json';
 const DEFAULT_TARGETS = [
   { repository: 'EkilyHQ/YAP', eventType: 'press-system-release', label: 'YAP starter runtime' },
   { repository: 'EkilyHQ/Press-Theme-Starter', eventType: 'press-system-release', label: 'theme starter version' },
@@ -92,9 +93,14 @@ function buildPayload(release) {
   if (!tag || !assetName || !assetSha256) {
     throw new Error('NEXT_TAG, ASSET_NAME, and ASSET_SHA256 are required for release dispatch');
   }
+  const system = fs.existsSync(PRESS_SYSTEM_MANIFEST)
+    ? JSON.parse(fs.readFileSync(PRESS_SYSTEM_MANIFEST, 'utf8'))
+    : {};
   return {
     press_repository: env('GITHUB_REPOSITORY', 'EkilyHQ/Press'),
     tag,
+    version: String(system.version || '').trim(),
+    upgrade_from: system.upgradeFrom || {},
     asset_name: assetName,
     asset_size: Number.isFinite(assetSize) ? assetSize : 0,
     asset_sha256: assetSha256,

@@ -17,6 +17,7 @@ system_paths=(
   "index.html"
   "index_editor.html"
   "index_editor_preview.html"
+  "assets/press-system.json"
   "assets/main.js"
   "assets/js"
   "assets/i18n"

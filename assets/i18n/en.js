@@ -238,6 +238,9 @@ const translations = {
         filesHeading: 'Pending system files',
         releaseNotes: 'Release notes',
         noNotes: 'This release does not include additional notes.',
+        currentVersionLabel: ({ version }) => `Current Press: ${version}`,
+        targetVersionLabel: ({ version }) => `Target Press: ${version}`,
+        unknownVersion: 'unknown',
         latestLabel: ({ name, tag }) => `Latest release: ${name}${tag ? ` (${tag})` : ''}`,
         publishedLabel: ({ date }) => `Published on ${date}`,
         assetLabel: ({ name, size }) => `Asset: ${name} (${size})`,
@@ -258,6 +261,7 @@ const translations = {
           emptyFile: 'The selected file is empty.',
           invalidArchive: 'The selected ZIP could not be read as a Press release.',
           downloadFailed: 'Unable to download the latest system update package. Select a downloaded ZIP instead.',
+          upgradeBlocked: ({ current, target, ranges }) => `Cannot update from ${current} to ${target}. Apply an intermediate Press release first. Supported source range: ${ranges}.`,
           sizeMismatch: ({ expected, actual }) => `The selected archive size (${actual}) does not match the release asset (${expected}).`,
           digestMismatch: 'The selected archive SHA-256 does not match the release asset.',
           generic: 'System update failed. Please try again.'

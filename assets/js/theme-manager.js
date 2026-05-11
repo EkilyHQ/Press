@@ -1,4 +1,5 @@
 import { t } from './i18n.js?v=annotate-i18n-20260510';
+import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=version-compat-20260512';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';
@@ -111,6 +112,21 @@ function normalizeDigest(value, options = {}) {
     throw new Error('Theme release manifest asset digest must be a SHA-256 hash.');
   }
   return `sha256:${hex}`;
+}
+
+function normalizeThemeEngines(input, options = {}) {
+  const engines = input && typeof input === 'object' ? input : {};
+  const press = safeString(engines.press || '').trim();
+  if (!press && options.required) throw new Error('Theme manifest engines.press is required.');
+  return press ? { press } : {};
+}
+
+async function assertThemePressCompatibility(label, engines) {
+  const normalized = normalizeThemeEngines(engines, { required: true });
+  const current = await loadPressSystemManifest();
+  if (!satisfiesSemverRange(current.version, normalized.press)) {
+    throw new Error(`${label || 'Theme'} supports Press ${normalized.press}, but this site is running ${current.tag}.`);
+  }
 }
 
 export function sanitizeThemeSlug(value) {
@@ -240,6 +256,7 @@ function validateThemeManifestContract(themeManifest, availablePaths) {
   requireThemeObject(themeManifest, 'theme.json');
   requireThemeString(themeManifest.name, 'name');
   requireThemeString(themeManifest.version, 'version');
+  normalizeThemeEngines(themeManifest.engines, { required: true });
   const contractVersion = Number(themeManifest.contractVersion);
   if (contractVersion !== REQUIRED_CONTRACT_VERSION) {
     throw new Error(`Theme contractVersion ${contractVersion || '(missing)'} is not supported.`);
@@ -317,6 +334,7 @@ export function normalizeThemeRegistry(input) {
       label: safeString(entry.label || entry.name || value) || value,
       version: safeString(entry.version || ''),
       contractVersion: Number.isFinite(Number(entry.contractVersion)) ? Number(entry.contractVersion) : REQUIRED_CONTRACT_VERSION,
+      engines: normalizeThemeEngines(entry.engines),
       builtIn,
       removable: builtIn ? false : entry.removable !== false,
       source: normalizeRegistrySource(entry.source, builtIn ? 'builtin' : 'manual'),
@@ -335,6 +353,7 @@ export function normalizeThemeRegistry(input) {
       label: 'Native',
       version: '',
       contractVersion: REQUIRED_CONTRACT_VERSION,
+      engines: {},
       builtIn: true,
       removable: false,
       source: { type: 'builtin' },
@@ -379,6 +398,7 @@ export function normalizeThemeReleaseManifest(input) {
   if (contractVersion !== REQUIRED_CONTRACT_VERSION) {
     throw new Error(`Theme contractVersion ${contractVersion || '(missing)'} is not supported.`);
   }
+  const engines = normalizeThemeEngines(input.engines, { required: true });
   const asset = input.asset && typeof input.asset === 'object' ? input.asset : null;
   if (!asset) throw new Error('Theme release manifest asset is required.');
   const assetName = safeString(asset.name || '').trim();
@@ -401,6 +421,7 @@ export function normalizeThemeReleaseManifest(input) {
     label: safeString(input.label || input.name || value) || value,
     version,
     contractVersion,
+    engines,
     release: {
       tag: safeString(release.tag || input.tag || '').trim(),
       name: safeString(release.name || input.name || '').trim(),
@@ -479,6 +500,7 @@ export function collectThemeArchiveEntries(buffer, options = {}) {
     label: safeString(themeManifest.name || themeManifest.label || slug) || slug,
     version: safeString(themeManifest.version || ''),
     contractVersion,
+    engines: normalizeThemeEngines(themeManifest.engines, { required: true }),
     manifest: themeManifest,
     files: normalizedEntries
   };
@@ -723,6 +745,7 @@ function makeRegistryEntry({ archive, previous, releaseManifest, source, assetMe
     label: releaseManifest ? releaseManifest.label : archive.label,
     version: releaseManifest ? releaseManifest.version : archive.version,
     contractVersion: archive.contractVersion,
+    engines: archive.engines,
     builtIn: !!(previous && previous.builtIn),
     removable: previous && previous.builtIn ? false : true,
     source: previous && previous.builtIn ? { type: 'builtin' } : source,
@@ -834,6 +857,10 @@ async function stageThemeArchive(buffer, fileName, options = {}) {
   if (releaseManifest && archive.version && archive.version !== releaseManifest.version) {
     throw new Error('Theme ZIP theme.json version does not match the release manifest.');
   }
+  if (releaseManifest && archive.engines.press !== releaseManifest.engines.press) {
+    throw new Error('Theme ZIP engines.press does not match the release manifest.');
+  }
+  await assertThemePressCompatibility(releaseManifest ? releaseManifest.label : archive.label, archive.engines);
   const registry = await loadRegistry({ force: true, allowFallback: false });
   const previous = registry.find((entry) => entry.value === archive.slug) || null;
   if (previous && previous.builtIn && !options.allowBuiltInUpdate) {
@@ -887,7 +914,7 @@ async function fetchArrayBuffer(url) {
   return response.arrayBuffer();
 }
 
-async function stageCatalogTheme(catalogEntry, options = {}) {
+export async function stageCatalogTheme(catalogEntry, options = {}) {
   const releaseManifest = normalizeThemeReleaseManifest(await fetchJson(catalogEntry.manifestUrl));
   if (releaseManifest.value !== catalogEntry.value) {
     throw new Error('Official catalog entry does not match release manifest slug.');

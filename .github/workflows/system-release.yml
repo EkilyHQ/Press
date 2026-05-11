@@ -41,10 +41,22 @@ jobs:
             latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1 || true)"
           fi
 
+          source_version="$(node - <<'NODE'
+          const manifest = require('./assets/press-system.json');
+          const version = String(manifest.version || '').trim();
+          const tag = String(manifest.tag || '').trim();
+          if (!/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
+            throw new Error('assets/press-system.json must declare matching version and tag');
+          }
+          process.stdout.write(version);
+          NODE
+          )"
+          next_tag="v${source_version}"
+
           if [[ -n "${latest_tag}" ]]; then
-            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
+            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
           else
-            changed_files="$(git ls-files -- index.html index_editor.html index_editor_preview.html assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
+            changed_files="$(git ls-files -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
           fi
 
           if [[ -z "${changed_files}" ]]; then
@@ -55,13 +67,23 @@ jobs:
             exit 0
           fi
 
-          if [[ "${latest_tag}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            major="${BASH_REMATCH[1]}"
-            minor="${BASH_REMATCH[2]}"
-            patch="${BASH_REMATCH[3]}"
-            next_tag="v${major}.${minor}.$((patch + 1))"
-          else
-            next_tag="v0.0.1"
+          if [[ -n "${latest_tag}" ]]; then
+            export LATEST_TAG="${latest_tag}"
+            export NEXT_TAG="${next_tag}"
+            node <<'NODE'
+            function parse(tag) {
+              const match = String(tag || '').match(/^v(\d+)\.(\d+)\.(\d+)$/);
+              if (!match) throw new Error(`invalid release tag: ${tag}`);
+              return match.slice(1).map(Number);
+            }
+            const latest = parse(process.env.LATEST_TAG);
+            const next = parse(process.env.NEXT_TAG);
+            for (let i = 0; i < 3; i += 1) {
+              if (next[i] > latest[i]) process.exit(0);
+              if (next[i] < latest[i]) break;
+            }
+            throw new Error(`assets/press-system.json version ${process.env.NEXT_TAG} must be greater than latest release ${process.env.LATEST_TAG}`);
+            NODE
           fi
 
           {
@@ -284,10 +306,16 @@ jobs:
 
           with open("dist/release-published.json", "r", encoding="utf-8") as fh:
               release = json.load(fh)
+          with open("assets/press-system.json", "r", encoding="utf-8") as fh:
+              system = json.load(fh)
 
           expected_name = os.environ["EXPECTED_ASSET"]
           expected_size = int(os.environ["EXPECTED_SIZE"])
           expected_sha = os.environ["EXPECTED_SHA256"].lower()
+          version = str(system.get("version") or "").strip()
+          tag = str(system.get("tag") or "").strip()
+          if not version or tag != f"v{version}" or tag != str(release.get("tag_name") or ""):
+              sys.exit("assets/press-system.json version must match the published release tag")
           assets = [asset for asset in release.get("assets", []) if asset.get("name") == expected_name]
           if len(assets) != 1:
               sys.exit(f"expected exactly one release asset named {expected_name}, found {len(assets)}")
@@ -298,8 +326,10 @@ jobs:
               "schemaVersion": 1,
               "name": release.get("name") or release.get("tag_name") or "",
               "tag": release.get("tag_name") or "",
+              "version": version,
               "publishedAt": release.get("published_at") or release.get("created_at") or "",
               "notes": release.get("body") or "",
+              "upgradeFrom": system.get("upgradeFrom") or {},
               "htmlUrl": release.get("html_url") or "",
               "asset": {
                   "name": asset.get("name") or expected_name,

@@ -107,14 +107,14 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=highlightjs-common-20260510/,
-  'editor HTML should cache-bust editor-main.js when Highlight.js editor handling changes'
+  /assets\/js\/editor-main\.js\?v=blocks-default-view-20260510/,
+  'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=annotate-combobox-20260510/,
-  'editor HTML should cache-bust composer.js when site settings UI changes'
+  /assets\/js\/composer\.js\?v=version-compat-20260512/,
+  'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
 assert.match(
@@ -125,20 +125,20 @@ assert.match(
 
 assert.match(
   editorSource,
-  /button#btnProtectMarkdown\.btn-secondary\[data-protected="true"\][\s\S]*\.composer-protection-modal[\s\S]*\.composer-protection-card/,
-  'editor stylesheet should include protected article password dialog and protected button state'
+  /\.composer-protection-modal[\s\S]*\.composer-protection-card[\s\S]*id="btnProtectMarkdown"[^>]+role="switch"/,
+  'editor stylesheet should include protected article password dialog and native protected switch state'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=highlightjs-common-20260510/,
-  'editor HTML should cache-bust editor-main.js when Highlight.js editor handling changes'
+  /assets\/js\/editor-main\.js\?v=blocks-default-view-20260510/,
+  'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/markdown\.js\?v=katex-math-20260510'/,
-  'editor preview should cache-bust the Markdown parser when math syntax changes'
+  /from '\.\/editor-blocks\.js\?v=katex-blocks-20260510'/,
+  'editor preview should cache-bust the Markdown blocks editor when math block handling changes'
 );
 
 assert.match(
@@ -148,15 +148,15 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
+  editorBlocksSource,
   /from '\.\/math-render\.js\?v=katex-math-20260510'/,
-  'editor preview should cache-bust the math renderer when KaTeX support changes'
+  'editor blocks should cache-bust the math renderer when KaTeX support changes'
 );
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=katex-math-20260510'/,
-  'composer should cache-bust system update notes when math rendering changes'
+  /from '\.\/system-updates\.js\?v=version-compat-20260512'/,
+  'composer should cache-bust system updates when version compatibility changes'
 );
 
 assert.match(
@@ -388,20 +388,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /class="vt-btn active" data-view="edit"[\s\S]*class="vt-btn" data-view="blocks"[\s\S]*class="vt-btn" data-view="preview"[\s\S]*id="blocks-wrap" hidden aria-hidden="true"/,
-  'markdown editor should expose Edit, Blocks, and Preview views with a dedicated blocks surface'
+  /class="vt-btn active" data-view="blocks"[\s\S]*class="vt-btn" data-view="edit"[\s\S]*id="blocks-wrap" hidden aria-hidden="true"/,
+  'markdown editor should expose Blocks and Editor views with a dedicated blocks surface'
 );
 
 assert.match(
   editorMainSource,
-  /function switchView\(mode\) \{[\s\S]*const blocksWrap = \$\('#blocks-wrap'\);[\s\S]*mode === 'blocks'[\s\S]*blocksWrap\.hidden = false;[\s\S]*editorToolbar\.hidden = true;[\s\S]*viewToggle && \(viewToggle\.dataset\.view = 'blocks'\);/,
-  'markdown view switcher should show blocks mode while hiding source toolbar and preview'
+  /function switchView\(mode\) \{[\s\S]*const blocksWrap = \$\('#blocks-wrap'\);[\s\S]*mode === 'blocks'[\s\S]*editorWrap\.style\.display = 'none';[\s\S]*blocksWrap\.hidden = false;[\s\S]*editorToolbar\.hidden = true;[\s\S]*viewToggle && \(viewToggle\.dataset\.view = 'blocks'\);/,
+  'markdown view switcher should show blocks mode while hiding source toolbar'
 );
 
 assert.match(
   editorMainSource,
-  /const LS_VIEW_KEY = 'press_editor_markdown_view';[\s\S]*function readPersistedMarkdownEditorView\(\) \{[\s\S]*localStorage\.getItem\(LS_VIEW_KEY\)[\s\S]*function persistMarkdownEditorView\(mode\) \{[\s\S]*localStorage\.setItem\(LS_VIEW_KEY, normalizeMarkdownEditorView\(mode\)\);/,
-  'markdown editor should persist the selected source/blocks/preview view'
+  /const LS_VIEW_KEY = 'press_editor_markdown_view_v2';[\s\S]*function readPersistedMarkdownEditorView\(\) \{[\s\S]*localStorage\.getItem\(LS_VIEW_KEY\)[\s\S]*function persistMarkdownEditorView\(mode\) \{[\s\S]*localStorage\.setItem\(LS_VIEW_KEY, normalizeMarkdownEditorView\(mode\)\);/,
+  'markdown editor should persist the selected source/blocks view'
 );
 
 assert.match(
@@ -1021,8 +1021,8 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const refreshPreviewAssetOverrides = \(\) => \{[\s\S]*\['preview-main', 'blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*document\.getElementById\(id\)[\s\S]*applyPreviewAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*\};/,
-  'asset preview refresh should update both rendered preview and WYSIWYG block images'
+  /const refreshPreviewAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*document\.getElementById\(id\)[\s\S]*applyPreviewAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*\};/,
+  'asset preview refresh should update WYSIWYG block images'
 );
 
 assert.doesNotMatch(
@@ -1604,9 +1604,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /setSafeHtml\(target, post \|\| '', baseDir,[\s\S]*try \{ initSyntaxHighlighting\(target\); \} catch \(_\) \{\}/,
-  'editor preview syntax highlighting should stay scoped to the preview container'
+  editorBlocksSource,
+  /highlight\.replaceChildren\(createSafeHighlightFragment\(raw, meta\.highlight \? meta\.language : 'plain'\)\);/,
+  'editor block syntax highlighting should render through the safe highlight fragment helper'
 );
 
 assert.match(

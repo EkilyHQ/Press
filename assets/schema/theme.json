@@ -7,6 +7,7 @@
   "type": "object",
   "required": [
     "contractVersion",
+    "engines",
     "content",
     "modules"
   ],
@@ -24,6 +25,20 @@
       "type": "integer",
       "const": 1,
       "description": "Press theme contract version this manifest targets."
+    },
+    "engines": {
+      "type": "object",
+      "description": "Runtime engine compatibility ranges for this theme.",
+      "required": [
+        "press"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "press": {
+          "type": "string",
+          "description": "Supported Press system SemVer range."
+        }
+      }
     },
     "styles": {
       "type": "array",

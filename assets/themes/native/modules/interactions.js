@@ -1537,11 +1537,12 @@ function updateCardMetadata(entries = [], context = {}) {
     const el = cards[idx];
     if (!el) return;
     const exEl = el.querySelector('.card-excerpt');
-    if (exEl && meta && meta.excerpt) {
-      try { exEl.textContent = String(meta.excerpt); } catch (_) {}
+    const inlineExcerpt = meta && meta.excerpt != null ? String(meta.excerpt).trim() : '';
+    if (exEl && inlineExcerpt) {
+      try { exEl.textContent = inlineExcerpt; } catch (_) {}
     }
     if (meta && meta.protected) {
-      if (exEl && !meta.excerpt) {
+      if (exEl && !inlineExcerpt) {
         try { exEl.textContent = translate('ui.protectedExcerpt'); } catch (_) {}
       }
       updateMetaLine(el, meta, 0, true);
@@ -1549,10 +1550,11 @@ function updateCardMetadata(entries = [], context = {}) {
       return;
     }
     const inlineMinutes = readMinutesFromMeta(meta);
+    const needsExcerpt = !!(exEl && !inlineExcerpt);
     if (inlineMinutes > 0) {
       updateMetaLine(el, meta, inlineMinutes, false);
       refreshMasonry(el);
-      return;
+      if (!needsExcerpt) return;
     }
     if (typeof context.getFile !== 'function' || typeof context.getContentRoot !== 'function' || typeof context.extractExcerpt !== 'function' || typeof context.computeReadTime !== 'function') return;
     context.getFile(`${context.getContentRoot()}/${loc}`).then(md => {
@@ -1560,8 +1562,8 @@ function updateCardMetadata(entries = [], context = {}) {
       const encrypted = isEncryptedMarkdown(rawMarkdown);
       const publicMarkdown = encrypted ? stripEncryptedBodyForPublicUse(rawMarkdown) : rawMarkdown;
       const ex = encrypted ? translate('ui.protectedExcerpt') : context.extractExcerpt(publicMarkdown, 50);
-      if (exEl && !(meta && meta.excerpt)) exEl.textContent = ex;
-      const minutes = encrypted ? 0 : context.computeReadTime(publicMarkdown, 200);
+      if (exEl && !inlineExcerpt) exEl.textContent = ex;
+      const minutes = encrypted ? 0 : (inlineMinutes > 0 ? inlineMinutes : context.computeReadTime(publicMarkdown, 200));
       updateMetaLine(el, meta, minutes, encrypted);
       refreshMasonry(el);
     }).catch(() => {});

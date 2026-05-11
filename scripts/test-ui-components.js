@@ -214,7 +214,8 @@ assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=ri
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=encrypted-demo-20260508'/, 'native interactions should cache-bust internal link-card hydration');
 assert.match(nativeInteractions, /const refreshMasonry = \(el\) => \{[\s\S]*updateMasonryItem/, 'native cards should keep masonry refresh centralized');
 assert.match(nativeInteractions, /if \(meta && meta\.protected\) \{[\s\S]*ui\.protectedExcerpt[\s\S]*refreshMasonry\(el\);[\s\S]*return;/, 'native cards should not fetch protected article bodies for previews and should refresh masonry spans');
-assert.match(nativeInteractions, /const inlineMinutes = readMinutesFromMeta\(meta\);[\s\S]*if \(inlineMinutes > 0\) \{[\s\S]*updateMetaLine\(el, meta, inlineMinutes, false\);[\s\S]*return;[\s\S]*context\.getFile/, 'native cards should use index readTime metadata before falling back to Markdown fetches');
+assert.match(nativeInteractions, /const inlineMinutes = readMinutesFromMeta\(meta\);[\s\S]*const needsExcerpt = !!\(exEl && !inlineExcerpt\);[\s\S]*if \(inlineMinutes > 0\) \{[\s\S]*updateMetaLine\(el, meta, inlineMinutes, false\);[\s\S]*if \(!needsExcerpt\) return;[\s\S]*context\.getFile/, 'native cards should only skip Markdown fetches when index readTime metadata also has an excerpt');
+assert.match(nativeInteractions, /const minutes = encrypted \? 0 : \(inlineMinutes > 0 \? inlineMinutes : context\.computeReadTime\(publicMarkdown, 200\)\);/, 'native cards should preserve index readTime when fetching Markdown only to fill a missing excerpt');
 assert.match(linkCards, /if \(meta && meta\.protected\) return;/, 'internal link cards should not fetch protected article bodies when public metadata marks protection');
 assert.match(linkCards, /stripEncryptedBodyForPublicUse\(rawMarkdown\)/, 'internal link cards should strip encrypted bodies before extracting public metadata');
 

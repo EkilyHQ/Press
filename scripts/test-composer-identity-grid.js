@@ -167,6 +167,24 @@ assert.match(
 
 assert.match(
   source,
+  /function getIndexField\(source, keys\)[\s\S]*Object\.prototype\.hasOwnProperty\.call\(input, key\)[\s\S]*function copyExistingIndexFields\(out, existing, keys\)/,
+  'index publish metadata enrichment should distinguish omitted front matter from explicit empty fields'
+);
+
+assert.match(
+  source,
+  /const dateField = getIndexField\(fm, \['date'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['date'\]\);[\s\S]*const tagsField = getIndexField\(fm, \['tags', 'tag'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['tags', 'tag'\]\);[\s\S]*const imageField = getIndexField\(fm, \['image', 'cover', 'thumb'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['image', 'cover', 'thumb'\]\);/,
+  'index publish metadata enrichment should preserve curated date, tags, and image fields when front matter omits them'
+);
+
+assert.match(
+  source,
+  /const aiField = getIndexField\(fm, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*const draftField = getIndexField\(fm, \['draft', 'wip', 'unfinished', 'inprogress'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['draft', 'wip', 'unfinished', 'inprogress'\]\);/,
+  'index publish metadata enrichment should preserve AI and draft flags when front matter omits them'
+);
+
+assert.match(
+  source,
   /const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*prepareMarkdownForProtectedStorage\(tab, text[\s\S]*saveMarkdownDraftEntry\(tab\.path, prepared\.content/,
   'markdown draft persistence should encrypt protected article content before writing draft storage'
 );

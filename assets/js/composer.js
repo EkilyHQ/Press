@@ -5391,35 +5391,99 @@ function getIndexGeneratedMetadata(existing = {}) {
   return out;
 }
 
+function getIndexField(source, keys) {
+  const input = isIndexMetadataObject(source) ? source : {};
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      return { found: true, key, value: input[key] };
+    }
+  }
+  return { found: false, key: '', value: undefined };
+}
+
+function copyExistingIndexFields(out, existing, keys) {
+  if (!out || !isIndexMetadataObject(existing)) return false;
+  let copied = false;
+  keys.forEach((key) => {
+    if (!Object.prototype.hasOwnProperty.call(existing, key)) return;
+    const cloned = cloneIndexMetadataValue(existing[key]);
+    if (cloned === undefined || cloned === null || cloned === '') return;
+    out[key] = cloned;
+    copied = true;
+  });
+  return copied;
+}
+
 function buildIndexMetadataFromMarkdown(markdown, location, fallbackTitle, existing = {}, options = {}) {
   const source = normalizeMarkdownContent(markdown || '');
   const plaintext = normalizeMarkdownContent(options.plaintextContent || '');
   const envelope = parseEncryptedMarkdownEnvelope(source);
   const { frontMatter } = parseFrontMatter(source);
   const fm = frontMatter || {};
-  const protectedPost = !!options.protected || envelope.encrypted || interpretIndexTruthyFlag(fm.protected);
+  const protectedField = getIndexField(fm, ['protected', 'encryption']);
+  const explicitUnprotected = options.protectionExplicit === true && options.protected === false;
+  const existingProtected = interpretIndexTruthyFlag(existing.protected) || !!existing.encryption;
+  const protectedPost = !!options.protected
+    || envelope.encrypted
+    || (protectedField.found ? interpretIndexTruthyFlag(protectedField.value) : (!explicitUnprotected && existingProtected));
   const out = {
     ...getIndexGeneratedMetadata(existing),
     location
   };
   const title = safeString(fm.title || existing.title || fallbackTitle).trim();
   if (title) out.title = title;
-  if (fm.date != null && safeString(fm.date).trim()) out.date = fm.date;
-  const tags = normalizeIndexPublishTags(fm.tags != null ? fm.tags : fm.tag);
-  if (tags !== undefined) out.tags = tags;
-  const image = resolveIndexPublishImage(fm.image || fm.cover || fm.thumb, location);
-  if (image) out.image = image;
+  const dateField = getIndexField(fm, ['date']);
+  if (dateField.found) {
+    if (safeString(dateField.value).trim()) out.date = dateField.value;
+  } else {
+    copyExistingIndexFields(out, existing, ['date']);
+  }
+  const tagsField = getIndexField(fm, ['tags', 'tag']);
+  if (tagsField.found) {
+    const tags = normalizeIndexPublishTags(tagsField.value);
+    if (tags !== undefined) out.tags = tags;
+  } else {
+    copyExistingIndexFields(out, existing, ['tags', 'tag']);
+  }
+  const imageField = getIndexField(fm, ['image', 'cover', 'thumb']);
+  if (imageField.found) {
+    const image = resolveIndexPublishImage(imageField.value, location);
+    if (image) out.image = image;
+  } else {
+    copyExistingIndexFields(out, existing, ['image', 'cover', 'thumb']);
+  }
+  const excerptField = getIndexField(fm, ['excerpt']);
   const excerpt = protectedPost
-    ? safeString(fm.excerpt).trim()
-    : safeString(extractExcerpt(source, 50)).trim();
+    ? safeString(excerptField.found ? excerptField.value : existing.excerpt).trim()
+    : safeString(excerptField.found ? excerptField.value : extractExcerpt(source, 50)).trim();
   if (excerpt) out.excerpt = excerpt;
   const readSource = plaintext || (!protectedPost ? source : '');
   if (readSource) out.readTime = computeReadTime(readSource, 200);
+  else {
+    const readTimeField = getIndexField(existing, ['readTime', 'readMinutes', 'minutes']);
+    if (readTimeField.found && readTimeField.value !== '') out.readTime = cloneIndexMetadataValue(readTimeField.value);
+  }
   out.protected = !!protectedPost;
-  const versionLabel = safeString(fm.version || existing.versionLabel || existing.version || extractVersionFromPath(location)).trim();
-  if (versionLabel) out.versionLabel = versionLabel;
-  if (interpretIndexTruthyFlag(fm.ai || fm.aiGenerated || fm.llm)) out.ai = true;
-  if (interpretIndexTruthyFlag(fm.draft || fm.wip || fm.unfinished || fm.inprogress)) out.draft = true;
+  const versionField = getIndexField(fm, ['version', 'versionLabel']);
+  if (versionField.found) {
+    const versionLabel = safeString(versionField.value).trim();
+    if (versionLabel) out.versionLabel = versionLabel;
+  } else if (!copyExistingIndexFields(out, existing, ['versionLabel', 'version'])) {
+    const versionLabel = safeString(extractVersionFromPath(location)).trim();
+    if (versionLabel) out.versionLabel = versionLabel;
+  }
+  const aiField = getIndexField(fm, ['ai', 'aiGenerated', 'llm']);
+  if (aiField.found) {
+    if (interpretIndexTruthyFlag(aiField.value)) out.ai = true;
+  } else {
+    copyExistingIndexFields(out, existing, ['ai', 'aiGenerated', 'llm']);
+  }
+  const draftField = getIndexField(fm, ['draft', 'wip', 'unfinished', 'inprogress']);
+  if (draftField.found) {
+    if (interpretIndexTruthyFlag(draftField.value)) out.draft = true;
+  } else {
+    copyExistingIndexFields(out, existing, ['draft', 'wip', 'unfinished', 'inprogress']);
+  }
   return out;
 }
 
@@ -5427,18 +5491,22 @@ async function readMarkdownForIndexMetadata(location, pendingMarkdownByPath, con
   const normalized = normalizeRelPath(location);
   if (!normalized) return null;
   if (pendingMarkdownByPath && pendingMarkdownByPath.has(normalized)) {
-    return pendingMarkdownByPath.get(normalized);
+    const pending = pendingMarkdownByPath.get(normalized);
+    return pending && typeof pending === 'object'
+      ? { ...pending, protectionExplicit: true }
+      : { content: normalizeMarkdownContent(pending || ''), plaintextContent: '', protected: false, protectionExplicit: true };
   }
   const tab = findDynamicTabByPath(normalized);
   if (tab) {
     const locked = getLockedEncryptedMarkdownDraft(tab);
-    if (locked) return { content: locked, plaintextContent: '', protected: true };
+    if (locked) return { content: locked, plaintextContent: '', protected: true, protectionExplicit: true };
     if (tab.content != null) {
       const protection = getMarkdownProtectionState(tab);
       return {
         content: normalizeMarkdownContent(tab.content),
         plaintextContent: normalizeMarkdownContent(tab.content),
-        protected: !!(protection && protection.enabled)
+        protected: !!(protection && protection.enabled),
+        protectionExplicit: true
       };
     }
     if (tab.remoteContent != null) {
@@ -5446,7 +5514,8 @@ async function readMarkdownForIndexMetadata(location, pendingMarkdownByPath, con
       return {
         content: normalizeMarkdownContent(tab.remoteContent),
         plaintextContent: normalizeMarkdownContent(tab.remoteContent),
-        protected: !!(protection && protection.enabled)
+        protected: !!(protection && protection.enabled),
+        protectionExplicit: true
       };
     }
   }
@@ -5494,7 +5563,8 @@ async function enrichIndexStateForPublish(state, options = {}) {
           isIndexMetadataObject(variant) ? variant : {},
           {
             plaintextContent: markdownEntry.plaintextContent,
-            protected: markdownEntry.protected
+            protected: markdownEntry.protected,
+            protectionExplicit: markdownEntry.protectionExplicit
           }
         ));
       }

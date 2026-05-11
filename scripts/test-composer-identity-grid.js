@@ -113,7 +113,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=frontmatter-merge-20260512/,
+  /assets\/js\/composer\.js\?v=rich-index-helpers-20260512/,
   'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
@@ -1893,7 +1893,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/repository-deletions\.js\?v=asset-deletions-20260508';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
+  /from '\.\/repository-deletions\.js\?v=rich-index-helpers-20260512';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
   'composer should stage repository markdown deletions from article/page tombstones'
 );
 
@@ -2565,7 +2565,7 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=theme-manager-20260507';/,
+  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=rich-index-helpers-20260512';/,
   'composer should use the shared editor content tree model'
 );
 

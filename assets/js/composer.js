@@ -12,7 +12,7 @@ import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=frontmatter-
 import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=frontmatter-merge-20260512';
 import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=frontmatter-merge-20260512';
 import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=frontmatter-merge-20260512';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=rich-index-helpers-20260512';
 import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
 import {
   decryptMarkdownDocument,
@@ -25,7 +25,7 @@ import {
   listLocalMarkdownAssetReferences,
   planManagedContentDeletions,
   resolveLocalMarkdownAssetReference
-} from './repository-deletions.js?v=asset-deletions-20260508';
+} from './repository-deletions.js?v=rich-index-helpers-20260512';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);

@@ -7,9 +7,9 @@ import {
   stripEncryptedBodyForPublicUse
 } from './js/encrypted-content.js?v=encrypted-demo-20260508';
 import { mdParse } from './js/markdown.js?v=markdown-security-20260512';
-import { setupAnchors, setupTOC } from './js/toc.js?v=annotate-i18n-20260510';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=local-theme-overlays-20260510';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-layout-generation-20260510';
+import { setupAnchors, setupTOC } from './js/toc.js?v=rich-index-metadata-20260512';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=rich-index-metadata-20260512';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=rich-index-metadata-20260512';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=katex-math-20260510';
@@ -24,15 +24,15 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=annotate-i18n-20260510';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=annotate-i18n-20260510';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=annotate-i18n-20260510';
+} from './js/i18n.js?v=rich-index-metadata-20260512';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=rich-index-metadata-20260512';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=rich-index-metadata-20260512';
 import { initSyntaxHighlighting } from './js/syntax-highlight.js?v=highlightjs-common-20260510';
 import { renderPressMath } from './js/math-render.js?v=katex-math-20260510';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=annotate-i18n-20260510';
-import { renderPostNav } from './js/post-nav.js?v=annotate-i18n-20260510';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=rich-index-metadata-20260512';
+import { renderPostNav } from './js/post-nav.js?v=rich-index-metadata-20260512';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=katex-math-20260510';

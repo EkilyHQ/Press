@@ -8,12 +8,12 @@ import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-demo-20260
 import { applyLangHints } from './typography.js';
 import { renderPressMath } from './math-render.js?v=katex-math-20260510';
 import { initSyntaxHighlighting } from './syntax-highlight.js?v=highlightjs-common-20260510';
-import { setupAnchors, setupTOC } from './toc.js?v=annotate-i18n-20260510';
-import { initI18n, t, withLangParam } from './i18n.js?v=annotate-i18n-20260510';
-import { renderPostNav } from './post-nav.js?v=annotate-i18n-20260510';
-import { renderTagSidebar } from './tags.js?v=annotate-i18n-20260510';
+import { setupAnchors, setupTOC } from './toc.js?v=rich-index-metadata-20260512';
+import { initI18n, t, withLangParam } from './i18n.js?v=rich-index-metadata-20260512';
+import { renderPostNav } from './post-nav.js?v=rich-index-metadata-20260512';
+import { renderTagSidebar } from './tags.js?v=rich-index-metadata-20260512';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=theme-layout-generation-20260510';
+import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=rich-index-metadata-20260512';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';

@@ -101,19 +101,19 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=annotate-i18n-20260510/,
+  /assets\/js\/editor-boot\.js\?v=rich-index-metadata-20260512/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=blocks-default-view-20260510/,
+  /assets\/js\/editor-main\.js\?v=rich-index-metadata-20260512/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=version-compat-20260512/,
+  /assets\/js\/composer\.js\?v=rich-index-metadata-20260512/,
   'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
@@ -131,7 +131,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=blocks-default-view-20260510/,
+  /assets\/js\/editor-main\.js\?v=rich-index-metadata-20260512/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
@@ -155,7 +155,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=version-compat-20260512'/,
+  /from '\.\/system-updates\.js\?v=rich-index-metadata-20260512'/,
   'composer should cache-bust system updates when version compatibility changes'
 );
 
@@ -1958,19 +1958,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=annotate-i18n-20260510';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=rich-index-metadata-20260512';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/chs\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/cht-tw\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/cht-hk\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/ja\.js\?v=annotate-i18n-20260510"/,
+  /"\.\/en\.js\?v=rich-index-metadata-20260512"[\s\S]*"\.\/chs\.js\?v=rich-index-metadata-20260512"[\s\S]*"\.\/cht-tw\.js\?v=rich-index-metadata-20260512"[\s\S]*"\.\/cht-hk\.js\?v=rich-index-metadata-20260512"[\s\S]*"\.\/ja\.js\?v=rich-index-metadata-20260512"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=annotate-i18n-20260510'/,
+  /from '\.\.\/i18n\/en\.js\?v=rich-index-metadata-20260512'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 

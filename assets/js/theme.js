@@ -1,4 +1,4 @@
-import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=annotate-i18n-20260510';
+import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=rich-index-metadata-20260512';
 import { getThemeRegion } from './theme-regions.js';
 
 const PACK_LINK_ID = 'theme-pack';

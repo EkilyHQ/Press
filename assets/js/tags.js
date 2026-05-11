@@ -1,5 +1,5 @@
 // Tag utilities: aggregation, rendering (collapsible), and tooltips for truncated tags
-import { t, withLangParam } from './i18n.js?v=annotate-i18n-20260510';
+import { t, withLangParam } from './i18n.js?v=rich-index-metadata-20260512';
 import { getThemeRegion } from './theme-regions.js';
 import { getQueryVariable, escapeHtml } from './utils.js';
 

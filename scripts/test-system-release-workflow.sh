@@ -185,39 +185,68 @@ fi
 
 publish_line="$(grep -nF -- '- name: Publish release' "${workflow}" | head -n 1 | cut -d: -f1)"
 artifact_line="$(grep -nF -- '- name: Publish fetchable artifact' "${workflow}" | head -n 1 | cut -d: -f1)"
-notify_line="$(grep -nF -- '- name: Notify YAP template' "${workflow}" | head -n 1 | cut -d: -f1)"
-if [[ -z "${publish_line}" || -z "${artifact_line}" || -z "${notify_line}" || "${publish_line}" -ge "${artifact_line}" || "${artifact_line}" -ge "${notify_line}" ]]; then
-  echo "system release workflow must publish the release-artifacts manifest after release publication and before YAP notification" >&2
+dispatch_line="$(grep -nF -- '- name: Dispatch release targets' "${workflow}" | head -n 1 | cut -d: -f1)"
+if [[ -z "${publish_line}" || -z "${artifact_line}" || -z "${dispatch_line}" || "${publish_line}" -ge "${artifact_line}" || "${artifact_line}" -ge "${dispatch_line}" ]]; then
+  echo "system release workflow must publish the release-artifacts manifest after release publication and before release dispatches" >&2
   exit 1
 fi
 
-if ! grep -F 'Notify YAP template' "${workflow}" >/dev/null; then
-  echo "system release workflow must notify the YAP template after publishing" >&2
+if ! grep -F 'Dispatch release targets' "${workflow}" >/dev/null; then
+  echo "system release workflow must dispatch release targets after publishing" >&2
   exit 1
 fi
 
-if ! grep -F 'STARTER_SYNC_TOKEN' "${workflow}" >/dev/null; then
-  echo "system release workflow must use STARTER_SYNC_TOKEN for cross-repository YAP dispatch" >&2
+if grep -F 'STARTER_SYNC_TOKEN' "${workflow}" >/dev/null; then
+  echo "system release workflow must not use the legacy STARTER_SYNC_TOKEN for cross-repository dispatch" >&2
   exit 1
 fi
 
-if ! grep -F "STARTER_REPOSITORY: \${{ vars.STARTER_REPOSITORY || 'EkilyHQ/YAP' }}" "${workflow}" >/dev/null; then
-  echo "system release workflow must default dispatches to EkilyHQ/YAP" >&2
+if grep -F 'STARTER_REPOSITORY' "${workflow}" >/dev/null; then
+  echo "system release workflow must not use the legacy single STARTER_REPOSITORY target" >&2
   exit 1
 fi
 
-if ! grep -F "event_type: 'press-system-release'" "${workflow}" >/dev/null; then
+if ! grep -F 'EKILY_RELEASE_APP_ID' "${workflow}" >/dev/null; then
+  echo "system release workflow must read the Ekily Release GitHub App ID" >&2
+  exit 1
+fi
+
+if ! grep -F 'EKILY_RELEASE_PRIVATE_KEY' "${workflow}" >/dev/null; then
+  echo "system release workflow must read the Ekily Release GitHub App private key" >&2
+  exit 1
+fi
+
+if ! grep -F 'scripts/dispatch-system-release.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must run the release dispatch orchestrator" >&2
+  exit 1
+fi
+
+if ! grep -F "eventType: 'press-system-release'" scripts/dispatch-system-release.js >/dev/null; then
   echo "system release workflow must dispatch the press-system-release event" >&2
   exit 1
 fi
 
-if ! grep -F '"repos/${STARTER_REPOSITORY}/dispatches"' "${workflow}" >/dev/null; then
-  echo "system release workflow must call the YAP repository dispatch endpoint" >&2
+for target in \
+  'EkilyHQ/YAP' \
+  'EkilyHQ/Press-Theme-Starter' \
+  'EkilyHQ/Press-Theme-Arcus' \
+  'EkilyHQ/Press-Theme-Cartograph' \
+  'EkilyHQ/Press-Theme-Glasswing' \
+  'EkilyHQ/Press-Theme-Solstice'
+do
+  if ! grep -F "${target}" scripts/dispatch-system-release.js >/dev/null; then
+    echo "release dispatch orchestrator must include ${target}" >&2
+    exit 1
+  fi
+done
+
+if ! grep -F '/repos/${target.repository}/dispatches' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must call repository dispatch endpoints" >&2
   exit 1
 fi
 
-if ! grep -F 'asset_sha256: process.env.ASSET_SHA256' "${workflow}" >/dev/null; then
-  echo "system release workflow must pass the system package digest to YAP" >&2
+if ! grep -F 'asset_sha256: assetSha256' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must pass the system package digest to targets" >&2
   exit 1
 fi
 

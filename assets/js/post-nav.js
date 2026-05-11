@@ -1,4 +1,4 @@
-import { withLangParam, t } from './i18n.js?v=rich-index-metadata-20260512';
+import { withLangParam, t } from './i18n.js?v=frontmatter-merge-20260512';
 import { escapeHtml } from './utils.js';
 
 export function renderPostNav(container, postsIndex, postname) {

@@ -1,4 +1,4 @@
-import chtTwTranslations from './cht-tw.js?v=rich-index-metadata-20260512';
+import chtTwTranslations from './cht-tw.js?v=frontmatter-merge-20260512';
 
 export const languageMeta = { label: '繁體中文（香港）' };
 

@@ -1,16 +1,16 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js?v=rich-index-metadata-20260512';
+import { attachHoverTooltip } from '../../../js/tags.js?v=frontmatter-merge-20260512';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=rich-index-metadata-20260512';
-import { showErrorOverlay } from '../../../js/errors.js?v=rich-index-metadata-20260512';
-import { renderPostNav } from '../../../js/post-nav.js?v=rich-index-metadata-20260512';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=frontmatter-merge-20260512';
+import { showErrorOverlay } from '../../../js/errors.js?v=frontmatter-merge-20260512';
+import { renderPostNav } from '../../../js/post-nav.js?v=frontmatter-merge-20260512';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
 import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=rich-index-metadata-20260512';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=frontmatter-merge-20260512';
 import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=encrypted-demo-20260508';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;

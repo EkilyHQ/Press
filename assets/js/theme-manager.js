@@ -1,4 +1,4 @@
-import { t } from './i18n.js?v=rich-index-metadata-20260512';
+import { t } from './i18n.js?v=frontmatter-merge-20260512';
 import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=version-compat-20260512';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 

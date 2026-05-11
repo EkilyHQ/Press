@@ -1,5 +1,5 @@
 // errors.js — lightweight global error overlay and reporter
-import { t } from './i18n.js?v=rich-index-metadata-20260512';
+import { t } from './i18n.js?v=frontmatter-merge-20260512';
 
 let reporterConfig = {
   reportUrl: null,

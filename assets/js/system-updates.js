@@ -1,7 +1,7 @@
 import { mdParse } from './markdown.js?v=markdown-security-20260512';
 import { renderPressMath } from './math-render.js?v=katex-math-20260510';
 import { setSafeHtml } from './safe-html.js?v=katex-math-20260510';
-import { t } from './i18n.js?v=rich-index-metadata-20260512';
+import { t } from './i18n.js?v=frontmatter-merge-20260512';
 import {
   compareSemver,
   isUpgradeAllowed,

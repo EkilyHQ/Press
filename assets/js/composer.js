@@ -8,10 +8,10 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=rich-index-metadata-20260512';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=rich-index-metadata-20260512';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=rich-index-metadata-20260512';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=rich-index-metadata-20260512';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=frontmatter-merge-20260512';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=frontmatter-merge-20260512';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=frontmatter-merge-20260512';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=frontmatter-merge-20260512';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
 import {
@@ -5873,7 +5873,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=rich-index-order-20260512"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=frontmatter-merge-20260512"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

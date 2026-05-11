@@ -113,6 +113,21 @@ globalThis.fetch = async (url) => {
       ].join('\n')
     };
   }
+  if (textUrl.endsWith('/partial.yaml')) {
+    return {
+      ok: true,
+      text: async () => [
+        'partial:',
+        '  en:',
+        '    - location: post/partial.md',
+        '      title: Declared Title',
+        '      image: declared.jpg',
+        '      excerpt: Declared summary.',
+        '      readTime: 4',
+        ''
+      ].join('\n')
+    };
+  }
   if (textUrl.endsWith('/post/demo.md')) {
     return {
       ok: true,
@@ -139,6 +154,18 @@ globalThis.fetch = async (url) => {
         '```press-encrypted-markdown-v1',
         'ciphertext',
         '```',
+        ''
+      ].join('\n')
+    };
+  }
+  if (textUrl.endsWith('/post/partial.md')) {
+    return {
+      ok: true,
+      text: async () => [
+        '---',
+        'date: 2026-04-30',
+        '---',
+        'Partial body.',
         ''
       ].join('\n')
     };
@@ -186,6 +213,18 @@ assert.equal(
   0,
   'rich index metadata should not trigger Markdown front matter fetches'
 );
+
+const partialReady = new Promise(resolve => {
+  window.addEventListener('ns:posts-metadata-ready', event => resolve(event.detail && event.detail.entries), { once: true });
+});
+const partial = await loadContentJsonWithRaw('wwwroot', 'partial');
+assert.equal(partial.entries['Declared Title'].image, 'post/declared.jpg');
+assert.equal(partial.entries['Declared Title'].excerpt, 'Declared summary.');
+const partialEntries = await partialReady;
+assert.equal(partialEntries['Declared Title'].image, 'post/declared.jpg');
+assert.equal(partialEntries['Declared Title'].excerpt, 'Declared summary.');
+assert.equal(partialEntries['Declared Title'].date, '2026-04-30');
+assert.equal(partialEntries.partial, undefined);
 
 const browserLanguagePrefix = String.fromCharCode(122, 104);
 Object.defineProperty(globalThis, 'navigator', {

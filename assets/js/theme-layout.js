@@ -4,7 +4,7 @@ import {
   getRequestedThemePack,
   setThemePackStylesheet,
   suppressThemePack
-} from './theme.js?v=rich-index-metadata-20260512';
+} from './theme.js?v=frontmatter-merge-20260512';
 import {
   t,
   withLangParam,
@@ -13,7 +13,7 @@ import {
   ensureLanguageBundle,
   getAvailableLangs,
   getLanguageLabel
-} from './i18n.js?v=rich-index-metadata-20260512';
+} from './i18n.js?v=frontmatter-merge-20260512';
 import {
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
@@ -29,7 +29,7 @@ let layoutMountGeneration = 0;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
-const NATIVE_MODULE_CACHE_KEY = 'rich-index-metadata-20260512';
+const NATIVE_MODULE_CACHE_KEY = 'frontmatter-merge-20260512';
 const NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508';
 
 const EFFECT_VIEW_NAMES = {

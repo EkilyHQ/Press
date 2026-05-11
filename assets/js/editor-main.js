@@ -14,7 +14,7 @@ import {
 import { getContentRoot, resolveImageSrc } from './safe-html.js?v=katex-math-20260510';
 import { hydrateInternalLinkCards } from './link-cards.js?v=encrypted-demo-20260508';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
-import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=rich-index-metadata-20260512';
+import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=frontmatter-merge-20260512';
 import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=asset-deletions-20260508';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';

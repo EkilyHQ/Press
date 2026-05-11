@@ -14,7 +14,7 @@ import { isEncryptedMarkdown } from './encrypted-content.js?v=encrypted-demo-202
 import { getContentRoot } from './utils.js';
 import { fetchConfigWithYamlFallback } from './yaml.js';
 import { getThemeRegion } from './theme-regions.js';
-import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=rich-index-metadata-20260512';
+import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=frontmatter-merge-20260512';
 
 // Content fetch cache modes are normalized by cache-control.js.
 
@@ -195,6 +195,20 @@ function getFrontMatterConcurrencyLimit() {
   return Infinity;
 }
 
+function assignDefinedMetadataField(out, key, value) {
+  if (!out || value === undefined) return;
+  out[key] = value;
+}
+
+function mergeDefinedMetadata(base, update) {
+  const out = { ...(base || {}) };
+  if (!update || typeof update !== 'object') return out;
+  Object.keys(update).forEach((key) => {
+    if (update[key] !== undefined) out[key] = update[key];
+  });
+  return out;
+}
+
 async function performFrontMatterFetch(markdownPath) {
   const path = normalizeMarkdownPath(markdownPath);
   if (!path) return { location: path };
@@ -217,18 +231,17 @@ async function performFrontMatterFetch(markdownPath) {
     };
     const fm = frontMatter || {};
     const isProtected = isEncryptedMarkdown(content) || interpretTruthyFlag(fm.protected);
-    return {
-      location: path,
-      image: resolveImagePath(fm.image) || undefined,
-      tag: fm.tags || fm.tag || undefined,
-      date: fm.date || undefined,
-      excerpt: fm.excerpt || undefined,
-      versionLabel: fm.version || undefined,
-      ai: interpretTruthyFlag(fm.ai || fm.aiGenerated || fm.llm) || undefined,
-      draft: interpretTruthyFlag(fm.draft || fm.wip || fm.unfinished || fm.inprogress) || undefined,
-      protected: isProtected || undefined,
-      __title: fm.title || undefined
-    };
+    const meta = { location: path };
+    assignDefinedMetadataField(meta, 'image', resolveImagePath(fm.image) || undefined);
+    assignDefinedMetadataField(meta, 'tag', fm.tags || fm.tag || undefined);
+    assignDefinedMetadataField(meta, 'date', fm.date || undefined);
+    assignDefinedMetadataField(meta, 'excerpt', fm.excerpt || undefined);
+    assignDefinedMetadataField(meta, 'versionLabel', fm.version || undefined);
+    assignDefinedMetadataField(meta, 'ai', interpretTruthyFlag(fm.ai || fm.aiGenerated || fm.llm) || undefined);
+    assignDefinedMetadataField(meta, 'draft', interpretTruthyFlag(fm.draft || fm.wip || fm.unfinished || fm.inprogress) || undefined);
+    assignDefinedMetadataField(meta, 'protected', isProtected || undefined);
+    assignDefinedMetadataField(meta, '__title', fm.title || undefined);
+    return meta;
   } catch (error) {
     console.warn(`Failed to load content from ${path}:`, error);
     return { location: path };
@@ -698,7 +711,7 @@ async function loadContentFromFrontMatter(obj, lang) {
     const variantSources = declaredVariants.map((variant) => {
       if (variant.__indexMetadata) return variant;
       const cached = frontMatterMetadataCache.get(variant.location);
-      return cached ? { ...variant, ...cached } : variant;
+      return cached ? mergeDefinedMetadata(variant, cached) : variant;
     });
     const placeholderEntry = buildEntryFromVariants(variantSources, key);
     if (!placeholderEntry) continue;
@@ -711,7 +724,7 @@ async function loadContentFromFrontMatter(obj, lang) {
     const fetchPromises = variantSources.map((variant) =>
       variant.__indexMetadata
         ? Promise.resolve(variant)
-        : getFrontMatterMetadata(variant.location).then(meta => ({ ...variant, ...meta })).catch(() => variant)
+        : getFrontMatterMetadata(variant.location).then(meta => mergeDefinedMetadata(variant, meta)).catch(() => variant)
     );
 
     const previousTitle = placeholderEntry.title;

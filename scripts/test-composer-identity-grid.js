@@ -191,7 +191,7 @@ assert.match(
 
 assert.match(
   readFileSync(resolve(here, '../assets/js/system-updates.js'), 'utf8'),
-  /from '\.\/markdown\.js\?v=katex-math-20260510'[\s\S]*from '\.\/math-render\.js\?v=katex-math-20260510'[\s\S]*from '\.\/safe-html\.js\?v=katex-math-20260510'/,
+  /from '\.\/markdown\.js\?v=markdown-security-20260512'[\s\S]*from '\.\/math-render\.js\?v=katex-math-20260510'[\s\S]*from '\.\/safe-html\.js\?v=katex-math-20260510'/,
   'system update notes should cache-bust Markdown, math renderer, and sanitizer when math rendering changes'
 );
 

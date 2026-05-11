@@ -40,6 +40,11 @@ function parseNestedMarkdown(markdown, baseDir, options) {
   return mdParse(markdown, baseDir, { ...options, depth: options.depth + 1 });
 }
 
+function normalizeCodeFenceLanguage(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9_.+-]{0,39}$/u.test(raw) ? raw : '';
+}
+
 function isPipeTableSeparator(line) {
   // Matches a classic Markdown table separator like:
   // | ----- | :----: | ------- |
@@ -279,7 +284,7 @@ export function mdParse(markdown, baseDir, options = {}) {
       closePara();
       activeCodeFence = fence;
       codeBlockIndent = lineIndent; // Remember the indent level
-      codeLang = (fence.info.trim().split(/\s+/)[0] || '').toLowerCase();
+      codeLang = normalizeCodeFenceLanguage(fence.info.trim().split(/\s+/)[0] || '');
       // Calculate indent level (tab = 4 spaces, each level = 2rem roughly)
       const indentLevel = Math.floor(lineIndent.replace(/\t/g, '    ').length / 4);
       const indentClass = indentLevel > 0 ? ` code-indent-${indentLevel}` : '';

@@ -756,6 +756,19 @@ const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href=
 }
 
 {
+  const { html, target } = renderMarkdown([
+    '```js"onmouseover="alert(1)',
+    'code',
+    '```'
+  ].join('\n'));
+  assert.doesNotMatch(html, /onmouseover/u);
+  assert.doesNotMatch(html, /language-js"/u);
+  assertRawMarkdownHtmlIsSafe(html);
+  assert.equal(collectElements(target, 'code').length, 1);
+  assertNoEventHandlerAttributes(target);
+}
+
+{
   const { main, toc, effects } = createNativeRuntime();
   const result = effects.renderPostView({
     containers: { mainElement: main, tocElement: toc },

@@ -5508,7 +5508,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=theme-layout-generation-20260510"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=markdown-security-20260512"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

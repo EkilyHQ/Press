@@ -165,6 +165,27 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  Array.from(collectManagedMarkdownReferences({
+    index: {
+      rich: {
+        en: [
+          { location: 'post/rich/v1.0.0/en.md', title: 'Rich', readTime: 2 },
+          { location: 'post/rich/v2.0.0/en.md', title: 'Rich', readTime: 3 }
+        ],
+        ja: { location: 'post/rich/ja.md', title: 'Rich JA', protected: true }
+      }
+    },
+    tabs: {}
+  })).sort(),
+  [
+    'post/rich/ja.md',
+    'post/rich/v1.0.0/en.md',
+    'post/rich/v2.0.0/en.md'
+  ],
+  'current reference graph should read markdown paths from rich index metadata objects'
+);
+
+assert.deepEqual(
   Array.from(collectRemovedManagedMarkdownReferences({
     indexBaseline: baselineIndex,
     tabsBaseline: baselineTabs,

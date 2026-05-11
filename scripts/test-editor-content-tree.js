@@ -18,7 +18,7 @@ const sample = {
       chs: 'post/main/v2.0.0/main_chs.md'
     },
     guide: {
-      ja: ['post/guide/v1.0.0/guide_ja.md']
+      ja: [{ location: 'post/guide/v1.0.0/guide_ja.md', title: 'Guide', readTime: 2, protected: false }]
     },
     v2: {
       en: [
@@ -51,7 +51,14 @@ const baseline = {
     press: {
       en: [
         'post/main/main_en.md',
-        'post/main/v1.5.0/old_en.md',
+        {
+          location: 'post/main/v1.5.0/old_en.md',
+          title: 'Curated old Press',
+          date: '2025-08-20',
+          excerpt: 'Curated old summary.',
+          readTime: 3,
+          protected: false
+        },
         'post/main/v2.0.0/main_en.md'
       ],
       chs: 'post/main/v2.0.0/main_chs.md',
@@ -114,7 +121,11 @@ const indexDiff = {
           state: 'modified',
           versions: {
             orderChanged: true,
-            removed: [{ value: 'post/main/v1.5.0/old_en.md', index: 1 }]
+            removed: [{
+              value: 'post/main/v1.5.0/old_en.md',
+              restoreValue: baseline.index.press.en[1],
+              index: 1
+            }]
           }
         },
         ja: { state: 'removed' }
@@ -236,7 +247,7 @@ assert.deepEqual(
 assert.deepEqual(findEditorContentTreeNode(tree, 'index:oldArticle').restoreValue, baseline.index.oldArticle, 'deleted article entries should carry the baseline entry payload for restore');
 assert.equal(findEditorContentTreeNode(tree, 'index:oldArticle').restoreOrderIndex, 0, 'deleted article entries should remember their baseline order index');
 assert.deepEqual(findEditorContentTreeNode(tree, 'index:press:ja').restoreValue, baseline.index.press.ja, 'deleted article languages should carry the baseline language payload for restore');
-assert.equal(findEditorContentTreeNode(tree, 'index:press:en:removed:1').restoreValue, 'post/main/v1.5.0/old_en.md', 'deleted article versions should carry their baseline file path for restore');
+assert.deepEqual(findEditorContentTreeNode(tree, 'index:press:en:removed:1').restoreValue, baseline.index.press.en[1], 'deleted article versions should carry their baseline metadata payload for restore');
 assert.equal(findEditorContentTreeNode(tree, 'index:press:en:removed:1').restoreIndex, 1, 'deleted article versions should remember their baseline version index');
 assert.deepEqual(findEditorContentTreeNode(tree, 'tabs:History:ja').restoreValue, baseline.tabs.History.ja, 'deleted page language files should carry their baseline tab-language payload for restore');
 assert.equal(findEditorContentTreeNode(tree, 'index:press:en').orderChanged, true, 'article language nodes should expose version order changes');

@@ -1,16 +1,16 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js?v=annotate-i18n-20260510';
+import { attachHoverTooltip } from '../../../js/tags.js?v=frontmatter-merge-20260512';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=annotate-i18n-20260510';
-import { showErrorOverlay } from '../../../js/errors.js?v=annotate-i18n-20260510';
-import { renderPostNav } from '../../../js/post-nav.js?v=annotate-i18n-20260510';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=frontmatter-merge-20260512';
+import { showErrorOverlay } from '../../../js/errors.js?v=frontmatter-merge-20260512';
+import { renderPostNav } from '../../../js/post-nav.js?v=frontmatter-merge-20260512';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
 import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=encrypted-demo-20260508';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=local-theme-overlays-20260510';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=frontmatter-merge-20260512';
 import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=encrypted-demo-20260508';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
@@ -1479,24 +1479,82 @@ function updateCardMetadata(entries = [], context = {}) {
   if (!documentRef) return;
   const translate = context.translate || t;
   const cards = Array.from(documentRef.querySelectorAll('.index a'));
+  const readMinutesFromMeta = (meta) => {
+    const raw = meta && (meta.readTime != null ? meta.readTime : (meta.minutes != null ? meta.minutes : meta.readMinutes));
+    const minutes = Number(raw);
+    return Number.isFinite(minutes) && minutes > 0 ? Math.ceil(minutes) : 0;
+  };
+  const refreshMasonry = (el) => {
+    if (typeof context.updateMasonryItem !== 'function') return;
+    const container = documentRef.querySelector('.index');
+    if (container && el) context.updateMasonryItem(container, el);
+  };
+  const updateMetaLine = (el, meta, minutes, encrypted = false) => {
+    const metaEl = el.querySelector('.card-meta');
+    if (!metaEl) return;
+    const items = [];
+    const dateEl = metaEl.querySelector('.card-date');
+    if (dateEl && dateEl.textContent.trim()) items.push(dateEl.cloneNode(true));
+    if (encrypted) {
+      const p = documentRef.createElement('span');
+      p.className = 'card-draft';
+      p.textContent = translate('ui.protectedBadge');
+      items.push(p);
+    } else if (minutes > 0) {
+      const read = documentRef.createElement('span');
+      read.className = 'card-read';
+      read.textContent = `${minutes} ${translate('ui.minRead')}`;
+      items.push(read);
+    }
+    const verCount = (meta && Array.isArray(meta.versions)) ? meta.versions.length : 0;
+    if (verCount > 1) {
+      const v = documentRef.createElement('span');
+      v.className = 'card-versions';
+      v.setAttribute('title', translate('ui.versionLabel'));
+      v.textContent = translate('ui.versionsCount', verCount);
+      items.push(v);
+    }
+    if (meta && meta.draft) {
+      const d = documentRef.createElement('span');
+      d.className = 'card-draft';
+      d.textContent = translate('ui.draftBadge');
+      items.push(d);
+    }
+    metaEl.textContent = '';
+    items.forEach((node, nodeIdx) => {
+      if (nodeIdx > 0) {
+        const sep = documentRef.createElement('span');
+        sep.className = 'card-sep';
+        sep.textContent = '•';
+        metaEl.appendChild(sep);
+      }
+      metaEl.appendChild(node);
+    });
+  };
   entries.forEach(([title, meta], idx) => {
     const loc = meta && meta.location ? String(meta.location) : '';
     if (!loc) return;
     const el = cards[idx];
     if (!el) return;
     const exEl = el.querySelector('.card-excerpt');
-    if (exEl && meta && meta.excerpt) {
-      try { exEl.textContent = String(meta.excerpt); } catch (_) {}
+    const inlineExcerpt = meta && meta.excerpt != null ? String(meta.excerpt).trim() : '';
+    if (exEl && inlineExcerpt) {
+      try { exEl.textContent = inlineExcerpt; } catch (_) {}
     }
     if (meta && meta.protected) {
-      if (exEl && !meta.excerpt) {
+      if (exEl && !inlineExcerpt) {
         try { exEl.textContent = translate('ui.protectedExcerpt'); } catch (_) {}
       }
-      if (typeof context.updateMasonryItem === 'function') {
-        const container = documentRef.querySelector('.index');
-        if (container && el) context.updateMasonryItem(container, el);
-      }
+      updateMetaLine(el, meta, 0, true);
+      refreshMasonry(el);
       return;
+    }
+    const inlineMinutes = readMinutesFromMeta(meta);
+    const needsExcerpt = !!(exEl && !inlineExcerpt);
+    if (inlineMinutes > 0) {
+      updateMetaLine(el, meta, inlineMinutes, false);
+      refreshMasonry(el);
+      if (!needsExcerpt) return;
     }
     if (typeof context.getFile !== 'function' || typeof context.getContentRoot !== 'function' || typeof context.extractExcerpt !== 'function' || typeof context.computeReadTime !== 'function') return;
     context.getFile(`${context.getContentRoot()}/${loc}`).then(md => {
@@ -1504,53 +1562,10 @@ function updateCardMetadata(entries = [], context = {}) {
       const encrypted = isEncryptedMarkdown(rawMarkdown);
       const publicMarkdown = encrypted ? stripEncryptedBodyForPublicUse(rawMarkdown) : rawMarkdown;
       const ex = encrypted ? translate('ui.protectedExcerpt') : context.extractExcerpt(publicMarkdown, 50);
-      if (exEl && !(meta && meta.excerpt)) exEl.textContent = ex;
-      const minutes = encrypted ? 0 : context.computeReadTime(publicMarkdown, 200);
-      const metaEl = el.querySelector('.card-meta');
-      if (metaEl) {
-        const items = [];
-        const dateEl = metaEl.querySelector('.card-date');
-        if (dateEl && dateEl.textContent.trim()) items.push(dateEl.cloneNode(true));
-        if (encrypted) {
-          const p = documentRef.createElement('span');
-          p.className = 'card-draft';
-          p.textContent = translate('ui.protectedBadge');
-          items.push(p);
-        } else {
-          const read = documentRef.createElement('span');
-          read.className = 'card-read';
-          read.textContent = `${minutes} ${translate('ui.minRead')}`;
-          items.push(read);
-        }
-        const verCount = (meta && Array.isArray(meta.versions)) ? meta.versions.length : 0;
-        if (verCount > 1) {
-          const v = documentRef.createElement('span');
-          v.className = 'card-versions';
-          v.setAttribute('title', translate('ui.versionLabel'));
-          v.textContent = translate('ui.versionsCount', verCount);
-          items.push(v);
-        }
-        if (meta && meta.draft) {
-          const d = documentRef.createElement('span');
-          d.className = 'card-draft';
-          d.textContent = translate('ui.draftBadge');
-          items.push(d);
-        }
-        metaEl.textContent = '';
-        items.forEach((node, nodeIdx) => {
-          if (nodeIdx > 0) {
-            const sep = documentRef.createElement('span');
-            sep.className = 'card-sep';
-            sep.textContent = '•';
-            metaEl.appendChild(sep);
-          }
-          metaEl.appendChild(node);
-        });
-      }
-      if (typeof context.updateMasonryItem === 'function') {
-        const container = documentRef.querySelector('.index');
-        if (container && el) context.updateMasonryItem(container, el);
-      }
+      if (exEl && !inlineExcerpt) exEl.textContent = ex;
+      const minutes = encrypted ? 0 : (inlineMinutes > 0 ? inlineMinutes : context.computeReadTime(publicMarkdown, 200));
+      updateMetaLine(el, meta, minutes, encrypted);
+      refreshMasonry(el);
     }).catch(() => {});
   });
 }

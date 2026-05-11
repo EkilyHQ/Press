@@ -1,4 +1,4 @@
-import { t } from './i18n.js?v=annotate-i18n-20260510';
+import { t } from './i18n.js?v=frontmatter-merge-20260512';
 import { getThemeRegion } from './theme-regions.js';
 
 // Anchors and Table of Contents enhancements

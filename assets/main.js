@@ -7,9 +7,9 @@ import {
   stripEncryptedBodyForPublicUse
 } from './js/encrypted-content.js?v=encrypted-demo-20260508';
 import { mdParse } from './js/markdown.js?v=markdown-security-20260512';
-import { setupAnchors, setupTOC } from './js/toc.js?v=annotate-i18n-20260510';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=local-theme-overlays-20260510';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-layout-generation-20260510';
+import { setupAnchors, setupTOC } from './js/toc.js?v=frontmatter-merge-20260512';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=frontmatter-merge-20260512';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=frontmatter-merge-20260512';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=katex-math-20260510';
@@ -24,15 +24,15 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=annotate-i18n-20260510';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=annotate-i18n-20260510';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=annotate-i18n-20260510';
+} from './js/i18n.js?v=frontmatter-merge-20260512';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=frontmatter-merge-20260512';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=frontmatter-merge-20260512';
 import { initSyntaxHighlighting } from './js/syntax-highlight.js?v=highlightjs-common-20260510';
 import { renderPressMath } from './js/math-render.js?v=katex-math-20260510';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=annotate-i18n-20260510';
-import { renderPostNav } from './js/post-nav.js?v=annotate-i18n-20260510';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=frontmatter-merge-20260512';
+import { renderPostNav } from './js/post-nav.js?v=frontmatter-merge-20260512';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=katex-math-20260510';
@@ -43,6 +43,64 @@ import { hydrateInternalLinkCards } from './js/link-cards.js?v=encrypted-demo-20
 // Lightweight content fetch helper; cache mode is normalized by cache-control.js.
 const getFile = (filename) => fetch(String(filename || ''), { cache: 'no-store' })
   .then(resp => { if (!resp.ok) throw new Error(`HTTP ${resp.status}`); return resp.text(); });
+
+const RAW_INDEX_METADATA_KEYS = new Set([
+  'tag',
+  'tags',
+  'image',
+  'date',
+  'excerpt',
+  'thumb',
+  'cover',
+  'title',
+  'readTime',
+  'readMinutes',
+  'minutes',
+  'version',
+  'versionLabel',
+  'versions',
+  'ai',
+  'aiGenerated',
+  'llm',
+  'draft',
+  'wip',
+  'unfinished',
+  'inprogress',
+  'protected',
+  'encryption'
+]);
+
+function getRawIndexVariantLocation(value) {
+  if (typeof value === 'string') return value.trim();
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return String(value.location || value.path || '').trim();
+  }
+  return '';
+}
+
+function pushRawIndexVariant(variants, lang, value) {
+  const location = getRawIndexVariantLocation(value);
+  if (!location) return;
+  variants.push({ lang, location });
+}
+
+function collectRawIndexVariants(entry, options = {}) {
+  const variants = [];
+  if (!entry || typeof entry !== 'object') return variants;
+  const reserved = options.reservedKeys || RAW_INDEX_METADATA_KEYS;
+  const allowLang = typeof options.allowLang === 'function' ? options.allowLang : null;
+  for (const [key, value] of Object.entries(entry)) {
+    if (reserved && reserved.has(key)) continue;
+    const lang = (key === 'location' || key === 'path') ? 'default' : normalizeLangKey(key);
+    if (allowLang && !allowLang(lang, key)) continue;
+    if (Array.isArray(value)) {
+      value.forEach(item => pushRawIndexVariant(variants, lang, item));
+    } else {
+      pushRawIndexVariant(variants, lang, value);
+    }
+  }
+  return variants;
+}
 
 let postsByLocationTitle = {};
 let tabsBySlug = {};
@@ -1266,27 +1324,11 @@ function displayIndex(parsed) {
       const siteDef = (typeof siteConfig === 'object' && (siteConfig.defaultLanguage || siteConfig.defaultLang)) || 'en';
       const defNorm = normalizeLangKey(siteDef);
 
-      const RESERVED = new Set(['tag','tags','image','date','excerpt','thumb','cover','protected','encryption']);
       const seen = new Set();
       const ordered = [];
 
       const pickPreferred = (entry) => {
-        const variants = [];
-        try {
-          for (const [k, v] of Object.entries(entry || {})) {
-            if (RESERVED.has(k)) continue;
-            const nk = normalizeLangKey(k);
-            if (k === 'location' && typeof v === 'string') {
-              variants.push({ lang: 'default', location: String(v) });
-            } else if (typeof v === 'string') {
-              variants.push({ lang: nk, location: String(v) });
-            } else if (Array.isArray(v)) {
-              v.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-            } else if (v && typeof v === 'object' && typeof v.location === 'string') {
-              variants.push({ lang: nk, location: String(v.location) });
-            }
-          }
-        } catch (_) {}
+        const variants = collectRawIndexVariants(entry);
         if (!variants.length) return '';
         const findBy = (langs) => variants.find(x => langs.includes(x.lang));
         const cand = findBy([curNorm]) || findBy([defNorm]) || findBy(['en']) || findBy(['default']) || variants[0];
@@ -2002,13 +2044,7 @@ async function softResetToSiteDefaultLanguage() {
       try {
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          for (const [k, v] of Object.entries(entry)) {
-            if (['tag','tags','image','date','excerpt','thumb','cover'].includes(k)) continue;
-            if (k === 'location' && typeof v === 'string') { baseAllowed.add(String(v)); continue; }
-            if (Array.isArray(v)) { v.forEach(item => { if (typeof item === 'string') baseAllowed.add(String(item)); }); continue; }
-            if (v && typeof v === 'object' && typeof v.location === 'string') baseAllowed.add(String(v.location));
-            else if (typeof v === 'string') baseAllowed.add(String(v));
-          }
+          collectRawIndexVariants(entry).forEach(variant => { baseAllowed.add(String(variant.location)); });
         }
       } catch (_) {}
     }
@@ -2027,22 +2063,7 @@ async function softResetToSiteDefaultLanguage() {
         const curNorm = normalizeLangKey(cur);
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          const reserved = new Set(['tag','tags','image','date','excerpt','thumb','cover']);
-          const variants = [];
-          for (const [k, v] of Object.entries(entry)) {
-            if (reserved.has(k)) continue;
-            const nk = normalizeLangKey(k);
-            if (k === 'location' && typeof v === 'string') {
-              variants.push({ lang: 'default', location: String(v) });
-            } else if (typeof v === 'string') {
-              variants.push({ lang: nk, location: String(v) });
-            } else if (Array.isArray(v)) {
-              // For version arrays, include all paths for aliasing
-              v.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-            } else if (v && typeof v === 'object' && typeof v.location === 'string') {
-              variants.push({ lang: nk, location: String(v.location) });
-            }
-          }
+          const variants = collectRawIndexVariants(entry);
           if (!variants.length) continue;
           const findBy = (langs) => variants.find(x => langs.includes(x.lang));
           // Prefer the primary location for the current language as computed in postsIndexCache
@@ -2156,20 +2177,11 @@ try {
       try {
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          for (const [k, v] of Object.entries(entry)) {
-            // Skip known non-variant keys
-            if (['tag','tags','image','date','excerpt','thumb','cover'].includes(k)) continue;
-            const nk = normalizeLangKey(k);
-            const cur = (getCurrentLang && getCurrentLang()) || 'en';
-            const curNorm = normalizeLangKey(cur);
-            const allowLang = (nk === 'default' || nk === curNorm || k === 'location');
-            if (!allowLang) continue;
-            // Support both unified and legacy shapes (only for allowed languages)
-            if (k === 'location' && typeof v === 'string') { baseAllowed.add(String(v)); continue; }
-            if (Array.isArray(v)) { v.forEach(item => { if (typeof item === 'string') baseAllowed.add(String(item)); }); continue; }
-            if (v && typeof v === 'object' && typeof v.location === 'string') baseAllowed.add(String(v.location));
-            else if (typeof v === 'string') baseAllowed.add(String(v));
-          }
+          const cur = (getCurrentLang && getCurrentLang()) || 'en';
+          const curNorm = normalizeLangKey(cur);
+          collectRawIndexVariants(entry, {
+            allowLang: (lang, key) => lang === 'default' || lang === curNorm || key === 'location' || key === 'path'
+          }).forEach(variant => { baseAllowed.add(String(variant.location)); });
         }
       } catch (_) { /* ignore parse issues */ }
     }
@@ -2188,21 +2200,7 @@ try {
         const curNorm = normalizeLangKey(cur);
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          const reserved = new Set(['tag','tags','image','date','excerpt','thumb','cover']);
-          const variants = [];
-          for (const [k, v] of Object.entries(entry)) {
-            if (reserved.has(k)) continue;
-            const nk = normalizeLangKey(k);
-            if (k === 'location' && typeof v === 'string') {
-              variants.push({ lang: 'default', location: String(v) });
-            } else if (typeof v === 'string') {
-              variants.push({ lang: nk, location: String(v) });
-            } else if (Array.isArray(v)) {
-              v.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-            } else if (v && typeof v === 'object' && typeof v.location === 'string') {
-              variants.push({ lang: nk, location: String(v.location) });
-            }
-          }
+          const variants = collectRawIndexVariants(entry);
           if (!variants.length) continue;
           const findBy = (langs) => variants.find(x => langs.includes(x.lang));
           // Prefer the primary location for the current language as computed in postsIndexCache

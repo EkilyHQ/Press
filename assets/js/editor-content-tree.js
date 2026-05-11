@@ -152,9 +152,28 @@ function resolveStatus(map, node) {
 }
 
 function normalizeIndexValue(value) {
-  if (Array.isArray(value)) return value.map(normalizeEditorTreePath).filter(Boolean);
+  if (Array.isArray(value)) return value.map(item => {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      return normalizeEditorTreePath(item.location || item.path);
+    }
+    return normalizeEditorTreePath(item);
+  }).filter(Boolean);
+  if (value && typeof value === 'object') {
+    const path = normalizeEditorTreePath(value.location || value.path);
+    return path ? [path] : [];
+  }
   const path = normalizeEditorTreePath(value);
   return path ? [path] : [];
+}
+
+function normalizeIndexItems(value) {
+  const list = Array.isArray(value) ? value : (value == null ? [] : [value]);
+  return list.map((item, index) => {
+    const path = item && typeof item === 'object' && !Array.isArray(item)
+      ? normalizeEditorTreePath(item.location || item.path)
+      : normalizeEditorTreePath(item);
+    return path ? { path, value: item, index } : null;
+  }).filter(Boolean);
 }
 
 function normalizeTabValue(value) {
@@ -256,19 +275,23 @@ function removedLangs(currentEntry, baselineEntry, keyInfo, preferredLangs) {
 function removedVersionItems(langInfo, currentValue, baselineValue) {
   const removed = [];
   const seen = new Set();
-  const add = (value, index) => {
+  const add = (value, index, restoreValue = value) => {
     const path = normalizeEditorTreePath(value);
     if (!path || seen.has(path)) return;
     seen.add(path);
-    removed.push({ value: path, index: Number.isFinite(Number(index)) ? Number(index) : removed.length });
+    removed.push({ value: path, restoreValue, index: Number.isFinite(Number(index)) ? Number(index) : removed.length });
   };
   if (langInfo && langInfo.versions && Array.isArray(langInfo.versions.removed)) {
-    langInfo.versions.removed.forEach(item => add(item && item.value, item && item.index));
+    langInfo.versions.removed.forEach(item => add(
+      item && item.value,
+      item && item.index,
+      item && Object.prototype.hasOwnProperty.call(item, 'restoreValue') ? item.restoreValue : item && item.value
+    ));
   }
   if (langInfo) {
     const currentItems = new Set(normalizeIndexValue(currentValue));
-    normalizeIndexValue(baselineValue).forEach((path, index) => {
-      if (!currentItems.has(path)) add(path, index);
+    normalizeIndexItems(baselineValue).forEach((item) => {
+      if (!currentItems.has(item.path)) add(item.path, item.index, item.value);
     });
   }
   return removed;
@@ -457,7 +480,7 @@ export function buildEditorContentTree(input = {}, options = {}) {
                   diffState: 'removed',
                   isDeleted: true,
                   deletedKind: 'version',
-                  restoreValue: item.value,
+                  restoreValue: item.restoreValue,
                   restoreIndex: item.index,
                   restoreOrderIndex: orderIndex
                 }, statusMaps))
@@ -476,21 +499,21 @@ export function buildEditorContentTree(input = {}, options = {}) {
             deletedKind: 'language',
             restoreValue: baselineEntry[lang],
             restoreOrderIndex: orderIndex,
-            children: normalizeIndexValue(baselineEntry[lang]).map((path, versionIndex) => makeNode({
-              id: `index:${key}:${lang}:removed:${versionIndex}`,
+            children: normalizeIndexItems(baselineEntry[lang]).map((item) => makeNode({
+              id: `index:${key}:${lang}:removed:${item.index}`,
               kind: 'deleted-file',
               source: 'index',
               key,
               lang,
-              versionIndex,
-              path,
-              label: versionLabel(path, versionIndex),
+              versionIndex: item.index,
+              path: item.path,
+              label: versionLabel(item.path, item.index),
               children: [],
               diffState: 'removed',
               isDeleted: true,
               deletedKind: 'version',
-              restoreValue: path,
-              restoreIndex: versionIndex,
+              restoreValue: item.value,
+              restoreIndex: item.index,
               restoreOrderIndex: orderIndex
             }, statusMaps))
           }, statusMaps))

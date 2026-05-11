@@ -101,19 +101,19 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=annotate-i18n-20260510/,
+  /assets\/js\/editor-boot\.js\?v=frontmatter-merge-20260512/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=blocks-default-view-20260510/,
+  /assets\/js\/editor-main\.js\?v=frontmatter-merge-20260512/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=version-compat-20260512/,
+  /assets\/js\/composer\.js\?v=rich-version-restore-20260512/,
   'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
@@ -131,7 +131,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=blocks-default-view-20260510/,
+  /assets\/js\/editor-main\.js\?v=frontmatter-merge-20260512/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
@@ -155,7 +155,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=version-compat-20260512'/,
+  /from '\.\/system-updates\.js\?v=frontmatter-merge-20260512'/,
   'composer should cache-bust system updates when version compatibility changes'
 );
 
@@ -163,6 +163,24 @@ assert.match(
   source,
   /from '\.\/encrypted-content\.js\?v=encrypted-demo-20260508'/,
   'composer should import encrypted article helpers through the encrypted-articles cache key'
+);
+
+assert.match(
+  source,
+  /function getIndexField\(source, keys\)[\s\S]*Object\.prototype\.hasOwnProperty\.call\(input, key\)[\s\S]*function copyExistingIndexFields\(out, existing, keys\)/,
+  'index publish metadata enrichment should distinguish omitted front matter from explicit empty fields'
+);
+
+assert.match(
+  source,
+  /const dateField = getIndexField\(fm, \['date'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['date'\]\);[\s\S]*const tagsField = getIndexField\(fm, \['tags', 'tag'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['tags', 'tag'\]\);[\s\S]*const imageField = getIndexField\(fm, \['image', 'cover', 'thumb'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['image', 'cover', 'thumb'\]\);/,
+  'index publish metadata enrichment should preserve curated date, tags, and image fields when front matter omits them'
+);
+
+assert.match(
+  source,
+  /const aiField = getIndexField\(fm, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*const draftField = getIndexField\(fm, \['draft', 'wip', 'unfinished', 'inprogress'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['draft', 'wip', 'unfinished', 'inprogress'\]\);/,
+  'index publish metadata enrichment should preserve AI and draft flags when front matter omits them'
 );
 
 assert.match(
@@ -1875,7 +1893,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/repository-deletions\.js\?v=asset-deletions-20260508';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
+  /from '\.\/repository-deletions\.js\?v=rich-index-helpers-20260512';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
   'composer should stage repository markdown deletions from article/page tombstones'
 );
 
@@ -1958,19 +1976,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=annotate-i18n-20260510';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=frontmatter-merge-20260512';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/chs\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/cht-tw\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/cht-hk\.js\?v=annotate-i18n-20260510"[\s\S]*"\.\/ja\.js\?v=annotate-i18n-20260510"/,
+  /"\.\/en\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/chs\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/cht-tw\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/cht-hk\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/ja\.js\?v=frontmatter-merge-20260512"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=annotate-i18n-20260510'/,
+  /from '\.\.\/i18n\/en\.js\?v=frontmatter-merge-20260512'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
@@ -2547,8 +2565,14 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=theme-manager-20260507';/,
+  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=rich-version-restore-20260512';/,
   'composer should use the shared editor content tree model'
+);
+
+assert.match(
+  source,
+  /function diffVersionLists\(currentValue, baselineValue\) \{[\s\S]*restoreValue: cloneIndexMetadataValue\(item\)[\s\S]*removed\.push\(\{[\s\S]*value: baseItems\[i\]\.path \|\| '',[\s\S]*restoreValue: baseItems\[i\]\.restoreValue,/,
+  'article version diffs should preserve rich baseline metadata for deleted-version restore'
 );
 
 assert.match(
@@ -3527,8 +3551,8 @@ assert.match(
 
 assert.match(
   source,
-  /function normalizeComposerVersionPaths\(value\) \{[\s\S]*Array\.isArray\(value\)[\s\S]*normalizeRelPath\(value\)[\s\S]*return normalized \? \[normalized\] : \[\];[\s\S]*function collectComposerArticleVersions\(paths\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(paths\);[\s\S]*async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);/,
-  'legacy scalar article language paths should be normalized before version dedupe runs'
+  /function normalizeComposerVersionPaths\(value\) \{[\s\S]*Array\.isArray\(value\)[\s\S]*getIndexVariantLocation\(item\)[\s\S]*const normalized = getIndexVariantLocation\(value\);[\s\S]*return normalized \? \[normalized\] : \[\];[\s\S]*function collectComposerArticleVersions\(paths\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(paths\);[\s\S]*async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);/,
+  'legacy scalar and rich article language paths should be normalized before version dedupe runs'
 );
 
 assert.match(

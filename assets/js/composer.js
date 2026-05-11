@@ -8,11 +8,12 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=annotate-i18n-20260510';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=annotate-i18n-20260510';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=version-compat-20260512';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=version-compat-20260512';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=frontmatter-merge-20260512';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=frontmatter-merge-20260512';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=frontmatter-merge-20260512';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=frontmatter-merge-20260512';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=rich-version-restore-20260512';
+import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
@@ -24,7 +25,7 @@ import {
   listLocalMarkdownAssetReferences,
   planManagedContentDeletions,
   resolveLocalMarkdownAssetReference
-} from './repository-deletions.js?v=asset-deletions-20260508';
+} from './repository-deletions.js?v=rich-index-helpers-20260512';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -1203,6 +1204,72 @@ function deepClone(value) {
 
 function safeString(value) {
   return value == null ? '' : String(value);
+}
+
+function isIndexMetadataObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function cloneIndexMetadataValue(value) {
+  if (value == null) return value;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value.map(item => cloneIndexMetadataValue(item));
+  if (typeof value === 'object') {
+    const out = {};
+    Object.keys(value).forEach((key) => {
+      const cloned = cloneIndexMetadataValue(value[key]);
+      if (cloned !== undefined) out[key] = cloned;
+    });
+    return out;
+  }
+  return safeString(value);
+}
+
+function normalizeIndexVariantForState(value) {
+  if (!isIndexMetadataObject(value)) return safeString(value);
+  const out = {};
+  const rawLocation = value.location != null ? value.location : value.path;
+  const normalizedLocation = normalizeRelPath(rawLocation);
+  if (normalizedLocation) out.location = normalizedLocation;
+  Object.keys(value).forEach((key) => {
+    if (key === 'location' || key === 'path') return;
+    const cloned = cloneIndexMetadataValue(value[key]);
+    if (cloned !== undefined && cloned !== null && cloned !== '') out[key] = cloned;
+  });
+  return out.location ? out : '';
+}
+
+function getIndexVariantLocation(value) {
+  if (isIndexMetadataObject(value)) return normalizeRelPath(value.location != null ? value.location : value.path);
+  return normalizeRelPath(value);
+}
+
+function stableIndexValue(value) {
+  if (Array.isArray(value)) return value.map(item => stableIndexValue(item));
+  if (value && typeof value === 'object') {
+    const out = {};
+    Object.keys(value).sort().forEach((key) => {
+      out[key] = stableIndexValue(value[key]);
+    });
+    return out;
+  }
+  return value;
+}
+
+function getIndexVariantSignature(value) {
+  const normalized = normalizeIndexVariantForState(value);
+  if (isIndexMetadataObject(normalized)) return JSON.stringify(stableIndexValue(normalized));
+  return safeString(normalized);
+}
+
+function normalizeIndexVariantList(value) {
+  const items = Array.isArray(value) ? value : (value == null || value === '' ? [] : [value]);
+  return items
+    .map(item => normalizeIndexVariantForState(item))
+    .filter(item => {
+      if (isIndexMetadataObject(item)) return !!getIndexVariantLocation(item);
+      return !!normalizeRelPath(item);
+    });
 }
 
 function escapeHtml(value) {
@@ -2536,10 +2603,9 @@ function normalizeIndexEntry(entry) {
     if (lang === '__order') return;
     const value = entry[lang];
     if (Array.isArray(value)) {
-      out[lang] = value.map(item => safeString(item));
+      out[lang] = normalizeIndexVariantList(value);
     } else if (value != null && typeof value === 'object') {
-      // Unexpected object -> stringify to keep placeholder
-      out[lang] = safeString(value.location || value.path || '');
+      out[lang] = normalizeIndexVariantForState(value);
     } else {
       out[lang] = safeString(value);
     }
@@ -3068,8 +3134,7 @@ function writeYamlValue(lines, indent, value) {
       if (item == null || typeof item !== 'object' || Array.isArray(item)) {
         lines.push(`${pad}- ${yamlScalar(item)}`);
       } else {
-        lines.push(`${pad}-`);
-        writeYamlObject(lines, indent + 1, item);
+        writeYamlArrayObject(lines, indent, item);
       }
     });
     return;
@@ -3079,6 +3144,33 @@ function writeYamlValue(lines, indent, value) {
     return;
   }
   lines.push(`${pad}${yamlScalar(String(value))}`);
+}
+
+function writeYamlArrayObject(lines, indent, obj) {
+  const pad = '  '.repeat(indent);
+  const keys = Object.keys(obj);
+  if (!keys.length) {
+    lines.push(`${pad}- {}`);
+    return;
+  }
+  const [firstKey, ...restKeys] = keys;
+  const firstValue = obj[firstKey];
+  if (firstValue == null || typeof firstValue === 'string' || typeof firstValue === 'number' || typeof firstValue === 'boolean') {
+    lines.push(`${pad}- ${firstKey}: ${yamlScalar(firstValue)}`);
+  } else {
+    lines.push(`${pad}- ${firstKey}:`);
+    writeYamlValue(lines, indent + 2, firstValue);
+  }
+  restKeys.forEach((key) => {
+    const value = obj[key];
+    const childPad = '  '.repeat(indent + 1);
+    if (value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      lines.push(`${childPad}${key}: ${yamlScalar(value)}`);
+    } else {
+      lines.push(`${childPad}${key}:`);
+      writeYamlValue(lines, indent + 2, value);
+    }
+  });
 }
 
 function writeYamlObject(lines, indent, obj) {
@@ -3152,8 +3244,8 @@ function computeIndexSignature(state) {
     const langs = Object.keys(entry).sort();
     const langParts = langs.map(lang => {
       const value = entry[lang];
-      if (Array.isArray(value)) return [lang, 'list', value.map(item => safeString(item))];
-      return [lang, 'single', safeString(value)];
+      if (Array.isArray(value)) return [lang, 'list', value.map(item => getIndexVariantSignature(item))];
+      return [lang, 'single', getIndexVariantSignature(value)];
     });
     parts.push(JSON.stringify([key, langParts]));
   });
@@ -3181,7 +3273,11 @@ function computeTabsSignature(state) {
 function diffVersionLists(currentValue, baselineValue) {
   const normalize = (value) => {
     if (Array.isArray(value)) {
-      const items = value.map(item => safeString(item));
+      const items = value.map(item => ({
+        path: getIndexVariantLocation(item),
+        signature: getIndexVariantSignature(item),
+        restoreValue: cloneIndexMetadataValue(item)
+      }));
       if (items.length === 0) {
         return { kind: 'list', items: [] };
       }
@@ -3190,7 +3286,14 @@ function diffVersionLists(currentValue, baselineValue) {
       }
       return { kind: 'list', items };
     }
-    return { kind: 'single', items: [safeString(value)] };
+    return {
+      kind: 'single',
+      items: [{
+        path: getIndexVariantLocation(value),
+        signature: getIndexVariantSignature(value),
+        restoreValue: cloneIndexMetadataValue(value)
+      }]
+    };
   };
   const cur = normalize(currentValue);
   const base = normalize(baselineValue);
@@ -3202,14 +3305,14 @@ function diffVersionLists(currentValue, baselineValue) {
     const value = curItems[i];
     let status = 'added';
     let prevIndex = -1;
-    if (i < baseItems.length && baseItems[i] === value && !baseMatched[i]) {
+    if (i < baseItems.length && baseItems[i].signature === value.signature && !baseMatched[i]) {
       status = 'unchanged';
       prevIndex = i;
       baseMatched[i] = true;
     } else {
       let foundIndex = -1;
       for (let j = 0; j < baseItems.length; j += 1) {
-        if (!baseMatched[j] && baseItems[j] === value) {
+        if (!baseMatched[j] && baseItems[j].signature === value.signature) {
           foundIndex = j;
           break;
         }
@@ -3224,18 +3327,24 @@ function diffVersionLists(currentValue, baselineValue) {
         baseMatched[i] = true;
       }
     }
-    entries.push({ value, status, prevIndex });
+    entries.push({ value: value.path || '', status, prevIndex });
   }
   const removed = [];
   for (let i = 0; i < baseItems.length; i += 1) {
-    if (!baseMatched[i]) removed.push({ value: baseItems[i], index: i });
+    if (!baseMatched[i]) {
+      removed.push({
+        value: baseItems[i].path || '',
+        restoreValue: baseItems[i].restoreValue,
+        index: i
+      });
+    }
   }
   const changed = cur.kind !== base.kind
     || curItems.length !== baseItems.length
     || entries.some(item => item.status !== 'unchanged')
     || removed.length > 0;
   const orderChanged = entries.some(item => item.status === 'moved')
-    || (curItems.length === baseItems.length && !arraysEqual(curItems, baseItems));
+    || (curItems.length === baseItems.length && !arraysEqual(curItems.map(item => item.path), baseItems.map(item => item.path)));
   return {
     entries,
     removed,
@@ -5200,7 +5309,7 @@ function exportIndexDataForSeo(state) {
       const value = entry[lang];
       if (Array.isArray(value)) {
         const normalized = value
-          .map((item) => (item == null ? '' : String(item)))
+          .map((item) => getIndexVariantLocation(item))
           .filter((item) => item);
         if (!normalized.length) return;
         if (normalized.length === 1) langs[lang] = normalized[0];
@@ -5208,11 +5317,275 @@ function exportIndexDataForSeo(state) {
       } else if (typeof value === 'string') {
         const trimmed = value.trim();
         if (trimmed) langs[lang] = trimmed;
+      } else if (isIndexMetadataObject(value)) {
+        const location = getIndexVariantLocation(value);
+        if (location) langs[lang] = location;
       }
     });
     if (Object.keys(langs).length) output[key] = langs;
   });
   return output;
+}
+
+const INDEX_PUBLISH_METADATA_KEYS = new Set([
+  'location',
+  'path',
+  'title',
+  'date',
+  'tag',
+  'tags',
+  'image',
+  'thumb',
+  'cover',
+  'excerpt',
+  'readTime',
+  'readMinutes',
+  'minutes',
+  'protected',
+  'encryption',
+  'version',
+  'versionLabel',
+  'ai',
+  'aiGenerated',
+  'llm',
+  'draft',
+  'wip',
+  'unfinished',
+  'inprogress'
+]);
+
+function interpretIndexTruthyFlag(value) {
+  if (value === true) return true;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y' || normalized === 'on' || normalized === 'enabled';
+}
+
+function isIndexVariantPublishComplete(value) {
+  if (!isIndexMetadataObject(value)) return false;
+  if (!getIndexVariantLocation(value)) return false;
+  if (!safeString(value.title).trim()) return false;
+  if (value.protected == null && value.encryption == null) return false;
+  const protectedPost = interpretIndexTruthyFlag(value.protected) || !!value.encryption;
+  if (protectedPost) return !!safeString(value.excerpt).trim() || value.readTime != null;
+  return value.readTime != null && safeString(value.excerpt).trim();
+}
+
+function normalizeIndexPublishTags(value) {
+  if (Array.isArray(value)) {
+    const tags = value.map(item => safeString(item).trim()).filter(Boolean);
+    return tags.length ? tags : undefined;
+  }
+  const tag = safeString(value).trim();
+  return tag || undefined;
+}
+
+function resolveIndexPublishImage(image, location) {
+  const raw = safeString(image).trim();
+  if (!raw) return undefined;
+  if (/^(https?:|data:)/i.test(raw) || raw.startsWith('/')) return raw;
+  const lastSlash = safeString(location).lastIndexOf('/');
+  const baseDir = lastSlash >= 0 ? safeString(location).slice(0, lastSlash + 1) : '';
+  return normalizeRelPath(`${baseDir}${raw}`) || raw;
+}
+
+function getIndexGeneratedMetadata(existing = {}) {
+  const out = {};
+  if (!isIndexMetadataObject(existing)) return out;
+  Object.keys(existing).forEach((key) => {
+    if (INDEX_PUBLISH_METADATA_KEYS.has(key)) return;
+    const cloned = cloneIndexMetadataValue(existing[key]);
+    if (cloned !== undefined && cloned !== null && cloned !== '') out[key] = cloned;
+  });
+  return out;
+}
+
+function getIndexField(source, keys) {
+  const input = isIndexMetadataObject(source) ? source : {};
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(input, key)) {
+      return { found: true, key, value: input[key] };
+    }
+  }
+  return { found: false, key: '', value: undefined };
+}
+
+function copyExistingIndexFields(out, existing, keys) {
+  if (!out || !isIndexMetadataObject(existing)) return false;
+  let copied = false;
+  keys.forEach((key) => {
+    if (!Object.prototype.hasOwnProperty.call(existing, key)) return;
+    const cloned = cloneIndexMetadataValue(existing[key]);
+    if (cloned === undefined || cloned === null || cloned === '') return;
+    out[key] = cloned;
+    copied = true;
+  });
+  return copied;
+}
+
+function buildIndexMetadataFromMarkdown(markdown, location, fallbackTitle, existing = {}, options = {}) {
+  const source = normalizeMarkdownContent(markdown || '');
+  const plaintext = normalizeMarkdownContent(options.plaintextContent || '');
+  const envelope = parseEncryptedMarkdownEnvelope(source);
+  const { frontMatter } = parseFrontMatter(source);
+  const fm = frontMatter || {};
+  const protectedField = getIndexField(fm, ['protected', 'encryption']);
+  const explicitUnprotected = options.protectionExplicit === true && options.protected === false;
+  const existingProtected = interpretIndexTruthyFlag(existing.protected) || !!existing.encryption;
+  const protectedPost = !!options.protected
+    || envelope.encrypted
+    || (protectedField.found ? interpretIndexTruthyFlag(protectedField.value) : (!explicitUnprotected && existingProtected));
+  const out = {
+    ...getIndexGeneratedMetadata(existing),
+    location
+  };
+  const title = safeString(fm.title || existing.title || fallbackTitle).trim();
+  if (title) out.title = title;
+  const dateField = getIndexField(fm, ['date']);
+  if (dateField.found) {
+    if (safeString(dateField.value).trim()) out.date = dateField.value;
+  } else {
+    copyExistingIndexFields(out, existing, ['date']);
+  }
+  const tagsField = getIndexField(fm, ['tags', 'tag']);
+  if (tagsField.found) {
+    const tags = normalizeIndexPublishTags(tagsField.value);
+    if (tags !== undefined) out.tags = tags;
+  } else {
+    copyExistingIndexFields(out, existing, ['tags', 'tag']);
+  }
+  const imageField = getIndexField(fm, ['image', 'cover', 'thumb']);
+  if (imageField.found) {
+    const image = resolveIndexPublishImage(imageField.value, location);
+    if (image) out.image = image;
+  } else {
+    copyExistingIndexFields(out, existing, ['image', 'cover', 'thumb']);
+  }
+  const excerptField = getIndexField(fm, ['excerpt']);
+  const excerpt = protectedPost
+    ? safeString(excerptField.found ? excerptField.value : existing.excerpt).trim()
+    : safeString(excerptField.found ? excerptField.value : extractExcerpt(source, 50)).trim();
+  if (excerpt) out.excerpt = excerpt;
+  const readSource = plaintext || (!protectedPost ? source : '');
+  if (readSource) out.readTime = computeReadTime(readSource, 200);
+  else {
+    const readTimeField = getIndexField(existing, ['readTime', 'readMinutes', 'minutes']);
+    if (readTimeField.found && readTimeField.value !== '') out.readTime = cloneIndexMetadataValue(readTimeField.value);
+  }
+  out.protected = !!protectedPost;
+  const versionField = getIndexField(fm, ['version', 'versionLabel']);
+  if (versionField.found) {
+    const versionLabel = safeString(versionField.value).trim();
+    if (versionLabel) out.versionLabel = versionLabel;
+  } else if (!copyExistingIndexFields(out, existing, ['versionLabel', 'version'])) {
+    const versionLabel = safeString(extractVersionFromPath(location)).trim();
+    if (versionLabel) out.versionLabel = versionLabel;
+  }
+  const aiField = getIndexField(fm, ['ai', 'aiGenerated', 'llm']);
+  if (aiField.found) {
+    if (interpretIndexTruthyFlag(aiField.value)) out.ai = true;
+  } else {
+    copyExistingIndexFields(out, existing, ['ai', 'aiGenerated', 'llm']);
+  }
+  const draftField = getIndexField(fm, ['draft', 'wip', 'unfinished', 'inprogress']);
+  if (draftField.found) {
+    if (interpretIndexTruthyFlag(draftField.value)) out.draft = true;
+  } else {
+    copyExistingIndexFields(out, existing, ['draft', 'wip', 'unfinished', 'inprogress']);
+  }
+  return out;
+}
+
+async function readMarkdownForIndexMetadata(location, pendingMarkdownByPath, contentRoot) {
+  const normalized = normalizeRelPath(location);
+  if (!normalized) return null;
+  if (pendingMarkdownByPath && pendingMarkdownByPath.has(normalized)) {
+    const pending = pendingMarkdownByPath.get(normalized);
+    return pending && typeof pending === 'object'
+      ? { ...pending, protectionExplicit: true }
+      : { content: normalizeMarkdownContent(pending || ''), plaintextContent: '', protected: false, protectionExplicit: true };
+  }
+  const tab = findDynamicTabByPath(normalized);
+  if (tab) {
+    const locked = getLockedEncryptedMarkdownDraft(tab);
+    if (locked) return { content: locked, plaintextContent: '', protected: true, protectionExplicit: true };
+    if (tab.content != null) {
+      const protection = getMarkdownProtectionState(tab);
+      return {
+        content: normalizeMarkdownContent(tab.content),
+        plaintextContent: normalizeMarkdownContent(tab.content),
+        protected: !!(protection && protection.enabled),
+        protectionExplicit: true
+      };
+    }
+    if (tab.remoteContent != null) {
+      const protection = getMarkdownProtectionState(tab);
+      return {
+        content: normalizeMarkdownContent(tab.remoteContent),
+        plaintextContent: normalizeMarkdownContent(tab.remoteContent),
+        protected: !!(protection && protection.enabled),
+        protectionExplicit: true
+      };
+    }
+  }
+  const root = safeString(contentRoot || getContentRootSafe() || 'wwwroot').replace(/\\+/g, '/').replace(/\/?$/, '');
+  const url = `${root || 'wwwroot'}/${normalized}`;
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response || !response.ok) return null;
+    return { content: normalizeMarkdownContent(await response.text()), plaintextContent: '', protected: false };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function enrichIndexStateForPublish(state, options = {}) {
+  const source = prepareIndexState(state || { __order: [] });
+  const next = deepClone(source);
+  const pendingMarkdownByPath = options.pendingMarkdownByPath instanceof Map ? options.pendingMarkdownByPath : new Map();
+  const contentRoot = options.contentRoot || 'wwwroot';
+  const keys = Array.isArray(next.__order) ? next.__order.slice() : Object.keys(next).filter(key => key !== '__order');
+  for (const key of keys) {
+    const entry = next[key];
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    for (const lang of sortLangKeys(entry)) {
+      const originalValue = entry[lang];
+      const originalWasArray = Array.isArray(originalValue);
+      const variants = normalizeIndexVariantList(originalValue);
+      const enriched = [];
+      for (const variant of variants) {
+        const location = getIndexVariantLocation(variant);
+        if (!location) continue;
+        if (isIndexVariantPublishComplete(variant) && !pendingMarkdownByPath.has(location)) {
+          enriched.push(variant);
+          continue;
+        }
+        const markdownEntry = await readMarkdownForIndexMetadata(location, pendingMarkdownByPath, contentRoot);
+        if (!markdownEntry || !markdownEntry.content) {
+          enriched.push(variant);
+          continue;
+        }
+        enriched.push(buildIndexMetadataFromMarkdown(
+          markdownEntry.content,
+          location,
+          key,
+          isIndexMetadataObject(variant) ? variant : {},
+          {
+            plaintextContent: markdownEntry.plaintextContent,
+            protected: markdownEntry.protected,
+            protectionExplicit: markdownEntry.protectionExplicit
+          }
+        ));
+      }
+      if (!enriched.length) {
+        delete entry[lang];
+      } else if (originalWasArray || enriched.length > 1) {
+        entry[lang] = enriched;
+      } else {
+        entry[lang] = enriched[0];
+      }
+    }
+  }
+  return next;
 }
 
 function exportTabsDataForSeo(state) {
@@ -5508,7 +5881,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=markdown-security-20260512"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=frontmatter-merge-20260512"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -5739,12 +6112,8 @@ async function gatherLocalChangesForCommit(options = {}) {
       : '';
     return String(raw || 'wwwroot').replace(/\\+/g, '/').replace(/\/?$/, '');
   })();
+  const pendingMarkdownByPath = new Map();
 
-  if (composerDiffCache.index && composerDiffCache.index.hasChanges) {
-    const state = getStateSlice('index') || { __order: [] };
-    const yaml = toIndexYaml(state);
-    addFile({ kind: 'index', label: 'index.yaml', path: `${rootPrefix}index.yaml`, content: yaml });
-  }
   if (composerDiffCache.tabs && composerDiffCache.tabs.hasChanges) {
     const state = getStateSlice('tabs') || { __order: [] };
     const yaml = toTabsYaml(state);
@@ -5827,6 +6196,11 @@ async function gatherLocalChangesForCommit(options = {}) {
       const prepared = alreadyEncrypted
         ? { content: text, encrypted: true }
         : await prepareMarkdownForProtectedStorage(tab, text, { reason: 'commit' });
+      pendingMarkdownByPath.set(rel, {
+        content: prepared.content,
+        plaintextContent: prepared.encrypted && !alreadyEncrypted ? text : '',
+        protected: !!prepared.encrypted
+      });
       addFile({
         kind: 'markdown',
         label: rel,
@@ -5869,6 +6243,27 @@ async function gatherLocalChangesForCommit(options = {}) {
         }
       }
     }
+  }
+
+  const originalIndexDiff = composerDiffCache.index || recomputeDiff('index');
+  const indexState = getStateSlice('index') || { __order: [] };
+  let indexYaml = toIndexYaml(indexState);
+  let indexMetadataChanged = false;
+  if ((originalIndexDiff && originalIndexDiff.hasChanges) || pendingMarkdownByPath.size > 0) {
+    const enrichedIndexState = await enrichIndexStateForPublish(indexState, {
+      contentRoot: normalizedRoot || 'wwwroot',
+      pendingMarkdownByPath
+    });
+    const enrichedIndexYaml = toIndexYaml(enrichedIndexState);
+    indexMetadataChanged = enrichedIndexYaml !== indexYaml;
+    if (indexMetadataChanged) {
+      setStateSlice('index', enrichedIndexState);
+      composerDiffCache.index = computeIndexDiff(enrichedIndexState, remoteBaseline.index);
+      indexYaml = enrichedIndexYaml;
+    }
+  }
+  if ((originalIndexDiff && originalIndexDiff.hasChanges) || indexMetadataChanged) {
+    addFile({ kind: 'index', label: 'index.yaml', path: `${rootPrefix}index.yaml`, content: indexYaml });
   }
 
   const assetDeletionRefs = referencedAssetPaths;
@@ -12426,7 +12821,11 @@ function toIndexYaml(data) {
     langs.forEach(lang => {
       const v = entry[lang];
       if (Array.isArray(v)) {
-        if (v.length <= 1) {
+        const hasMetadata = v.some(item => isIndexMetadataObject(item));
+        if (hasMetadata) {
+          lines.push(`  ${lang}:`);
+          writeYamlValue(lines, 2, v);
+        } else if (v.length <= 1) {
           const one = v[0] ?? '';
           lines.push(`  ${lang}: ${one ? one : '""'}`);
         } else {
@@ -12435,6 +12834,9 @@ function toIndexYaml(data) {
         }
       } else if (typeof v === 'string') {
         lines.push(`  ${lang}: ${v}`);
+      } else if (isIndexMetadataObject(v)) {
+        lines.push(`  ${lang}:`);
+        writeYamlValue(lines, 2, v);
       }
     });
   });
@@ -13422,7 +13824,7 @@ function removeEditorLanguage(source, key, lang) {
 
 function addEditorVersion(key, lang, anchor = null) {
   const entry = getIndexEntry(key);
-  const arr = normalizeComposerVersionPaths(entry[lang]);
+  const arr = normalizeIndexVariantList(entry[lang]);
   return promptArticleVersionValue(key, lang, entry, anchor).then((version) => {
     if (!version) return false;
     arr.push(buildArticleVersionPath(key, lang, version, entry));
@@ -13438,7 +13840,7 @@ function addEditorVersion(key, lang, anchor = null) {
 
 function removeEditorVersion(key, lang, index) {
   const entry = getIndexEntry(key);
-  const arr = Array.isArray(entry[lang]) ? entry[lang] : [];
+  const arr = normalizeIndexVariantList(entry[lang]);
   if (!arr[index]) return;
   arr.splice(index, 1);
   entry[lang] = arr;
@@ -13489,13 +13891,13 @@ function restoreDeletedEditorTreeNode(node) {
   } else if (node.deletedKind === 'version') {
     const entry = ensureRestoredEntry('index', node.key, node.restoreOrderIndex);
     if (!entry || !node.lang) return false;
-    const path = normalizeRelPath(restoreValue || node.path);
+    const path = getIndexVariantLocation(restoreValue) || normalizeRelPath(node.path);
     if (!path) return false;
-    const arr = normalizeComposerVersionPaths(entry[node.lang]);
-    let targetIndex = arr.indexOf(path);
+    const arr = normalizeIndexVariantList(entry[node.lang]);
+    let targetIndex = arr.findIndex(item => getIndexVariantLocation(item) === path);
     if (targetIndex === -1) {
       targetIndex = normalizeRestoreIndex(node.restoreIndex, arr.length);
-      arr.splice(targetIndex, 0, path);
+      arr.splice(targetIndex, 0, isIndexMetadataObject(restoreValue) ? restoreValue : path);
     }
     entry[node.lang] = arr;
     nextNodeId = `index:${node.key}:${node.lang}:${targetIndex}`;
@@ -13523,7 +13925,7 @@ function moveEditorVersion(key, lang, index, delta) {
 
 function moveEditorVersionTo(key, lang, from, to) {
   const entry = getIndexEntry(key);
-  const arr = Array.isArray(entry[lang]) ? entry[lang] : [];
+  const arr = normalizeIndexVariantList(entry[lang]);
   if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return false;
   const [path] = arr.splice(from, 1);
   arr.splice(to, 0, path);
@@ -14153,7 +14555,7 @@ function renderEditorEntryPanel(node, refs) {
   sortLangKeys(entry).forEach((lang) => {
     if (isPages) list.appendChild(renderPageLanguageStructure(node.key, lang, entry[lang]));
     else {
-      const arr = Array.isArray(entry[lang]) ? entry[lang] : (entry[lang] ? [entry[lang]] : []);
+      const arr = normalizeIndexVariantList(entry[lang]);
       list.appendChild(renderStructureItem(displayLangName(lang), `${arr.length} ${treeText('versions', 'versions')}`, () => handleEditorTreeSelection(`index:${node.key}:${lang}`)));
     }
   });
@@ -14201,7 +14603,7 @@ function renderPageLanguageStructure(key, lang, value) {
 
 function renderEditorLanguagePanel(node, refs) {
   const entry = getIndexEntry(node.key);
-  const arr = Array.isArray(entry[node.lang]) ? entry[node.lang] : (entry[node.lang] ? [entry[node.lang]] : []);
+  const arr = normalizeIndexVariantList(entry[node.lang]);
   entry[node.lang] = arr;
   refs.kicker.textContent = treeText('languageKicker', 'Article language');
   refs.title.textContent = `${node.key} / ${displayLangName(node.lang)}`;
@@ -14216,7 +14618,8 @@ function renderEditorLanguagePanel(node, refs) {
   const list = document.createElement('div');
   list.className = 'editor-structure-list';
   const dragController = createEditorStructureDragController(list, (fromIndex, toIndex) => moveEditorVersionTo(node.key, node.lang, fromIndex, toIndex));
-  arr.forEach((path, index) => {
+  arr.forEach((variant, index) => {
+    const path = getIndexVariantLocation(variant);
     const item = document.createElement('div');
     item.className = 'editor-structure-item editor-structure-item--draggable';
     item.dataset.index = String(index);
@@ -14230,12 +14633,16 @@ function renderEditorLanguagePanel(node, refs) {
     const controls = document.createElement('div');
     controls.className = 'editor-structure-item-actions';
     const open = makeStructureButton(treeText('open', 'Open'));
-    open.addEventListener('click', () => openMarkdownInEditor(arr[index], {
-      source: 'index',
-      key: node.key,
-      lang: node.lang,
-      editorTreeNodeId: `index:${node.key}:${node.lang}:${index}`
-    }));
+    open.addEventListener('click', () => {
+      const rel = getIndexVariantLocation(arr[index]);
+      if (!rel) return;
+      openMarkdownInEditor(rel, {
+        source: 'index',
+        key: node.key,
+        lang: node.lang,
+        editorTreeNodeId: `index:${node.key}:${node.lang}:${index}`
+      });
+    });
     const remove = makeStructureButton(treeText('remove', 'Remove'));
     remove.addEventListener('click', () => removeEditorVersion(node.key, node.lang, index));
     controls.appendChild(open);
@@ -14317,7 +14724,7 @@ function buildIndexUI(root, state) {
         const flagSpan = flag ? `<span class="ci-lang-flag" aria-hidden="true">${escapeHtml(flag)}</span>` : '';
         const val = entry[lang];
         // Normalize to array for UI
-        const arr = Array.isArray(val) ? val.slice() : (val ? [val] : []);
+        const arr = normalizeIndexVariantList(val);
         block.innerHTML = `
           <div class="ci-lang-head">
             <strong class="ci-lang-label" aria-label="${safeLabel}" title="${safeLabel}">
@@ -14385,13 +14792,13 @@ function buildIndexUI(root, state) {
             row.setAttribute('data-id', id);
             row.dataset.lang = lang;
             row.dataset.index = String(i);
-            row.dataset.value = p || '';
-            const normalizedPath = normalizeRelPath(p);
+            const normalizedPath = getIndexVariantLocation(p);
+            row.dataset.value = normalizedPath || '';
             if (normalizedPath) row.dataset.mdPath = normalizedPath;
             else delete row.dataset.mdPath;
             row.innerHTML = `
               <span class="ci-draft-indicator" aria-hidden="true" hidden></span>
-              <span class="ci-ver-label">${escapeHtml(extractVersionFromPath(p) || `${treeText('version', 'Version')} ${i + 1}`)}</span>
+              <span class="ci-ver-label">${escapeHtml(extractVersionFromPath(normalizedPath) || `${treeText('version', 'Version')} ${i + 1}`)}</span>
               <span class="ci-ver-actions">
                 <button type="button" class="btn-secondary ci-edit" title="${escapeHtml(openLabel)}">${escapeHtml(editLabel)}</button>
                 <button type="button" class="btn-secondary ci-up" title="${escapeHtml(moveUpLabel)}" aria-label="${escapeHtml(moveUpLabel)}"><span aria-hidden="true">↑</span></button>
@@ -14406,7 +14813,7 @@ function buildIndexUI(root, state) {
             if (i === arr.length - 1) down.setAttribute('disabled', ''); else down.removeAttribute('disabled');
             updateComposerMarkdownDraftIndicators({ element: row, path: normalizedPath });
             $('.ci-edit', row).addEventListener('click', () => {
-              const rel = normalizeRelPath(arr[i]);
+              const rel = getIndexVariantLocation(arr[i]);
               if (!rel) {
                 alert(tComposer('markdown.openBeforeEditor'));
                 return;
@@ -14808,8 +15215,8 @@ function normalizeComposerVersionTag(version) {
 }
 
 function normalizeComposerVersionPaths(value) {
-  if (Array.isArray(value)) return value.filter(path => !!normalizeRelPath(path));
-  const normalized = normalizeRelPath(value);
+  if (Array.isArray(value)) return value.map(item => getIndexVariantLocation(item)).filter(Boolean);
+  const normalized = getIndexVariantLocation(value);
   return normalized ? [normalized] : [];
 }
 
@@ -14856,9 +15263,11 @@ function pickComposerReferencePath(kind, entry, excludeLang) {
         path = value.location;
       }
     } else if (Array.isArray(value)) {
-      path = value.find(p => p && typeof p === 'string') || '';
+      path = value.map(item => getIndexVariantLocation(item)).find(Boolean) || '';
     } else if (typeof value === 'string') {
       path = value;
+    } else if (isIndexMetadataObject(value)) {
+      path = getIndexVariantLocation(value);
     }
     if (path) return { lang: code, path };
   }
@@ -15252,7 +15661,7 @@ function bindComposerUI(state) {
           const langs = sortLangKeys(langsObj);
           for (const lang of langs){
             const val = langsObj[lang];
-            const paths = Array.isArray(val) ? val.slice() : (typeof val === 'string' ? [val] : []);
+            const paths = normalizeComposerVersionPaths(val);
             for (const rel of paths){
               const url = `${contentRoot}/${String(rel||'')}`;
               tasks.push((async () => {

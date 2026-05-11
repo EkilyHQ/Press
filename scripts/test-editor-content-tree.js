@@ -18,7 +18,7 @@ const sample = {
       chs: 'post/main/v2.0.0/main_chs.md'
     },
     guide: {
-      ja: ['post/guide/v1.0.0/guide_ja.md']
+      ja: [{ location: 'post/guide/v1.0.0/guide_ja.md', title: 'Guide', readTime: 2, protected: false }]
     },
     v2: {
       en: [

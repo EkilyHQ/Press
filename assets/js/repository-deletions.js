@@ -105,7 +105,16 @@ export function collectLocalMarkdownAssetReferences(markdown, markdownPath, cont
 
 function normalizeIndexValue(value) {
   if (Array.isArray(value)) {
-    return value.map(item => normalizeRepositoryPath(item)).filter(Boolean);
+    return value.map(item => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        return normalizeRepositoryPath(item.location || item.path);
+      }
+      return normalizeRepositoryPath(item);
+    }).filter(Boolean);
+  }
+  if (value && typeof value === 'object') {
+    const normalized = normalizeRepositoryPath(value.location || value.path);
+    return normalized ? [normalized] : [];
   }
   const normalized = normalizeRepositoryPath(value);
   return normalized ? [normalized] : [];

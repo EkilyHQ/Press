@@ -3527,8 +3527,8 @@ assert.match(
 
 assert.match(
   source,
-  /function normalizeComposerVersionPaths\(value\) \{[\s\S]*Array\.isArray\(value\)[\s\S]*normalizeRelPath\(value\)[\s\S]*return normalized \? \[normalized\] : \[\];[\s\S]*function collectComposerArticleVersions\(paths\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(paths\);[\s\S]*async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);/,
-  'legacy scalar article language paths should be normalized before version dedupe runs'
+  /function normalizeComposerVersionPaths\(value\) \{[\s\S]*Array\.isArray\(value\)[\s\S]*getIndexVariantLocation\(item\)[\s\S]*const normalized = getIndexVariantLocation\(value\);[\s\S]*return normalized \? \[normalized\] : \[\];[\s\S]*function collectComposerArticleVersions\(paths\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(paths\);[\s\S]*async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);/,
+  'legacy scalar and rich article language paths should be normalized before version dedupe runs'
 );
 
 assert.match(

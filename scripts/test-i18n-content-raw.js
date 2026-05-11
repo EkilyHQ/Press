@@ -87,6 +87,32 @@ globalThis.fetch = async (url) => {
       ].join('\n')
     };
   }
+  if (textUrl.endsWith('/rich.yaml')) {
+    return {
+      ok: true,
+      text: async () => [
+        'rich:',
+        '  en:',
+        '    - location: post/rich.md',
+        '      title: Rich Title',
+        '      date: 2026-04-29',
+        '      tags:',
+        '        - perf',
+        '        - index',
+        '      image: hero.jpg',
+        '      excerpt: Index summary.',
+        '      readTime: 3',
+        '      protected: false',
+        '    - location: post/rich-old.md',
+        '      title: Rich Title',
+        '      date: 2026-04-20',
+        '      excerpt: Older summary.',
+        '      readTime: 2',
+        '      protected: false',
+        ''
+      ].join('\n')
+    };
+  }
   if (textUrl.endsWith('/post/demo.md')) {
     return {
       ok: true,
@@ -146,6 +172,20 @@ assert.equal(result.entries['Secret Title'].protected, true);
 const unified = await loadContentJsonWithRaw('wwwroot', 'unified');
 assert.equal(unified.entries['Unified Secret'].protected, true);
 assert.equal(unified.entries['Unified Secret'].excerpt, 'Unified public summary.');
+
+const beforeRichRequests = requests.length;
+const rich = await loadContentJsonWithRaw('wwwroot', 'rich');
+assert.equal(rich.entries['Rich Title'].location, 'post/rich.md');
+assert.deepEqual(rich.entries['Rich Title'].tag, ['perf', 'index']);
+assert.equal(rich.entries['Rich Title'].image, 'post/hero.jpg');
+assert.equal(rich.entries['Rich Title'].excerpt, 'Index summary.');
+assert.equal(rich.entries['Rich Title'].readTime, 3);
+assert.equal(rich.entries['Rich Title'].versions.length, 2);
+assert.equal(
+  requests.slice(beforeRichRequests).filter(url => url.endsWith('/post/rich.md') || url.endsWith('/post/rich-old.md')).length,
+  0,
+  'rich index metadata should not trigger Markdown front matter fetches'
+);
 
 const browserLanguagePrefix = String.fromCharCode(122, 104);
 Object.defineProperty(globalThis, 'navigator', {

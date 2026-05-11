@@ -2,44 +2,348 @@
 
 press:
   en:
-    - post/main/v1.0.0/main_en.md
-    - post/main/v2.0.0/main_en.md
+    - location: post/main/v1.0.0/main_en.md
+      title: "Meet Press"
+      date: 2025-08-17
+      tags:
+        - Press
+        - Technology
+      image: post/main/v1.0.0/hero.jpeg
+      excerpt: "Build a simple personal website from plain text files (Markdown). No build tools, no databases — just edit files and publish. Perfect for blogs, notes, wikis, journals, or book chapters."
+      readTime: 2
+      protected: false
+      versionLabel: v1.0.0
+      ai: true
+    - location: post/main/v2.0.0/main_en.md
+      title: "Meet Press"
+      date: 2025-08-22
+      tags:
+        - Press
+        - Technology
+      image: post/main/v2.0.0/hero.jpeg
+      excerpt: "Build a simple personal website from plain text files (Markdown). No build tools, no databases — just edit files and publish. Perfect for blogs, notes, wikis, journals, or book chapters."
+      readTime: 2
+      protected: false
+      versionLabel: v2.0.0
+      ai: true
   chs:
-    - post/main/v1.0.0/main_chs.md
-    - post/main/v2.0.0/main_chs.md
+    - location: post/main/v1.0.0/main_chs.md
+      title: "初识Press"
+      date: 2025-08-17
+      tags:
+        - Press
+        - "技术"
+      image: post/main/v1.0.0/hero.jpeg
+      excerpt: "用纯文本文件（Markdown）构建一个简单的个人网站。无需构建工具，无需数据库——只需编辑文件并发布。非常适合博客、笔记、维基、日记或书籍章节。"
+      readTime: 1
+      protected: false
+      versionLabel: v1.0.0
+      ai: true
+    - location: post/main/v2.0.0/main_chs.md
+      title: "初识Press"
+      date: 2025-08-22
+      tags:
+        - Press
+        - "技术"
+      image: post/main/v2.0.0/hero.jpeg
+      excerpt: "用纯文本文件（Markdown）构建一个简单的个人网站。无需构建工具，无需数据库——只需编辑文件并发布。非常适合博客、笔记、维基、日记或书籍章节。"
+      readTime: 1
+      protected: false
+      versionLabel: v2.0.0
+      ai: true
   ja:
-    - post/main/v1.0.0/main_ja.md
-    - post/main/v2.0.0/main_ja.md
+    - location: post/main/v1.0.0/main_ja.md
+      title: "Press のご紹介"
+      date: 2025-08-17
+      tags:
+        - Press
+        - "技術"
+      image: post/main/v1.0.0/hero.jpeg
+      excerpt: "プレーンテキスト（Markdown）からシンプルな個人サイトを作成。ビルドツールもデータベースも不要—ファイルを編集して公開するだけ。ブログ、メモ、Wiki、日記、書籍の各章に最適です。"
+      readTime: 1
+      protected: false
+      versionLabel: v1.0.0
+      ai: true
+    - location: post/main/v2.0.0/main_ja.md
+      title: "Press のご紹介"
+      date: 2025-08-22
+      tags:
+        - Press
+        - "技術"
+      image: post/main/v2.0.0/hero.jpeg
+      excerpt: "プレーンテキスト（Markdown）からシンプルな個人サイトを作成。ビルドツールもデータベースも不要—ファイルを編集して公開するだけ。ブログ、メモ、Wiki、日記、書籍の各章に最適です。"
+      readTime: 1
+      protected: false
+      versionLabel: v2.0.0
+      ai: true
 pressDocs:
   en:
-    - post/doc/v1.0.0/doc_en.md
-    - post/doc/v2.0.0/doc_en.md
-    - post/doc/v2.1.0/doc_en.md
+    - location: post/doc/v1.0.0/doc_en.md
+      title: "Documentation for Press"
+      date: 2025-08-17
+      tags:
+        - Press
+        - Documentation
+      excerpt: "Create a content site directly from Markdown files with no build steps—just place them in wwwroot/, list them in JSON, and publish (works with GitHub Pages). The guide covers project structure, config files, content loading, themes, search, tags, SEO, media, and deployment tips."
+      readTime: 6
+      protected: false
+      versionLabel: v1.0.0
+      ai: true
+    - location: post/doc/v2.0.0/doc_en.md
+      title: "Documentation for Press"
+      date: 2025-08-22
+      tags:
+        - Press
+        - Documentation
+      excerpt: "Create a content site directly from Markdown files with no build steps—just place them in wwwroot/, list them in YAML, and publish (works with GitHub Pages). The guide covers project structure, config files, content loading, themes, search, tags, SEO, media, and deployment tips."
+      readTime: 7
+      protected: false
+      versionLabel: v2.0.0
+      ai: true
+    - location: post/doc/v2.1.0/doc_en.md
+      title: "Documentation for Press"
+      date: 2025-08-23
+      tags:
+        - Press
+        - Documentation
+      excerpt: "Build a content site directly from Markdown with no build steps — drop files into wwwroot/, list them in YAML, and publish (compatible with GitHub Pages). This guide covers project structure, configuration, content loading, themes, search, tags, SEO, media, and deployment."
+      readTime: 8
+      protected: false
+      versionLabel: v2.1.0
+      ai: true
   chs:
-    - post/doc/v1.0.0/doc_chs.md
-    - post/doc/v2.0.0/doc_chs.md
-    - post/doc/v2.1.0/doc_chs.md
+    - location: post/doc/v1.0.0/doc_chs.md
+      title: "Press指南"
+      date: 2025-08-17
+      tags:
+        - Press
+        - "文档"
+      excerpt: "无需构建步骤即可直接用 Markdown 文件创建内容网站，只需将文件放入 wwwroot/，在 JSON 中列出并发布，即可兼容 GitHub Pages。本指南涵盖项目结构、配置文件、内容加载、主题、搜索、标签、SEO、媒体以及部署方法。"
+      readTime: 3
+      protected: false
+      versionLabel: v1.0.0
+      ai: true
+    - location: post/doc/v2.0.0/doc_chs.md
+      title: "Press指南"
+      date: 2025-08-22
+      tags:
+        - Press
+        - "文档"
+      excerpt: "无需构建步骤即可直接用 Markdown 文件创建内容网站，只需将文件放入 wwwroot/，在 YAML 中列出并发布，即可兼容 GitHub Pages。本指南涵盖项目结构、配置文件、内容加载、主题、搜索、标签、SEO、媒体以及部署方法。"
+      readTime: 3
+      protected: false
+      versionLabel: v2.0.0
+      ai: true
+    - location: post/doc/v2.1.0/doc_chs.md
+      title: "Press指南"
+      date: 2025-08-23
+      tags:
+        - Press
+        - "文档"
+      excerpt: "无需构建步骤即可直接用 Markdown 文件创建内容网站，只需将文件放入 wwwroot/，在 YAML 中列出并发布，即可兼容 GitHub Pages。本指南涵盖项目结构、配置文件、内容加载、主题、搜索、标签、SEO、媒体以及部署方法。"
+      readTime: 3
+      protected: false
+      versionLabel: v2.1.0
+      ai: true
   cht-tw:
-    - post/doc/v2.1.0/doc_cht-tw.md
+    - location: post/doc/v2.1.0/doc_cht-tw.md
+      title: "Press指南"
+      date: 2025-08-23
+      tags:
+        - Press
+        - "文件"
+      excerpt: "不需要建置步驟，就能直接用 Markdown 檔案建立內容網站；只要把檔案放進 wwwroot/，在 YAML 中列出並發布，即可相容 GitHub Pages。本指南涵蓋專案結構、設定、內容載入、主題、搜尋、標籤、SEO、媒體與部署。"
+      readTime: 2
+      protected: false
+      versionLabel: v2.1.0
+      ai: true
   cht-hk:
-    - post/doc/v2.1.0/doc_cht-hk.md
+    - location: post/doc/v2.1.0/doc_cht-hk.md
+      title: "Press指南"
+      date: 2025-08-23
+      tags:
+        - Press
+        - "文件"
+      excerpt: "唔需要建置步驟，就可以直接用 Markdown 檔案建立內容網站；只要將檔案放入 wwwroot/，喺 YAML 入面列出再發布，就可以兼容 GitHub Pages。本指南涵蓋專案結構、設定、內容載入、主題、搜尋、標籤、SEO、媒體同部署。"
+      readTime: 2
+      protected: false
+      versionLabel: v2.1.0
+      ai: true
   ja:
-    - post/doc/v1.0.0/doc_ja.md
-    - post/doc/v2.0.0/doc_ja.md
-    - post/doc/v2.1.0/doc_ja.md
+    - location: post/doc/v1.0.0/doc_ja.md
+      title: "Press ドキュメント"
+      date: 2025-08-17
+      tags:
+        - Press
+        - "ドキュメント"
+      excerpt: "Markdown ファイルから直接コンテンツサイトを構築し、ビルド工程は不要です。wwwroot/ に配置し、JSON にリストして公開するだけで、GitHub Pages にも対応します。本ガイドでは、プロジェクト構造、設定ファイル、コンテンツ読み込み、テーマ、検索、タグ、SEO、メディア、デプロイ手順を解説します。"
+      readTime: 3
+      protected: false
+      versionLabel: v1.0.0
+      ai: true
+    - location: post/doc/v2.0.0/doc_ja.md
+      title: "Press ドキュメント"
+      date: 2025-08-22
+      tags:
+        - Press
+        - "ドキュメント"
+      excerpt: "Markdown ファイルから直接コンテンツサイトを構築し、ビルド工程は不要です。wwwroot/ に配置し、YAML にリストして公開するだけで、GitHub Pages にも対応します。本ガイドでは、プロジェクト構造、設定ファイル、コンテンツ読み込み、テーマ、検索、タグ、SEO、メディア、デプロイ手順を解説します。"
+      readTime: 3
+      protected: false
+      versionLabel: v2.0.0
+      ai: true
+    - location: post/doc/v2.1.0/doc_ja.md
+      title: "Press ドキュメント"
+      date: 2025-08-23
+      tags:
+        - Press
+        - "ドキュメント"
+      excerpt: "Markdown ファイルだけでコンテンツサイトを構築できます。ビルド工程は不要で、wwwroot/ に置いて YAML に列挙して公開するだけ（GitHub Pages に対応）。本ガイドは、プロジェクト構造、設定ファイル、コンテンツの読み込み、テーマ、検索、タグ、SEO、メディア、デプロイ方法を解説します。"
+      readTime: 2
+      protected: false
+      versionLabel: v2.1.0
+      ai: true
 githubpages:
-  en: post/page/githubpages_en.md
-  chs: post/page/githubpages_chs.md
-  ja: post/page/githubpages_ja.md
+  en:
+    location: post/page/githubpages_en.md
+    title: "Configuring GitHub Pages for Press"
+    date: 2025-08-21
+    tags:
+      - Press
+      - Technology
+      - "GitHub Pages"
+    image: post/page/page.jpeg
+    excerpt: "You can host Press on GitHub Pages for free. This guide is provided as a self-contained reference; however, always consult the official GitHub documentation for the most accurate information."
+    readTime: 2
+    protected: false
+    ai: true
+  chs:
+    location: post/page/githubpages_chs.md
+    title: "为 Press 配置 GitHub Pages"
+    date: 2025-08-21
+    tags:
+      - Press
+      - "技术"
+      - "GitHub Pages"
+    image: post/page/page.jpeg
+    excerpt: "你可以将 Press 免费托管在 GitHub Pages 上。本文作为一份自包含的参考，但仍请以 GitHub 官方文档为准以获取最准确的信息。"
+    readTime: 1
+    protected: false
+    ai: true
+  ja:
+    location: post/page/githubpages_ja.md
+    title: "Press 用の GitHub Pages 設定"
+    date: 2025-08-21
+    tags:
+      - Press
+      - "技術"
+      - "GitHub Pages"
+    image: post/page/page.jpeg
+    excerpt: "Press は GitHub Pages に無料でホスティングできます。本ガイドは自己完結の参考情報ですが、最新で正確な情報は常に GitHub の公式ドキュメントを参照してください。"
+    readTime: 1
+    protected: false
+    ai: true
 seo:
-  en: post/seo/seo_en.md
-  chs: post/seo/seo_chs.md
-  ja: post/seo/seo_ja.md
+  en:
+    location: post/seo/seo_en.md
+    title: "SEO Optimization for Press"
+    date: 2025-08-17
+    tags:
+      - Press
+      - Technology
+      - SEO
+    image: post/seo/hero.jpeg
+    excerpt: "SEO optimization means improving the visibility and ranking of your website in search engine results. This involves using best practices for on-page SEO, such as optimizing your content, images, and metadata, as well as off-page SEO techniques like building backlinks and promoting your site."
+    readTime: 1
+    protected: false
+    ai: true
+  chs:
+    location: post/seo/seo_chs.md
+    title: "Press 的 SEO 优化"
+    date: 2025-08-17
+    tags:
+      - Press
+      - "技术"
+      - SEO
+    image: post/seo/hero.jpeg
+    excerpt: "SEO（搜索引擎优化）旨在提升你的网站在搜索引擎结果中的可见性与排名。它包括站内 SEO 的最佳实践（优化内容、图片与元数据）以及站外 SEO（反向链接建设、推广等）。"
+    readTime: 1
+    protected: false
+    ai: true
+  ja:
+    location: post/seo/seo_ja.md
+    title: "Press の SEO 最適化"
+    date: 2025-08-17
+    tags:
+      - Press
+      - "技術"
+      - SEO
+    image: post/seo/hero.jpeg
+    excerpt: "SEO（検索エンジン最適化）は、検索結果におけるサイトの可視性と順位を高める取り組みです。コンテンツ・画像・メタデータの最適化といったオンページ SEO のベストプラクティスに加え、被リンクの構築やプロモーションなどのオフページ SEO も含まれます。"
+    readTime: 1
+    protected: false
+    ai: true
 themeContract:
-  en: post/theme-contract/theme-contract_en.md
+  en:
+    location: post/theme-contract/theme-contract_en.md
+    title: "Press Theme Contract"
+    date: 2026-05-06
+    tags:
+      - Press
+      - Theme
+      - Documentation
+    excerpt: "Theme packs in Press are zero-build runtime modules. This contract defines manifest fields, runtime context, regions, content shapes, shared components, and development checks for theme authors."
+    readTime: 5
+    protected: false
+    ai: true
 encryptedArticles:
-  en: post/encrypted-articles/encrypted-articles_en.md
-  chs: post/encrypted-articles/encrypted-articles_chs.md
-  cht-tw: post/encrypted-articles/encrypted-articles_cht-tw.md
-  cht-hk: post/encrypted-articles/encrypted-articles_cht-hk.md
-  ja: post/encrypted-articles/encrypted-articles_ja.md
+  en:
+    location: post/encrypted-articles/encrypted-articles_en.md
+    title: "Encrypted Articles Demo"
+    date: 2026-05-08
+    tags:
+      - Press
+      - Encryption
+      - Demo
+    excerpt: "Public demo password is press-demo. Unlock the article to see how Press encrypts article bodies."
+    protected: true
+  chs:
+    location: post/encrypted-articles/encrypted-articles_chs.md
+    title: "加密文章演示"
+    date: 2026-05-08
+    tags:
+      - Press
+      - Encryption
+      - Demo
+    excerpt: "公开演示密码是 press-demo。解锁后可以查看 Press 如何加密文章正文。"
+    protected: true
+  cht-tw:
+    location: post/encrypted-articles/encrypted-articles_cht-tw.md
+    title: "加密文章示範"
+    date: 2026-05-08
+    tags:
+      - Press
+      - Encryption
+      - Demo
+    excerpt: "公開示範密碼是 press-demo。解鎖後可以查看 Press 如何加密文章正文。"
+    protected: true
+  cht-hk:
+    location: post/encrypted-articles/encrypted-articles_cht-hk.md
+    title: "加密文章示範"
+    date: 2026-05-08
+    tags:
+      - Press
+      - Encryption
+      - Demo
+    excerpt: "公開示範密碼是 press-demo。解鎖後可以查看 Press 如何加密文章正文。"
+    protected: true
+  ja:
+    location: post/encrypted-articles/encrypted-articles_ja.md
+    title: "暗号化記事デモ"
+    date: 2026-05-08
+    tags:
+      - Press
+      - Encryption
+      - Demo
+    excerpt: "公開デモ用パスワードは press-demo です。ロック解除後に Press の本文暗号化を確認できます。"
+    protected: true

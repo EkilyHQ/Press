@@ -60,6 +60,134 @@ function normalizeMarkdownPath(path) {
   return String(path || '').trim();
 }
 
+const INDEX_METADATA_KEYS = new Set([
+  'location',
+  'path',
+  'title',
+  'tag',
+  'tags',
+  'date',
+  'image',
+  'thumb',
+  'cover',
+  'excerpt',
+  'readTime',
+  'readMinutes',
+  'minutes',
+  'version',
+  'versionLabel',
+  'ai',
+  'aiGenerated',
+  'llm',
+  'draft',
+  'wip',
+  'unfinished',
+  'inprogress',
+  'protected',
+  'encryption',
+  'versions'
+]);
+
+function isPlainObject(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasIndexVariantMetadata(value) {
+  if (!isPlainObject(value)) return false;
+  return Object.keys(value).some((key) => INDEX_METADATA_KEYS.has(key) && key !== 'location' && key !== 'path' && key !== 'versions');
+}
+
+function hasCompleteIndexVariantMetadata(value) {
+  if (!isPlainObject(value)) return false;
+  const hasTitle = value.title != null && String(value.title).trim();
+  const hasProtectionFlag = value.protected != null || value.encryption != null;
+  const protectedValue = interpretTruthyFlag(value.protected) || !!value.encryption;
+  const hasCardBody = value.excerpt != null || value.readTime != null || value.readMinutes != null || value.minutes != null;
+  return !!hasTitle && hasProtectionFlag && (protectedValue || hasCardBody);
+}
+
+function resolveIndexImagePath(image, location) {
+  const raw = String(image || '').trim();
+  if (!raw) return undefined;
+  if (/^(https?:|data:)/i.test(raw) || raw.startsWith('/')) return raw;
+  if (!location || raw.includes('/')) return raw;
+  const lastSlash = location.lastIndexOf('/');
+  const baseDir = lastSlash >= 0 ? location.slice(0, lastSlash + 1) : '';
+  return (baseDir + raw).replace(/\\+/g, '/');
+}
+
+function normalizeIndexVariant(raw, fallbackTitle, sharedMeta = {}) {
+  const source = isPlainObject(raw)
+    ? { ...sharedMeta, ...raw }
+    : { ...sharedMeta, location: raw };
+  const location = normalizeMarkdownPath(source.location || source.path);
+  if (!location) return null;
+  const item = { location };
+  const image = resolveIndexImagePath(source.image || source.cover || source.thumb, location);
+  const tag = source.tags != null ? source.tags : source.tag;
+  const versionLabel = source.versionLabel != null ? source.versionLabel : source.version;
+  const readTime = Number(source.readTime != null ? source.readTime : (source.readMinutes != null ? source.readMinutes : source.minutes));
+  if (image) item.image = image;
+  if (tag != null) item.tag = tag;
+  if (source.date != null && String(source.date).trim()) item.date = source.date;
+  if (source.excerpt != null && String(source.excerpt).trim()) item.excerpt = source.excerpt;
+  if (versionLabel != null && String(versionLabel).trim()) item.versionLabel = versionLabel;
+  if (Number.isFinite(readTime) && readTime > 0) item.readTime = readTime;
+  if (interpretTruthyFlag(source.ai || source.aiGenerated || source.llm)) item.ai = true;
+  if (interpretTruthyFlag(source.draft || source.wip || source.unfinished || source.inprogress)) item.draft = true;
+  if (source.protected != null || source.encryption != null) item.protected = interpretTruthyFlag(source.protected) || !!source.encryption;
+  if (source.title != null && String(source.title).trim()) item.__title = String(source.title).trim();
+  else if (fallbackTitle && hasIndexVariantMetadata(source)) item.__title = fallbackTitle;
+  item.__indexMetadata = hasCompleteIndexVariantMetadata(source);
+  return item;
+}
+
+function normalizeIndexVariantList(raw, fallbackTitle, sharedMeta = {}) {
+  const list = Array.isArray(raw) ? raw : [raw];
+  return list
+    .map(item => normalizeIndexVariant(item, fallbackTitle, sharedMeta))
+    .filter(Boolean);
+}
+
+function isIndexVariantBucket(value) {
+  if (typeof value === 'string') return !!normalizeMarkdownPath(value);
+  if (Array.isArray(value)) {
+    return value.every(item => (
+      typeof item === 'string'
+      || (isPlainObject(item) && (item.location != null || item.path != null))
+    ));
+  }
+  return isPlainObject(value) && (value.location != null || value.path != null);
+}
+
+function isIndexContentEntry(value) {
+  if (!isPlainObject(value)) return false;
+  if (isIndexVariantBucket(value)) return true;
+  return Object.keys(value).some((key) => {
+    if (INDEX_METADATA_KEYS.has(key) && key !== 'default') return false;
+    return isIndexVariantBucket(value[key]);
+  });
+}
+
+function getSharedIndexMetadata(entry) {
+  const out = {};
+  if (!isPlainObject(entry)) return out;
+  INDEX_METADATA_KEYS.forEach((key) => {
+    if (key === 'location' || key === 'path' || key === 'versions') return;
+    if (Object.prototype.hasOwnProperty.call(entry, key)) out[key] = entry[key];
+  });
+  return out;
+}
+
+function getIndexLanguageKeys(entry) {
+  if (!isPlainObject(entry)) return [];
+  return Object.keys(entry).filter((key) => {
+    if (key === 'default') return isIndexVariantBucket(entry[key]);
+    if (INDEX_METADATA_KEYS.has(key)) return false;
+    return isIndexVariantBucket(entry[key]);
+  });
+}
+
 function getFrontMatterConcurrencyLimit() {
   if (Number.isFinite(FRONTMATTER_FETCH_BATCH_SIZE) && FRONTMATTER_FETCH_BATCH_SIZE > 0) {
     return FRONTMATTER_FETCH_BATCH_SIZE;
@@ -423,7 +551,7 @@ export function normalizeLangKey(k) {
 // Attempt to transform a unified content JSON object into a flat map
 // for the current language with default fallback.
 function transformUnifiedContent(obj, lang) {
-  const RESERVED = new Set(['tag', 'tags', 'image', 'date', 'excerpt', 'protected', 'encryption']);
+  const RESERVED = INDEX_METADATA_KEYS;
   const out = {};
   const langsSeen = new Set();
   for (const [key, val] of Object.entries(obj || {})) {
@@ -445,7 +573,7 @@ function transformUnifiedContent(obj, lang) {
       const v = val[lk];
       if (v == null) return null;
       if (typeof v === 'string') return { title: null, location: v };
-      if (typeof v === 'object') return { title: v.title || null, location: v.location || null, excerpt: v.excerpt || null, protected: v.protected };
+      if (typeof v === 'object') return { ...v, title: v.title || null, location: v.location || v.path || null };
       return null;
     };
     // Try requested lang, then site default, then common English code, then legacy 'default'
@@ -468,11 +596,15 @@ function transformUnifiedContent(obj, lang) {
     const protectedValue = chosen && chosen.protected != null ? chosen.protected : val.protected;
     const meta = {
       location,
-      image: val.image || undefined,
-      tag: val.tag != null ? val.tag : (val.tags != null ? val.tags : undefined),
-      date: val.date || undefined,
+      image: resolveIndexImagePath((chosen && (chosen.image || chosen.cover || chosen.thumb)) || val.image || val.cover || val.thumb, location) || undefined,
+      tag: chosen && (chosen.tag != null || chosen.tags != null)
+        ? (chosen.tags != null ? chosen.tags : chosen.tag)
+        : (val.tag != null ? val.tag : (val.tags != null ? val.tags : undefined)),
+      date: (chosen && chosen.date) || val.date || undefined,
       // Prefer language-specific excerpt; fall back to top-level excerpt for legacy data
       excerpt: (chosen && chosen.excerpt) || val.excerpt || undefined,
+      readTime: (chosen && chosen.readTime) || val.readTime || undefined,
+      versionLabel: (chosen && (chosen.versionLabel || chosen.version)) || val.versionLabel || val.version || undefined,
       protected: interpretTruthyFlag(protectedValue) || undefined,
       title
     };
@@ -497,6 +629,7 @@ function buildEntryFromVariants(rawVariants, fallbackTitle) {
       date: variant.date || undefined,
       excerpt: variant.excerpt || undefined,
       versionLabel: variant.versionLabel || undefined,
+      readTime: variant.readTime || undefined,
       ai: variant.ai || undefined,
       draft: variant.draft || undefined,
       protected: variant.protected || undefined
@@ -513,10 +646,10 @@ function buildEntryFromVariants(rawVariants, fallbackTitle) {
   const primary = variants[0];
   if (!primary || !primary.location) return null;
   const resolvedTitle = primary.__title || fallbackTitle;
-  const { __title, ...restPrimary } = primary;
+  const { __title, __indexMetadata: _primaryMetadataIgnored, ...restPrimary } = primary;
   const meta = { ...restPrimary, title: resolvedTitle };
   meta.versions = variants.map((variant) => {
-    const { __title: _ignored, ...rest } = variant;
+    const { __title: _ignored, __indexMetadata: _metadataIgnored, ...rest } = variant;
     return { ...rest };
   });
   return { title: resolvedTitle, meta };
@@ -530,7 +663,7 @@ async function loadContentFromFrontMatter(obj, lang) {
 
   for (const [, val] of entries) {
     if (val && typeof val === 'object' && !Array.isArray(val)) {
-      Object.keys(val).forEach(k => {
+      getIndexLanguageKeys(val).forEach(k => {
         const nk = normalizeLangKey(k);
         if (nk !== 'default') langsSeen.add(nk);
       });
@@ -540,37 +673,45 @@ async function loadContentFromFrontMatter(obj, lang) {
   const updatePromises = [];
 
   for (const [key, val] of entries) {
-    if (!val || typeof val !== 'object' || Array.isArray(val)) continue;
+    if (val == null || Array.isArray(val)) continue;
 
     let chosenBucketKey = null;
-    if (val[nlang] != null) chosenBucketKey = nlang;
-    else if (val[baseDefaultLang] != null) chosenBucketKey = baseDefaultLang;
-    else if (val['en'] != null) chosenBucketKey = 'en';
-    else if (val['default'] != null) chosenBucketKey = 'default';
-    if (!chosenBucketKey) {
-      const firstKey = Object.keys(val)[0];
-      if (firstKey) chosenBucketKey = firstKey;
+    let raw = val;
+    const sharedMeta = getSharedIndexMetadata(val);
+    const languageKeys = getIndexLanguageKeys(val);
+    if (val && typeof val === 'object') {
+      if (val[nlang] != null && isIndexVariantBucket(val[nlang])) chosenBucketKey = nlang;
+      else if (val[baseDefaultLang] != null && isIndexVariantBucket(val[baseDefaultLang])) chosenBucketKey = baseDefaultLang;
+      else if (val['en'] != null && isIndexVariantBucket(val['en'])) chosenBucketKey = 'en';
+      else if (val['default'] != null && isIndexVariantBucket(val['default'])) chosenBucketKey = 'default';
+      if (!chosenBucketKey) {
+        const firstKey = languageKeys[0];
+        if (firstKey) chosenBucketKey = firstKey;
+      }
+      raw = chosenBucketKey ? val[chosenBucketKey] : val;
     }
-    if (!chosenBucketKey) continue;
 
-    const raw = val[chosenBucketKey];
-    const rawPaths = Array.isArray(raw)
-      ? raw.filter(x => typeof x === 'string')
-      : (typeof raw === 'string' ? [raw] : []);
-    const normalizedPaths = rawPaths.map(normalizeMarkdownPath).filter(Boolean);
+    const declaredVariants = normalizeIndexVariantList(raw, key, sharedMeta);
+    const normalizedPaths = declaredVariants.map(variant => variant.location).filter(Boolean);
     if (!normalizedPaths.length) continue;
 
-    const variantSources = normalizedPaths.map((path) => frontMatterMetadataCache.get(path) || { location: path });
+    const variantSources = declaredVariants.map((variant) => {
+      if (variant.__indexMetadata) return variant;
+      const cached = frontMatterMetadataCache.get(variant.location);
+      return cached ? { ...variant, ...cached } : variant;
+    });
     const placeholderEntry = buildEntryFromVariants(variantSources, key);
     if (!placeholderEntry) continue;
 
     out[placeholderEntry.title] = placeholderEntry.meta;
 
-    const needsAsync = normalizedPaths.some((path) => !frontMatterMetadataCache.has(path));
+    const needsAsync = variantSources.some((variant) => !variant.__indexMetadata && !frontMatterMetadataCache.has(variant.location));
     if (!needsAsync) continue;
 
-    const fetchPromises = normalizedPaths.map((path) =>
-      getFrontMatterMetadata(path).catch(() => ({ location: path }))
+    const fetchPromises = variantSources.map((variant) =>
+      variant.__indexMetadata
+        ? Promise.resolve(variant)
+        : getFrontMatterMetadata(variant.location).then(meta => ({ ...variant, ...meta })).catch(() => variant)
     );
 
     const previousTitle = placeholderEntry.title;
@@ -579,7 +720,7 @@ async function loadContentFromFrontMatter(obj, lang) {
         if (result.status === 'fulfilled' && result.value && result.value.location) {
           return result.value;
         }
-        return { location: normalizedPaths[idx] };
+        return variantSources[idx] || { location: normalizedPaths[idx] };
       });
       const finalEntry = buildEntryFromVariants(resolvedVariants, key);
       if (!finalEntry) return;
@@ -634,23 +775,16 @@ export async function loadContentJsonWithRaw(basePath, baseName) {
       for (const k of keys) {
         const v = obj[k];
         if (v && typeof v === 'object' && !Array.isArray(v)) {
-          // Check for simplified format (language -> path mapping)
+          // Check for simplified/enriched format (language -> path or metadata mapping)
           const innerKeys = Object.keys(v);
-          const hasOnlyPaths = innerKeys.every(ik => {
-            const val = v[ik];
-            if (typeof val === 'string') return true;
-            if (Array.isArray(val)) return val.every(item => typeof item === 'string');
-            return false;
-          });
-          
-          if (hasOnlyPaths) {
+          if (isIndexContentEntry(v)) {
             isSimplified = true;
             break;
           }
           
           // Check for unified format
           if ('default' in v) { isUnified = true; break; }
-          if (innerKeys.some(ik => !['tag','tags','image','date','excerpt','location','protected','encryption'].includes(ik))) { isUnified = true; break; }
+          if (innerKeys.some(ik => !INDEX_METADATA_KEYS.has(ik))) { isUnified = true; break; }
         }
       }
       

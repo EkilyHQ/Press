@@ -82,7 +82,9 @@ node scripts/test-content-model.js
 
 ## System Releases
 
-Merges to `main` that change Press runtime files automatically publish a patch release with a dedicated `press-system-vX.Y.Z.zip` update package. The package is intentionally limited to the application shell and runtime assets: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`. The encrypted-article envelope helper in `assets/js/encrypted-content.js` is part of that runtime boundary.
+Merges to `main` that change Press runtime files publish the explicit SemVer recorded in `assets/press-system.json` with a dedicated `press-system-vX.Y.Z.zip` update package. Runtime changes must bump that source version before release. The package is intentionally limited to the application shell and runtime assets: `index.html`, `index_editor.html`, `assets/press-system.json`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`. The encrypted-article envelope helper in `assets/js/encrypted-content.js` is part of that runtime boundary.
+
+System release manifests include `upgradeFrom` compatibility metadata. The editor blocks update staging when the current installed Press version does not satisfy that source range, so future releases can require intermediate updates before older compatibility code is removed.
 
 Official documentation, site content, installed theme registry state, and external theme directories stay out of system update packages. Changes that only touch `wwwroot/` do not create a system release, and update packages must never include `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, workflow files, scripts, site-specific media such as `assets/avatar.png` and `assets/hero.jpeg`, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`.
 
@@ -102,7 +104,7 @@ Want to list your site here? Open a PR with the site URL and a one-line descript
 
 ## Theme Repositories
 
-Official themes use separate repositories such as `EkilyHQ/Press-Theme-Arcus`. New theme repositories should start from [EkilyHQ/Press-Theme-Starter](https://github.com/EkilyHQ/Press-Theme-Starter). Each theme repository owns its theme source, contract checks, release workflow, `press-theme-<slug>-vX.Y.Z.zip` artifact, SHA-256 digest, and root `theme-release.json` manifest. `EkilyHQ/Press-Theme-Catalog` owns the official theme list. Press owns only the runtime infrastructure and `native`; each site owns its installed `packs.json`.
+Official themes use separate repositories such as `EkilyHQ/Press-Theme-Arcus`. New theme repositories should start from [EkilyHQ/Press-Theme-Starter](https://github.com/EkilyHQ/Press-Theme-Starter). Each theme repository owns its theme source, Press engine range in `theme/theme.json`, contract checks, release workflow, `press-theme-<slug>-vX.Y.Z.zip` artifact, SHA-256 digest, and root `theme-release.json` manifest. `EkilyHQ/Press-Theme-Catalog` owns the official theme list. Press owns only the runtime infrastructure and `native`; each site owns its installed `packs.json`.
 
 ## Roadmap
 

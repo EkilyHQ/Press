@@ -10,8 +10,8 @@ import {
 } from './yaml.js';
 import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=annotate-i18n-20260510';
 import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=annotate-i18n-20260510';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=katex-math-20260510';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=theme-switch-fix-20260508';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=version-compat-20260512';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=version-compat-20260512';
 import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=theme-manager-20260507';
 import {
   decryptMarkdownDocument,

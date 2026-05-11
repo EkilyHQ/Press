@@ -214,7 +214,7 @@ CORE_RUNTIME_FILES.forEach((file) => {
   });
 });
 
-['contractVersion', 'regions', 'views', 'components', 'scrollContainer', 'configSchema', 'content', 'shapes', 'handler'].forEach((needle) => {
+['contractVersion', 'engines', 'press', 'regions', 'views', 'components', 'scrollContainer', 'configSchema', 'content', 'shapes', 'handler'].forEach((needle) => {
   if (!themeContractSource.includes(needle)) {
     fail(`wwwroot/post/theme-contract/theme-contract_en.md must document manifest field ${needle}`);
   }
@@ -253,6 +253,9 @@ themeNames.forEach((themeName) => {
   if (!manifest.name) fail(`${relManifest} must declare name`);
   if (!manifest.version) fail(`${relManifest} must declare version`);
   if (manifest.contractVersion !== 1) fail(`${relManifest} contractVersion must be 1`);
+  if (!manifest.engines || typeof manifest.engines.press !== 'string' || !manifest.engines.press.trim()) {
+    fail(`${relManifest} must declare engines.press`);
+  }
 
   const styles = requireList(manifest, 'styles', 'styles', relManifest);
   let styleSource = '';

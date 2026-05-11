@@ -236,6 +236,9 @@ const translations = {
         filesHeading: '更新待ちのシステムファイル',
         releaseNotes: 'リリースノート',
         noNotes: 'このリリースには追加の説明がありません。',
+        currentVersionLabel: ({ version }) => `現在の Press：${version}`,
+        targetVersionLabel: ({ version }) => `更新先 Press：${version}`,
+        unknownVersion: '不明',
         latestLabel: ({ name, tag }) => `最新リリース：${name}${tag ? `（${tag}）` : ''}`,
         publishedLabel: ({ date }) => `公開日：${date}`,
         assetLabel: ({ name, size }) => `アセット：${name}（${size}）`,
@@ -256,6 +259,7 @@ const translations = {
           emptyFile: '選択したファイルは空です。',
           invalidArchive: '選択した ZIP を Press リリースとして読み込めませんでした。',
           downloadFailed: '最新のシステム更新パッケージをダウンロードできませんでした。ダウンロード済み ZIP を選択してください。',
+          upgradeBlocked: ({ current, target, ranges }) => `${current} から ${target} へ直接更新できません。先に中間の Press リリースを適用してください。対応する元バージョン範囲：${ranges}。`,
           sizeMismatch: ({ expected, actual }) => `選択したアーカイブのサイズ（${actual}）がリリースアセット（${expected}）と一致しません。`,
           digestMismatch: '選択したアーカイブの SHA-256 がリリースアセットと一致しません。',
           generic: 'システム更新に失敗しました。再試行してください。'

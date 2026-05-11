@@ -116,9 +116,9 @@ assert.match(main, /from '\.\/js\/post-nav\.js\?v=annotate-i18n-20260510';/, 'ma
 assert.match(main, /from '\.\/js\/annotate\.js\?v=katex-math-20260510';/, 'main should cache-bust annotate runtime helpers when comments are mounted');
 assert.match(composer, /from '\.\/i18n\.js\?v=annotate-i18n-20260510';/, 'composer should share the repository deletion docs i18n cache key');
 assert.match(composer, /from '\.\/seo\.js\?v=annotate-i18n-20260510';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
-assert.match(composer, /from '\.\/system-updates\.js\?v=katex-math-20260510';/, 'composer should cache-bust system updates after math renderer changes');
+assert.match(composer, /from '\.\/system-updates\.js\?v=version-compat-20260512';/, 'composer should cache-bust system updates after version compatibility changes');
 assert.match(read('assets/js/system-updates.js'), /from '\.\/safe-html\.js\?v=katex-math-20260510';/, 'system updates should cache-bust sanitizer when release notes can contain math');
-assert.match(composer, /from '\.\/theme-manager\.js\?v=theme-switch-fix-20260508';/, 'composer should cache-bust theme manager after editor i18n dependency changes');
+assert.match(composer, /from '\.\/theme-manager\.js\?v=version-compat-20260512';/, 'composer should cache-bust theme manager after Press engine compatibility changes');
 assert.match(composer, /from '\.\/encrypted-content\.js\?v=encrypted-demo-20260508';/, 'composer should use the encrypted markdown envelope helpers for protected editor flows');
 assert.match(themeLayout, /from '\.\/i18n\.js\?v=annotate-i18n-20260510';/, 'theme layout should share the repository deletion docs i18n cache key');
 assert.match(languageManifest, /en\.js\?v=annotate-i18n-20260510/, 'language manifest should cache-bust bundles when editor asset deletion strings change');
@@ -186,7 +186,7 @@ assert.match(editorPreviewRuntime, /callThemeEffect\('renderPostView'[\s\S]*mark
 assert.match(editorPreviewRuntime, /restorePreviewThemeStyles\(activePack, layout && layout\.manifest\)/, 'editor preview runtime should restore non-persistent theme styles after theme tools render');
 assert.doesNotMatch(editorMain, /if \(nextView === 'blocks'\) renderPreview/, 'block mode should not trigger themed preview rendering');
 assert.match(indexEditorHtml, /src="assets\/js\/editor-main\.js\?v=blocks-default-view-20260510"/, 'editor should cache-bust editor-main after default blocks view changes');
-assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=protection-native-switch-20260510"/, 'editor should cache-bust composer after native protection switch UI changes');
+assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=version-compat-20260512"/, 'editor should cache-bust composer after version compatibility changes');
 assert.match(composer, /if \('checked' in btn\) btn\.checked = protectedState;[\s\S]*btn\.setAttribute\('aria-checked', protectedState \? 'true' : 'false'\);[\s\S]*switchEl\.dataset\.state = protectedState \? 'on' : 'off';/, 'markdown protection switch should synchronize native checked state and visual switch state');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');

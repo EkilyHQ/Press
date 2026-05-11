@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "type": "press-system",
+  "version": "3.4.0",
+  "tag": "v3.4.0",
+  "upgradeFrom": {
+    "ranges": [
+      ">=3.3.0 <3.4.0"
+    ],
+    "allowUnknownSource": true,
+    "message": ""
+  }
+}

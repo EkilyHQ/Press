@@ -58,6 +58,21 @@ if ! grep -F 'assets/themes/native)' "${workflow}" >/dev/null && ! grep -F 'asse
   exit 1
 fi
 
+if ! grep -F 'assets/press-system.json' "${workflow}" >/dev/null; then
+  echo "system release planning must include the Press system version manifest" >&2
+  exit 1
+fi
+
+if ! grep -F "require('./assets/press-system.json')" "${workflow}" >/dev/null; then
+  echo "system release workflow must read the next release version from assets/press-system.json" >&2
+  exit 1
+fi
+
+if grep -F '$((patch + 1))' "${workflow}" >/dev/null || grep -F 'next_tag="v0.0.1"' "${workflow}" >/dev/null; then
+  echo "system release workflow must not auto-increment release versions" >&2
+  exit 1
+fi
+
 if grep -F 'assets/themes/catalog.json' "${workflow}" >/dev/null; then
   echo "system release planning must not include the external official theme catalog" >&2
   exit 1
@@ -168,6 +183,16 @@ if ! grep -F '"url": os.environ["FETCHABLE_ASSET_URL"]' "${workflow}" >/dev/null
   exit 1
 fi
 
+if ! grep -F '"version": version' "${workflow}" >/dev/null; then
+  echo "system release manifest must publish the explicit Press version" >&2
+  exit 1
+fi
+
+if ! grep -F '"upgradeFrom": system.get("upgradeFrom") or {}' "${workflow}" >/dev/null; then
+  echo "system release manifest must publish upgradeFrom compatibility metadata" >&2
+  exit 1
+fi
+
 if ! grep -F 'Path("dist/system-release.json").write_text' "${workflow}" >/dev/null; then
   echo "system release workflow must write the static release manifest into dist" >&2
   exit 1
@@ -247,6 +272,11 @@ fi
 
 if ! grep -F 'asset_sha256: assetSha256' scripts/dispatch-system-release.js >/dev/null; then
   echo "release dispatch orchestrator must pass the system package digest to targets" >&2
+  exit 1
+fi
+
+if ! grep -F 'upgrade_from: system.upgradeFrom || {}' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must pass upgrade compatibility metadata to targets" >&2
   exit 1
 fi
 

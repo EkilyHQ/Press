@@ -39,6 +39,7 @@ const {
   normalizeThemeReleaseManifest,
   OFFICIAL_THEME_CATALOG_URL,
   sanitizeThemeSlug,
+  stageCatalogTheme,
   stageThemeUninstall,
   verifyThemeAsset
 } = await import('../assets/js/theme-manager.js?theme-manager-test');
@@ -60,6 +61,7 @@ function makeThemeManifest({
   name = 'Test',
   version = '1.0.0',
   contractVersion = 1,
+  engines = { press: '>=3.4.0 <4.0.0' },
   styles = ['theme.css'],
   modules = ['modules/layout.js'],
   overrides = {}
@@ -68,6 +70,7 @@ function makeThemeManifest({
     name,
     version,
     contractVersion,
+    engines,
     styles,
     modules,
     views: {
@@ -106,12 +109,25 @@ function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contrac
 
 function mockFetchRegistry(registry, options = {}) {
   const textFiles = options.textFiles || {};
+  const binaryFiles = options.binaryFiles || {};
   const catalog = options.catalog || { schemaVersion: 1, themes: [] };
   const jsonFiles = options.jsonFiles || {};
   globalThis.fetch = async (input) => {
     const url = String(input || '').split('?')[0];
     if (url === 'assets/themes/packs.json') {
       return { ok: true, json: async () => registry };
+    }
+    if (url === 'assets/press-system.json') {
+      return {
+        ok: true,
+        json: async () => ({
+          schemaVersion: 1,
+          type: 'press-system',
+          version: '3.4.0',
+          tag: 'v3.4.0',
+          upgradeFrom: { ranges: ['>=3.3.0 <3.4.0'], allowUnknownSource: true, message: '' }
+        })
+      };
     }
     if (url === OFFICIAL_THEME_CATALOG_URL) {
       if (options.catalogFailure) {
@@ -128,6 +144,12 @@ function mockFetchRegistry(registry, options = {}) {
         ok: true,
         text: async () => value,
         arrayBuffer: async () => Buffer.from(value).buffer
+      };
+    }
+    if (Object.prototype.hasOwnProperty.call(binaryFiles, url)) {
+      return {
+        ok: true,
+        arrayBuffer: async () => binaryFiles[url]
       };
     }
     return {
@@ -245,6 +267,7 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
     label: 'Arcus',
     version: '1.2.3',
     contractVersion: 1,
+    engines: { press: '>=3.4.0 <4.0.0' },
     release: { tag: 'v1.2.3' },
     asset: {
       name: 'press-theme-arcus-v1.2.3.zip',
@@ -255,7 +278,9 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
     files: ['theme.json', 'theme.css']
   });
   assert.equal(manifest.value, 'arcus');
+  assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }), /contractVersion/i);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, engines: {} }), /engines\.press/i);
 });
 
 await run('rejects unsafe and multi-theme ZIP archives', async () => {
@@ -313,7 +338,7 @@ await run('rejects invalid theme manifests before staging', async () => {
       }, null, 2),
       'press-theme-bad/theme.css': ':root{}'
     }), 'press-theme-bad-v1.0.0.zip'),
-    /modules|content|views|regions/i
+    /engines|modules|content|views|regions/i
   );
   assert.equal(getThemeManagerCommitFiles().length, 0);
 
@@ -337,6 +362,80 @@ await run('rejects invalid theme manifests before staging', async () => {
     })),
     /styles.*missing/i
   );
+});
+
+await run('blocks manual theme imports without compatible Press engines', async () => {
+  mockFetchRegistry([{ value: 'native', label: 'Native', builtIn: true, removable: false, files: [] }]);
+  await assert.rejects(
+    () => analyzeThemeArchive(makeZip({
+      'press-theme-missing/theme.json': JSON.stringify(makeThemeManifest({
+        name: 'Missing',
+        overrides: { engines: undefined }
+      }), null, 2),
+      'press-theme-missing/theme.css': ':root{}',
+      'press-theme-missing/modules/layout.js': 'export default {};'
+    }), 'press-theme-missing-v1.0.0.zip'),
+    /engines\.press/i
+  );
+  assert.equal(getThemeManagerCommitFiles().length, 0);
+
+  await assert.rejects(
+    () => analyzeThemeArchive(makeZip({
+      'press-theme-future/theme.json': JSON.stringify(makeThemeManifest({
+        name: 'Future',
+        engines: { press: '>=4.0.0 <5.0.0' }
+      }), null, 2),
+      'press-theme-future/theme.css': ':root{}',
+      'press-theme-future/modules/layout.js': 'export default {};'
+    }), 'press-theme-future-v1.0.0.zip'),
+    /supports Press|running v3\.4\.0/i
+  );
+  assert.equal(getThemeManagerCommitFiles().length, 0);
+});
+
+await run('blocks official theme releases outside the current Press engine range', async () => {
+  const buffer = makeThemeZip({ slug: 'cataloged', name: 'Cataloged', version: '1.0.0', files: {
+    'theme.json': JSON.stringify(makeThemeManifest({
+      name: 'Cataloged',
+      engines: { press: '>=4.0.0 <5.0.0' }
+    }), null, 2)
+  } });
+  const digest = await sha256(buffer);
+  const assetUrl = 'https://example.test/press-theme-cataloged-v1.0.0.zip';
+  mockFetchRegistry([{ value: 'native', label: 'Native', builtIn: true, removable: false, files: [] }], {
+    jsonFiles: {
+      'https://example.test/cataloged-theme-release.json': {
+        schemaVersion: 1,
+        type: 'press-theme',
+        value: 'cataloged',
+        label: 'Cataloged',
+        version: '1.0.0',
+        contractVersion: 1,
+        engines: { press: '>=4.0.0 <5.0.0' },
+        asset: {
+          name: 'press-theme-cataloged-v1.0.0.zip',
+          url: assetUrl,
+          size: buffer.byteLength,
+          digest: `sha256:${digest}`
+        },
+        files: ['theme.json', 'theme.css', 'modules/layout.js']
+      }
+    },
+    binaryFiles: {
+      [assetUrl]: buffer
+    }
+  });
+
+  await assert.rejects(
+    () => stageCatalogTheme({
+      value: 'cataloged',
+      label: 'Cataloged',
+      repo: 'EkilyHQ/Press-Theme-Cataloged',
+      manifestUrl: 'https://example.test/cataloged-theme-release.json'
+    }),
+    /supports Press|running v3\.4\.0/i
+  );
+  assert.equal(getThemeManagerCommitFiles().length, 0);
 });
 
 await run('accepts theme manifests without optional view states', async () => {
@@ -624,6 +723,7 @@ await run('filters catalog-inferred inventory to existing files during uninstall
         label: 'Cataloged',
         version: '1.0.0',
         contractVersion: 1,
+        engines: { press: '>=3.4.0 <4.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',
           url: 'https://example.test/press-theme-cataloged-v1.0.0.zip',

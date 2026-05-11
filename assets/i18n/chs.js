@@ -236,6 +236,9 @@ const translations = {
         filesHeading: '待更新的系统文件',
         releaseNotes: '发布说明',
         noNotes: '此次发布未提供额外说明。',
+        currentVersionLabel: ({ version }) => `当前 Press：${version}`,
+        targetVersionLabel: ({ version }) => `目标 Press：${version}`,
+        unknownVersion: '未知',
         latestLabel: ({ name, tag }) => `最新发布：${name}${tag ? `（${tag}）` : ''}`,
         publishedLabel: ({ date }) => `发布时间：${date}`,
         assetLabel: ({ name, size }) => `附件：${name}（${size}）`,
@@ -256,6 +259,7 @@ const translations = {
           emptyFile: '选择的文件为空。',
           invalidArchive: '选中的 ZIP 无法作为 Press 发布读取。',
           downloadFailed: '无法下载最新系统更新包。请改为选择已下载的 ZIP。',
+          upgradeBlocked: ({ current, target, ranges }) => `不能从 ${current} 直接更新到 ${target}。请先应用中间版本的 Press 发布。支持的来源范围：${ranges}。`,
           sizeMismatch: ({ expected, actual }) => `选中的压缩包大小（${actual}）与发布附件（${expected}）不一致。`,
           digestMismatch: '选中的压缩包 SHA-256 与发布附件不一致。',
           generic: '系统更新失败，请重试。'

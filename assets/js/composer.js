@@ -12,7 +12,7 @@ import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=frontmatter-
 import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=frontmatter-merge-20260512';
 import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=frontmatter-merge-20260512';
 import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=frontmatter-merge-20260512';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=rich-index-helpers-20260512';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=rich-version-restore-20260512';
 import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
 import {
   decryptMarkdownDocument,
@@ -3275,7 +3275,8 @@ function diffVersionLists(currentValue, baselineValue) {
     if (Array.isArray(value)) {
       const items = value.map(item => ({
         path: getIndexVariantLocation(item),
-        signature: getIndexVariantSignature(item)
+        signature: getIndexVariantSignature(item),
+        restoreValue: cloneIndexMetadataValue(item)
       }));
       if (items.length === 0) {
         return { kind: 'list', items: [] };
@@ -3289,7 +3290,8 @@ function diffVersionLists(currentValue, baselineValue) {
       kind: 'single',
       items: [{
         path: getIndexVariantLocation(value),
-        signature: getIndexVariantSignature(value)
+        signature: getIndexVariantSignature(value),
+        restoreValue: cloneIndexMetadataValue(value)
       }]
     };
   };
@@ -3329,7 +3331,13 @@ function diffVersionLists(currentValue, baselineValue) {
   }
   const removed = [];
   for (let i = 0; i < baseItems.length; i += 1) {
-    if (!baseMatched[i]) removed.push({ value: baseItems[i].path || '', index: i });
+    if (!baseMatched[i]) {
+      removed.push({
+        value: baseItems[i].path || '',
+        restoreValue: baseItems[i].restoreValue,
+        index: i
+      });
+    }
   }
   const changed = cur.kind !== base.kind
     || curItems.length !== baseItems.length

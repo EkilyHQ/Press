@@ -113,7 +113,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=rich-index-helpers-20260512/,
+  /assets\/js\/composer\.js\?v=rich-version-restore-20260512/,
   'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
@@ -2565,8 +2565,14 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=rich-index-helpers-20260512';/,
+  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=rich-version-restore-20260512';/,
   'composer should use the shared editor content tree model'
+);
+
+assert.match(
+  source,
+  /function diffVersionLists\(currentValue, baselineValue\) \{[\s\S]*restoreValue: cloneIndexMetadataValue\(item\)[\s\S]*removed\.push\(\{[\s\S]*value: baseItems\[i\]\.path \|\| '',[\s\S]*restoreValue: baseItems\[i\]\.restoreValue,/,
+  'article version diffs should preserve rich baseline metadata for deleted-version restore'
 );
 
 assert.match(

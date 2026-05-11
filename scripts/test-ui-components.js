@@ -188,7 +188,7 @@ assert.match(editorPreviewRuntime, /callThemeEffect\('renderPostView'[\s\S]*mark
 assert.match(editorPreviewRuntime, /restorePreviewThemeStyles\(activePack, layout && layout\.manifest\)/, 'editor preview runtime should restore non-persistent theme styles after theme tools render');
 assert.doesNotMatch(editorMain, /if \(nextView === 'blocks'\) renderPreview/, 'block mode should not trigger themed preview rendering');
 assert.match(indexEditorHtml, /src="assets\/js\/editor-main\.js\?v=frontmatter-merge-20260512"/, 'editor should cache-bust editor-main after default blocks view changes');
-assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=rich-index-helpers-20260512"/, 'editor should cache-bust composer after version compatibility changes');
+assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=rich-version-restore-20260512"/, 'editor should cache-bust composer after version compatibility changes');
 assert.match(composer, /if \('checked' in btn\) btn\.checked = protectedState;[\s\S]*btn\.setAttribute\('aria-checked', protectedState \? 'true' : 'false'\);[\s\S]*switchEl\.dataset\.state = protectedState \? 'on' : 'off';/, 'markdown protection switch should synchronize native checked state and visual switch state');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');

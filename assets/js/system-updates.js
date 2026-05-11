@@ -469,7 +469,9 @@ function assertSystemUpdateCompatibility(release, archiveSystem) {
     target: versionLabel(targetVersion),
     ranges: upgradeFrom.ranges.join(', ') || t('editor.systemUpdates.unknownVersion')
   });
-  throw new Error(message);
+  const error = new Error(message);
+  error.pressUpgradeBlocked = true;
+  throw error;
 }
 
 function renderRelease() {
@@ -725,6 +727,7 @@ export async function analyzeArchive(buffer, filename) {
     files = await processArchiveEntries(entries);
   } catch (err) {
     console.error('Failed to unpack system update archive', err);
+    if (err && err.pressUpgradeBlocked) throw err;
     if (err && err.message && /upgrade|version|Press/i.test(err.message)) throw err;
     throw new Error(t('editor.systemUpdates.errors.invalidArchive'));
   }

@@ -660,6 +660,45 @@ await run('blocks system updates outside the declared source range', async () =>
   setPressSystemManifestForTests(null);
 });
 
+await run('preserves custom upgradeFrom block messages', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.0',
+    tag: 'v3.4.0',
+    upgradeFrom: { ranges: ['>=3.3.0 <3.4.0'], allowUnknownSource: true, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v4.0.0/index.html': '<!doctype html><p>major</p>',
+    'press-system-v4.0.0/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '4.0.0',
+      tag: 'v4.0.0',
+      upgradeFrom: {
+        ranges: ['>=3.5.0 <4.0.0'],
+        allowUnknownSource: false,
+        message: 'Update to v3.5.x first.'
+      }
+    })
+  });
+
+  globalThis.fetch = async () => ({
+    ok: false,
+    json: async () => ({}),
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+
+  await assert.rejects(
+    () => analyzeArchive(buffer, 'press-system-v4.0.0.zip'),
+    /Update to v3\.5\.x first\./
+  );
+  assert.deepEqual(getSystemUpdateCommitFiles(), []);
+  delete globalThis.fetch;
+  setPressSystemManifestForTests(null);
+});
+
 await run('rejects system packages that would overwrite external theme directories', async () => {
   assert.throws(
     () => collectSystemUpdateArchiveEntries(makeZip({

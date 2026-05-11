@@ -1,5 +1,5 @@
 import './components.js';
-import { mdParse } from './markdown.js?v=katex-math-20260510';
+import { mdParse } from './markdown.js?v=markdown-security-20260512';
 import { createContentModel } from './content-model.js';
 import { parseFrontMatter } from './content.js';
 import { getContentRoot, setSafeHtml } from './safe-html.js?v=katex-math-20260510';

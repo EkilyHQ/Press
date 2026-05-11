@@ -90,7 +90,7 @@ assert.notEqual(tocBoundGuard, -1, 'press-toc should keep a listener binding gua
 assert.ok(tocMapSet < tocBoundGuard, 'press-toc should rebuild _idToLink before skipping already-bound anchors');
 
 assert.match(main, /import '\.\/js\/components\.js';/, 'main should register custom elements before theme layout mounting');
-assert.match(main, /from '\.\/js\/markdown\.js\?v=katex-math-20260510';/, 'main should cache-bust markdown parser when sanitizer boundaries change');
+assert.match(main, /from '\.\/js\/markdown\.js\?v=markdown-security-20260512';/, 'main should cache-bust markdown parser when sanitizer boundaries change');
 assert.match(main, /from '\.\/js\/safe-html\.js\?v=katex-math-20260510';/, 'main should cache-bust sanitizer when rendered Markdown allowlist changes');
 assert.match(main, /from '\.\/js\/math-render\.js\?v=katex-math-20260510';/, 'main should cache-bust math renderer when KaTeX support changes');
 assert.match(mathRender, /querySelectorAll\('\.press-math\[data-tex\]'\)/, 'math renderer should only target parser-generated math nodes');
@@ -148,8 +148,8 @@ assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme
 assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
 assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-demo-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
 assert.match(themeLayout, /const cacheKey = pack === DEFAULT_PACK \? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey\(pack, manifest\);[\s\S]*appendImportCacheKey\(safeEntry, cacheKey\)/, 'theme layout should apply the native module cache key at import time');
-assert.match(indexHtml, /src="assets\/main\.js\?v=theme-layout-generation-20260510"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=theme-layout-generation-20260510"/, 'composer export template should use the same main module URL as index');
+assert.match(indexHtml, /src="assets\/main\.js\?v=markdown-security-20260512"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=markdown-security-20260512"/, 'composer export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');
 assert.doesNotMatch(themeLayout, /loadThemePack\(DEFAULT_PACK\)/, 'theme layout fallback should not persist Native over a failed external pack');
 assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fallback should clear partial external theme DOM and styles');

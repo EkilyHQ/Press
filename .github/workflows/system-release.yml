@@ -41,16 +41,7 @@ jobs:
             latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1 || true)"
           fi
 
-          source_version="$(node - <<'NODE'
-          const manifest = require('./assets/press-system.json');
-          const version = String(manifest.version || '').trim();
-          const tag = String(manifest.tag || '').trim();
-          if (!/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
-            throw new Error('assets/press-system.json must declare matching version and tag');
-          }
-          process.stdout.write(version);
-          NODE
-          )"
+          source_version="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(version);")"
           next_tag="v${source_version}"
 
           if [[ -n "${latest_tag}" ]]; then
@@ -70,20 +61,7 @@ jobs:
           if [[ -n "${latest_tag}" ]]; then
             export LATEST_TAG="${latest_tag}"
             export NEXT_TAG="${next_tag}"
-            node <<'NODE'
-            function parse(tag) {
-              const match = String(tag || '').match(/^v(\d+)\.(\d+)\.(\d+)$/);
-              if (!match) throw new Error(`invalid release tag: ${tag}`);
-              return match.slice(1).map(Number);
-            }
-            const latest = parse(process.env.LATEST_TAG);
-            const next = parse(process.env.NEXT_TAG);
-            for (let i = 0; i < 3; i += 1) {
-              if (next[i] > latest[i]) process.exit(0);
-              if (next[i] < latest[i]) break;
-            }
-            throw new Error(`assets/press-system.json version ${process.env.NEXT_TAG} must be greater than latest release ${process.env.LATEST_TAG}`);
-            NODE
+            node -e "function parse(tag) { const match = String(tag || '').match(/^v(\\d+)\\.(\\d+)\\.(\\d+)$/); if (!match) throw new Error(\`invalid release tag: \${tag}\`); return match.slice(1).map(Number); } const latest = parse(process.env.LATEST_TAG); const next = parse(process.env.NEXT_TAG); for (let i = 0; i < 3; i += 1) { if (next[i] > latest[i]) process.exit(0); if (next[i] < latest[i]) break; } throw new Error(\`assets/press-system.json version \${process.env.NEXT_TAG} must be greater than latest release \${process.env.LATEST_TAG}\`);"
           fi
 
           {

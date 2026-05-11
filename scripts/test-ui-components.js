@@ -114,6 +114,8 @@ assert.match(main, /from '\.\/js\/tags\.js\?v=rich-index-metadata-20260512';/, '
 assert.match(main, /from '\.\/js\/errors\.js\?v=rich-index-metadata-20260512';/, 'main should cache-bust error helpers after their i18n dependency changes');
 assert.match(main, /from '\.\/js\/post-nav\.js\?v=rich-index-metadata-20260512';/, 'main should cache-bust post navigation helpers after their i18n dependency changes');
 assert.match(main, /from '\.\/js\/annotate\.js\?v=katex-math-20260510';/, 'main should cache-bust annotate runtime helpers when comments are mounted');
+assert.match(main, /function getRawIndexVariantLocation\(value\)[\s\S]*value\.location \|\| value\.path[\s\S]*function collectRawIndexVariants\(entry, options = \{\}\)/, 'main should read object variant locations from raw index arrays');
+assert.match(main, /const pickPreferred = \(entry\) => \{[\s\S]*const variants = collectRawIndexVariants\(entry\);[\s\S]*const cand = findBy\(\[curNorm\]\) \|\| findBy\(\[defNorm\]\)/, 'main should preserve homepage order for object version arrays in raw index data');
 assert.match(composer, /from '\.\/i18n\.js\?v=rich-index-metadata-20260512';/, 'composer should share the repository deletion docs i18n cache key');
 assert.match(composer, /from '\.\/seo\.js\?v=rich-index-metadata-20260512';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
 assert.match(composer, /from '\.\/system-updates\.js\?v=rich-index-metadata-20260512';/, 'composer should cache-bust system updates after version compatibility changes');
@@ -148,8 +150,8 @@ assert.match(theme, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme
 assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508'/, 'theme layout should cache-bust manifest-applied native stylesheet changes');
 assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=encrypted-demo-20260508";/, 'native theme.css should cache-bust the imported base stylesheet');
 assert.match(themeLayout, /const cacheKey = pack === DEFAULT_PACK \? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey\(pack, manifest\);[\s\S]*appendImportCacheKey\(safeEntry, cacheKey\)/, 'theme layout should apply the native module cache key at import time');
-assert.match(indexHtml, /src="assets\/main\.js\?v=rich-index-metadata-20260512"/, 'index should bump the main module URL when runtime imports change');
-assert.match(composer, /src="assets\/main\.js\?v=rich-index-metadata-20260512"/, 'composer export template should use the same main module URL as index');
+assert.match(indexHtml, /src="assets\/main\.js\?v=rich-index-order-20260512"/, 'index should bump the main module URL when runtime imports change');
+assert.match(composer, /src="assets\/main\.js\?v=rich-index-order-20260512"/, 'composer export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');
 assert.doesNotMatch(themeLayout, /loadThemePack\(DEFAULT_PACK\)/, 'theme layout fallback should not persist Native over a failed external pack');
 assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fallback should clear partial external theme DOM and styles');

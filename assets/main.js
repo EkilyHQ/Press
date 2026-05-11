@@ -44,6 +44,64 @@ import { hydrateInternalLinkCards } from './js/link-cards.js?v=encrypted-demo-20
 const getFile = (filename) => fetch(String(filename || ''), { cache: 'no-store' })
   .then(resp => { if (!resp.ok) throw new Error(`HTTP ${resp.status}`); return resp.text(); });
 
+const RAW_INDEX_METADATA_KEYS = new Set([
+  'tag',
+  'tags',
+  'image',
+  'date',
+  'excerpt',
+  'thumb',
+  'cover',
+  'title',
+  'readTime',
+  'readMinutes',
+  'minutes',
+  'version',
+  'versionLabel',
+  'versions',
+  'ai',
+  'aiGenerated',
+  'llm',
+  'draft',
+  'wip',
+  'unfinished',
+  'inprogress',
+  'protected',
+  'encryption'
+]);
+
+function getRawIndexVariantLocation(value) {
+  if (typeof value === 'string') return value.trim();
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return String(value.location || value.path || '').trim();
+  }
+  return '';
+}
+
+function pushRawIndexVariant(variants, lang, value) {
+  const location = getRawIndexVariantLocation(value);
+  if (!location) return;
+  variants.push({ lang, location });
+}
+
+function collectRawIndexVariants(entry, options = {}) {
+  const variants = [];
+  if (!entry || typeof entry !== 'object') return variants;
+  const reserved = options.reservedKeys || RAW_INDEX_METADATA_KEYS;
+  const allowLang = typeof options.allowLang === 'function' ? options.allowLang : null;
+  for (const [key, value] of Object.entries(entry)) {
+    if (reserved && reserved.has(key)) continue;
+    const lang = (key === 'location' || key === 'path') ? 'default' : normalizeLangKey(key);
+    if (allowLang && !allowLang(lang, key)) continue;
+    if (Array.isArray(value)) {
+      value.forEach(item => pushRawIndexVariant(variants, lang, item));
+    } else {
+      pushRawIndexVariant(variants, lang, value);
+    }
+  }
+  return variants;
+}
+
 let postsByLocationTitle = {};
 let tabsBySlug = {};
 // Map a stable base slug (language-agnostic) -> current language slug
@@ -1266,27 +1324,11 @@ function displayIndex(parsed) {
       const siteDef = (typeof siteConfig === 'object' && (siteConfig.defaultLanguage || siteConfig.defaultLang)) || 'en';
       const defNorm = normalizeLangKey(siteDef);
 
-      const RESERVED = new Set(['tag','tags','image','date','excerpt','thumb','cover','protected','encryption']);
       const seen = new Set();
       const ordered = [];
 
       const pickPreferred = (entry) => {
-        const variants = [];
-        try {
-          for (const [k, v] of Object.entries(entry || {})) {
-            if (RESERVED.has(k)) continue;
-            const nk = normalizeLangKey(k);
-            if (k === 'location' && typeof v === 'string') {
-              variants.push({ lang: 'default', location: String(v) });
-            } else if (typeof v === 'string') {
-              variants.push({ lang: nk, location: String(v) });
-            } else if (Array.isArray(v)) {
-              v.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-            } else if (v && typeof v === 'object' && typeof v.location === 'string') {
-              variants.push({ lang: nk, location: String(v.location) });
-            }
-          }
-        } catch (_) {}
+        const variants = collectRawIndexVariants(entry);
         if (!variants.length) return '';
         const findBy = (langs) => variants.find(x => langs.includes(x.lang));
         const cand = findBy([curNorm]) || findBy([defNorm]) || findBy(['en']) || findBy(['default']) || variants[0];
@@ -2002,13 +2044,7 @@ async function softResetToSiteDefaultLanguage() {
       try {
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          for (const [k, v] of Object.entries(entry)) {
-            if (['tag','tags','image','date','excerpt','thumb','cover'].includes(k)) continue;
-            if (k === 'location' && typeof v === 'string') { baseAllowed.add(String(v)); continue; }
-            if (Array.isArray(v)) { v.forEach(item => { if (typeof item === 'string') baseAllowed.add(String(item)); }); continue; }
-            if (v && typeof v === 'object' && typeof v.location === 'string') baseAllowed.add(String(v.location));
-            else if (typeof v === 'string') baseAllowed.add(String(v));
-          }
+          collectRawIndexVariants(entry).forEach(variant => { baseAllowed.add(String(variant.location)); });
         }
       } catch (_) {}
     }
@@ -2027,22 +2063,7 @@ async function softResetToSiteDefaultLanguage() {
         const curNorm = normalizeLangKey(cur);
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          const reserved = new Set(['tag','tags','image','date','excerpt','thumb','cover']);
-          const variants = [];
-          for (const [k, v] of Object.entries(entry)) {
-            if (reserved.has(k)) continue;
-            const nk = normalizeLangKey(k);
-            if (k === 'location' && typeof v === 'string') {
-              variants.push({ lang: 'default', location: String(v) });
-            } else if (typeof v === 'string') {
-              variants.push({ lang: nk, location: String(v) });
-            } else if (Array.isArray(v)) {
-              // For version arrays, include all paths for aliasing
-              v.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-            } else if (v && typeof v === 'object' && typeof v.location === 'string') {
-              variants.push({ lang: nk, location: String(v.location) });
-            }
-          }
+          const variants = collectRawIndexVariants(entry);
           if (!variants.length) continue;
           const findBy = (langs) => variants.find(x => langs.includes(x.lang));
           // Prefer the primary location for the current language as computed in postsIndexCache
@@ -2156,20 +2177,11 @@ try {
       try {
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          for (const [k, v] of Object.entries(entry)) {
-            // Skip known non-variant keys
-            if (['tag','tags','image','date','excerpt','thumb','cover'].includes(k)) continue;
-            const nk = normalizeLangKey(k);
-            const cur = (getCurrentLang && getCurrentLang()) || 'en';
-            const curNorm = normalizeLangKey(cur);
-            const allowLang = (nk === 'default' || nk === curNorm || k === 'location');
-            if (!allowLang) continue;
-            // Support both unified and legacy shapes (only for allowed languages)
-            if (k === 'location' && typeof v === 'string') { baseAllowed.add(String(v)); continue; }
-            if (Array.isArray(v)) { v.forEach(item => { if (typeof item === 'string') baseAllowed.add(String(item)); }); continue; }
-            if (v && typeof v === 'object' && typeof v.location === 'string') baseAllowed.add(String(v.location));
-            else if (typeof v === 'string') baseAllowed.add(String(v));
-          }
+          const cur = (getCurrentLang && getCurrentLang()) || 'en';
+          const curNorm = normalizeLangKey(cur);
+          collectRawIndexVariants(entry, {
+            allowLang: (lang, key) => lang === 'default' || lang === curNorm || key === 'location' || key === 'path'
+          }).forEach(variant => { baseAllowed.add(String(variant.location)); });
         }
       } catch (_) { /* ignore parse issues */ }
     }
@@ -2188,21 +2200,7 @@ try {
         const curNorm = normalizeLangKey(cur);
         for (const [, entry] of Object.entries(rawIndex)) {
           if (!entry || typeof entry !== 'object') continue;
-          const reserved = new Set(['tag','tags','image','date','excerpt','thumb','cover']);
-          const variants = [];
-          for (const [k, v] of Object.entries(entry)) {
-            if (reserved.has(k)) continue;
-            const nk = normalizeLangKey(k);
-            if (k === 'location' && typeof v === 'string') {
-              variants.push({ lang: 'default', location: String(v) });
-            } else if (typeof v === 'string') {
-              variants.push({ lang: nk, location: String(v) });
-            } else if (Array.isArray(v)) {
-              v.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-            } else if (v && typeof v === 'object' && typeof v.location === 'string') {
-              variants.push({ lang: nk, location: String(v.location) });
-            }
-          }
+          const variants = collectRawIndexVariants(entry);
           if (!variants.length) continue;
           const findBy = (langs) => variants.find(x => langs.includes(x.lang));
           // Prefer the primary location for the current language as computed in postsIndexCache

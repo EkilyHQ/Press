@@ -59,7 +59,7 @@ function cacheDynamicImport(importer, getCached, setCached) {
 
 function loadMarkdownModule() {
   return cacheDynamicImport(
-    () => import('./js/markdown.js?v=press-system-v3.4.5'),
+    () => import('./js/markdown.js?v=press-system-v3.4.6'),
     () => markdownModulePromise,
     (promise) => { markdownModulePromise = promise; }
   );
@@ -67,7 +67,7 @@ function loadMarkdownModule() {
 
 function loadSyntaxHighlightModule() {
   return cacheDynamicImport(
-    () => import('./js/syntax-highlight.js?v=press-system-v3.4.5'),
+    () => import('./js/syntax-highlight.js?v=press-system-v3.4.6'),
     () => syntaxHighlightModulePromise,
     (promise) => { syntaxHighlightModulePromise = promise; }
   );
@@ -75,7 +75,7 @@ function loadSyntaxHighlightModule() {
 
 function loadMathRenderModule() {
   return cacheDynamicImport(
-    () => import('./js/math-render.js?v=press-system-v3.4.5'),
+    () => import('./js/math-render.js?v=press-system-v3.4.6'),
     () => mathRenderModulePromise,
     (promise) => { mathRenderModulePromise = promise; }
   );
@@ -83,7 +83,7 @@ function loadMathRenderModule() {
 
 function loadAnnotateModule() {
   return cacheDynamicImport(
-    () => import('./js/annotate.js?v=press-system-v3.4.5'),
+    () => import('./js/annotate.js?v=press-system-v3.4.6'),
     () => annotateModulePromise,
     (promise) => { annotateModulePromise = promise; }
   );
@@ -91,7 +91,7 @@ function loadAnnotateModule() {
 
 function loadLinkCardsModule() {
   return cacheDynamicImport(
-    () => import('./js/link-cards.js?v=press-system-v3.4.5'),
+    () => import('./js/link-cards.js?v=press-system-v3.4.6'),
     () => linkCardsModulePromise,
     (promise) => { linkCardsModulePromise = promise; }
   );

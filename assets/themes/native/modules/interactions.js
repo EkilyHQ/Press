@@ -21,7 +21,7 @@ let nativeLinkCardsModulePromise = null;
 
 function loadNativeLinkCardsModule() {
   if (!nativeLinkCardsModulePromise) {
-    nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.5').catch((err) => {
+    nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.6').catch((err) => {
       nativeLinkCardsModulePromise = null;
       throw err;
     });

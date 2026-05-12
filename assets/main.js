@@ -5,13 +5,13 @@ import {
   decryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope,
   stripEncryptedBodyForPublicUse
-} from './js/encrypted-content.js?v=press-system-v3.4.5';
-import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.5';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.5';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.5';
+} from './js/encrypted-content.js?v=press-system-v3.4.6';
+import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.6';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.6';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.6';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
-import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=press-system-v3.4.5';
+import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=press-system-v3.4.6';
 import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
 import {
   initI18n,
@@ -23,13 +23,13 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=press-system-v3.4.5';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.5';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.5';
+} from './js/i18n.js?v=press-system-v3.4.6';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.6';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.6';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.5';
-import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.5';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.6';
+import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.6';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 

@@ -370,6 +370,23 @@ async function loadThemeModule(pack, entry, manifest) {
   return { entry, mod };
 }
 
+function createThemeModuleLoadFailure(entry, error) {
+  return { entry, error };
+}
+
+async function loadThemeModules(pack, manifest, options = {}) {
+  const failFast = options.failFast === true;
+  return Promise.all(manifest.modules.map(async (entry) => {
+    try {
+      const loaded = await loadThemeModule(pack, entry, manifest);
+      return { entry, loaded };
+    } catch (error) {
+      if (failFast) throw createThemeModuleLoadFailure(entry, error);
+      return { entry, error };
+    }
+  }));
+}
+
 async function mountLoadedModule(pack, entry, mod, context, manifest) {
   if (!mod) return;
   const modApi = extractThemeApi(mod);
@@ -417,14 +434,28 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     manifest = FALLBACK_MANIFEST;
   }
 
-  const moduleResults = await Promise.all(manifest.modules.map(async (entry) => {
-    try {
-      const loaded = await loadThemeModule(pack, entry, manifest);
-      return { entry, loaded };
-    } catch (error) {
-      return { entry, error };
+  let moduleResults;
+  try {
+    moduleResults = await loadThemeModules(pack, manifest, { failFast: allowFallback && pack !== DEFAULT_PACK });
+  } catch (failure) {
+    if (!isCurrentMountGeneration(mountGeneration)) return null;
+    const entry = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'entry')
+      ? failure.entry
+      : '';
+    const error = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'error')
+      ? failure.error
+      : failure;
+    console.error('[theme] Failed to load module', entry, error);
+    if (allowFallback && pack !== DEFAULT_PACK) {
+      if (persist) {
+        suppressThemePack(pack);
+        clearPendingThemePack(pack);
+      }
+      clearFailedThemeArtifacts(pack);
+      return mountPack(DEFAULT_PACK, false, options);
     }
-  }));
+    moduleResults = [];
+  }
   if (!isCurrentMountGeneration(mountGeneration)) return null;
 
   const loadedModules = [];

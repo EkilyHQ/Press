@@ -7,7 +7,6 @@ import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js
 import { showErrorOverlay } from '../../../js/errors.js?v=press-system-v3.4.5';
 import { renderPostNav } from '../../../js/post-nav.js?v=press-system-v3.4.5';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
-import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=press-system-v3.4.5';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
 import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=press-system-v3.4.5';
@@ -18,6 +17,26 @@ const defaultDocument = typeof document !== 'undefined' ? document : undefined;
 
 let themeI18n = null;
 let activeRegions = null;
+let nativeLinkCardsModulePromise = null;
+
+function loadNativeLinkCardsModule() {
+  if (!nativeLinkCardsModulePromise) {
+    nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.5').catch((err) => {
+      nativeLinkCardsModulePromise = null;
+      throw err;
+    });
+  }
+  return nativeLinkCardsModulePromise;
+}
+
+async function hydrateInternalLinkCardsFallback(container, options = {}) {
+  try {
+    const mod = await loadNativeLinkCardsModule();
+    if (mod && typeof mod.hydrateInternalLinkCards === 'function') {
+      return mod.hydrateInternalLinkCards(container, options);
+    }
+  } catch (_) {}
+}
 
 function setThemeI18n(context = {}) {
   themeI18n = context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null;
@@ -1215,7 +1234,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
     warnLargeImagesInNative(container, cfg, documentRef, windowRef).catch(() => {});
   } catch (_) {}
 
-  const hydrateLinks = getUtility(params, 'hydrateInternalLinkCards', (selector, opts) => hydrateInternalLinkCards(selector, opts));
+  const hydrateLinks = getUtility(params, 'hydrateInternalLinkCards', (selector, opts) => hydrateInternalLinkCardsFallback(selector, opts));
   const fetchMarkdown = getUtility(params, 'fetchMarkdown', () => Promise.resolve(''));
   const makeHref = getUtility(params, 'makeLangHref', (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`));
   try {
@@ -1324,7 +1343,7 @@ function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, w
     warnLargeImagesInNative(container, cfg, documentRef, windowRef).catch(() => {});
   } catch (_) {}
 
-  const hydrateLinks = getUtility(params, 'hydrateInternalLinkCards', (selector, opts) => hydrateInternalLinkCards(selector, opts));
+  const hydrateLinks = getUtility(params, 'hydrateInternalLinkCards', (selector, opts) => hydrateInternalLinkCardsFallback(selector, opts));
   const fetchMarkdown = getUtility(params, 'fetchMarkdown', () => Promise.resolve(''));
   const makeHref = getUtility(params, 'makeLangHref', (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`));
   try {

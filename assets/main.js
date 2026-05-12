@@ -5,14 +5,14 @@ import {
   decryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope,
   stripEncryptedBodyForPublicUse
-} from './js/encrypted-content.js?v=press-system-v3.4.4';
-import { mdParse } from './js/markdown.js?v=press-system-v3.4.4';
-import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.4';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.4';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.4';
+} from './js/encrypted-content.js?v=press-system-v3.4.5';
+import { mdParse } from './js/markdown.js?v=press-system-v3.4.5';
+import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.5';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.5';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.5';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
-import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=press-system-v3.4.4';
+import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=press-system-v3.4.5';
 import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
 import {
   initI18n,
@@ -24,21 +24,21 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=press-system-v3.4.4';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.4';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.4';
-import { initSyntaxHighlighting } from './js/syntax-highlight.js?v=press-system-v3.4.4';
-import { renderPressMath } from './js/math-render.js?v=press-system-v3.4.4';
+} from './js/i18n.js?v=press-system-v3.4.5';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.5';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.5';
+import { initSyntaxHighlighting } from './js/syntax-highlight.js?v=press-system-v3.4.5';
+import { renderPressMath } from './js/math-render.js?v=press-system-v3.4.5';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.4';
-import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.4';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.5';
+import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.5';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
-import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=press-system-v3.4.4';
+import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=press-system-v3.4.5';
 
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos, hydrateCardCovers } from './js/post-render.js';
-import { hydrateInternalLinkCards } from './js/link-cards.js?v=press-system-v3.4.4';
+import { hydrateInternalLinkCards } from './js/link-cards.js?v=press-system-v3.4.5';
 
 // Lightweight content fetch helper; cache mode is normalized by cache-control.js.
 const getFile = (filename) => fetch(String(filename || ''), { cache: 'no-store' })

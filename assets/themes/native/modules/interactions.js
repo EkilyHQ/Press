@@ -1,17 +1,17 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js?v=press-system-v3.4.4';
+import { attachHoverTooltip } from '../../../js/tags.js?v=press-system-v3.4.5';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=press-system-v3.4.4';
-import { showErrorOverlay } from '../../../js/errors.js?v=press-system-v3.4.4';
-import { renderPostNav } from '../../../js/post-nav.js?v=press-system-v3.4.4';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=press-system-v3.4.5';
+import { showErrorOverlay } from '../../../js/errors.js?v=press-system-v3.4.5';
+import { renderPostNav } from '../../../js/post-nav.js?v=press-system-v3.4.5';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
-import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=press-system-v3.4.4';
+import { hydrateInternalLinkCards } from '../../../js/link-cards.js?v=press-system-v3.4.5';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=press-system-v3.4.4';
-import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=press-system-v3.4.4';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=press-system-v3.4.5';
+import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=press-system-v3.4.5';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
@@ -1550,11 +1550,9 @@ function updateCardMetadata(entries = [], context = {}) {
       return;
     }
     const inlineMinutes = readMinutesFromMeta(meta);
-    const needsExcerpt = !!(exEl && !inlineExcerpt);
     if (inlineMinutes > 0) {
       updateMetaLine(el, meta, inlineMinutes, false);
       refreshMasonry(el);
-      if (!needsExcerpt) return;
     }
     if (typeof context.getFile !== 'function' || typeof context.getContentRoot !== 'function' || typeof context.extractExcerpt !== 'function' || typeof context.computeReadTime !== 'function') return;
     context.getFile(`${context.getContentRoot()}/${loc}`).then(md => {
@@ -1562,7 +1560,7 @@ function updateCardMetadata(entries = [], context = {}) {
       const encrypted = isEncryptedMarkdown(rawMarkdown);
       const publicMarkdown = encrypted ? stripEncryptedBodyForPublicUse(rawMarkdown) : rawMarkdown;
       const ex = encrypted ? translate('ui.protectedExcerpt') : context.extractExcerpt(publicMarkdown, 50);
-      if (exEl && !inlineExcerpt) exEl.textContent = ex;
+      if (exEl && (encrypted || !inlineExcerpt)) exEl.textContent = ex;
       const minutes = encrypted ? 0 : (inlineMinutes > 0 ? inlineMinutes : context.computeReadTime(publicMarkdown, 200));
       updateMetaLine(el, meta, minutes, encrypted);
       refreshMasonry(el);

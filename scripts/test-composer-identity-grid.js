@@ -101,19 +101,19 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=frontmatter-merge-20260512/,
+  /assets\/js\/editor-boot\.js\?v=[\w.-]+/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=frontmatter-merge-20260512/,
+  /assets\/js\/editor-main\.js\?v=[\w.-]+/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=rich-version-restore-20260512/,
+  /assets\/js\/composer\.js\?v=[\w.-]+/,
   'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
@@ -131,37 +131,37 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=frontmatter-merge-20260512/,
+  /assets\/js\/editor-main\.js\?v=[\w.-]+/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-blocks\.js\?v=katex-blocks-20260510'/,
+  /from '\.\/editor-blocks\.js\?v=[\w.-]+'/,
   'editor preview should cache-bust the Markdown blocks editor when math block handling changes'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/safe-html\.js\?v=katex-math-20260510'/,
+  /from '\.\/safe-html\.js\?v=[\w.-]+'/,
   'editor preview should import the cache-busted safe HTML helper directly'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/math-render\.js\?v=katex-math-20260510'/,
+  /from '\.\/math-render\.js\?v=[\w.-]+'/,
   'editor blocks should cache-bust the math renderer when KaTeX support changes'
 );
 
 assert.match(
   source,
-  /from '\.\/system-updates\.js\?v=frontmatter-merge-20260512'/,
+  /from '\.\/system-updates\.js\?v=[\w.-]+'/,
   'composer should cache-bust system updates when version compatibility changes'
 );
 
 assert.match(
   source,
-  /from '\.\/encrypted-content\.js\?v=encrypted-demo-20260508'/,
+  /from '\.\/encrypted-content\.js\?v=[\w.-]+'/,
   'composer should import encrypted article helpers through the encrypted-articles cache key'
 );
 
@@ -209,7 +209,7 @@ assert.match(
 
 assert.match(
   readFileSync(resolve(here, '../assets/js/system-updates.js'), 'utf8'),
-  /from '\.\/markdown\.js\?v=markdown-security-20260512'[\s\S]*from '\.\/math-render\.js\?v=katex-math-20260510'[\s\S]*from '\.\/safe-html\.js\?v=katex-math-20260510'/,
+  /from '\.\/markdown\.js\?v=[\w.-]+'[\s\S]*from '\.\/math-render\.js\?v=[\w.-]+'[\s\S]*from '\.\/safe-html\.js\?v=[\w.-]+'/,
   'system update notes should cache-bust Markdown, math renderer, and sanitizer when math rendering changes'
 );
 
@@ -1015,7 +1015,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=asset-deletions-20260508';[\s\S]*canDeleteImageResource: \(src\) => !!resolveCurrentImageResource\(src\),[\s\S]*requestImageDelete: \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*new CustomEvent\('press-editor-asset-delete-requested'[\s\S]*markdownBlocksEditor\.deleteImageBlock\(target\)[\s\S]*press-editor-asset-delete-canceled/,
+  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*canDeleteImageResource: \(src\) => !!resolveCurrentImageResource\(src\),[\s\S]*requestImageDelete: \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*new CustomEvent\('press-editor-asset-delete-requested'[\s\S]*markdownBlocksEditor\.deleteImageBlock\(target\)[\s\S]*press-editor-asset-delete-canceled/,
   'visual image blocks should request explicit repository asset deletion before removing the block'
 );
 
@@ -1555,13 +1555,13 @@ assert.match(
 
 assert.match(
   [mainSource, editorMainSource, editorBlocksSource, hiEditorSource].join('\n'),
-  /syntax-highlight\.js\?v=highlightjs-common-20260510/,
+  /syntax-highlight\.js\?v=[\w.-]+/,
   'runtime and editor entrypoints should cache-bust the Highlight.js-backed syntax highlighter'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/hieditor\.js\?v=highlightjs-common-20260510';/,
+  /from '\.\/hieditor\.js\?v=[\w.-]+';/,
   'editor main should cache-bust hi-editor when Highlight.js span output changes'
 );
 
@@ -1893,7 +1893,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/repository-deletions\.js\?v=rich-index-helpers-20260512';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
+  /from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
   'composer should stage repository markdown deletions from article/page tombstones'
 );
 
@@ -1976,19 +1976,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=frontmatter-merge-20260512';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js\?v=[\w.-]+';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/chs\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/cht-tw\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/cht-hk\.js\?v=frontmatter-merge-20260512"[\s\S]*"\.\/ja\.js\?v=frontmatter-merge-20260512"/,
+  /"\.\/en\.js\?v=[\w.-]+"[\s\S]*"\.\/chs\.js\?v=[\w.-]+"[\s\S]*"\.\/cht-tw\.js\?v=[\w.-]+"[\s\S]*"\.\/cht-hk\.js\?v=[\w.-]+"[\s\S]*"\.\/ja\.js\?v=[\w.-]+"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=frontmatter-merge-20260512'/,
+  /from '\.\.\/i18n\/en\.js\?v=[\w.-]+'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
@@ -2565,7 +2565,7 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=rich-version-restore-20260512';/,
+  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=[\w.-]+';/,
   'composer should use the shared editor content tree model'
 );
 

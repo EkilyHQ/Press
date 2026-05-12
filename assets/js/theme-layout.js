@@ -4,7 +4,7 @@ import {
   getRequestedThemePack,
   setThemePackStylesheet,
   suppressThemePack
-} from './theme.js?v=frontmatter-merge-20260512';
+} from './theme.js?v=press-system-v3.4.4';
 import {
   t,
   withLangParam,
@@ -13,7 +13,7 @@ import {
   ensureLanguageBundle,
   getAvailableLangs,
   getLanguageLabel
-} from './i18n.js?v=frontmatter-merge-20260512';
+} from './i18n.js?v=press-system-v3.4.4';
 import {
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
@@ -29,8 +29,8 @@ let layoutMountGeneration = 0;
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
-const NATIVE_MODULE_CACHE_KEY = 'frontmatter-merge-20260512';
-const NATIVE_STYLE_CACHE_KEY = 'encrypted-demo-20260508';
+const NATIVE_MODULE_CACHE_KEY = 'press-system-v3.4.4';
+const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.4';
 
 const EFFECT_VIEW_NAMES = {
   renderPostView: 'post',
@@ -370,6 +370,23 @@ async function loadThemeModule(pack, entry, manifest) {
   return { entry, mod };
 }
 
+function createThemeModuleLoadFailure(entry, error) {
+  return { entry, error };
+}
+
+async function loadThemeModules(pack, manifest, options = {}) {
+  const failFast = options.failFast === true;
+  return Promise.all(manifest.modules.map(async (entry) => {
+    try {
+      const loaded = await loadThemeModule(pack, entry, manifest);
+      return { entry, loaded };
+    } catch (error) {
+      if (failFast) throw createThemeModuleLoadFailure(entry, error);
+      return { entry, error };
+    }
+  }));
+}
+
 async function mountLoadedModule(pack, entry, mod, context, manifest) {
   if (!mod) return;
   const modApi = extractThemeApi(mod);
@@ -417,15 +434,34 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     manifest = FALLBACK_MANIFEST;
   }
 
+  let moduleResults;
+  try {
+    moduleResults = await loadThemeModules(pack, manifest, { failFast: allowFallback && pack !== DEFAULT_PACK });
+  } catch (failure) {
+    if (!isCurrentMountGeneration(mountGeneration)) return null;
+    const entry = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'entry')
+      ? failure.entry
+      : '';
+    const error = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'error')
+      ? failure.error
+      : failure;
+    console.error('[theme] Failed to load module', entry, error);
+    if (allowFallback && pack !== DEFAULT_PACK) {
+      if (persist) {
+        suppressThemePack(pack);
+        clearPendingThemePack(pack);
+      }
+      clearFailedThemeArtifacts(pack);
+      return mountPack(DEFAULT_PACK, false, options);
+    }
+    moduleResults = [];
+  }
+  if (!isCurrentMountGeneration(mountGeneration)) return null;
+
   const loadedModules = [];
-  for (const entry of manifest.modules) {
-    try {
-      const loaded = await loadThemeModule(pack, entry, manifest);
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
-      if (loaded) loadedModules.push(loaded);
-    } catch (err) {
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
-      console.error('[theme] Failed to load module', entry, err);
+  for (const result of moduleResults) {
+    if (result.error) {
+      console.error('[theme] Failed to load module', result.entry, result.error);
       if (allowFallback && pack !== DEFAULT_PACK) {
         if (persist) {
           suppressThemePack(pack);
@@ -434,7 +470,9 @@ async function mountPack(pack, allowFallback = true, options = {}) {
         clearFailedThemeArtifacts(pack);
         return mountPack(DEFAULT_PACK, false, options);
       }
+      continue;
     }
+    if (result.loaded) loadedModules.push(result.loaded);
   }
 
   const context = {

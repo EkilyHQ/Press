@@ -1,5 +1,5 @@
-import { t } from './i18n.js?v=frontmatter-merge-20260512';
-import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=version-compat-20260512';
+import { t } from './i18n.js?v=press-system-v3.4.4';
+import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=press-system-v3.4.4';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';

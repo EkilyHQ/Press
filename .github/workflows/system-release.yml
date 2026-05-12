@@ -25,6 +25,7 @@ jobs:
 
       - name: Verify release package boundary
         run: |
+          node scripts/sync-runtime-cache-keys.mjs --check
           bash scripts/test-system-release-package.sh
           bash scripts/test-system-release-workflow.sh
           node --experimental-default-type=module scripts/test-system-updates.js

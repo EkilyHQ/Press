@@ -84,6 +84,8 @@ node scripts/test-content-model.js
 
 Merges to `main` that change Press runtime files publish the explicit SemVer recorded in `assets/press-system.json` with a dedicated `press-system-vX.Y.Z.zip` update package. Runtime changes must bump that source version before release. The package is intentionally limited to the application shell and runtime assets: `index.html`, `index_editor.html`, `assets/press-system.json`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`. The encrypted-article envelope helper in `assets/js/encrypted-content.js` is part of that runtime boundary.
 
+After changing the Press system version, run `node scripts/sync-runtime-cache-keys.mjs --write` to synchronize static runtime cache keys from `assets/press-system.json`. CI runs the same script with `--check` and blocks releases when runtime cache keys are stale.
+
 System release manifests include `upgradeFrom` compatibility metadata. The editor blocks update staging when the current installed Press version does not satisfy that source range, so future releases can require intermediate updates before older compatibility code is removed.
 
 Official documentation, site content, installed theme registry state, and external theme directories stay out of system update packages. Changes that only touch `wwwroot/` do not create a system release, and update packages must never include `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, workflow files, scripts, site-specific media such as `assets/avatar.png` and `assets/hero.jpeg`, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`.

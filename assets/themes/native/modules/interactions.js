@@ -1,16 +1,16 @@
 import { installLightbox } from '../../../js/lightbox.js';
 import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
-import { attachHoverTooltip } from '../../../js/tags.js?v=press-system-v3.4.5';
+import { attachHoverTooltip } from '../../../js/tags.js?v=press-system-v3.4.6';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
-import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=press-system-v3.4.5';
-import { showErrorOverlay } from '../../../js/errors.js?v=press-system-v3.4.5';
-import { renderPostNav } from '../../../js/post-nav.js?v=press-system-v3.4.5';
+import { renderPostMetaCard, renderOutdatedCard } from '../../../js/templates.js?v=press-system-v3.4.6';
+import { showErrorOverlay } from '../../../js/errors.js?v=press-system-v3.4.6';
+import { renderPostNav } from '../../../js/post-nav.js?v=press-system-v3.4.6';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from '../../../js/post-render.js';
 import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
-import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=press-system-v3.4.5';
-import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=press-system-v3.4.5';
+import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js?v=press-system-v3.4.6';
+import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js?v=press-system-v3.4.6';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
@@ -21,7 +21,7 @@ let nativeLinkCardsModulePromise = null;
 
 function loadNativeLinkCardsModule() {
   if (!nativeLinkCardsModulePromise) {
-    nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.5').catch((err) => {
+    nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.6').catch((err) => {
       nativeLinkCardsModulePromise = null;
       throw err;
     });

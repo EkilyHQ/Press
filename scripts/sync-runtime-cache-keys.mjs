@@ -77,8 +77,8 @@ function isManagedAsset(fromFile, rawRef) {
 function replaceUrlCacheKeys(relPath, source, cacheKey) {
   return source.replace(/(\?v=)([^'"`\s<>)\\]+)/g, (match, prefix, _oldKey, offset) => {
     const before = source.slice(Math.max(0, offset - 260), offset);
-    const refMatch = before.match(/(?:src|href|import|from)\s*=\s*["']([^"']+)$|(?:from|import)\s*["']([^"']+)$|@import\s+["']([^"']+)$|["'](?:module|src|href)["']\s*:\s*["']([^"']+)$/);
-    const rawRef = refMatch && (refMatch[1] || refMatch[2] || refMatch[3] || refMatch[4]);
+    const refMatch = before.match(/(?:src|href|import|from)\s*=\s*["']([^"']+)$|(?:from|import)\s*["']([^"']+)$|import\(\s*["']([^"']+)$|@import\s+["']([^"']+)$|["'](?:module|src|href)["']\s*:\s*["']([^"']+)$/);
+    const rawRef = refMatch && (refMatch[1] || refMatch[2] || refMatch[3] || refMatch[4] || refMatch[5]);
     if (!rawRef || !isManagedAsset(relPath, rawRef)) return match;
     return `${prefix}${cacheKey}`;
   });
@@ -99,8 +99,8 @@ function collectStaticCacheKeys(relPath, source) {
   const keys = [];
   source.replace(/(\?v=)([^'"`\s<>)\\]+)/g, (match, prefix, key, offset) => {
     const before = source.slice(Math.max(0, offset - 260), offset);
-    const refMatch = before.match(/(?:src|href|import|from)\s*=\s*["']([^"']+)$|(?:from|import)\s*["']([^"']+)$|@import\s+["']([^"']+)$|["'](?:module|src|href)["']\s*:\s*["']([^"']+)$/);
-    const rawRef = refMatch && (refMatch[1] || refMatch[2] || refMatch[3] || refMatch[4]);
+    const refMatch = before.match(/(?:src|href|import|from)\s*=\s*["']([^"']+)$|(?:from|import)\s*["']([^"']+)$|import\(\s*["']([^"']+)$|@import\s+["']([^"']+)$|["'](?:module|src|href)["']\s*:\s*["']([^"']+)$/);
+    const rawRef = refMatch && (refMatch[1] || refMatch[2] || refMatch[3] || refMatch[4] || refMatch[5]);
     if ((rawRef && isManagedAsset(relPath, rawRef)) || (relPath === 'assets/js/theme-boot.js' && before.endsWith('theme.css'))) {
       keys.push({ key, match });
     }

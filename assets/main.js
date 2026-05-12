@@ -6,7 +6,6 @@ import {
   parseEncryptedMarkdownEnvelope,
   stripEncryptedBodyForPublicUse
 } from './js/encrypted-content.js?v=press-system-v3.4.5';
-import { mdParse } from './js/markdown.js?v=press-system-v3.4.5';
 import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.5';
 import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.5';
 import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.5';
@@ -27,22 +26,114 @@ import {
 } from './js/i18n.js?v=press-system-v3.4.5';
 import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.5';
 import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.5';
-import { initSyntaxHighlighting } from './js/syntax-highlight.js?v=press-system-v3.4.5';
-import { renderPressMath } from './js/math-render.js?v=press-system-v3.4.5';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
 import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.5';
 import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.5';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
-import { mountAnnotateComments, resolveAnnotateArticleContext } from './js/annotate.js?v=press-system-v3.4.5';
 
 import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos, hydrateCardCovers } from './js/post-render.js';
-import { hydrateInternalLinkCards } from './js/link-cards.js?v=press-system-v3.4.5';
 
 // Lightweight content fetch helper; cache mode is normalized by cache-control.js.
 const getFile = (filename) => fetch(String(filename || ''), { cache: 'no-store' })
   .then(resp => { if (!resp.ok) throw new Error(`HTTP ${resp.status}`); return resp.text(); });
+
+let markdownModulePromise = null;
+let syntaxHighlightModulePromise = null;
+let mathRenderModulePromise = null;
+let annotateModulePromise = null;
+let linkCardsModulePromise = null;
+
+function loadMarkdownModule() {
+  if (!markdownModulePromise) markdownModulePromise = import('./js/markdown.js?v=press-system-v3.4.5');
+  return markdownModulePromise;
+}
+
+function loadSyntaxHighlightModule() {
+  if (!syntaxHighlightModulePromise) syntaxHighlightModulePromise = import('./js/syntax-highlight.js?v=press-system-v3.4.5');
+  return syntaxHighlightModulePromise;
+}
+
+function loadMathRenderModule() {
+  if (!mathRenderModulePromise) mathRenderModulePromise = import('./js/math-render.js?v=press-system-v3.4.5');
+  return mathRenderModulePromise;
+}
+
+function loadAnnotateModule() {
+  if (!annotateModulePromise) annotateModulePromise = import('./js/annotate.js?v=press-system-v3.4.5');
+  return annotateModulePromise;
+}
+
+function loadLinkCardsModule() {
+  if (!linkCardsModulePromise) linkCardsModulePromise = import('./js/link-cards.js?v=press-system-v3.4.5');
+  return linkCardsModulePromise;
+}
+
+function queryScopeHas(scope, selector) {
+  try {
+    return !!(scope && typeof scope.querySelector === 'function' && scope.querySelector(selector));
+  } catch (_) {
+    return false;
+  }
+}
+
+function hasInternalLinkCardCandidates(scope) {
+  try {
+    if (!scope || typeof scope.querySelectorAll !== 'function') return false;
+    const anchors = Array.from(scope.querySelectorAll('a[href]'));
+    return anchors.some((anchor) => {
+      const href = String(anchor.getAttribute('href') || '').trim();
+      if (!href || href.startsWith('#') || /^(mailto:|javascript:)/i.test(href)) return false;
+      const startsWithQuery = href.startsWith('?');
+      let url;
+      try {
+        url = new URL(href, window.location.href);
+      } catch (_) {
+        return false;
+      }
+      if (!startsWithQuery && url.origin !== window.location.origin) return false;
+      if (!url.searchParams.get('id')) return false;
+      const titleAttr = String(anchor.getAttribute('title') || '').trim();
+      if (/\b(card|preview)\b/i.test(titleAttr) || anchor.hasAttribute('data-card') || anchor.classList.contains('card')) return true;
+      const parent = anchor.parentElement;
+      if (!parent || !['P', 'LI', 'DIV'].includes(parent.tagName)) return false;
+      const nodes = Array.from(parent.childNodes || []);
+      return nodes.every(node => node === anchor || (node.nodeType === Node.TEXT_NODE && !String(node.textContent || '').trim()));
+    });
+  } catch (_) {
+    return false;
+  }
+}
+
+async function initSyntaxHighlighting(root = document) {
+  try {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    if (!queryScopeHas(scope, 'pre code')) return;
+    const mod = await loadSyntaxHighlightModule();
+    if (mod && typeof mod.initSyntaxHighlighting === 'function') mod.initSyntaxHighlighting(scope);
+  } catch (_) {}
+}
+
+async function renderPressMath(root = document) {
+  try {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    if (!queryScopeHas(scope, '.press-math[data-tex]')) return;
+    const mod = await loadMathRenderModule();
+    if (mod && typeof mod.renderPressMath === 'function') mod.renderPressMath(scope);
+  } catch (_) {}
+}
+
+async function hydrateInternalLinkCards(container, options = {}) {
+  try {
+    const scope = container && typeof container.querySelectorAll === 'function' ? container : document;
+    if (!hasInternalLinkCardCandidates(scope)) return;
+    const mod = await loadLinkCardsModule();
+    if (mod && typeof mod.hydrateInternalLinkCards === 'function') {
+      return mod.hydrateInternalLinkCards(container, options);
+    }
+  } catch (_) {}
+}
 
 const RAW_INDEX_METADATA_KEYS = new Set([
   'tag',
@@ -533,6 +624,19 @@ function postsEnabled() {
     if (siteConfig && typeof siteConfig.disableAllPosts === 'boolean') return !siteConfig.disableAllPosts;
   } catch (_) {}
   return true; // default: enabled
+}
+
+function isAnnotateConfigured(cfg = siteConfig) {
+  try {
+    const annotate = cfg && typeof cfg.annotate === 'object' && !Array.isArray(cfg.annotate) ? cfg.annotate : null;
+    if (!annotate) return false;
+    const enabled = annotate.enabled === true || ['true', '1', 'yes', 'y', 'on', 'enabled'].includes(String(annotate.enabled ?? '').trim().toLowerCase());
+    if (!enabled) return false;
+    const repo = cfg && typeof cfg.repo === 'object' && !Array.isArray(cfg.repo) ? cfg.repo : null;
+    return !!(String(annotate.connectBaseUrl || '').trim() && repo && String(repo.owner || '').trim() && String(repo.name || '').trim());
+  } catch (_) {
+    return false;
+  }
 }
 
 function resolveLandingSlug() {
@@ -1030,7 +1134,7 @@ function displayPost(postname, options = {}) {
     ? Promise.resolve(String(options.markdown || ''))
     : getFile(`${getContentRoot()}/${postname}`);
 
-  return markdownSource.then(markdown => {
+  return markdownSource.then(async markdown => {
     // Ignore stale responses if a newer navigation started
     if (reqId !== __activePostRequestId) return;
     const encryptedEnvelope = parseEncryptedMarkdownEnvelope(markdown);
@@ -1091,6 +1195,8 @@ function displayPost(postname, options = {}) {
 
     const dir = (postname.lastIndexOf('/') >= 0) ? postname.slice(0, postname.lastIndexOf('/') + 1) : '';
     const baseDir = `${getContentRoot()}/${dir}`;
+    const { mdParse } = await loadMarkdownModule();
+    if (reqId !== __activePostRequestId) return;
     const output = mdParse(markdownForRender, baseDir);
     const fallbackTitle = postsByLocationTitle[postname] || postname;
     const frontMatterMetadata = (() => {
@@ -1216,6 +1322,9 @@ function displayPost(postname, options = {}) {
     }
 
     try {
+      if (!isAnnotateConfigured(siteConfig)) throw new Error('annotate disabled');
+      const { mountAnnotateComments, resolveAnnotateArticleContext } = await loadAnnotateModule();
+      if (reqId !== __activePostRequestId) return;
       const mainEl = containers.mainElement || getViewContainer('post', 'main');
       const annotateContext = resolveAnnotateArticleContext({
         rawIndex: rawIndexCache,
@@ -1617,12 +1726,13 @@ function displayStaticTab(slug) {
   notifyThemeViewChange('tab', { showSearch: false, showTags: false });
   renderTabs(slug);
   getFile(`${getContentRoot()}/${tab.location}`)
-    .then(md => {
+    .then(async md => {
       // 移除加载状态类
       updateLayoutLoadingState('tab', false, containers);
 
       const dir = (tab.location.lastIndexOf('/') >= 0) ? tab.location.slice(0, tab.location.lastIndexOf('/') + 1) : '';
       const baseDir = `${getContentRoot()}/${dir}`;
+      const { mdParse } = await loadMarkdownModule();
       const output = mdParse(md, baseDir);
       const content = createContentModel({
         rawMarkdown: md,

@@ -122,6 +122,7 @@ assert.doesNotMatch(main, /from '\.\/js\/annotate\.js\?v=[\w.-]+';/, 'main shoul
 assert.match(main, /import\('\.\/js\/annotate\.js\?v=[\w.-]+'\)/, 'main should lazy-load and cache-bust annotate runtime helpers when comments are mounted');
 assert.match(main, /function hydrateInternalLinkCards\(container, options = \{\}\)[\s\S]*loadLinkCardsModule/, 'main should keep a stable lazy link-card utility facade for themes');
 assert.match(main, /function initSyntaxHighlighting\(root = document\)[\s\S]*queryScopeHas\(scope, 'pre code'\)[\s\S]*loadSyntaxHighlightModule/, 'main should keep a stable lazy syntax-highlighting utility facade for themes');
+assert.match(main, /function cacheDynamicImport\(importer, getCached, setCached\)[\s\S]*importer\(\)\.catch\(\(err\) => \{[\s\S]*setCached\(null\);[\s\S]*throw err;/, 'main lazy module loaders should retry after a transient dynamic import failure');
 assert.match(main, /function getRawIndexVariantLocation\(value\)[\s\S]*value\.location \|\| value\.path[\s\S]*function collectRawIndexVariants\(entry, options = \{\}\)/, 'main should read object variant locations from raw index arrays');
 assert.match(main, /const pickPreferred = \(entry\) => \{[\s\S]*const variants = collectRawIndexVariants\(entry\);[\s\S]*const cand = findBy\(\[curNorm\]\) \|\| findBy\(\[defNorm\]\)/, 'main should preserve homepage order for object version arrays in raw index data');
 assert.match(composer, /from '\.\/i18n\.js\?v=[\w.-]+';/, 'composer should share the repository deletion docs i18n cache key');
@@ -223,6 +224,7 @@ assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/errors\.js\?v=[\w.
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=[\w.-]+'/, 'native interactions should cache-bust post navigation helper imports');
 assert.doesNotMatch(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=[\w.-]+'/, 'native interactions should not statically load internal link-card hydration');
 assert.match(nativeInteractions, /import\('\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=[\w.-]+'\)/, 'native interactions should lazy-load and cache-bust internal link-card hydration');
+assert.match(nativeInteractions, /nativeLinkCardsModulePromise = null;[\s\S]*throw err;/, 'native lazy link-card fallback should retry after a transient dynamic import failure');
 assert.match(nativeInteractions, /const refreshMasonry = \(el\) => \{[\s\S]*updateMasonryItem/, 'native cards should keep masonry refresh centralized');
 assert.match(nativeInteractions, /if \(meta && meta\.protected\) \{[\s\S]*ui\.protectedExcerpt[\s\S]*refreshMasonry\(el\);[\s\S]*return;/, 'native cards should not fetch protected article bodies for previews and should refresh masonry spans');
 assert.match(nativeInteractions, /const inlineMinutes = readMinutesFromMeta\(meta\);[\s\S]*if \(inlineMinutes > 0\) \{[\s\S]*updateMetaLine\(el, meta, inlineMinutes, false\);[\s\S]*refreshMasonry\(el\);[\s\S]*\}\s*if \(typeof context\.getFile/, 'native cards should use index readTime immediately but still fetch Markdown to verify encryption state');

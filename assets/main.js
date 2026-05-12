@@ -45,29 +45,56 @@ let mathRenderModulePromise = null;
 let annotateModulePromise = null;
 let linkCardsModulePromise = null;
 
+function cacheDynamicImport(importer, getCached, setCached) {
+  let promise = getCached();
+  if (!promise) {
+    promise = importer().catch((err) => {
+      setCached(null);
+      throw err;
+    });
+    setCached(promise);
+  }
+  return promise;
+}
+
 function loadMarkdownModule() {
-  if (!markdownModulePromise) markdownModulePromise = import('./js/markdown.js?v=press-system-v3.4.5');
-  return markdownModulePromise;
+  return cacheDynamicImport(
+    () => import('./js/markdown.js?v=press-system-v3.4.5'),
+    () => markdownModulePromise,
+    (promise) => { markdownModulePromise = promise; }
+  );
 }
 
 function loadSyntaxHighlightModule() {
-  if (!syntaxHighlightModulePromise) syntaxHighlightModulePromise = import('./js/syntax-highlight.js?v=press-system-v3.4.5');
-  return syntaxHighlightModulePromise;
+  return cacheDynamicImport(
+    () => import('./js/syntax-highlight.js?v=press-system-v3.4.5'),
+    () => syntaxHighlightModulePromise,
+    (promise) => { syntaxHighlightModulePromise = promise; }
+  );
 }
 
 function loadMathRenderModule() {
-  if (!mathRenderModulePromise) mathRenderModulePromise = import('./js/math-render.js?v=press-system-v3.4.5');
-  return mathRenderModulePromise;
+  return cacheDynamicImport(
+    () => import('./js/math-render.js?v=press-system-v3.4.5'),
+    () => mathRenderModulePromise,
+    (promise) => { mathRenderModulePromise = promise; }
+  );
 }
 
 function loadAnnotateModule() {
-  if (!annotateModulePromise) annotateModulePromise = import('./js/annotate.js?v=press-system-v3.4.5');
-  return annotateModulePromise;
+  return cacheDynamicImport(
+    () => import('./js/annotate.js?v=press-system-v3.4.5'),
+    () => annotateModulePromise,
+    (promise) => { annotateModulePromise = promise; }
+  );
 }
 
 function loadLinkCardsModule() {
-  if (!linkCardsModulePromise) linkCardsModulePromise = import('./js/link-cards.js?v=press-system-v3.4.5');
-  return linkCardsModulePromise;
+  return cacheDynamicImport(
+    () => import('./js/link-cards.js?v=press-system-v3.4.5'),
+    () => linkCardsModulePromise,
+    (promise) => { linkCardsModulePromise = promise; }
+  );
 }
 
 function queryScopeHas(scope, selector) {

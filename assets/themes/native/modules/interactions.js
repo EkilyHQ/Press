@@ -20,7 +20,12 @@ let activeRegions = null;
 let nativeLinkCardsModulePromise = null;
 
 function loadNativeLinkCardsModule() {
-  if (!nativeLinkCardsModulePromise) nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.5');
+  if (!nativeLinkCardsModulePromise) {
+    nativeLinkCardsModulePromise = import('../../../js/link-cards.js?v=press-system-v3.4.5').catch((err) => {
+      nativeLinkCardsModulePromise = null;
+      throw err;
+    });
+  }
   return nativeLinkCardsModulePromise;
 }
 

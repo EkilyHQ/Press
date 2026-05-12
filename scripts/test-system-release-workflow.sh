@@ -68,6 +68,11 @@ if ! grep -F "require('./assets/press-system.json')" "${workflow}" >/dev/null; t
   exit 1
 fi
 
+if ! grep -F 'node scripts/sync-runtime-cache-keys.js --check' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify runtime cache keys before publishing" >&2
+  exit 1
+fi
+
 if grep -F '$((patch + 1))' "${workflow}" >/dev/null || grep -F 'next_tag="v0.0.1"' "${workflow}" >/dev/null; then
   echo "system release workflow must not auto-increment release versions" >&2
   exit 1

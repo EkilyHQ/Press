@@ -1,4 +1,4 @@
-import { withLangParam, t } from './i18n.js?v=frontmatter-merge-20260512';
+import { withLangParam, t } from './i18n.js?v=press-system-v3.4.3';
 import { escapeHtml } from './utils.js';
 
 export function renderPostNav(container, postsIndex, postname) {

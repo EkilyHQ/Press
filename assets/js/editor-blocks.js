@@ -1,5 +1,5 @@
-import { renderPressMath } from './math-render.js?v=katex-math-20260510';
-import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=highlightjs-common-20260510';
+import { renderPressMath } from './math-render.js?v=press-system-v3.4.3';
+import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.3';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [

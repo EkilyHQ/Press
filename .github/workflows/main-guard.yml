@@ -20,3 +20,7 @@ jobs:
       - name: Enforce main safety rules
         run: |
           bash scripts/check-main-safety.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
+      - name: Verify runtime cache keys
+        run: |
+          node scripts/sync-runtime-cache-keys.js --check

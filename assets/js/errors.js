@@ -1,5 +1,5 @@
 // errors.js — lightweight global error overlay and reporter
-import { t } from './i18n.js?v=frontmatter-merge-20260512';
+import { t } from './i18n.js?v=press-system-v3.4.3';
 
 let reporterConfig = {
   reportUrl: null,

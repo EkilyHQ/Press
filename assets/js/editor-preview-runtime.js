@@ -13,7 +13,7 @@ import { initI18n, t, withLangParam } from './i18n.js?v=frontmatter-merge-202605
 import { renderPostNav } from './post-nav.js?v=frontmatter-merge-20260512';
 import { renderTagSidebar } from './tags.js?v=frontmatter-merge-20260512';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=frontmatter-merge-20260512';
+import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=theme-layout-parallel-20260512';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';

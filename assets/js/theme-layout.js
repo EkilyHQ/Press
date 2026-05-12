@@ -417,15 +417,20 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     manifest = FALLBACK_MANIFEST;
   }
 
-  const loadedModules = [];
-  for (const entry of manifest.modules) {
+  const moduleResults = await Promise.all(manifest.modules.map(async (entry) => {
     try {
       const loaded = await loadThemeModule(pack, entry, manifest);
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
-      if (loaded) loadedModules.push(loaded);
-    } catch (err) {
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
-      console.error('[theme] Failed to load module', entry, err);
+      return { entry, loaded };
+    } catch (error) {
+      return { entry, error };
+    }
+  }));
+  if (!isCurrentMountGeneration(mountGeneration)) return null;
+
+  const loadedModules = [];
+  for (const result of moduleResults) {
+    if (result.error) {
+      console.error('[theme] Failed to load module', result.entry, result.error);
       if (allowFallback && pack !== DEFAULT_PACK) {
         if (persist) {
           suppressThemePack(pack);
@@ -434,7 +439,9 @@ async function mountPack(pack, allowFallback = true, options = {}) {
         clearFailedThemeArtifacts(pack);
         return mountPack(DEFAULT_PACK, false, options);
       }
+      continue;
     }
+    if (result.loaded) loadedModules.push(result.loaded);
   }
 
   const context = {

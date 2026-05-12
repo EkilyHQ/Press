@@ -5881,7 +5881,7 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=frontmatter-merge-20260512"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=theme-layout-parallel-20260512"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;

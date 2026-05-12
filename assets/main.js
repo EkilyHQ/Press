@@ -9,7 +9,7 @@ import {
 import { mdParse } from './js/markdown.js?v=markdown-security-20260512';
 import { setupAnchors, setupTOC } from './js/toc.js?v=frontmatter-merge-20260512';
 import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=frontmatter-merge-20260512';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=frontmatter-merge-20260512';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=theme-layout-parallel-20260512';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=katex-math-20260510';

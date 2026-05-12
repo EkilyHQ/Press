@@ -190,6 +190,14 @@ async function withQuietConsole(fn) {
   }
 }
 
+async function waitFor(condition, message) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  assert.fail(message);
+}
+
 async function run(name, fn) {
   try {
     await fn();
@@ -229,6 +237,41 @@ await run('unlocked site defaults do not clear a pending pack switch', async () 
   applyThemeConfig({ themePack: 'native', themeOverride: false });
   assert.equal(getPendingThemePack(), 'cartograph');
   assert.equal(getRequestedThemePack(), 'cartograph');
+});
+
+await run('theme modules load in parallel and mount in manifest order', async () => {
+  const modules = ['modules/slow.js', 'modules/fast-a.js', 'modules/fast-b.js'];
+  const requested = [];
+  const mounted = [];
+  let releaseSlowModule;
+  const slowModuleReady = new Promise((resolve) => { releaseSlowModule = resolve; });
+  installGlobals({
+    savedPack: 'parallel',
+    manifests: {
+      parallel: makeManifest('parallel', modules)
+    }
+  });
+  window.__pressThemeModuleLoader = async (path, context) => {
+    const entry = context && context.entry ? context.entry : String(path || '');
+    requested.push(entry);
+    if (entry === 'modules/slow.js') await slowModuleReady;
+    return {
+      mount() {
+        mounted.push(entry);
+      }
+    };
+  };
+  const { ensureThemeLayout } = await freshThemeLayout();
+  const layoutPromise = ensureThemeLayout({ pack: 'parallel', persist: false });
+  await waitFor(
+    () => requested.length === modules.length,
+    'theme modules should all be requested before the slow module resolves'
+  );
+  assert.deepEqual(requested, modules);
+  assert.deepEqual(mounted, []);
+  releaseSlowModule();
+  await layoutPromise;
+  assert.deepEqual(mounted, modules);
 });
 
 await run('external theme fallback clears partial DOM and extra styles', async () => {

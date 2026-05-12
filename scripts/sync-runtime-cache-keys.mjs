@@ -11,13 +11,13 @@ const write = args.has('--write');
 const check = args.has('--check') || !write;
 
 if (args.has('--help') || args.has('-h')) {
-  console.log('usage: node scripts/sync-runtime-cache-keys.js [--check|--write]');
+  console.log('usage: node scripts/sync-runtime-cache-keys.mjs [--check|--write]');
   process.exit(0);
 }
 
 const unknown = [...args].filter((arg) => !['--check', '--write'].includes(arg));
 if (unknown.length || (write && args.has('--check'))) {
-  console.error('usage: node scripts/sync-runtime-cache-keys.js [--check|--write]');
+  console.error('usage: node scripts/sync-runtime-cache-keys.mjs [--check|--write]');
   process.exit(2);
 }
 
@@ -161,7 +161,7 @@ for (const file of targetFiles) {
 if (check && changed.length) {
   console.error(`Runtime cache keys are not synchronized to ${cacheKey}.`);
   changed.forEach((file) => console.error(`  ${file}`));
-  console.error('Run: node scripts/sync-runtime-cache-keys.js --write');
+  console.error('Run: node scripts/sync-runtime-cache-keys.mjs --write');
   process.exit(1);
 }
 

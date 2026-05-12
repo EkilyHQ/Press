@@ -23,4 +23,4 @@ jobs:
 
       - name: Verify runtime cache keys
         run: |
-          node scripts/sync-runtime-cache-keys.js --check
+          node scripts/sync-runtime-cache-keys.mjs --check

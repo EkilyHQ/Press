@@ -5087,14 +5087,28 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     setTableAlignmentSelectValue(alignment, table.alignments[normalized.col]);
   };
 
+  const isActiveTablePosition = (block, position) => {
+    const active = state.activeTableCell;
+    return !!active
+      && active.blockId === block.id
+      && active.section === position.section
+      && active.row === position.row
+      && active.col === position.col;
+  };
+
   const syncTableAlignmentControlForPosition = (block, position) => {
-    applyTableAlignmentControlForPosition(block, position);
-    queueMicrotask(() => applyTableAlignmentControlForPosition(block, position));
+    const normalized = normalizeTablePosition(block, position);
+    const applyIfCurrent = () => {
+      if (!isActiveTablePosition(block, normalized)) return;
+      applyTableAlignmentControlForPosition(block, normalized);
+    };
+    applyTableAlignmentControlForPosition(block, normalized);
+    queueMicrotask(applyIfCurrent);
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => applyTableAlignmentControlForPosition(block, position));
+      window.requestAnimationFrame(applyIfCurrent);
     }
     if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
-      window.setTimeout(() => applyTableAlignmentControlForPosition(block, position), 0);
+      window.setTimeout(applyIfCurrent, 0);
     }
   };
 

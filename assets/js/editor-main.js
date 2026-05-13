@@ -1,6 +1,6 @@
 import { configureFetchCachePolicy } from './cache-control.js';
-import { createMarkdownBlocksEditor } from './editor-blocks.js?v=press-system-v3.4.11';
-import { createHiEditor } from './hieditor.js?v=press-system-v3.4.11';
+import { createMarkdownBlocksEditor } from './editor-blocks.js?v=press-system-v3.4.12';
+import { createHiEditor } from './hieditor.js?v=press-system-v3.4.12';
 import { insertImageMarkdownAtSelection, normalizeDateInputValue } from './editor-markdown-ops.js';
 import {
   FRONT_MATTER_FIELD_DEFS,
@@ -10,12 +10,12 @@ import {
   parseMarkdownFrontMatter,
   resolveFrontMatterBindings,
   valueIsPresent
-} from './frontmatter-document.js?v=press-system-v3.4.11';
-import { getContentRoot, resolveImageSrc } from './safe-html.js?v=press-system-v3.4.11';
-import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.11';
+} from './frontmatter-document.js?v=press-system-v3.4.12';
+import { getContentRoot, resolveImageSrc } from './safe-html.js?v=press-system-v3.4.12';
+import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.12';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
-import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.11';
-import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.11';
+import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.12';
+import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.12';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';
 const LS_VIEW_KEY = 'press_editor_markdown_view_v2';

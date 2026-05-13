@@ -1,4 +1,4 @@
-import { t } from './i18n.js?v=press-system-v3.4.12';
+import { t } from './i18n.js?v=press-system-v3.4.13';
 import { getThemeRegion } from './theme-regions.js';
 
 // Anchors and Table of Contents enhancements

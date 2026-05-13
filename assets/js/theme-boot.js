@@ -18,7 +18,7 @@
     pack = String(pack || '').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '') || 'native';
   } catch (_) { pack = 'native'; }
   if (pack !== 'native') return;
-  var href = 'assets/themes/' + encodeURIComponent(pack) + '/theme.css?v=press-system-v3.4.12';
+  var href = 'assets/themes/' + encodeURIComponent(pack) + '/theme.css?v=press-system-v3.4.13';
   window.__themePackHref = href;
 
   // If the link tag exists already, set it; otherwise try briefly until it does

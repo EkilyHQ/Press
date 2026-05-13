@@ -1,5 +1,5 @@
-import { renderPressMath } from './math-render.js?v=press-system-v3.4.12';
-import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.12';
+import { renderPressMath } from './math-render.js?v=press-system-v3.4.13';
+import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.13';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -3670,6 +3670,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     syncActiveListTypeSelect(blockNodes);
     refreshLinkEditor();
     updateInlineToolbarState();
+    syncActiveTableAlignmentFromEditable(activeBlock, editable || state.activeEditable || document.activeElement);
     requestStickyBlockHeadUpdate();
   };
 
@@ -5057,15 +5058,61 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     state.activeTableCell?.blockId === block.id ? state.activeTableCell : { section: 'header', row: 0, col: 0 }
   );
 
-  const syncTableAlignmentControlForPosition = (block, position) => {
-    queueMicrotask(() => {
-      const blockEl = elements.blocksList.querySelector(`[data-block-id="${cssEscape(block.id)}"]`);
-      const alignment = blockEl?.querySelector('.blocks-table-align-select');
-      if (!alignment) return;
-      const table = editableTableData(block.data);
-      const normalized = normalizeTablePosition(block, position);
-      alignment.value = normalizeTableAlignment(table.alignments[normalized.col]);
+  const tablePositionFromCellInput = (input) => {
+    if (!input || !(input.matches && input.matches('.blocks-table-cell-input'))) return null;
+    return {
+      section: input.dataset.tableSection === 'body' ? 'body' : 'header',
+      row: Math.max(0, Number(input.dataset.tableRow) || 0),
+      col: Math.max(0, Number(input.dataset.tableCol) || 0)
+    };
+  };
+
+  const setTableAlignmentSelectValue = (alignment, value) => {
+    if (!alignment) return;
+    const normalized = normalizeTableAlignment(value);
+    alignment.value = normalized;
+    Array.from(alignment.options || []).forEach((option) => {
+      option.selected = option.value === normalized;
     });
+    if (alignment.value !== normalized) alignment.value = '';
+    alignment.dataset.activeAlignment = normalized;
+  };
+
+  const applyTableAlignmentControlForPosition = (block, position) => {
+    const blockEl = blockElements().find(el => el?.dataset?.blockId === block.id) || null;
+    const alignment = blockEl?.querySelector('.blocks-table-align-select');
+    if (!alignment) return;
+    const table = editableTableData(block.data);
+    const normalized = normalizeTablePosition(block, position);
+    setTableAlignmentSelectValue(alignment, table.alignments[normalized.col]);
+  };
+
+  const syncTableAlignmentControlForPosition = (block, position) => {
+    applyTableAlignmentControlForPosition(block, position);
+    queueMicrotask(() => applyTableAlignmentControlForPosition(block, position));
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => applyTableAlignmentControlForPosition(block, position));
+    }
+    if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+      window.setTimeout(() => applyTableAlignmentControlForPosition(block, position), 0);
+    }
+  };
+
+  const syncActiveTableAlignmentFromEditable = (activeBlock, editable) => {
+    const cell = (editable && editable.matches && editable.matches('.blocks-table-cell-input'))
+      ? editable
+      : activeBlock?.querySelector('.blocks-table-cell-input:focus');
+    const position = tablePositionFromCellInput(cell);
+    if (!activeBlock || !position) return;
+    const blockId = activeBlock.dataset.blockId || '';
+    const block = state.blocks.find(candidate => candidate && candidate.id === blockId);
+    if (!block || block.type !== 'table') return;
+    const normalized = normalizeTablePosition(block, position);
+    state.activeTableCell = {
+      blockId: block.id,
+      ...normalized
+    };
+    syncTableAlignmentControlForPosition(block, normalized);
   };
 
   const setActiveTablePosition = (block, position) => {
@@ -5081,7 +5128,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const focusTableCell = (block, position) => {
     const normalized = setActiveTablePosition(block, position);
     queueMicrotask(() => {
-      const blockEl = elements.blocksList.querySelector(`[data-block-id="${cssEscape(block.id)}"]`);
+      const blockEl = blockElements().find(el => el?.dataset?.blockId === block.id) || null;
       const selector = `.blocks-table-cell-input[data-table-section="${normalized.section}"][data-table-row="${normalized.row}"][data-table-col="${normalized.col}"]`;
       const target = blockEl?.querySelector(selector);
       if (target) {
@@ -5121,7 +5168,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const syncAlignmentSelect = () => {
       const table = editableTableData(block.data);
       const position = activeTablePositionForBlock(block);
-      alignment.value = normalizeTableAlignment(table.alignments[position.col]);
+      setTableAlignmentSelectValue(alignment, table.alignments[position.col]);
     };
 
     alignment.addEventListener('pointerdown', (event) => {

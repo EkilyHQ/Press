@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.12",
-  "tag": "v3.4.12",
-  "version": "3.4.12",
-  "publishedAt": "2026-05-13T11:42:43Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.12.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.12.zip`\n- SHA-256: `99b60a7de3974b2714e745eff07188c7df2c0dbcb45ab71b570f276f5e3f6e29`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.11...v3.4.12\n",
+  "name": "v3.4.13",
+  "tag": "v3.4.13",
+  "version": "3.4.13",
+  "publishedAt": "2026-05-13T12:11:19Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.13.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.13.zip`\n- SHA-256: `d77191a934d6846cd738242d1969b600642ecf0daf83925e970c834f5b738474`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.12...v3.4.13\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.11 <3.4.12"
+      ">=3.4.12 <3.4.13"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.11 first."
+    "message": "Update to v3.4.12 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.12",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.13",
   "asset": {
-    "name": "press-system-v3.4.12.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.12/press-system-v3.4.12.zip",
-    "size": 1590202,
-    "digest": "sha256:99b60a7de3974b2714e745eff07188c7df2c0dbcb45ab71b570f276f5e3f6e29"
+    "name": "press-system-v3.4.13.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.13/press-system-v3.4.13.zip",
+    "size": 1590734,
+    "digest": "sha256:d77191a934d6846cd738242d1969b600642ecf0daf83925e970c834f5b738474"
   }
 }

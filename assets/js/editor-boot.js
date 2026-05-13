@@ -1,5 +1,5 @@
 import './cache-control.js';
-import { initI18n, t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=press-system-v3.4.10';
+import { initI18n, t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=press-system-v3.4.11';
 
 function applyAttributeTranslation(el, target, value) {
   if (value == null) return;

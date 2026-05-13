@@ -1,4 +1,4 @@
-import { simpleHighlight } from './syntax-highlight.js?v=press-system-v3.4.15';
+import { simpleHighlight } from './syntax-highlight.js?v=press-system-v3.4.16';
 
 function escapeHtmlInline(text) {
   if (!text) return '';
@@ -287,12 +287,23 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
   // Render using a safe DOM builder that only allows highlight span wrappers
   // and decodes entities for text nodes. This avoids interpreting arbitrary HTML.
   (function safeRender(target, markup) {
-    // Minimal entity decoder matching escapeHtmlInline
+    // Decode highlighter escapes before inserting text nodes so the mirror
+    // keeps the same wrapping geometry as the backing textarea.
     const decode = (s) => String(s || '')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#0?39;/g, "'")
+      .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+        const num = parseInt(hex, 16);
+        if (!Number.isFinite(num) || num < 0) return match;
+        try { return String.fromCodePoint(num); } catch (_) { return match; }
+      })
+      .replace(/&#([0-9]+);/g, (match, dec) => {
+        const num = parseInt(dec, 10);
+        if (!Number.isFinite(num) || num < 0) return match;
+        try { return String.fromCodePoint(num); } catch (_) { return match; }
+      })
       // Unescape ampersand last to avoid double-unescaping
       .replace(/&amp;/g, '&');
     const root = document.createDocumentFragment();

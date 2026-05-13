@@ -1621,6 +1621,12 @@ assert.match(
   'hi-editor safe renderer should preserve unknown angle brackets as text and never stall on Highlight.js spans'
 );
 
+assert.ok(
+  hiEditorSource.includes(".replace(/&#x([0-9a-fA-F]+);/g")
+    && hiEditorSource.includes(".replace(/&#([0-9]+);/g"),
+  'hi-editor safe renderer should decode numeric entities so highlighted mirror text keeps textarea wrapping'
+);
+
 assert.match(
   editorSource,
   /\.hi-editor \.hi-ta::selection \{ background: rgba\(9,105,218,0\.24\); color: transparent; -webkit-text-fill-color: transparent; \}/,

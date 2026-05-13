@@ -1,5 +1,5 @@
 // Tag utilities: aggregation, rendering (collapsible), and tooltips for truncated tags
-import { t, withLangParam } from './i18n.js?v=press-system-v3.4.7';
+import { t, withLangParam } from './i18n.js?v=press-system-v3.4.8';
 import { getThemeRegion } from './theme-regions.js';
 import { getQueryVariable, escapeHtml } from './utils.js';
 

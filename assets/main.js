@@ -5,13 +5,13 @@ import {
   decryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope,
   stripEncryptedBodyForPublicUse
-} from './js/encrypted-content.js?v=press-system-v3.4.7';
-import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.7';
-import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.7';
-import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.7';
+} from './js/encrypted-content.js?v=press-system-v3.4.8';
+import { setupAnchors, setupTOC } from './js/toc.js?v=press-system-v3.4.8';
+import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js?v=press-system-v3.4.8';
+import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js?v=press-system-v3.4.8';
 import { setupSearch } from './js/search.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
-import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=press-system-v3.4.7';
+import { getContentRoot, setSafeHtml } from './js/safe-html.js?v=press-system-v3.4.8';
 import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
 import {
   initI18n,
@@ -23,13 +23,13 @@ import {
   getCurrentLang,
   normalizeLangKey,
   POSTS_METADATA_READY_EVENT
-} from './js/i18n.js?v=press-system-v3.4.7';
-import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.7';
-import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.7';
+} from './js/i18n.js?v=press-system-v3.4.8';
+import { updateSEO, extractSEOFromMarkdown } from './js/seo.js?v=press-system-v3.4.8';
+import { initErrorReporter, setReporterContext, showErrorOverlay } from './js/errors.js?v=press-system-v3.4.8';
 import { fetchConfigWithYamlFallback } from './js/yaml.js';
 import { applyMasonry, updateMasonryItem, calcAndSetSpan, toPx, debounce } from './js/masonry.js';
-import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.7';
-import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.7';
+import { aggregateTags, renderTagSidebar, setupTagTooltips } from './js/tags.js?v=press-system-v3.4.8';
+import { renderPostNav } from './js/post-nav.js?v=press-system-v3.4.8';
 import { getArticleTitleFromMain } from './js/dom-utils.js';
 import { applyLangHints } from './js/typography.js';
 
@@ -39,14 +39,26 @@ import { applyLazyLoadingIn, hydratePostImages, hydratePostVideos, hydrateCardCo
 const getFile = (filename) => fetch(String(filename || ''), { cache: 'no-store' })
   .then(resp => { if (!resp.ok) throw new Error(`HTTP ${resp.status}`); return resp.text(); });
 
-function clearBootSkeleton() {
+function setBootProgress(value) {
   try {
-    const skeleton = document.getElementById('press-boot-skeleton');
-    if (skeleton) skeleton.remove();
-    const style = document.getElementById('press-boot-skeleton-style');
+    const progress = document.getElementById('press-boot-progress');
+    if (!progress) return;
+    const numeric = Number(value);
+    const clamped = Number.isFinite(numeric) ? Math.max(0.08, Math.min(1, numeric)) : 0.08;
+    progress.style.setProperty('--press-boot-progress-value', String(clamped));
+  } catch (_) {}
+}
+
+function clearBootProgress() {
+  try {
+    const progress = document.getElementById('press-boot-progress');
+    if (progress) progress.remove();
+    const style = document.getElementById('press-boot-progress-style');
     if (style) style.remove();
   } catch (_) {}
 }
+
+setBootProgress(0.12);
 
 let markdownModulePromise = null;
 let syntaxHighlightModulePromise = null;
@@ -68,7 +80,7 @@ function cacheDynamicImport(importer, getCached, setCached) {
 
 function loadMarkdownModule() {
   return cacheDynamicImport(
-    () => import('./js/markdown.js?v=press-system-v3.4.7'),
+    () => import('./js/markdown.js?v=press-system-v3.4.8'),
     () => markdownModulePromise,
     (promise) => { markdownModulePromise = promise; }
   );
@@ -76,7 +88,7 @@ function loadMarkdownModule() {
 
 function loadSyntaxHighlightModule() {
   return cacheDynamicImport(
-    () => import('./js/syntax-highlight.js?v=press-system-v3.4.7'),
+    () => import('./js/syntax-highlight.js?v=press-system-v3.4.8'),
     () => syntaxHighlightModulePromise,
     (promise) => { syntaxHighlightModulePromise = promise; }
   );
@@ -84,7 +96,7 @@ function loadSyntaxHighlightModule() {
 
 function loadMathRenderModule() {
   return cacheDynamicImport(
-    () => import('./js/math-render.js?v=press-system-v3.4.7'),
+    () => import('./js/math-render.js?v=press-system-v3.4.8'),
     () => mathRenderModulePromise,
     (promise) => { mathRenderModulePromise = promise; }
   );
@@ -92,7 +104,7 @@ function loadMathRenderModule() {
 
 function loadAnnotateModule() {
   return cacheDynamicImport(
-    () => import('./js/annotate.js?v=press-system-v3.4.7'),
+    () => import('./js/annotate.js?v=press-system-v3.4.8'),
     () => annotateModulePromise,
     (promise) => { annotateModulePromise = promise; }
   );
@@ -100,7 +112,7 @@ function loadAnnotateModule() {
 
 function loadLinkCardsModule() {
   return cacheDynamicImport(
-    () => import('./js/link-cards.js?v=press-system-v3.4.7'),
+    () => import('./js/link-cards.js?v=press-system-v3.4.8'),
     () => linkCardsModulePromise,
     (promise) => { linkCardsModulePromise = promise; }
   );
@@ -2047,6 +2059,7 @@ const defaultLang = (document.documentElement && document.documentElement.getAtt
 // Bootstrap i18n without persisting to localStorage so site.yaml can
 // still override the default language on first load.
 await initI18n({ defaultLang, persist: false });
+setBootProgress(0.25);
 // Expose translate helper for modules that don't import i18n directly
 try { window.__press_t = (key) => t(key); } catch (_) { /* no-op */ }
 
@@ -2061,6 +2074,7 @@ try {
 }
 siteConfig = siteConfigResult || {};
 try { configureFetchCachePolicy(siteConfig); } catch (_) {}
+setBootProgress(0.4);
 
 // Apply content root override early so subsequent loads honor it
 try {
@@ -2099,6 +2113,7 @@ try {
 
 // Build layout according to the active theme pack before binding UI logic
 await ensureThemeLayout();
+setBootProgress(0.6);
 
 // Ensure theme controls are present, then apply and bind
 const controlsHandled = callThemeEffect('setupThemeControls', {
@@ -2289,6 +2304,7 @@ const loadResults = await Promise.allSettled([
   loadContentJsonWithRaw(getContentRoot(), 'index'),
   loadTabsJson(getContentRoot(), 'tabs')
 ]);
+setBootProgress(0.82);
 
 try {
   const contentResult = loadResults[0].status === 'fulfilled' ? (loadResults[0].value || {}) : {};
@@ -2444,7 +2460,8 @@ try {
     
   restoreLastSiteRouteIfEntry();
   routeAndRender();
-  clearBootSkeleton();
+  setBootProgress(1);
+  clearBootProgress();
   bindSiteViewStatePersistence();
   bindPostsMetadataListener();
 } catch (e) {
@@ -2457,7 +2474,8 @@ try {
     containers: bootContainers
   });
   notifyThemeViewChange('boot', { showSearch: false, showTags: false });
-  clearBootSkeleton();
+  setBootProgress(1);
+  clearBootProgress();
   try {
     const err = new Error((t('errors.indexUnavailableBody') || 'Could not load the post index.'));
     try { err.name = 'Warning'; } catch(_) {}

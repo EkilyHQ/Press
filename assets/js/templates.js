@@ -1,5 +1,5 @@
 // Template renderers (pure functions returning HTML strings)
-import { t } from './i18n.js?v=press-system-v3.4.6';
+import { t } from './i18n.js?v=press-system-v3.4.7';
 import { computeReadTime } from './content.js';
 import { escapeHtml, renderTags, formatDisplayDate } from './utils.js';
 

@@ -1,25 +1,25 @@
 import './components.js';
-import { mdParse } from './markdown.js?v=press-system-v3.4.15';
+import { mdParse } from './markdown.js?v=press-system-v3.4.16';
 import { createContentModel } from './content-model.js';
 import { parseFrontMatter } from './content.js';
-import { getContentRoot, setSafeHtml } from './safe-html.js?v=press-system-v3.4.15';
+import { getContentRoot, setSafeHtml } from './safe-html.js?v=press-system-v3.4.16';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from './post-render.js';
-import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.15';
+import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.16';
 import { applyLangHints } from './typography.js';
-import { renderPressMath } from './math-render.js?v=press-system-v3.4.15';
-import { initSyntaxHighlighting } from './syntax-highlight.js?v=press-system-v3.4.15';
-import { setupAnchors, setupTOC } from './toc.js?v=press-system-v3.4.15';
-import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.15';
-import { renderPostNav } from './post-nav.js?v=press-system-v3.4.15';
-import { renderTagSidebar } from './tags.js?v=press-system-v3.4.15';
+import { renderPressMath } from './math-render.js?v=press-system-v3.4.16';
+import { initSyntaxHighlighting } from './syntax-highlight.js?v=press-system-v3.4.16';
+import { setupAnchors, setupTOC } from './toc.js?v=press-system-v3.4.16';
+import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.16';
+import { renderPostNav } from './post-nav.js?v=press-system-v3.4.16';
+import { renderTagSidebar } from './tags.js?v=press-system-v3.4.16';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.15';
+import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.16';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';
 const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
-const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.15';
+const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.16';
 
 let activePack = '';
 let latestRenderRequestId = 0;

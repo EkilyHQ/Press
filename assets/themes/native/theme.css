@@ -1,7 +1,7 @@
 /* Native theme pack - 原生 */
 /* Load base layout styles that used to live in assets/styles.css so the native theme
    owns all presentation concerns. */
-@import "./base.css?v=press-system-v3.4.15";
+@import "./base.css?v=press-system-v3.4.16";
 
 :root {
   /* 极简色彩 - 浅色模式 */

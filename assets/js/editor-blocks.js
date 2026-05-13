@@ -1,7 +1,7 @@
-import { renderPressMath } from './math-render.js?v=press-system-v3.4.10';
-import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.10';
+import { renderPressMath } from './math-render.js?v=press-system-v3.4.11';
+import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.11';
 
-const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'source', 'blank']);
+const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
   '', 'plain', 'text', 'raw', 'none', 'nohighlight',
   'bash', 'c', 'cpp', 'csharp', 'css', 'diff', 'go', 'graphql', 'ini', 'java',
@@ -411,6 +411,57 @@ function parseQuoteBlock(raw) {
   return { text: lines.map(line => line.replace(/^>\s?/, '')).join('\n') };
 }
 
+const TABLE_ALIGNMENTS = new Set(['', 'left', 'center', 'right']);
+
+function normalizeTableAlignment(value) {
+  const align = String(value || '').trim().toLowerCase();
+  return TABLE_ALIGNMENTS.has(align) ? align : '';
+}
+
+function normalizeTableCellValue(value) {
+  return String(value == null ? '' : value)
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\|/g, ' ')
+    .trim();
+}
+
+function splitPipeTableRow(line) {
+  const text = lineWithoutTerminator(line).trim();
+  if (!text.startsWith('|') || !text.endsWith('|')) return null;
+  if (/\\\|/.test(text)) return null;
+  return text.slice(1, -1).split('|').map(cell => String(cell || '').trim());
+}
+
+function parsePipeTableSeparatorCells(cells) {
+  if (!Array.isArray(cells) || !cells.length) return null;
+  const alignments = [];
+  for (const cell of cells) {
+    const match = String(cell || '').trim().match(/^(:)?-{3,}(:)?$/);
+    if (!match) return null;
+    const left = !!match[1];
+    const right = !!match[2];
+    alignments.push(left && right ? 'center' : (right ? 'right' : (left ? 'left' : '')));
+  }
+  return alignments;
+}
+
+function parseTableBlock(raw) {
+  const lines = normalizeText(raw).split('\n');
+  if (lines.length < 3 || lines.some(line => isBlankLine(line))) return null;
+  const headers = splitPipeTableRow(lines[0]);
+  if (!headers || !headers.length) return null;
+  const alignments = parsePipeTableSeparatorCells(splitPipeTableRow(lines[1]));
+  if (!alignments || alignments.length !== headers.length) return null;
+  const rows = [];
+  for (const line of lines.slice(2)) {
+    const cells = splitPipeTableRow(line);
+    if (!cells || cells.length > headers.length) return null;
+    rows.push([...cells, ...Array(Math.max(0, headers.length - cells.length)).fill('')]);
+  }
+  if (!rows.length) return null;
+  return { headers, alignments, rows };
+}
+
 function maskInlineCodeSpans(raw) {
   const text = String(raw || '');
   let output = '';
@@ -485,6 +536,9 @@ function classifyChunk(raw, data = {}) {
 
   const card = parseCardBlock(trimmed);
   if (card && trimmed === text) return makeBlock('card', text, { ...data, ...card });
+
+  const table = parseTableBlock(text);
+  if (table) return makeBlock('table', text, { ...data, ...table });
 
   const quote = parseQuoteBlock(text);
   if (quote) return makeBlock('quote', text, { ...data, ...quote });
@@ -658,6 +712,51 @@ function serializeCard(data = {}) {
   return `[${label}](?id=${location || 'post/example.md'}${title})`;
 }
 
+function tableColumnCount(data = {}) {
+  const headers = Array.isArray(data.headers) ? data.headers : [];
+  const alignments = Array.isArray(data.alignments) ? data.alignments : [];
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  return Math.max(
+    1,
+    headers.length,
+    alignments.length,
+    ...rows.map(row => Array.isArray(row) ? row.length : 0)
+  );
+}
+
+function editableTableData(data = {}) {
+  const columns = tableColumnCount(data);
+  const hasHeaders = Array.isArray(data.headers) && data.headers.length;
+  const headers = Array.from({ length: columns }, (_, index) => (
+    hasHeaders ? normalizeTableCellValue(data.headers[index] || '') : `Column ${index + 1}`
+  ));
+  const alignments = Array.from({ length: columns }, (_, index) => normalizeTableAlignment(Array.isArray(data.alignments) ? data.alignments[index] : ''));
+  const rawRows = Array.isArray(data.rows) && data.rows.length ? data.rows : [Array(columns).fill('')];
+  const rows = rawRows.map(row => Array.from({ length: columns }, (_, index) => normalizeTableCellValue(Array.isArray(row) ? row[index] : '')));
+  return { headers, alignments, rows };
+}
+
+function tableSeparatorCell(align) {
+  const normalized = normalizeTableAlignment(align);
+  if (normalized === 'left') return ':---';
+  if (normalized === 'center') return ':---:';
+  if (normalized === 'right') return '---:';
+  return '---';
+}
+
+function serializeTableRow(cells) {
+  return `| ${cells.map(cell => normalizeTableCellValue(cell)).join(' | ')} |`;
+}
+
+function serializeTable(data = {}) {
+  const table = editableTableData(data);
+  return [
+    serializeTableRow(table.headers),
+    serializeTableRow(table.alignments.map(tableSeparatorCell)),
+    ...table.rows.map(serializeTableRow)
+  ].join('\n');
+}
+
 function codeFenceForText(text) {
   const runs = String(text || '').match(/`+/g) || [];
   const longest = runs.reduce((max, run) => Math.max(max, run.length), 0);
@@ -714,6 +813,8 @@ function serializeBlock(block) {
       return `$$\n${String(data.tex || '')}\n$$`;
     case 'card':
       return serializeCard(data);
+    case 'table':
+      return serializeTable(data);
     case 'source':
       return String(data.text != null ? data.text : block.raw || '');
     case 'paragraph':
@@ -749,6 +850,10 @@ export function isBlockEmptyForBackspace(block) {
   if (block.type === 'math') return blank(data.tex);
   if (block.type === 'image') return blank(data.src) && blank(data.alt) && blank(data.title);
   if (block.type === 'card') return blank(data.location) && blank(data.label) && blank(data.title);
+  if (block.type === 'table') {
+    const table = editableTableData(data);
+    return table.headers.every(blank) && table.rows.every(row => row.every(blank));
+  }
   if (block.type === 'list') {
     return editableListItems(data.items).every(item => blank(item && item.text) && !item.checked);
   }
@@ -1350,6 +1455,7 @@ const BLOCK_TYPE_ICON_PATHS = {
   quote: '<path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z" /><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z" />',
   code: '<path d="m18 16 4-4-4-4" /><path d="m6 8-4 4 4 4" /><path d="m14.5 4-5 16" />',
   math: '<path d="M4 19h16" /><path d="M8 5h8" /><path d="M9 5c4 4 4 10 0 14" /><path d="M15 5c-4 4-4 10 0 14" />',
+  table: '<path d="M3 5h18" /><path d="M3 12h18" /><path d="M3 19h18" /><path d="M5 5v14" /><path d="M12 5v14" /><path d="M19 5v14" />',
   source: '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M10 12.5 8 15l2 2.5" /><path d="m14 12.5 2 2.5-2 2.5" />',
   card: '<path d="M15 18h-5" /><path d="M18 14h-8" /><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2" /><rect width="8" height="4" x="10" y="6" rx="1" />',
   blank: '<path d="M5 6h14" /><path d="M5 18h14" /><path d="M12 10v4" /><path d="M10 12h4" />'
@@ -2680,6 +2786,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     lastInlineMarkedRange: null,
     pendingInline: {},
     pendingListFocus: null,
+    activeTableCell: null,
     suppressNextBlockContainerClickUntil: 0,
     suppressLinkEditorRefreshUntil: 0,
     suppressSelectionActiveRecoveryUntil: 0,
@@ -2784,7 +2891,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (!blockEl) return;
       const index = nodes.indexOf(blockEl);
       const body = blockEl.querySelector('.blocks-block-body');
-      const editable = body ? body.querySelector('.blocks-rich-editable, .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea') : null;
+      const editable = body ? body.querySelector('.blocks-rich-editable, .blocks-table-cell-input, .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea') : null;
       if (!editable) {
         try { blockEl.focus({ preventScroll: true }); }
         catch (_) {
@@ -3680,7 +3787,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!blockEl) return null;
     const listTexts = Array.from(blockEl.querySelectorAll('.blocks-list-item .blocks-list-text'));
     const listTarget = listTexts.length ? (edge === 'last' ? listTexts[listTexts.length - 1] : listTexts[0]) : null;
+    const tableCells = Array.from(blockEl.querySelectorAll('.blocks-table-cell-input'));
+    const tableTarget = tableCells.length ? (edge === 'last' ? tableCells[tableCells.length - 1] : tableCells[0]) : null;
     const editable = listTarget
+      || tableTarget
       || blockEl.querySelector('.blocks-rich-editable:not(.blocks-list-text), .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea');
     if (editable) {
       return {
@@ -4700,6 +4810,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     ['paragraph', 'paragraph', 'Paragraph', { text: 'New paragraph' }],
     ['heading', 'heading', 'Heading', { level: 2, text: 'Heading' }],
     ['image', 'image', 'Image', { alt: '', src: '' }],
+    ['table', 'table', 'Table', { headers: ['Column 1', 'Column 2'], alignments: ['', ''], rows: [['', '']] }],
     ['list', 'list', 'List', { listType: 'ul', items: defaultListItems() }],
     ['quote', 'quote', 'Quote', { text: 'Quote' }],
     ['code', 'code', 'Code', { lang: '', text: '' }],
@@ -4721,7 +4832,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const runBlockCommand = (type, data = {}) => {
-    const focusTypes = new Set(['paragraph', 'heading', 'list', 'quote', 'code', 'source']);
+    const focusTypes = new Set(['paragraph', 'heading', 'table', 'list', 'quote', 'code', 'source']);
     insertCommandBlock(type, data, { focus: focusTypes.has(type) });
   };
 
@@ -4919,6 +5030,182 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return controls;
   };
 
+  const clampTableColumn = (table, col) => {
+    const count = tableColumnCount(table);
+    if (!count) return 0;
+    const numeric = Number.isFinite(col) ? col : 0;
+    return Math.max(0, Math.min(count - 1, numeric));
+  };
+
+  const normalizeTablePosition = (block, position) => {
+    const table = editableTableData(block.data);
+    const col = clampTableColumn(table, position?.col);
+    const bodyRowCount = table.rows.length;
+    const wantsBody = position?.section === 'body' && bodyRowCount > 0;
+    const row = wantsBody
+      ? Math.max(0, Math.min(bodyRowCount - 1, Number.isFinite(position?.row) ? position.row : 0))
+      : 0;
+    return {
+      section: wantsBody ? 'body' : 'header',
+      row,
+      col
+    };
+  };
+
+  const activeTablePositionForBlock = (block) => normalizeTablePosition(
+    block,
+    state.activeTableCell?.blockId === block.id ? state.activeTableCell : { section: 'header', row: 0, col: 0 }
+  );
+
+  const setActiveTablePosition = (block, position) => {
+    const normalized = normalizeTablePosition(block, position);
+    state.activeTableCell = {
+      blockId: block.id,
+      ...normalized
+    };
+    return normalized;
+  };
+
+  const focusTableCell = (block, position) => {
+    const normalized = setActiveTablePosition(block, position);
+    queueMicrotask(() => {
+      const blockEl = elements.blocksList.querySelector(`[data-block-id="${cssEscape(block.id)}"]`);
+      const selector = `.blocks-table-cell-input[data-table-section="${normalized.section}"][data-table-row="${normalized.row}"][data-table-col="${normalized.col}"]`;
+      const target = blockEl?.querySelector(selector);
+      if (target) {
+        target.focus();
+        target.select?.();
+      }
+    });
+  };
+
+  const updateTableBlock = (block, nextData, position) => {
+    block.data = editableTableData(nextData);
+    const normalized = setActiveTablePosition(block, position);
+    updateFromControl(block, block.data, true);
+    focusTableCell(block, normalized);
+  };
+
+  function createTableControls(block, index) {
+    const controls = document.createElement('div');
+    controls.className = 'blocks-table-controls';
+
+    const alignment = document.createElement('select');
+    alignment.className = 'blocks-table-align-select';
+    alignment.title = text('tableAlignment', 'Column alignment');
+    alignment.setAttribute('aria-label', text('tableAlignment', 'Column alignment'));
+    [
+      ['', text('tableAlignDefault', 'Default')],
+      ['left', text('tableAlignLeft', 'Left')],
+      ['center', text('tableAlignCenter', 'Center')],
+      ['right', text('tableAlignRight', 'Right')]
+    ].forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      alignment.appendChild(option);
+    });
+
+    const syncAlignmentSelect = () => {
+      const table = editableTableData(block.data);
+      const position = activeTablePositionForBlock(block);
+      alignment.value = normalizeTableAlignment(table.alignments[position.col]);
+    };
+
+    alignment.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+      setActive(index);
+      syncAlignmentSelect();
+    });
+    alignment.addEventListener('focus', () => {
+      setActive(index);
+      syncAlignmentSelect();
+    });
+    alignment.addEventListener('change', () => {
+      const table = editableTableData(block.data);
+      const position = activeTablePositionForBlock(block);
+      table.alignments[position.col] = normalizeTableAlignment(alignment.value);
+      updateTableBlock(block, table, position);
+    });
+
+    const makeButton = (className, label, handler) => {
+      const buttonEl = button(label, `blocks-icon-btn ${className}`);
+      buttonEl.title = label;
+      buttonEl.setAttribute('aria-label', label);
+      buttonEl.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+      buttonEl.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (buttonEl.disabled) return;
+        setActive(index);
+        handler(buttonEl);
+      });
+      return buttonEl;
+    };
+
+    const addRow = makeButton('blocks-table-add-row', text('tableAddRow', 'Add row'), () => {
+      const table = editableTableData(block.data);
+      const position = activeTablePositionForBlock(block);
+      const blankRow = Array(tableColumnCount(table)).fill('');
+      const insertAt = position.section === 'body' ? position.row + 1 : 0;
+      table.rows.splice(insertAt, 0, blankRow);
+      updateTableBlock(block, table, { section: 'body', row: insertAt, col: position.col });
+    });
+
+    const addColumn = makeButton('blocks-table-add-column', text('tableAddColumn', 'Add column'), () => {
+      const table = editableTableData(block.data);
+      const position = activeTablePositionForBlock(block);
+      const insertAt = position.col + 1;
+      table.headers.splice(insertAt, 0, '');
+      table.alignments.splice(insertAt, 0, '');
+      table.rows = table.rows.map((row) => {
+        const nextRow = row.slice();
+        nextRow.splice(insertAt, 0, '');
+        return nextRow;
+      });
+      updateTableBlock(block, table, { ...position, col: insertAt });
+    });
+
+    const deleteRow = makeButton('blocks-table-delete-row', text('tableDeleteRow', 'Delete row'), () => {
+      const table = editableTableData(block.data);
+      if (table.rows.length <= 1) return;
+      const position = activeTablePositionForBlock(block);
+      const removeAt = position.section === 'body' ? position.row : 0;
+      table.rows.splice(removeAt, 1);
+      const nextRow = Math.max(0, Math.min(table.rows.length - 1, removeAt));
+      updateTableBlock(block, table, { section: 'body', row: nextRow, col: position.col });
+    });
+
+    const deleteColumn = makeButton('blocks-table-delete-column', text('tableDeleteColumn', 'Delete column'), () => {
+      const table = editableTableData(block.data);
+      if (tableColumnCount(table) <= 1) return;
+      const position = activeTablePositionForBlock(block);
+      table.headers.splice(position.col, 1);
+      table.alignments.splice(position.col, 1);
+      table.rows = table.rows.map((row) => {
+        const nextRow = row.slice();
+        nextRow.splice(position.col, 1);
+        return nextRow;
+      });
+      const nextCol = Math.max(0, Math.min(tableColumnCount(table) - 1, position.col));
+      updateTableBlock(block, table, { ...position, col: nextCol });
+    });
+
+    const updateDisabled = () => {
+      const table = editableTableData(block.data);
+      deleteRow.disabled = table.rows.length <= 1;
+      deleteColumn.disabled = tableColumnCount(table) <= 1;
+      syncAlignmentSelect();
+    };
+
+    controls.addEventListener('pointerdown', updateDisabled);
+    controls.addEventListener('focusin', updateDisabled);
+    controls.append(alignment, addRow, addColumn, deleteRow, deleteColumn);
+    updateDisabled();
+    return controls;
+  }
+
   const renderHeadingBlock = (body, block, index) => {
     const level = Math.max(1, Math.min(6, Number(block.data.level) || 2));
     const heading = createRichEditable(`h${level}`, block, 'text', `blocks-rich-editable blocks-heading-text blocks-heading-h${level}`, index);
@@ -4975,6 +5262,102 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
     body.append(figure);
     hydrateImages(figure);
+  };
+
+  const renderTableBlock = (body, block, index) => {
+    const data = editableTableData(block.data);
+    block.data = data;
+    const wrap = document.createElement('div');
+    wrap.className = 'blocks-table-wrap';
+    const table = document.createElement('table');
+    table.className = 'blocks-table';
+
+    const createCellInput = (section, rowIndex, colIndex, value, isHeader) => {
+      const align = normalizeTableAlignment(data.alignments[colIndex]);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = [
+        'blocks-table-cell-input',
+        isHeader ? 'blocks-table-header-cell' : 'blocks-table-body-cell',
+        `blocks-table-align-${align || 'default'}`
+      ].join(' ');
+      input.value = String(value || '');
+      input.spellcheck = true;
+      input.dataset.tableSection = section;
+      input.dataset.tableRow = String(rowIndex);
+      input.dataset.tableCol = String(colIndex);
+      input.setAttribute('aria-label', isHeader
+        ? `${text('table', 'Table')} ${text('heading', 'Heading')} ${colIndex + 1}`
+        : `${text('table', 'Table')} ${rowIndex + 1}, ${colIndex + 1}`);
+
+      const sync = () => {
+        const next = editableTableData(block.data);
+        const cleanValue = normalizeTableCellValue(input.value);
+        if (section === 'header') {
+          next.headers[colIndex] = cleanValue;
+        } else if (next.rows[rowIndex]) {
+          next.rows[rowIndex][colIndex] = cleanValue;
+        }
+        setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
+        updateFromControl(block, next);
+      };
+      editableSyncMap.set(input, sync);
+      input.addEventListener('input', sync);
+      input.addEventListener('paste', (event) => {
+        const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
+        if (pasted == null) return;
+        event.preventDefault();
+        const clean = normalizeTableCellValue(pasted);
+        if (typeof input.setRangeText === 'function') {
+          input.setRangeText(clean, input.selectionStart, input.selectionEnd, 'end');
+        } else {
+          input.value += clean;
+        }
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.isComposing) {
+          event.preventDefault();
+          return;
+        }
+        handleCrossBlockArrowNavigation(event, index, input);
+      });
+      input.addEventListener('focus', () => {
+        setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
+        setActive(index, input, sync);
+      });
+      input.addEventListener('pointerdown', (event) => {
+        if (event && event.button === 0 && event.isPrimary !== false) {
+          setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
+          activateEditableFromPointer(index, input, sync);
+        }
+      });
+      return input;
+    };
+
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    data.headers.forEach((header, colIndex) => {
+      const th = document.createElement('th');
+      th.appendChild(createCellInput('header', 0, colIndex, header, true));
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+
+    const tbody = document.createElement('tbody');
+    data.rows.forEach((row, rowIndex) => {
+      const tr = document.createElement('tr');
+      data.headers.forEach((_, colIndex) => {
+        const td = document.createElement('td');
+        td.appendChild(createCellInput('body', rowIndex, colIndex, row[colIndex] || '', false));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    table.append(thead, tbody);
+    wrap.appendChild(table);
+    body.appendChild(wrap);
   };
 
   const createListTypeSelect = (block, index) => {
@@ -5563,6 +5946,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       body.appendChild(quote);
     } else if (block.type === 'image') {
       renderImageBlock(body, block, index);
+    } else if (block.type === 'table') {
+      renderTableBlock(body, block, index);
     } else if (block.type === 'list') {
       renderListBlock(body, block, index);
     } else if (block.type === 'code') {
@@ -5682,6 +6067,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     }
     if (block.type === 'image') {
       head.appendChild(createImageMetadataControls(block, index));
+    }
+    if (block.type === 'table') {
+      head.appendChild(createTableControls(block, index));
     }
     if (block.type === 'paragraph' || block.type === 'quote' || block.type === 'list') {
       head.appendChild(createInlineControls(index));

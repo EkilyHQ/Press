@@ -148,7 +148,7 @@ Press supports simple pipe tables. Use a header row, a separator row, and data r
 | :--- | :---: | ---: |
 | Basic cells | Yes | One line per row |
 | Inline Markdown | **Bold**, `code`, and links work | 42 |
-| Visual table editing | Source block | Not yet |
+| Visual table editing | Blocks view | Supported |
 ```
 
 Rendered example:
@@ -157,9 +157,9 @@ Rendered example:
 | :--- | :---: | ---: |
 | Basic cells | Yes | One line per row |
 | Inline Markdown | **Bold**, `code`, and links work | 42 |
-| Visual table editing | Source block | Not yet |
+| Visual table editing | Blocks view | Supported |
 
-Use `:---`, `:---:`, and `---:` in the separator row for left, center, and right alignment. Omit colons to use the active theme's default alignment. Tables do not support cell line breaks, escaped pipes inside cells, `colspan`, or `rowspan`.
+Use `:---`, `:---:`, and `---:` in the separator row for left, center, and right alignment. Omit colons to use the active theme's default alignment. The Markdown Editor's Blocks view can edit standard pipe tables visually, including cells, rows, columns, and column alignment. Tables do not support cell line breaks, escaped pipes inside cells, `colspan`, or `rowspan`; unsupported table-like Markdown stays editable as a Markdown source block.
 
 ### Math
 Press supports KaTeX-rendered math expressions in Markdown. Use `\(...\)` for inline math:

@@ -30,6 +30,7 @@ const syntaxHighlight = read('assets/js/syntax-highlight.js');
 const highlightJsBundle = read('assets/js/vendor/highlightjs/highlight.min.js');
 const nativeCss = read('assets/themes/native/base.css');
 const languageManifest = read('assets/i18n/languages.json');
+const i18nEn = read('assets/i18n/en.js');
 
 assert.match(components, /arcus-tools__groups[\s\S]*arcus-tool[\s\S]*solstice-tools[\s\S]*solstice-tool/, 'theme controls should preserve legacy Arcus and Solstice control classes for already-installed themes');
 assert.doesNotMatch(components, /\bcartograph\b/i, 'core UI components should not hard-code non-legacy external theme variants');
@@ -246,5 +247,13 @@ assert.match(linkCards, /stripEncryptedBodyForPublicUse\(rawMarkdown\)/, 'intern
 
 assert.match(nativeCss, /press-search\.box,[\s\S]*press-theme-controls\.box,[\s\S]*press-toc\.box\s*\{\s*display: block;/, 'native component hosts should preserve block layout');
 assert.match(nativeCss, /\.protected-post-excerpt[\s\S]*color: var\(--text\);/, 'native locked article panel should style the public excerpt separately from the generic unlock copy');
+
+assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*\]\);/, 'block editor should register a visual table block type');
+assert.match(editorBlocks, /function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'block editor should parse supported pipe tables into structured table data');
+assert.match(editorBlocks, /const renderTableBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'block editor should render editable table cell inputs with alignment hooks');
+assert.match(editorBlocks, /function createTableControls\(block, index\) \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/, 'block editor should expose table row, column, and alignment controls');
+assert.match(indexEditorHtml, /\.blocks-table-wrap[\s\S]*\.blocks-table-cell-input[\s\S]*\.blocks-table-align-left[\s\S]*\.blocks-table-align-center[\s\S]*\.blocks-table-align-right/, 'editor shell should style visual table blocks and alignment classes');
+assert.match(i18nEn, /table: 'This table-like Markdown is kept as source because it is not a supported standard pipe table\.'/, 'sourceReason.table should describe unsupported table fallback');
+assert.doesNotMatch(i18nEn, /does not support table editing yet/, 'sourceReason.table should not claim all table editing is unsupported');
 
 console.log('ok - ui component boundaries');

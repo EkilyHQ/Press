@@ -714,8 +714,8 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
   );
   assert.match(
     editorBlocksSource,
-    /blockEl\.querySelector\('\.blocks-rich-editable:not\(\.blocks-list-text\), \.blocks-code-preview code\[contenteditable="true"\], \.blocks-image-caption, \.blocks-source-textarea'\)/,
-    'cross-block target discovery should include blank rich editables and image captions'
+    /const tableCells = Array\.from\(blockEl\.querySelectorAll\('\.blocks-table-cell-input'\)\);[\s\S]*const tableTarget = tableCells\.length \? \(edge === 'last' \? tableCells\[tableCells\.length - 1\] : tableCells\[0\]\) : null;[\s\S]*const editable = listTarget[\s\S]*\|\| tableTarget/,
+    'cross-block target discovery should respect edge direction for table cells'
   );
   assert.match(
     editorBlocksSource,
@@ -1523,4 +1523,78 @@ run('inline links sanitize unsafe hrefs', () => {
 run('inline pending mark insertion uses selected mark set', () => {
   const next = insertInlineRunsAtRange(parseInlineRuns('ab'), 1, 1, [{ text: 'X', bold: true, italic: true }]);
   assert.equal(serializeInlineRuns(next), 'a**_X_**b');
+});
+
+run('standard pipe tables become editable table blocks and pad short rows', () => {
+  const source = [
+    '| Left | Center | Right | Default |',
+    '| :--- | :---: | ---: | --- |',
+    '| A | B | C |',
+    '| **Bold** | `code` | [link](https://example.com) | ok |'
+  ].join('\n');
+  const blocks = parseMarkdownBlocks(source);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].type, 'table');
+  assert.deepEqual(blocks[0].data.headers, ['Left', 'Center', 'Right', 'Default']);
+  assert.deepEqual(blocks[0].data.alignments, ['left', 'center', 'right', '']);
+  assert.deepEqual(blocks[0].data.rows, [
+    ['A', 'B', 'C', ''],
+    ['**Bold**', '`code`', '[link](https://example.com)', 'ok']
+  ]);
+  blocks[0].dirty = true;
+  assert.equal(serializeMarkdownBlocks(blocks), [
+    '| Left | Center | Right | Default |',
+    '| :--- | :---: | ---: | --- |',
+    '| A | B | C |  |',
+    '| **Bold** | `code` | [link](https://example.com) | ok |'
+  ].join('\n'));
+});
+
+run('edited table block serializes standard pipe table markdown', () => {
+  const blocks = parseMarkdownBlocks([
+    '| A | B |',
+    '| --- | --- |',
+    '| 1 | 2 |'
+  ].join('\n'));
+  blocks[0].data.headers = ['Name', 'Count', 'Note'];
+  blocks[0].data.alignments = ['left', 'center', 'right'];
+  blocks[0].data.rows = [
+    ['Apples', '2'],
+    ['Bananas', '10', 'fresh']
+  ];
+  blocks[0].dirty = true;
+  assert.equal(serializeMarkdownBlocks(blocks), [
+    '| Name | Count | Note |',
+    '| :--- | :---: | ---: |',
+    '| Apples | 2 |  |',
+    '| Bananas | 10 | fresh |'
+  ].join('\n'));
+});
+
+run('unsupported table-like markdown stays source-editable', () => {
+  const cases = [
+    [
+      '| A | B |',
+      '| --- | --- |',
+      '| a \\| b | c |'
+    ].join('\n'),
+    [
+      'A | B',
+      '--- | ---',
+      '1 | 2'
+    ].join('\n'),
+    [
+      '| A | B |',
+      '| --- | --- |',
+      '| 1 | 2 | 3 |'
+    ].join('\n')
+  ];
+
+  cases.forEach((source) => {
+    const blocks = parseMarkdownBlocks(source);
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0].type, 'source');
+    assert.equal(blocks[0].data.sourceReason, 'table');
+    assert.equal(serializeMarkdownBlocks(blocks), source);
+  });
 });

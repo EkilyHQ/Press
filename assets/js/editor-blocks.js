@@ -3787,8 +3787,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!blockEl) return null;
     const listTexts = Array.from(blockEl.querySelectorAll('.blocks-list-item .blocks-list-text'));
     const listTarget = listTexts.length ? (edge === 'last' ? listTexts[listTexts.length - 1] : listTexts[0]) : null;
+    const tableCells = Array.from(blockEl.querySelectorAll('.blocks-table-cell-input'));
+    const tableTarget = tableCells.length ? (edge === 'last' ? tableCells[tableCells.length - 1] : tableCells[0]) : null;
     const editable = listTarget
-      || blockEl.querySelector('.blocks-rich-editable:not(.blocks-list-text), .blocks-table-cell-input, .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea');
+      || tableTarget
+      || blockEl.querySelector('.blocks-rich-editable:not(.blocks-list-text), .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea');
     if (editable) {
       return {
         blockEl,

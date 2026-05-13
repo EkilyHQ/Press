@@ -714,8 +714,8 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
   );
   assert.match(
     editorBlocksSource,
-    /blockEl\.querySelector\('\.blocks-rich-editable:not\(\.blocks-list-text\), \.blocks-table-cell-input, \.blocks-code-preview code\[contenteditable="true"\], \.blocks-image-caption, \.blocks-source-textarea'\)/,
-    'cross-block target discovery should include blank rich editables, table cells, and image captions'
+    /const tableCells = Array\.from\(blockEl\.querySelectorAll\('\.blocks-table-cell-input'\)\);[\s\S]*const tableTarget = tableCells\.length \? \(edge === 'last' \? tableCells\[tableCells\.length - 1\] : tableCells\[0\]\) : null;[\s\S]*const editable = listTarget[\s\S]*\|\| tableTarget/,
+    'cross-block target discovery should respect edge direction for table cells'
   );
   assert.match(
     editorBlocksSource,

@@ -140,6 +140,27 @@ Supported syntax includes headings, paragraphs, bold, italic, strikethrough, inl
 
 Raw HTML is not supported. Tags such as `<div>`, `<script>`, and HTML comments are displayed as text rather than inserted into the page. Unsupported or risky syntax may also stay as Markdown source in the editor block view instead of becoming a structured editable block.
 
+### Tables
+Press supports simple pipe tables. Use a header row, a separator row, and data rows. Start and end each row with `|`:
+
+```markdown
+| Feature | Support | Notes |
+| --- | --- | --- |
+| Basic cells | Yes | One line per row |
+| Inline Markdown | Yes | **Bold**, `code`, and links work |
+| Visual table editing | No | The block editor keeps tables as Markdown source |
+```
+
+Rendered example:
+
+| Feature | Support | Notes |
+| --- | --- | --- |
+| Basic cells | Yes | One line per row |
+| Inline Markdown | Yes | **Bold**, `code`, and links work |
+| Visual table editing | No | The block editor keeps tables as Markdown source |
+
+Alignment markers such as `:---`, `:---:`, and `---:` are accepted in the separator row, but Press currently leaves text alignment to the active theme. Tables do not support cell line breaks, escaped pipes inside cells, `colspan`, or `rowspan`.
+
 ### Math
 Press supports KaTeX-rendered math expressions in Markdown. Use `\(...\)` for inline math:
 

@@ -46,16 +46,31 @@ function normalizeCodeFenceLanguage(value) {
 }
 
 function isPipeTableSeparator(line) {
+  return !!parsePipeTableAlignments(line);
+}
+
+function parsePipeTableAlignments(line) {
   // Matches a classic Markdown table separator like:
-  // | ----- | :----: | ------- |
+  // | ----- | :----: | ----: |
+  // and returns the per-column alignment requested by the colon markers.
   const s = String(line || '').trim();
   if (!s.startsWith('|')) return false;
   const cells = s.split('|').slice(1, -1); // drop leading/trailing pipes
-  if (cells.length === 0) return false;
+  if (cells.length === 0) return null;
+  const alignments = [];
   for (const c of cells) {
-    if (!/^\s*:?-{3,}:?\s*$/.test(c)) return false;
+    const match = String(c || '').trim().match(/^(:)?-{3,}(:)?$/);
+    if (!match) return null;
+    const left = !!match[1];
+    const right = !!match[2];
+    alignments.push(left && right ? 'center' : (right ? 'right' : (left ? 'left' : '')));
   }
-  return true;
+  return alignments;
+}
+
+function tableCellAlignAttr(alignments, cellIndex) {
+  const align = Array.isArray(alignments) ? alignments[cellIndex] : '';
+  return align ? ` style="text-align: ${align}"` : '';
 }
 
 function replaceInline(text, baseDir) {
@@ -241,6 +256,7 @@ export function mdParse(markdown, baseDir, options = {}) {
   if (lines.length > parseOptions.maxLines) lines = lines.slice(0, parseOptions.maxLines);
   let html = '', tochtml = [], tochirc = [];
   let activeCodeFence = null, isInTable = false, isInTodo = false, isInPara = false;
+  let tableAlignments = null;
   let codeLang = '';
   let codeBlockIndent = ''; // Store the indent level of the opening code block
   const closePara = () => { if (isInPara) { html += '</p>'; isInPara = false; } };
@@ -371,10 +387,12 @@ export function mdParse(markdown, baseDir, options = {}) {
       const tabs = rawLine.split('|');
       if (!isInTable) {
         // Start a table only if the next line is a header separator row
-        if (i + 1 < lines.length && isPipeTableSeparator(lines[i + 1])) {
+        const nextAlignments = i + 1 < lines.length ? parsePipeTableAlignments(lines[i + 1]) : null;
+        if (nextAlignments) {
           isInTable = true;
+          tableAlignments = nextAlignments;
           html += '<div class="table-wrap"><table><thead><tr>';
-          for (let j = 1; j < tabs.length - 1; j++) html += `<th>${parseNestedMarkdown(tabs[j].trim(), baseDir, parseOptions).post}</th>`;
+          for (let j = 1; j < tabs.length - 1; j++) html += `<th${tableCellAlignAttr(tableAlignments, j - 1)}>${parseNestedMarkdown(tabs[j].trim(), baseDir, parseOptions).post}</th>`;
           html += '</tr></thead><tbody>';
           // Skip the separator line
           i += 1;
@@ -388,18 +406,20 @@ export function mdParse(markdown, baseDir, options = {}) {
         // Inside a table body: ignore any stray separator lines
         if (isPipeTableSeparator(line)) { continue; }
         html += '<tr>';
-        for (let j = 1; j < tabs.length - 1; j++) html += `<td>${parseNestedMarkdown(tabs[j].trim(), baseDir, parseOptions).post}</td>`;
+        for (let j = 1; j < tabs.length - 1; j++) html += `<td${tableCellAlignAttr(tableAlignments, j - 1)}>${parseNestedMarkdown(tabs[j].trim(), baseDir, parseOptions).post}</td>`;
         html += '</tr>';
       }
       // Close table if the next line is not a pipe row
       if (isInTable && (i + 1 >= lines.length || !lines[i + 1].startsWith('|'))) {
         html += '</tbody></table></div>';
         isInTable = false;
+        tableAlignments = null;
       }
       continue;
     } else if (isInTable) {
       html += '</tbody></table></div>';
       isInTable = false;
+      tableAlignments = null;
     }
 
     // To-do list

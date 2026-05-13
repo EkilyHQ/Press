@@ -144,22 +144,22 @@ Raw HTML is not supported. Tags such as `<div>`, `<script>`, and HTML comments a
 Press supports simple pipe tables. Use a header row, a separator row, and data rows. Start and end each row with `|`:
 
 ```markdown
-| Feature | Support | Notes |
-| --- | --- | --- |
+| Left aligned | Center aligned | Right aligned |
+| :--- | :---: | ---: |
 | Basic cells | Yes | One line per row |
-| Inline Markdown | Yes | **Bold**, `code`, and links work |
-| Visual table editing | No | The block editor keeps tables as Markdown source |
+| Inline Markdown | **Bold**, `code`, and links work | 42 |
+| Visual table editing | Source block | Not yet |
 ```
 
 Rendered example:
 
-| Feature | Support | Notes |
-| --- | --- | --- |
+| Left aligned | Center aligned | Right aligned |
+| :--- | :---: | ---: |
 | Basic cells | Yes | One line per row |
-| Inline Markdown | Yes | **Bold**, `code`, and links work |
-| Visual table editing | No | The block editor keeps tables as Markdown source |
+| Inline Markdown | **Bold**, `code`, and links work | 42 |
+| Visual table editing | Source block | Not yet |
 
-Alignment markers such as `:---`, `:---:`, and `---:` are accepted in the separator row, but Press currently leaves text alignment to the active theme. Tables do not support cell line breaks, escaped pipes inside cells, `colspan`, or `rowspan`.
+Use `:---`, `:---:`, and `---:` in the separator row for left, center, and right alignment. Omit colons to use the active theme's default alignment. Tables do not support cell line breaks, escaped pipes inside cells, `colspan`, or `rowspan`.
 
 ### Math
 Press supports KaTeX-rendered math expressions in Markdown. Use `\(...\)` for inline math:

@@ -160,6 +160,11 @@ assert.match(themeLayout, /NATIVE_STYLE_CACHE_KEY = '[\w.-]+'/, 'theme layout sh
 assert.match(read('assets/themes/native/theme.css'), /@import "\.\/base\.css\?v=[\w.-]+";/, 'native theme.css should cache-bust the imported base stylesheet');
 assert.match(themeLayout, /const cacheKey = pack === DEFAULT_PACK \? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey\(pack, manifest\);[\s\S]*appendImportCacheKey\(safeEntry, cacheKey\)/, 'theme layout should apply the native module cache key at import time');
 assert.match(indexHtml, /src="assets\/main\.js\?v=[\w.-]+"/, 'index should bump the main module URL when runtime imports change');
+assert.match(indexHtml, /<style id="press-boot-skeleton-style">[\s\S]*#press-boot-skeleton[\s\S]*@media \(prefers-reduced-motion: reduce\)/, 'public index should include a self-contained boot skeleton stylesheet');
+assert.match(indexHtml, /<div id="press-boot-skeleton" aria-hidden="true">[\s\S]*press-boot-shell[\s\S]*press-boot-panel/, 'public index should render an aria-hidden boot skeleton before the runtime module');
+assert.match(main, /function clearBootSkeleton\(\) \{[\s\S]*getElementById\('press-boot-skeleton'\)[\s\S]*getElementById\('press-boot-skeleton-style'\)/, 'main should remove the HTML boot skeleton and its inline stylesheet');
+assert.match(main, /restoreLastSiteRouteIfEntry\(\);\s*routeAndRender\(\);\s*clearBootSkeleton\(\);/, 'main should clear the boot skeleton after the first route render takes over');
+assert.match(main, /renderErrorState\([\s\S]*notifyThemeViewChange\('boot'[\s\S]*clearBootSkeleton\(\);/, 'main should clear the boot skeleton after rendering a boot error state');
 assert.match(composer, /src="assets\/main\.js\?v=[\w.-]+"/, 'composer export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');
 assert.doesNotMatch(themeLayout, /loadThemePack\(DEFAULT_PACK\)/, 'theme layout fallback should not persist Native over a failed external pack');

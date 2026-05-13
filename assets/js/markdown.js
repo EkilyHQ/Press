@@ -70,7 +70,7 @@ function parsePipeTableAlignments(line) {
 
 function tableCellAlignAttr(alignments, cellIndex) {
   const align = Array.isArray(alignments) ? alignments[cellIndex] : '';
-  return align ? ` style="text-align: ${align}"` : '';
+  return align ? ` class="press-table-align-${align}" style="text-align: ${align}"` : '';
 }
 
 function replaceInline(text, baseDir) {

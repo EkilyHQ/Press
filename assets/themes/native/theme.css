@@ -1,7 +1,7 @@
 /* Native theme pack - 原生 */
 /* Load base layout styles that used to live in assets/styles.css so the native theme
    owns all presentation concerns. */
-@import "./base.css?v=press-system-v3.4.9";
+@import "./base.css?v=press-system-v3.4.10";
 
 :root {
   /* 极简色彩 - 浅色模式 */
@@ -271,6 +271,18 @@ button:hover:not(.mode-tab):not(.sidebar-tab) {
 .native-mainview table { width: 100%; border-collapse: collapse; }
 .native-mainview th, .native-mainview td { border: 1px solid var(--border); padding: 0.5em 0.75em; }
 .native-mainview thead th { background: var(--card); font-weight: 600; }
+.native-mainview th.press-table-align-left,
+.native-mainview td.press-table-align-left,
+.native-mainview th.press-table-align-left > *,
+.native-mainview td.press-table-align-left > * { text-align: left; }
+.native-mainview th.press-table-align-center,
+.native-mainview td.press-table-align-center,
+.native-mainview th.press-table-align-center > *,
+.native-mainview td.press-table-align-center > * { text-align: center; }
+.native-mainview th.press-table-align-right,
+.native-mainview td.press-table-align-right,
+.native-mainview th.press-table-align-right > *,
+.native-mainview td.press-table-align-right > * { text-align: right; }
 
 /* Figure captions */
 .native-mainview figcaption { color: var(--muted); font-size: 0.9em; text-align: center; margin-top: 0.5em; }

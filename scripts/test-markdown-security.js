@@ -887,12 +887,12 @@ runTableAlignmentTest('pipe table alignment markers render controlled text-align
     ''
   ].join('\n'), 'post/demo').post;
 
-  assert.match(aligned, /<th style="text-align: left">/);
-  assert.match(aligned, /<th style="text-align: center">/);
-  assert.match(aligned, /<th style="text-align: right">/);
-  assert.match(aligned, /<td style="text-align: left">/);
-  assert.match(aligned, /<td style="text-align: center">/);
-  assert.match(aligned, /<td style="text-align: right">/);
+  assert.match(aligned, /<th class="press-table-align-left" style="text-align: left">/);
+  assert.match(aligned, /<th class="press-table-align-center" style="text-align: center">/);
+  assert.match(aligned, /<th class="press-table-align-right" style="text-align: right">/);
+  assert.match(aligned, /<td class="press-table-align-left" style="text-align: left">/);
+  assert.match(aligned, /<td class="press-table-align-center" style="text-align: center">/);
+  assert.match(aligned, /<td class="press-table-align-right" style="text-align: right">/);
   assert.match(aligned, /<th><p>Default<\/p><\/th>/);
   assert.match(aligned, /<td><p>d<\/p><\/td>/);
 

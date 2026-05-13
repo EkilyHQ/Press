@@ -873,3 +873,57 @@ const maliciousTocHtml = '<ul><li><a href="#heading">Heading</a><ul><li><a href=
 }
 
 console.log('ok - markdown security regression coverage');
+
+const runTableAlignmentTest = (name, fn) => {
+  fn();
+  console.log(`ok - ${name}`);
+};
+
+runTableAlignmentTest('pipe table alignment markers render controlled text-align styles', () => {
+  const aligned = mdParse([
+    '| Left | Center | Right | Default |',
+    '| :--- | :---: | ---: | --- |',
+    '| a | b | c | d |',
+    ''
+  ].join('\n'), 'post/demo').post;
+
+  assert.match(aligned, /<th style="text-align: left">/);
+  assert.match(aligned, /<th style="text-align: center">/);
+  assert.match(aligned, /<th style="text-align: right">/);
+  assert.match(aligned, /<td style="text-align: left">/);
+  assert.match(aligned, /<td style="text-align: center">/);
+  assert.match(aligned, /<td style="text-align: right">/);
+  assert.match(aligned, /<th><p>Default<\/p><\/th>/);
+  assert.match(aligned, /<td><p>d<\/p><\/td>/);
+
+  const unaligned = mdParse([
+    '| One | Two |',
+    '| --- | --- |',
+    '| a | b |',
+    ''
+  ].join('\n'), 'post/demo').post;
+  assert.doesNotMatch(unaligned, /text-align:/);
+});
+
+runTableAlignmentTest('safe html preserves only controlled table text alignment styles', () => {
+  const target = document.createElement('div');
+  setSafeHtml(target, [
+    '<table><thead><tr>',
+    '<th style="text-align: CENTER;">Center</th>',
+    '<th style="color: red; text-align: right">Unsafe</th>',
+    '</tr></thead><tbody><tr>',
+    '<td style="text-align: left;">Left</td>',
+    '<td style="position:absolute; text-align:right">Unsafe</td>',
+    '</tr></tbody></table>',
+    '<p style="text-align: right">Paragraph</p>'
+  ].join(''), 'post/demo', { alreadySanitized: true });
+
+  const ths = target.querySelectorAll('th');
+  const tds = target.querySelectorAll('td');
+  const ps = target.querySelectorAll('p');
+  assert.equal(ths[0].getAttribute('style'), 'text-align: center');
+  assert.equal(ths[1].getAttribute('style'), null);
+  assert.equal(tds[0].getAttribute('style'), 'text-align: left');
+  assert.equal(tds[1].getAttribute('style'), null);
+  assert.equal(ps[0].getAttribute('style'), null);
+});

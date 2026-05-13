@@ -158,6 +158,8 @@ const __NS_RENDERED_MARKDOWN_TAG_ATTRS = {
   pre: new Set(['class']),
   source: new Set(['src','type']),
   span: new Set(['aria-hidden','class','data-tex']),
+  td: new Set(['style']),
+  th: new Set(['style']),
   video: new Set(['aria-label','class','controls','playsinline','poster','preload','title'])
 };
 
@@ -189,6 +191,12 @@ function __press_rewriteSrc(val, baseDir) {
   if (scheme) return sanitizeImageUrl(s) || '#';
   if (s.startsWith('/') || s.startsWith('#')) return s;
   return resolveImageSrc(s, baseDir);
+}
+
+function __press_sanitizeRenderedStyle(tag, value) {
+  if (tag !== 'td' && tag !== 'th') return '';
+  const match = String(value || '').trim().match(/^text-align\s*:\s*(left|center|right)\s*;?\s*$/i);
+  return match ? `text-align: ${match[1].toLowerCase()}` : '';
 }
 
 // Safely set controlled renderer markup into a target element without using innerHTML.
@@ -311,6 +319,10 @@ export function setSafeHtml(target, html, baseDir, options = {}) {
         let val = unescapeHtml(rawVal);
         if (name === 'href') val = __press_rewriteHref(val, baseDir);
         else if (name === 'src' || name === 'poster') val = __press_rewriteSrc(val, baseDir);
+        else if (name === 'style') {
+          val = __press_sanitizeRenderedStyle(tag, val);
+          if (!val) continue;
+        }
         try { el.setAttribute(name, val); } catch (_) {}
       }
 

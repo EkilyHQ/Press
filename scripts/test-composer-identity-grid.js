@@ -1363,7 +1363,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /\.blocks-block-paragraph, \.blocks-block-source \{ margin:\.85rem 0; \}[\s\S]*\.blocks-block-paragraph \+ \.blocks-block-paragraph \{ margin-top:1rem; \}[\s\S]*\.blocks-block-heading \{ --blocks-heading-font-size:1\.65rem; margin:calc\(var\(--blocks-heading-font-size\) \* 1\.2\) 0 calc\(var\(--blocks-heading-font-size\) \* \.5\); \}[\s\S]*\.blocks-block-heading:has\(\.blocks-heading-h1\) \{ --blocks-heading-font-size:2rem; \}[\s\S]*\.blocks-block-heading:has\(\.blocks-heading-h6\) \{ --blocks-heading-font-size:\.92rem; \}[\s\S]*\.blocks-block-list \{ margin:\.8rem 0; \}[\s\S]*\.blocks-block-quote \{ margin:1\.2em 0; \}[\s\S]*\.blocks-block-image, \.blocks-block-card \{ margin:1rem 0; \}[\s\S]*\.blocks-block-code \{ margin:\.75rem 0; \}/,
+  /\.blocks-block-paragraph, \.blocks-block-source, \.blocks-block-table \{ margin:\.85rem 0; \}[\s\S]*\.blocks-block-paragraph \+ \.blocks-block-paragraph \{ margin-top:1rem; \}[\s\S]*\.blocks-block-heading \{ --blocks-heading-font-size:1\.65rem; margin:calc\(var\(--blocks-heading-font-size\) \* 1\.2\) 0 calc\(var\(--blocks-heading-font-size\) \* \.5\); \}[\s\S]*\.blocks-block-heading:has\(\.blocks-heading-h1\) \{ --blocks-heading-font-size:2rem; \}[\s\S]*\.blocks-block-heading:has\(\.blocks-heading-h6\) \{ --blocks-heading-font-size:\.92rem; \}[\s\S]*\.blocks-block-list \{ margin:\.8rem 0; \}[\s\S]*\.blocks-block-quote \{ margin:1\.2em 0; \}[\s\S]*\.blocks-block-image, \.blocks-block-card \{ margin:1rem 0; \}[\s\S]*\.blocks-block-code \{ margin:\.75rem 0; \}/,
   'blocks should use Native article rhythm margins per block type'
 );
 
@@ -1495,7 +1495,7 @@ assert.match(
 
 assert.match(
   editorSource,
-  /\.blocks-block-head \.blocks-heading-level, \.blocks-block-head \.blocks-list-type-select, \.blocks-block-head \.blocks-code-language, \.blocks-block-head \.blocks-image-meta-controls input, \.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource, \.blocks-block-head \.blocks-math-edit \{[^}]*border:1px solid var\(--border\); border-radius:999px; background:var\(--card\);[\s\S]*\.blocks-image-meta-controls \{ display:flex; align-items:center; gap:\.24rem;[\s\S]*\.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{ white-space:nowrap; cursor:pointer; \}[\s\S]*\.blocks-block-head \.blocks-image-delete-resource:disabled \{ opacity:\.45; cursor:not-allowed; \}/,
+  /\.blocks-block-head \.blocks-heading-level, \.blocks-block-head \.blocks-list-type-select, \.blocks-block-head \.blocks-code-language, \.blocks-block-head \.blocks-table-align-select, \.blocks-block-head \.blocks-image-meta-controls input, \.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource, \.blocks-block-head \.blocks-math-edit \{[^}]*border:1px solid var\(--border\); border-radius:999px; background:var\(--card\);[\s\S]*\.blocks-image-meta-controls \{ display:flex; align-items:center; gap:\.24rem;[\s\S]*\.blocks-block-head \.blocks-image-replace, \.blocks-block-head \.blocks-image-delete-resource \{ white-space:nowrap; cursor:pointer; \}[\s\S]*\.blocks-block-head \.blocks-image-delete-resource:disabled \{ opacity:\.45; cursor:not-allowed; \}/,
   'image metadata fields, replace button, and resource deletion button should use compact floating-toolbar styling'
 );
 
@@ -1619,6 +1619,24 @@ assert.match(
   hiEditorSource,
   /if \(markup\.startsWith\('<span', i\)\) \{[\s\S]*split\(\/\\s\+\/\)\.filter\(isClassOk\)[\s\S]*i \+= match\[0\]\.length;[\s\S]*const nextLt = markup\.indexOf\('<', i\);[\s\S]*if \(nextLt === i\) \{[\s\S]*document\.createTextNode\('<'\)[\s\S]*i \+= 1;[\s\S]*continue;[\s\S]*\}/,
   'hi-editor safe renderer should preserve unknown angle brackets as text and never stall on Highlight.js spans'
+);
+
+assert.match(
+  editorSource,
+  /\.hi-editor \.hi-ta::selection \{ background: rgba\(9,105,218,0\.24\); color: transparent; -webkit-text-fill-color: transparent; \}/,
+  'hi-editor should let the native textarea selection paint visible range highlights'
+);
+
+assert.match(
+  hiEditorSource,
+  /const hasRangeSelection = selEnd > selStart;[\s\S]*if \(hasRangeSelection\) \{[\s\S]*native textarea paint selection ranges[\s\S]*return;[\s\S]*\}/,
+  'hi-editor range selection should use native textarea geometry instead of custom mirror rectangles'
+);
+
+assert.doesNotMatch(
+  `${hiEditorSource}\n${editorSource}`,
+  /hi-selection-range|getSelectionRects|getSelectionConnectorRects|normalizeSelectionRects/,
+  'hi-editor should not keep the old custom selection rectangle overlay'
 );
 
 assert.match(

@@ -1,6 +1,6 @@
 import { renderTags, escapeHtml, formatDisplayDate, cardImageSrc, fallbackCover, getContentRoot } from './utils.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './content.js';
-import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from './encrypted-content.js?v=press-system-v3.4.13';
+import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from './encrypted-content.js?v=press-system-v3.4.14';
 import { hydrateCardCovers } from './post-render.js';
 
 const DEFAULT_STRINGS = {

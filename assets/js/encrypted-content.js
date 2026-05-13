@@ -3,7 +3,7 @@ import {
   cloneFrontMatterData,
   parseMarkdownFrontMatter,
   resolveFrontMatterBindings
-} from './frontmatter-document.js?v=press-system-v3.4.13';
+} from './frontmatter-document.js?v=press-system-v3.4.14';
 
 export const ENCRYPTED_MARKDOWN_FORMAT = 'press-encrypted-markdown-v1';
 export const ENCRYPTED_MARKDOWN_FENCE = 'press-encrypted-markdown-v1';

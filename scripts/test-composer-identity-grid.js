@@ -1628,6 +1628,12 @@ assert.match(
 );
 
 assert.match(
+  editorSource,
+  /\.hi-editor \.hi-pre code span, \.hi-editor \.hi-pre code span \* \{ font:inherit; font-weight:inherit; font-style:inherit; font-variant:inherit; font-variant-ligatures:inherit; font-variant-numeric:inherit; letter-spacing:inherit; text-decoration:none; \}/,
+  'hi-editor highlight tokens should inherit font metrics so native textarea selection aligns with visible text'
+);
+
+assert.match(
   hiEditorSource,
   /const hasRangeSelection = selEnd > selStart;[\s\S]*if \(hasRangeSelection\) \{[\s\S]*native textarea paint selection ranges[\s\S]*return;[\s\S]*\}/,
   'hi-editor range selection should use native textarea geometry instead of custom mirror rectangles'

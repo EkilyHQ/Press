@@ -1,10 +1,10 @@
-import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=press-system-v3.4.9';
+import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=press-system-v3.4.10';
 import { getThemeRegion } from './theme-regions.js';
 
 const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
 const THEME_CONTROLS_I18N_BOUND = Symbol('pressThemeControlsI18nBound');
-const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.9';
+const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.10';
 const THEME_PACK_KEY = 'themePack';
 const THEME_PACK_PENDING_KEY = 'themePackPending';
 const suppressedThemePacks = new Set();

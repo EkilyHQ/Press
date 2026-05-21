@@ -12,6 +12,7 @@ const indexHtml = read('index.html');
 const indexEditorHtml = read('index_editor.html');
 const indexEditorPreviewHtml = read('index_editor_preview.html');
 const composer = read('assets/js/composer.js');
+const composerStaging = read('assets/js/composer-staging.js');
 const editorMain = read('assets/js/editor-main.js');
 const editorPreviewRuntime = read('assets/js/editor-preview-runtime.js');
 const search = read('assets/js/search.js');
@@ -151,7 +152,7 @@ assert.match(composer, /async function gatherLocalChangesForCommit[\s\S]*await P
 assert.match(composer, /function getLockedEncryptedMarkdownDraft[\s\S]*!draft\.encrypted \|\| draft\.decrypted[\s\S]*const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft\(tab\)[\s\S]*alreadyEncrypted = true/, 'publish should reuse locked encrypted draft ciphertext instead of treating empty editor content as plaintext');
 assert.match(composer, /function bumpMarkdownDraftSaveGeneration[\s\S]*async function saveMarkdownDraftForTab[\s\S]*const saveGeneration = getMarkdownDraftSaveGeneration\(tab\)[\s\S]*if \(saveGeneration !== getMarkdownDraftSaveGeneration\(tab\)\) return null;[\s\S]*function clearMarkdownDraftForTab[\s\S]*bumpMarkdownDraftSaveGeneration\(tab\)/, 'discard and close should cancel in-flight encrypted draft saves before they can rewrite localStorage');
 assert.match(composer, /function createDiscardedMarkdownProtectionState\(protection\)[\s\S]*password: ''[\s\S]*remoteSignature: current\.remoteSignature[\s\S]*setMarkdownProtectionState\(active, createDiscardedMarkdownProtectionState\(protection\)\)/, 'discarding a protected markdown edit should clear discarded password changes instead of reusing them on the next save');
-assert.match(composer, /Object\.defineProperty\(next, 'plaintextContent'[\s\S]*enumerable: false/, 'protected markdown commit plaintext baselines should stay non-enumerable in memory');
+assert.match(composerStaging, /Object\.defineProperty\(next, 'plaintextContent'[\s\S]*enumerable: false/, 'protected markdown commit plaintext baselines should stay non-enumerable in memory');
 assert.match(composer, /async function openMarkdownPushOnGitHub[\s\S]*const plaintextContent = normalizeMarkdownContent[\s\S]*prepareMarkdownForProtectedStorage\(tab, plaintextContent[\s\S]*nsCopyToClipboard\(preparedContent\)[\s\S]*computeTextSignature\(preparedContent\)/, 'manual GitHub edit flow should copy encrypted markdown and watch the encrypted remote signature');
 assert.match(composer, /configureMarkdownPasswordInput[\s\S]*data-1p-ignore[\s\S]*data-lpignore/, 'editor protection password fields should not opt into browser password-manager storage');
 assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = '[\w.-]+'/, 'theme layout should cache-bust native modules when shared i18n boundaries change');

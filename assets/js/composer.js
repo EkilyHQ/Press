@@ -26,16 +26,28 @@ import {
   planManagedContentDeletions,
   resolveLocalMarkdownAssetReference
 } from './repository-deletions.js?v=press-system-v3.4.18';
+import { createCommitFileCollector, createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.18';
+import {
+  createScopedStorageKey,
+  resolveEditorStorageScope
+} from './editor-storage.js?v=press-system-v3.4.18';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.18';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.18';
+import {
+  refreshSyncCommitPanelView,
+  scheduleSyncCommitPanelRefreshView
+} from './composer-sync-panel.js?v=press-system-v3.4.18';
+import {
+  animateEditorSystemPanelContent as animateSystemPanelContent,
+  showEditorSystemPanel as showComposerSystemPanel
+} from './composer-system-panel.js?v=press-system-v3.4.18';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore,
   getDefaultConnectPublishBaseUrl,
   normalizeConnectPublishBaseUrl
 } from './publish/settings-store.js?v=press-system-v3.4.18';
-import {
-  createConnectPublishCommit,
-  ensureConnectPublishGrant as authorizeConnectPublishGrant
-} from './publish/transports/connect-transport.js?v=press-system-v3.4.18';
+import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.18';
 import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.18';
 
 // Utility helpers
@@ -103,64 +115,47 @@ const LS_KEYS = {
 const EDITOR_STATE_VERSION = 3;
 const EDITOR_SCROLL_SAVE_DELAY = 120;
 
-function normalizeStorageScopePart(value) {
-  const raw = String(value || '').trim().toLowerCase();
-  return raw.replace(/[^a-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '') || 'root';
-}
-
-function resolveEditorStorageScope(locationLike) {
-  let protocol = '';
-  let host = '';
-  let pathname = '';
-  try {
-    if (typeof locationLike === 'string') {
-      const url = new URL(locationLike);
-      protocol = url.protocol;
-      host = url.host;
-      pathname = url.pathname;
-    } else if (locationLike && typeof locationLike === 'object') {
-      if (locationLike.href) {
-        const url = new URL(String(locationLike.href));
-        protocol = url.protocol;
-        host = url.host;
-        pathname = url.pathname;
-      } else {
-        protocol = String(locationLike.protocol || '');
-        host = String(locationLike.host || locationLike.hostname || '');
-        pathname = String(locationLike.pathname || '');
-      }
-    }
-  } catch (_) {
-    return 'unknown';
-  }
-  const path = String(pathname || '');
-  const segments = path.split('/').filter(Boolean);
-  const firstSegment = segments[0] || '';
-  const isRootIndexFile = segments.length === 1
-    && (firstSegment === 'index.html' || firstSegment === 'index_editor.html')
-    && !path.endsWith('/');
-  const sitePath = firstSegment && !isRootIndexFile ? firstSegment : 'root';
-  const protocolPart = protocol ? protocol.replace(/:$/, '') : 'site';
-  return [
-    'v2',
-    normalizeStorageScopePart(protocolPart),
-    normalizeStorageScopePart(host || 'local'),
-    normalizeStorageScopePart(sitePath)
-  ].join(':');
-}
-
 const EDITOR_STORAGE_SCOPE = (() => {
   try { return resolveEditorStorageScope(window.location); }
   catch (_) { return 'unknown'; }
 })();
 
 function scopedEditorStorageKey(key) {
-  return `${key}:${EDITOR_STORAGE_SCOPE}`;
+  return createScopedStorageKey(EDITOR_STORAGE_SCOPE, key);
 }
 
 const publishSettingsStore = createPublishSettingsStore({
   windowRef: window,
   scopeKey: scopedEditorStorageKey
+});
+const stagingRegistry = createStagingRegistry();
+stagingRegistry.registerStagingProvider({
+  id: 'system-updates',
+  getSummaryEntries: () => getSystemUpdateSummaryEntries().map(entry => ({ ...entry, kind: 'system' })),
+  getCommitFiles: () => getSystemUpdateCommitFiles().map(entry => ({ ...entry, kind: 'system' })),
+  clear: () => clearSystemUpdateState({ keepStatus: false })
+});
+stagingRegistry.registerStagingProvider({
+  id: 'themes',
+  getSummaryEntries: () => getThemeManagerSummaryEntries().map(entry => ({ ...entry, kind: 'system', category: 'theme' })),
+  getCommitFiles: () => getThemeManagerCommitFiles().map(entry => ({ ...entry, kind: 'system', category: 'theme' })),
+  clear: () => clearThemeManagerState({ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true })
+});
+stagingRegistry.registerStagingProvider({
+  id: 'seo',
+  async getCommitFiles(context = {}) {
+    if (context.showSeoStatus) {
+      try {
+        if (typeof context.setStatus === 'function') context.setStatus('Generating SEO files…');
+      } catch (_) { /* ignore */ }
+    }
+    return generateSeoCommitFiles();
+  }
+});
+const editorSessionStateStore = createEditorSessionStateStore({
+  storage: window.localStorage,
+  scopeKey: scopedEditorStorageKey,
+  keys: LS_KEYS
 });
 
 // Track additional markdown editor tabs spawned from Composer
@@ -178,12 +173,11 @@ let activeEditorTreeNodeId = 'welcome';
 const expandedEditorTreeNodeIds = new Set(['articles', 'pages']);
 let hasEditorStateV3Snapshot = false;
 try {
-  const rawEditorState = window.localStorage.getItem(scopedEditorStorageKey(LS_KEYS.editorState));
-  const parsedEditorState = rawEditorState ? JSON.parse(rawEditorState) : null;
+  const parsedEditorState = editorSessionStateStore.readEditorState();
   hasEditorStateV3Snapshot = !!(parsedEditorState && parsedEditorState.v === EDITOR_STATE_VERSION);
 } catch (_) {}
 try {
-  if (!hasEditorStateV3Snapshot && window.localStorage.getItem(scopedEditorStorageKey(LS_KEYS.systemTreeExpanded)) === '1') {
+  if (!hasEditorStateV3Snapshot && editorSessionStateStore.readLegacySystemTreeExpanded()) {
     expandedEditorTreeNodeIds.add('system');
   }
 } catch (_) {}
@@ -221,6 +215,16 @@ function updateDynamicTabsGroupState() {
 
 const DRAFT_STORAGE_KEY = 'press_composer_drafts_v1';
 const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';
+const composerDraftStore = createScopedDraftStore({
+  storage: window.localStorage,
+  storageKey: DRAFT_STORAGE_KEY,
+  scopeKey: scopedEditorStorageKey
+});
+const markdownDraftStore = createScopedDraftStore({
+  storage: window.localStorage,
+  storageKey: MARKDOWN_DRAFT_STORAGE_KEY,
+  scopeKey: scopedEditorStorageKey
+});
 
 // Track pending binary assets associated with markdown drafts
 const markdownAssetStore = new Map();
@@ -3453,26 +3457,11 @@ function computeTabsDiff(current, baseline) {
 }
 
 function readDraftStore() {
-  try {
-    const raw = localStorage.getItem(scopedEditorStorageKey(DRAFT_STORAGE_KEY));
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (_) {
-    return {};
-  }
+  return composerDraftStore.read();
 }
 
 function writeDraftStore(store) {
-  try {
-    if (!store || !Object.keys(store).length) {
-      localStorage.removeItem(scopedEditorStorageKey(DRAFT_STORAGE_KEY));
-      return;
-    }
-    localStorage.setItem(scopedEditorStorageKey(DRAFT_STORAGE_KEY), JSON.stringify(store));
-  } catch (_) {
-    /* ignore storage errors */
-  }
+  composerDraftStore.write(store);
 }
 
 function normalizeMarkdownContent(text) {
@@ -4076,26 +4065,11 @@ try {
 } catch (_) {}
 
 function readMarkdownDraftStore() {
-  try {
-    const raw = localStorage.getItem(scopedEditorStorageKey(MARKDOWN_DRAFT_STORAGE_KEY));
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (_) {
-    return {};
-  }
+  return markdownDraftStore.read();
 }
 
 function writeMarkdownDraftStore(store) {
-  try {
-    if (!store || !Object.keys(store).length) {
-      localStorage.removeItem(scopedEditorStorageKey(MARKDOWN_DRAFT_STORAGE_KEY));
-      return;
-    }
-    localStorage.setItem(scopedEditorStorageKey(MARKDOWN_DRAFT_STORAGE_KEY), JSON.stringify(store));
-  } catch (_) {
-    /* ignore storage errors */
-  }
+  markdownDraftStore.write(store);
 }
 
 async function requestPasswordForProtectedMarkdown(tab, options = {}) {
@@ -4248,11 +4222,7 @@ function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = []
 function clearMarkdownDraftEntry(path) {
   const norm = normalizeRelPath(path);
   if (!norm) return;
-  const store = readMarkdownDraftStore();
-  if (store && Object.prototype.hasOwnProperty.call(store, norm)) {
-    delete store[norm];
-    writeMarkdownDraftStore(store);
-  }
+  markdownDraftStore.removeEntry(norm);
   clearMarkdownAssetsForPath(norm);
 }
 
@@ -4995,20 +4965,7 @@ function computeUnsyncedSummary() {
       hasContentChange: true
     });
   }
-  const systemEntries = getSystemUpdateSummaryEntries();
-  if (systemEntries && systemEntries.length) {
-    systemEntries.forEach((entry) => {
-      if (!entry || typeof entry !== 'object') return;
-      entries.push({ ...entry, kind: 'system' });
-    });
-  }
-  const themeEntries = getThemeManagerSummaryEntries();
-  if (themeEntries && themeEntries.length) {
-    themeEntries.forEach((entry) => {
-      if (!entry || typeof entry !== 'object') return;
-      entries.push({ ...entry, kind: 'system', category: 'theme' });
-    });
-  }
+  entries.push(...stagingRegistry.getSummaryEntries());
   const markdownEntries = collectUnsyncedMarkdownEntries();
   if (markdownEntries.length) entries.push(...markdownEntries);
   const assetDeletionEntries = listMarkdownAssetDeletions();
@@ -5919,16 +5876,15 @@ async function gatherCommitPayload(options = {}) {
   const { showSeoStatus = false } = options;
   const base = await gatherLocalChangesForCommit(options);
   const files = Array.isArray(base.files) ? base.files.slice() : [];
-  if (showSeoStatus) {
-    try {
-      if (typeof setSyncOverlayStatus === 'function') {
-        setSyncOverlayStatus('Generating SEO files…');
-      }
-    } catch (_) { /* ignore */ }
-  }
-  const seoFiles = await generateSeoCommitFiles();
-  if (seoFiles.length) files.push(...seoFiles);
-  return { files, seoFiles };
+  const providerResult = await stagingRegistry.getCommitFiles({
+    ...options,
+    showSeoStatus,
+    setStatus: setSyncOverlayStatus
+  });
+  const providerFiles = Array.isArray(providerResult.files) ? providerResult.files : [];
+  if (providerFiles.length) files.push(...providerFiles);
+  const seoFiles = providerFiles.filter(file => file && file.kind === 'seo');
+  return { files, seoFiles, warnings: providerResult.warnings || [] };
 }
 
 function collectDirtyMarkdownPathsForDeletion() {
@@ -6017,24 +5973,8 @@ async function collectDeletedMarkdownAssetFiles(markdownDeletionFiles = [], opti
 
 async function gatherLocalChangesForCommit(options = {}) {
   const { cleanupUnusedAssets = true } = options;
-  const files = [];
-  const seenPaths = new Set();
-  const addFile = (entry) => {
-    if (!entry || !entry.path) return;
-    const key = entry.path.replace(/\\+/g, '/');
-    if (seenPaths.has(key)) return;
-    seenPaths.add(key);
-    const next = { ...entry, path: key };
-    if (entry.plaintextContent) {
-      Object.defineProperty(next, 'plaintextContent', {
-        value: String(entry.plaintextContent || ''),
-        enumerable: false,
-        configurable: true,
-        writable: true
-      });
-    }
-    files.push(next);
-  };
+  const collector = createCommitFileCollector();
+  const { addFile } = collector;
 
   try {
     const flushes = Array.from(dynamicEditorTabs.values()).map((tab) => (
@@ -6236,22 +6176,7 @@ async function gatherLocalChangesForCommit(options = {}) {
     });
   }
 
-  const systemFiles = getSystemUpdateCommitFiles();
-  if (systemFiles && systemFiles.length) {
-    systemFiles.forEach((entry) => {
-      if (!entry || typeof entry !== 'object') return;
-      addFile({ ...entry, kind: 'system' });
-    });
-  }
-  const themeFiles = getThemeManagerCommitFiles();
-  if (themeFiles && themeFiles.length) {
-    themeFiles.forEach((entry) => {
-      if (!entry || typeof entry !== 'object') return;
-      addFile({ ...entry, kind: 'system', category: 'theme' });
-    });
-  }
-
-  return { files };
+  return { files: collector.getFiles() };
 }
 
 function describeSummaryEntry(entry) {
@@ -6538,162 +6463,44 @@ function getSyncCommitPanelHost() {
 }
 
 async function refreshSyncCommitPanel(options = {}) {
-  const panel = getSyncCommitPanelHost();
-  if (!panel) return null;
-  const headerSubmit = document.getElementById('btnSyncSubmit');
-  if (headerSubmit) {
-    headerSubmit.disabled = true;
-    headerSubmit.removeAttribute('aria-busy');
-  }
-  const renderId = ++syncCommitPanelRenderSeq;
-  panel.innerHTML = '';
-  const loading = document.createElement('p');
-  loading.className = 'muted sync-commit-loading';
-  loading.textContent = t('editor.status.checkingDrafts');
-  panel.appendChild(loading);
-
-  const summaryEntries = computeUnsyncedSummary();
-  let commitPayload = { files: [], seoFiles: [] };
-  try {
-    commitPayload = await gatherCommitPayload({ cleanupUnusedAssets: false, showSeoStatus: false });
-  } catch (err) {
-    if (renderId !== syncCommitPanelRenderSeq) return null;
-    panel.innerHTML = '';
-    const error = document.createElement('p');
-    error.className = 'sync-commit-error';
-    error.textContent = err && err.message ? err.message : t('editor.toasts.githubCommitFailed');
-    panel.appendChild(error);
-    return null;
-  }
-  if (renderId !== syncCommitPanelRenderSeq) return null;
-
-  const commitFiles = Array.isArray(commitPayload.files) ? commitPayload.files : [];
-  const seoFiles = Array.isArray(commitPayload.seoFiles) ? commitPayload.seoFiles : [];
-  const hasPending = commitFiles.length || summaryEntries.length;
-
-  panel.innerHTML = '';
-  const form = document.createElement('form');
-  form.id = 'syncCommitForm';
-  form.className = 'sync-commit-form comp-guide';
-  form.setAttribute('novalidate', 'novalidate');
-
-  const errorText = document.createElement('div');
-  errorText.className = 'sync-commit-error';
-  errorText.hidden = true;
-  form.appendChild(errorText);
-
-  const btnSubmit = headerSubmit;
-  if (btnSubmit) {
-    btnSubmit.disabled = !hasPending;
-    btnSubmit.textContent = t('editor.composer.github.modal.submit');
-  }
-
-  const summaryBlock = document.createElement('div');
-  summaryBlock.className = 'sync-commit-summary';
-  appendPublishTransportStatus(form);
-  if (resolvePublishTransport().type === 'pat') {
-    renderFineGrainedTokenSettings(form);
-  }
-  appendGithubCommitSummary(summaryBlock, commitFiles, seoFiles, summaryEntries);
-  form.appendChild(summaryBlock);
-
-  panel.appendChild(form);
-
-  const showError = (message, options = {}) => {
-    errorText.textContent = '';
-    const text = document.createElement('span');
-    text.className = 'sync-commit-error-text';
-    text.textContent = message;
-    errorText.appendChild(text);
-    if (options && options.connectFallback) {
-      const hint = document.createElement('span');
-      hint.className = 'sync-commit-error-hint';
-      hint.textContent = t('editor.composer.github.modal.connectFallbackHint');
-      const action = document.createElement('button');
-      action.type = 'button';
-      action.className = 'btn-tertiary sync-connect-fallback-action';
-      action.textContent = t('editor.composer.github.modal.connectFallback');
-      action.addEventListener('click', () => {
-        errorText.hidden = true;
-        switchToPatFallbackAndFocusToken();
-      });
-      errorText.append(hint, action);
-    }
-    errorText.hidden = false;
-  };
-
-  form.addEventListener('submit', async (event) => {
-    if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    errorText.hidden = true;
-    const currentSummary = computeUnsyncedSummary();
-    if (!currentSummary.length && !commitFiles.length) {
-      showToast('info', t('editor.composer.noLocalChangesToCommit'));
-      refreshSyncCommitPanel();
-      return;
-    }
-    const transport = resolvePublishTransport();
-    if (transport.type === 'pat') {
-      const input = getVisibleFineGrainedTokenInput();
-      const value = getFineGrainedTokenValue();
-      if (!value) {
-        showError(t('editor.composer.github.modal.errorRequired'));
-        if (input && input.offsetParent) {
-          try { input.focus({ preventScroll: true }); }
-          catch (_) { input.focus(); }
-        }
-        return;
-      }
-      setCachedFineGrainedToken(value);
-      transport.token = value;
-    } else {
-      if (transport.invalid || !transport.connect) {
-        showError(t('editor.composer.github.modal.connectInvalidUrl'));
-        const input = document.getElementById('syncConnectBaseUrlInput');
-        if (input && input.offsetParent) {
-          try { input.focus({ preventScroll: true }); }
-          catch (_) { input.focus(); }
-        }
-        return;
-      }
-      try {
-        await ensureConnectPublishGrant(transport.connect, getActiveSiteRepoConfig());
-      } catch (err) {
-        showError(err && err.message ? err.message : t('editor.composer.github.modal.connectAuthorizationFailed'), {
-          connectFallback: true
-        });
-        return;
-      }
-    }
-    if (btnSubmit) {
-      btnSubmit.disabled = true;
-      btnSubmit.setAttribute('aria-busy', 'true');
-    }
-    try {
-      if (transport.type === 'connect') await performConnectGithubCommit(transport.connect, currentSummary);
-      else await performDirectGithubCommit(transport.token, currentSummary);
-    } finally {
-      if (btnSubmit) btnSubmit.removeAttribute('aria-busy');
-      refreshSyncCommitPanel();
-    }
+  return refreshSyncCommitPanelView(options, {
+    documentRef: document,
+    t,
+    getSyncCommitPanelHost,
+    nextRenderId: () => {
+      syncCommitPanelRenderSeq += 1;
+      return syncCommitPanelRenderSeq;
+    },
+    getRenderId: () => syncCommitPanelRenderSeq,
+    computeUnsyncedSummary,
+    gatherCommitPayload,
+    appendPublishTransportStatus,
+    resolvePublishTransport,
+    renderFineGrainedTokenSettings,
+    appendGithubCommitSummary,
+    getVisibleFineGrainedTokenInput,
+    getFineGrainedTokenValue,
+    setCachedFineGrainedToken,
+    ensureConnectPublishGrant,
+    getActiveSiteRepoConfig,
+    showToast,
+    performConnectGithubCommit,
+    performDirectGithubCommit,
+    switchToPatFallbackAndFocusToken,
+    refreshSyncCommitPanel
   });
-
-  if (options.focusToken) {
-    focusFineGrainedTokenInput();
-  }
-  return { panel, input: getVisibleFineGrainedTokenInput(), form };
 }
 
 function scheduleSyncCommitPanelRefresh() {
-  if (currentMode !== 'sync') return;
-  try {
-    if (syncCommitPanelRefreshTimer) window.clearTimeout(syncCommitPanelRefreshTimer);
-    syncCommitPanelRefreshTimer = window.setTimeout(() => {
-      syncCommitPanelRefreshTimer = 0;
-      refreshSyncCommitPanel();
-    }, 120);
-  } catch (_) {
-    refreshSyncCommitPanel();
-  }
+  syncCommitPanelRefreshTimer = scheduleSyncCommitPanelRefreshView({
+    currentMode,
+    windowRef: window,
+    timer: syncCommitPanelRefreshTimer,
+    setTimer: (timer) => {
+      syncCommitPanelRefreshTimer = timer;
+    },
+    refreshSyncCommitPanel
+  });
 }
 
 async function waitForRemotePropagation(files = []) {
@@ -6715,9 +6522,8 @@ function getActiveSiteRepoConfig() {
 
 function applyLocalPostCommitState(files = []) {
   if (!Array.isArray(files) || !files.length) return;
+  stagingRegistry.clearCommittedFiles(files);
   const handledMarkdown = new Set();
-  let clearedSystem = false;
-  let clearedThemeManager = false;
   files.forEach((file) => {
     if (!file || !file.kind) return;
     if (file.kind === 'index') {
@@ -6838,17 +6644,6 @@ function applyLocalPostCommitState(files = []) {
       }
       updateComposerMarkdownDraftIndicators({ path: norm });
     }
-    else if (file.kind === 'system') {
-      if (file.category === 'theme') {
-        if (!clearedThemeManager) {
-          clearThemeManagerState({ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true });
-          clearedThemeManager = true;
-        }
-      } else if (!clearedSystem) {
-        clearSystemUpdateState({ keepStatus: false });
-        clearedSystem = true;
-      }
-    }
     else if (file.kind === 'asset') {
       const norm = normalizeRelPath(file.markdownPath || '');
       if (!norm) return;
@@ -6911,28 +6706,28 @@ async function performPublishCommit(transport, summaryEntries = []) {
 
     const headline = `chore: sync ${files.length === 1 ? 'draft' : 'drafts'} via Press`;
     if (transport && transport.type === 'connect') {
-      setSyncOverlayStatus(t('editor.composer.github.modal.connectAuthorizing'));
       connectFallbackActionAvailable = true;
-      const grant = await ensureConnectPublishGrant(transport.connect, { owner, name, branch });
-      setSyncOverlayStatus(t('editor.composer.github.modal.connectPublishing'));
-      await createConnectPublishCommit({
-        connect: transport.connect,
+      await publishStagedCommit({
+        transport,
         repo: { owner, name, branch },
         headline,
         files,
-        grant,
         contentRoot: getTrackedPublishContentRoot(),
-        translate: t
+        getCachedGrant: getCachedConnectPublishGrant,
+        setCachedGrant: setCachedConnectPublishGrant,
+        windowRef: window,
+        documentRef: document,
+        translate: t,
+        onStatus: setSyncOverlayStatus
       });
       connectFallbackActionAvailable = false;
     } else {
-      const { createFineGrainedTokenCommit } = await import('./publish/transports/github-pat-transport.js?v=press-system-v3.4.18');
-      await createFineGrainedTokenCommit(transport && transport.token, {
-        owner,
-        name,
-        branch,
+      await publishStagedCommit({
+        transport,
+        repo: { owner, name, branch },
         headline,
         files,
+        translate: t,
         onStatus: setSyncOverlayStatus
       });
     }
@@ -6983,7 +6778,7 @@ async function performPublishCommit(transport, summaryEntries = []) {
 }
 
 async function ensureConnectPublishGrant(connect, repo) {
-  return authorizeConnectPublishGrant({
+  return ensurePublishGrant({
     connect,
     repo,
     getCachedGrant: getCachedConnectPublishGrant,
@@ -8707,11 +8502,7 @@ function saveDraftToStorage(kind, opts = {}) {
 }
 
 function clearDraftStorage(kind) {
-  const store = readDraftStore();
-  if (store && Object.prototype.hasOwnProperty.call(store, kind)) {
-    delete store[kind];
-    writeDraftStore(store);
-  }
+  composerDraftStore.removeEntry(kind);
   composerDraftMeta[kind] = null;
 
 }
@@ -10112,12 +9903,7 @@ function scrollEditorContentToTop(behavior = 'smooth') {
 }
 
 function persistSystemTreeExpandedState() {
-  try {
-    window.localStorage.setItem(
-      scopedEditorStorageKey(LS_KEYS.systemTreeExpanded),
-      expandedEditorTreeNodeIds.has('system') ? '1' : '0'
-    );
-  } catch (_) {}
+  editorSessionStateStore.writeLegacySystemTreeExpanded(expandedEditorTreeNodeIds.has('system'));
 }
 
 function normalizeEditorScrollTop(value) {
@@ -10287,99 +10073,21 @@ function setEditorSystemPanelVisible(visible) {
 }
 
 function animateEditorSystemPanelContent() {
-  const panel = document.getElementById('editorSystemPanel');
-  if (!panel) return;
-  try {
-    const previousTimer = panel.__pressSystemAnimationTimer;
-    if (previousTimer) window.clearTimeout(previousTimer);
-  } catch (_) {}
-  panel.classList.remove('is-content-entering');
-  try { panel.getBoundingClientRect(); } catch (_) {}
-  panel.classList.add('is-content-entering');
-  try {
-    panel.__pressSystemAnimationTimer = window.setTimeout(() => {
-      panel.classList.remove('is-content-entering');
-      panel.__pressSystemAnimationTimer = null;
-    }, 260);
-  } catch (_) {}
+  animateSystemPanelContent({ windowRef: window, documentRef: document });
 }
 
 function showEditorSystemPanel(mode) {
-  const nextMode = mode === 'sync' ? 'sync' : (mode === 'updates' ? 'updates' : (mode === 'themes' ? 'themes' : 'composer'));
-  mountEditorSystemPanels();
-  const panel = document.getElementById('editorSystemPanel');
-  const title = document.getElementById('editorSystemTitle');
-  const kicker = document.getElementById('editorSystemKicker');
-  const meta = document.getElementById('editorSystemMeta');
-  const actions = document.getElementById('editorSystemActions');
-  const composerActions = document.getElementById('editorModalComposerActions');
-  const themeActions = document.getElementById('editorModalThemeActions');
-  const updateActions = document.getElementById('editorModalUpdateActions');
-  const syncActions = document.getElementById('editorModalSyncActions');
-  const composerPanel = document.getElementById('mode-composer');
-  const themesPanel = document.getElementById('mode-themes');
-  const updatesPanel = document.getElementById('mode-updates');
-  const syncPanel = document.getElementById('mode-sync');
-  if (!panel) return;
-
-  setEditorSystemPanelVisible(true);
-  if (kicker) kicker.textContent = treeText('system', 'System');
-  if (title) {
-    title.textContent = nextMode === 'sync'
-      ? treeText('sync', 'Publish')
-      : (nextMode === 'updates'
-        ? treeText('pressUpdates', 'Press Updates')
-        : (nextMode === 'themes'
-          ? treeText('themes', 'Themes')
-          : treeText('siteSettings', 'Site Settings')));
-  }
-  if (meta) {
-    meta.textContent = nextMode === 'sync'
-      ? treeText('syncMeta', 'Publish local changes to GitHub.')
-      : (nextMode === 'updates'
-        ? treeText('systemUpdatesMeta', 'Review and apply Press updates.')
-        : (nextMode === 'themes'
-          ? treeText('themesMeta', 'Theme packs.')
-          : treeText('siteSettingsMeta', 'Edit site.yaml settings.')));
-  }
-
-  if (actions) {
-    [
-      ['composer', composerActions],
-      ['themes', themeActions],
-      ['updates', updateActions],
-      ['sync', syncActions]
-    ].forEach(([key, actionSet]) => {
-      if (!actionSet) return;
-      if (actionSet.parentElement !== actions) actions.appendChild(actionSet);
-      const active = key === nextMode;
-      actionSet.hidden = !active;
-      actionSet.setAttribute('aria-hidden', active ? 'false' : 'true');
-    });
-  }
-
-  [
-    ['composer', composerPanel],
-    ['themes', themesPanel],
-    ['updates', updatesPanel],
-    ['sync', syncPanel]
-  ].forEach(([key, modePanel]) => {
-    const active = key === nextMode;
-    if (!modePanel) return;
-    modePanel.hidden = !active;
-    modePanel.setAttribute('aria-hidden', active ? 'false' : 'true');
-    modePanel.style.display = active ? '' : 'none';
+  return showComposerSystemPanel(mode, {
+    documentRef: document,
+    treeText,
+    mountEditorSystemPanels,
+    setEditorSystemPanelVisible,
+    getActiveComposerFile,
+    applyComposerFile,
+    resetSiteSettingsNavOnOpen,
+    refreshSyncCommitPanel,
+    animatePanel: animateEditorSystemPanelContent
   });
-
-  if (nextMode === 'composer') {
-    try {
-      if (getActiveComposerFile() !== 'site') applyComposerFile('site', { force: true, immediate: true });
-    } catch (_) {}
-    resetSiteSettingsNavOnOpen();
-  } else if (nextMode === 'sync') {
-    refreshSyncCommitPanel();
-  }
-  animateEditorSystemPanelContent();
 }
 
 function getEditorOverlayTitle(mode) {
@@ -10564,7 +10272,7 @@ function setEditorRailWidth(value, options = {}) {
     resizer.setAttribute('aria-valuenow', String(Math.round(width)));
   }
   if (options.persist) {
-    try { window.localStorage.setItem(EDITOR_RAIL_WIDTH_KEY, String(Math.round(width))); } catch (_) {}
+    editorSessionStateStore.writeUnscopedNumber(EDITOR_RAIL_WIDTH_KEY, width);
   }
   return width;
 }
@@ -10577,10 +10285,7 @@ function initEditorRailResize() {
   editorRailResizeBound = true;
 
   let stored = EDITOR_RAIL_DEFAULT_WIDTH;
-  try {
-    const value = window.localStorage.getItem(EDITOR_RAIL_WIDTH_KEY);
-    if (value) stored = Number(value);
-  } catch (_) {}
+  stored = editorSessionStateStore.readUnscopedNumber(EDITOR_RAIL_WIDTH_KEY, EDITOR_RAIL_DEFAULT_WIDTH);
   setEditorRailWidth(stored, { persist: false });
 
   const isMobile = () => {
@@ -10705,8 +10410,6 @@ function initMobileEditorRail() {
 function persistDynamicEditorState() {
   if (!allowEditorStatePersist) return;
   try {
-    const store = window.localStorage;
-    if (!store) return;
     captureEditorContentScroll(currentMode);
     const open = Array.from(dynamicEditorTabs.values())
       .map((tab) => {
@@ -10741,23 +10444,12 @@ function persistDynamicEditorState() {
       state.activeLookupKey = active && (active.lookupKey || active.path) ? (active.lookupKey || active.path) : null;
       state.activePath = active && active.path ? active.path : null;
     }
-    store.setItem(scopedEditorStorageKey(LS_KEYS.editorState), JSON.stringify(state));
+    editorSessionStateStore.writeEditorState(state);
   } catch (_) {}
 }
 
 function restoreDynamicEditorState() {
-  let raw = null;
-  try {
-    const store = window.localStorage;
-    if (!store) return false;
-    raw = store.getItem(scopedEditorStorageKey(LS_KEYS.editorState));
-  } catch (_) {
-    return false;
-  }
-  if (!raw) return false;
-  let data;
-  try { data = JSON.parse(raw); }
-  catch (_) { return false; }
+  const data = editorSessionStateStore.readEditorState();
   if (!data || typeof data !== 'object') return false;
 
   const isV3 = data.v === EDITOR_STATE_VERSION;

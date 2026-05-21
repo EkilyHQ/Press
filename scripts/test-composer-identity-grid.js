@@ -3,9 +3,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createPublishSettingsStore } from '../assets/js/publish/settings-store.js';
+import { createEditorSessionStateStore } from '../assets/js/editor-session-state.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
+const composerSyncPanelPath = resolve(here, '../assets/js/composer-sync-panel.js');
+const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
+const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
+const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
 const connectTransportPath = resolve(here, '../assets/js/publish/transports/connect-transport.js');
 const patTransportPath = resolve(here, '../assets/js/publish/transports/github-pat-transport.js');
@@ -26,6 +31,10 @@ const jaI18nPath = resolve(here, '../assets/i18n/ja.js');
 const languagesManifestPath = resolve(here, '../assets/i18n/languages.json');
 const i18nPath = resolve(here, '../assets/js/i18n.js');
 const source = readFileSync(composerPath, 'utf8');
+const composerSyncPanelSource = readFileSync(composerSyncPanelPath, 'utf8');
+const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
+const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
+const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
 const connectTransportSource = readFileSync(connectTransportPath, 'utf8');
 const patTransportSource = readFileSync(patTransportPath, 'utf8');
@@ -82,8 +91,8 @@ function extractFunctionDeclaration(text, name) {
 
 function loadRepoInferenceHelpers() {
   const helpers = [
-    extractFunctionDeclaration(source, 'normalizeStorageScopePart'),
-    extractFunctionDeclaration(source, 'resolveEditorStorageScope'),
+    extractFunctionDeclaration(editorStorageSource, 'normalizeStorageScopePart'),
+    extractFunctionDeclaration(editorStorageSource, 'resolveEditorStorageScope').replace('export ', ''),
     extractFunctionDeclaration(source, 'inferRepoConfigFromGitHubPagesUrl'),
     extractFunctionDeclaration(source, 'isPlaceholderRepoConfig'),
     extractFunctionDeclaration(source, 'isSameRepoConfig'),
@@ -242,23 +251,19 @@ assert.notEqual(
 
 assert.match(
   source,
-  /const EDITOR_STORAGE_SCOPE = [\s\S]*resolveEditorStorageScope\(window\.location\)[\s\S]*function scopedEditorStorageKey\(key\) \{[\s\S]*return `\$\{key\}:\$\{EDITOR_STORAGE_SCOPE\}`;/,
+  /const EDITOR_STORAGE_SCOPE = [\s\S]*resolveEditorStorageScope\(window\.location\)[\s\S]*function scopedEditorStorageKey\(key\) \{[\s\S]*return createScopedStorageKey\(EDITOR_STORAGE_SCOPE, key\);/,
   'composer should derive a site-scoped local storage key suffix from window.location'
 );
 
-[
-  'LS_KEYS.editorState',
-  'LS_KEYS.systemTreeExpanded',
-  'LS_KEYS.cfile',
-  'DRAFT_STORAGE_KEY',
-  'MARKDOWN_DRAFT_STORAGE_KEY'
-].forEach((keyName) => {
-  assert.match(
-    source,
-    new RegExp(`scopedEditorStorageKey\\(${keyName.replace('.', '\\.')}\\)`),
-    `${keyName} should use site-scoped browser storage`
-  );
-});
+assert.match(
+  editorStorageSource,
+  /export function createScopedStorageKey\(scope, key\) \{[\s\S]*return `\$\{key\}:\$\{scope \|\| 'unknown'\}`;/,
+  'editor storage helper should build scoped local storage keys'
+);
+
+assert.match(source, /createEditorSessionStateStore\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*keys: LS_KEYS/, 'editor session state should use site-scoped browser storage');
+assert.match(source, /createScopedDraftStore\(\{[\s\S]*storageKey: DRAFT_STORAGE_KEY,[\s\S]*scopeKey: scopedEditorStorageKey[\s\S]*createScopedDraftStore\(\{[\s\S]*storageKey: MARKDOWN_DRAFT_STORAGE_KEY,[\s\S]*scopeKey: scopedEditorStorageKey/, 'composer and markdown draft stores should use site-scoped browser storage');
+assert.match(source, /scopedEditorStorageKey\(LS_KEYS\.cfile\)/, 'active composer file storage should remain site-scoped');
 
 assert.match(
   publishSettingsSource,
@@ -274,6 +279,23 @@ function createMemoryStorage(seed = {}) {
     removeItem: (key) => { data.delete(key); },
     dump: () => Object.fromEntries(data.entries())
   };
+}
+
+{
+  const localStorage = createMemoryStorage();
+  const store = createEditorSessionStateStore({
+    storage: localStorage,
+    scopeKey: (key) => `${key}:scope`,
+    keys: {
+      editorState: 'press_composer_editor_state',
+      systemTreeExpanded: 'press_editor_system_tree_expanded'
+    }
+  });
+  assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 340, 'missing rail width should preserve the default width');
+  localStorage.setItem('press_editor_rail_width', '420');
+  assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 420, 'stored rail width should be restored');
+  localStorage.setItem('press_editor_rail_width', 'invalid');
+  assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 340, 'invalid rail width should fall back to the default width');
 }
 
 {
@@ -1932,8 +1954,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /async function refreshSyncCommitPanel\(options = \{\}\) \{[\s\S]*const headerSubmit = document\.getElementById\('btnSyncSubmit'\)[\s\S]*gatherCommitPayload\(\{ cleanupUnusedAssets: false, showSeoStatus: false \}\)[\s\S]*form\.id = 'syncCommitForm';[\s\S]*const btnSubmit = headerSubmit;[\s\S]*appendPublishTransportStatus\(form\);[\s\S]*appendGithubCommitSummary\(summaryBlock, commitFiles, seoFiles, summaryEntries\)[\s\S]*const transport = resolvePublishTransport\(\);[\s\S]*ensureConnectPublishGrant\(transport\.connect, getActiveSiteRepoConfig\(\)\)[\s\S]*performConnectGithubCommit\(transport\.connect, currentSummary\)[\s\S]*performDirectGithubCommit\(transport\.token, currentSummary\);/,
+  composerSyncPanelSource,
+  /export async function refreshSyncCommitPanelView\(options = \{\}, deps = \{\}\) \{[\s\S]*const headerSubmit = documentRef\.getElementById\('btnSyncSubmit'\)[\s\S]*gatherCommitPayload\(\{ cleanupUnusedAssets: false, showSeoStatus: false \}\)[\s\S]*form\.id = 'syncCommitForm';[\s\S]*const btnSubmit = headerSubmit;[\s\S]*appendPublishTransportStatus\(form\);[\s\S]*appendGithubCommitSummary\(summaryBlock, commitFiles, seoFiles, summaryEntries\)[\s\S]*const transport = resolvePublishTransport\(\);[\s\S]*ensureConnectPublishGrant\(transport\.connect, getActiveSiteRepoConfig\(\)\)[\s\S]*performConnectGithubCommit\(transport\.connect, currentSummary\)[\s\S]*performDirectGithubCommit\(transport\.token, currentSummary\);/,
   'inline Sync page commit form should reuse existing payload and route through the selected publish transport'
 );
 
@@ -1961,10 +1983,16 @@ assert.doesNotMatch(
   'composer should not directly own Connect or GitHub commit transport implementations'
 );
 
+assert.doesNotMatch(
+  publishCommitServiceSource,
+  /import \{ createFineGrainedTokenCommit \} from '\.\/transports\/github-pat-transport\.js\?v=[\w.-]+'/,
+  'publish commit service should not eagerly import the PAT transport on composer startup'
+);
+
 assert.match(
-  source,
-  /import\('\.\/publish\/transports\/github-pat-transport\.js\?v=[\w.-]+'\)/,
-  'PAT fallback transport should be loaded only when the user explicitly selects the PAT path'
+  publishCommitServiceSource,
+  /await import\('\.\/transports\/github-pat-transport\.js\?v=[\w.-]+'\)[\s\S]*createFineGrainedTokenCommit\(transport && transport\.token/,
+  'publish commit service should lazy-load the PAT transport only for PAT publishing'
 );
 
 assert.match(
@@ -2022,7 +2050,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  source.slice(source.indexOf('async function refreshSyncCommitPanel(options = {}) {'), source.indexOf('function scheduleSyncCommitPanelRefresh()')),
+  composerSyncPanelSource,
   /editor\.composer\.github\.modal\.tokenLabel|sync-token-help|className = 'sync-token-field'/,
   'Sync page should no longer render the fine-grained token settings inline'
 );
@@ -2764,15 +2792,12 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function showEditorSystemPanel\(mode\) \{[\s\S]*mode === 'sync' \? 'sync'[\s\S]*editorSystemActions[\s\S]*editorModalThemeActions[\s\S]*editorModalSyncActions[\s\S]*mode-composer[\s\S]*mode-themes[\s\S]*mode-updates[\s\S]*mode-sync[\s\S]*\['themes', themeActions\][\s\S]*\['sync', syncActions\]/,
+  composerSystemPanelSource,
+  /export function showEditorSystemPanel\(mode, deps = \{\}\) \{[\s\S]*mode === 'sync' \? 'sync'[\s\S]*editorSystemActions[\s\S]*editorModalThemeActions[\s\S]*editorModalSyncActions[\s\S]*mode-composer[\s\S]*mode-themes[\s\S]*mode-updates[\s\S]*mode-sync[\s\S]*\['themes', themeActions\][\s\S]*\['sync', syncActions\]/,
   'Site Settings, Themes, Press Updates, and Sync should render through the inline system panel'
 );
 
-const showEditorSystemPanelBody = source.slice(
-  source.indexOf('function showEditorSystemPanel(mode) {'),
-  source.indexOf('function getEditorOverlayTitle(mode)')
-);
+const showEditorSystemPanelBody = composerSystemPanelSource;
 
 assert.doesNotMatch(
   showEditorSystemPanelBody,
@@ -3362,8 +3387,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const showError = \(message, options = \{\}\) => \{[\s\S]*sync-commit-error-hint[\s\S]*connectFallbackHint[\s\S]*sync-connect-fallback-action[\s\S]*switchToPatFallbackAndFocusToken\(\);/,
+  composerSyncPanelSource,
+  /const showError = \(message, errorOptions = \{\}\) => \{[\s\S]*sync-commit-error-hint[\s\S]*connectFallbackHint[\s\S]*sync-connect-fallback-action[\s\S]*switchToPatFallbackAndFocusToken\(\);/,
   'inline Connect authorization errors should render an explicit PAT fallback action'
 );
 
@@ -3375,7 +3400,7 @@ assert.match(
 
 assert.match(
   source,
-  /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*await ensureConnectPublishGrant\(transport\.connect[\s\S]*await createConnectPublishCommit\([\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
+  /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*await publishStagedCommit\(\{[\s\S]*transport,[\s\S]*getCachedGrant: getCachedConnectPublishGrant[\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
   'Only Connect authorization and publish failures should expose a toast action that switches to PAT fallback'
 );
 

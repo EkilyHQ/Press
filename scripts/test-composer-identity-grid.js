@@ -9,6 +9,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
 const composerSyncPanelPath = resolve(here, '../assets/js/composer-sync-panel.js');
 const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
+const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
+const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
+const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -33,6 +36,9 @@ const i18nPath = resolve(here, '../assets/js/i18n.js');
 const source = readFileSync(composerPath, 'utf8');
 const composerSyncPanelSource = readFileSync(composerSyncPanelPath, 'utf8');
 const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
+const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
+const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
+const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -443,13 +449,13 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerPublishSummarySource,
   /function openGithubCommitFilePreview\(file, triggerEl\) \{[\s\S]*previewDialog\.appendChild\(head\);[\s\S]*pre\.className = 'github-preview-code';[\s\S]*previewDialog\.appendChild\(pre\);[\s\S]*previewModal\.appendChild\(previewDialog\);/,
   'GitHub pending-file preview should append code directly to the dialog without extra content wrappers'
 );
 
 assert.doesNotMatch(
-  source,
+  composerPublishSummarySource,
   /github-preview-body|github-preview-content|github-preview-path/,
   'GitHub pending-file preview should not render the removed body, content, or repeated path wrappers'
 );
@@ -3333,19 +3339,19 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
-  /function renderFineGrainedTokenSettings\(host\) \{[\s\S]*tokenField\.className = 'cs-repo-field-group cs-repo-field-group--token cs-token-field';[\s\S]*field\.className = 'cs-repo-field cs-repo-field--token';[\s\S]*input\.id = 'syncGithubTokenInput';[\s\S]*input\.className = 'cs-input cs-repo-input cs-repo-input--token';[\s\S]*const btnForget = document\.createElement\('span'\);[\s\S]*btnForget\.setAttribute\('role', 'button'\);[\s\S]*btnForget\.className = 'cs-token-clear';[\s\S]*field\.append\(affix, input, btnForget\);[\s\S]*setCachedFineGrainedToken\(input\.value\);[\s\S]*host\.appendChild\(wrapper\);/,
+  composerPublishSettingsUiSource,
+  /function renderFineGrainedTokenSettings\(host\) \{[\s\S]*tokenField\.className = 'cs-repo-field-group cs-repo-field-group--token cs-token-field';[\s\S]*field\.className = 'cs-repo-field cs-repo-field--token';[\s\S]*input\.id = 'syncGithubTokenInput';[\s\S]*input\.className = 'cs-input cs-repo-input cs-repo-input--token';[\s\S]*const btnForget = documentRef\.createElement\('span'\);[\s\S]*btnForget\.setAttribute\('role', 'button'\);[\s\S]*btnForget\.className = 'cs-token-clear';[\s\S]*field\.append\(affix, input, btnForget\);[\s\S]*setCachedFineGrainedToken\(input\.value\);[\s\S]*host\.appendChild\(wrapper\);/,
   'fine-grained token settings should reuse the repository field style with a full-width token field'
 );
 
 assert.doesNotMatch(
-  source.slice(source.indexOf('function renderFineGrainedTokenSettings(host) {'), source.indexOf('function startRemoteSyncWatcher')),
-  /document\.createElement\('button'\)/,
+  composerPublishSettingsUiSource.slice(composerPublishSettingsUiSource.indexOf('function renderFineGrainedTokenSettings(host) {'), composerPublishSettingsUiSource.indexOf('function renderPublishTransportSettings(host) {')),
+  /documentRef\.createElement\('button'\)|document\.createElement\('button'\)/,
   'token clear control should avoid native button chrome'
 );
 
 assert.doesNotMatch(
-  source,
+  composerPublishSettingsUiSource,
   /cs-token-actions/,
   'token clear control should not reserve a separate action row below the input'
 );
@@ -3369,19 +3375,19 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerPublishSettingsUiSource,
   /function getMatchingConnectPublishGrant\(connect, repo = getActiveSiteRepoConfig\(\)\) \{[\s\S]*cached\.baseUrl !== connect\.baseUrl[\s\S]*cached\.owner !== repo\.owner \|\| cached\.name !== repo\.name \|\| cached\.branch !== branch[\s\S]*return cached;/,
   'Connect connected UI should only trust cached grants that match the selected repo, branch, and base URL'
 );
 
 assert.match(
-  source,
-  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function syncFineGrainedTokenInputs\(value, sourceInput = null\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*if \(input !== sourceInput\) input\.value = nextValue;[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*\.then\(\(\) => focusFineGrainedTokenInput\(\)\)[\s\S]*\.catch\(\(\) => focusFineGrainedTokenInput\(\)\);/,
+  composerPublishSettingsUiSource,
+  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*documentRef\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function syncFineGrainedTokenInputs\(value, sourceInput = null\) \{[\s\S]*documentRef\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*if \(input !== sourceInput\) input\.value = nextValue;[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*\.then\(\(\) => focusFineGrainedTokenInput\(\)\)[\s\S]*\.catch\(\(\) => focusFineGrainedTokenInput\(\)\);/,
   'Connect failure fallback action should switch to PAT mode through the normal Publish panel path, refresh publish state, and focus the visible PAT token input'
 );
 
 assert.match(
-  source,
+  composerPublishSettingsUiSource,
   /input\.addEventListener\('input', \(\) => \{[\s\S]*setCachedFineGrainedToken\(input\.value\);[\s\S]*syncFineGrainedTokenInputs\(input\.value, input\);[\s\S]*const clearToken = \(\) => \{[\s\S]*clearCachedFineGrainedToken\(\);[\s\S]*syncFineGrainedTokenInputs\(''\);/,
   'Multiple PAT token inputs should stay synchronized so clearing one cannot resurrect a stale session token'
 );
@@ -3399,7 +3405,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerPublishFlowSource,
   /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*await publishStagedCommit\(\{[\s\S]*transport,[\s\S]*getCachedGrant: getCachedConnectPublishGrant[\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
   'Only Connect authorization and publish failures should expose a toast action that switches to PAT fallback'
 );

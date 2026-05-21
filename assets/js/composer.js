@@ -1883,11 +1883,9 @@ function switchToPatFallbackAndFocusToken() {
   openSyncPanelForPatFallback();
   updatePublishTransportSettingsDomForPatFallback();
   try {
-    const refresh = refreshSyncCommitPanel({ focusToken: true });
-    if (refresh && typeof refresh.then === 'function') refresh.then(
-      () => focusFineGrainedTokenInput(),
-      () => focusFineGrainedTokenInput()
-    );
+    refreshSyncCommitPanel({ focusToken: true })
+      .then(() => focusFineGrainedTokenInput())
+      .catch(() => focusFineGrainedTokenInput());
   } catch (_) {}
   const focusLater = () => {
     if (focusFineGrainedTokenInput()) return;

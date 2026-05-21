@@ -3351,7 +3351,7 @@ assert.match(
 
 assert.match(
   source,
-  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function syncFineGrainedTokenInputs\(value, sourceInput = null\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*if \(input !== sourceInput\) input\.value = nextValue;[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*focusFineGrainedTokenInput\(\);/,
+  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function syncFineGrainedTokenInputs\(value, sourceInput = null\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*if \(input !== sourceInput\) input\.value = nextValue;[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*\.then\(\(\) => focusFineGrainedTokenInput\(\)\)[\s\S]*\.catch\(\(\) => focusFineGrainedTokenInput\(\)\);/,
   'Connect failure fallback action should switch to PAT mode through the normal Publish panel path, refresh publish state, and focus the visible PAT token input'
 );
 
@@ -3365,6 +3365,12 @@ assert.match(
   source,
   /const showError = \(message, options = \{\}\) => \{[\s\S]*sync-commit-error-hint[\s\S]*connectFallbackHint[\s\S]*sync-connect-fallback-action[\s\S]*switchToPatFallbackAndFocusToken\(\);/,
   'inline Connect authorization errors should render an explicit PAT fallback action'
+);
+
+assert.match(
+  editorSource,
+  /\.sync-commit-error\s*\{[\s\S]*display:flex;[\s\S]*\.sync-commit-error\[hidden\]\s*\{[\s\S]*display:none !important;/,
+  'sync commit fallback errors should still obey the hidden attribute after flex styling'
 );
 
 assert.match(

@@ -163,7 +163,6 @@ export async function waitForRemotePropagation(files = [], options = {}) {
         break;
       }
       for (let remaining = checkIntervalMs; remaining > 0; remaining -= countdownStepMs) {
-        if (canceled) break;
         const seconds = Math.ceil(remaining / 1000);
         setStatus(`Attempt ${attempt} did not match for ${displayLabel}. Next check in ${seconds}s...`);
         await sleep(Math.min(countdownStepMs, remaining));

@@ -826,6 +826,7 @@ const translations = {
             connectInvalidUrl: '请输入有效的 Connect URL。除 localhost 外必须使用 HTTPS。',
             connectFallback: '改用精细化个人访问令牌',
             connectFallbackActive: '本次发布将使用精细化令牌回退方式。',
+            connectFallbackHint: '如果 Connect 不可用或你的账号未获授权，请切换到个人令牌回退方式。',
             connectMissing: '此站点尚未配置 Connect 发布。',
             connectAuthorizing: '正在通过 Connect 授权…',
             connectPublishing: '正在通过 Connect 创建提交…',

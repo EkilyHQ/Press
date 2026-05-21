@@ -3350,6 +3350,49 @@ assert.match(
 );
 
 assert.match(
+  source,
+  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function syncFineGrainedTokenInputs\(value, sourceInput = null\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*if \(input !== sourceInput\) input\.value = nextValue;[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*\.then\(\(\) => focusFineGrainedTokenInput\(\)\)[\s\S]*\.catch\(\(\) => focusFineGrainedTokenInput\(\)\);/,
+  'Connect failure fallback action should switch to PAT mode through the normal Publish panel path, refresh publish state, and focus the visible PAT token input'
+);
+
+assert.match(
+  source,
+  /input\.addEventListener\('input', \(\) => \{[\s\S]*setCachedFineGrainedToken\(input\.value\);[\s\S]*syncFineGrainedTokenInputs\(input\.value, input\);[\s\S]*const clearToken = \(\) => \{[\s\S]*clearCachedFineGrainedToken\(\);[\s\S]*syncFineGrainedTokenInputs\(''\);/,
+  'Multiple PAT token inputs should stay synchronized so clearing one cannot resurrect a stale session token'
+);
+
+assert.match(
+  source,
+  /const showError = \(message, options = \{\}\) => \{[\s\S]*sync-commit-error-hint[\s\S]*connectFallbackHint[\s\S]*sync-connect-fallback-action[\s\S]*switchToPatFallbackAndFocusToken\(\);/,
+  'inline Connect authorization errors should render an explicit PAT fallback action'
+);
+
+assert.match(
+  editorSource,
+  /\.sync-commit-error\s*\{[\s\S]*display:flex;[\s\S]*\.sync-commit-error\[hidden\]\s*\{[\s\S]*display:none !important;/,
+  'sync commit fallback errors should still obey the hidden attribute after flex styling'
+);
+
+assert.match(
+  source,
+  /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*await ensureConnectPublishGrant\(transport\.connect[\s\S]*await createConnectPublishCommit\([\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
+  'Only Connect authorization and publish failures should expose a toast action that switches to PAT fallback'
+);
+
+[
+  ['English', enI18nSource],
+  ['Simplified Chinese', chsI18nSource],
+  ['Traditional Chinese', chtTwI18nSource],
+  ['Japanese', jaI18nSource]
+].forEach(([label, localeSource]) => {
+  assert.match(
+    localeSource,
+    /connectFallbackHint:/,
+    `${label} translations should explain when to use the PAT fallback after Connect failures`
+  );
+});
+
+assert.match(
   publishSettingsSource,
   /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const PUBLISH_TRANSPORT_MODE_STORAGE_KEY = 'press_publish_transport_mode';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
   'Connect publish settings should keep legacy storage compatibility while defaulting to a transport mode key'

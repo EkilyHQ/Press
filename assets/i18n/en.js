@@ -833,6 +833,7 @@ const translations = {
             connectInvalidUrl: 'Enter a valid Connect URL. HTTPS is required unless the host is localhost.',
             connectFallback: 'Use a Fine-grained Personal Access Token instead',
             connectFallbackActive: 'Fine-grained token fallback is active for this publish.',
+            connectFallbackHint: 'If Connect is unavailable or your account is not authorized, switch to the personal token fallback.',
             connectMissing: 'Connect publishing is not configured for this site.',
             connectAuthorizing: 'Authorizing with Connect…',
             connectPublishing: 'Creating commit through Connect…',

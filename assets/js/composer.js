@@ -8,35 +8,35 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.17';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=press-system-v3.4.17';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.17';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.17';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.17';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.18';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=press-system-v3.4.18';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.18';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.18';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.18';
 import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.17';
+} from './encrypted-content.js?v=press-system-v3.4.18';
 import {
   collectLocalMarkdownAssetReferences,
   collectManagedMarkdownReferences,
   listLocalMarkdownAssetReferences,
   planManagedContentDeletions,
   resolveLocalMarkdownAssetReference
-} from './repository-deletions.js?v=press-system-v3.4.17';
+} from './repository-deletions.js?v=press-system-v3.4.18';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore,
   getDefaultConnectPublishBaseUrl,
   normalizeConnectPublishBaseUrl
-} from './publish/settings-store.js?v=press-system-v3.4.17';
+} from './publish/settings-store.js?v=press-system-v3.4.18';
 import {
   createConnectPublishCommit,
   ensureConnectPublishGrant as authorizeConnectPublishGrant
-} from './publish/transports/connect-transport.js?v=press-system-v3.4.17';
-import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.17';
+} from './publish/transports/connect-transport.js?v=press-system-v3.4.18';
+import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.18';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -1789,7 +1789,7 @@ function clearCachedFineGrainedToken() {
 }
 
 function getFineGrainedTokenValue() {
-  const input = document.getElementById('syncGithubTokenInput');
+  const input = getVisibleFineGrainedTokenInput();
   const value = input && typeof input.value === 'string' ? input.value.trim() : '';
   return value || getCachedFineGrainedToken();
 }
@@ -1827,6 +1827,78 @@ function setConnectPublishBaseUrl(baseUrl) {
     ...getStoredConnectPublishSettings(),
     baseUrl
   });
+}
+
+function getVisibleFineGrainedTokenInput() {
+  const inputs = Array.from(document.querySelectorAll('#syncGithubTokenInput'));
+  return inputs.find(input => input && input.offsetParent !== null) || inputs[0] || null;
+}
+
+function syncFineGrainedTokenInputs(value, sourceInput = null) {
+  const nextValue = typeof value === 'string' ? value : '';
+  document.querySelectorAll('#syncGithubTokenInput').forEach(input => {
+    if (input !== sourceInput) input.value = nextValue;
+    const wrapper = input.closest ? input.closest('.cs-token-settings') : null;
+    const clear = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-token-clear') : null;
+    if (!clear) return;
+    const hasValue = !!String(input.value || '').trim();
+    clear.setAttribute('aria-disabled', hasValue ? 'false' : 'true');
+    clear.tabIndex = hasValue ? 0 : -1;
+  });
+}
+
+function focusFineGrainedTokenInput() {
+  const input = getVisibleFineGrainedTokenInput();
+  if (!input || typeof input.focus !== 'function') return false;
+  try { input.focus({ preventScroll: true }); }
+  catch (_) { input.focus(); }
+  return true;
+}
+
+function updatePublishTransportSettingsDomForPatFallback() {
+  const enabledInput = document.getElementById('syncConnectPublishEnabledInput');
+  if (!enabledInput) return;
+  enabledInput.checked = false;
+  const method = enabledInput.closest ? enabledInput.closest('.cs-publish-method-switch') : null;
+  if (method) method.dataset.state = 'off';
+  const methodText = method && method.querySelector ? method.querySelector('.cs-switch-label') : null;
+  if (methodText) methodText.textContent = t('editor.composer.github.modal.publishMethodPat');
+  const wrapper = enabledInput.closest ? enabledInput.closest('.cs-publish-transport-settings') : null;
+  const connectPanel = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-connect-publish-settings') : null;
+  const patPanel = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-pat-publish-settings') : null;
+  if (connectPanel) connectPanel.hidden = true;
+  if (patPanel) patPanel.hidden = false;
+}
+
+function openSyncPanelForPatFallback() {
+  try {
+    applyMode('sync', { preserveTreeExpansion: true });
+    return;
+  } catch (_) {}
+  try { showEditorSystemPanel('sync'); } catch (_) {}
+}
+
+function switchToPatFallbackAndFocusToken() {
+  setConnectPublishEnabled(false);
+  openSyncPanelForPatFallback();
+  updatePublishTransportSettingsDomForPatFallback();
+  try {
+    refreshSyncCommitPanel({ focusToken: true })
+      .then(() => focusFineGrainedTokenInput())
+      .catch(() => focusFineGrainedTokenInput());
+  } catch (_) {}
+  const focusLater = () => {
+    if (focusFineGrainedTokenInput()) return;
+    openSyncPanelForPatFallback();
+    updatePublishTransportSettingsDomForPatFallback();
+    focusFineGrainedTokenInput();
+  };
+  try {
+    requestAnimationFrame(() => requestAnimationFrame(focusLater));
+  } catch (_) {
+    setTimeout(focusLater, 0);
+  }
+  setTimeout(focusLater, 120);
 }
 
 function getCachedConnectPublishGrant() {
@@ -1895,17 +1967,13 @@ function renderFineGrainedTokenSettings(host) {
 
   input.addEventListener('input', () => {
     setCachedFineGrainedToken(input.value);
-    const hasValue = !!String(input.value || '').trim();
-    btnForget.setAttribute('aria-disabled', hasValue ? 'false' : 'true');
-    btnForget.tabIndex = hasValue ? 0 : -1;
+    syncFineGrainedTokenInputs(input.value, input);
   });
 
   const clearToken = () => {
     if (btnForget.getAttribute('aria-disabled') === 'true') return;
     clearCachedFineGrainedToken();
-    input.value = '';
-    btnForget.setAttribute('aria-disabled', 'true');
-    btnForget.tabIndex = -1;
+    syncFineGrainedTokenInputs('');
     try { input.focus({ preventScroll: true }); }
     catch (_) { input.focus(); }
   };
@@ -5763,11 +5831,11 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n\n';
   html += metaSection;
   html += '  <!-- Note: Structured data is dynamically generated by the SEO system -->\n\n';
-  html += '  <script src="assets/js/theme-boot.js?v=press-system-v3.4.17"></script>\n';
+  html += '  <script src="assets/js/theme-boot.js?v=press-system-v3.4.18"></script>\n';
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=press-system-v3.4.17"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=press-system-v3.4.18"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -6509,7 +6577,7 @@ async function refreshSyncCommitPanel(options = {}) {
   form.className = 'sync-commit-form comp-guide';
   form.setAttribute('novalidate', 'novalidate');
 
-  const errorText = document.createElement('p');
+  const errorText = document.createElement('div');
   errorText.className = 'sync-commit-error';
   errorText.hidden = true;
   form.appendChild(errorText);
@@ -6523,13 +6591,34 @@ async function refreshSyncCommitPanel(options = {}) {
   const summaryBlock = document.createElement('div');
   summaryBlock.className = 'sync-commit-summary';
   appendPublishTransportStatus(form);
+  if (resolvePublishTransport().type === 'pat') {
+    renderFineGrainedTokenSettings(form);
+  }
   appendGithubCommitSummary(summaryBlock, commitFiles, seoFiles, summaryEntries);
   form.appendChild(summaryBlock);
 
   panel.appendChild(form);
 
-  const showError = (message) => {
-    errorText.textContent = message;
+  const showError = (message, options = {}) => {
+    errorText.textContent = '';
+    const text = document.createElement('span');
+    text.className = 'sync-commit-error-text';
+    text.textContent = message;
+    errorText.appendChild(text);
+    if (options && options.connectFallback) {
+      const hint = document.createElement('span');
+      hint.className = 'sync-commit-error-hint';
+      hint.textContent = t('editor.composer.github.modal.connectFallbackHint');
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'btn-tertiary sync-connect-fallback-action';
+      action.textContent = t('editor.composer.github.modal.connectFallback');
+      action.addEventListener('click', () => {
+        errorText.hidden = true;
+        switchToPatFallbackAndFocusToken();
+      });
+      errorText.append(hint, action);
+    }
     errorText.hidden = false;
   };
 
@@ -6544,7 +6633,7 @@ async function refreshSyncCommitPanel(options = {}) {
     }
     const transport = resolvePublishTransport();
     if (transport.type === 'pat') {
-      const input = document.getElementById('syncGithubTokenInput');
+      const input = getVisibleFineGrainedTokenInput();
       const value = getFineGrainedTokenValue();
       if (!value) {
         showError(t('editor.composer.github.modal.errorRequired'));
@@ -6569,7 +6658,9 @@ async function refreshSyncCommitPanel(options = {}) {
       try {
         await ensureConnectPublishGrant(transport.connect, getActiveSiteRepoConfig());
       } catch (err) {
-        showError(err && err.message ? err.message : t('editor.composer.github.modal.connectAuthorizationFailed'));
+        showError(err && err.message ? err.message : t('editor.composer.github.modal.connectAuthorizationFailed'), {
+          connectFallback: true
+        });
         return;
       }
     }
@@ -6587,13 +6678,9 @@ async function refreshSyncCommitPanel(options = {}) {
   });
 
   if (options.focusToken) {
-    const input = document.getElementById('syncGithubTokenInput');
-    if (input && input.offsetParent) {
-      try { input.focus({ preventScroll: true }); }
-      catch (_) { input.focus(); }
-    }
+    focusFineGrainedTokenInput();
   }
-  return { panel, input: document.getElementById('syncGithubTokenInput'), form };
+  return { panel, input: getVisibleFineGrainedTokenInput(), form };
 }
 
 function scheduleSyncCommitPanelRefresh() {
@@ -6813,6 +6900,7 @@ async function performPublishCommit(transport, summaryEntries = []) {
     cancelable: false
   });
 
+  let connectFallbackActionAvailable = false;
   try {
     const { files } = await gatherCommitPayload({ showSeoStatus: true });
     if (!files.length) {
@@ -6824,6 +6912,7 @@ async function performPublishCommit(transport, summaryEntries = []) {
     const headline = `chore: sync ${files.length === 1 ? 'draft' : 'drafts'} via Press`;
     if (transport && transport.type === 'connect') {
       setSyncOverlayStatus(t('editor.composer.github.modal.connectAuthorizing'));
+      connectFallbackActionAvailable = true;
       const grant = await ensureConnectPublishGrant(transport.connect, { owner, name, branch });
       setSyncOverlayStatus(t('editor.composer.github.modal.connectPublishing'));
       await createConnectPublishCommit({
@@ -6835,8 +6924,9 @@ async function performPublishCommit(transport, summaryEntries = []) {
         contentRoot: getTrackedPublishContentRoot(),
         translate: t
       });
+      connectFallbackActionAvailable = false;
     } else {
-      const { createFineGrainedTokenCommit } = await import('./publish/transports/github-pat-transport.js?v=press-system-v3.4.17');
+      const { createFineGrainedTokenCommit } = await import('./publish/transports/github-pat-transport.js?v=press-system-v3.4.18');
       await createFineGrainedTokenCommit(transport && transport.token, {
         owner,
         name,
@@ -6875,7 +6965,18 @@ async function performPublishCommit(transport, summaryEntries = []) {
       }
     }
     console.error('Press GitHub commit failed', err);
-    showToast('error', message, { duration: 5200 });
+    const toastOptions = { duration: 5200 };
+    if (transport && transport.type === 'connect' && connectFallbackActionAvailable) {
+      toastOptions.duration = 9000;
+      toastOptions.action = {
+        label: t('editor.composer.github.modal.connectFallback'),
+        onClick: (event) => {
+          if (event && typeof event.preventDefault === 'function') event.preventDefault();
+          switchToPatFallbackAndFocusToken();
+        }
+      };
+    }
+    showToast('error', message, toastOptions);
   } finally {
     gitHubCommitInFlight = false;
   }

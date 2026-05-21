@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.19",
-  "tag": "v3.4.19",
-  "version": "3.4.19",
-  "publishedAt": "2026-05-21T16:25:09Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.19.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.19.zip`\n- SHA-256: `6b36acc07fde412b06b95ef8ba26b953f93eab97841fd9e46f4e44bfd0a2f34d`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-staging.js\n- assets/js/composer-sync-panel.js\n- assets/js/composer-system-panel.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/editor-session-state.js\n- assets/js/editor-storage.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.18...v3.4.19\n",
+  "name": "v3.4.20",
+  "tag": "v3.4.20",
+  "version": "3.4.20",
+  "publishedAt": "2026-05-21T17:27:12Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.20.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.20.zip`\n- SHA-256: `6d5ae46f64b8759eb1897ed1e04477c0e3e2a28c21d12def79f391a4c4fcbd10`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-publish-summary.js\n- assets/js/composer-sync-overlay.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.19...v3.4.20\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.18 <3.4.19"
+      ">=3.4.19 <3.4.20"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.18 first."
+    "message": "Update to v3.4.19 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.19",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.20",
   "asset": {
-    "name": "press-system-v3.4.19.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.19/press-system-v3.4.19.zip",
-    "size": 1601168,
-    "digest": "sha256:6b36acc07fde412b06b95ef8ba26b953f93eab97841fd9e46f4e44bfd0a2f34d"
+    "name": "press-system-v3.4.20.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.20/press-system-v3.4.20.zip",
+    "size": 1604762,
+    "digest": "sha256:6d5ae46f64b8759eb1897ed1e04477c0e3e2a28c21d12def79f391a4c4fcbd10"
   }
 }

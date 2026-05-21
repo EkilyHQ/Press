@@ -826,6 +826,7 @@ const translations = {
             connectInvalidUrl: '有効な Connect URL を入力してください。localhost 以外では HTTPS が必要です。',
             connectFallback: '代わりにファイングレインド Personal Access Token を使用',
             connectFallbackActive: 'この公開ではファイングレインドトークンのフォールバックが有効です。',
+            connectFallbackHint: 'Connect が利用できない、またはアカウントが認可されていない場合は、Personal Token フォールバックに切り替えてください。',
             connectMissing: 'このサイトでは Connect 公開が設定されていません。',
             connectAuthorizing: 'Connect で認可しています…',
             connectPublishing: 'Connect 経由でコミットを作成しています…',

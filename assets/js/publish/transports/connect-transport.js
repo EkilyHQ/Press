@@ -1,4 +1,4 @@
-import { CONNECT_PUBLISH_MESSAGE_TYPE } from '../settings-store.js?v=press-system-v3.4.17';
+import { CONNECT_PUBLISH_MESSAGE_TYPE } from '../settings-store.js?v=press-system-v3.4.18';
 
 export function serializeConnectPublishFile(file) {
   const out = {

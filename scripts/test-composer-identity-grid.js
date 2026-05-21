@@ -3350,6 +3350,37 @@ assert.match(
 );
 
 assert.match(
+  source,
+  /function openComposerSettingsForPatFallback\(\) \{[\s\S]*applyMode\('composer', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('composer'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openComposerSettingsForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*scheduleSyncCommitPanelRefresh\(\)[\s\S]*focusFineGrainedTokenInput\(\);/,
+  'Connect failure fallback action should switch to PAT mode through the normal editor mode path, refresh publish state, and focus the PAT token input'
+);
+
+assert.match(
+  source,
+  /const showError = \(message, options = \{\}\) => \{[\s\S]*sync-commit-error-hint[\s\S]*connectFallbackHint[\s\S]*sync-connect-fallback-action[\s\S]*switchToPatFallbackAndFocusToken\(\);/,
+  'inline Connect authorization errors should render an explicit PAT fallback action'
+);
+
+assert.match(
+  source,
+  /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*await ensureConnectPublishGrant\(transport\.connect[\s\S]*await createConnectPublishCommit\([\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
+  'Only Connect authorization and publish failures should expose a toast action that switches to PAT fallback'
+);
+
+[
+  ['English', enI18nSource],
+  ['Simplified Chinese', chsI18nSource],
+  ['Traditional Chinese', chtTwI18nSource],
+  ['Japanese', jaI18nSource]
+].forEach(([label, localeSource]) => {
+  assert.match(
+    localeSource,
+    /connectFallbackHint:/,
+    `${label} translations should explain when to use the PAT fallback after Connect failures`
+  );
+});
+
+assert.match(
   publishSettingsSource,
   /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const PUBLISH_TRANSPORT_MODE_STORAGE_KEY = 'press_publish_transport_mode';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
   'Connect publish settings should keep legacy storage compatibility while defaulting to a transport mode key'

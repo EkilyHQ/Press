@@ -8,47 +8,47 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.19';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=press-system-v3.4.19';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.19';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.19';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.19';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.20';
+import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=press-system-v3.4.20';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.20';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.20';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.20';
 import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.19';
+} from './encrypted-content.js?v=press-system-v3.4.20';
 import {
   collectLocalMarkdownAssetReferences,
   collectManagedMarkdownReferences,
   listLocalMarkdownAssetReferences,
   planManagedContentDeletions,
   resolveLocalMarkdownAssetReference
-} from './repository-deletions.js?v=press-system-v3.4.19';
-import { createCommitFileCollector, createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.19';
+} from './repository-deletions.js?v=press-system-v3.4.20';
+import { createCommitFileCollector, createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.20';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.19';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.19';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.19';
+} from './editor-storage.js?v=press-system-v3.4.20';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.20';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.20';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.19';
+} from './composer-sync-panel.js?v=press-system-v3.4.20';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.20';
 import {
   animateEditorSystemPanelContent as animateSystemPanelContent,
   showEditorSystemPanel as showComposerSystemPanel
-} from './composer-system-panel.js?v=press-system-v3.4.19';
+} from './composer-system-panel.js?v=press-system-v3.4.20';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.20';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.20';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.20';
 import {
   CONNECT_PUBLISH_PRESETS,
-  createPublishSettingsStore,
-  getDefaultConnectPublishBaseUrl,
-  normalizeConnectPublishBaseUrl
-} from './publish/settings-store.js?v=press-system-v3.4.19';
-import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.19';
-import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.19';
+  createPublishSettingsStore
+} from './publish/settings-store.js?v=press-system-v3.4.20';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -128,6 +128,82 @@ const publishSettingsStore = createPublishSettingsStore({
   windowRef: window,
   scopeKey: scopedEditorStorageKey
 });
+const syncOverlayController = createSyncOverlayController({
+  documentRef: document,
+  windowRef: window,
+  translate: t
+});
+const {
+  show: showSyncOverlay,
+  hide: hideSyncOverlay,
+  setMessage: setSyncOverlayMessage,
+  setStatus: setSyncOverlayStatus,
+  setCancelHandler: setSyncOverlayCancelHandler,
+  startRemoteWatcher: startRemoteSyncWatcher
+} = syncOverlayController;
+const publishTransportUi = createPublishTransportSettingsUi({
+  documentRef: document,
+  windowRef: window,
+  t,
+  publishSettingsStore,
+  getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
+  applyMode: (mode, options) => applyMode(mode, options),
+  showEditorSystemPanel: (mode) => showEditorSystemPanel(mode),
+  refreshSyncCommitPanel: (options) => refreshSyncCommitPanel(options),
+  scheduleSyncCommitPanelRefresh: () => scheduleSyncCommitPanelRefresh()
+});
+const {
+  setCachedFineGrainedToken,
+  clearCachedFineGrainedToken,
+  getFineGrainedTokenValue,
+  getCachedConnectPublishGrant,
+  setCachedConnectPublishGrant,
+  clearCachedConnectPublishGrant,
+  getMatchingConnectPublishGrant,
+  resolvePublishTransport,
+  getVisibleFineGrainedTokenInput,
+  renderFineGrainedTokenSettings,
+  renderPublishTransportSettings,
+  switchToPatFallbackAndFocusToken
+} = publishTransportUi;
+const publishSummaryRenderer = createPublishSummaryRenderer({
+  documentRef: document,
+  windowRef: window,
+  t
+});
+const {
+  describeSummaryEntry,
+  appendGithubCommitSummary
+} = publishSummaryRenderer;
+const publishFlow = createComposerPublishFlow({
+  windowRef: window,
+  documentRef: document,
+  t,
+  getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
+  getTrackedPublishContentRoot: () => getTrackedPublishContentRoot(),
+  gatherCommitPayload: (options) => gatherCommitPayload(options),
+  applyLocalPostCommitState: (files) => applyLocalPostCommitState(files),
+  getCachedConnectPublishGrant,
+  setCachedConnectPublishGrant,
+  clearCachedConnectPublishGrant,
+  clearCachedFineGrainedToken,
+  showSyncOverlay,
+  hideSyncOverlay,
+  setSyncOverlayStatus,
+  setSyncOverlayMessage,
+  setSyncOverlayCancelHandler,
+  showToast,
+  describeSummaryEntry,
+  switchToPatFallbackAndFocusToken,
+  setGitHubCommitInFlight: (value) => {
+    gitHubCommitInFlight = !!value;
+  }
+});
+const {
+  performDirectGithubCommit,
+  performConnectGithubCommit,
+  ensureConnectPublishGrant
+} = publishFlow;
 const stagingRegistry = createStagingRegistry();
 stagingRegistry.registerStagingProvider({
   id: 'system-updates',
@@ -1549,160 +1625,6 @@ function showToast(kind, text, options = {}) {
   }
 }
 
-// --- GitHub sync overlay and remote polling helpers ---
-
-let syncOverlayElements = null;
-let syncOverlayCancelHandler = null;
-let activeSyncWatcher = null;
-
-function ensureSyncOverlayElements() {
-  if (syncOverlayElements) return syncOverlayElements;
-  if (typeof document === 'undefined') return null;
-
-  const overlay = document.createElement('div');
-  overlay.id = 'nsSyncOverlay';
-  overlay.className = 'sync-overlay';
-  overlay.hidden = true;
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-hidden', 'true');
-
-  const panel = document.createElement('div');
-  panel.className = 'sync-overlay-panel';
-  panel.setAttribute('role', 'document');
-
-  const spinner = document.createElement('div');
-  spinner.className = 'sync-overlay-spinner';
-  spinner.setAttribute('aria-hidden', 'true');
-
-  const title = document.createElement('h2');
-  title.className = 'sync-overlay-title';
-  title.id = 'nsSyncOverlayTitle';
-  title.textContent = 'Waiting for GitHub…';
-  title.tabIndex = -1;
-
-  const message = document.createElement('p');
-  message.className = 'sync-overlay-message';
-  message.id = 'nsSyncOverlayMessage';
-
-  const status = document.createElement('p');
-  status.className = 'sync-overlay-status';
-  status.id = 'nsSyncOverlayStatus';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.type = 'button';
-  cancelBtn.className = 'btn-secondary sync-overlay-cancel';
-  cancelBtn.textContent = 'Stop waiting';
-
-  panel.append(spinner, title, message, status, cancelBtn);
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-
-  cancelBtn.addEventListener('click', () => {
-    if (syncOverlayCancelHandler) syncOverlayCancelHandler('button');
-  });
-
-  overlay.addEventListener('click', (event) => {
-    if (event.target === overlay && syncOverlayCancelHandler) {
-      syncOverlayCancelHandler('backdrop');
-    }
-  });
-
-  overlay.addEventListener('keydown', (event) => {
-    if ((event.key || '').toLowerCase() === 'escape' && syncOverlayCancelHandler) {
-      event.preventDefault();
-      syncOverlayCancelHandler('escape');
-    }
-  });
-
-  syncOverlayElements = { overlay, panel, spinner, title, message, status, cancelBtn };
-  return syncOverlayElements;
-}
-
-function setSyncOverlayTitle(text) {
-  const els = syncOverlayElements || ensureSyncOverlayElements();
-  if (!els || !els.title) return;
-  els.title.textContent = text || 'Waiting for GitHub…';
-}
-
-function setSyncOverlayMessage(text) {
-  const els = syncOverlayElements || ensureSyncOverlayElements();
-  if (!els || !els.message) return;
-  els.message.textContent = text ? String(text) : '';
-}
-
-function setSyncOverlayStatus(text) {
-  const els = syncOverlayElements || ensureSyncOverlayElements();
-  if (!els || !els.status) return;
-  els.status.textContent = text ? String(text) : '';
-}
-
-function setSyncOverlayCancelHandler(handler, cancelable = true) {
-  const els = syncOverlayElements || ensureSyncOverlayElements();
-  if (!els || !els.cancelBtn) return;
-  if (cancelable && typeof handler === 'function') {
-    syncOverlayCancelHandler = handler;
-    els.cancelBtn.hidden = false;
-    els.cancelBtn.disabled = false;
-  } else {
-    syncOverlayCancelHandler = null;
-    els.cancelBtn.hidden = true;
-    els.cancelBtn.disabled = true;
-  }
-}
-
-function showSyncOverlay(options = {}) {
-  const els = ensureSyncOverlayElements();
-  if (!els || !els.overlay) return;
-
-  const title = options.title || 'Waiting for GitHub…';
-  const message = options.message || '';
-  const status = options.status || '';
-  const cancelLabel = options.cancelLabel || 'Stop waiting';
-  const cancelable = options.cancelable !== false;
-
-  setSyncOverlayTitle(title);
-  setSyncOverlayMessage(message);
-  setSyncOverlayStatus(status);
-
-  try {
-    els.overlay.hidden = false;
-    els.overlay.classList.add('is-visible');
-    els.overlay.setAttribute('aria-hidden', 'false');
-  } catch (_) {}
-
-  if (els.cancelBtn) {
-    els.cancelBtn.textContent = cancelLabel;
-  }
-  setSyncOverlayCancelHandler(null, cancelable);
-
-  try { document.body.classList.add('press-sync-overlay-open'); }
-  catch (_) {}
-
-  requestAnimationFrame(() => {
-    try {
-      if (cancelable && els.cancelBtn && !els.cancelBtn.hidden) {
-        els.cancelBtn.focus();
-      } else if (els.title) {
-        els.title.focus({ preventScroll: true });
-      }
-    } catch (_) {}
-  });
-}
-
-function hideSyncOverlay() {
-  const els = syncOverlayElements || ensureSyncOverlayElements();
-  if (!els || !els.overlay) return;
-  try {
-    els.overlay.classList.remove('is-visible');
-    els.overlay.setAttribute('aria-hidden', 'true');
-    els.overlay.hidden = true;
-  } catch (_) {}
-  setSyncOverlayCancelHandler(null, true);
-  try { document.body.classList.remove('press-sync-overlay-open'); }
-  catch (_) {}
-}
-
 function preparePopupWindow() {
   try {
     const win = window.open('', '_blank');
@@ -1778,429 +1700,6 @@ function handlePopupBlocked(href, options = {}) {
         }
       : null
   });
-}
-
-function getCachedFineGrainedToken() {
-  return publishSettingsStore.getCachedFineGrainedToken();
-}
-
-function setCachedFineGrainedToken(token) {
-  publishSettingsStore.setCachedFineGrainedToken(token);
-}
-
-function clearCachedFineGrainedToken() {
-  publishSettingsStore.clearCachedFineGrainedToken();
-}
-
-function getFineGrainedTokenValue() {
-  const input = getVisibleFineGrainedTokenInput();
-  const value = input && typeof input.value === 'string' ? input.value.trim() : '';
-  return value || getCachedFineGrainedToken();
-}
-
-function getStoredConnectPublishSettings() {
-  return publishSettingsStore.getStoredConnectPublishSettings();
-}
-
-function setStoredConnectPublishSettings(next) {
-  return publishSettingsStore.setStoredConnectPublishSettings(next);
-}
-
-function getConnectPublishSettings() {
-  const settings = getStoredConnectPublishSettings();
-  const enabledInput = document.getElementById('syncConnectPublishEnabledInput');
-  if (enabledInput) {
-    settings.enabled = !!enabledInput.checked;
-    settings.mode = settings.enabled ? 'connect' : 'pat';
-  }
-  const baseInput = document.getElementById('syncConnectBaseUrlInput');
-  if (baseInput && typeof baseInput.value === 'string') settings.baseUrl = baseInput.value.trim();
-  return settings;
-}
-
-function setConnectPublishEnabled(enabled) {
-  return setStoredConnectPublishSettings({
-    ...getStoredConnectPublishSettings(),
-    enabled: !!enabled,
-    mode: enabled ? 'connect' : 'pat'
-  });
-}
-
-function setConnectPublishBaseUrl(baseUrl) {
-  return setStoredConnectPublishSettings({
-    ...getStoredConnectPublishSettings(),
-    baseUrl
-  });
-}
-
-function getVisibleFineGrainedTokenInput() {
-  const inputs = Array.from(document.querySelectorAll('#syncGithubTokenInput'));
-  return inputs.find(input => input && input.offsetParent !== null) || inputs[0] || null;
-}
-
-function syncFineGrainedTokenInputs(value, sourceInput = null) {
-  const nextValue = typeof value === 'string' ? value : '';
-  document.querySelectorAll('#syncGithubTokenInput').forEach(input => {
-    if (input !== sourceInput) input.value = nextValue;
-    const wrapper = input.closest ? input.closest('.cs-token-settings') : null;
-    const clear = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-token-clear') : null;
-    if (!clear) return;
-    const hasValue = !!String(input.value || '').trim();
-    clear.setAttribute('aria-disabled', hasValue ? 'false' : 'true');
-    clear.tabIndex = hasValue ? 0 : -1;
-  });
-}
-
-function focusFineGrainedTokenInput() {
-  const input = getVisibleFineGrainedTokenInput();
-  if (!input || typeof input.focus !== 'function') return false;
-  try { input.focus({ preventScroll: true }); }
-  catch (_) { input.focus(); }
-  return true;
-}
-
-function updatePublishTransportSettingsDomForPatFallback() {
-  const enabledInput = document.getElementById('syncConnectPublishEnabledInput');
-  if (!enabledInput) return;
-  enabledInput.checked = false;
-  const method = enabledInput.closest ? enabledInput.closest('.cs-publish-method-switch') : null;
-  if (method) method.dataset.state = 'off';
-  const methodText = method && method.querySelector ? method.querySelector('.cs-switch-label') : null;
-  if (methodText) methodText.textContent = t('editor.composer.github.modal.publishMethodPat');
-  const wrapper = enabledInput.closest ? enabledInput.closest('.cs-publish-transport-settings') : null;
-  const connectPanel = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-connect-publish-settings') : null;
-  const patPanel = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-pat-publish-settings') : null;
-  if (connectPanel) connectPanel.hidden = true;
-  if (patPanel) patPanel.hidden = false;
-}
-
-function openSyncPanelForPatFallback() {
-  try {
-    applyMode('sync', { preserveTreeExpansion: true });
-    return;
-  } catch (_) {}
-  try { showEditorSystemPanel('sync'); } catch (_) {}
-}
-
-function switchToPatFallbackAndFocusToken() {
-  setConnectPublishEnabled(false);
-  openSyncPanelForPatFallback();
-  updatePublishTransportSettingsDomForPatFallback();
-  try {
-    refreshSyncCommitPanel({ focusToken: true })
-      .then(() => focusFineGrainedTokenInput())
-      .catch(() => focusFineGrainedTokenInput());
-  } catch (_) {}
-  const focusLater = () => {
-    if (focusFineGrainedTokenInput()) return;
-    openSyncPanelForPatFallback();
-    updatePublishTransportSettingsDomForPatFallback();
-    focusFineGrainedTokenInput();
-  };
-  try {
-    requestAnimationFrame(() => requestAnimationFrame(focusLater));
-  } catch (_) {
-    setTimeout(focusLater, 0);
-  }
-  setTimeout(focusLater, 120);
-}
-
-function getCachedConnectPublishGrant() {
-  return publishSettingsStore.getCachedConnectPublishGrant();
-}
-
-function setCachedConnectPublishGrant(grant) {
-  publishSettingsStore.setCachedConnectPublishGrant(grant);
-}
-
-function clearCachedConnectPublishGrant() {
-  publishSettingsStore.clearCachedConnectPublishGrant();
-}
-
-function getMatchingConnectPublishGrant(connect, repo = getActiveSiteRepoConfig()) {
-  const cached = getCachedConnectPublishGrant();
-  if (!cached || !connect || !connect.baseUrl || !repo || !repo.owner || !repo.name) return null;
-  const branch = repo.branch || 'main';
-  if (cached.baseUrl !== connect.baseUrl) return null;
-  if (cached.owner !== repo.owner || cached.name !== repo.name || cached.branch !== branch) return null;
-  return cached;
-}
-
-function resolvePublishTransport() {
-  return publishSettingsStore.resolvePublishTransport(getConnectPublishSettings());
-}
-
-function renderFineGrainedTokenSettings(host) {
-  if (!host) return null;
-  const wrapper = document.createElement('div');
-  wrapper.className = 'cs-token-settings';
-
-  const tokenField = document.createElement('label');
-  tokenField.className = 'cs-repo-field-group cs-repo-field-group--token cs-token-field';
-  const title = document.createElement('span');
-  title.className = 'cs-repo-field-title';
-  title.textContent = t('editor.composer.github.modal.tokenLabel');
-  const field = document.createElement('div');
-  field.className = 'cs-repo-field cs-repo-field--token';
-  const affix = document.createElement('span');
-  affix.className = 'cs-repo-affix cs-repo-icon-affix cs-token-affix';
-  affix.setAttribute('aria-hidden', 'true');
-  affix.innerHTML = '<svg viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M10.5 0a5.499 5.499 0 1 1-1.288 10.848l-.932.932a.749.749 0 0 1-.53.22H7v.75a.749.749 0 0 1-.22.53l-.5.5a.749.749 0 0 1-.53.22H5v.75a.749.749 0 0 1-.22.53l-.5.5a.749.749 0 0 1-.53.22h-2A1.75 1.75 0 0 1 0 14.25v-2c0-.199.079-.389.22-.53l4.932-4.932A5.5 5.5 0 0 1 10.5 0Zm-4 5.5c-.001.431.069.86.205 1.269a.75.75 0 0 1-.181.768L1.5 12.56v1.69c0 .138.112.25.25.25h1.69l.06-.06v-1.19a.75.75 0 0 1 .75-.75h1.19l.06-.06v-1.19a.75.75 0 0 1 .75-.75h1.19l1.023-1.025a.75.75 0 0 1 .768-.18A4 4 0 1 0 6.5 5.5ZM11 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>';
-  const input = document.createElement('input');
-  input.id = 'syncGithubTokenInput';
-  input.type = 'password';
-  input.className = 'cs-input cs-repo-input cs-repo-input--token';
-  input.autocomplete = 'off';
-  input.spellcheck = false;
-  input.value = getCachedFineGrainedToken();
-  const btnForget = document.createElement('span');
-  btnForget.setAttribute('role', 'button');
-  btnForget.tabIndex = input.value ? 0 : -1;
-  btnForget.className = 'cs-token-clear';
-  btnForget.textContent = '×';
-  btnForget.setAttribute('aria-label', t('editor.composer.github.modal.forget'));
-  btnForget.setAttribute('aria-disabled', input.value ? 'false' : 'true');
-  field.append(affix, input, btnForget);
-  tokenField.append(title, field);
-  wrapper.appendChild(tokenField);
-
-  const help = document.createElement('p');
-  help.className = 'muted sync-token-help cs-token-help';
-  help.innerHTML = t('editor.composer.github.modal.helpHtml');
-  wrapper.appendChild(help);
-
-  input.addEventListener('input', () => {
-    setCachedFineGrainedToken(input.value);
-    syncFineGrainedTokenInputs(input.value, input);
-  });
-
-  const clearToken = () => {
-    if (btnForget.getAttribute('aria-disabled') === 'true') return;
-    clearCachedFineGrainedToken();
-    syncFineGrainedTokenInputs('');
-    try { input.focus({ preventScroll: true }); }
-    catch (_) { input.focus(); }
-  };
-
-  btnForget.addEventListener('click', clearToken);
-  btnForget.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    clearToken();
-  });
-
-  host.appendChild(wrapper);
-  return { wrapper, input, btnForget };
-}
-
-function renderPublishTransportSettings(host) {
-  if (!host) return null;
-  const settings = getConnectPublishSettings();
-  const wrapper = document.createElement('div');
-  wrapper.className = 'cs-publish-transport-settings';
-
-  const header = document.createElement('div');
-  header.className = 'cs-publish-transport-header';
-  const title = document.createElement('span');
-  title.className = 'cs-publish-transport-title';
-  title.textContent = t('editor.composer.github.modal.connectTitle');
-
-  const method = document.createElement('label');
-  method.className = 'cs-switch cs-publish-method-switch';
-  method.dataset.state = settings.enabled ? 'on' : 'off';
-  const enabledInput = document.createElement('input');
-  enabledInput.type = 'checkbox';
-  enabledInput.id = 'syncConnectPublishEnabledInput';
-  enabledInput.className = 'cs-switch-input';
-  enabledInput.checked = !!settings.enabled;
-  const track = document.createElement('span');
-  track.className = 'cs-switch-track';
-  track.setAttribute('aria-hidden', 'true');
-  const thumb = document.createElement('span');
-  thumb.className = 'cs-switch-thumb';
-  track.appendChild(thumb);
-  const methodText = document.createElement('span');
-  methodText.className = 'cs-switch-label';
-  methodText.textContent = settings.enabled
-    ? t('editor.composer.github.modal.publishMethodConnect')
-    : t('editor.composer.github.modal.publishMethodPat');
-  method.append(enabledInput, track, methodText);
-  header.append(title, method);
-  wrapper.appendChild(header);
-
-  const connectPanel = document.createElement('div');
-  connectPanel.className = 'cs-connect-publish-settings';
-  connectPanel.hidden = !settings.enabled;
-
-  const connectField = document.createElement('label');
-  connectField.className = 'cs-repo-field-group cs-repo-field-group--connect cs-connect-url-field';
-  const connectTitle = document.createElement('span');
-  connectTitle.className = 'cs-repo-field-title';
-  connectTitle.textContent = t('editor.composer.github.modal.connectBaseUrlLabel');
-  const field = document.createElement('div');
-  field.className = 'cs-repo-field cs-repo-field--connect-url';
-  const affix = document.createElement('span');
-  affix.className = 'cs-repo-affix cs-repo-icon-affix';
-  affix.setAttribute('aria-hidden', 'true');
-  affix.innerHTML = '<svg viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M7.75 0a.75.75 0 0 1 .75.75V3h2.75A2.75 2.75 0 0 1 14 5.75v4.5A2.75 2.75 0 0 1 11.25 13H8.5v2.25a.75.75 0 0 1-1.5 0V13H4.75A2.75 2.75 0 0 1 2 10.25v-4.5A2.75 2.75 0 0 1 4.75 3H7V.75A.75.75 0 0 1 7.75 0ZM4.75 4.5c-.69 0-1.25.56-1.25 1.25v4.5c0 .69.56 1.25 1.25 1.25h6.5c.69 0 1.25-.56 1.25-1.25v-4.5c0-.69-.56-1.25-1.25-1.25h-6.5Z"></path></svg>';
-  const input = document.createElement('input');
-  input.id = 'syncConnectBaseUrlInput';
-  input.type = 'url';
-  input.className = 'cs-input cs-repo-input cs-repo-input--connect-url';
-  input.setAttribute('list', 'syncConnectBaseUrlPresets');
-  input.placeholder = getDefaultConnectPublishBaseUrl();
-  input.spellcheck = false;
-  input.autocomplete = 'off';
-  input.value = settings.baseUrl || getDefaultConnectPublishBaseUrl();
-  const presetList = document.createElement('datalist');
-  presetList.id = 'syncConnectBaseUrlPresets';
-  CONNECT_PUBLISH_PRESETS.forEach((preset) => {
-    const option = document.createElement('option');
-    option.value = preset.value;
-    option.label = preset.label;
-    presetList.appendChild(option);
-  });
-  field.append(affix, input);
-  connectField.append(connectTitle, field);
-  connectPanel.append(connectField, presetList);
-
-  const state = document.createElement('p');
-  state.className = 'muted cs-connect-publish-grant';
-  connectPanel.appendChild(state);
-
-  const help = document.createElement('p');
-  help.className = 'muted cs-connect-help';
-  help.textContent = t('editor.composer.github.modal.connectBaseUrlHelp');
-  connectPanel.appendChild(help);
-
-  const patPanel = document.createElement('div');
-  patPanel.className = 'cs-pat-publish-settings';
-  patPanel.hidden = !!settings.enabled;
-  renderFineGrainedTokenSettings(patPanel);
-
-  const updateConnectState = () => {
-    const current = getConnectPublishSettings();
-    const baseUrl = normalizeConnectPublishBaseUrl(current.baseUrl);
-    state.classList.toggle('is-error', current.enabled && !baseUrl);
-    if (!current.enabled) {
-      state.textContent = '';
-    } else if (!baseUrl) {
-      state.textContent = t('editor.composer.github.modal.connectInvalidUrl');
-    } else {
-      const cached = getMatchingConnectPublishGrant({ baseUrl });
-      state.textContent = cached
-        ? t('editor.composer.github.modal.connectConnected')
-        : t('editor.composer.github.modal.connectHelp', { baseUrl });
-    }
-  };
-
-  input.addEventListener('input', () => {
-    setConnectPublishBaseUrl(input.value);
-    updateConnectState();
-    scheduleSyncCommitPanelRefresh();
-  });
-
-  enabledInput.addEventListener('change', () => {
-    setConnectPublishEnabled(enabledInput.checked);
-    method.dataset.state = enabledInput.checked ? 'on' : 'off';
-    methodText.textContent = enabledInput.checked
-      ? t('editor.composer.github.modal.publishMethodConnect')
-      : t('editor.composer.github.modal.publishMethodPat');
-    connectPanel.hidden = !enabledInput.checked;
-    patPanel.hidden = enabledInput.checked;
-    updateConnectState();
-    scheduleSyncCommitPanelRefresh();
-  });
-
-  updateConnectState();
-  wrapper.append(connectPanel, patPanel);
-  host.appendChild(wrapper);
-  return { wrapper, enabledInput, input };
-}
-
-function startRemoteSyncWatcher(config = {}) {
-  if (!config || typeof config.fetch !== 'function') return null;
-  if (activeSyncWatcher && typeof activeSyncWatcher.cancel === 'function') {
-    try { activeSyncWatcher.cancel('replaced'); } catch (_) {}
-  }
-
-  const overlayTitle = config.title || t('editor.composer.remoteWatcher.waitingForGitHub');
-  const overlayMessage = config.message || '';
-  const overlayStatus = config.initialStatus || t('editor.composer.remoteWatcher.preparing');
-  const cancelLabel = config.cancelLabel || t('editor.composer.remoteWatcher.stopWaiting');
-  const cancelable = config.cancelable !== false;
-
-  showSyncOverlay({ title: overlayTitle, message: overlayMessage, status: overlayStatus, cancelLabel, cancelable });
-  setSyncOverlayStatus(overlayStatus);
-
-  let aborted = false;
-  let attempts = 0;
-  let timer = null;
-
-  const cancel = (reason) => {
-    if (aborted) return;
-    aborted = true;
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    hideSyncOverlay();
-    activeSyncWatcher = null;
-    if (typeof config.onCancel === 'function') {
-      try { config.onCancel(reason); } catch (_) {}
-    }
-  };
-
-  setSyncOverlayCancelHandler(cancelable ? cancel : null, cancelable);
-
-  const scheduleNext = (delay) => {
-    if (aborted) return;
-    const ms = Math.max(1200, Number(delay) || 0);
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(runFetch, ms);
-  };
-
-  const runFetch = async () => {
-    if (aborted) return;
-    attempts += 1;
-    let result;
-    try {
-      result = await config.fetch({ attempts, updateStatus: setSyncOverlayStatus });
-    } catch (err) {
-      if (aborted) return;
-      const msg = (typeof config.onErrorStatus === 'function')
-        ? config.onErrorStatus(err, attempts)
-        : t('editor.composer.remoteWatcher.remoteCheckFailedRetry');
-      setSyncOverlayStatus(msg);
-      scheduleNext(config.errorDelay || 6000);
-      return;
-    }
-
-    if (aborted) return;
-    if (result && result.statusMessage) setSyncOverlayStatus(result.statusMessage);
-    if (result && result.message) setSyncOverlayMessage(result.message);
-
-    if (result && result.done) {
-      aborted = true;
-      hideSyncOverlay();
-      activeSyncWatcher = null;
-      if (typeof config.onSuccess === 'function') {
-        try { config.onSuccess(result); } catch (_) {}
-      }
-      return;
-    }
-
-    const nextDelay = result && typeof result.retryDelay === 'number'
-      ? result.retryDelay
-      : config.interval || 5000;
-    scheduleNext(nextDelay);
-  };
-
-  activeSyncWatcher = { cancel, attempts: () => attempts };
-
-  const initialDelay = config.initialDelay != null ? config.initialDelay : 2400;
-  scheduleNext(initialDelay);
-  return activeSyncWatcher;
 }
 
 async function fetchMarkdownRemoteSnapshot(tab) {
@@ -5788,11 +5287,11 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n\n';
   html += metaSection;
   html += '  <!-- Note: Structured data is dynamically generated by the SEO system -->\n\n';
-  html += '  <script src="assets/js/theme-boot.js?v=press-system-v3.4.19"></script>\n';
+  html += '  <script src="assets/js/theme-boot.js?v=press-system-v3.4.20"></script>\n';
   html += '  <link rel="stylesheet" id="theme-pack">\n';
   html += '</head>\n\n';
   html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=press-system-v3.4.19"></script>\n';
+  html += '  <script type="module" src="assets/main.js?v=press-system-v3.4.20"></script>\n';
   html += '</body>\n\n';
   html += '</html>\n';
   return html;
@@ -6179,256 +5678,8 @@ async function gatherLocalChangesForCommit(options = {}) {
   return { files: collector.getFiles() };
 }
 
-function describeSummaryEntry(entry) {
-  if (!entry) return '';
-  const base = entry.label || entry.path || entry.kind || '';
-  if (entry.kind === 'markdown') {
-    const status = entry.state ? ` (${entry.state})` : '';
-    const assetLabel = entry.assetCount
-      ? ` – ${entry.assetCount} image${entry.assetCount === 1 ? '' : 's'}`
-      : '';
-    const assetDeletionLabel = entry.assetDeletionCount
-      ? ` – ${entry.assetDeletionCount} image deletion${entry.assetDeletionCount === 1 ? '' : 's'}`
-      : '';
-    return `${base}${status}${assetLabel}${assetDeletionLabel}`;
-  }
-  if (entry.kind === 'index' || entry.kind === 'tabs') {
-    const bits = [];
-    if (entry.hasContentChange) bits.push('content');
-    if (entry.hasOrderChange) bits.push('order');
-    if (!bits.length) return base;
-    return `${base} – ${bits.join(' & ')} changes`;
-  }
-  if (entry.kind === 'seo') {
-    const type = entry.seoType === 'sitemap'
-      ? 'Sitemap'
-      : entry.seoType === 'robots'
-        ? 'Robots.txt'
-        : entry.seoType === 'index'
-          ? 'Index HTML'
-          : 'Meta tags';
-    return `${base} – auto-generated SEO (${type})`;
-  }
-  if (entry.kind === 'asset' && (entry.deleted || entry.state === 'deleted')) {
-    return `${base} (deleted)`;
-  }
-  if (entry.kind === 'system') {
-    let label = '';
-    try {
-      const key = entry.state === 'added' ? 'added' : (entry.state === 'deleted' || entry.deleted ? 'deleted' : 'modified');
-      const scope = entry.category === 'theme' ? 'theme file' : 'system file';
-      label = t(`editor.systemUpdates.summary.${key}`);
-      if (!label || label === `editor.systemUpdates.summary.${key}`) label = `${key} ${scope}`;
-    } catch (_) { label = ''; }
-    if (label) return `${base} – ${label}`;
-    return `${base} – system file update`;
-  }
-  return base;
-}
-
 let syncCommitPanelRenderSeq = 0;
 let syncCommitPanelRefreshTimer = 0;
-
-function openGithubCommitFilePreview(file, triggerEl) {
-  if (!file) return;
-
-  const previewModal = document.createElement('div');
-  previewModal.className = 'press-modal github-preview-modal';
-  previewModal.setAttribute('aria-hidden', 'true');
-
-  const previewDialog = document.createElement('div');
-  previewDialog.className = 'press-modal-dialog github-preview-dialog';
-  previewDialog.setAttribute('role', 'dialog');
-  previewDialog.setAttribute('aria-modal', 'true');
-
-  const head = document.createElement('div');
-  head.className = 'comp-guide-head';
-  const headLeft = document.createElement('div');
-  headLeft.className = 'comp-head-left';
-  const previewTitleId = `nsGithubPreviewTitle-${Math.random().toString(36).slice(2, 8)}`;
-  const title = document.createElement('strong');
-  title.id = previewTitleId;
-  title.textContent = file.label || file.path || t('editor.composer.github.preview.untitled');
-  headLeft.appendChild(title);
-  const subtitle = document.createElement('span');
-  subtitle.className = 'muted';
-  subtitle.textContent = t('editor.composer.github.preview.subtitle');
-  headLeft.appendChild(subtitle);
-  const closeBtn = document.createElement('button');
-  closeBtn.type = 'button';
-  closeBtn.className = 'press-modal-close btn-secondary';
-  const closeLabel = t('editor.composer.dialogs.close');
-  closeBtn.textContent = closeLabel;
-  closeBtn.setAttribute('aria-label', closeLabel);
-  head.appendChild(headLeft);
-  head.appendChild(closeBtn);
-  previewDialog.appendChild(head);
-  previewDialog.setAttribute('aria-labelledby', previewTitleId);
-
-  if (file.deleted) {
-    const notice = document.createElement('p');
-    notice.className = 'github-preview-empty';
-    notice.textContent = `This publish will delete ${file.path || file.label || 'this file'}.`;
-    previewDialog.appendChild(notice);
-  } else if (file.kind === 'asset') {
-    if (file.base64) {
-      const mime = file.mime || 'application/octet-stream';
-      const img = document.createElement('img');
-      img.className = 'github-preview-image';
-      img.alt = file.label || file.path || '';
-      img.src = `data:${mime};base64,${file.base64}`;
-      previewDialog.appendChild(img);
-      if (Number.isFinite(file.size)) {
-        const meta = document.createElement('p');
-        meta.className = 'github-preview-meta';
-        const sizeKb = file.size > 0 ? (file.size / 1024).toFixed(1) : '0';
-        meta.textContent = `${mime} · ${sizeKb} KB`;
-        previewDialog.appendChild(meta);
-      }
-    } else {
-      const notice = document.createElement('p');
-      notice.className = 'github-preview-empty';
-      notice.textContent = t('editor.composer.github.preview.unavailable');
-      previewDialog.appendChild(notice);
-    }
-  } else if (typeof file.content === 'string') {
-    const pre = document.createElement('pre');
-    pre.className = 'github-preview-code';
-    pre.textContent = file.content;
-    previewDialog.appendChild(pre);
-  } else {
-    const notice = document.createElement('p');
-    notice.className = 'github-preview-empty';
-    notice.textContent = t('editor.composer.github.preview.unavailable');
-    previewDialog.appendChild(notice);
-  }
-
-  previewModal.appendChild(previewDialog);
-  document.body.appendChild(previewModal);
-
-  let closing = false;
-  const reduceMotion = (() => {
-    try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
-    catch (_) { return false; }
-  })();
-  const hadModalOpen = document.body.classList.contains('press-modal-open');
-  const restoreFocus = () => {
-    if (!triggerEl || typeof triggerEl.focus !== 'function') return;
-    try { triggerEl.focus({ preventScroll: true }); }
-    catch (_) { triggerEl.focus(); }
-  };
-  const closePreview = () => {
-    if (closing) return;
-    closing = true;
-    const finish = () => {
-      try { previewModal.remove(); } catch (_) {}
-      if (!hadModalOpen) document.body.classList.remove('press-modal-open');
-      restoreFocus();
-    };
-    if (reduceMotion) { finish(); return; }
-    try {
-      previewModal.classList.remove('press-anim-in');
-      previewModal.classList.add('press-anim-out');
-    } catch (_) {}
-    const onEnd = () => {
-      previewDialog.removeEventListener('animationend', onEnd);
-      try { previewModal.classList.remove('press-anim-out'); } catch (_) {}
-      finish();
-    };
-    try {
-      previewDialog.addEventListener('animationend', onEnd, { once: true });
-      setTimeout(onEnd, 200);
-    } catch (_) { onEnd(); }
-  };
-
-  document.body.classList.add('press-modal-open');
-  previewModal.classList.add('is-open');
-  previewModal.setAttribute('aria-hidden', 'false');
-  if (!reduceMotion) {
-    try {
-      previewModal.classList.add('press-anim-in');
-      const onEnd = () => {
-        previewDialog.removeEventListener('animationend', onEnd);
-        try { previewModal.classList.remove('press-anim-in'); } catch (_) {}
-      };
-      previewDialog.addEventListener('animationend', onEnd, { once: true });
-    } catch (_) {}
-  }
-  try { closeBtn.focus({ preventScroll: true }); }
-  catch (_) { closeBtn.focus(); }
-  closeBtn.addEventListener('click', () => closePreview());
-  previewModal.addEventListener('mousedown', (event) => {
-    if (event.target === previewModal) closePreview();
-  });
-  previewModal.addEventListener('keydown', (event) => {
-    if ((event.key || '').toLowerCase() === 'escape') {
-      event.preventDefault();
-      closePreview();
-    }
-  });
-}
-
-function appendGithubCommitSummary(summaryBlock, commitFiles = [], seoFiles = [], summaryEntries = []) {
-  summaryBlock.innerHTML = '';
-  const files = Array.isArray(commitFiles) ? commitFiles : [];
-  if (files.length) {
-    const systemFilesGroup = files.filter((file) => file && file.kind === 'system');
-    const textFiles = files.filter((file) => file && file.kind !== 'asset' && file.kind !== 'seo' && file.kind !== 'system');
-    const seoFilesGroup = files.filter((file) => file && file.kind === 'seo');
-    const assetFiles = files.filter((file) => file && file.kind === 'asset');
-
-    const renderGroup = (titleText, groupFiles) => {
-      if (!groupFiles || !groupFiles.length) return;
-      const group = document.createElement('div');
-      group.className = 'gh-sync-file-group';
-      const groupTitle = document.createElement('div');
-      groupTitle.className = 'gh-sync-file-group-title';
-      groupTitle.textContent = titleText;
-      group.appendChild(groupTitle);
-
-      const list = document.createElement('div');
-      list.className = 'gh-sync-file-list';
-      groupFiles.forEach((file) => {
-        if (!file) return;
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'gh-sync-file-entry';
-        item.textContent = describeSummaryEntry(file) || file.label || file.path || '';
-        item.addEventListener('click', () => openGithubCommitFilePreview(file, item));
-        list.appendChild(item);
-      });
-      group.appendChild(list);
-      summaryBlock.appendChild(group);
-    };
-
-    renderGroup(t('editor.composer.github.modal.summaryTextFilesTitle'), textFiles);
-    renderGroup(t('editor.composer.github.modal.summarySystemFilesTitle'), systemFilesGroup);
-    renderGroup(t('editor.composer.github.modal.summarySeoFilesTitle'), seoFilesGroup);
-    renderGroup(t('editor.composer.github.modal.summaryAssetFilesTitle'), assetFiles);
-  } else if (Array.isArray(summaryEntries) && summaryEntries.length) {
-    const list = document.createElement('ul');
-    list.style.margin = '.4rem 0 0';
-    list.style.paddingLeft = '1.25rem';
-    summaryEntries.forEach((entry) => {
-      const item = document.createElement('li');
-      item.textContent = describeSummaryEntry(entry);
-      list.appendChild(item);
-    });
-    summaryBlock.appendChild(list);
-  } else {
-    const info = document.createElement('p');
-    info.className = 'muted';
-    info.textContent = t('editor.composer.github.modal.summaryEmpty');
-    summaryBlock.appendChild(info);
-  }
-
-  if (Array.isArray(seoFiles) && seoFiles.length) {
-    const note = document.createElement('p');
-    note.className = 'muted';
-    note.textContent = 'SEO files were generated automatically and will be included in this upload.';
-    summaryBlock.appendChild(note);
-  }
-}
 
 function appendPublishTransportStatus(host) {
   const transport = resolvePublishTransport();
@@ -6500,15 +5751,6 @@ function scheduleSyncCommitPanelRefresh() {
       syncCommitPanelRefreshTimer = timer;
     },
     refreshSyncCommitPanel
-  });
-}
-
-async function waitForRemotePropagation(files = []) {
-  return waitForPublishedFiles(files, {
-    windowRef: window,
-    fetchImpl: fetch,
-    setStatus: setSyncOverlayStatus,
-    setCancelHandler: setSyncOverlayCancelHandler
   });
 }
 
@@ -6664,129 +5906,6 @@ function applyLocalPostCommitState(files = []) {
   updateMarkdownDiscardButton(getActiveDynamicTab());
   updateMarkdownSaveButton(getActiveDynamicTab());
   updateMarkdownProtectionButton(getActiveDynamicTab());
-}
-
-async function performDirectGithubCommit(token, summaryEntries = []) {
-  return performPublishCommit({
-    type: 'pat',
-    token
-  }, summaryEntries);
-}
-
-async function performConnectGithubCommit(connect, summaryEntries = []) {
-  return performPublishCommit({
-    type: 'connect',
-    connect
-  }, summaryEntries);
-}
-
-async function performPublishCommit(transport, summaryEntries = []) {
-  const { owner, name, branch } = getActiveSiteRepoConfig();
-  if (!owner || !name) {
-    throw new Error('GitHub repository information is missing in site.yaml.');
-  }
-
-  gitHubCommitInFlight = true;
-
-  showSyncOverlay({
-    title: 'Synchronizing with GitHub…',
-    message: 'Preparing commit…',
-    status: 'Gathering local changes…',
-    cancelable: false
-  });
-
-  let connectFallbackActionAvailable = false;
-  try {
-    const { files } = await gatherCommitPayload({ showSeoStatus: true });
-    if (!files.length) {
-      hideSyncOverlay();
-      showToast('info', t('editor.toasts.noPendingChanges'));
-      return;
-    }
-
-    const headline = `chore: sync ${files.length === 1 ? 'draft' : 'drafts'} via Press`;
-    if (transport && transport.type === 'connect') {
-      connectFallbackActionAvailable = true;
-      await publishStagedCommit({
-        transport,
-        repo: { owner, name, branch },
-        headline,
-        files,
-        contentRoot: getTrackedPublishContentRoot(),
-        getCachedGrant: getCachedConnectPublishGrant,
-        setCachedGrant: setCachedConnectPublishGrant,
-        windowRef: window,
-        documentRef: document,
-        translate: t,
-        onStatus: setSyncOverlayStatus
-      });
-      connectFallbackActionAvailable = false;
-    } else {
-      await publishStagedCommit({
-        transport,
-        repo: { owner, name, branch },
-        headline,
-        files,
-        translate: t,
-        onStatus: setSyncOverlayStatus
-      });
-    }
-
-    setSyncOverlayStatus('Updating editor state…');
-    applyLocalPostCommitState(files);
-
-    const fileCount = files.length;
-    const summaryLabel = fileCount === 1 ? describeSummaryEntry(summaryEntries[0] || files[0]) : `${fileCount} files`;
-    setSyncOverlayMessage(`Commit pushed for ${summaryLabel}. Waiting for the site to update… This can take a few minutes. If you stop waiting, the commit stays on GitHub but the live site might not show the changes yet.`);
-    const propagationResult = await waitForRemotePropagation(files);
-
-    hideSyncOverlay();
-    if (propagationResult && propagationResult.canceled) {
-      showToast('info', t('editor.toasts.siteWaitStopped'));
-    } else if (propagationResult && propagationResult.timedOut) {
-      showToast('warning', t('editor.toasts.siteWaitTimedOut'));
-    } else {
-      showToast('success', t('editor.toasts.commitSuccess', { count: fileCount }));
-    }
-  } catch (err) {
-    hideSyncOverlay();
-    let message = err && err.message ? err.message : t('editor.toasts.githubCommitFailed');
-    if (err && err.status === 401) {
-      if (transport && transport.type === 'connect') {
-        clearCachedConnectPublishGrant();
-      } else {
-        clearCachedFineGrainedToken();
-        message = t('editor.toasts.githubTokenRejected');
-      }
-    }
-    console.error('Press GitHub commit failed', err);
-    const toastOptions = { duration: 5200 };
-    if (transport && transport.type === 'connect' && connectFallbackActionAvailable) {
-      toastOptions.duration = 9000;
-      toastOptions.action = {
-        label: t('editor.composer.github.modal.connectFallback'),
-        onClick: (event) => {
-          if (event && typeof event.preventDefault === 'function') event.preventDefault();
-          switchToPatFallbackAndFocusToken();
-        }
-      };
-    }
-    showToast('error', message, toastOptions);
-  } finally {
-    gitHubCommitInFlight = false;
-  }
-}
-
-async function ensureConnectPublishGrant(connect, repo) {
-  return ensurePublishGrant({
-    connect,
-    repo,
-    getCachedGrant: getCachedConnectPublishGrant,
-    setCachedGrant: setCachedConnectPublishGrant,
-    windowRef: window,
-    documentRef: document,
-    translate: t
-  });
 }
 
 function computeOrderDiffDetails(kind) {

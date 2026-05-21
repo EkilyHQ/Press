@@ -3351,8 +3351,8 @@ assert.match(
 
 assert.match(
   source,
-  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function openComposerSettingsForPatFallback\(\) \{[\s\S]*applyMode\('composer', \{ preserveTreeExpansion: true \}\);[\s\S]*applyComposerFile\('site', \{ force: true, immediate: true \}\);[\s\S]*showEditorSystemPanel\('composer'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openComposerSettingsForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*scheduleSyncCommitPanelRefresh\(\)[\s\S]*focusFineGrainedTokenInput\(\);/,
-  'Connect failure fallback action should switch to PAT mode through the normal editor mode path, refresh publish state, and focus the PAT token input'
+  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*focusFineGrainedTokenInput\(\);/,
+  'Connect failure fallback action should switch to PAT mode through the normal Publish panel path, refresh publish state, and focus the visible PAT token input'
 );
 
 assert.match(

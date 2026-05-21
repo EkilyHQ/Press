@@ -1789,7 +1789,7 @@ function clearCachedFineGrainedToken() {
 }
 
 function getFineGrainedTokenValue() {
-  const input = document.getElementById('syncGithubTokenInput');
+  const input = getVisibleFineGrainedTokenInput();
   const value = input && typeof input.value === 'string' ? input.value.trim() : '';
   return value || getCachedFineGrainedToken();
 }
@@ -1857,24 +1857,28 @@ function updatePublishTransportSettingsDomForPatFallback() {
   if (patPanel) patPanel.hidden = false;
 }
 
-function openComposerSettingsForPatFallback() {
+function openSyncPanelForPatFallback() {
   try {
-    applyMode('composer', { preserveTreeExpansion: true });
-    try { applyComposerFile('site', { force: true, immediate: true }); } catch (_) {}
+    applyMode('sync', { preserveTreeExpansion: true });
     return;
   } catch (_) {}
-  try { showEditorSystemPanel('composer'); } catch (_) {}
-  try { applyComposerFile('site', { force: true, immediate: true }); } catch (_) {}
+  try { showEditorSystemPanel('sync'); } catch (_) {}
 }
 
 function switchToPatFallbackAndFocusToken() {
   setConnectPublishEnabled(false);
-  openComposerSettingsForPatFallback();
+  openSyncPanelForPatFallback();
   updatePublishTransportSettingsDomForPatFallback();
-  scheduleSyncCommitPanelRefresh();
+  try {
+    const refresh = refreshSyncCommitPanel({ focusToken: true });
+    if (refresh && typeof refresh.then === 'function') refresh.then(
+      () => focusFineGrainedTokenInput(),
+      () => focusFineGrainedTokenInput()
+    );
+  } catch (_) {}
   const focusLater = () => {
     if (focusFineGrainedTokenInput()) return;
-    openComposerSettingsForPatFallback();
+    openSyncPanelForPatFallback();
     updatePublishTransportSettingsDomForPatFallback();
     focusFineGrainedTokenInput();
   };
@@ -6580,6 +6584,9 @@ async function refreshSyncCommitPanel(options = {}) {
   const summaryBlock = document.createElement('div');
   summaryBlock.className = 'sync-commit-summary';
   appendPublishTransportStatus(form);
+  if (resolvePublishTransport().type === 'pat') {
+    renderFineGrainedTokenSettings(form);
+  }
   appendGithubCommitSummary(summaryBlock, commitFiles, seoFiles, summaryEntries);
   form.appendChild(summaryBlock);
 
@@ -6619,7 +6626,7 @@ async function refreshSyncCommitPanel(options = {}) {
     }
     const transport = resolvePublishTransport();
     if (transport.type === 'pat') {
-      const input = document.getElementById('syncGithubTokenInput');
+      const input = getVisibleFineGrainedTokenInput();
       const value = getFineGrainedTokenValue();
       if (!value) {
         showError(t('editor.composer.github.modal.errorRequired'));
@@ -6664,13 +6671,9 @@ async function refreshSyncCommitPanel(options = {}) {
   });
 
   if (options.focusToken) {
-    const input = document.getElementById('syncGithubTokenInput');
-    if (input && input.offsetParent) {
-      try { input.focus({ preventScroll: true }); }
-      catch (_) { input.focus(); }
-    }
+    focusFineGrainedTokenInput();
   }
-  return { panel, input: document.getElementById('syncGithubTokenInput'), form };
+  return { panel, input: getVisibleFineGrainedTokenInput(), form };
 }
 
 function scheduleSyncCommitPanelRefresh() {

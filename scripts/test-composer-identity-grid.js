@@ -3351,7 +3351,7 @@ assert.match(
 
 assert.match(
   source,
-  /function openComposerSettingsForPatFallback\(\) \{[\s\S]*applyMode\('composer', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('composer'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openComposerSettingsForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*scheduleSyncCommitPanelRefresh\(\)[\s\S]*focusFineGrainedTokenInput\(\);/,
+  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function openComposerSettingsForPatFallback\(\) \{[\s\S]*applyMode\('composer', \{ preserveTreeExpansion: true \}\);[\s\S]*applyComposerFile\('site', \{ force: true, immediate: true \}\);[\s\S]*showEditorSystemPanel\('composer'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openComposerSettingsForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*scheduleSyncCommitPanelRefresh\(\)[\s\S]*focusFineGrainedTokenInput\(\);/,
   'Connect failure fallback action should switch to PAT mode through the normal editor mode path, refresh publish state, and focus the PAT token input'
 );
 

@@ -1829,8 +1829,13 @@ function setConnectPublishBaseUrl(baseUrl) {
   });
 }
 
+function getVisibleFineGrainedTokenInput() {
+  const inputs = Array.from(document.querySelectorAll('#syncGithubTokenInput'));
+  return inputs.find(input => input && input.offsetParent !== null) || inputs[0] || null;
+}
+
 function focusFineGrainedTokenInput() {
-  const input = document.getElementById('syncGithubTokenInput');
+  const input = getVisibleFineGrainedTokenInput();
   if (!input || typeof input.focus !== 'function') return false;
   try { input.focus({ preventScroll: true }); }
   catch (_) { input.focus(); }
@@ -1855,9 +1860,11 @@ function updatePublishTransportSettingsDomForPatFallback() {
 function openComposerSettingsForPatFallback() {
   try {
     applyMode('composer', { preserveTreeExpansion: true });
+    try { applyComposerFile('site', { force: true, immediate: true }); } catch (_) {}
     return;
   } catch (_) {}
   try { showEditorSystemPanel('composer'); } catch (_) {}
+  try { applyComposerFile('site', { force: true, immediate: true }); } catch (_) {}
 }
 
 function switchToPatFallbackAndFocusToken() {

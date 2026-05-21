@@ -2,9 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { createPublishSettingsStore } from '../assets/js/publish/settings-store.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
+const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
+const connectTransportPath = resolve(here, '../assets/js/publish/transports/connect-transport.js');
+const patTransportPath = resolve(here, '../assets/js/publish/transports/github-pat-transport.js');
+const propagationWatcherPath = resolve(here, '../assets/js/publish/propagation-watcher.js');
 const mainPath = resolve(here, '../assets/main.js');
 const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
@@ -21,6 +26,10 @@ const jaI18nPath = resolve(here, '../assets/i18n/ja.js');
 const languagesManifestPath = resolve(here, '../assets/i18n/languages.json');
 const i18nPath = resolve(here, '../assets/js/i18n.js');
 const source = readFileSync(composerPath, 'utf8');
+const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
+const connectTransportSource = readFileSync(connectTransportPath, 'utf8');
+const patTransportSource = readFileSync(patTransportPath, 'utf8');
+const propagationWatcherSource = readFileSync(propagationWatcherPath, 'utf8');
 const mainSource = readFileSync(mainPath, 'utf8');
 const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
@@ -242,8 +251,7 @@ assert.match(
   'LS_KEYS.systemTreeExpanded',
   'LS_KEYS.cfile',
   'DRAFT_STORAGE_KEY',
-  'MARKDOWN_DRAFT_STORAGE_KEY',
-  'GITHUB_PAT_STORAGE_KEY'
+  'MARKDOWN_DRAFT_STORAGE_KEY'
 ].forEach((keyName) => {
   assert.match(
     source,
@@ -251,6 +259,38 @@ assert.match(
     `${keyName} should use site-scoped browser storage`
   );
 });
+
+assert.match(
+  publishSettingsSource,
+  /scopeKey[\s\S]*GITHUB_PAT_STORAGE_KEY/,
+  'publish settings store should keep the PAT fallback token site-scoped'
+);
+
+function createMemoryStorage(seed = {}) {
+  const data = new Map(Object.entries(seed));
+  return {
+    getItem: (key) => data.has(key) ? data.get(key) : null,
+    setItem: (key, value) => { data.set(key, String(value)); },
+    removeItem: (key) => { data.delete(key); },
+    dump: () => Object.fromEntries(data.entries())
+  };
+}
+
+{
+  const localStorage = createMemoryStorage({
+    'press_connect_publish_enabled:scope': '0'
+  });
+  const sessionStorage = createMemoryStorage();
+  const store = createPublishSettingsStore({
+    windowRef: { localStorage, sessionStorage },
+    scopeKey: (key) => `${key}:scope`
+  });
+  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'legacy Connect opt-out should migrate to PAT fallback mode');
+  store.setStoredConnectPublishSettings({ baseUrl: 'http://127.0.0.1:8788' });
+  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'editing the Connect URL should not silently leave PAT fallback mode');
+  store.setStoredConnectPublishSettings({ enabled: true });
+  assert.equal(store.getStoredConnectPublishSettings().mode, 'connect', 'enabling Connect should persist Connect as the default publish mode');
+}
 
 assert.deepEqual(
   repoInference.inferRepoConfigFromGitHubPagesUrl('https://deemoe404.github.io/test1/index_editor.html'),
@@ -1898,25 +1938,43 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function requestConnectPublishGrant\(connect, repo\) \{[\s\S]*window\.open\('', popupName, 'popup,width=520,height=720'\)[\s\S]*link\.referrerPolicy = 'unsafe-url'[\s\S]*link\.click\(\);/,
+  connectTransportSource,
+  /function requestConnectPublishGrant\([\s\S]*windowRef\.open\('', popupName, 'popup,width=520,height=720'\)[\s\S]*link\.referrerPolicy = 'unsafe-url'[\s\S]*link\.click\(\);/,
   'Connect publish authorization should send a full browser Referrer so Connect can bind project Pages paths'
 );
 
 assert.match(
-  source,
-  /async function createConnectPublishCommit\(connect,[\s\S]*fetch\(endpoint\.href, \{[\s\S]*referrerPolicy: 'unsafe-url'[\s\S]*Authorization/,
+  connectTransportSource,
+  /async function createConnectPublishCommit\([\s\S]*fetchImpl\(endpoint\.href, \{[\s\S]*referrerPolicy: 'unsafe-url'[\s\S]*Authorization/,
   'Connect publish POST should send a full browser Referrer so grants stay bound to the editor path'
 );
 
 assert.match(
-  source,
-  /const additions = files\.filter\(\(file\) => !file\.deleted\)[\s\S]*const deletions = files\.filter\(\(file\) => file && file\.deleted\)[\s\S]*if \(deletions\.length\) fileChanges\.deletions = deletions;[\s\S]*fileChanges/,
+  patTransportSource,
+  /const additions = [\s\S]*\.filter\(\(file\) => !file\.deleted\)[\s\S]*const deletions = [\s\S]*\.filter\(\(file\) => file && file\.deleted\)[\s\S]*if \(deletions\.length\) fileChanges\.deletions = deletions;[\s\S]*fileChanges/,
   'GitHub commit payload should include deletions as well as additions'
+);
+
+assert.doesNotMatch(
+  source,
+  /async function githubGraphqlRequest|async function createFineGrainedTokenCommit|async function createConnectPublishCommit|function requestConnectPublishGrant/,
+  'composer should not directly own Connect or GitHub commit transport implementations'
 );
 
 assert.match(
   source,
+  /import\('\.\/publish\/transports\/github-pat-transport\.js\?v=[\w.-]+'\)/,
+  'PAT fallback transport should be loaded only when the user explicitly selects the PAT path'
+);
+
+assert.match(
+  propagationWatcherSource,
+  /export async function waitForRemotePropagation[\s\S]*setCancelHandler\(cancelHandler, true\)[\s\S]*setStatus\('All files confirmed on site\.'\)/,
+  'remote propagation checks should live outside composer behind the publish watcher boundary'
+);
+
+assert.match(
+  propagationWatcherSource,
   /files\.forEach\(\(file\) => \{[\s\S]*unique\.push\(\{ \.\.\.file, path: normalized \}\);[\s\S]*if \(file\.deleted\) \{[\s\S]*resp\.status !== 404 && resp\.status !== 410[\s\S]*ok = checked && !stillExists && !indeterminate;/,
   'remote propagation checks should verify deleted commit entries disappear'
 );
@@ -3287,8 +3345,14 @@ assert.match(
 
 assert.match(
   source,
-  /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const CONNECT_PUBLISH_BASE_URL_STORAGE_KEY = 'press_connect_publish_base_url';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
-  'Connect publish settings should use scoped local browser storage with built-in remote presets'
+  /function getMatchingConnectPublishGrant\(connect, repo = getActiveSiteRepoConfig\(\)\) \{[\s\S]*cached\.baseUrl !== connect\.baseUrl[\s\S]*cached\.owner !== repo\.owner \|\| cached\.name !== repo\.name \|\| cached\.branch !== branch[\s\S]*return cached;/,
+  'Connect connected UI should only trust cached grants that match the selected repo, branch, and base URL'
+);
+
+assert.match(
+  publishSettingsSource,
+  /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const PUBLISH_TRANSPORT_MODE_STORAGE_KEY = 'press_publish_transport_mode';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
+  'Connect publish settings should keep legacy storage compatibility while defaulting to a transport mode key'
 );
 
 assert.match(
@@ -3298,15 +3362,15 @@ assert.match(
 );
 
 assert.match(
-  source,
+  publishSettingsSource,
   /function normalizeConnectPublishBaseUrl\(value\) \{[\s\S]*const url = new URL\(rawBaseUrl\);[\s\S]*url\.protocol !== 'https:' && !\(url\.protocol === 'http:' && isLocalhostHost\(url\.hostname\)\)[\s\S]*return url\.origin;/,
   'Connect publish URL normalization should require absolute HTTPS or localhost HTTP URLs'
 );
 
 assert.match(
-  source,
-  /function resolvePublishTransport\(\) \{[\s\S]*const settings = getConnectPublishSettings\(\);[\s\S]*if \(settings\.enabled\) \{[\s\S]*invalid: true[\s\S]*type: 'connect'[\s\S]*\}\s*return \{\s*type: 'pat'\s*\};/,
-  'Publish transport should use Connect only when browser-local Connect mode is enabled'
+  publishSettingsSource,
+  /mode: 'connect'[\s\S]*const modeRaw = storage\.getItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\)\)[\s\S]*enabledRaw === '0'[\s\S]*mode = 'pat'[\s\S]*function resolvePublishTransport/,
+  'Publish transport should default to Connect while preserving legacy opt-out to PAT fallback'
 );
 
 assert.doesNotMatch(

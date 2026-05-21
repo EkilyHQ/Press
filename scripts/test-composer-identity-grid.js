@@ -3351,8 +3351,14 @@ assert.match(
 
 assert.match(
   source,
-  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*focusFineGrainedTokenInput\(\);/,
+  /function getVisibleFineGrainedTokenInput\(\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*offsetParent !== null[\s\S]*function syncFineGrainedTokenInputs\(value, sourceInput = null\) \{[\s\S]*document\.querySelectorAll\('#syncGithubTokenInput'\)[\s\S]*if \(input !== sourceInput\) input\.value = nextValue;[\s\S]*function openSyncPanelForPatFallback\(\) \{[\s\S]*applyMode\('sync', \{ preserveTreeExpansion: true \}\);[\s\S]*showEditorSystemPanel\('sync'\);[\s\S]*function switchToPatFallbackAndFocusToken\(\) \{[\s\S]*setConnectPublishEnabled\(false\);[\s\S]*openSyncPanelForPatFallback\(\);[\s\S]*updatePublishTransportSettingsDomForPatFallback\(\);[\s\S]*refreshSyncCommitPanel\(\{ focusToken: true \}\)[\s\S]*focusFineGrainedTokenInput\(\);/,
   'Connect failure fallback action should switch to PAT mode through the normal Publish panel path, refresh publish state, and focus the visible PAT token input'
+);
+
+assert.match(
+  source,
+  /input\.addEventListener\('input', \(\) => \{[\s\S]*setCachedFineGrainedToken\(input\.value\);[\s\S]*syncFineGrainedTokenInputs\(input\.value, input\);[\s\S]*const clearToken = \(\) => \{[\s\S]*clearCachedFineGrainedToken\(\);[\s\S]*syncFineGrainedTokenInputs\(''\);/,
+  'Multiple PAT token inputs should stay synchronized so clearing one cannot resurrect a stale session token'
 );
 
 assert.match(

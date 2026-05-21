@@ -1834,6 +1834,19 @@ function getVisibleFineGrainedTokenInput() {
   return inputs.find(input => input && input.offsetParent !== null) || inputs[0] || null;
 }
 
+function syncFineGrainedTokenInputs(value, sourceInput = null) {
+  const nextValue = typeof value === 'string' ? value : '';
+  document.querySelectorAll('#syncGithubTokenInput').forEach(input => {
+    if (input !== sourceInput) input.value = nextValue;
+    const wrapper = input.closest ? input.closest('.cs-token-settings') : null;
+    const clear = wrapper && wrapper.querySelector ? wrapper.querySelector('.cs-token-clear') : null;
+    if (!clear) return;
+    const hasValue = !!String(input.value || '').trim();
+    clear.setAttribute('aria-disabled', hasValue ? 'false' : 'true');
+    clear.tabIndex = hasValue ? 0 : -1;
+  });
+}
+
 function focusFineGrainedTokenInput() {
   const input = getVisibleFineGrainedTokenInput();
   if (!input || typeof input.focus !== 'function') return false;
@@ -1956,17 +1969,13 @@ function renderFineGrainedTokenSettings(host) {
 
   input.addEventListener('input', () => {
     setCachedFineGrainedToken(input.value);
-    const hasValue = !!String(input.value || '').trim();
-    btnForget.setAttribute('aria-disabled', hasValue ? 'false' : 'true');
-    btnForget.tabIndex = hasValue ? 0 : -1;
+    syncFineGrainedTokenInputs(input.value, input);
   });
 
   const clearToken = () => {
     if (btnForget.getAttribute('aria-disabled') === 'true') return;
     clearCachedFineGrainedToken();
-    input.value = '';
-    btnForget.setAttribute('aria-disabled', 'true');
-    btnForget.tabIndex = -1;
+    syncFineGrainedTokenInputs('');
     try { input.focus({ preventScroll: true }); }
     catch (_) { input.focus(); }
   };

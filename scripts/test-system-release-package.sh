@@ -76,6 +76,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-site-model.js" "${entr
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-diff-ui.js" "${entries_file}"; then
+  echo "expected package to include composer diff UI code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/vendor/highlightjs/highlight.min.js" "${entries_file}"; then
   echo "expected package to include vendored Highlight.js common bundle" >&2
   exit 1

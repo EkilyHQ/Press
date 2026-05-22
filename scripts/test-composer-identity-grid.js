@@ -17,6 +17,7 @@ const composerContentStagingPath = resolve(here, '../assets/js/composer-content-
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
+const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -48,6 +49,7 @@ const composerContentStagingSource = readFileSync(composerContentStagingPath, 'u
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
+const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -232,6 +234,24 @@ assert.match(
   composerSiteModelSource,
   /export function prepareSiteState\(raw\)[\s\S]*'enableAllPosts', 'disableAllPosts', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)/,
   'site model boundary should own site.yaml normalization, diffing, and serialization'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-diff-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted diff UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function applySiteDiffMarkers|function applyIndexDiffMarkers|function applyTabsDiffMarkers|function refreshFileDirtyBadges|function computeOrderDiffDetails|function renderComposerInlineSummary|function updateFileDirtyBadge|function buildIndexDiffBadges|function buildTabsDiffBadges/,
+  'diff markers, file dirty badges, and inline composer summaries should stay outside the main composer shell'
+);
+
+assert.match(
+  composerDiffUiSource,
+  /export function createComposerDiffUi\(options = \{\}\)[\s\S]*function buildEntryDiffBadges\(kind, info\)[\s\S]*function applySiteDiffMarkers\(diff\)[\s\S]*function refreshFileDirtyBadges\(\)[\s\S]*function computeOrderDiffDetails\(kind\)[\s\S]*function renderComposerInlineSummary\(target, diff, renderOptions = \{\}\)/,
+  'diff UI boundary should own composer diff DOM markers, dirty badges, order stats, and inline summaries'
 );
 
 assert.match(
@@ -2743,13 +2763,13 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerDiffUiSource,
   /function getComposerDiffChangeCount\(diff\) \{[\s\S]*Object\.keys\(diff\.fields\)[\s\S]*Object\.keys\(diff\.keys\)[\s\S]*diff\.orderChanged/,
   'composer file dirty badges should derive a numeric count from the current diff'
 );
 
 assert.match(
-  source,
+  composerDiffUiSource,
   /function updateFileDirtyBadge\(kind\) \{[\s\S]*const changeCount = getComposerDiffChangeCount\(diff\);[\s\S]*badge\.textContent = displayValue;[\s\S]*el\.dataset\.dirtyCount = String\(changeCount\);/,
   'composer file switch dirty badges should render the change count into the button'
 );
@@ -3523,19 +3543,19 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerDiffUiSource,
   /function applySiteDiffMarkers\(diff\) \{[\s\S]*const lang = el\.getAttribute\('data-lang'\);[\s\S]*const subfield = el\.getAttribute\('data-subfield'\);[\s\S]*const hasChangedDescendant = \(el\) =>[\s\S]*if \(hasChangedDescendant\(el\)\) \{/,
   'Site editor diff markers should support control-level language and subfield matching'
 );
 
 assert.match(
-  source,
+  composerDiffUiSource,
   /if \(info\.type === 'object' && info\.fields\) \{\s*return subfield \? !!info\.fields\[subfield\] : false;\s*\}/,
   'Object field diffs should only match controls that declare a changed subfield'
 );
 
 assert.match(
-  source,
+  composerDiffUiSource,
   /if \(info\.type === 'list' && info\.entries\) \{\s*if \(index != null && subfield\) return !!\(info\.entries\[index\] && info\.entries\[index\]\[subfield\]\);\s*return true;\s*\}/,
   'List field diffs should preserve field-level markers when removed rows have no remaining controls'
 );

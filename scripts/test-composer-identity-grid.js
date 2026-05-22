@@ -31,6 +31,7 @@ const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js
 const composerContentMutationsPath = resolve(here, '../assets/js/composer-content-mutations.js');
 const composerSetupVerifierPath = resolve(here, '../assets/js/composer-setup-verifier.js');
 const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-controller.js');
+const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -85,6 +86,7 @@ const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const composerContentMutationsSource = readFileSync(composerContentMutationsPath, 'utf8');
 const composerSetupVerifierSource = readFileSync(composerSetupVerifierPath, 'utf8');
 const composerModeControllerSource = readFileSync(composerModeControllerPath, 'utf8');
+const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -483,6 +485,30 @@ assert.match(
   composerModeControllerSource,
   /function applyDynamicMode\(nextMode, optionsForMode, editorApi\)[\s\S]*activateDynamicMode\(nextMode\)[\s\S]*setEditorDetailPanelMode\('markdown'\)[\s\S]*loadDynamicTabContent\(tab\)/,
   'mode controller should own dynamic Markdown activation, panel switching, and lazy content application'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-unsynced-summary\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted unsynced summary controller boundary'
+);
+
+assert.match(
+  source,
+  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}/,
+  'composer unsynced summary helpers should delegate to the extracted controller'
+);
+
+assert.doesNotMatch(
+  source,
+  /function getModeTabButton|function getModeTabBaseLabel|function ensureModeTabBadgeElement|function applyModeTabBadgeState|function updateReviewButton|function updateDiscardButtonVisibility/,
+  'mode tab badges and review/discard button rendering should stay outside the main composer shell'
+);
+
+assert.match(
+  composerUnsyncedSummarySource,
+  /export function createComposerUnsyncedSummaryController\(options = \{\}\)[\s\S]*function collectUnsyncedMarkdownEntries\(\)[\s\S]*function computeUnsyncedSummary\(\)[\s\S]*function updateModeDirtyIndicators\(summaryEntries\)[\s\S]*function updateUnsyncedSummary\(updateOptions = \{\}\)/,
+  'unsynced summary controller should own summary aggregation, mode badges, and review/discard button updates'
 );
 
 assert.match(

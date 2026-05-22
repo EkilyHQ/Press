@@ -20,6 +20,7 @@ const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
+const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -56,6 +57,7 @@ const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
+const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -79,6 +81,7 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
+const siteSettingsSource = [source, composerSiteSettingsUiSource].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -296,6 +299,24 @@ assert.match(
   composerIndexTabsUiSource,
   /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*function makeDragList\(container, onReorder\)[\s\S]*function buildIndexUI\(root, state\)[\s\S]*function buildTabsUI\(root, state\)/,
   'index/tabs list UI boundary should own legacy composer list rendering and drag controls'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-site-settings-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Site Settings UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function buildSiteUI/,
+  'Site Settings rendering should stay outside the main composer shell'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
+  'Site Settings UI boundary should own repository, identity, theme, annotate, and asset warning rendering'
 );
 
 assert.match(
@@ -607,7 +628,7 @@ assert.equal(
 
 assert.match(
   source,
-  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(window\.location\)[\s\S]*applyComposerEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(\$\(\'#composerSite\'\), state\);/,
+  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(window\.location\)[\s\S]*applyComposerEffectiveSiteConfig\(state\.site\);[\s\S]*composerSiteSettingsUi\.buildSiteUI\(\$\(\'#composerSite\'\), state\);/,
   'composer should infer starter repository config before rendering Site Settings'
 );
 
@@ -3040,109 +3061,109 @@ assert.match(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderIdentityLocalizedGrid = \(section\) => \{/,
   'composer site editor should define a merged identity localized grid renderer'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /renderIdentityLocalizedGrid\(identitySection\);/,
   'Identity section should render title and subtitle through the merged grid'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /renderIdentityPathGrid\(identitySection\);/,
   'Identity section should render avatar and content root through a compact path grid'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const siteConfigSection = createSection\([\s\S]*sections\.configuration\.title[\s\S]*sections\.configuration\.description[\s\S]*createConfigSubsection\(\s*siteConfigSection,[\s\S]*sections\.behavior\.title[\s\S]*renderBehaviorGrid\(behaviorSubsection\);/,
   'Behavior settings should render inside the combined Site Configuration section'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /createConfigSubsection\(\s*siteConfigSection,[\s\S]*sections\.theme\.title[\s\S]*renderThemeGrid\(themeSubsection\);/,
   'Theme settings should render inside the combined Site Configuration section'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /createConfigSubsection\(\s*siteConfigSection,[\s\S]*sections\.assets\.title[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
   'Asset warnings should render inside the combined Site Configuration section'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /renderSeoResourceGrid\(seoSection\);/,
   'SEO Resource URL should render through the compact grid'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /renderLocalizedField\(seoSection, 'siteKeywords'[\s\S]*createLinkListField\(seoSection, 'profileLinks'[\s\S]*renderSeoResourceGrid\(seoSection\);/,
   'SEO section should render Profile links before Resource URL'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /createLinkListField\(seoSection, 'profileLinks', \{[\s\S]*subheading: true[\s\S]*\}\);/,
   'SEO Profile links should opt into the shared subsection heading style'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const appendLinkHeader = \(\) => \{[\s\S]*head\.className = 'cs-link-head';[\s\S]*labelTitle\.id = labelTitleId;[\s\S]*hrefTitle\.id = hrefTitleId;[\s\S]*listWrap\.appendChild\(head\);[\s\S]*appendLinkHeader\(\);[\s\S]*list\.forEach/,
   'profile link Name and URL labels should render in a static header outside draggable rows'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderRowsAndRefreshDiff = \(\) => \{[\s\S]*renderRows\(\);[\s\S]*notifyComposerChange\('site', \{ skipAutoSave: true \}\);[\s\S]*\};[\s\S]*moveEntry\(index, event\.key === 'ArrowUp' \? index - 1 : index \+ 1, \{ refreshDiff: true \}\);[\s\S]*renderRowsAndRefreshDiff\(\);/,
   'profile link reorders should refresh site diff markers after replacing row DOM'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /row\.classList\.add\('cs-link-row--with-title'\)|labelField\.append\(labelTitle, labelInput\)|hrefField\.append\(hrefTitle, hrefInput\)/,
   'profile link draggable rows should not own the static Name and URL labels'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const moveEntry = \(from, to, options = \{\}\) => \{[\s\S]*list\.splice\(to, 0, item\);[\s\S]*markDirty\(\);[\s\S]*if \(options\.refreshDiff\) renderRowsAndRefreshDiff\(\);[\s\S]*else renderRows\(\);[\s\S]*const createDragHandle = \(index\) => \{/,
   'profile links should share one reorder path between drag handles and keyboard movement'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const handle = document\.createElement\('span'\);[\s\S]*handle\.setAttribute\('role', 'button'\);[\s\S]*handle\.className = 'cs-link-drag-handle';[\s\S]*handle\.setAttribute\('aria-label', t\('editor\.composer\.site\.reorderLink'\)\);[\s\S]*handle\.addEventListener\('pointerdown',/,
   'profile links should render a standalone pointer drag handle for reordering'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const createDragPlaceholder = \(row\) => \{[\s\S]*placeholder\.className = 'cs-link-drop-placeholder';[\s\S]*placeholder\.style\.height = `\$\{rowRect\.height\}px`;/,
   'profile link drag should create an in-list placeholder matching the dragged row height'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const animateLinkRows = \(callback\) => \{[\s\S]*getBoundingClientRect\(\)[\s\S]*row\.style\.transform = `translate3d\(0, \$\{previous\.top - next\.top\}px, 0\)`[\s\S]*requestAnimationFrame/,
   'profile link drag should animate non-dragged rows into their preview positions'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const applyDragPreview = \(clientY\) => \{[\s\S]*linkDragState\.dragRow\.style\.transform = `translate3d\(0, \$\{clientY - linkDragState\.startY\}px, 0\)`[\s\S]*animateLinkRows\(\(\) => \{/,
   'profile link drag should move the dragged row with the pointer while previewing the drop position'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /className = 'btn-tertiary cs-move'|addEventListener\('click', \(\) => moveEntry\(index, index [-+] 1\)\)/,
   'profile links should not render old up/down reorder buttons'
 );
@@ -3184,145 +3205,145 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /class="ct-field ct-field-title"|const titleLabel = tComposerLang\('fields\.title'\)|const titleInput = \$\('\.ct-title', block\)|entry\[lang\]\.title = e\.target\.value/,
   'page entry structure rows should no longer render editable title inputs once title moves into the markdown editor metadata panel'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /<input class="ct-loc"|const pathPlaceholder = tComposerLang\('placeholders\.tabPath'\)|const locInput = \$\('\.ct-loc', block\)|entry\[lang\]\.location = e\.target\.value/,
   'page entry lists should no longer render editable location inputs for tabs languages'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /editor-structure-item[^\\n]*addEventListener\('pointerdown'|item\.setAttribute\('draggable', 'true'\)|className = 'btn-secondary editor-structure-move'/,
   'structure reordering should not start from the whole row or restore legacy move buttons'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /renderLocalizedField\(seoSection, 'siteDescription', \{[\s\S]*subheading: true[\s\S]*\}\);[\s\S]*renderLocalizedField\(seoSection, 'siteKeywords', \{[\s\S]*subheading: true[\s\S]*\}\);/,
   'SEO localized fields should opt into the shared subsection heading style'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const field = options\.subheading[\s\S]*createSubheadingField\(section, \{[\s\S]*dataKey: key,[\s\S]*label: options\.label,[\s\S]*description: options\.description[\s\S]*createField\(section, \{/,
   'localized fields should be able to reuse the shared subsection heading renderer'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const createSubheadingField = \(section, config\) => \{[\s\S]*head\.className = 'cs-config-subsection-head'[\s\S]*title\.className = 'cs-config-subsection-title'[\s\S]*description\.className = 'cs-config-subsection-description'/,
   'subheading fields should reuse the same title and description classes as combined configuration subsections'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /renderLocalizedField\(identitySection,\s*'siteTitle'/,
   'Identity section should not render siteTitle as a standalone localized field'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /renderLocalizedField\(identitySection,\s*'siteSubtitle'/,
   'Identity section should not render siteSubtitle as a standalone localized field'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /createTextField\(identitySection,\s*\{\s*dataKey: 'avatar'/,
   'Avatar should not use the tall standalone text field layout'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /createTextField\(identitySection,\s*\{\s*dataKey: 'contentRoot'/,
   'Content root should not use the tall standalone text field layout'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /createTextField\(seoSection,\s*\{\s*dataKey: 'resourceURL'/,
   'Resource URL should not use the tall standalone text field layout'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-identity-grid/,
   'composer stylesheet should include identity grid layout rules'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /grid-template-columns:minmax\(88px,max-content\) minmax\(0,1fr\) minmax\(0,3fr\) minmax\(72px,max-content\)/,
   'desktop identity grid should make the title column one quarter of the title/subtitle input area'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /siteTitle\|siteSubtitle/,
   'diff and reveal handling should recognize the combined identity field'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const useLocalizedGrid = !!\(options\.grid \|\| options\.multiline\);/,
   'localized fields should have an explicit grid option shared by keywords and multiline fields'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /renderLocalizedField\(seoSection, 'siteKeywords', \{[\s\S]*grid: true,[\s\S]*ensureDefault: false/,
   'Site keywords should opt into the aligned localized grid layout'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /if \(useLocalizedGrid\) row\.classList\.add\('cs-localized-row--grid'\);[\s\S]*if \(options\.multiline\) row\.classList\.add\('cs-localized-row--multiline'\);/,
   'aligned localized fields should mark grid rows separately from multiline textarea behavior'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /list\.className = useLocalizedGrid\s+\? 'cs-localized-list cs-localized-list--grid'\s+: 'cs-localized-list';/,
   'aligned localized fields should mark the list so row spacing can match the identity grid'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-identity-grid,.cs-localized-list--grid,.cs-single-grid-fieldset,.cs-link-list\{--cs-editor-row-gap:\.35rem;--cs-editor-row-column-gap:\.45rem;--cs-editor-control-height:1\.95rem;--cs-editor-single-control-width:15rem\}/,
   'identity, aligned localized rows, and profile links should share one row rhythm and fixed single-control width contract'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /\.(?:cs-root|cs-single-grid-fieldset)\{[^}]*--cs-editor-single-label-width/,
   'compact containers should not redeclare the measured label width because that masks the inherited dynamic value'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-localized-list--grid\{gap:var\(--cs-editor-row-gap\)\}[\s\S]*\.cs-localized-row--grid\{display:grid;grid-template-columns:minmax\(88px,88px\) minmax\(0,1fr\) minmax\(72px,max-content\);align-items:center;column-gap:var\(--cs-editor-row-column-gap\);row-gap:0;min-height:var\(--cs-editor-control-height\);padding:0/,
   'aligned localized rows should use the shared identity row density and reserve aligned input columns'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-identity-grid\{display:flex;flex-direction:column;gap:var\(--cs-editor-row-gap\)\}[\s\S]*\.cs-identity-row\{display:grid;grid-template-columns:minmax\(88px,max-content\) minmax\(0,1fr\) minmax\(0,3fr\) minmax\(72px,max-content\);align-items:center;gap:var\(--cs-editor-row-column-gap\)\}/,
   'identity rows should consume the same row rhythm contract'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-localized-row--grid \.cs-lang-chip\{justify-self:end\}/,
   'aligned localized rows should right-align language chips within the language column'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-identity-lang\{min-width:0;display:flex;align-items:center;justify-content:flex-end\}/,
   'identity localized rows should right-align language chips within the language column'
 );
@@ -3334,19 +3355,19 @@ assert.match(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.ci-lang-label\{display:inline-flex;align-items:center;gap:\.35rem;line-height:1\.1;\}[\s\S]*\.ci-lang-label \.ci-lang-flag\{display:inline-grid;place-items:center;width:1\.2em;height:1\.2em;font-size:1rem;line-height:1;\}[\s\S]*\.ci-lang-label \.ci-lang-code\{display:inline-flex;align-items:center;line-height:1\.2;/,
   'index language section flags should be aligned as part of the compact heading label'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /\.ci-item:hover[\s\S]*transform:translateY\(-1px\)|\.ci-item:hover[\s\S]*--ci-depth-shadow:0 12px 24px|\.ci-item:hover[\s\S]*border-color:color-mix/,
   'composer entry cards should not float, deepen shadow, or recolor border on hover'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.ci-lang\{border:0;border-radius:0;margin:0;background:transparent;padding:\.65rem 0;\}[\s\S]*\.ci-lang\+\.ci-lang\{border-top:1px solid color-mix\(in srgb, var\(--border\) 82%, transparent\);\}/,
   'index language sections should read as separated rows instead of nested cards'
 );
@@ -3382,133 +3403,133 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderIdentityPathGrid = \(section\) => \{/,
   'composer site editor should define a compact identity path grid renderer'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const createSingleGridFieldset = \(section\) => \{/,
   'compact single-value sections should share one reusable grid fieldset renderer'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver[\s\S]*--cs-editor-single-label-width/,
   'compact single-value labels should be measured once after render and shared through a CSS variable'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /label\.scrollWidth[\s\S]*getComputedStyle\(target\)[\s\S]*gap/,
   'compact single-value label measurement should use intrinsic label width instead of the currently constrained grid cell'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /target\.querySelector \? target\.querySelector\('\.cs-help-tooltip'\) : null[\s\S]*const tooltipWidth = tooltip \? tooltip\.scrollWidth \|\| 0 : 0;/,
   'compact single-value label measurement should measure only the help icon, not the tooltip wrapper'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /querySelector\('\.cs-help-tooltip-wrap'\)[\s\S]*const tooltipWidth = tooltip \? tooltip\.scrollWidth \|\| 0 : 0;/,
   'compact single-value label measurement should not include hidden tooltip bubble width'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*getBoundingClientRect[\s\S]*root\.style\.setProperty\('--cs-editor-single-label-width'/,
   'compact single-value label measurement should not seed width from constrained layout rects'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /buildSiteUI\(root, state\) \{[\s\S]*syncSiteEditorSingleLabelWidth\(root\);[\s\S]*refreshNavDiffState\(\);/,
   'site editor should resync the measured single-label width after rebuilding translated labels'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderSingleTextGrid = \(section, items\) => \{[\s\S]*createSingleGridFieldset\(section\)[\s\S]*input\.id = controlId;[\s\S]*input\.addEventListener\('input'/,
   'compact text rows should share one reusable single-grid text renderer'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderSeoResourceGrid = \(section\) => \{[\s\S]*dataKey: 'resourceURL'[\s\S]*fields\.resourceURLHelp/,
   'SEO Resource URL compact grid should preserve the field key and help tooltip text'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /renderCompactSectionMenu|cs-mobile-section-nav|cs-nav-button/,
   'site settings should not render section navigation controls'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const resolveSiteScrollContainer = \(\) => \{[\s\S]*root \? root\.querySelector\('\.cs-viewport'\)[\s\S]*canOwnScroll[\s\S]*return viewport;[\s\S]*root\.closest\('\.editor-modal-body'\)[\s\S]*return modalBody;[\s\S]*return window;[\s\S]*\};/,
   'site settings scrolling should prefer the internal content viewport before falling back to the modal body'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const scrollContainer = resolveSiteScrollContainer\(\);[\s\S]*scrollContainer\.addEventListener\('scroll', onScroll, \{ passive: true \}\);[\s\S]*scrollContainer\.removeEventListener\('scroll', onScroll, \{ passive: true \}\);/,
   'site section state sync should listen to its resolved scroll container, not only window scroll'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /let measuredAnySection = false;[\s\S]*if \(!rect \|\| rect\.height <= 4\) continue;[\s\S]*measuredAnySection = true;[\s\S]*if \(!measuredAnySection\) return;[\s\S]*if \(!candidate\) candidate = sectionsMeta\[0\] \|\| null;/,
   'site section active-state sync should ignore hidden modal measurements instead of falling back to the last section'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const scrollTop = getSiteScrollTop\(scrollContainer\);[\s\S]*if \(scrollTop <= 4\) candidate = sectionsMeta\[0\] \|\| null;/,
   'site section active-state sync should keep the repository section active when the modal body is at the top'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /function resetSiteSettingsNavOnOpen\(\) \{[\s\S]*modalBody\.scrollTop = 0;[\s\S]*root\.__pressSiteFirstSectionId[\s\S]*setActive\(firstSectionId,[\s\S]*scrollViewport: false[\s\S]*activateFirst\(\);[\s\S]*requestAnimationFrame/,
   'opening Site Settings should reset the modal body and left navigation to the first section'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderBehaviorGrid = \(section\) => \{[\s\S]*dataKey: 'defaultLanguage'[\s\S]*dataKey: 'contentOutdatedDays'[\s\S]*dataKey: 'pageSize'[\s\S]*dataKey: 'showAllPosts'[\s\S]*dataKey: 'landingTab'[\s\S]*dataKey: 'cardCoverFallback'[\s\S]*dataKey: 'errorOverlay'/,
   'Behavior compact grid should include all single-value behavior fields'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderThemeGrid = \(section\) => \{[\s\S]*dataKey: 'themeMode'[\s\S]*dataKey: 'themePack'[\s\S]*dataKey: 'themeOverride'/,
   'Theme compact grid should include all single-value theme fields'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderAssetWarningsGrid = \(section\) => \{[\s\S]*dataKey: 'assetWarnings'[\s\S]*fields\.assetLargeImage[\s\S]*fields\.assetLargeImageThreshold/,
   'Asset warnings compact grid should include the warning toggle and threshold rows'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const renderThemeGrid = \(section\) => \{[\s\S]*fetch\('assets\/themes\/packs\.json', \{ cache: 'no-store' \}\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
   'Theme compact grid should preserve dynamic theme pack loading with fallback options'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const repoSection = createSection\([\s\S]*sections\.repo\.title[\s\S]*sections\.repo\.description[\s\S]*const identitySection = createSection\(/,
   'Repository should be the first site editor card before Identity'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /createField\(repoSection,\s*\{[\s\S]*dataKey: 'repo'[\s\S]*fields\.repo[\s\S]*fields\.repoHelp/,
   'Repository card should not render a duplicate GitHub repository field heading'
 );
@@ -3538,13 +3559,13 @@ assert.match(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /repoInputs\.className = 'cs-repo-grid';[\s\S]*repoInputs\.dataset\.field = 'repo';[\s\S]*createRepoFieldGroup\('cs-repo-field-group--owner', t\('editor\.composer\.site\.repoOwner'\), ownerWrap\)[\s\S]*createRepoFieldGroup\('cs-repo-field-group--name', t\('editor\.composer\.site\.repoName'\), repoWrap\)[\s\S]*createRepoFieldGroup\('cs-repo-field-group--branch', t\('editor\.composer\.site\.repoBranch'\), branchWrap\)[\s\S]*repoSection\.appendChild\(repoInputs\);/,
   'Repository inputs should remain diff-addressable while rendering labeled controls directly in the Repository card'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /repoSection\.appendChild\(repoInputs\);\s*renderPublishTransportSettings\(repoSection\);/,
   'Repository card should host the browser-local publish transport settings'
 );
@@ -3605,7 +3626,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: CONNECT_PUBLISH_PRESETS[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: ANNOTATE_DISCUSSION_CATEGORY_PRESETS/,
   'Annotate settings should expose editable datalist inputs for Connect URL and Discussion category'
 );
@@ -3647,25 +3668,25 @@ assert.match(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /input\.dataset\.field = key;[\s\S]*input\.dataset\.lang = lang;/,
   'Localized site inputs should carry field and language diff metadata'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /input\.dataset\.field = key;[\s\S]*input\.dataset\.lang = lang;[\s\S]*input\.dataset\.subfield = key;/,
   'Identity grid inputs should carry field, language, and subfield diff metadata'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /ownerWrap\.dataset\.field = 'repo';[\s\S]*ownerWrap\.dataset\.subfield = 'owner';[\s\S]*repoWrap\.dataset\.field = 'repo';[\s\S]*repoWrap\.dataset\.subfield = 'name';[\s\S]*branchWrap\.dataset\.field = 'repo';[\s\S]*branchWrap\.dataset\.subfield = 'branch';/,
   'Repository diff metadata should target the specific owner, repo name, or branch pill'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /labelInput\.dataset\.field = key;[\s\S]*labelInput\.dataset\.index = String\(index\);[\s\S]*labelInput\.dataset\.subfield = 'label';[\s\S]*hrefInput\.dataset\.field = key;[\s\S]*hrefInput\.dataset\.index = String\(index\);[\s\S]*hrefInput\.dataset\.subfield = 'href';/,
   'Profile link diff metadata should target the specific label or URL input'
 );
@@ -3713,133 +3734,133 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /const siteConfigSection = createSection\([\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);[\s\S]*const extrasSection = createSection\(/,
   'Site editor should combine Behavior, Theme, and Asset warnings before Other keys'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /createField\(extrasSection,\s*\{[\s\S]*dataKey: '__extras'[\s\S]*fields\.extras[\s\S]*fields\.extrasHelp/,
   'Other keys should not render a duplicate Preserved keys field heading'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /list\.className = 'cs-extra-list';[\s\S]*list\.dataset\.field = '__extras';[\s\S]*extrasSection\.appendChild\(list\);/,
   'Other keys list should remain diff-addressable while rendering directly in the card'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /const behaviorSection = createSection\([\s\S]*const themeSection = createSection\([\s\S]*const assetsSection = createSection\(/,
   'Behavior, Theme, and Asset warnings should not render as separate top-level cards'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /field\.className = 'cs-field cs-single-grid-fieldset';/,
   'avatar and content root should share one compact fieldset instead of separate tall fields'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /row\.dataset\.field = item\.dataKey;/,
   'each compact identity path row should keep its own data-field for diff and reveal handling'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /input\.dataset\.autofocus = '';/,
   'compact identity path inputs should not steal section navigation focus and scroll gestures'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /tooltip\.className = 'cs-help-tooltip';[\s\S]*tooltipBubble\.setAttribute\('role', 'tooltip'\);/,
   'compact identity path labels should expose their help text through an accessible tooltip'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /label\.className = 'cs-single-grid-title';[\s\S]*labelCell\.appendChild\(label\);[\s\S]*labelCell\.appendChild\(tooltipWrap\);/,
   'compact single-grid rows should place help tooltip buttons between the label text and the control'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-single-grid-label\{display:inline-flex;align-items:center;justify-content:flex-end;gap:\.35rem;/,
   'compact single-grid label cells should right-align the label and trailing help icon'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-single-grid\{display:grid;grid-template-columns:var\(--cs-editor-single-label-width,88px\) minmax\(0,var\(--cs-editor-single-control-width\)\);column-gap:var\(--cs-editor-row-column-gap\);row-gap:var\(--cs-editor-row-gap\);align-items:center;justify-content:start\}[\s\S]*\.cs-single-grid-row\{display:grid;grid-template-columns:subgrid;grid-column:1\/-1;align-items:center;gap:var\(--cs-editor-row-column-gap\);min-height:var\(--cs-editor-control-height\);padding:0/,
   'compact identity path rows should use one measured label column and a fixed-width control column'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-link-list\{display:flex;flex-direction:column;gap:var\(--cs-editor-row-gap\)\}[\s\S]*\.cs-link-row\{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var\(--cs-editor-row-column-gap\);min-height:var\(--cs-editor-control-height\);padding:0\}[\s\S]*\.cs-link-row \+ \.cs-link-row\{margin-top:0\}/,
   'profile link rows should use the same vertical row rhythm as localized grid rows'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-link-row\{display:flex;flex-wrap:wrap;align-items:flex-start;gap:var\(--cs-editor-row-column-gap\);min-height:var\(--cs-editor-control-height\);padding:0\}[\s\S]*\.cs-link-field--label\{flex:1 1 0\}[\s\S]*\.cs-link-field--href\{flex:3 1 0\}/,
   'profile link label and URL fields should keep a 1:3 width ratio with the same horizontal gap as identity grid columns'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-config-subsection \+ \.cs-config-subsection\{border-top:1px solid color-mix\(in srgb,var\(--border\) 82%, transparent\);margin-top:\.35rem;padding-top:\.95rem\}/,
   'combined Site Configuration subsections should be separated by the same divider rhythm as large cards'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-config-subsection-title\{margin:0;font-size:\.84rem;font-weight:600;color:color-mix\(in srgb,var\(--text\) 76%, transparent\)\}[\s\S]*\.cs-config-subsection-description\{margin:0;font-size:\.8rem;color:color-mix\(in srgb,var\(--muted\) 88%, transparent\);flex:1 1 auto;text-align:left\}/,
   'combined Site Configuration subsection headings should use the smaller field-heading rhythm instead of top-level section titles'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-config-subsection\{display:flex;flex-direction:column;gap:\.4rem\}[\s\S]*\.cs-config-subsection > \.cs-config-subsection-head \+ \.cs-field\{padding-top:0\}/,
   'combined Site Configuration subsection content should sit as close to its heading as SEO subheading content'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /createConfigSubsection[\s\S]*document\.createElement\('h4'\)/,
   'combined Site Configuration subsection labels should not render as document headings'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-single-grid-control \.cs-input,.cs-single-grid-control \.cs-select\{width:100%;min-width:0\}/,
   'compact grid controls should fill the shared control column'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-layout\{display:grid;grid-template-columns:minmax\(0,1fr\);gap:1rem;align-items:start\}/,
   'site settings should use a single-column layout without the old section navigation rail'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /\.cs-nav|\.cs-mobile-section|cs-nav-button|cs-mobile-section-menu-item/,
   'site settings CSS should not keep removed section navigation selectors'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /\.editor-modal-body\.is-composer-overlay\{overflow:hidden\}/,
   'site settings overlay should keep the modal body scrollable so the section navigation remains visible'
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /\.editor-modal-body\.is-composer-overlay[\s\S]*\.cs-layout\{height:100%;min-height:0\}/,
   'site settings overlay should not force a full-height composer layout that can collapse the left navigation'
 );
@@ -3851,7 +3872,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /\.cs-help-tooltip-wrap:hover \.cs-help-tooltip-bubble,.cs-help-tooltip:focus-visible \+ \.cs-help-tooltip-bubble\{opacity:1;transform:translateY\(0\);pointer-events:auto\}/,
   'compact identity path help should appear as a hover/focus tooltip'
 );
@@ -3983,19 +4004,19 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  source,
+  siteSettingsSource,
   /cs-multiline-preview|preview = document\.createElement\('button'\)/,
   'collapsed multiline fields should not swap in a preview button'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /input\.addEventListener\('pointerdown', expandMultiline\);[\s\S]*input\.addEventListener\('focus', expandMultiline\);[\s\S]*input\.addEventListener\('focusin', expandMultiline\);/,
   'the textarea itself should expand from direct pointer and focus interaction'
 );
 
 assert.match(
-  source,
+  siteSettingsSource,
   /list\.querySelectorAll\('\.cs-localized-row--multiline\.is-expanded'\)\.forEach/,
   'expanding a multiline localized row should collapse other expanded rows in the same field'
 );

@@ -8,21 +8,21 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { escapeHtml } from './utils.js?v=press-system-v3.4.42';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.42';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.42';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.42';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.42';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.43';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.43';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.43';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.43';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.43';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.42';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.42';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.42';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.42';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.42';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.42';
+} from './encrypted-content.js?v=press-system-v3.4.43';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.43';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.43';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.43';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.43';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.43';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -36,7 +36,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.42';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.43';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -44,38 +44,39 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.42';
+} from './composer-site-model.js?v=press-system-v3.4.43';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.42';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.42';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.42';
+} from './editor-storage.js?v=press-system-v3.4.43';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.43';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.43';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.42';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.42';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.42';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.42';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.42';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.42';
-import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.42';
-import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.42';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.42';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.42';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.42';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.42';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.42';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.42';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.42';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.42';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.42';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.42';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.42';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.42';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.42';
-import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.42';
+} from './composer-sync-panel.js?v=press-system-v3.4.43';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.43';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.43';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.43';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.43';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.43';
+import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.43';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.43';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.43';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.43';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.43';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.43';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.43';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.43';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.43';
+import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.43';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.43';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.43';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.43';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.43';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.43';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.43';
+import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.43';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -87,13 +88,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.42';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.42';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.42';
+} from './composer-markdown-state.js?v=press-system-v3.4.43';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.43';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.43';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.42';
+} from './publish/settings-store.js?v=press-system-v3.4.43';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -2410,6 +2411,55 @@ const {
   closeComposerDiffModalForKind
 } = composerOrderDiffUi;
 
+const composerContentMutations = createComposerContentMutationController({
+  documentRef: document,
+  windowRef: window,
+  t,
+  treeText,
+  showToast,
+  getStateSlice,
+  getIndexEntry,
+  getTabsEntry,
+  notifyComposerChange,
+  refreshEditorContentTree,
+  rebuildIndexUI,
+  rebuildTabsUI,
+  scheduleComposerOrderPreviewRelayout,
+  showComposerAddEntryPrompt,
+  editorContentTreeController,
+  normalizeLangCode,
+  normalizeRelPath,
+  deepClone,
+  normalizeIndexVariantList,
+  getIndexVariantLocation,
+  isIndexMetadataObject,
+  buildDefaultLanguagePathFromEntry,
+  buildDefaultEntryPath,
+  buildArticleVersionPath,
+  getDefaultComposerLanguage,
+  normalizeComposerVersionPaths,
+  collectComposerArticleVersions,
+  isComposerVersionTag,
+  normalizeComposerVersionTag,
+  displayLangName,
+  cssEscape,
+  clearInlineSlideStyles,
+  requestAnimationFrameRef: (callback) => requestAnimationFrame(callback),
+  confirmRef: (message) => window.confirm(message),
+  consoleRef: console
+});
+const {
+  addComposerEntry,
+  addEditorLanguage,
+  addEditorVersion,
+  deleteEditorEntry,
+  moveEditorVersionTo,
+  promptArticleVersionValue,
+  removeEditorLanguage,
+  removeEditorVersion,
+  restoreDeletedEditorTreeNode
+} = composerContentMutations;
+
 const composerIndexTabsUi = createComposerIndexTabsUi({
   documentRef: document,
   windowRef: window,
@@ -3942,334 +3992,6 @@ function getTabsEntry(key) {
   const state = getStateSlice('tabs') || {};
   if (!state[key] || typeof state[key] !== 'object') state[key] = {};
   return state[key];
-}
-
-function validateEntryKey(value) {
-  const key = String(value || '').trim();
-  if (!key) return '';
-  return /^[A-Za-z0-9_-]+$/.test(key) ? key : '';
-}
-
-function renameEditorEntry(source, oldKey, nextKeyRaw) {
-  const nextKey = validateEntryKey(nextKeyRaw);
-  if (!nextKey || nextKey === oldKey) return false;
-  const state = getStateSlice(source) || {};
-  if (Object.prototype.hasOwnProperty.call(state, nextKey)) {
-    showToast('warn', treeText('duplicateKey', 'That key already exists.'));
-    return false;
-  }
-  state[nextKey] = state[oldKey];
-  delete state[oldKey];
-  if (Array.isArray(state.__order)) state.__order = state.__order.map(key => (key === oldKey ? nextKey : key));
-  notifyComposerChange(source);
-  editorContentTreeController.setActiveNodeId(`${source}:${nextKey}`);
-  refreshEditorContentTree();
-  return true;
-}
-
-function deleteEditorEntry(source, key) {
-  const state = getStateSlice(source) || {};
-  const label = source === 'tabs' ? treeText('page', 'page') : treeText('article', 'article');
-  const message = treeText('deleteEntryConfirm', `Delete this ${label}?`, { label: key });
-  let ok = true;
-  try { ok = window.confirm(message); } catch (_) {}
-  if (!ok) return;
-  delete state[key];
-  if (Array.isArray(state.__order)) state.__order = state.__order.filter(item => item !== key);
-  notifyComposerChange(source);
-  editorContentTreeController.setActiveNodeId(source === 'tabs' ? 'pages' : 'articles');
-  refreshEditorContentTree();
-}
-
-function addEditorLanguage(source, key, lang) {
-  const code = normalizeLangCode(lang);
-  if (!code) return;
-  if (source === 'tabs') {
-    const entry = getTabsEntry(key);
-    if (entry[code]) return;
-    entry[code] = { title: key, location: buildDefaultLanguagePathFromEntry('tabs', key, code, entry) };
-    notifyComposerChange('tabs');
-    editorContentTreeController.setActiveNodeId(`tabs:${key}`);
-  } else {
-    const entry = getIndexEntry(key);
-    if (entry[code]) return;
-    entry[code] = [buildDefaultLanguagePathFromEntry('index', key, code, entry)];
-    notifyComposerChange('index');
-    editorContentTreeController.setActiveNodeId(`index:${key}:${code}`);
-  }
-  editorContentTreeController.addExpandedNodeId(`${source}:${key}`);
-  refreshEditorContentTree();
-}
-
-function removeEditorLanguage(source, key, lang) {
-  const entry = source === 'tabs' ? getTabsEntry(key) : getIndexEntry(key);
-  if (!entry[lang]) return;
-  const message = treeText('deleteLanguageConfirm', 'Remove this language?', { lang: lang.toUpperCase() });
-  let ok = true;
-  try { ok = window.confirm(message); } catch (_) {}
-  if (!ok) return;
-  delete entry[lang];
-  notifyComposerChange(source);
-  editorContentTreeController.setActiveNodeId(`${source}:${key}`);
-  refreshEditorContentTree();
-}
-
-function addEditorVersion(key, lang, anchor = null) {
-  const entry = getIndexEntry(key);
-  const arr = normalizeIndexVariantList(entry[lang]);
-  return promptArticleVersionValue(key, lang, entry, anchor).then((version) => {
-    if (!version) return false;
-    arr.push(buildArticleVersionPath(key, lang, version, entry));
-    entry[lang] = arr;
-    notifyComposerChange('index');
-    editorContentTreeController.addExpandedNodeId(`index:${key}`);
-    editorContentTreeController.addExpandedNodeId(`index:${key}:${lang}`);
-    editorContentTreeController.setActiveNodeId(`index:${key}:${lang}`);
-    refreshEditorContentTree();
-    return true;
-  });
-}
-
-function removeEditorVersion(key, lang, index) {
-  const entry = getIndexEntry(key);
-  const arr = normalizeIndexVariantList(entry[lang]);
-  if (!arr[index]) return;
-  arr.splice(index, 1);
-  entry[lang] = arr;
-  notifyComposerChange('index');
-  editorContentTreeController.setActiveNodeId(`index:${key}:${lang}`);
-  refreshEditorContentTree();
-}
-
-function normalizeRestoreIndex(value, length) {
-  const raw = Number(value);
-  if (!Number.isFinite(raw)) return length;
-  return Math.max(0, Math.min(Math.trunc(raw), length));
-}
-
-function ensureRestoredEntryOrder(source, key, restoreOrderIndex, options = {}) {
-  const state = getStateSlice(source);
-  if (!state || !key) return null;
-  if (!Array.isArray(state.__order)) state.__order = Object.keys(state).filter(item => item && item !== '__order' && item !== key);
-  if (state.__order.includes(key) && !options.reposition) return state;
-  state.__order = state.__order.filter(item => item !== key);
-  state.__order.splice(normalizeRestoreIndex(restoreOrderIndex, state.__order.length), 0, key);
-  return state;
-}
-
-function ensureRestoredEntry(source, key, restoreOrderIndex) {
-  const state = ensureRestoredEntryOrder(source, key, restoreOrderIndex);
-  if (!state) return null;
-  if (!state[key] || typeof state[key] !== 'object' || Array.isArray(state[key])) state[key] = {};
-  return state[key];
-}
-
-function restoreDeletedEditorTreeNode(node) {
-  if (!node || !node.isDeleted || (node.source !== 'index' && node.source !== 'tabs')) return false;
-  const state = getStateSlice(node.source);
-  if (!state || !node.key) return false;
-  const restoreValue = deepClone(node.restoreValue);
-  let nextNodeId = '';
-
-  if (node.deletedKind === 'entry') {
-    state[node.key] = restoreValue && typeof restoreValue === 'object' && !Array.isArray(restoreValue) ? restoreValue : {};
-    ensureRestoredEntryOrder(node.source, node.key, node.restoreOrderIndex, { reposition: true });
-    nextNodeId = `${node.source}:${node.key}`;
-  } else if (node.deletedKind === 'language') {
-    const entry = ensureRestoredEntry('index', node.key, node.restoreOrderIndex);
-    if (!entry || !node.lang) return false;
-    entry[node.lang] = restoreValue == null ? [] : restoreValue;
-    nextNodeId = `index:${node.key}:${node.lang}`;
-  } else if (node.deletedKind === 'version') {
-    const entry = ensureRestoredEntry('index', node.key, node.restoreOrderIndex);
-    if (!entry || !node.lang) return false;
-    const path = getIndexVariantLocation(restoreValue) || normalizeRelPath(node.path);
-    if (!path) return false;
-    const arr = normalizeIndexVariantList(entry[node.lang]);
-    let targetIndex = arr.findIndex(item => getIndexVariantLocation(item) === path);
-    if (targetIndex === -1) {
-      targetIndex = normalizeRestoreIndex(node.restoreIndex, arr.length);
-      arr.splice(targetIndex, 0, isIndexMetadataObject(restoreValue) ? restoreValue : path);
-    }
-    entry[node.lang] = arr;
-    nextNodeId = `index:${node.key}:${node.lang}:${targetIndex}`;
-  } else if (node.deletedKind === 'page-language') {
-    const entry = ensureRestoredEntry('tabs', node.key, node.restoreOrderIndex);
-    if (!entry || !node.lang) return false;
-    entry[node.lang] = restoreValue == null ? { title: node.key, location: normalizeRelPath(node.path) } : restoreValue;
-    nextNodeId = `tabs:${node.key}:${node.lang}`;
-  } else {
-    return false;
-  }
-
-  editorContentTreeController.addExpandedNodeId(node.source === 'tabs' ? 'pages' : 'articles');
-  editorContentTreeController.addExpandedNodeId(`${node.source}:${node.key}`);
-  if (node.source === 'index' && node.lang) editorContentTreeController.addExpandedNodeId(`index:${node.key}:${node.lang}`);
-  editorContentTreeController.setActiveNodeId(nextNodeId || `${node.source}:${node.key}`);
-  notifyComposerChange(node.source);
-  refreshEditorContentTree();
-  return true;
-}
-
-function moveEditorVersion(key, lang, index, delta) {
-  return moveEditorVersionTo(key, lang, index, index + delta);
-}
-
-function moveEditorVersionTo(key, lang, from, to) {
-  const entry = getIndexEntry(key);
-  const arr = normalizeIndexVariantList(entry[lang]);
-  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return false;
-  const [path] = arr.splice(from, 1);
-  arr.splice(to, 0, path);
-  entry[lang] = arr;
-  notifyComposerChange('index');
-  editorContentTreeController.setActiveNodeId(`index:${key}:${lang}`);
-  refreshEditorContentTree();
-  return true;
-}
-
-async function promptArticleVersionValue(key, lang, entry, anchor) {
-  const arr = normalizeComposerVersionPaths(entry && entry[lang]);
-  const existingVersions = collectComposerArticleVersions(arr);
-  const langLabel = displayLangName(lang);
-  const result = await showComposerAddEntryPrompt(anchor, {
-    typeLabel: t('editor.composer.versionPrompt.label'),
-    confirmLabel: t('editor.composer.versionPrompt.confirm'),
-    placeholder: t('editor.composer.versionPrompt.placeholder'),
-    message: t('editor.composer.versionPrompt.message', { key, lang: langLabel }),
-    hint: t('editor.composer.versionPrompt.hint'),
-    validate: (value) => {
-      if (!value) return { ok: false, error: t('editor.composer.versionPrompt.errorEmpty') };
-      if (!isComposerVersionTag(value)) return { ok: false, error: t('editor.composer.versionPrompt.errorInvalid') };
-      const normalizedVersion = normalizeComposerVersionTag(value);
-      if (existingVersions.has(normalizedVersion.toLowerCase())) {
-        return { ok: false, error: t('editor.composer.versionPrompt.errorDuplicate', { version: normalizedVersion }) };
-      }
-      return { ok: true, value: normalizedVersion };
-    }
-  });
-  return result && result.confirmed ? String(result.value || '').trim() : '';
-}
-
-async function promptComposerEntryKey(kind, anchor) {
-  const normalized = kind === 'tabs' ? 'tabs' : 'index';
-  const slice = getStateSlice(normalized) || {};
-  const existing = new Set();
-  try {
-    const order = Array.isArray(slice.__order) ? slice.__order : [];
-    order.forEach((key) => {
-      const normalizedKey = String(key || '').trim();
-      if (normalizedKey) existing.add(normalizedKey);
-    });
-  } catch (_) {}
-  try {
-    Object.keys(slice || {}).forEach((key) => {
-      if (key === '__order') return;
-      const normalizedKey = String(key || '').trim();
-      if (normalizedKey) existing.add(normalizedKey);
-    });
-  } catch (_) {}
-
-  const typeKey = normalized === 'tabs' ? 'tab' : 'post';
-  const typeLabel = t(`editor.composer.entryKinds.${typeKey}.label`);
-  const confirmLabel = t(`editor.composer.entryKinds.${typeKey}.confirm`);
-  const placeholder = t(`editor.composer.entryKinds.${typeKey}.placeholder`);
-  const message = t(`editor.composer.entryKinds.${typeKey}.message`);
-
-  try {
-    const result = await showComposerAddEntryPrompt(anchor, {
-      typeLabel,
-      confirmLabel,
-      placeholder,
-      existingKeys: existing,
-      message
-    });
-    if (!result || !result.confirmed) return '';
-    return String(result.value || '').trim();
-  } catch (err) {
-    console.warn('Failed to capture new entry key', err);
-    return '';
-  }
-}
-
-function focusComposerEntry(kind, key) {
-  const normalized = kind === 'tabs' ? 'tabs' : 'index';
-  const root = normalized === 'tabs' ? document.getElementById('composerTabs') : document.getElementById('composerIndex');
-  if (!root) return;
-  const selector = normalized === 'tabs' ? `.ct-item[data-key="${cssEscape(key)}"]` : `.ci-item[data-key="${cssEscape(key)}"]`;
-  const row = root.querySelector(selector);
-  if (!row) return;
-  const body = row.querySelector(normalized === 'tabs' ? '.ct-body' : '.ci-body');
-  const expandBtn = row.querySelector(normalized === 'tabs' ? '.ct-expand' : '.ci-expand');
-  if (body) {
-    body.style.display = 'block';
-    body.dataset.open = '1';
-    clearInlineSlideStyles(body);
-  }
-  if (expandBtn) expandBtn.setAttribute('aria-expanded', 'true');
-  row.classList.add('is-open');
-
-  const preferredFocus = row.querySelector(normalized === 'tabs' ? '.ct-edit' : '.ci-lang-addver, .ci-edit');
-  const fallbackFocus = row.querySelector('input, textarea, button');
-  const target = preferredFocus || fallbackFocus;
-  if (target && typeof target.focus === 'function') {
-    try { target.focus(); } catch (_) {}
-  }
-  try { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
-
-  scheduleComposerOrderPreviewRelayout(normalized);
-}
-
-async function addComposerEntry(kind, anchor) {
-  const normalized = kind === 'tabs' ? 'tabs' : 'index';
-  const slice = getStateSlice(normalized);
-  if (!slice) return '';
-  if (!Array.isArray(slice.__order)) slice.__order = [];
-
-  let key = '';
-  try {
-    key = await promptComposerEntryKey(normalized, anchor);
-  } catch (err) {
-    console.warn('Failed to add composer entry', err);
-    return '';
-  }
-  if (!key) return '';
-  if (slice.__order.includes(key)) return '';
-
-  if (normalized === 'tabs') {
-    slice[key] = (slice[key] && typeof slice[key] === 'object') ? slice[key] : {};
-    const lang = getDefaultComposerLanguage();
-    if (lang && !slice[key][lang]) {
-      const defaultPath = buildDefaultEntryPath('tabs', key, lang);
-      slice[key][lang] = { title: key, location: defaultPath };
-    }
-  } else {
-    slice[key] = (slice[key] && typeof slice[key] === 'object') ? slice[key] : {};
-    const lang = getDefaultComposerLanguage();
-    if (lang && !slice[key][lang]) {
-      const defaultPath = buildDefaultEntryPath('index', key, lang);
-      slice[key][lang] = [defaultPath];
-    }
-  }
-
-  slice.__order.unshift(key);
-
-  if (normalized === 'index') {
-    rebuildIndexUI();
-    notifyComposerChange('index');
-  } else {
-    rebuildTabsUI();
-    notifyComposerChange('tabs');
-  }
-
-  requestAnimationFrame(() => focusComposerEntry(normalized, key));
-
-  const message = normalized === 'tabs'
-    ? `Tab entry "${key}" added. Fill in the details below.`
-    : `Post entry "${key}" added. Fill in the details below.`;
-  try { showToast('info', message); } catch (_) {}
-  refreshEditorContentTree();
-  return key;
 }
 
 function bindComposerUI(state) {

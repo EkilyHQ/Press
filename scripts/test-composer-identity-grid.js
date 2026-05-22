@@ -28,6 +28,7 @@ const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-set
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
+const composerContentMutationsPath = resolve(here, '../assets/js/composer-content-mutations.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -79,6 +80,7 @@ const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'u
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
+const composerContentMutationsSource = readFileSync(composerContentMutationsPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -417,6 +419,24 @@ assert.match(
   composerPathToolsSource,
   /export function createComposerPathTools\(options = \{\}\)[\s\S]*function normalizeRelPath\(path\)[\s\S]*function buildDefaultLanguagePathFromEntry\(kind, key, lang, entry\)[\s\S]*function buildArticleVersionPath\(key, lang, version, entry\)[\s\S]*function getDefaultMarkdownForPath\(relPath\)/,
   'composer path tools boundary should own path normalization, article version paths, and default markdown templates'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-content-mutations\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted content mutation controller boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function validateEntryKey|function renameEditorEntry|function deleteEditorEntry|function addEditorLanguage|function removeEditorLanguage|function addEditorVersion|function removeEditorVersion|function restoreDeletedEditorTreeNode|function moveEditorVersionTo|async function promptArticleVersionValue|async function promptComposerEntryKey|async function addComposerEntry/,
+  'content tree write commands should stay outside the main composer shell'
+);
+
+assert.match(
+  composerContentMutationsSource,
+  /export function createComposerContentMutationController\(options = \{\}\)[\s\S]*function renameEditorEntry\(source, oldKey, nextKeyRaw\)[\s\S]*function addEditorLanguage\(source, key, lang\)[\s\S]*function restoreDeletedEditorTreeNode\(node\)[\s\S]*async function addComposerEntry\(kind, anchor\)/,
+  'content mutation controller should own entry, language, version, tombstone restore, and add-entry write operations'
 );
 
 assert.match(
@@ -3072,7 +3092,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerContentMutationsSource,
   /function restoreDeletedEditorTreeNode\(node\) \{[\s\S]*node\.deletedKind[\s\S]*restoreValue[\s\S]*notifyComposerChange\(node\.source\)[\s\S]*refreshEditorContentTree\(\);/,
   'deleted tombstones should have an explicit restore action that writes restored baseline payloads'
 );
@@ -4222,7 +4242,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerContentMutationsSource,
   /async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*showComposerAddEntryPrompt\(anchor, \{[\s\S]*editor\.composer\.versionPrompt\.placeholder[\s\S]*if \(!isComposerVersionTag\(value\)\)[\s\S]*normalizeComposerVersionTag\(value\)[\s\S]*editor\.composer\.versionPrompt\.errorDuplicate/,
   'adding an article version should prompt for a v-prefixed version string before creating the new path'
 );
@@ -4234,7 +4254,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerContentMutationsSource,
   /async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);[\s\S]*const existingVersions = collectComposerArticleVersions\(arr\);/,
   'article version prompt should use normalized version paths from the extracted path tools'
 );

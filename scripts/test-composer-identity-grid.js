@@ -21,6 +21,7 @@ const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
+const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -58,6 +59,7 @@ const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
+const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -317,6 +319,36 @@ assert.match(
   composerSiteSettingsUiSource,
   /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
   'Site Settings UI boundary should own repository, identity, theme, annotate, and asset warning rendering'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-markdown-assets\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown asset manager boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function ensureMarkdownAssetBucket|function handleEditorAssetAdded|function handleEditorAssetDeleteRequested|function collectCurrentRepositoryMarkdownAssetReferences|const markdownAssetStore|const markdownDeletedAssetStore/,
+  'Markdown asset draft maps, editor asset event handlers, and repository asset scans should stay outside the main composer shell'
+);
+
+assert.match(
+  composerMarkdownAssetsSource,
+  /export function createComposerMarkdownAssetManager\(options = \{\}\)[\s\S]*const markdownAssetStore = new Map\(\)[\s\S]*async function collectCurrentRepositoryMarkdownAssetReferences\(options = \{\}\)[\s\S]*function handleEditorAssetAdded\(event\)[\s\S]*function handleEditorAssetDeleteRequested\(event\)/,
+  'Markdown asset manager boundary should own pending asset maps, deletion events, and repository reference scans'
+);
+
+assert.match(
+  source,
+  /const \{[\s\S]*ensureMarkdownAssetBucket,[\s\S]*textWithFallback,[\s\S]*collectCurrentRepositoryMarkdownAssetReferences[\s\S]*\} = markdownAssetManager;/,
+  'composer should import all remaining Markdown asset adapter helpers from the manager instead of stale local bindings'
+);
+
+assert.match(
+  composerMarkdownAssetsSource,
+  /return \{[\s\S]*ensureMarkdownAssetBucket,[\s\S]*textWithFallback,[\s\S]*collectCurrentRepositoryMarkdownAssetReferences[\s\S]*\};/,
+  'Markdown asset manager should expose the adapter helpers still used by composer wiring'
 );
 
 assert.match(
@@ -2216,25 +2248,31 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const markdownDeletedAssetStore = new Map\(\);[\s\S]*function normalizeAssetDeletionDescriptor\(asset, markdownPath\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdown, relativePath, getContentRootSafe\(\)\)[\s\S]*if \(assetPath && assetPath !== resolved\.contentPath\) return null;[\s\S]*function stageMarkdownAssetDeletion\(path, resolved\) \{[\s\S]*bucket\.set\(assetPath, entry\);[\s\S]*updateMarkdownDraftStoreAssetDeletions\(norm, exportMarkdownAssetDeletionBucket\(norm\)\);[\s\S]*function handleEditorAssetDeleteRequested\(event\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source, getContentRootSafe\(\)\)[\s\S]*stageMarkdownAssetDeletion\(markdownPath, resolved\)[\s\S]*window\.addEventListener\('press-editor-asset-delete-requested', handleEditorAssetDeleteRequested\);/,
-  'composer should stage and persist explicit local markdown asset deletions from visual image blocks'
+  composerMarkdownAssetsSource,
+  /const markdownDeletedAssetStore = new Map\(\);[\s\S]*function normalizeAssetDeletionDescriptor\(asset, markdownPath\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdown, relativePath, getContentRootSafe\(\)\)[\s\S]*if \(assetPath && assetPath !== resolved\.contentPath\) return null;[\s\S]*function stageMarkdownAssetDeletion\(path, resolved\) \{[\s\S]*bucket\.set\(assetPath, entry\);[\s\S]*updateMarkdownDraftStoreAssetDeletions\(norm, exportMarkdownAssetDeletionBucket\(norm\)\);[\s\S]*function handleEditorAssetDeleteRequested\(event\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source, getContentRootSafe\(\)\)[\s\S]*stageMarkdownAssetDeletion\(markdownPath, resolved\)[\s\S]*windowRef\.addEventListener\(type, handler\)/,
+  'Markdown asset manager should stage and persist explicit local markdown asset deletions from visual image blocks'
 );
 
 assert.match(
   source,
-  /function hasMarkdownDraftContent\(tab\) \{[\s\S]*const deletedAssets = Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length;[\s\S]*return !!\(plain \|\| encrypted \|\| deletedAssets\);[\s\S]*function draftHasAssetDeletions\(draft\) \{[\s\S]*Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*const deletedAssets = exportMarkdownAssetDeletionBucket\(tab\.path\);[\s\S]*if \(!text && !deletedAssets\.length\) \{[\s\S]*const assetDeletionDirty = countMarkdownAssetDeletions\(tab\.path\) > 0;[\s\S]*const dirty = normalizedContent !== baseline \|\| protectionChanged \|\| assetDeletionDirty;[\s\S]*tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\)[\s\S]*tab\.content = normalizeMarkdownContent\(tab\.localDraft\.content \|\| ''\);/,
+  /function hasMarkdownDraftContent\(tab\) \{[\s\S]*const deletedAssets = Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length;[\s\S]*return !!\(plain \|\| encrypted \|\| deletedAssets\);[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*const deletedAssets = exportMarkdownAssetDeletionBucket\(tab\.path\);[\s\S]*if \(!text && !deletedAssets\.length\) \{[\s\S]*const assetDeletionDirty = countMarkdownAssetDeletions\(tab\.path\) > 0;[\s\S]*const dirty = normalizedContent !== baseline \|\| protectionChanged \|\| assetDeletionDirty;[\s\S]*tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\)[\s\S]*tab\.content = normalizeMarkdownContent\(tab\.localDraft\.content \|\| ''\);/,
   'markdown draft persistence should preserve deletion-only asset drafts across empty-body autosaves, reloads, and remote loads'
 );
 
 assert.match(
-  source,
+  composerMarkdownAssetsSource,
+  /function draftHasAssetDeletions\(draft\) \{[\s\S]*Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length/,
+  'Markdown asset manager should expose deletion-only draft detection for composer draft persistence'
+);
+
+assert.match(
+  composerMarkdownAssetsSource,
   /dynamicEditorTabs\.forEach\(\(tab\) => \{[\s\S]*const content = knownMarkdownTextForAssetScan\(tab, activeTab, activeValue\);[\s\S]*const deletionOnlyDraft = !content && tab && tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\);[\s\S]*if \(!content && !deletionOnlyDraft\) return;[\s\S]*seen\.add\(path\);/,
   'asset reference scan should only mark dynamic markdown paths checked after content or a deletion-only draft is known'
 );
 
 assert.match(
-  [source, composerContentStagingSource].join('\n'),
+  [composerMarkdownAssetsSource, composerContentStagingSource].join('\n'),
   /async function fetchMarkdownForAssetScan\(contentPath, contentRoot = 'wwwroot'\) \{[\s\S]*if \(!resp\.ok\) return \{ text: '', failed: true \};[\s\S]*return \{ text: normalizeMarkdownContent\(await resp\.text\(\)\), failed: false \};[\s\S]*async function collectCurrentRepositoryMarkdownAssetReferences\(options = \{\}\) \{[\s\S]*const failures = \[\];[\s\S]*currentManagedMarkdownPathsForAssetScan\(currentRoot\)[\s\S]*fetchMarkdownForAssetScan\(norm, currentRoot\)[\s\S]*if \(result\.failed\) \{[\s\S]*failures\.push\(norm\);[\s\S]*return \{ refs, failures \};[\s\S]*const assetReferenceScan = await collectCurrentRepositoryMarkdownAssetReferences\(\{[\s\S]*const assetReferenceScanComplete = !\(assetReferenceScan\.failures && assetReferenceScan\.failures\.length\);[\s\S]*if \(assetReferenceScanComplete\) \{[\s\S]*listMarkdownAssetDeletions\(\)\.forEach\(\(asset\) => \{/,
   'commit payload should fail closed and include asset deletions only after scanning current published markdown references'
 );

@@ -15,6 +15,8 @@ const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
+const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
+const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -44,6 +46,8 @@ const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'u
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
+const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
+const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -192,6 +196,42 @@ assert.match(
   source,
   /from '\.\/encrypted-content\.js\?v=[\w.-]+'/,
   'composer should import encrypted article helpers through the encrypted-articles cache key'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-index-tabs-model\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted index/tabs model boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function prepareIndexState|function prepareTabsState|function computeIndexDiff|function computeTabsDiff/,
+  'index.yaml and tabs.yaml normalization and diffing should stay outside the main composer shell'
+);
+
+assert.match(
+  composerIndexTabsModelSource,
+  /export function prepareIndexState\(raw\)[\s\S]*export function prepareTabsState\(raw\)[\s\S]*export function computeIndexDiff\(current, baseline\)[\s\S]*export function computeTabsDiff\(current, baseline\)/,
+  'index/tabs model boundary should own index.yaml and tabs.yaml normalization and diffing'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-site-model\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted site model boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function prepareSiteState|function cloneSiteState|function computeSiteDiff|function toSiteYaml/,
+  'site.yaml normalization, diffing, and serialization should stay outside the main composer shell'
+);
+
+assert.match(
+  composerSiteModelSource,
+  /export function prepareSiteState\(raw\)[\s\S]*'enableAllPosts', 'disableAllPosts', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)/,
+  'site model boundary should own site.yaml normalization, diffing, and serialization'
 );
 
 assert.match(
@@ -2721,7 +2761,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerIndexTabsModelSource,
   /function diffVersionLists\(currentValue, baselineValue\) \{[\s\S]*restoreValue: cloneIndexMetadataValue\(item\)[\s\S]*removed\.push\(\{[\s\S]*value: baseItems\[i\]\.path \|\| '',[\s\S]*restoreValue: baseItems\[i\]\.restoreValue,/,
   'article version diffs should preserve rich baseline metadata for deleted-version restore'
 );
@@ -3477,7 +3517,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  source,
+  [source, composerSiteModelSource].join('\n'),
   /function connectForOutput|snapshot\.connect|diff\.fields\.connect|getUseFineGrainedTokenFallback|CONNECT_PUBLISH_FALLBACK_STORAGE_KEY/,
   'site.yaml connect output, diffing, and PAT fallback storage should be removed'
 );

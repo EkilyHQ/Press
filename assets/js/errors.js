@@ -1,5 +1,5 @@
 // errors.js — lightweight global error overlay and reporter
-import { t } from './i18n.js?v=press-system-v3.4.28';
+import { t } from './i18n.js?v=press-system-v3.4.29';
 
 let reporterConfig = {
   reportUrl: null,

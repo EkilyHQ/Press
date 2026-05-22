@@ -24,6 +24,7 @@ const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-set
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
+const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -64,6 +65,7 @@ const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'u
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
+const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -389,6 +391,24 @@ assert.match(
   composerPathToolsSource,
   /export function createComposerPathTools\(options = \{\}\)[\s\S]*function normalizeRelPath\(path\)[\s\S]*function buildDefaultLanguagePathFromEntry\(kind, key, lang, entry\)[\s\S]*function buildArticleVersionPath\(key, lang, version, entry\)[\s\S]*function getDefaultMarkdownForPath\(relPath\)/,
   'composer path tools boundary should own path normalization, article version paths, and default markdown templates'
+);
+
+assert.match(
+  source,
+  /from '\.\/editor-content-tree-controller\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted editor content tree controller boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /let editorContentTree|let activeEditorTreeNodeId|function buildCurrentFileBreadcrumb\(tab\) \{[\s\S]*const ids = \[\];|function handleEditorTreeSelection\(nodeId\) \{[\s\S]*openMarkdownInEditor\(node\.path, \{ node \}\)/,
+  'editor content tree state, breadcrumb construction, and selection routing should stay outside the main composer shell'
+);
+
+assert.match(
+  editorContentTreeControllerSource,
+  /export function createEditorContentTreeController\(options = \{\}\)[\s\S]*let tree = \[\];[\s\S]*let activeNodeId = String\(options\.initialActiveNodeId \|\| 'welcome'\)[\s\S]*function buildCurrentFileBreadcrumb\(tab\)[\s\S]*function handleSelection\(nodeId\)/,
+  'editor content tree controller should own tree state, active node state, breadcrumbs, and selection routing'
 );
 
 assert.match(
@@ -2187,8 +2207,14 @@ assert.match(
 
 assert.match(
   source,
-  /themesLabel: treeText\('themes', 'Themes'\),[\s\S]*syncLabel: treeText\('sync', 'Publish'\),[\s\S]*node\.id === 'system:themes'[\s\S]*applyMode\('themes'\);[\s\S]*node\.id === 'system:sync'[\s\S]*applyMode\('sync'\);/,
-  'System tree should expose and route the Themes and Publish leaves'
+  /themesLabel: treeText\('themes', 'Themes'\),[\s\S]*syncLabel: treeText\('sync', 'Publish'\),/,
+  'System tree should expose the Themes and Publish leaves'
+);
+
+assert.match(
+  editorContentTreeControllerSource,
+  /node\.id === 'system:themes'[\s\S]*applyMode\('themes'\);[\s\S]*node\.id === 'system:sync'[\s\S]*applyMode\('sync'\);/,
+  'editor content tree controller should route the Themes and Publish leaves'
 );
 
 assert.doesNotMatch(
@@ -2620,9 +2646,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function inferMarkdownSourceFromPath\(path\) \{[\s\S]*node && node\.source[\s\S]*startsWith\('tab\/'\) \? 'tabs' : 'index';/,
-  'composer should infer whether an opened markdown file comes from tabs.yaml or index.yaml'
+  editorContentTreeControllerSource,
+  /function inferMarkdownSourceFromPath\(path\) \{[\s\S]*node && node\.source[\s\S]*inferMarkdownSourceFallback\(normalized\);/,
+  'editor content tree controller should infer whether an opened markdown file comes from tabs.yaml or index.yaml'
 );
 
 assert.match(
@@ -2836,8 +2862,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function handleEditorTreeSelection\(nodeId\) \{[\s\S]*if \(node\.isDeleted\) \{[\s\S]*applyMode\('editor', \{ forceStructure: true \}\);[\s\S]*refreshEditorContentTree\(\);[\s\S]*return;[\s\S]*if \(node\.kind === 'file' && node\.path\)/,
+  editorContentTreeControllerSource,
+  /function handleSelection\(nodeId\) \{[\s\S]*if \(node\.isDeleted\) \{[\s\S]*applyMode\('editor', \{ forceStructure: true \}\);[\s\S]*refresh\(\);[\s\S]*return;[\s\S]*if \(node\.kind === 'file' && node\.path\)/,
   'selecting deleted tombstones should route to the read-only structure panel before file nodes can open markdown'
 );
 
@@ -3007,13 +3033,13 @@ assert.match(
 
 assert.match(
   source,
-  /function persistDynamicEditorState\(\) \{[\s\S]*const open = Array\.from\(dynamicEditorTabs\.values\(\)\)[\s\S]*lookupKey: tab\.lookupKey \|\| tab\.path,[\s\S]*path: tab\.path,[\s\S]*activeLookupKey: active && \(active\.lookupKey \|\| active\.path\) \? \(active\.lookupKey \|\| active\.path\) : null,[\s\S]*activePath: active && active\.path \? active\.path : null,[\s\S]*expandedNodeIds: Array\.from\(expandedEditorTreeNodeIds\)\.filter\(Boolean\),/,
+  /function persistDynamicEditorState\(\) \{[\s\S]*const open = Array\.from\(dynamicEditorTabs\.values\(\)\)[\s\S]*lookupKey: tab\.lookupKey \|\| tab\.path,[\s\S]*path: tab\.path,[\s\S]*activeLookupKey: active && \(active\.lookupKey \|\| active\.path\) \? \(active\.lookupKey \|\| active\.path\) : null,[\s\S]*activePath: active && active\.path \? active\.path : null,[\s\S]*expandedNodeIds: editorContentTreeController\.getExpandedNodeIdsSnapshot\(\),/,
   'dynamic markdown session state should persist opened files with stable lookup keys, plus active file identity and exact tree expansion'
 );
 
 assert.match(
   source,
-  /function restoreDynamicEditorState\(\) \{[\s\S]*const open = Array\.isArray\(data\.open\) \? data\.open : \[\];[\s\S]*const lookupKey = item && typeof item === 'object'[\s\S]*const path = item && typeof item === 'object'[\s\S]*getOrCreateDynamicMode\(path, \{[\s\S]*source:[\s\S]*key:[\s\S]*lang:[\s\S]*editorTreeNodeId:[\s\S]*lookupKey[\s\S]*\}\);[\s\S]*expandedEditorTreeNodeIds\.clear\(\);[\s\S]*const activeLookupKey = String\(data\.activeLookupKey \|\| ''\)\.trim\(\);[\s\S]*const activePath = data\.activePath \? normalizeRelPath\(data\.activePath\) : '';[\s\S]*if \(\(isV3 \? data\.mode === 'markdown' : true\) && \(activeLookupKey \|\| activePath\)\) \{[\s\S]*const modeId = \(activeLookupKey && dynamicEditorTabsByLookupKey\.get\(activeLookupKey\)\)[\s\S]*\|\| \(activePath && dynamicEditorTabsByLookupKey\.get\(activePath\)\)[\s\S]*\|\| \(activePath \? getOrCreateDynamicMode\(activePath\) : null\);[\s\S]*applyMode\(modeId, \{ preserveTreeExpansion: true, restoreScroll: true \}\);/,
+  /function restoreDynamicEditorState\(\) \{[\s\S]*const open = Array\.isArray\(data\.open\) \? data\.open : \[\];[\s\S]*const lookupKey = item && typeof item === 'object'[\s\S]*const path = item && typeof item === 'object'[\s\S]*getOrCreateDynamicMode\(path, \{[\s\S]*source:[\s\S]*key:[\s\S]*lang:[\s\S]*editorTreeNodeId:[\s\S]*lookupKey[\s\S]*\}\);[\s\S]*editorContentTreeController\.restoreExpandedNodeIds\(data\.expandedNodeIds\);[\s\S]*const activeLookupKey = String\(data\.activeLookupKey \|\| ''\)\.trim\(\);[\s\S]*const activePath = data\.activePath \? normalizeRelPath\(data\.activePath\) : '';[\s\S]*if \(\(isV3 \? data\.mode === 'markdown' : true\) && \(activeLookupKey \|\| activePath\)\) \{[\s\S]*const modeId = \(activeLookupKey && dynamicEditorTabsByLookupKey\.get\(activeLookupKey\)\)[\s\S]*\|\| \(activePath && dynamicEditorTabsByLookupKey\.get\(activePath\)\)[\s\S]*\|\| \(activePath \? getOrCreateDynamicMode\(activePath\) : null\);[\s\S]*applyMode\(modeId, \{ preserveTreeExpansion: true, restoreScroll: true \}\);/,
   'dynamic markdown session restore should recreate open files and active file identity with stable lookup keys'
 );
 
@@ -3048,9 +3074,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  editorContentTreeControllerSource,
   /function buildCurrentFileBreadcrumb\(tab\) \{[\s\S]*ids\.push\('articles', `index:\$\{node\.key\}`, `index:\$\{node\.key\}:\$\{node\.lang\}`, node\.id\);/,
-  'composer should pass abstract article/page breadcrumb segments to the editor header'
+  'editor content tree controller should pass abstract article/page breadcrumb segments to the editor header'
 );
 
 assert.match(
@@ -3121,9 +3147,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function handleEditorTreeSelection\(nodeId\) \{[\s\S]*applyMode\('editor', \{ forceStructure: true \}\);[\s\S]*refreshEditorContentTree\(\);/,
-  'selecting non-file tree nodes should hide the markdown editor and show the structure panel'
+  editorContentTreeControllerSource,
+  /function handleSelection\(nodeId\) \{[\s\S]*applyMode\('editor', \{ forceStructure: true \}\);[\s\S]*refresh\(\);/,
+  'editor content tree controller should hide the markdown editor and show the structure panel for non-file tree nodes'
 );
 
 assert.doesNotMatch(

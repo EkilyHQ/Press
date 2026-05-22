@@ -19,6 +19,7 @@ const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-ta
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
+const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -52,6 +53,7 @@ const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'u
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
+const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -272,6 +274,24 @@ assert.match(
   composerOrderDiffUiSource,
   /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function drawOrderDiffLines\(state\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
   'order diff UI boundary should own composer review modal, order visual connectors, and order preview state'
+);
+
+assert.match(
+  source,
+  /from '\.\/editor-file-tree-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted editor file tree UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function renderEditorFileTree|function createEditorTreeIcon|function animateEditorTreeCollapse|function createEditorTreeStatusElement|const collapsingEditorTreeNodeIds|let expandingEditorTreeNodeId/,
+  'editor file tree rendering, icons, status badges, and animation state should stay outside the main composer shell'
+);
+
+assert.match(
+  editorFileTreeUiSource,
+  /export function createEditorFileTreeUi\(options = \{\}\)[\s\S]*function createEditorTreeIcon\(node\)[\s\S]*function createEditorTreeStatusElement\(node\)[\s\S]*function animateEditorTreeCollapse\(root, node, row\)[\s\S]*function renderEditorFileTree\(root\)/,
+  'editor file tree UI boundary should own tree rendering, collapse animation, status badges, and icons'
 );
 
 assert.match(
@@ -2557,8 +2577,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function animateEditorTreeCollapse\(root, node, row\) \{[\s\S]*collectEditorTreeDescendantRows\(row\)[\s\S]*descendant\.style\.maxHeight = `\$\{height\}px`;[\s\S]*window\.requestAnimationFrame\(collapseRows\)[\s\S]*window\.setTimeout\(finish, 340\)/,
+  editorFileTreeUiSource,
+  /function animateEditorTreeCollapse\(root, node, row\) \{[\s\S]*collectEditorTreeDescendantRows\(row\)[\s\S]*descendant\.style\.maxHeight = `\$\{height\}px`;[\s\S]*scheduleFrame\(collapseRows\)[\s\S]*scheduleTimeout\(finish, 340\)/,
   'file tree collapse should animate visible descendant rows before refreshing the tree'
 );
 
@@ -2581,19 +2601,19 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /const rowIndent = hasChildren[\s\S]*\? Math\.max\(0, depth\) \* 1\.12[\s\S]*: Math\.max\(0, depth - 1\) \* 1\.12 \+ 1\.35;/,
   'file tree leaf rows should align their content with the parent node text instead of a blank toggle'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /if \(depth > 0\) \{[\s\S]*guides\.className = 'editor-tree-guides';[\s\S]*for \(let guideIndex = 0; guideIndex < depth; guideIndex \+= 1\) \{[\s\S]*guide\.className = 'editor-tree-guide';[\s\S]*guide\.style\.setProperty\('--tree-guide-index', String\(guideIndex\)\);/,
   'file tree rows should render guide lines for every ancestor depth so outer rails continue through nested rows'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /let toggle = null;[\s\S]*if \(hasChildren\) \{[\s\S]*toggle = document\.createElement\('button'\);[\s\S]*if \(toggle\) row\.appendChild\(toggle\);/,
   'file tree should only render expand controls for nodes with children'
 );
@@ -2629,43 +2649,43 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
-  source,
+  [source, editorFileTreeUiSource].join('\n'),
   /row\.draggable|bindEditorTreeDrag|canMoveEditorTreeNode|moveEditorTreeNode|editorTreeDragNodeId/,
   'file tree rows should not support direct drag/drop reordering'
 );
 
 assert.doesNotMatch(
-  source,
+  editorFileTreeUiSource,
   /const states = \[node\.draftState, node\.diffState, node\.fileState\]/,
   'file tree rows should not render the old positional draft/diff/file status dots'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /function createEditorTreeStatusElement\(node\) \{[\s\S]*editor-tree-status[\s\S]*editor-tree-change-badge[\s\S]*editor-tree-count-badge[\s\S]*editor-tree-order-badge[\s\S]*editor-tree-spinner/,
   'file tree rows should render readable change, count, order, and checking status elements from one helper'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /editor-tree-order-badge[\s\S]*<svg viewBox="0 0 24 24" focusable="false">[\s\S]*M3 9l4 -4l4 4m-4 -4v14[\s\S]*M21 15l-4 4l-4 -4m4 4v-14/,
   'file tree order badges should use an inline arrows-sort SVG icon instead of a text glyph'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /status\.setAttribute\('aria-hidden', 'true'\);/,
   'file tree visual status badges should be hidden from assistive tech because the row aria-label carries the summary'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /button\.appendChild\(createEditorTreeStatusElement\(node\)\);/,
   'file tree rows should append the unified status element instead of individual status dots'
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /button\.setAttribute\('aria-label', getEditorTreeAccessibleLabel\(node, labelText, accessiblePath\)\);/,
   'file tree row aria labels should include the computed status summary'
 );
@@ -2726,13 +2746,13 @@ assert.match(
 );
 
 assert.match(
-  source,
+  editorFileTreeUiSource,
   /function isEditorTreeFileKind\(kind\) \{[\s\S]*kind === 'file' \|\| kind === 'deleted-file'[\s\S]*function createEditorTreeIcon\(node\) \{[\s\S]*const isFile = isEditorTreeFileKind\(node\.kind\);[\s\S]*let iconKind = isFile \? 'document' : 'folder';[\s\S]*node\.id === 'system:site-settings'[\s\S]*iconKind = 'settings';[\s\S]*node\.id === 'system:themes'[\s\S]*iconKind = 'themes';[\s\S]*node\.id === 'system:updates'[\s\S]*iconKind = 'updates';[\s\S]*node\.id === 'system:sync'[\s\S]*iconKind = 'publish';[\s\S]*editor-tree-icon-\$\{iconKind\}/,
   'file tree should render folder/document icons and dedicated system action icons'
 );
 
 assert.doesNotMatch(
-  source,
+  editorFileTreeUiSource,
   /className = 'editor-tree-path'/,
   'file tree should keep paths out of visible node text'
 );
@@ -2934,7 +2954,7 @@ assert.match(
 
 const refreshEditorContentTreeBody = source.slice(
   source.indexOf('function refreshEditorContentTree(options = {}) {'),
-  source.indexOf('function createEditorTreeIcon(node)')
+  source.indexOf('function handleEditorTreeSelection(nodeId)')
 );
 
 assert.doesNotMatch(

@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.31';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.31';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.31';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.31';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.32';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.32';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.32';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.32';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.31';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.31';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.31';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.31';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.31';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.31';
+} from './encrypted-content.js?v=press-system-v3.4.32';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.32';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.32';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.32';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.32';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.32';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.31';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.32';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,34 +43,35 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.31';
+} from './composer-site-model.js?v=press-system-v3.4.32';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.31';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.31';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.31';
+} from './editor-storage.js?v=press-system-v3.4.32';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.32';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.32';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.31';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.31';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.31';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.31';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.31';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.31';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.31';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.31';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.31';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.31';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.31';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.31';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.31';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.31';
+} from './composer-sync-panel.js?v=press-system-v3.4.32';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.32';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.32';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.32';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.32';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.32';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.32';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.32';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.32';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.32';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.32';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.32';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.32';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.32';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.32';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.31';
+} from './publish/settings-store.js?v=press-system-v3.4.32';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -446,8 +447,6 @@ let activeMarkdownDocument = null;
 let detachPrimaryEditorListener = null;
 let detachPrimaryEditorTabsMetadataListener = null;
 let allowEditorStatePersist = false;
-let editorContentTree = [];
-let activeEditorTreeNodeId = 'welcome';
 const expandedEditorTreeNodeIds = new Set(['articles', 'pages']);
 let hasEditorStateV3Snapshot = false;
 try {
@@ -459,6 +458,27 @@ try {
     expandedEditorTreeNodeIds.add('system');
   }
 } catch (_) {}
+const editorContentTreeController = createEditorContentTreeController({
+  documentRef: document,
+  expandedNodeIds: expandedEditorTreeNodeIds,
+  normalizePath: normalizeRelPath,
+  flattenTree: flattenEditorContentTree,
+  findNode: findEditorContentTreeNode,
+  buildTree: () => buildCurrentEditorTree(),
+  getCurrentMode: () => currentMode,
+  isDynamicMode,
+  renderFileTree: (treeEl) => editorFileTreeUi.renderEditorFileTree(treeEl),
+  renderStructurePanel: (node) => editorStructurePanelUi.renderEditorStructurePanel(node),
+  setEditorDetailPanelMode: (mode) => setEditorDetailPanelMode(mode),
+  setStructurePanelVisible: (visible) => setEditorStructurePanelVisible(visible),
+  applyMode: (mode, options) => applyMode(mode, options),
+  openMarkdownInEditor: (path, options) => openMarkdownInEditor(path, options),
+  scrollEditorContentToTop: (behavior) => scrollEditorContentToTop(behavior),
+  closeEditorRailDrawer: () => closeEditorRailDrawer(),
+  scheduleEditorStatePersist: () => scheduleEditorStatePersist(),
+  persistSystemTreeExpandedState: () => persistSystemTreeExpandedState(),
+  inferMarkdownSourceFallback: (path) => (String(path || '').toLowerCase().startsWith('tab/') ? 'tabs' : 'index')
+});
 const editorShell = createComposerEditorShell({
   documentRef: document,
   windowRef: window,
@@ -4605,11 +4625,11 @@ function persistDynamicEditorState() {
     const state = {
       v: EDITOR_STATE_VERSION,
       mode: active ? 'markdown' : systemMode,
-      activeNodeId: activeEditorTreeNodeId || 'welcome',
+      activeNodeId: editorContentTreeController.getActiveNodeId() || 'welcome',
       activeLookupKey: active && (active.lookupKey || active.path) ? (active.lookupKey || active.path) : null,
       activePath: active && active.path ? active.path : null,
       open,
-      expandedNodeIds: Array.from(expandedEditorTreeNodeIds).filter(Boolean),
+      expandedNodeIds: editorContentTreeController.getExpandedNodeIdsSnapshot(),
       railScrollTop: getEditorRailScrollTop(),
       contentScrollByKey: getEditorContentScrollSnapshot(),
       updatedAt: Date.now()
@@ -4651,20 +4671,12 @@ function restoreDynamicEditorState() {
   });
 
   if (isV3 && Array.isArray(data.expandedNodeIds)) {
-    expandedEditorTreeNodeIds.clear();
-    data.expandedNodeIds.forEach((item) => {
-      const id = String(item || '').trim();
-      if (id) expandedEditorTreeNodeIds.add(id);
-    });
+    editorContentTreeController.restoreExpandedNodeIds(data.expandedNodeIds);
   }
 
   const restoredNodeId = isV3 ? String(data.activeNodeId || '').trim() : '';
   if (restoredNodeId) {
-    activeEditorTreeNodeId = restoredNodeId;
-    if (!findEditorContentTreeNode(editorContentTree, activeEditorTreeNodeId)) {
-      activeEditorTreeNodeId = 'welcome';
-    }
-    refreshEditorContentTree({ preserveStructure: true });
+    editorContentTreeController.setActiveNodeIdIfExists(restoredNodeId);
   }
 
   const finishRestore = (mode) => {
@@ -5655,7 +5667,7 @@ function openMarkdownInEditor(path, options = {}) {
 }
 
 function applyMode(mode, options = {}) {
-  if (mode === 'editor' && dynamicEditorTabs.size && !options.forceStructure && activeEditorTreeNodeId !== 'welcome') {
+  if (mode === 'editor' && dynamicEditorTabs.size && !options.forceStructure && editorContentTreeController.getActiveNodeId() !== 'welcome') {
     const firstDynamicMode = getFirstDynamicModeId();
     if (firstDynamicMode) {
       applyMode(firstDynamicMode, options);
@@ -5691,9 +5703,9 @@ function applyMode(mode, options = {}) {
     } else if (isSystemMode(nextMode)) {
       activeDynamicMode = null;
       activeMarkdownDocument = null;
-      activeEditorTreeNodeId = systemModeNodeId(nextMode);
+      const activeSystemNodeId = editorContentTreeController.setActiveNodeId(systemModeNodeId(nextMode));
       if (!options.preserveTreeExpansion) {
-        expandEditorAncestors(getEditorTreeNodeById(activeEditorTreeNodeId) || { id: activeEditorTreeNodeId, source: 'system' });
+        expandEditorAncestors(getEditorTreeNodeById(activeSystemNodeId) || { id: activeSystemNodeId, source: 'system' });
       }
       setEditorDetailPanelMode(nextMode);
       pushEditorCurrentFileInfo(null);
@@ -5828,9 +5840,9 @@ function applyMode(mode, options = {}) {
   } else if (isSystemMode(nextMode)) {
     activeDynamicMode = null;
     activeMarkdownDocument = null;
-    activeEditorTreeNodeId = systemModeNodeId(nextMode);
+    const activeSystemNodeId = editorContentTreeController.setActiveNodeId(systemModeNodeId(nextMode));
     if (!options.preserveTreeExpansion) {
-      expandEditorAncestors(getEditorTreeNodeById(activeEditorTreeNodeId) || { id: activeEditorTreeNodeId, source: 'system' });
+      expandEditorAncestors(getEditorTreeNodeById(activeSystemNodeId) || { id: activeSystemNodeId, source: 'system' });
     }
     setEditorDetailPanelMode(nextMode);
     pushEditorCurrentFileInfo(null);
@@ -6332,12 +6344,12 @@ const editorFileTreeUi = createEditorFileTreeUi({
   documentRef: document,
   windowRef: window,
   treeText,
-  getEditorContentTree: () => editorContentTree,
-  getActiveNodeId: () => activeEditorTreeNodeId,
-  expandedNodeIds: expandedEditorTreeNodeIds,
-  handleEditorTreeSelection: (nodeId) => handleEditorTreeSelection(nodeId),
+  getEditorContentTree: () => editorContentTreeController.getTree(),
+  getActiveNodeId: () => editorContentTreeController.getActiveNodeId(),
+  expandedNodeIds: editorContentTreeController.getExpandedNodeIds(),
+  handleEditorTreeSelection: (nodeId) => editorContentTreeController.handleSelection(nodeId),
   persistSystemTreeExpandedState: () => persistSystemTreeExpandedState(),
-  refreshEditorContentTree: (options) => refreshEditorContentTree(options),
+  refreshEditorContentTree: (options) => editorContentTreeController.refresh(options),
   scheduleEditorStatePersist: () => scheduleEditorStatePersist()
 });
 
@@ -6361,11 +6373,11 @@ const editorStructurePanelUi = createEditorStructurePanelUi({
   getIndexEntry,
   getTabsEntry,
   notifyComposerChange,
-  refreshEditorContentTree: (options) => refreshEditorContentTree(options),
+  refreshEditorContentTree: (options) => editorContentTreeController.refresh(options),
   setEditorDetailPanelMode: (mode) => setEditorDetailPanelMode(mode),
   animateEditorStructurePanelContent: (panel) => animateEditorStructurePanelContent(panel),
-  setActiveEditorTreeNodeId: (nodeId) => { activeEditorTreeNodeId = nodeId; },
-  handleEditorTreeSelection: (nodeId) => handleEditorTreeSelection(nodeId),
+  setActiveEditorTreeNodeId: (nodeId) => { editorContentTreeController.setActiveNodeId(nodeId); },
+  handleEditorTreeSelection: (nodeId) => editorContentTreeController.handleSelection(nodeId),
   openMarkdownInEditor: (path, options) => openMarkdownInEditor(path, options),
   addComposerEntry: (kind, anchor) => addComposerEntry(kind, anchor),
   deleteEditorEntry: (source, key) => deleteEditorEntry(source, key),
@@ -6539,182 +6551,47 @@ function buildCurrentEditorTree() {
 }
 
 function getActiveEditorTreeNode() {
-  return findEditorContentTreeNode(editorContentTree, activeEditorTreeNodeId)
-    || findEditorContentTreeNode(editorContentTree, 'welcome')
-    || findEditorContentTreeNode(editorContentTree, 'articles')
-    || (editorContentTree[0] || null);
+  return editorContentTreeController.getActiveNode();
 }
 
 function inferMarkdownSourceFromPath(path) {
-  const normalized = normalizeRelPath(path);
-  if (!normalized) return '';
-  try {
-    const node = flattenEditorContentTree(editorContentTree)
-      .find(item => item && item.kind === 'file' && item.path === normalized);
-    if (node && node.source) return String(node.source);
-  } catch (_) {}
-  return normalized.toLowerCase().startsWith('tab/') ? 'tabs' : 'index';
+  return editorContentTreeController.inferMarkdownSourceFromPath(path);
 }
 
 function getEditorTreeNodeById(nodeId) {
-  return findEditorContentTreeNode(editorContentTree, nodeId);
+  return editorContentTreeController.getNodeById(nodeId);
 }
 
 function getEditorTreeFileNodeByPath(path) {
-  const normalized = normalizeRelPath(path);
-  if (!normalized) return null;
-  return flattenEditorContentTree(editorContentTree)
-    .find(item => item && item.kind === 'file' && item.path === normalized) || null;
+  return editorContentTreeController.getFileNodeByPath(path);
 }
 
 function getEditorTreeFileNodeForTab(tab) {
-  if (tab && tab.editorTreeNodeId) {
-    const byId = getEditorTreeNodeById(tab.editorTreeNodeId);
-    if (byId && byId.kind === 'file') return byId;
-  }
-  if (tab && tab.tabsKey && tab.tabsLang) {
-    const byIdentity = getEditorTreeNodeById(`tabs:${tab.tabsKey}:${tab.tabsLang}`);
-    if (byIdentity && byIdentity.kind === 'file') return byIdentity;
-  }
-  return getEditorTreeFileNodeByPath(tab && tab.path ? tab.path : '');
+  return editorContentTreeController.getFileNodeForTab(tab);
 }
 
 function buildCurrentFileBreadcrumb(tab) {
-  if (!tab || !tab.path) return [];
-  const normalizedPath = normalizeRelPath(tab.path);
-  const node = getEditorTreeFileNodeForTab(tab);
-  if (!node) return normalizedPath ? [{ label: normalizedPath, path: normalizedPath }] : [];
-  const ids = [];
-  if (node.source === 'tabs') {
-    ids.push('pages', `tabs:${node.key}`, node.id);
-  } else {
-    ids.push('articles', `index:${node.key}`, `index:${node.key}:${node.lang}`, node.id);
-  }
-  return ids
-    .map((id) => {
-      const crumbNode = getEditorTreeNodeById(id);
-      if (!crumbNode) return null;
-      return {
-        label: crumbNode.label || crumbNode.key || crumbNode.id,
-        nodeId: crumbNode.id,
-        path: crumbNode.path || ''
-      };
-    })
-    .filter(item => item && item.label);
+  return editorContentTreeController.buildCurrentFileBreadcrumb(tab);
 }
 
 function expandEditorAncestors(node) {
-  if (!node) return;
-  if (node.id === 'welcome' || node.source === 'welcome') return;
-  if (node.source === 'system' || node.id === 'system') {
-    expandedEditorTreeNodeIds.add('system');
-    persistSystemTreeExpandedState();
-    return;
-  }
-  if (node.id === 'articles' || node.id === 'pages') {
-    expandedEditorTreeNodeIds.add(node.id);
-    return;
-  }
-  const parts = String(node.id || '').split(':');
-  const root = parts[0] === 'tabs' ? 'pages' : 'articles';
-  expandedEditorTreeNodeIds.add(root);
-  if (parts.length >= 2) expandedEditorTreeNodeIds.add(`${parts[0]}:${parts[1]}`);
-  if (parts.length >= 3 && parts[0] === 'index') expandedEditorTreeNodeIds.add(`${parts[0]}:${parts[1]}:${parts[2]}`);
+  editorContentTreeController.expandAncestors(node);
 }
 
 function selectEditorTreeNodeByPath(path, options = {}) {
-  const normalized = normalizeRelPath(path);
-  if (!normalized) return null;
-  const node = flattenEditorContentTree(editorContentTree).find(item => item && item.path === normalized);
-  if (!node) return null;
-  activeEditorTreeNodeId = node.id;
-  if (!options || options.expandAncestors !== false) expandEditorAncestors(node);
-  refreshEditorContentTree({ preserveStructure: currentMode && isDynamicMode(currentMode) });
-  return node;
+  return editorContentTreeController.selectNodeByPath(path, options);
 }
 
 function selectEditorTreeNodeForTab(tab, options = {}) {
-  const node = getEditorTreeFileNodeForTab(tab);
-  if (node && node.id) {
-    activeEditorTreeNodeId = node.id;
-    if (!options || options.expandAncestors !== false) expandEditorAncestors(node);
-    refreshEditorContentTree({ preserveStructure: currentMode && isDynamicMode(currentMode) });
-    return node;
-  }
-  return selectEditorTreeNodeByPath(tab && tab.path ? tab.path : '', options);
+  return editorContentTreeController.selectNodeForTab(tab, options);
 }
 
 function refreshEditorContentTree(options = {}) {
-  const treeEl = document.getElementById('editorFileTree');
-  if (!treeEl) return;
-  const preserveStructure = !!options.preserveStructure
-    || !!(currentMode && (isDynamicMode(currentMode) || currentMode === 'composer' || currentMode === 'themes' || currentMode === 'updates' || currentMode === 'sync'));
-  editorContentTree = buildCurrentEditorTree();
-  if (!findEditorContentTreeNode(editorContentTree, activeEditorTreeNodeId)) activeEditorTreeNodeId = 'welcome';
-  editorFileTreeUi.renderEditorFileTree(treeEl);
-  if (preserveStructure) {
-    if (currentMode && isDynamicMode(currentMode)) setEditorDetailPanelMode('markdown');
-    return;
-  }
-  editorStructurePanelUi.renderEditorStructurePanel(getActiveEditorTreeNode());
+  editorContentTreeController.refresh(options);
 }
 
 function handleEditorTreeSelection(nodeId) {
-  const node = findEditorContentTreeNode(editorContentTree, nodeId);
-  if (!node) return;
-  activeEditorTreeNodeId = node.id;
-  expandEditorAncestors(node);
-  if (node.source === 'welcome' || node.id === 'welcome') {
-    applyMode('editor', { forceStructure: true });
-    setEditorStructurePanelVisible(true);
-    refreshEditorContentTree();
-    scrollEditorContentToTop('smooth');
-    closeEditorRailDrawer();
-    scheduleEditorStatePersist();
-    return;
-  }
-  if (node.source === 'system') {
-    refreshEditorContentTree({ preserveStructure: true });
-    if (node.id === 'system:site-settings') {
-      applyMode('composer');
-    } else if (node.id === 'system:themes') {
-      applyMode('themes');
-    } else if (node.id === 'system:updates') {
-      applyMode('updates');
-    } else if (node.id === 'system:sync') {
-      applyMode('sync');
-    } else {
-      applyMode('editor', { forceStructure: true });
-      setEditorStructurePanelVisible(true);
-      refreshEditorContentTree();
-    }
-    scrollEditorContentToTop('smooth');
-    closeEditorRailDrawer();
-    scheduleEditorStatePersist();
-    return;
-  }
-  if (node.isDeleted) {
-    applyMode('editor', { forceStructure: true });
-    setEditorStructurePanelVisible(true);
-    refreshEditorContentTree();
-    scrollEditorContentToTop('smooth');
-    closeEditorRailDrawer();
-    scheduleEditorStatePersist();
-    return;
-  }
-  if (node.kind === 'file' && node.path) {
-    refreshEditorContentTree({ preserveStructure: true });
-    openMarkdownInEditor(node.path, { node });
-    closeEditorRailDrawer();
-    scheduleEditorStatePersist();
-    return;
-  }
-  applyMode('editor', { forceStructure: true });
-  setEditorStructurePanelVisible(true);
-  refreshEditorContentTree();
-  scrollEditorContentToTop('smooth');
-  closeEditorRailDrawer();
-  scheduleEditorStatePersist();
+  editorContentTreeController.handleSelection(nodeId);
 }
 
 try {
@@ -6756,7 +6633,7 @@ function renameEditorEntry(source, oldKey, nextKeyRaw) {
   delete state[oldKey];
   if (Array.isArray(state.__order)) state.__order = state.__order.map(key => (key === oldKey ? nextKey : key));
   notifyComposerChange(source);
-  activeEditorTreeNodeId = `${source}:${nextKey}`;
+  editorContentTreeController.setActiveNodeId(`${source}:${nextKey}`);
   refreshEditorContentTree();
   return true;
 }
@@ -6771,7 +6648,7 @@ function deleteEditorEntry(source, key) {
   delete state[key];
   if (Array.isArray(state.__order)) state.__order = state.__order.filter(item => item !== key);
   notifyComposerChange(source);
-  activeEditorTreeNodeId = source === 'tabs' ? 'pages' : 'articles';
+  editorContentTreeController.setActiveNodeId(source === 'tabs' ? 'pages' : 'articles');
   refreshEditorContentTree();
 }
 
@@ -6783,15 +6660,15 @@ function addEditorLanguage(source, key, lang) {
     if (entry[code]) return;
     entry[code] = { title: key, location: buildDefaultLanguagePathFromEntry('tabs', key, code, entry) };
     notifyComposerChange('tabs');
-    activeEditorTreeNodeId = `tabs:${key}`;
+    editorContentTreeController.setActiveNodeId(`tabs:${key}`);
   } else {
     const entry = getIndexEntry(key);
     if (entry[code]) return;
     entry[code] = [buildDefaultLanguagePathFromEntry('index', key, code, entry)];
     notifyComposerChange('index');
-    activeEditorTreeNodeId = `index:${key}:${code}`;
+    editorContentTreeController.setActiveNodeId(`index:${key}:${code}`);
   }
-  expandedEditorTreeNodeIds.add(`${source}:${key}`);
+  editorContentTreeController.addExpandedNodeId(`${source}:${key}`);
   refreshEditorContentTree();
 }
 
@@ -6804,7 +6681,7 @@ function removeEditorLanguage(source, key, lang) {
   if (!ok) return;
   delete entry[lang];
   notifyComposerChange(source);
-  activeEditorTreeNodeId = `${source}:${key}`;
+  editorContentTreeController.setActiveNodeId(`${source}:${key}`);
   refreshEditorContentTree();
 }
 
@@ -6816,9 +6693,9 @@ function addEditorVersion(key, lang, anchor = null) {
     arr.push(buildArticleVersionPath(key, lang, version, entry));
     entry[lang] = arr;
     notifyComposerChange('index');
-    expandedEditorTreeNodeIds.add(`index:${key}`);
-    expandedEditorTreeNodeIds.add(`index:${key}:${lang}`);
-    activeEditorTreeNodeId = `index:${key}:${lang}`;
+    editorContentTreeController.addExpandedNodeId(`index:${key}`);
+    editorContentTreeController.addExpandedNodeId(`index:${key}:${lang}`);
+    editorContentTreeController.setActiveNodeId(`index:${key}:${lang}`);
     refreshEditorContentTree();
     return true;
   });
@@ -6831,7 +6708,7 @@ function removeEditorVersion(key, lang, index) {
   arr.splice(index, 1);
   entry[lang] = arr;
   notifyComposerChange('index');
-  activeEditorTreeNodeId = `index:${key}:${lang}`;
+  editorContentTreeController.setActiveNodeId(`index:${key}:${lang}`);
   refreshEditorContentTree();
 }
 
@@ -6896,10 +6773,10 @@ function restoreDeletedEditorTreeNode(node) {
     return false;
   }
 
-  expandedEditorTreeNodeIds.add(node.source === 'tabs' ? 'pages' : 'articles');
-  expandedEditorTreeNodeIds.add(`${node.source}:${node.key}`);
-  if (node.source === 'index' && node.lang) expandedEditorTreeNodeIds.add(`index:${node.key}:${node.lang}`);
-  activeEditorTreeNodeId = nextNodeId || `${node.source}:${node.key}`;
+  editorContentTreeController.addExpandedNodeId(node.source === 'tabs' ? 'pages' : 'articles');
+  editorContentTreeController.addExpandedNodeId(`${node.source}:${node.key}`);
+  if (node.source === 'index' && node.lang) editorContentTreeController.addExpandedNodeId(`index:${node.key}:${node.lang}`);
+  editorContentTreeController.setActiveNodeId(nextNodeId || `${node.source}:${node.key}`);
   notifyComposerChange(node.source);
   refreshEditorContentTree();
   return true;
@@ -6917,7 +6794,7 @@ function moveEditorVersionTo(key, lang, from, to) {
   arr.splice(to, 0, path);
   entry[lang] = arr;
   notifyComposerChange('index');
-  activeEditorTreeNodeId = `index:${key}:${lang}`;
+  editorContentTreeController.setActiveNodeId(`index:${key}:${lang}`);
   refreshEditorContentTree();
   return true;
 }

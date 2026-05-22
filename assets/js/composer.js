@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.32';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.32';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.32';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.32';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.33';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.33';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.33';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.33';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.32';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.32';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.32';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.32';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.32';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.32';
+} from './encrypted-content.js?v=press-system-v3.4.33';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.33';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.33';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.33';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.33';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.33';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.32';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.33';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,35 +43,36 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.32';
+} from './composer-site-model.js?v=press-system-v3.4.33';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.32';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.32';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.32';
+} from './editor-storage.js?v=press-system-v3.4.33';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.33';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.33';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.32';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.32';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.32';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.32';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.32';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.32';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.32';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.32';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.32';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.32';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.32';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.32';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.32';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.32';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.32';
+} from './composer-sync-panel.js?v=press-system-v3.4.33';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.33';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.33';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.33';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.33';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.33';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.33';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.33';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.33';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.33';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.33';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.33';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.33';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.33';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.33';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.33';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.32';
+} from './publish/settings-store.js?v=press-system-v3.4.33';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -364,6 +365,7 @@ const seoStagingProvider = createSeoStagingProvider({
   isIndexMetadataObject,
   getIndexVariantLocation
 });
+let markdownLoader = null;
 const postCommitStateApplier = createPostCommitStateApplier({
   stagingRegistry,
   getStateSlice,
@@ -458,6 +460,28 @@ try {
     expandedEditorTreeNodeIds.add('system');
   }
 } catch (_) {}
+markdownLoader = createComposerMarkdownLoader({
+  getContentRootSafe,
+  normalizeRelPath,
+  normalizeMarkdownContent,
+  computeTextSignature,
+  parseEncryptedMarkdownEnvelope,
+  decryptProtectedMarkdownForTab,
+  isMarkdownTabProtected,
+  setMarkdownProtectionState,
+  createMarkdownProtectionState,
+  draftHasAssetDeletions,
+  getDefaultMarkdownForPath,
+  updateDynamicTabDirtyState,
+  getCurrentMode: () => currentMode,
+  pushEditorCurrentFileInfo,
+  refreshEditorContentTree,
+  fetchContent: (url, options) => fetch(url, options),
+  draftProtectionTitle: () => t('editor.composer.markdown.protection.draftTitle'),
+  draftProtectionMessage: () => t('editor.composer.markdown.protection.draftMessage'),
+  openProtectionTitle: () => t('editor.composer.markdown.protection.openTitle'),
+  openProtectionMessage: () => t('editor.composer.markdown.protection.openMessage')
+});
 const editorContentTreeController = createEditorContentTreeController({
   documentRef: document,
   expandedNodeIds: expandedEditorTreeNodeIds,
@@ -4731,8 +4755,6 @@ function setTabLoadingState(tab, isLoading) {
   } catch (_) {}
 }
 
-const TAB_STATE_VALUES = new Set(['checking', 'existing', 'missing', 'error']);
-
 function updateMarkdownPushButton(tab) {
   if (!markdownPushButton) {
     markdownPushButton = document.getElementById('btnPushMarkdown');
@@ -5358,36 +5380,13 @@ function pushEditorCurrentFileInfo(tab) {
   updateMarkdownProtectionButton(activeTab);
 }
 
+function getMarkdownLoader() {
+  if (!markdownLoader) throw new Error('Markdown loader is not initialized');
+  return markdownLoader;
+}
+
 function setDynamicTabStatus(tab, status) {
-  if (!tab) return;
-  const next = status && typeof status === 'object' ? { ...status } : {};
-  const rawState = String(next.state || '').trim().toLowerCase();
-  const state = TAB_STATE_VALUES.has(rawState) ? rawState : '';
-  let checkedAt = next.checkedAt;
-  if (checkedAt instanceof Date) checkedAt = checkedAt.getTime();
-  if (checkedAt != null && !Number.isFinite(checkedAt)) checkedAt = Number(checkedAt);
-  if (Number.isFinite(checkedAt)) checkedAt = Math.max(0, Math.floor(checkedAt));
-  else checkedAt = null;
-
-  const normalized = {
-    state,
-    checkedAt,
-  };
-  if (next.message) normalized.message = String(next.message || '');
-  if (next.code != null) normalized.code = Number(next.code);
-
-  tab.fileStatus = normalized;
-
-  const btn = tab.button;
-  if (btn) {
-    if (state) btn.setAttribute('data-file-state', state);
-    else btn.removeAttribute('data-file-state');
-    if (checkedAt != null) btn.setAttribute('data-checked-at', String(checkedAt));
-    else btn.removeAttribute('data-checked-at');
-  }
-
-  if (currentMode === tab.mode) pushEditorCurrentFileInfo(tab);
-  refreshEditorContentTree({ preserveStructure: currentMode === tab.mode });
+  return getMarkdownLoader().setDynamicTabStatus(tab, status);
 }
 
 async function closeDynamicTab(modeId, options = {}) {
@@ -5526,130 +5525,7 @@ function getOrCreateDynamicMode(path, options = {}) {
 }
 
 async function loadDynamicTabContent(tab) {
-  if (!tab) return '';
-  if (tab.loaded && typeof tab.content === 'string') return tab.content;
-  if (tab.pending) return tab.pending;
-
-  const root = getContentRootSafe();
-  const rel = normalizeRelPath(tab.path);
-  if (!rel) throw new Error('Invalid markdown path');
-  const url = `${root}/${rel}`.replace(/[\\]/g, '/');
-
-  const runner = async () => {
-    setDynamicTabStatus(tab, { state: 'checking', checkedAt: Date.now(), message: 'Checking file…' });
-
-    let res;
-    try {
-      res = await fetch(url, { cache: 'no-store' });
-    } catch (err) {
-      setDynamicTabStatus(tab, {
-        state: 'error',
-        checkedAt: Date.now(),
-        message: err && err.message ? err.message : 'Network error'
-      });
-      throw err;
-    }
-
-    const checkedAt = Date.now();
-
-    if (res.status === 404) {
-      tab.remoteContent = '';
-      tab.remoteSignature = computeTextSignature('');
-      if (tab.localDraft && tab.localDraft.encryptedContent) {
-        tab.content = await decryptProtectedMarkdownForTab(tab.localDraft.encryptedContent, tab, {
-          draft: true,
-          remote: false,
-          remoteSignature: tab.remoteSignature,
-          title: t('editor.composer.markdown.protection.draftTitle'),
-          message: t('editor.composer.markdown.protection.draftMessage')
-        });
-        tab.localDraft.content = tab.content;
-        tab.localDraft.decrypted = true;
-      } else if (tab.localDraft && draftHasAssetDeletions(tab.localDraft)) {
-        tab.content = normalizeMarkdownContent(tab.localDraft.content || '');
-      } else if (!tab.localDraft || !tab.localDraft.content) {
-        const template = getDefaultMarkdownForPath(rel);
-        tab.content = template || '';
-        setMarkdownProtectionState(tab, createMarkdownProtectionState());
-      }
-      tab.loaded = true;
-      setDynamicTabStatus(tab, {
-        state: 'missing',
-        checkedAt,
-        message: 'File not found on server',
-        code: 404
-      });
-      updateDynamicTabDirtyState(tab, { autoSave: !tab.localDraft });
-      return tab.content;
-    }
-
-    if (!res.ok) {
-      const err = new Error(`HTTP ${res.status}`);
-      err.status = res.status;
-      setDynamicTabStatus(tab, {
-        state: 'error',
-        checkedAt,
-        message: err.message || `HTTP ${res.status}`,
-        code: res.status
-      });
-      throw err;
-    }
-
-    const text = normalizeMarkdownContent(await res.text());
-    const remoteEnvelope = parseEncryptedMarkdownEnvelope(text);
-    const remoteSignature = computeTextSignature(text);
-    let editorText = text;
-    if (remoteEnvelope.encrypted) {
-      editorText = await decryptProtectedMarkdownForTab(text, tab, {
-        remote: true,
-        draft: false,
-        remoteSignature,
-        title: t('editor.composer.markdown.protection.openTitle'),
-        message: t('editor.composer.markdown.protection.openMessage')
-      });
-    } else if (!isMarkdownTabProtected(tab)) {
-      setMarkdownProtectionState(tab, createMarkdownProtectionState());
-    }
-    tab.remoteContent = editorText;
-    tab.remoteSignature = remoteSignature;
-    if (tab.localDraft && tab.localDraft.encryptedContent) {
-      tab.content = await decryptProtectedMarkdownForTab(tab.localDraft.encryptedContent, tab, {
-        draft: true,
-        remote: false,
-        remoteSignature,
-        title: t('editor.composer.markdown.protection.draftTitle'),
-        message: t('editor.composer.markdown.protection.draftMessage')
-      });
-      tab.localDraft.content = tab.content;
-      tab.localDraft.decrypted = true;
-    } else if (tab.localDraft && draftHasAssetDeletions(tab.localDraft)) {
-      tab.content = normalizeMarkdownContent(tab.localDraft.content || '');
-    } else if (!tab.localDraft || !tab.localDraft.content) {
-      tab.content = editorText;
-    }
-    tab.loaded = true;
-    setDynamicTabStatus(tab, {
-      state: 'existing',
-      checkedAt,
-      code: res.status
-    });
-    updateDynamicTabDirtyState(tab, { autoSave: !tab.localDraft });
-    return tab.content;
-  };
-
-  tab.pending = runner().catch((err) => {
-    tab.loaded = false;
-    setDynamicTabStatus(tab, {
-      state: 'error',
-      checkedAt: Date.now(),
-      message: err && err.message ? err.message : 'Unable to load markdown'
-    });
-    throw err;
-  }).finally(() => {
-    tab.pending = null;
-  });
-
-  return tab.pending;
+  return getMarkdownLoader().loadDynamicTabContent(tab);
 }
 
 function openMarkdownInEditor(path, options = {}) {

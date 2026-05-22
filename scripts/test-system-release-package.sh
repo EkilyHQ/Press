@@ -86,6 +86,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-order-diff-ui.js" "${e
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-index-tabs-ui.js" "${entries_file}"; then
+  echo "expected package to include composer index/tabs UI code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-file-tree-ui.js" "${entries_file}"; then
   echo "expected package to include editor file tree UI code" >&2
   exit 1

@@ -8,26 +8,26 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.26';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.26';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.26';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.26';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.27';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.27';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.27';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.27';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.26';
+} from './encrypted-content.js?v=press-system-v3.4.27';
 import {
   collectLocalMarkdownAssetReferences,
   collectManagedMarkdownReferences,
   listLocalMarkdownAssetReferences,
   resolveLocalMarkdownAssetReference
-} from './repository-deletions.js?v=press-system-v3.4.26';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.26';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.26';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.26';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.26';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.26';
+} from './repository-deletions.js?v=press-system-v3.4.27';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.27';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.27';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.27';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.27';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.27';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -41,7 +41,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.26';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.27';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -49,33 +49,34 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.26';
+} from './composer-site-model.js?v=press-system-v3.4.27';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.26';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.26';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.26';
+} from './editor-storage.js?v=press-system-v3.4.27';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.27';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.27';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.26';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.26';
+} from './composer-sync-panel.js?v=press-system-v3.4.27';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.27';
 import {
   animateEditorSystemPanelContent as animateSystemPanelContent,
   showEditorSystemPanel as showComposerSystemPanel
-} from './composer-system-panel.js?v=press-system-v3.4.26';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.26';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.26';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.26';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.26';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.26';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.26';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.26';
+} from './composer-system-panel.js?v=press-system-v3.4.27';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.27';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.27';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.27';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.27';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.27';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.27';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.27';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.27';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.26';
+} from './publish/settings-store.js?v=press-system-v3.4.27';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -3705,6 +3706,38 @@ const {
   closeComposerDiffModalForKind
 } = composerOrderDiffUi;
 
+const composerIndexTabsUi = createComposerIndexTabsUi({
+  documentRef: document,
+  windowRef: window,
+  preferredLangOrder: PREFERRED_LANG_ORDER,
+  query: $,
+  escapeHtml,
+  tComposer,
+  tComposerLang,
+  tComposerEntryRow,
+  treeText,
+  displayLangName,
+  langFlag,
+  sortLangKeys,
+  normalizeRelPath,
+  normalizeIndexVariantList,
+  getIndexVariantLocation,
+  extractVersionFromPath,
+  buildDefaultLanguagePathFromEntry,
+  buildArticleVersionPath,
+  promptArticleVersionValue,
+  openMarkdownInEditor: (path, options) => openMarkdownInEditor(path, options),
+  notifyComposerChange,
+  broadcastLanguagePoolChange,
+  updateComposerMarkdownDraftIndicators,
+  updateComposerDraftContainerState,
+  scheduleComposerOrderPreviewRelayout,
+  getComposerOrderPreviewActiveKind,
+  updateComposerOrderPreview,
+  cancelListTransition,
+  slideToggle
+});
+
 function scheduleAutoDraft(kind) {
   if (composerAutoSaveTimers[kind]) {
     clearTimeout(composerAutoSaveTimers[kind]);
@@ -3770,7 +3803,7 @@ function rebuildIndexUI(preserveOpen = true) {
   const openKeys = preserveOpen
     ? Array.from(root.querySelectorAll('.ci-item.is-open')).map(el => el.getAttribute('data-key')).filter(Boolean)
     : [];
-  buildIndexUI(root, activeComposerState);
+  composerIndexTabsUi.buildIndexUI(root, activeComposerState);
   openKeys.forEach(key => {
     if (!key) return;
     const row = root.querySelector(`.ci-item[data-key="${cssEscape(key)}"]`);
@@ -3795,7 +3828,7 @@ function rebuildTabsUI(preserveOpen = true) {
   const openKeys = preserveOpen
     ? Array.from(root.querySelectorAll('.ct-item.is-open')).map(el => el.getAttribute('data-key')).filter(Boolean)
     : [];
-  buildTabsUI(root, activeComposerState);
+  composerIndexTabsUi.buildTabsUI(root, activeComposerState);
   openKeys.forEach(key => {
     if (!key) return;
     const row = root.querySelector(`.ct-item[data-key="${cssEscape(key)}"]`);
@@ -7418,198 +7451,6 @@ function toTabsYaml(data) {
   return lines.join('\n') + '\n';
 }
 
-function makeDragList(container, onReorder) {
-  // Pointer-driven drag that moves the original element; siblings animate via FLIP
-  const keySelector = '[data-key]';
-  const getKey = (el) => el && el.getAttribute && el.getAttribute('data-key');
-  const childItems = () => Array.from(container.querySelectorAll(keySelector));
-
-  let dragging = null;
-  let placeholder = null;
-  let offsetX = 0, offsetY = 0;
-  let dragOriginParent = null;
-  let dragOriginNext = null;
-
-  // Utility: snapshot and animate siblings (ignore the dragged element)
-  const snapshotRects = () => {
-    const m = new Map();
-    childItems().forEach(el => { m.set(getKey(el), el.getBoundingClientRect()); });
-    return m;
-  };
-  const animateFrom = (prevRects) => {
-    childItems().forEach(el => {
-      if (el === dragging) return;
-      const key = getKey(el);
-      const prev = prevRects.get(key);
-      if (!prev) return;
-      const now = el.getBoundingClientRect();
-      const dx = prev.left - now.left;
-      const dy = prev.top - now.top;
-      if (dx || dy) {
-        try {
-          el.animate([
-            { transform: `translate(${dx}px, ${dy}px)` },
-            { transform: 'translate(0, 0)' }
-          ], { duration: 360, easing: 'ease', composite: 'replace' });
-        } catch (_) {
-          el.style.transition = 'none';
-          el.style.transform = `translate(${dx}px, ${dy}px)`;
-          requestAnimationFrame(() => {
-            el.style.transition = 'transform 360ms ease';
-            el.style.transform = '';
-            const clear = () => { el.style.transition = ''; el.removeEventListener('transitionend', clear); };
-            el.addEventListener('transitionend', clear);
-          });
-        }
-      }
-    });
-  };
-
-  const getAfterByY = (c, y) => {
-    const els = [...c.querySelectorAll(`${keySelector}:not(.dragging)`)];
-    return els.reduce((closest, child) => {
-      const box = child.getBoundingClientRect();
-      const offset = y - box.top - box.height / 2;
-      if (offset < 0 && offset > closest.offset) return { offset, element: child };
-      else return closest;
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-  };
-
-  const onPointerDown = (e) => {
-    if (e.button !== 0 && e.pointerType !== 'touch') return; // left click or touch only
-    const target = e.target;
-    const handle = target.closest('.ci-grip,.ct-grip');
-    if (!handle || !container.contains(handle)) return;
-    if (target.closest('button, input, textarea, select, a')) return; // don't start drag from controls
-    const li = handle.closest(keySelector);
-    if (!li || !container.contains(li)) return;
-
-    e.preventDefault();
-
-    dragging = li;
-    cancelListTransition(container);
-    container.style.transform = 'none';
-    container.style.filter = 'none';
-    if (container.style.opacity && container.style.opacity !== '1') container.style.opacity = '';
-
-    const initialRect = li.getBoundingClientRect();
-    const styles = window.getComputedStyle(li);
-
-    dragOriginParent = li.parentNode;
-    dragOriginNext = li.nextSibling;
-
-    // placeholder keeps layout while dragged element floats
-    placeholder = document.createElement('div');
-    placeholder.className = 'drag-placeholder';
-    placeholder.style.height = initialRect.height + 'px';
-    placeholder.style.margin = styles.margin;
-    dragOriginParent.insertBefore(placeholder, dragOriginNext);
-
-    li.dataset.nsDragPrevMargin = styles.margin;
-    li.dataset.nsDragPrevTransform = li.style.transform || '';
-    li.style.margin = '0';
-    li.style.transform = 'none';
-
-    const rect = li.getBoundingClientRect();
-    offsetX = e.pageX - (rect.left + window.scrollX);
-    offsetY = e.pageY - (rect.top + window.scrollY);
-
-    // elevate original element and follow pointer
-    li.style.width = rect.width + 'px';
-    li.style.height = rect.height + 'px';
-    li.style.position = 'absolute';
-    li.style.left = (rect.left + window.scrollX) + 'px';
-    li.style.top = (rect.top + window.scrollY) + 'px';
-    li.style.zIndex = '2147483646';
-    li.style.pointerEvents = 'none';
-    li.style.willChange = 'transform, top, left';
-    li.classList.add('dragging');
-    container.classList.add('is-dragging-list');
-    document.body.classList.add('press-noselect');
-    document.body.appendChild(li);
-
-    try { handle.setPointerCapture(e.pointerId); } catch (_) {}
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp, { once: true });
-  };
-
-  const onPointerMove = (e) => {
-    if (!dragging) return;
-    dragging.style.left = (e.pageX - offsetX) + 'px';
-    dragging.style.top = (e.pageY - offsetY) + 'px';
-
-    const prev = snapshotRects();
-    const after = getAfterByY(container, e.clientY);
-    if (after == null) container.appendChild(placeholder);
-    else container.insertBefore(placeholder, after);
-    animateFrom(prev);
-  };
-
-  const onPointerUp = () => {
-    if (!dragging) return;
-    // current visual position of the fixed element (origin)
-    const origin = dragging.getBoundingClientRect();
-    // target position equals the placeholder's rect
-    const target = placeholder.getBoundingClientRect();
-    const dx = origin.left - target.left;
-    const dy = origin.top - target.top;
-
-    // place the element where the placeholder sits in DOM order
-    if (placeholder && placeholder.parentNode) {
-      placeholder.parentNode.insertBefore(dragging, placeholder);
-      placeholder.remove();
-    }
-    placeholder = null;
-    dragOriginParent = null;
-    dragOriginNext = null;
-
-    // reset positioning to re-enter normal flow
-    dragging.style.position = '';
-    dragging.style.left = '';
-    dragging.style.top = '';
-    dragging.style.width = '';
-    dragging.style.height = '';
-    dragging.style.zIndex = '';
-    dragging.style.pointerEvents = '';
-    dragging.style.willChange = '';
-    dragging.style.margin = dragging.dataset.nsDragPrevMargin || '';
-    dragging.style.transform = dragging.dataset.nsDragPrevTransform || '';
-    delete dragging.dataset.nsDragPrevMargin;
-    delete dragging.dataset.nsDragPrevTransform;
-    dragging.classList.remove('dragging');
-
-    // animate the snap from origin -> target (FLIP on the dragged element)
-    try {
-      dragging.animate([
-        { transform: `translate(${dx}px, ${dy}px)` },
-        { transform: 'translate(0, 0)' }
-      ], { duration: 360, easing: 'ease' });
-    } catch (_) {
-      // Fallback: CSS transition
-      dragging.style.transition = 'none';
-      dragging.style.transform = `translate(${dx}px, ${dy}px)`;
-      requestAnimationFrame(() => {
-        dragging.style.transition = 'transform 360ms ease';
-        dragging.style.transform = '';
-        const clear = () => { dragging.style.transition = ''; dragging.removeEventListener('transitionend', clear); };
-        dragging.addEventListener('transitionend', clear);
-      });
-    }
-
-    container.classList.remove('is-dragging-list');
-    document.body.classList.remove('press-noselect');
-    window.removeEventListener('pointermove', onPointerMove);
-
-    const order = childItems().map(el => el.dataset.key);
-    if (onReorder) onReorder(order);
-    dragging = null;
-  };
-
-  // Disable native HTML5 DnD on this container
-  container.addEventListener('dragstart', (e) => e.preventDefault());
-  container.addEventListener('pointerdown', onPointerDown);
-}
-
 function treeText(key, fallback, params) {
   const fullKey = `editor.tree.${key}`;
   const value = t(fullKey, params);
@@ -8214,537 +8055,6 @@ function moveEditorVersionTo(key, lang, from, to) {
   activeEditorTreeNodeId = `index:${key}:${lang}`;
   refreshEditorContentTree();
   return true;
-}
-
-function buildIndexUI(root, state) {
-  root.innerHTML = '';
-  const list = document.createElement('div');
-  list.id = 'ciList';
-  root.appendChild(list);
-
-  const markDirty = () => { try { notifyComposerChange('index'); } catch (_) {}; };
-
-  const order = state.index.__order;
-  order.forEach(key => {
-    const entry = state.index[key] || {};
-    const row = document.createElement('div');
-    row.className = 'ci-item';
-    row.setAttribute('data-key', key);
-    row.setAttribute('draggable', 'true');
-    const langCount = Object.keys(entry).length;
-    const langCountText = tComposerLang('count', { count: langCount });
-    const detailsLabel = tComposerEntryRow('details');
-    const deleteLabel = tComposerEntryRow('delete');
-    const gripHint = tComposerEntryRow('gripHint');
-    row.innerHTML = `
-      <div class="ci-head">
-        <span class="ci-grip" title="${escapeHtml(gripHint)}" aria-hidden="true">⋮⋮</span>
-        <strong class="ci-key">${escapeHtml(key)}</strong>
-        <span class="ci-meta">${escapeHtml(langCountText)}</span>
-        <span class="ci-diff" aria-live="polite"></span>
-        <span class="ci-actions">
-          <button class="btn-secondary ci-expand" aria-expanded="false"><span class="caret" aria-hidden="true"></span>${escapeHtml(detailsLabel)}</button>
-          <span class="ci-head-add-lang-slot"></span>
-          <button class="btn-secondary ci-del">${escapeHtml(deleteLabel)}</button>
-        </span>
-      </div>
-      <div class="ci-body"><div class="ci-body-inner"></div></div>
-    `;
-    list.appendChild(row);
-
-    const body = $('.ci-body', row);
-    const bodyInner = $('.ci-body-inner', row);
-    const headAddLangSlot = $('.ci-head-add-lang-slot', row);
-    const btnExpand = $('.ci-expand', row);
-    const btnDel = $('.ci-del', row);
-    if (btnExpand) btnExpand.setAttribute('title', detailsLabel);
-    if (btnDel) {
-      btnDel.setAttribute('title', deleteLabel);
-      btnDel.setAttribute('aria-label', deleteLabel);
-    }
-
-    body.dataset.open = '0';
-    body.style.display = 'none';
-
-    const renderBody = () => {
-      bodyInner.innerHTML = '';
-      if (headAddLangSlot) headAddLangSlot.innerHTML = '';
-      const langs = sortLangKeys(entry);
-      const addVersionLabel = tComposerLang('addVersion');
-      const removeLangLabel = tComposerLang('removeLanguage');
-      const editLabel = tComposerLang('actions.edit');
-      const openLabel = tComposerLang('actions.open');
-      const moveUpLabel = tComposerLang('actions.moveUp');
-      const moveDownLabel = tComposerLang('actions.moveDown');
-      const removeLabel = tComposerLang('actions.remove');
-      langs.forEach(lang => {
-        const block = document.createElement('div');
-        block.className = 'ci-lang';
-        block.dataset.lang = lang;
-        const flag = langFlag(lang);
-        const langLabel = displayLangName(lang);
-        const safeLabel = escapeHtml(langLabel || '');
-        const flagSpan = flag ? `<span class="ci-lang-flag" aria-hidden="true">${escapeHtml(flag)}</span>` : '';
-        const val = entry[lang];
-        // Normalize to array for UI
-        const arr = normalizeIndexVariantList(val);
-        block.innerHTML = `
-          <div class="ci-lang-head">
-            <strong class="ci-lang-label" aria-label="${safeLabel}" title="${safeLabel}">
-              ${flagSpan}
-              <span class="ci-lang-code">${escapeHtml(lang.toUpperCase())}</span>
-            </strong>
-            <span class="ci-lang-actions">
-              <button type="button" class="btn-secondary ci-lang-addver">${escapeHtml(addVersionLabel)}</button>
-              <button type="button" class="btn-secondary ci-lang-del">${escapeHtml(removeLangLabel)}</button>
-            </span>
-          </div>
-          <div class="ci-ver-list"></div>
-          <div class="ci-ver-removed" data-role="removed" hidden></div>
-        `;
-        const verList = $('.ci-ver-list', block);
-        const removedBox = block.querySelector('[data-role="removed"]');
-        // Stable IDs for FLIP animations across re-renders
-        let verIds = arr.map(() => Math.random().toString(36).slice(2));
-
-        const snapRects = () => {
-          const map = new Map();
-          verList.querySelectorAll('.ci-ver-item').forEach(el => {
-            const id = el.getAttribute('data-id');
-            if (!id) return;
-            map.set(id, el.getBoundingClientRect());
-          });
-          return map;
-        };
-
-        const animateFrom = (prev) => {
-          if (!prev) return;
-          verList.querySelectorAll('.ci-ver-item').forEach(el => {
-            const id = el.getAttribute('data-id');
-            const r0 = id && prev.get(id);
-            if (!r0) return;
-            const r1 = el.getBoundingClientRect();
-            const dx = r0.left - r1.left;
-            const dy = r0.top - r1.top;
-            if (dx || dy) {
-              try {
-                el.animate([
-                  { transform: `translate(${dx}px, ${dy}px)` },
-                  { transform: 'translate(0, 0)' }
-                ], { duration: 360, easing: 'ease', composite: 'replace' });
-              } catch (_) {
-                el.style.transition = 'none';
-                el.style.transform = `translate(${dx}px, ${dy}px)`;
-                requestAnimationFrame(() => {
-                  el.style.transition = 'transform 360ms ease';
-                  el.style.transform = '';
-                  const clear = () => { el.style.transition = ''; el.removeEventListener('transitionend', clear); };
-                  el.addEventListener('transitionend', clear);
-                });
-              }
-            }
-          });
-        };
-
-        const renderVers = (prevRects = null) => {
-          verList.innerHTML = '';
-          arr.forEach((p, i) => {
-            const id = verIds[i] || (verIds[i] = Math.random().toString(36).slice(2));
-            const row = document.createElement('div');
-            row.className = 'ci-ver-item';
-            row.setAttribute('data-id', id);
-            row.dataset.lang = lang;
-            row.dataset.index = String(i);
-            const normalizedPath = getIndexVariantLocation(p);
-            row.dataset.value = normalizedPath || '';
-            if (normalizedPath) row.dataset.mdPath = normalizedPath;
-            else delete row.dataset.mdPath;
-            row.innerHTML = `
-              <span class="ci-draft-indicator" aria-hidden="true" hidden></span>
-              <span class="ci-ver-label">${escapeHtml(extractVersionFromPath(normalizedPath) || `${treeText('version', 'Version')} ${i + 1}`)}</span>
-              <span class="ci-ver-actions">
-                <button type="button" class="btn-secondary ci-edit" title="${escapeHtml(openLabel)}">${escapeHtml(editLabel)}</button>
-                <button type="button" class="btn-secondary ci-up" title="${escapeHtml(moveUpLabel)}" aria-label="${escapeHtml(moveUpLabel)}"><span aria-hidden="true">↑</span></button>
-                <button type="button" class="btn-secondary ci-down" title="${escapeHtml(moveDownLabel)}" aria-label="${escapeHtml(moveDownLabel)}"><span aria-hidden="true">↓</span></button>
-                <button type="button" class="btn-secondary ci-remove" title="${escapeHtml(removeLabel)}" aria-label="${escapeHtml(removeLabel)}"><span aria-hidden="true">✕</span></button>
-              </span>
-            `;
-            const up = $('.ci-up', row);
-            const down = $('.ci-down', row);
-            // Disable ↑ for first, ↓ for last
-            if (i === 0) up.setAttribute('disabled', ''); else up.removeAttribute('disabled');
-            if (i === arr.length - 1) down.setAttribute('disabled', ''); else down.removeAttribute('disabled');
-            updateComposerMarkdownDraftIndicators({ element: row, path: normalizedPath });
-            $('.ci-edit', row).addEventListener('click', () => {
-              const rel = getIndexVariantLocation(arr[i]);
-              if (!rel) {
-                alert(tComposer('markdown.openBeforeEditor'));
-                return;
-              }
-              openMarkdownInEditor(rel);
-            });
-            up.addEventListener('click', () => {
-              if (i <= 0) return;
-              const prev = snapRects();
-              [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
-              [verIds[i - 1], verIds[i]] = [verIds[i], verIds[i - 1]];
-              entry[lang] = arr.slice();
-              renderVers(prev);
-              markDirty();
-            });
-            down.addEventListener('click', () => {
-              if (i >= arr.length - 1) return;
-              const prev = snapRects();
-              [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]];
-              [verIds[i + 1], verIds[i]] = [verIds[i], verIds[i + 1]];
-              entry[lang] = arr.slice();
-              renderVers(prev);
-              markDirty();
-            });
-            $('.ci-remove', row).addEventListener('click', () => {
-              const prev = snapRects();
-              arr.splice(i, 1);
-              verIds.splice(i, 1);
-              entry[lang] = arr.slice();
-              renderVers(prev);
-              markDirty();
-            });
-            verList.appendChild(row);
-          });
-          animateFrom(prevRects);
-          updateComposerMarkdownDraftContainerState(verList.closest('.ci-item'));
-        };
-        renderVers();
-        $('.ci-lang-addver', block).addEventListener('click', async (event) => {
-          const version = await promptArticleVersionValue(key, lang, entry, event.currentTarget);
-          if (!version) return;
-          const prev = snapRects();
-          arr.push(buildArticleVersionPath(key, lang, version, entry));
-          verIds.push(Math.random().toString(36).slice(2));
-          entry[lang] = arr.slice();
-          renderVers(prev);
-          markDirty();
-        });
-        $('.ci-lang-del', block).addEventListener('click', () => {
-          delete entry[lang];
-          const meta = row.querySelector('.ci-meta');
-          if (meta) meta.textContent = tComposerLang('count', { count: Object.keys(entry).length });
-          renderBody();
-          broadcastLanguagePoolChange();
-          markDirty();
-        });
-        bodyInner.appendChild(block);
-      });
-
-      // Add-language via custom dropdown showing only missing languages
-      const supportedLangs = PREFERRED_LANG_ORDER.slice();
-      const available = supportedLangs.filter(l => !entry[l]);
-      if (available.length > 0) {
-        const addLangLabel = tComposerLang('addLanguage');
-        const addLangWrap = document.createElement('span');
-        addLangWrap.className = 'ci-add-lang has-menu';
-        addLangWrap.innerHTML = `
-          <button type="button" class="btn-secondary ci-add-lang-btn" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(addLangLabel)}</button>
-          <div class="ci-lang-menu press-menu" role="listbox" hidden>
-            ${available.map(l => `<button type="button" role="option" class="press-menu-item" data-lang="${l}">${escapeHtml(displayLangName(l))}</button>`).join('')}
-          </div>
-        `;
-        const btn = $('.ci-add-lang-btn', addLangWrap);
-        const menu = $('.ci-lang-menu', addLangWrap);
-        if (btn) {
-          btn.setAttribute('title', addLangLabel);
-          btn.setAttribute('aria-label', addLangLabel);
-        }
-        function closeMenu(){
-          if (menu.hidden) return;
-          // animate out, then hide
-          const finish = () => {
-            menu.hidden = true;
-            btn.classList.remove('is-open');
-            addLangWrap.classList.remove('is-open');
-            btn.setAttribute('aria-expanded','false');
-            document.removeEventListener('mousedown', onDocDown, true);
-            document.removeEventListener('keydown', onKeyDown, true);
-            menu.classList.remove('is-closing');
-          };
-          try {
-            menu.classList.add('is-closing');
-            const onEnd = () => { menu.removeEventListener('animationend', onEnd); finish(); };
-            menu.addEventListener('animationend', onEnd, { once: true });
-            // safety timeout
-            setTimeout(finish, 180);
-          } catch(_) { finish(); }
-        }
-        function openMenu(){
-          if (!menu.hidden) return;
-          menu.hidden = false;
-          try { menu.classList.remove('is-closing'); } catch(_){}
-          btn.classList.add('is-open');
-          addLangWrap.classList.add('is-open');
-          btn.setAttribute('aria-expanded','true');
-          try { menu.querySelector('.press-menu-item')?.focus(); } catch(_){}
-          document.addEventListener('mousedown', onDocDown, true);
-          document.addEventListener('keydown', onKeyDown, true);
-        }
-        function onDocDown(e){ if (!addLangWrap.contains(e.target)) closeMenu(); }
-        function onKeyDown(e){ if (e.key === 'Escape') { e.preventDefault(); closeMenu(); } }
-        btn.addEventListener('click', () => { btn.classList.contains('is-open') ? closeMenu() : openMenu(); });
-        menu.querySelectorAll('.press-menu-item').forEach(it => {
-          it.addEventListener('click', () => {
-            const code = String(it.getAttribute('data-lang')||'').trim();
-            if (!code || entry[code]) return;
-            const defaultPath = buildDefaultLanguagePathFromEntry('index', key, code, entry);
-            entry[code] = defaultPath ? [defaultPath] : [''];
-            const meta = row.querySelector('.ci-meta');
-            if (meta) meta.textContent = tComposerLang('count', { count: Object.keys(entry).length });
-            closeMenu();
-            renderBody();
-            broadcastLanguagePoolChange();
-            markDirty();
-          });
-        });
-        (headAddLangSlot || bodyInner).appendChild(addLangWrap);
-      }
-      updateComposerDraftContainerState(row);
-    };
-    renderBody();
-
-    btnExpand.addEventListener('click', () => {
-      const isOpen = body.dataset.open === '1';
-      const next = !isOpen;
-      row.classList.toggle('is-open', next);
-      btnExpand.setAttribute('aria-expanded', String(next));
-      slideToggle(body, next);
-      scheduleComposerOrderPreviewRelayout('index');
-    });
-    btnDel.addEventListener('click', () => {
-      const i = state.index.__order.indexOf(key);
-      if (i >= 0) state.index.__order.splice(i, 1);
-      delete state.index[key];
-      row.remove();
-      markDirty();
-    });
-  });
-
-  makeDragList(list, (newOrder) => {
-    state.index.__order = newOrder;
-    markDirty();
-  });
-
-  try {
-    if (getComposerOrderPreviewActiveKind() === 'index') updateComposerOrderPreview('index');
-  } catch (_) {}
-}
-
-function buildTabsUI(root, state) {
-  root.innerHTML = '';
-  const list = document.createElement('div');
-  list.id = 'ctList';
-  root.appendChild(list);
-
-  const markDirty = () => { try { notifyComposerChange('tabs'); } catch (_) {}; };
-
-  const order = state.tabs.__order;
-  order.forEach(tab => {
-    const entry = state.tabs[tab] || {};
-    const row = document.createElement('div');
-    row.className = 'ct-item';
-    row.setAttribute('data-key', tab);
-    row.setAttribute('draggable', 'true');
-    const langCount = Object.keys(entry).length;
-    const langCountText = tComposerLang('count', { count: langCount });
-    const detailsLabel = tComposerEntryRow('details');
-    const deleteLabel = tComposerEntryRow('delete');
-    const gripHint = tComposerEntryRow('gripHint');
-    row.innerHTML = `
-      <div class="ct-head">
-        <span class="ct-grip" title="${escapeHtml(gripHint)}" aria-hidden="true">⋮⋮</span>
-        <strong class="ct-key">${escapeHtml(tab)}</strong>
-        <span class="ct-meta">${escapeHtml(langCountText)}</span>
-        <span class="ct-diff" aria-live="polite"></span>
-        <span class="ct-actions">
-          <button class="btn-secondary ct-expand" aria-expanded="false"><span class="caret" aria-hidden="true"></span>${escapeHtml(detailsLabel)}</button>
-          <button class="btn-secondary ct-del">${escapeHtml(deleteLabel)}</button>
-        </span>
-      </div>
-      <div class="ct-body"><div class="ct-body-inner"></div></div>
-    `;
-    list.appendChild(row);
-
-    const body = $('.ct-body', row);
-    const bodyInner = $('.ct-body-inner', row);
-    const btnExpand = $('.ct-expand', row);
-    const btnDel = $('.ct-del', row);
-    if (btnExpand) btnExpand.setAttribute('title', detailsLabel);
-    if (btnDel) {
-      btnDel.setAttribute('title', deleteLabel);
-      btnDel.setAttribute('aria-label', deleteLabel);
-    }
-
-    body.dataset.open = '0';
-    body.style.display = 'none';
-
-    const renderBody = () => {
-      bodyInner.innerHTML = '';
-      const langs = sortLangKeys(entry);
-      const editLabel = tComposerLang('actions.edit');
-      const openLabel = tComposerLang('actions.open');
-      const removeLangLabel = tComposerLang('removeLanguage');
-      const addLangLabel = tComposerLang('addLanguage');
-      langs.forEach(lang => {
-        const v = entry[lang] || { title: '', location: '' };
-        const flag = langFlag(lang);
-        const langLabel = displayLangName(lang);
-        const safeLabel = escapeHtml(langLabel || '');
-        const flagSpan = flag ? `<span class="ct-lang-flag" aria-hidden="true">${escapeHtml(flag)}</span>` : '';
-        const block = document.createElement('div');
-        block.className = 'ct-lang';
-        block.dataset.lang = lang;
-        const initialPath = normalizeRelPath(v.location);
-        if (initialPath) block.dataset.mdPath = initialPath;
-        else delete block.dataset.mdPath;
-        block.innerHTML = `
-          <div class="ct-lang-label" aria-label="${safeLabel}" title="${safeLabel}">
-            <span class="ct-draft-indicator" aria-hidden="true" hidden></span>
-            ${flagSpan}
-            <span class="ct-lang-code" aria-hidden="true">${escapeHtml(lang.toUpperCase())}</span>
-          </div>
-          <div class="ct-lang-main">
-            <div class="ct-field ct-field-location"><span class="ct-field-label">${escapeHtml(v.location || '')}</span></div>
-            <div class="ct-lang-actions">
-              <button type="button" class="btn-secondary ct-edit" title="${escapeHtml(openLabel)}">${escapeHtml(editLabel)}</button>
-              <button type="button" class="btn-secondary ct-lang-del">${escapeHtml(removeLangLabel)}</button>
-            </div>
-          </div>
-        `;
-        const langRemoveBtn = $('.ct-lang-del', block);
-        if (langRemoveBtn) {
-          langRemoveBtn.setAttribute('title', removeLangLabel);
-          langRemoveBtn.setAttribute('aria-label', removeLangLabel);
-        }
-        updateComposerMarkdownDraftIndicators({ element: block, path: initialPath });
-        $('.ct-edit', block).addEventListener('click', () => {
-          const rel = normalizeRelPath(v.location);
-          if (!rel) {
-            alert(tComposer('markdown.openBeforeEditor'));
-            return;
-          }
-          openMarkdownInEditor(rel, {
-            source: 'tabs',
-            key,
-            lang,
-            editorTreeNodeId: `tabs:${key}:${lang}`
-          });
-        });
-        $('.ct-lang-del', block).addEventListener('click', () => {
-          delete entry[lang];
-          const meta = row.querySelector('.ct-meta');
-          if (meta) meta.textContent = tComposerLang('count', { count: Object.keys(entry).length });
-          renderBody();
-          broadcastLanguagePoolChange();
-          markDirty();
-        });
-        bodyInner.appendChild(block);
-      });
-
-      // Add-language via custom dropdown showing only missing languages
-      const supportedLangs = PREFERRED_LANG_ORDER.slice();
-      const available = supportedLangs.filter(l => !entry[l]);
-      if (available.length > 0) {
-        const addLangWrap = document.createElement('div');
-        addLangWrap.className = 'ct-add-lang has-menu';
-        addLangWrap.innerHTML = `
-          <button type="button" class="btn-secondary ct-add-lang-btn" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(addLangLabel)}</button>
-          <div class="ct-lang-menu press-menu" role="listbox" hidden>
-            ${available.map(l => `<button type="button" role="option" class="press-menu-item" data-lang="${escapeHtml(l)}">${escapeHtml(displayLangName(l))}</button>`).join('')}
-          </div>
-        `;
-        const btn = $('.ct-add-lang-btn', addLangWrap);
-        const menu = $('.ct-lang-menu', addLangWrap);
-        if (btn) {
-          btn.setAttribute('title', addLangLabel);
-          btn.setAttribute('aria-label', addLangLabel);
-        }
-        function closeMenu(){
-          if (menu.hidden) return;
-          const finish = () => {
-            menu.hidden = true;
-            btn.classList.remove('is-open');
-            addLangWrap.classList.remove('is-open');
-            btn.setAttribute('aria-expanded','false');
-            document.removeEventListener('mousedown', onDocDown, true);
-            document.removeEventListener('keydown', onKeyDown, true);
-            menu.classList.remove('is-closing');
-          };
-          try {
-            menu.classList.add('is-closing');
-            const onEnd = () => { menu.removeEventListener('animationend', onEnd); finish(); };
-            menu.addEventListener('animationend', onEnd, { once: true });
-            setTimeout(finish, 180);
-          } catch(_) { finish(); }
-        }
-        function openMenu(){
-          if (!menu.hidden) return;
-          menu.hidden = false;
-          try { menu.classList.remove('is-closing'); } catch(_){}
-          btn.classList.add('is-open');
-          addLangWrap.classList.add('is-open');
-          btn.setAttribute('aria-expanded','true');
-          try { menu.querySelector('.press-menu-item')?.focus(); } catch(_){}
-          document.addEventListener('mousedown', onDocDown, true);
-          document.addEventListener('keydown', onKeyDown, true);
-        }
-        function onDocDown(e){ if (!addLangWrap.contains(e.target)) closeMenu(); }
-        function onKeyDown(e){ if (e.key === 'Escape') { e.preventDefault(); closeMenu(); } }
-        btn.addEventListener('click', () => { btn.classList.contains('is-open') ? closeMenu() : openMenu(); });
-        menu.querySelectorAll('.press-menu-item').forEach(it => {
-          it.addEventListener('click', () => {
-            const code = String(it.getAttribute('data-lang')||'').trim();
-            if (!code || entry[code]) return;
-            const defaultLocation = buildDefaultLanguagePathFromEntry('tabs', tab, code, entry);
-            entry[code] = {
-              title: String(tab || ''),
-              location: defaultLocation || ''
-            };
-            const meta = row.querySelector('.ct-meta');
-            if (meta) meta.textContent = tComposerLang('count', { count: Object.keys(entry).length });
-            closeMenu();
-            renderBody();
-            broadcastLanguagePoolChange();
-            markDirty();
-          });
-        });
-        bodyInner.appendChild(addLangWrap);
-      }
-      updateComposerDraftContainerState(row);
-    };
-    renderBody();
-
-    btnExpand.addEventListener('click', () => {
-      const isOpen = body.dataset.open === '1';
-      const next = !isOpen;
-      row.classList.toggle('is-open', next);
-      btnExpand.setAttribute('aria-expanded', String(next));
-      slideToggle(body, next);
-      scheduleComposerOrderPreviewRelayout('tabs');
-    });
-    btnDel.addEventListener('click', () => {
-      const i = state.tabs.__order.indexOf(tab);
-      if (i >= 0) state.tabs.__order.splice(i, 1);
-      delete state.tabs[tab];
-      row.remove();
-      markDirty();
-    });
-  });
-
-  makeDragList(list, (newOrder) => {
-    state.tabs.__order = newOrder;
-    markDirty();
-  });
-
-  try {
-    if (getComposerOrderPreviewActiveKind() === 'tabs') updateComposerOrderPreview('tabs');
-  } catch (_) {}
 }
 
 function getDefaultComposerLanguage() {
@@ -9661,8 +8971,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   bindComposerUI(state);
-  buildIndexUI($('#composerIndex'), state);
-  buildTabsUI($('#composerTabs'), state);
+  composerIndexTabsUi.buildIndexUI($('#composerIndex'), state);
+  composerIndexTabsUi.buildTabsUI($('#composerTabs'), state);
   buildSiteUI($('#composerSite'), state);
 
   notifyComposerChange('index', { skipAutoSave: true });

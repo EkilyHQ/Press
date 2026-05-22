@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.47",
-  "tag": "v3.4.47",
-  "version": "3.4.47",
-  "publishedAt": "2026-05-22T19:07:02Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.47.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.47.zip`\n- SHA-256: `2ea8fd38249af545f00504c981a692d3e582a992c6bc97ab7b2a01ace9e73f84`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-editor-shell.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-markdown-assets.js\n- assets/js/composer-markdown-drafts.js\n- assets/js/composer-markdown-state.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-runtime-styles.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.46...v3.4.47\n",
+  "name": "v3.4.48",
+  "tag": "v3.4.48",
+  "version": "3.4.48",
+  "publishedAt": "2026-05-22T19:24:39Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.48.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.48.zip`\n- SHA-256: `91e67d32505269e4b754b6a5bf45cf9762c18a48e12df5c1a0c6e5b3f5424111`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-editor-shell.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-markdown-assets.js\n- assets/js/composer-markdown-drafts.js\n- assets/js/composer-markdown-state.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer-system-theme-bridge.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.47...v3.4.48\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.46 <3.4.47"
+      ">=3.4.47 <3.4.48"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.46 first."
+    "message": "Update to v3.4.47 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.47",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.48",
   "asset": {
-    "name": "press-system-v3.4.47.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.47/press-system-v3.4.47.zip",
-    "size": 1645763,
-    "digest": "sha256:2ea8fd38249af545f00504c981a692d3e582a992c6bc97ab7b2a01ace9e73f84"
+    "name": "press-system-v3.4.48.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.48/press-system-v3.4.48.zip",
+    "size": 1646604,
+    "digest": "sha256:91e67d32505269e4b754b6a5bf45cf9762c18a48e12df5c1a0c6e5b3f5424111"
   }
 }

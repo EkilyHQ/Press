@@ -23,6 +23,7 @@ const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
+const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -62,6 +63,7 @@ const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
+const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -369,6 +371,24 @@ assert.match(
   composerEditorShellSource,
   /export function createComposerEditorShell\(options = \{\}\)[\s\S]*let editorContentScrollByKey = \{\};[\s\S]*function bindEditorStatePersistenceListeners\(\)[\s\S]*function mountEditorSystemPanels\(\)[\s\S]*function initEditorRailResize\(\)[\s\S]*function initMobileEditorRail\(\)/,
   'editor shell boundary should own system panel mounting, scroll persistence, rail resize, and mobile rail state'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-path-tools\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted path tools boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function normalizeRelPath|function buildDefaultEntryPath|function buildDefaultLanguagePathFromEntry|function buildArticleVersionPath|function getDefaultMarkdownForPath/,
+  'composer path normalization, default path, and markdown template rules should stay outside the main composer shell'
+);
+
+assert.match(
+  composerPathToolsSource,
+  /export function createComposerPathTools\(options = \{\}\)[\s\S]*function normalizeRelPath\(path\)[\s\S]*function buildDefaultLanguagePathFromEntry\(kind, key, lang, entry\)[\s\S]*function buildArticleVersionPath\(key, lang, version, entry\)[\s\S]*function getDefaultMarkdownForPath\(relPath\)/,
+  'composer path tools boundary should own path normalization, article version paths, and default markdown templates'
 );
 
 assert.match(
@@ -3960,7 +3980,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerPathToolsSource,
   /function buildDefaultEntryPath\(kind, key, lang\) \{[\s\S]*const baseFolder = normalizedKind === 'tabs' \? 'tab' : 'post';[\s\S]*normalizedKind === 'tabs'[\s\S]*`\$\{baseFolder\}\/\$\{safeKey\}\/v1\.0\.0`[\s\S]*`\$\{baseFolder\}\/v1\.0\.0`[\s\S]*return `\$\{folder\}\/\$\{filename\}`;/,
   'new article defaults should place the first markdown file inside a v1.0.0 directory'
 );
@@ -3972,25 +3992,31 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function normalizeComposerVersionPaths\(value\) \{[\s\S]*Array\.isArray\(value\)[\s\S]*getIndexVariantLocation\(item\)[\s\S]*const normalized = getIndexVariantLocation\(value\);[\s\S]*return normalized \? \[normalized\] : \[\];[\s\S]*function collectComposerArticleVersions\(paths\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(paths\);[\s\S]*async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);/,
+  composerPathToolsSource,
+  /function normalizeComposerVersionPaths\(value\) \{[\s\S]*Array\.isArray\(value\)[\s\S]*getIndexVariantLocation\(item\)[\s\S]*const normalized = getIndexVariantLocation\(value\);[\s\S]*return normalized \? \[normalized\] : \[\];[\s\S]*function collectComposerArticleVersions\(paths\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(paths\);/,
   'legacy scalar and rich article language paths should be normalized before version dedupe runs'
 );
 
 assert.match(
   source,
+  /async function promptArticleVersionValue\(key, lang, entry, anchor\) \{[\s\S]*const arr = normalizeComposerVersionPaths\(entry && entry\[lang\]\);[\s\S]*const existingVersions = collectComposerArticleVersions\(arr\);/,
+  'article version prompt should use normalized version paths from the extracted path tools'
+);
+
+assert.match(
+  composerPathToolsSource,
   /function findExplicitArticleVersionSegmentIndex\(segments\) \{[\s\S]*if \(parts\.length < 3\) return -1;[\s\S]*parts\[0\][\s\S]*!== 'post'[\s\S]*const candidateIndex = parts\.length - 1;[\s\S]*if \(!isComposerVersionSegment\(parts\[candidateIndex\]\)\) return -1;[\s\S]*return candidateIndex;[\s\S]*function buildDefaultLanguagePathFromEntry\(kind, key, lang, entry\) \{[\s\S]*const versionIndex = findExplicitArticleVersionSegmentIndex\(segments\);[\s\S]*segments\[versionIndex\] = 'v1\.0\.0'[\s\S]*else segments\.push\('v1\.0\.0'\);/,
   'adding a new article language should rewrite only an explicit post/<key>/<version>/<file> version folder'
 );
 
 assert.match(
-  source,
+  composerPathToolsSource,
   /function buildArticleVersionPath\(key, lang, version, entry\) \{[\s\S]*const versionIndex = findExplicitArticleVersionSegmentIndex\(segments\);[\s\S]*segments\[versionIndex\] = normalizedVersion[\s\S]*else segments\.push\(normalizedVersion\);/,
   'adding a version should replace only an explicit post/<key>/<version>/<file> version folder'
 );
 
 assert.match(
-  source,
+  composerPathToolsSource,
   /function extractVersionFromPath\(relPath\) \{[\s\S]*const segments = normalized\.split\('\/'\);[\s\S]*segments\.pop\(\);[\s\S]*const versionIndex = findExplicitArticleVersionSegmentIndex\(segments\);[\s\S]*return versionIndex >= 0 \? String\(segments\[versionIndex\] \|\| ''\) : '';/,
   'article version extraction should ignore legacy root-style keys that only look like versions'
 );

@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.30';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.30';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.30';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.30';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.31';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.31';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.31';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.31';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.30';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.30';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.30';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.30';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.30';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.30';
+} from './encrypted-content.js?v=press-system-v3.4.31';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.31';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.31';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.31';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.31';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.31';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.30';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.31';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,33 +43,34 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.30';
+} from './composer-site-model.js?v=press-system-v3.4.31';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.30';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.30';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.30';
+} from './editor-storage.js?v=press-system-v3.4.31';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.31';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.31';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.30';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.30';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.30';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.30';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.30';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.30';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.30';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.30';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.30';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.30';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.30';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.30';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.30';
+} from './composer-sync-panel.js?v=press-system-v3.4.31';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.31';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.31';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.31';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.31';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.31';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.31';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.31';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.31';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.31';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.31';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.31';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.31';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.31';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.30';
+} from './publish/settings-store.js?v=press-system-v3.4.31';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -78,6 +79,32 @@ const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const PREFERRED_LANG_ORDER = ['en', 'chs', 'cht-tw', 'cht-hk', 'ja'];
 const LANG_CODE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]+)*$/i;
 const LANGUAGE_POOL_CHANGED_EVENT = 'press-composer-language-pool-changed';
+const composerPathTools = createComposerPathTools({
+  windowRef: window,
+  preferredLangOrder: PREFERRED_LANG_ORDER,
+  getIndexVariantLocation,
+  isIndexMetadataObject,
+  getIndexEntry
+});
+const {
+  normalizeRelPath,
+  basenameFromPath,
+  dirnameFromPath,
+  extractVersionFromPath,
+  getContentRootSafe,
+  computeBaseDirForPath,
+  encodeGitHubPath,
+  getDefaultComposerLanguage,
+  buildDefaultEntryPath,
+  normalizeComposerVersionTag,
+  normalizeComposerVersionPaths,
+  isComposerVersionTag,
+  buildDefaultLanguagePathFromEntry,
+  buildArticleVersionPath,
+  collectComposerArticleVersions,
+  makeDefaultMdTemplate,
+  getDefaultMarkdownForPath
+} = composerPathTools;
 
 function broadcastLanguagePoolChange() {
   if (typeof document === 'undefined' || typeof document.dispatchEvent !== 'function') return;
@@ -4487,101 +4514,12 @@ function ensurePrimaryEditorTabsMetadataListener() {
   });
 }
 
-function normalizeRelPath(path) {
-  const raw = String(path || '').trim();
-  if (!raw) return '';
-  const cleaned = raw
-    .replace(/[\\]/g, '/')
-    .replace(/^\//, '')
-    .replace(/^\.\//, '')
-    .replace(/\/+/g, '/');
-  const parts = cleaned.split('/');
-  const stack = [];
-  for (const part of parts) {
-    if (!part || part === '.') continue;
-    if (part === '..') {
-      if (stack.length) stack.pop();
-      continue;
-    }
-    stack.push(part);
-  }
-  return stack.join('/');
-}
-
-function basenameFromPath(relPath) {
-  const norm = normalizeRelPath(relPath);
-  if (!norm) return '';
-  const idx = norm.lastIndexOf('/');
-  return idx >= 0 ? norm.slice(idx + 1) : norm;
-}
-
-function dirnameFromPath(relPath) {
-  const norm = normalizeRelPath(relPath);
-  if (!norm) return '';
-  const idx = norm.lastIndexOf('/');
-  if (idx <= 0) return '';
-  return norm.slice(0, idx);
-}
-
-function findExplicitArticleVersionSegmentIndex(segments) {
-  const parts = Array.isArray(segments) ? segments : [];
-  if (parts.length < 3) return -1;
-  if (String(parts[0] || '').trim().toLowerCase() !== 'post') return -1;
-  const candidateIndex = parts.length - 1;
-  if (candidateIndex < 2) return -1;
-  if (!isComposerVersionSegment(parts[candidateIndex])) return -1;
-  return candidateIndex;
-}
-
-function extractVersionFromPath(relPath) {
-  try {
-    const normalized = normalizeRelPath(relPath);
-    if (!normalized) return '';
-    const segments = normalized.split('/');
-    if (segments.length <= 1) return '';
-    segments.pop();
-    const versionIndex = findExplicitArticleVersionSegmentIndex(segments);
-    return versionIndex >= 0 ? String(segments[versionIndex] || '') : '';
-  } catch (_) {
-    return '';
-  }
-}
-
-function getContentRootSafe() {
-  try {
-    const root = window.__press_content_root;
-    if (root && typeof root === 'string' && root.trim()) {
-      return root.trim().replace(/[\\]/g, '/').replace(/\/?$/, '');
-    }
-  } catch (_) {}
-  return 'wwwroot';
-}
-
 function getTrackedPublishContentRoot() {
   const site = getStateSlice('site') || {};
   const root = safeString(site.contentRoot || 'wwwroot')
     .replace(/[\\]/g, '/')
     .replace(/\/+$/g, '');
   return root || 'wwwroot';
-}
-
-function computeBaseDirForPath(relPath) {
-  const root = getContentRootSafe();
-  const rel = normalizeRelPath(relPath);
-  const idx = rel.lastIndexOf('/');
-  const dir = idx >= 0 ? rel.slice(0, idx + 1) : '';
-  const base = `${root}/${dir}`.replace(/[\\]/g, '/');
-  return base.endsWith('/') ? base : `${base}/`;
-}
-
-function encodeGitHubPath(path) {
-  const clean = String(path || '')
-    .replace(/[\\]/g, '/')
-    .replace(/^\/+/g, '')
-    .replace(/\/+/g, '/')
-    .replace(/\/?$/, '');
-  if (!clean) return '';
-  return clean.split('/').map(part => encodeURIComponent(part)).join('/');
 }
 
 function isDynamicMode(mode) {
@@ -5714,43 +5652,6 @@ function openMarkdownInEditor(path, options = {}) {
   }
   applyMode(modeId);
   try { selectEditorTreeNodeByPath(path); } catch (_) {}
-}
-
-// Default Markdown template for new post files (index.yaml related flows)
-function makeDefaultMdTemplate(opts) {
-  const options = opts && typeof opts === 'object' ? opts : {};
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; // local date
-  const lines = [
-    '---',
-    'title: ',
-    `date: ${dateStr}`,
-  ];
-  if (options.version) lines.push(`version: ${String(options.version)}`);
-  lines.push(
-    'tags: ',
-    'excerpt: ',
-    'author: ',
-    'ai: false',
-    'draft: true',
-    '---',
-    ''
-  );
-  return lines.join('\n');
-}
-
-function getDefaultMarkdownForPath(relPath) {
-  try {
-    const normalized = normalizeRelPath(relPath);
-    if (!normalized) return '';
-    const clean = normalized.replace(/^\/+/, '');
-    if (!clean.toLowerCase().startsWith('post/')) return '';
-    const version = extractVersionFromPath(clean);
-    return makeDefaultMdTemplate(version ? { version } : undefined);
-  } catch (_) {
-    return '';
-  }
 }
 
 function applyMode(mode, options = {}) {
@@ -7019,160 +6920,6 @@ function moveEditorVersionTo(key, lang, from, to) {
   activeEditorTreeNodeId = `index:${key}:${lang}`;
   refreshEditorContentTree();
   return true;
-}
-
-function getDefaultComposerLanguage() {
-  if (Array.isArray(PREFERRED_LANG_ORDER) && PREFERRED_LANG_ORDER.length > 0) {
-    return PREFERRED_LANG_ORDER[0];
-  }
-  return 'en';
-}
-
-function buildDefaultEntryPath(kind, key, lang) {
-  const normalizedKind = kind === 'tabs' ? 'tabs' : 'index';
-  const baseFolder = normalizedKind === 'tabs' ? 'tab' : 'post';
-  const safeKey = String(key || '').trim();
-  const fallbackLang = String(lang || '').trim() || getDefaultComposerLanguage() || 'en';
-  const normalizedLang = fallbackLang.toLowerCase();
-  const filename = normalizedLang ? `main_${normalizedLang}.md` : 'main.md';
-  const folder = normalizedKind === 'tabs'
-    ? (safeKey ? `${baseFolder}/${safeKey}` : baseFolder)
-    : (safeKey ? `${baseFolder}/${safeKey}/v1.0.0` : `${baseFolder}/v1.0.0`);
-  return `${folder}/${filename}`;
-}
-
-function normalizeComposerLangCode(lang) {
-  return String(lang || '').trim().toLowerCase();
-}
-
-function normalizeComposerVersionTag(version) {
-  const raw = String(version || '').trim();
-  if (!raw) return '';
-  return `v${raw.replace(/^v/i, '')}`;
-}
-
-function normalizeComposerVersionPaths(value) {
-  if (Array.isArray(value)) return value.map(item => getIndexVariantLocation(item)).filter(Boolean);
-  const normalized = getIndexVariantLocation(value);
-  return normalized ? [normalized] : [];
-}
-
-function isComposerVersionTag(version) {
-  return /^v\d+(?:\.\d+)*$/i.test(String(version || '').trim());
-}
-
-function isComposerVersionSegment(segment) {
-  return /^v\d+(?:\.\d+)*$/i.test(String(segment || '').trim());
-}
-
-function stripComposerLangSuffix(name, codes) {
-  let result = String(name || '');
-  if (!result) return result;
-  const seen = new Set();
-  (codes || []).forEach((code) => {
-    const normalized = normalizeComposerLangCode(code);
-    if (!normalized || seen.has(normalized)) return;
-    seen.add(normalized);
-    const suffix = `_${normalized}`;
-    if (result.toLowerCase().endsWith(suffix)) {
-      result = result.slice(0, result.length - suffix.length);
-    }
-  });
-  return result;
-}
-
-function pickComposerReferencePath(kind, entry, excludeLang) {
-  const normalizedKind = kind === 'tabs' ? 'tabs' : 'index';
-  const list = Array.isArray(PREFERRED_LANG_ORDER) ? PREFERRED_LANG_ORDER.slice() : [];
-  try {
-    Object.keys(entry || {}).forEach((code) => {
-      if (!list.includes(code)) list.push(code);
-    });
-  } catch (_) {}
-  for (let i = 0; i < list.length; i += 1) {
-    const code = list[i];
-    if (!code || code === excludeLang) continue;
-    const value = entry ? entry[code] : null;
-    if (!value) continue;
-    let path = '';
-    if (normalizedKind === 'tabs') {
-      if (value && typeof value === 'object' && typeof value.location === 'string') {
-        path = value.location;
-      }
-    } else if (Array.isArray(value)) {
-      path = value.map(item => getIndexVariantLocation(item)).find(Boolean) || '';
-    } else if (typeof value === 'string') {
-      path = value;
-    } else if (isIndexMetadataObject(value)) {
-      path = getIndexVariantLocation(value);
-    }
-    if (path) return { lang: code, path };
-  }
-  return null;
-}
-
-function buildDefaultLanguagePathFromEntry(kind, key, lang, entry) {
-  const normalizedKind = kind === 'tabs' ? 'tabs' : 'index';
-  const fallback = buildDefaultEntryPath(normalizedKind, key, lang);
-  const reference = pickComposerReferencePath(normalizedKind, entry, lang);
-  if (!reference || !reference.path) return fallback;
-
-  const normalizedLang = normalizeComposerLangCode(lang);
-  const segments = String(reference.path || '').split('/');
-  if (segments.length === 0) return fallback;
-  let filename = segments.pop() || '';
-  if (!filename) return fallback;
-
-  const dotIndex = filename.lastIndexOf('.');
-  let namePart = dotIndex >= 0 ? filename.slice(0, dotIndex) : filename;
-  const extPart = dotIndex >= 0 ? filename.slice(dotIndex) : '';
-
-  const codesToStrip = [];
-  codesToStrip.push(reference.lang);
-  if (Array.isArray(PREFERRED_LANG_ORDER)) codesToStrip.push(...PREFERRED_LANG_ORDER);
-  try { Object.keys(entry || {}).forEach((code) => { codesToStrip.push(code); }); } catch (_) {}
-  codesToStrip.push(lang);
-  namePart = stripComposerLangSuffix(namePart, codesToStrip);
-
-  const finalName = normalizedLang ? `${namePart}_${normalizedLang}` : namePart;
-  filename = `${finalName}${extPart}`;
-  if (normalizedKind === 'index') {
-    const versionIndex = findExplicitArticleVersionSegmentIndex(segments);
-    if (versionIndex >= 0) segments[versionIndex] = 'v1.0.0';
-    else segments.push('v1.0.0');
-  }
-  segments.push(filename);
-  return segments.join('/');
-}
-
-function buildArticleVersionPath(key, lang, version, entry) {
-  const normalizedVersion = normalizeComposerVersionTag(version);
-  const normalizedLang = normalizeComposerLangCode(lang);
-  const sourceEntry = entry && typeof entry === 'object' ? entry : getIndexEntry(key);
-  const current = normalizeComposerVersionPaths(sourceEntry[lang]);
-  const reference = current[current.length - 1] || buildDefaultLanguagePathFromEntry('index', key, normalizedLang, sourceEntry);
-  const fallback = buildDefaultEntryPath('index', key, normalizedLang).replace('/v1.0.0/', `/${normalizedVersion}/`);
-  const normalizedPath = normalizeRelPath(reference || fallback);
-  if (!normalizedPath) return fallback;
-  const segments = normalizedPath.split('/');
-  let filename = segments.pop() || '';
-  if (!filename) filename = normalizedLang ? `main_${normalizedLang}.md` : 'main.md';
-  const versionIndex = findExplicitArticleVersionSegmentIndex(segments);
-  if (versionIndex >= 0) segments[versionIndex] = normalizedVersion;
-  else segments.push(normalizedVersion);
-  segments.push(filename);
-  return segments.join('/');
-}
-
-function collectComposerArticleVersions(paths) {
-  const versions = new Set();
-  const arr = normalizeComposerVersionPaths(paths);
-  arr.forEach((path) => {
-    const explicitVersion = normalizeComposerVersionTag(extractVersionFromPath(path));
-    if (explicitVersion) versions.add(explicitVersion.toLowerCase());
-    else if (normalizeRelPath(path)) versions.add('v1.0.0');
-  });
-  return versions;
 }
 
 async function promptArticleVersionValue(key, lang, entry, anchor) {

@@ -18,6 +18,7 @@ const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-in
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
+const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -50,6 +51,7 @@ const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMeta
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
+const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -252,6 +254,24 @@ assert.match(
   composerDiffUiSource,
   /export function createComposerDiffUi\(options = \{\}\)[\s\S]*function buildEntryDiffBadges\(kind, info\)[\s\S]*function applySiteDiffMarkers\(diff\)[\s\S]*function refreshFileDirtyBadges\(\)[\s\S]*function computeOrderDiffDetails\(kind\)[\s\S]*function renderComposerInlineSummary\(target, diff, renderOptions = \{\}\)/,
   'diff UI boundary should own composer diff DOM markers, dirty badges, order stats, and inline summaries'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-order-diff-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted order diff UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function openComposerDiffModal|function ensureComposerDiffModal|function drawOrderDiffLines|function updateComposerOrderPreview|function applyComposerOrderHover|function bindComposerOrderHover|const ORDER_LINE_COLORS|let composerDiffModal|let composerOrderPreviewState/,
+  'order diff modal, hover state, line drawing, and order preview state should stay outside the main composer shell'
+);
+
+assert.match(
+  composerOrderDiffUiSource,
+  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function drawOrderDiffLines\(state\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
+  'order diff UI boundary should own composer review modal, order visual connectors, and order preview state'
 );
 
 assert.match(

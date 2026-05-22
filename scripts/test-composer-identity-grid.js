@@ -30,6 +30,7 @@ const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shel
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
 const composerContentMutationsPath = resolve(here, '../assets/js/composer-content-mutations.js');
 const composerSetupVerifierPath = resolve(here, '../assets/js/composer-setup-verifier.js');
+const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-controller.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -83,6 +84,7 @@ const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const composerContentMutationsSource = readFileSync(composerContentMutationsPath, 'utf8');
 const composerSetupVerifierSource = readFileSync(composerSetupVerifierPath, 'utf8');
+const composerModeControllerSource = readFileSync(composerModeControllerPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -457,6 +459,30 @@ assert.match(
   composerSetupVerifierSource,
   /export function createComposerSetupVerifier\(options = \{\}\)[\s\S]*async function computeMissingFiles\(preferredKind\)[\s\S]*function openVerifyModal\(missing, targetKind\)[\s\S]*async function afterAllGood\(targetKind\)[\s\S]*function bindVerifySetup\(\)/,
   'setup verifier should own missing-file checks, verify modal rendering, YAML drift handling, and binding'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-mode-controller\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted mode controller boundary'
+);
+
+assert.match(
+  source,
+  /function applyMode\(mode, options = \{\}\) \{\s*if \(!modeController\) return;\s*modeController\.applyMode\(mode, options\);\s*\}/,
+  'composer applyMode should delegate to the extracted mode controller'
+);
+
+assert.match(
+  composerModeControllerSource,
+  /export function createComposerModeController\(options = \{\}\)[\s\S]*function applyMode\(mode, optionsForMode = \{\}\)[\s\S]*getFirstDynamicModeId\(\)[\s\S]*setSystemDetailMode\(nextMode, optionsForMode\)[\s\S]*persistDynamicEditorState\(\)/,
+  'mode controller should own mode routing, system detail routing, and mode persistence'
+);
+
+assert.match(
+  composerModeControllerSource,
+  /function applyDynamicMode\(nextMode, optionsForMode, editorApi\)[\s\S]*activateDynamicMode\(nextMode\)[\s\S]*setEditorDetailPanelMode\('markdown'\)[\s\S]*loadDynamicTabContent\(tab\)/,
+  'mode controller should own dynamic Markdown activation, panel switching, and lazy content application'
 );
 
 assert.match(
@@ -952,8 +978,14 @@ assert.match(
 
 assert.match(
   source,
-  /function restorePrimaryEditorMarkdownView\(editorApi\) \{[\s\S]*typeof editorApi\.restorePersistedView === 'function'[\s\S]*editorApi\.restorePersistedView\(\);[\s\S]*editorApi\.setView\('edit'\);[\s\S]*restorePrimaryEditorMarkdownView\(editorApi\);/,
-  'composer should restore the persisted markdown editor view when opening markdown files'
+  /function restorePrimaryEditorMarkdownView\(editorApi\) \{[\s\S]*typeof editorApi\.restorePersistedView === 'function'[\s\S]*editorApi\.restorePersistedView\(\);[\s\S]*editorApi\.setView\('edit'\);/,
+  'composer should keep the persisted markdown editor view restore helper available for mode routing'
+);
+
+assert.match(
+  composerModeControllerSource,
+  /function applyDynamicMode\(nextMode, optionsForMode, editorApi\)[\s\S]*restorePrimaryEditorMarkdownView\(editorApi\);/,
+  'mode controller should restore the persisted markdown editor view when opening markdown files'
 );
 
 assert.match(
@@ -2956,7 +2988,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerModeControllerSource,
   /pushEditorCurrentFileInfo\(tab\);\s*animateEditorMarkdownPanelContent\(\);/,
   'opening a markdown file should restart the editor panel transition after current file info is pushed'
 );
@@ -3342,9 +3374,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function applyMode\(mode, options = \{\}\) \{[\s\S]*mode === 'editor' && getDynamicEditorTabs\(\)\.size && !options\.forceStructure/,
-  'editor structure selection should be able to bypass dynamic markdown document restoration'
+  composerModeControllerSource,
+  /function applyMode\(mode, optionsForMode = \{\}\) \{[\s\S]*mode === 'editor' && getDynamicEditorTabs\(\)\.size && !optionsForMode\.forceStructure/,
+  'editor structure selection should be able to bypass dynamic markdown document restoration through the mode controller'
 );
 
 assert.match(
@@ -3368,9 +3400,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const isSystemMode = \(value\) => value === 'composer' \|\| value === 'themes' \|\| value === 'updates' \|\| value === 'sync';[\s\S]*const nextMode = \(candidate === 'editor' \|\| isSystemMode\(candidate\) \|\| isDynamicMode\(candidate\)\)[\s\S]*setEditorDetailPanelMode\(nextMode\);/,
-  'opening Site Settings, Themes, Press Updates, or Sync should switch to the inline system detail panel'
+  composerModeControllerSource,
+  /export function isComposerSystemMode\(value\) \{[\s\S]*value === 'composer' \|\| value === 'themes' \|\| value === 'updates' \|\| value === 'sync'[\s\S]*function setSystemDetailMode\(nextMode, optionsForMode = \{\}\)[\s\S]*setEditorDetailPanelMode\(nextMode\);[\s\S]*function normalizeMode\(candidate\) \{[\s\S]*isComposerSystemMode\(candidate\)/,
+  'opening Site Settings, Themes, Press Updates, or Sync should switch to the inline system detail panel through the mode controller'
 );
 
 const refreshEditorContentTreeBody = source.slice(

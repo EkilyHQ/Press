@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.33';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.33';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.33';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.33';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.34';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.34';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.34';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.34';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.33';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.33';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.33';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.33';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.33';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.33';
+} from './encrypted-content.js?v=press-system-v3.4.34';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.34';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.34';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.34';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.34';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.34';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.33';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.34';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,36 +43,37 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.33';
+} from './composer-site-model.js?v=press-system-v3.4.34';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.33';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.33';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.33';
+} from './editor-storage.js?v=press-system-v3.4.34';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.34';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.34';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.33';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.33';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.33';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.33';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.33';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.33';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.33';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.33';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.33';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.33';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.33';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.33';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.33';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.33';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.33';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.33';
+} from './composer-sync-panel.js?v=press-system-v3.4.34';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.34';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.34';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.34';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.34';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.34';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.34';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.34';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.34';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.34';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.34';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.34';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.34';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.34';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.34';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.34';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.34';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.33';
+} from './publish/settings-store.js?v=press-system-v3.4.34';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -127,32 +128,6 @@ const tComposer = (suffix, params) => t(`editor.composer.${suffix}`, params);
 const tComposerDiff = (suffix, params) => t(`editor.composer.diff.${suffix}`, params);
 const tComposerLang = (suffix, params) => t(`editor.composer.languages.${suffix}`, params);
 const tComposerEntryRow = (suffix, params) => t(`editor.composer.entryRow.${suffix}`, params);
-const getMarkdownPushLabel = (kind) => {
-  const key = MARKDOWN_PUSH_LABEL_KEYS[kind] || MARKDOWN_PUSH_LABEL_KEYS.default;
-  return t(key);
-};
-const getMarkdownPushTooltip = (kind) => {
-  const key = MARKDOWN_PUSH_TOOLTIP_KEYS[kind] || MARKDOWN_PUSH_TOOLTIP_KEYS.default;
-  return t(key);
-};
-const getMarkdownDiscardLabel = () => t(MARKDOWN_DISCARD_LABEL_KEY);
-const getMarkdownDiscardBusyLabel = () => t(MARKDOWN_DISCARD_BUSY_KEY);
-const getMarkdownDiscardTooltip = (kind) => {
-  const key = MARKDOWN_DISCARD_TOOLTIP_KEYS[kind] || MARKDOWN_DISCARD_TOOLTIP_KEYS.default;
-  return t(key);
-};
-const getMarkdownSaveLabel = () => t(MARKDOWN_SAVE_LABEL_KEY);
-const getMarkdownSaveBusyLabel = () => t(MARKDOWN_SAVE_BUSY_KEY);
-const getMarkdownSaveTooltip = (kind) => {
-  const key = MARKDOWN_SAVE_TOOLTIP_KEYS[kind] || MARKDOWN_SAVE_TOOLTIP_KEYS.default;
-  return t(key);
-};
-const getMarkdownProtectionLabel = (tab) => isMarkdownTabProtected(tab)
-  ? t('editor.composer.markdown.protection.labelProtected')
-  : t('editor.composer.markdown.protection.labelUnprotected');
-const getMarkdownProtectionTooltip = (tab) => isMarkdownTabProtected(tab)
-  ? t('editor.composer.markdown.protection.tooltipProtected')
-  : t('editor.composer.markdown.protection.tooltipUnprotected');
 
 // --- Persisted UI state keys ---
 const LS_KEYS = {
@@ -366,6 +341,7 @@ const seoStagingProvider = createSeoStagingProvider({
   getIndexVariantLocation
 });
 let markdownLoader = null;
+let markdownActionsUi = null;
 const postCommitStateApplier = createPostCommitStateApplier({
   stagingRegistry,
   getStateSlice,
@@ -482,6 +458,17 @@ markdownLoader = createComposerMarkdownLoader({
   openProtectionTitle: () => t('editor.composer.markdown.protection.openTitle'),
   openProtectionMessage: () => t('editor.composer.markdown.protection.openMessage')
 });
+markdownActionsUi = createComposerMarkdownActionsUi({
+  documentRef: document,
+  translate: t,
+  getCurrentMode: () => currentMode,
+  getActiveDynamicTab,
+  getActiveSiteRepoConfig,
+  hasMarkdownDraftContent,
+  getManualMarkdownSaveState,
+  isMarkdownTabProtected,
+  setButtonLabel
+});
 const editorContentTreeController = createEditorContentTreeController({
   documentRef: document,
   expandedNodeIds: expandedEditorTreeNodeIds,
@@ -558,48 +545,10 @@ function updateDynamicTabsGroupState() {
   else container.setAttribute('aria-hidden', 'true');
 }
 
-const MARKDOWN_PUSH_LABEL_KEYS = {
-  default: 'editor.composer.markdown.push.labelDefault',
-  create: 'editor.composer.markdown.push.labelCreate',
-  update: 'editor.composer.markdown.push.labelUpdate'
-};
-
-const MARKDOWN_PUSH_TOOLTIP_KEYS = {
-  default: 'editor.composer.markdown.push.tooltips.default',
-  noRepo: 'editor.composer.markdown.push.tooltips.noRepo',
-  noFile: 'editor.composer.markdown.push.tooltips.noFile',
-  error: 'editor.composer.markdown.push.tooltips.error',
-  checking: 'editor.composer.markdown.push.tooltips.checking',
-  loading: 'editor.composer.markdown.push.tooltips.loading',
-  create: 'editor.composer.markdown.push.tooltips.create',
-  update: 'editor.composer.markdown.push.tooltips.update'
-};
-
-const MARKDOWN_DISCARD_LABEL_KEY = 'editor.composer.markdown.discard.label';
-const MARKDOWN_DISCARD_BUSY_KEY = 'editor.composer.markdown.discard.busy';
-
-const MARKDOWN_DISCARD_TOOLTIP_KEYS = {
-  default: 'editor.composer.markdown.discard.tooltips.default',
-  noFile: 'editor.composer.markdown.discard.tooltips.noFile',
-  reload: 'editor.composer.markdown.discard.tooltips.reload'
-};
-const MARKDOWN_SAVE_LABEL_KEY = 'editor.composer.markdown.save.label';
-const MARKDOWN_SAVE_BUSY_KEY = 'editor.composer.markdown.save.busy';
-
-const MARKDOWN_SAVE_TOOLTIP_KEYS = {
-  default: 'editor.composer.markdown.save.tooltips.default',
-  noFile: 'editor.composer.markdown.save.tooltips.noFile',
-  empty: 'editor.composer.markdown.save.tooltips.empty',
-  clean: 'editor.composer.markdown.save.tooltips.clean'
-};
 const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
   { value: 'General', label: 'General' }
 ];
 
-let markdownPushButton = null;
-let markdownDiscardButton = null;
-let markdownSaveButton = null;
-let markdownProtectionButton = null;
 let gitHubCommitInFlight = false;
 
 let activeComposerState = null;
@@ -4755,211 +4704,77 @@ function setTabLoadingState(tab, isLoading) {
   } catch (_) {}
 }
 
+function getMarkdownActionsUi() {
+  if (!markdownActionsUi) throw new Error('Markdown actions UI is not initialized');
+  return markdownActionsUi;
+}
+
+function getMarkdownPushButton() {
+  return getMarkdownActionsUi().getPushButton();
+}
+
+function getMarkdownDiscardButton() {
+  return getMarkdownActionsUi().getDiscardButton();
+}
+
+function getMarkdownSaveButton() {
+  return getMarkdownActionsUi().getSaveButton();
+}
+
+function setMarkdownPushButton(button) {
+  getMarkdownActionsUi().setPushButton(button);
+}
+
+function setMarkdownDiscardButton(button) {
+  getMarkdownActionsUi().setDiscardButton(button);
+}
+
+function setMarkdownSaveButton(button) {
+  getMarkdownActionsUi().setSaveButton(button);
+}
+
+function setMarkdownProtectionButton(button) {
+  getMarkdownActionsUi().setProtectionButton(button);
+}
+
+function getMarkdownPushLabel(kind) {
+  return getMarkdownActionsUi().getPushLabel(kind);
+}
+
+function getMarkdownDiscardLabel() {
+  return getMarkdownActionsUi().getDiscardLabel();
+}
+
+function getMarkdownDiscardBusyLabel() {
+  return getMarkdownActionsUi().getDiscardBusyLabel();
+}
+
+function getMarkdownSaveLabel() {
+  return getMarkdownActionsUi().getSaveLabel();
+}
+
+function getMarkdownSaveBusyLabel() {
+  return getMarkdownActionsUi().getSaveBusyLabel();
+}
+
+function getMarkdownSaveTooltip(kind) {
+  return getMarkdownActionsUi().getSaveTooltip(kind);
+}
+
 function updateMarkdownPushButton(tab) {
-  if (!markdownPushButton) {
-    markdownPushButton = document.getElementById('btnPushMarkdown');
-  }
-  if (!markdownPushButton) return;
-
-  const btn = markdownPushButton;
-  const repo = getActiveSiteRepoConfig();
-  const hasRepo = !!(repo.owner && repo.name);
-
-  const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
-  const hasDraftContent = hasMarkdownDraftContent(active);
-  const hasDirty = !!(active && active.isDirty);
-  const hasLocalChanges = !!(active && active.path && (hasDirty || hasDraftContent));
-
-  if (!hasLocalChanges) {
-    try { btn.classList.remove('is-busy'); } catch (_) {}
-    btn.hidden = true;
-    btn.setAttribute('aria-hidden', 'true');
-    btn.disabled = true;
-    btn.setAttribute('aria-disabled', 'true');
-    btn.removeAttribute('aria-busy');
-    btn.removeAttribute('data-state');
-    btn.removeAttribute('title');
-    return;
-  }
-
-  btn.hidden = false;
-  btn.removeAttribute('aria-hidden');
-  btn.removeAttribute('aria-busy');
-
-  const state = active && active.fileStatus && active.fileStatus.state
-    ? String(active.fileStatus.state)
-    : '';
-
-  let label = getMarkdownPushLabel('default');
-  if (state === 'missing') label = getMarkdownPushLabel('create');
-  else if (state) label = getMarkdownPushLabel('update');
-  else if (active && active.path) label = getMarkdownPushLabel('update');
-
-  let disabled = false;
-  let tooltip = '';
-
-  if (!hasRepo) {
-    disabled = true;
-    tooltip = getMarkdownPushTooltip('noRepo');
-  } else if (!active || !active.path) {
-    disabled = true;
-    tooltip = getMarkdownPushTooltip('noFile');
-  } else if (state === 'error') {
-    disabled = true;
-    tooltip = getMarkdownPushTooltip('error');
-  } else if (!active.loaded) {
-    tooltip = active.pending
-      ? getMarkdownPushTooltip('checking')
-      : getMarkdownPushTooltip('loading');
-  } else {
-    tooltip = state === 'missing'
-      ? getMarkdownPushTooltip('create')
-      : getMarkdownPushTooltip('update');
-  }
-
-  const busy = btn.classList.contains('is-busy');
-  if (busy) disabled = true;
-
-  btn.disabled = disabled;
-  btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-  if (!busy && label) setButtonLabel(btn, label);
-  if (tooltip) btn.title = tooltip;
-  else btn.removeAttribute('title');
-  btn.setAttribute('aria-label', tooltip || label);
-
-  if (state) btn.setAttribute('data-state', state);
-  else btn.removeAttribute('data-state');
+  getMarkdownActionsUi().updatePushButton(tab);
 }
 
 function updateMarkdownDiscardButton(tab) {
-  if (!markdownDiscardButton) {
-    markdownDiscardButton = document.getElementById('btnDiscardMarkdown');
-  }
-  if (!markdownDiscardButton) return;
-
-  const btn = markdownDiscardButton;
-  const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
-  const hasBusy = btn.classList.contains('is-busy');
-
-  const hasDraftContent = hasMarkdownDraftContent(active);
-  const dirty = !!(active && active.isDirty);
-  const hasLocalChanges = !!(active && active.path && active.mode === currentMode && (dirty || hasDraftContent));
-
-  if (!hasLocalChanges) {
-    if (!hasBusy) setButtonLabel(btn, getMarkdownDiscardLabel());
-    try { btn.classList.remove('is-busy'); } catch (_) {}
-    btn.hidden = false;
-    btn.removeAttribute('aria-hidden');
-    btn.disabled = true;
-    btn.setAttribute('aria-disabled', 'true');
-    btn.removeAttribute('aria-busy');
-    const tooltip = active && active.path
-      ? t('editor.toasts.noLocalMarkdownChanges')
-      : getMarkdownDiscardTooltip('noFile');
-    if (tooltip) btn.title = tooltip;
-    else btn.removeAttribute('title');
-    btn.setAttribute('aria-label', tooltip || getMarkdownDiscardLabel());
-    return;
-  }
-
-  btn.hidden = false;
-  btn.removeAttribute('aria-hidden');
-  btn.removeAttribute('aria-busy');
-
-  let disabled = false;
-  let tooltip = getMarkdownDiscardTooltip('default');
-
-  if (!active || !active.path) {
-    disabled = true;
-    tooltip = getMarkdownDiscardTooltip('noFile');
-  } else if (!active.loaded && !active.pending) {
-    tooltip = getMarkdownDiscardTooltip('reload');
-  }
-
-  if (hasBusy) disabled = true;
-
-  btn.disabled = disabled;
-  btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-  if (!hasBusy) setButtonLabel(btn, getMarkdownDiscardLabel());
-  if (tooltip) btn.title = tooltip;
-  else btn.removeAttribute('title');
-  btn.setAttribute('aria-label', tooltip || getMarkdownDiscardLabel());
+  getMarkdownActionsUi().updateDiscardButton(tab);
 }
 
 function updateMarkdownSaveButton(tab) {
-  if (!markdownSaveButton) {
-    markdownSaveButton = document.getElementById('btnSaveMarkdown');
-  }
-  if (!markdownSaveButton) return;
-
-  const btn = markdownSaveButton;
-  const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
-  const hasBusy = btn.classList.contains('is-busy');
-
-  const hasActive = !!(active && active.path && active.mode === currentMode);
-  const saveState = hasActive
-    ? getManualMarkdownSaveState(active.content, active.isDirty)
-    : null;
-
-  let disabled = false;
-  let tooltip = getMarkdownSaveTooltip('default');
-
-  if (!hasActive) {
-    tooltip = getMarkdownSaveTooltip('noFile');
-  } else if (!saveState.canSave) {
-    tooltip = getMarkdownSaveTooltip(saveState.reason);
-  }
-
-  if (hasBusy) disabled = true;
-
-  btn.hidden = false;
-  btn.removeAttribute('aria-hidden');
-  btn.disabled = disabled;
-  btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-  if (!hasBusy) setButtonLabel(btn, getMarkdownSaveLabel());
-  if (tooltip) btn.title = tooltip;
-  else btn.removeAttribute('title');
-  btn.setAttribute('aria-label', tooltip || getMarkdownSaveLabel());
+  getMarkdownActionsUi().updateSaveButton(tab);
 }
 
 function updateMarkdownProtectionButton(tab) {
-  if (!markdownProtectionButton) {
-    markdownProtectionButton = document.getElementById('btnProtectMarkdown');
-  }
-  if (!markdownProtectionButton) return;
-
-  const btn = markdownProtectionButton;
-  const active = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
-  const hasActive = !!(active && active.path && active.mode === currentMode);
-  const protectedState = hasActive && isMarkdownTabProtected(active);
-  const label = hasActive
-    ? getMarkdownProtectionLabel(active)
-    : t('editor.composer.markdown.protection.label');
-  const tooltip = hasActive
-    ? getMarkdownProtectionTooltip(active)
-    : t('editor.composer.markdown.protection.tooltipNoFile');
-  const switchEl = btn.closest ? btn.closest('.frontmatter-switch') : null;
-
-  btn.hidden = false;
-  btn.removeAttribute('aria-hidden');
-  btn.disabled = !hasActive;
-  if ('checked' in btn) btn.checked = protectedState;
-  btn.setAttribute('aria-disabled', hasActive ? 'false' : 'true');
-  btn.setAttribute('aria-checked', protectedState ? 'true' : 'false');
-  btn.setAttribute('data-protected', protectedState ? 'true' : 'false');
-  btn.dataset.state = protectedState ? 'on' : 'off';
-  btn.classList.toggle('is-protected', protectedState);
-  if (switchEl) {
-    switchEl.dataset.state = protectedState ? 'on' : 'off';
-    switchEl.classList.toggle('is-protected', protectedState);
-    switchEl.classList.toggle('is-disabled', !hasActive);
-    if (tooltip) switchEl.title = tooltip;
-    else switchEl.removeAttribute('title');
-  }
-  setButtonLabel(switchEl || btn, label);
-  if (tooltip) btn.title = tooltip;
-  else btn.removeAttribute('title');
-  btn.setAttribute('aria-label', tooltip || label);
+  getMarkdownActionsUi().updateProtectionButton(tab);
 }
 
 async function manualSaveActiveMarkdown(triggerButton) {
@@ -4977,7 +4792,7 @@ async function manualSaveActiveMarkdown(triggerButton) {
     return;
   }
 
-  const button = triggerButton || markdownSaveButton;
+  const button = triggerButton || getMarkdownSaveButton();
   const originalLabel = button ? (getButtonLabel(button) || getMarkdownSaveLabel()) : '';
   const setBusyState = (busy, text) => {
     if (!button) return;
@@ -5259,7 +5074,7 @@ async function discardMarkdownLocalChanges(tab, anchor) {
 
   const label = active.path || t('editor.composer.markdown.currentFile');
   const trigger = anchor && typeof anchor.closest === 'function' ? anchor.closest('button') : anchor;
-  const control = trigger || markdownDiscardButton;
+  const control = trigger || getMarkdownDiscardButton();
   const promptMessage = t('editor.composer.discardConfirm.messageSimple', { label });
 
   let proceed = true;
@@ -5280,7 +5095,7 @@ async function discardMarkdownLocalChanges(tab, anchor) {
   }
   if (!proceed) return;
 
-  const button = control || markdownDiscardButton;
+  const button = control || getMarkdownDiscardButton();
   const originalLabel = getButtonLabel(button) || getMarkdownDiscardLabel();
   const setBusyState = (busy, text) => {
     if (!button) return;
@@ -7305,7 +7120,7 @@ function showStatus(msg, kind = 'info') {
 document.addEventListener('DOMContentLoaded', async () => {
   const pushBtn = document.getElementById('btnPushMarkdown');
   if (pushBtn) {
-    markdownPushButton = pushBtn;
+    setMarkdownPushButton(pushBtn);
     pushBtn.addEventListener('click', async (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       const active = getActiveDynamicTab();
@@ -7314,7 +7129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      const button = markdownPushButton;
+      const button = getMarkdownPushButton();
       const originalLabel = getButtonLabel(button) || getMarkdownPushLabel('default');
       const setBusyState = (busy, text) => {
         if (!button) return;
@@ -7347,7 +7162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const saveBtn = document.getElementById('btnSaveMarkdown');
   if (saveBtn) {
-    markdownSaveButton = saveBtn;
+    setMarkdownSaveButton(saveBtn);
     saveBtn.addEventListener('click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       manualSaveActiveMarkdown(saveBtn);
@@ -7357,7 +7172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const protectBtn = document.getElementById('btnProtectMarkdown');
   if (protectBtn) {
-    markdownProtectionButton = protectBtn;
+    setMarkdownProtectionButton(protectBtn);
     protectBtn.addEventListener('click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       handleMarkdownProtectionButton(protectBtn);
@@ -7367,7 +7182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const discardBtn = document.getElementById('btnDiscardMarkdown');
   if (discardBtn) {
-    markdownDiscardButton = discardBtn;
+    setMarkdownDiscardButton(discardBtn);
     discardBtn.addEventListener('click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       discardMarkdownLocalChanges(null, discardBtn);

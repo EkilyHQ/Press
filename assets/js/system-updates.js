@@ -1,7 +1,7 @@
-import { mdParse } from './markdown.js?v=press-system-v3.4.33';
-import { renderPressMath } from './math-render.js?v=press-system-v3.4.33';
-import { setSafeHtml } from './safe-html.js?v=press-system-v3.4.33';
-import { t } from './i18n.js?v=press-system-v3.4.33';
+import { mdParse } from './markdown.js?v=press-system-v3.4.34';
+import { renderPressMath } from './math-render.js?v=press-system-v3.4.34';
+import { setSafeHtml } from './safe-html.js?v=press-system-v3.4.34';
+import { t } from './i18n.js?v=press-system-v3.4.34';
 import {
   compareSemver,
   isUpgradeAllowed,
@@ -10,7 +10,7 @@ import {
   normalizeSemver,
   normalizeUpgradeFrom,
   semverToTag
-} from './press-version.js?v=press-system-v3.4.33';
+} from './press-version.js?v=press-system-v3.4.34';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const TEXT_EXTENSIONS = new Set([

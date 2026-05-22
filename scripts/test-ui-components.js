@@ -12,6 +12,7 @@ const indexHtml = read('index.html');
 const indexEditorHtml = read('index_editor.html');
 const indexEditorPreviewHtml = read('index_editor_preview.html');
 const composer = read('assets/js/composer.js');
+const composerMarkdownActionsUi = read('assets/js/composer-markdown-actions-ui.js');
 const composerStaging = read('assets/js/composer-staging.js');
 const composerContentStaging = read('assets/js/composer-content-staging.js');
 const composerSeoStaging = read('assets/js/composer-seo-staging.js');
@@ -212,7 +213,7 @@ assert.match(editorPreviewRuntime, /restorePreviewThemeStyles\(activePack, layou
 assert.doesNotMatch(editorMain, /if \(nextView === 'blocks'\) renderPreview/, 'block mode should not trigger themed preview rendering');
 assert.match(indexEditorHtml, /src="assets\/js\/editor-main\.js\?v=[\w.-]+"/, 'editor should cache-bust editor-main after default blocks view changes');
 assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=[\w.-]+"/, 'editor should cache-bust composer after version compatibility changes');
-assert.match(composer, /if \('checked' in btn\) btn\.checked = protectedState;[\s\S]*btn\.setAttribute\('aria-checked', protectedState \? 'true' : 'false'\);[\s\S]*switchEl\.dataset\.state = protectedState \? 'on' : 'off';/, 'markdown protection switch should synchronize native checked state and visual switch state');
+assert.match(composerMarkdownActionsUi, /if \('checked' in btn\) btn\.checked = protectedState;[\s\S]*btn\.setAttribute\('aria-checked', protectedState \? 'true' : 'false'\);[\s\S]*switchEl\.dataset\.state = protectedState \? 'on' : 'off';/, 'markdown protection switch should synchronize native checked state and visual switch state');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');

@@ -19,6 +19,7 @@ const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-ta
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
+const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -54,6 +55,7 @@ const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'u
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
+const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -276,6 +278,24 @@ assert.match(
   composerOrderDiffUiSource,
   /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function drawOrderDiffLines\(state\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
   'order diff UI boundary should own composer review modal, order visual connectors, and order preview state'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-index-tabs-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted index/tabs list UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function makeDragList|function buildIndexUI|function buildTabsUI/,
+  'index/tabs list rendering and drag UI should stay outside the main composer shell'
+);
+
+assert.match(
+  composerIndexTabsUiSource,
+  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*function makeDragList\(container, onReorder\)[\s\S]*function buildIndexUI\(root, state\)[\s\S]*function buildTabsUI\(root, state\)/,
+  'index/tabs list UI boundary should own legacy composer list rendering and drag controls'
 );
 
 assert.match(
@@ -2513,8 +2533,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /\$\('\.ct-edit', block\)\.addEventListener\('click', \(\) => \{[\s\S]*const rel = normalizeRelPath\(v\.location\);[\s\S]*openMarkdownInEditor\(rel, \{[\s\S]*source: 'tabs',[\s\S]*key,[\s\S]*lang,[\s\S]*editorTreeNodeId: `tabs:\$\{key\}:\$\{lang\}`[\s\S]*\}\);/,
+  composerIndexTabsUiSource,
+  /query\('\.ct-edit', block\)\.addEventListener\('click', \(\) => \{[\s\S]*const rel = normalizeRelPath\(value\.location\);[\s\S]*openMarkdownInEditor\(rel, \{[\s\S]*source: 'tabs',[\s\S]*key: tab,[\s\S]*lang,[\s\S]*editorTreeNodeId: `tabs:\$\{tab\}:\$\{lang\}`[\s\S]*\}\);/,
   'page list edit actions should pass tabs identity when opening the markdown editor'
 );
 
@@ -3308,7 +3328,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerIndexTabsUiSource,
   /const flag = langFlag\(lang\);[\s\S]*const flagSpan = flag \? `<span class="ci-lang-flag" aria-hidden="true">\$\{escapeHtml\(flag\)\}<\/span>` : '';[\s\S]*<strong class="ci-lang-label" aria-label="\$\{safeLabel\}" title="\$\{safeLabel\}">[\s\S]*<span class="ci-lang-code">\$\{escapeHtml\(lang\.toUpperCase\(\)\)\}<\/span>/,
   'index language section headings should show the regional flag before the language code'
 );
@@ -3332,31 +3352,31 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerIndexTabsUiSource,
   /<button class="btn-secondary ci-expand"[\s\S]*<\/button>\s*<span class="ci-head-add-lang-slot"><\/span>\s*<button class="btn-secondary ci-del">/,
   'index add-language control should live in the entry header immediately after details'
 );
 
 assert.match(
-  source,
-  /const headAddLangSlot = \$\('\.ci-head-add-lang-slot', row\);[\s\S]*if \(headAddLangSlot\) headAddLangSlot\.innerHTML = '';[\s\S]*\(headAddLangSlot \|\| bodyInner\)\.appendChild\(addLangWrap\);/,
+  composerIndexTabsUiSource,
+  /const headAddLangSlot = query\('\.ci-head-add-lang-slot', row\);[\s\S]*if \(headAddLangSlot\) headAddLangSlot\.innerHTML = '';[\s\S]*\(headAddLangSlot \|\| bodyInner\)\.appendChild\(addLangWrap\);/,
   'index add-language menu should be mounted into the header slot and refreshed with the body'
 );
 
 assert.match(
-  source,
+  composerIndexTabsUiSource,
   /const handle = target\.closest\('\.ci-grip,\.ct-grip'\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const li = handle\.closest\(keySelector\);/,
   'composer entry reordering should start only from the visible drag handle'
 );
 
 assert.doesNotMatch(
-  source.match(/function makeDragList\(container, onReorder\) \{[\s\S]*?\nfunction buildIndexUI\(root, state\) \{/)[0],
+  composerIndexTabsUiSource.match(/function makeDragList\(container, onReorder\) \{[\s\S]*?\n  function buildIndexUI\(root, state\) \{/)[0],
   /const li = target\.closest\(keySelector\);/,
   'composer entry reordering should not treat the entire card as a drag source'
 );
 
 assert.doesNotMatch(
-  source.match(/function buildIndexUI\(root, state\) \{[\s\S]*?\nfunction buildTabsUI\(root, state\) \{/)[0],
+  composerIndexTabsUiSource.match(/function buildIndexUI\(root, state\) \{[\s\S]*?\n  function buildTabsUI\(root, state\) \{/)[0],
   /bodyInner\.appendChild\(addLangWrap\);/,
   'index add-language control should not render at the bottom of the expanded language list'
 );

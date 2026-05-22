@@ -8,21 +8,21 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { escapeHtml } from './utils.js?v=press-system-v3.4.44';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.44';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.44';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.44';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.44';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.45';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.45';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.45';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.45';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.45';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.44';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.44';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.44';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.44';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.44';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.44';
+} from './encrypted-content.js?v=press-system-v3.4.45';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.45';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.45';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.45';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.45';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.45';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -36,7 +36,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.44';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.45';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -44,40 +44,41 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.44';
+} from './composer-site-model.js?v=press-system-v3.4.45';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.44';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.44';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.44';
+} from './editor-storage.js?v=press-system-v3.4.45';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.45';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.45';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.44';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.44';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.44';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.44';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.44';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.44';
-import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.44';
-import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.44';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.44';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.44';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.44';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.44';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.44';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.44';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.44';
-import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.44';
-import { createComposerSetupVerifier } from './composer-setup-verifier.js?v=press-system-v3.4.44';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.44';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.44';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.44';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.44';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.44';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.44';
-import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.44';
+} from './composer-sync-panel.js?v=press-system-v3.4.45';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.45';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.45';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.45';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.45';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.45';
+import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.45';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.45';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.45';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.45';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.45';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.45';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.45';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.45';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.45';
+import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.45';
+import { createComposerSetupVerifier } from './composer-setup-verifier.js?v=press-system-v3.4.45';
+import { createComposerModeController, isComposerSystemMode } from './composer-mode-controller.js?v=press-system-v3.4.45';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.45';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.45';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.45';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.45';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.45';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.45';
+import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.45';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -89,13 +90,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.44';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.44';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.44';
+} from './composer-markdown-state.js?v=press-system-v3.4.45';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.45';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.45';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.44';
+} from './publish/settings-store.js?v=press-system-v3.4.45';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -357,7 +358,7 @@ const contentCommitStagingProvider = createContentCommitStagingProvider({
   collectUnsyncedMarkdownEntries,
   getPrimaryEditorApi,
   getActiveDynamicTab,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   readMarkdownDraftStore,
   normalizeRelPath,
   findDynamicTabByPath,
@@ -392,6 +393,7 @@ let markdownLoader = null;
 let markdownActionsUi = null;
 let markdownDraftController = null;
 let markdownSessionController = null;
+let modeController = null;
 const postCommitStateApplier = createPostCommitStateApplier({
   stagingRegistry,
   getStateSlice,
@@ -465,7 +467,6 @@ const editorSessionStateStore = createEditorSessionStateStore({
   keys: LS_KEYS
 });
 
-let currentMode = null;
 let detachPrimaryEditorListener = null;
 let detachPrimaryEditorTabsMetadataListener = null;
 let allowEditorStatePersist = false;
@@ -496,7 +497,7 @@ markdownDraftController = createComposerMarkdownDraftController({
   getMarkdownProtectionState,
   setMarkdownProtectionState,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   pushEditorCurrentFileInfo,
   updateMarkdownPushButton,
   updateComposerMarkdownDraftIndicators,
@@ -521,7 +522,7 @@ markdownLoader = createComposerMarkdownLoader({
   draftHasAssetDeletions,
   getDefaultMarkdownForPath,
   updateDynamicTabDirtyState,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   pushEditorCurrentFileInfo,
   refreshEditorContentTree,
   fetchContent: (url, options) => fetch(url, options),
@@ -533,7 +534,7 @@ markdownLoader = createComposerMarkdownLoader({
 markdownActionsUi = createComposerMarkdownActionsUi({
   documentRef: document,
   translate: t,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   getActiveDynamicTab,
   getActiveSiteRepoConfig,
   hasMarkdownDraftContent,
@@ -557,7 +558,7 @@ const remoteSyncController = createComposerRemoteSyncController({
   setDynamicTabStatus,
   updateDynamicTabDirtyState,
   updateComposerMarkdownDraftIndicators,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   getPrimaryEditorApi,
   basenameFromPath,
   startRemoteSyncWatcher,
@@ -589,7 +590,7 @@ const {
 const markdownActionsController = createComposerMarkdownActionsController({
   windowRef: window,
   t,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   getActiveDynamicTab,
   getActiveSiteRepoConfig,
   getContentRootSafe,
@@ -648,7 +649,7 @@ const editorContentTreeController = createEditorContentTreeController({
   flattenTree: flattenEditorContentTree,
   findNode: findEditorContentTreeNode,
   buildTree: () => buildCurrentEditorTree(),
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   isDynamicMode,
   renderFileTree: (treeEl) => editorFileTreeUi.renderEditorFileTree(treeEl),
   renderStructurePanel: (node) => editorStructurePanelUi.renderEditorStructurePanel(node),
@@ -668,7 +669,7 @@ const editorShell = createComposerEditorShell({
   editorSessionStateStore,
   expandedEditorTreeNodeIds,
   treeText,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   isDynamicMode,
   normalizeRelPath,
@@ -715,7 +716,7 @@ markdownSessionController = createComposerMarkdownSessionController({
   clearMarkdownDraftForTab,
   hasMarkdownDraftContent,
   getAllowEditorStatePersist: () => allowEditorStatePersist,
-  getCurrentMode: () => currentMode,
+  getCurrentMode: () => getCurrentComposerMode(),
   captureEditorContentScroll,
   getActiveNodeId: () => editorContentTreeController.getActiveNodeId(),
   getExpandedNodeIdsSnapshot: () => editorContentTreeController.getExpandedNodeIdsSnapshot(),
@@ -739,6 +740,48 @@ markdownSessionController = createComposerMarkdownSessionController({
   updateMarkdownActionsForTab,
   updateComposerMarkdownDraftIndicators
 });
+modeController = createComposerModeController({
+  documentRef: document,
+  windowRef: window,
+  getDynamicEditorTabs: () => getDynamicEditorTabs(),
+  isDynamicMode,
+  getFirstDynamicModeId,
+  getActiveTreeNodeId: () => editorContentTreeController.getActiveNodeId(),
+  setActiveTreeNodeId: (nodeId) => editorContentTreeController.setActiveNodeId(nodeId),
+  getEditorTreeNodeById,
+  expandEditorAncestors,
+  selectEditorTreeNodeForTab,
+  getPrimaryEditorApi,
+  restorePrimaryEditorMarkdownView,
+  ensurePrimaryEditorListener,
+  ensurePrimaryEditorTabsMetadataListener,
+  getDynamicTabByMode,
+  activateDynamicMode,
+  clearActiveDynamicMode,
+  setEditorDetailPanelMode,
+  pushEditorCurrentFileInfo,
+  refreshEditorContentTree,
+  captureEditorContentScroll,
+  restoreEditorContentScrollForMode,
+  scrollEditorContentToTop,
+  scheduleEditorStatePersist,
+  persistDynamicEditorState,
+  computeBaseDirForPath,
+  animateEditorMarkdownPanelContent,
+  updateDynamicTabDirtyState,
+  setTabLoadingState,
+  loadDynamicTabContent,
+  alertRef: (message) => alert(message),
+  consoleRef: console
+});
+
+function getCurrentComposerMode() {
+  return modeController ? modeController.getCurrentMode() : null;
+}
+
+function shouldPreserveEditorStructureForMode(mode) {
+  return !!(mode && (isDynamicMode(mode) || isComposerSystemMode(mode)));
+}
 
 function getDynamicTabsContainer() {
   try {
@@ -1935,7 +1978,7 @@ function updateComposerMarkdownDraftIndicators(options = {}) {
   selectors.forEach(sel => {
     $$( `${sel}[data-md-path]` ).forEach(updateElement);
   });
-  refreshEditorContentTree({ preserveStructure: currentMode && isDynamicMode(currentMode) });
+  refreshEditorContentTree({ preserveStructure: isDynamicMode(getCurrentComposerMode()) });
 }
 
 function getStateSlice(kind) {
@@ -1980,7 +2023,7 @@ function refreshEditorLanguageUi() {
   refreshFileDirtyBadges();
   try {
     refreshEditorContentTree({
-      preserveStructure: currentMode && (isDynamicMode(currentMode) || currentMode === 'composer' || currentMode === 'themes' || currentMode === 'updates' || currentMode === 'sync')
+      preserveStructure: shouldPreserveEditorStructureForMode(getCurrentComposerMode())
     });
   } catch (_) {}
 }
@@ -2218,7 +2261,7 @@ function updateModeDirtyIndicators(summaryEntries) {
   applyModeTabBadgeState('themes', themesCount);
   applyModeTabBadgeState('updates', updatesCount);
   try {
-    refreshEditorContentTree({ preserveStructure: currentMode && (isDynamicMode(currentMode) || currentMode === 'composer' || currentMode === 'themes' || currentMode === 'updates' || currentMode === 'sync') });
+    refreshEditorContentTree({ preserveStructure: shouldPreserveEditorStructureForMode(getCurrentComposerMode()) });
   } catch (_) {}
 }
 
@@ -2362,7 +2405,7 @@ async function refreshSyncCommitPanel(options = {}) {
 
 function scheduleSyncCommitPanelRefresh() {
   syncCommitPanelRefreshTimer = scheduleSyncCommitPanelRefreshView({
-    currentMode,
+    currentMode: getCurrentComposerMode(),
     windowRef: window,
     timer: syncCommitPanelRefreshTimer,
     setTimer: (timer) => {
@@ -2575,7 +2618,7 @@ function notifyComposerChange(kind, options = {}) {
   updateUnsyncedSummary();
   if ((kind === 'index' || kind === 'tabs') && getComposerOrderPreviewActiveKind() === kind) updateComposerOrderPreview(kind);
   refreshEditorContentTree({
-    preserveStructure: currentMode && (isDynamicMode(currentMode) || currentMode === 'composer' || currentMode === 'themes' || currentMode === 'updates' || currentMode === 'sync')
+    preserveStructure: shouldPreserveEditorStructureForMode(getCurrentComposerMode())
   });
 }
 
@@ -3060,7 +3103,7 @@ function pushEditorCurrentFileInfo(tab) {
       editorApi.setTabsMetadata(tab && tab.source === 'tabs' ? getTabsMetadataForTab(tab) : null, { silent: true });
     } catch (_) {}
   }
-  const activeTab = (tab && tab.mode && tab.mode === currentMode) ? tab : getActiveDynamicTab();
+  const activeTab = (tab && tab.mode && tab.mode === getCurrentComposerMode()) ? tab : getActiveDynamicTab();
   updateMarkdownPushButton(activeTab);
   updateMarkdownDiscardButton(activeTab);
   updateMarkdownSaveButton(activeTab);
@@ -3093,190 +3136,8 @@ function openMarkdownInEditor(path, options = {}) {
 }
 
 function applyMode(mode, options = {}) {
-  if (mode === 'editor' && getDynamicEditorTabs().size && !options.forceStructure && editorContentTreeController.getActiveNodeId() !== 'welcome') {
-    const firstDynamicMode = getFirstDynamicModeId();
-    if (firstDynamicMode) {
-      applyMode(firstDynamicMode, options);
-      return;
-    }
-  }
-
-  const candidate = mode || 'editor';
-  const isSystemMode = (value) => value === 'composer' || value === 'themes' || value === 'updates' || value === 'sync';
-  const systemModeNodeId = (value) => {
-    if (value === 'themes') return 'system:themes';
-    if (value === 'updates') return 'system:updates';
-    if (value === 'sync') return 'system:sync';
-    return 'system:site-settings';
-  };
-  const nextMode = (candidate === 'editor' || isSystemMode(candidate) || isDynamicMode(candidate))
-    ? candidate
-    : 'editor';
-
-  const previousMode = currentMode;
-  if (previousMode === nextMode) {
-    try {
-      const layout = $('#mode-editor');
-      if (layout) layout.classList.toggle('is-dynamic', isDynamicMode(nextMode));
-    } catch (_) {}
-    if (nextMode === 'editor' && options.forceStructure) {
-      clearActiveDynamicMode();
-      setEditorDetailPanelMode('structure');
-      pushEditorCurrentFileInfo(null);
-      refreshEditorContentTree();
-      if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-    } else if (isSystemMode(nextMode)) {
-      clearActiveDynamicMode();
-      const activeSystemNodeId = editorContentTreeController.setActiveNodeId(systemModeNodeId(nextMode));
-      if (!options.preserveTreeExpansion) {
-        expandEditorAncestors(getEditorTreeNodeById(activeSystemNodeId) || { id: activeSystemNodeId, source: 'system' });
-      }
-      setEditorDetailPanelMode(nextMode);
-      pushEditorCurrentFileInfo(null);
-      refreshEditorContentTree({ preserveStructure: true });
-      if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-    } else if (isDynamicMode(nextMode)) {
-      const tab = activateDynamicMode(nextMode);
-      if (tab) {
-        try { selectEditorTreeNodeForTab(tab, { expandAncestors: !options.preserveTreeExpansion }); } catch (_) {}
-      }
-      setEditorDetailPanelMode('markdown');
-      if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-    }
-    scheduleEditorStatePersist();
-    return;
-  }
-
-  if (previousMode) captureEditorContentScroll(previousMode);
-
-  const editorApi = getPrimaryEditorApi();
-  if (previousMode && isDynamicMode(previousMode) && editorApi && typeof editorApi.getValue === 'function') {
-    const prevTab = getDynamicTabByMode(previousMode);
-    if (prevTab) {
-      try {
-        prevTab.content = String(editorApi.getValue() || '');
-      } catch (_) {}
-    }
-  }
-
-  currentMode = nextMode;
-
-  const showEditor = nextMode === 'editor' || isSystemMode(nextMode) || isDynamicMode(nextMode);
-  try { $('#mode-editor').style.display = showEditor ? '' : 'none'; } catch (_) {}
-  try {
-    const layout = $('#mode-editor');
-    if (layout) layout.classList.toggle('is-dynamic', isDynamicMode(nextMode));
-  } catch (_) {}
-
-  const isDynamic = isDynamicMode(nextMode);
-  try {
-    $$('.mode-tab').forEach((b) => {
-      const baseMode = b.dataset ? b.dataset.mode : '';
-      if (isSystemMode(baseMode)) {
-        b.classList.toggle('is-active', nextMode === baseMode);
-        b.setAttribute('aria-selected', nextMode === baseMode ? 'true' : 'false');
-        return;
-      }
-      const targetMode = b.classList.contains('dynamic-mode')
-        ? nextMode
-        : (isDynamic ? 'editor' : nextMode);
-      const isOn = (b.dataset.mode === targetMode);
-      b.classList.toggle('is-active', isOn);
-      b.setAttribute('aria-selected', isOn ? 'true' : 'false');
-    });
-  } catch (_) {}
-
-  const scheduleEditorLayoutRefresh = () => {
-    if (!editorApi || typeof editorApi.requestLayout !== 'function') return;
-    const run = () => {
-      if (currentMode !== nextMode) return;
-      try { editorApi.requestLayout(); } catch (_) {}
-    };
-    try { requestAnimationFrame(run); }
-    catch (_) { setTimeout(run, 0); }
-  };
-
-  if (showEditor) scheduleEditorLayoutRefresh();
-
-  if (isDynamicMode(nextMode)) {
-    const tab = activateDynamicMode(nextMode);
-    ensurePrimaryEditorListener();
-    ensurePrimaryEditorTabsMetadataListener();
-    setEditorDetailPanelMode('markdown');
-    if (tab && editorApi) {
-      try { selectEditorTreeNodeForTab(tab, { expandAncestors: !options.preserveTreeExpansion }); } catch (_) {}
-      restorePrimaryEditorMarkdownView(editorApi);
-      try {
-        const baseDir = computeBaseDirForPath(tab.path);
-        tab.baseDir = baseDir;
-        editorApi.setBaseDir(baseDir);
-      } catch (_) {}
-      pushEditorCurrentFileInfo(tab);
-      animateEditorMarkdownPanelContent();
-
-      const applyContent = (text) => {
-        tab.content = String(text || '');
-        if (currentMode === nextMode) {
-          editorApi.setValue(tab.content, { notify: false });
-          scheduleEditorLayoutRefresh();
-          try { editorApi.focus(); } catch (_) {}
-          if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-          else scrollEditorContentToTop('smooth');
-          updateDynamicTabDirtyState(tab, { autoSave: false });
-        }
-      };
-
-      if (tab.loaded || (tab.localDraft && tab.localDraft.content)) {
-        applyContent(tab.content);
-      } else {
-        setTabLoadingState(tab, true);
-        loadDynamicTabContent(tab).then((text) => {
-          setTabLoadingState(tab, false);
-          if (currentMode !== nextMode) return;
-          applyContent(text);
-        }).catch((err) => {
-          setTabLoadingState(tab, false);
-          if (currentMode === nextMode) {
-            console.error('Composer editor: failed to load markdown', err);
-            const message = (tab.fileStatus && tab.fileStatus.message)
-              ? tab.fileStatus.message
-              : (err && err.message) ? err.message : 'Unknown error';
-            alert(`Failed to load file\n${tab.path}\n${message}`);
-          }
-        });
-      }
-    }
-  } else if (nextMode === 'editor') {
-    clearActiveDynamicMode();
-    setEditorDetailPanelMode('structure');
-    if (editorApi) {
-      try { editorApi.setView('edit'); } catch (_) {}
-      scheduleEditorLayoutRefresh();
-    }
-    pushEditorCurrentFileInfo(null);
-    refreshEditorContentTree();
-    if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-  } else if (isSystemMode(nextMode)) {
-    clearActiveDynamicMode();
-    const activeSystemNodeId = editorContentTreeController.setActiveNodeId(systemModeNodeId(nextMode));
-    if (!options.preserveTreeExpansion) {
-      expandEditorAncestors(getEditorTreeNodeById(activeSystemNodeId) || { id: activeSystemNodeId, source: 'system' });
-    }
-    setEditorDetailPanelMode(nextMode);
-    pushEditorCurrentFileInfo(null);
-    refreshEditorContentTree({ preserveStructure: true });
-    if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-    else scrollEditorContentToTop('smooth');
-  } else {
-    clearActiveDynamicMode();
-    setEditorDetailPanelMode('structure');
-    pushEditorCurrentFileInfo(null);
-    if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
-  }
-
-  try { document.documentElement.removeAttribute('data-init-mode'); } catch (_) {}
-
-  persistDynamicEditorState();
+  if (!modeController) return;
+  modeController.applyMode(mode, options);
 }
 
 function getInitialComposerFile() {

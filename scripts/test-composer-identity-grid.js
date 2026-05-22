@@ -25,6 +25,7 @@ const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
+const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -66,6 +67,7 @@ const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'u
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
+const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -409,6 +411,24 @@ assert.match(
   editorContentTreeControllerSource,
   /export function createEditorContentTreeController\(options = \{\}\)[\s\S]*let tree = \[\];[\s\S]*let activeNodeId = String\(options\.initialActiveNodeId \|\| 'welcome'\)[\s\S]*function buildCurrentFileBreadcrumb\(tab\)[\s\S]*function handleSelection\(nodeId\)/,
   'editor content tree controller should own tree state, active node state, breadcrumbs, and selection routing'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-markdown-loader\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown loader boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /const TAB_STATE_VALUES|const runner = async \(\) => \{[\s\S]*fetch\(url, \{ cache: 'no-store' \}\)|tab\.remoteContent = editorText;[\s\S]*tab\.remoteSignature = remoteSignature;/,
+  'Markdown tab loading and remote file-status normalization should stay outside the main composer shell'
+);
+
+assert.match(
+  composerMarkdownLoaderSource,
+  /export function createComposerMarkdownLoader\(options = \{\}\)[\s\S]*function setDynamicTabStatus\(tab, status\)[\s\S]*async function loadDynamicTabContent\(tab\)[\s\S]*fetchContent\(url, \{ cache: 'no-store' \}\)[\s\S]*tab\.remoteContent = editorText;[\s\S]*tab\.remoteSignature = remoteSignature;/,
+  'Markdown loader boundary should own remote markdown fetch, encrypted draft merge, and file-status updates'
 );
 
 assert.match(
@@ -2320,7 +2340,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  [source, composerMarkdownLoaderSource].join('\n'),
   /function hasMarkdownDraftContent\(tab\) \{[\s\S]*const deletedAssets = Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length;[\s\S]*return !!\(plain \|\| encrypted \|\| deletedAssets\);[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*const deletedAssets = exportMarkdownAssetDeletionBucket\(tab\.path\);[\s\S]*if \(!text && !deletedAssets\.length\) \{[\s\S]*const assetDeletionDirty = countMarkdownAssetDeletions\(tab\.path\) > 0;[\s\S]*const dirty = normalizedContent !== baseline \|\| protectionChanged \|\| assetDeletionDirty;[\s\S]*tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\)[\s\S]*tab\.content = normalizeMarkdownContent\(tab\.localDraft\.content \|\| ''\);/,
   'markdown draft persistence should preserve deletion-only asset drafts across empty-body autosaves, reloads, and remote loads'
 );

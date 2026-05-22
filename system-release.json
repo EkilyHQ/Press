@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.34",
-  "tag": "v3.4.34",
-  "version": "3.4.34",
-  "publishedAt": "2026-05-22T12:46:40Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.34.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.34.zip`\n- SHA-256: `7b9fb29f0a032a787dd6aee070027e0100c893ee4cde8648f7640116f35211b8`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-editor-shell.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-markdown-actions-ui.js\n- assets/js/composer-markdown-assets.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.33...v3.4.34\n",
+  "name": "v3.4.35",
+  "tag": "v3.4.35",
+  "version": "3.4.35",
+  "publishedAt": "2026-05-22T12:56:49Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.35.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.35.zip`\n- SHA-256: `725d4c42a21c7fcbca62d33ceae5e5dcfe379120b30fd053f91e29f88723525a`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-editor-shell.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-markdown-actions.js\n- assets/js/composer-markdown-assets.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.34...v3.4.35\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.33 <3.4.34"
+      ">=3.4.34 <3.4.35"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.33 first."
+    "message": "Update to v3.4.34 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.34",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.35",
   "asset": {
-    "name": "press-system-v3.4.34.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.34/press-system-v3.4.34.zip",
-    "size": 1628261,
-    "digest": "sha256:7b9fb29f0a032a787dd6aee070027e0100c893ee4cde8648f7640116f35211b8"
+    "name": "press-system-v3.4.35.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.35/press-system-v3.4.35.zip",
+    "size": 1629898,
+    "digest": "sha256:725d4c42a21c7fcbca62d33ceae5e5dcfe379120b30fd053f91e29f88723525a"
   }
 }

@@ -13,6 +13,8 @@ const indexEditorHtml = read('index_editor.html');
 const indexEditorPreviewHtml = read('index_editor_preview.html');
 const composer = read('assets/js/composer.js');
 const composerStaging = read('assets/js/composer-staging.js');
+const composerContentStaging = read('assets/js/composer-content-staging.js');
+const composerSeoStaging = read('assets/js/composer-seo-staging.js');
 const editorMain = read('assets/js/editor-main.js');
 const editorPreviewRuntime = read('assets/js/editor-preview-runtime.js');
 const search = read('assets/js/search.js');
@@ -128,7 +130,7 @@ assert.match(main, /function cacheDynamicImport\(importer, getCached, setCached\
 assert.match(main, /function getRawIndexVariantLocation\(value\)[\s\S]*value\.location \|\| value\.path[\s\S]*function collectRawIndexVariants\(entry, options = \{\}\)/, 'main should read object variant locations from raw index arrays');
 assert.match(main, /const pickPreferred = \(entry\) => \{[\s\S]*const variants = collectRawIndexVariants\(entry\);[\s\S]*const cand = findBy\(\[curNorm\]\) \|\| findBy\(\[defNorm\]\)/, 'main should preserve homepage order for object version arrays in raw index data');
 assert.match(composer, /from '\.\/i18n\.js\?v=[\w.-]+';/, 'composer should share the repository deletion docs i18n cache key');
-assert.match(composer, /from '\.\/seo\.js\?v=[\w.-]+';/, 'composer should cache-bust SEO helpers after editor i18n dependency changes');
+assert.match(composerSeoStaging, /from '\.\/seo\.js\?v=[\w.-]+';/, 'composer SEO staging should cache-bust SEO helpers after editor i18n dependency changes');
 assert.match(composer, /from '\.\/system-updates\.js\?v=[\w.-]+';/, 'composer should cache-bust system updates after version compatibility changes');
 assert.match(read('assets/js/system-updates.js'), /from '\.\/safe-html\.js\?v=[\w.-]+';/, 'system updates should cache-bust sanitizer when release notes can contain math');
 assert.match(composer, /from '\.\/theme-manager\.js\?v=[\w.-]+';/, 'composer should cache-bust theme manager after Press engine compatibility changes');
@@ -148,8 +150,8 @@ assert.match(main, /const excerpt = String\(publicMetadata\.excerpt \|\| ''\)\.t
 assert.match(main, /const unlockRequestId = __activePostRequestId;[\s\S]*currentPostname !== postname[\s\S]*displayPost\(postname, \{ markdown \}\)/, 'protected post unlock should ignore stale decrypt completions after navigation');
 assert.match(main, /function displayPost\(postname, options = \{\}\)[\s\S]*hasPreloadedMarkdown[\s\S]*Promise\.resolve\(String\(options\.markdown \|\| ''\)\)[\s\S]*getFile\(`\$\{getContentRoot\(\)\}\/\$\{postname\}`\)/, 'protected post unlock should render from the already-loaded encrypted markdown instead of fetching again after successful decrypt');
 assert.match(composer, /async function saveMarkdownDraftForTab[\s\S]*prepareMarkdownForProtectedStorage[\s\S]*saveMarkdownDraftEntry\(tab\.path, prepared\.content[\s\S]*encrypted: prepared\.encrypted/, 'protected markdown drafts should be encrypted before entering localStorage');
-assert.match(composer, /async function gatherLocalChangesForCommit[\s\S]*await Promise\.all\(flushes\)[\s\S]*prepareMarkdownForProtectedStorage\(tab, text, \{ reason: 'commit' \}\)[\s\S]*protected: !!prepared\.encrypted/, 'protected markdown commit payloads should stage ciphertext instead of editor plaintext');
-assert.match(composer, /function getLockedEncryptedMarkdownDraft[\s\S]*!draft\.encrypted \|\| draft\.decrypted[\s\S]*const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft\(tab\)[\s\S]*alreadyEncrypted = true/, 'publish should reuse locked encrypted draft ciphertext instead of treating empty editor content as plaintext');
+assert.match(composerContentStaging, /async function getCommitFiles\(options = \{\}\)[\s\S]*await Promise\.all\(flushes\)[\s\S]*prepareMarkdownForProtectedStorage\(tab, text, \{ reason: 'commit' \}\)[\s\S]*protected: !!prepared\.encrypted/, 'protected markdown commit payloads should stage ciphertext instead of editor plaintext');
+assert.match([composer, composerContentStaging].join('\n'), /function getLockedEncryptedMarkdownDraft[\s\S]*!draft\.encrypted \|\| draft\.decrypted[\s\S]*const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft\(tab\)[\s\S]*alreadyEncrypted = true/, 'publish should reuse locked encrypted draft ciphertext instead of treating empty editor content as plaintext');
 assert.match(composer, /function bumpMarkdownDraftSaveGeneration[\s\S]*async function saveMarkdownDraftForTab[\s\S]*const saveGeneration = getMarkdownDraftSaveGeneration\(tab\)[\s\S]*if \(saveGeneration !== getMarkdownDraftSaveGeneration\(tab\)\) return null;[\s\S]*function clearMarkdownDraftForTab[\s\S]*bumpMarkdownDraftSaveGeneration\(tab\)/, 'discard and close should cancel in-flight encrypted draft saves before they can rewrite localStorage');
 assert.match(composer, /function createDiscardedMarkdownProtectionState\(protection\)[\s\S]*password: ''[\s\S]*remoteSignature: current\.remoteSignature[\s\S]*setMarkdownProtectionState\(active, createDiscardedMarkdownProtectionState\(protection\)\)/, 'discarding a protected markdown edit should clear discarded password changes instead of reusing them on the next save');
 assert.match(composerStaging, /Object\.defineProperty\(next, 'plaintextContent'[\s\S]*enumerable: false/, 'protected markdown commit plaintext baselines should stay non-enumerable in memory');
@@ -172,7 +174,7 @@ assert.match(main, /await ensureThemeLayout\(\);\s*setBootProgress\(0\.6\);/, 'm
 assert.match(main, /Promise\.allSettled\(\[[\s\S]*loadTabsJson\(getContentRoot\(\), 'tabs'\)[\s\S]*\]\);\s*setBootProgress\(0\.82\);/, 'main should advance boot progress after content and tabs finish loading');
 assert.match(main, /restoreLastSiteRouteIfEntry\(\);\s*routeAndRender\(\);\s*setBootProgress\(1\);\s*clearBootProgress\(\);/, 'main should clear the boot progress bar after the first route render takes over');
 assert.match(main, /renderErrorState\([\s\S]*notifyThemeViewChange\('boot'[\s\S]*setBootProgress\(1\);\s*clearBootProgress\(\);/, 'main should clear the boot progress bar after rendering a boot error state');
-assert.match(composer, /src="assets\/main\.js\?v=[\w.-]+"/, 'composer export template should use the same main module URL as index');
+assert.match(composerSeoStaging, /src="assets\/main\.js\?v=[\w.-]+"/, 'composer SEO staging export template should use the same main module URL as index');
 assert.match(themeBoot, /pack !== 'native'[\s\S]*return;/, 'theme boot should not eagerly apply unvalidated external theme CSS');
 assert.doesNotMatch(themeLayout, /loadThemePack\(DEFAULT_PACK\)/, 'theme layout fallback should not persist Native over a failed external pack');
 assert.match(themeLayout, /clearFailedThemeArtifacts\(pack\)/, 'theme layout fallback should clear partial external theme DOM and styles');

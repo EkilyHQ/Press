@@ -8,20 +8,21 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.39';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.39';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.39';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.39';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.40';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.40';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.40';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.40';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.40';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.39';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.39';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.39';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.39';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.39';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.39';
+} from './encrypted-content.js?v=press-system-v3.4.40';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.40';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.40';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.40';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.40';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.40';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +36,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.39';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.40';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,35 +44,36 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.39';
+} from './composer-site-model.js?v=press-system-v3.4.40';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.39';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.39';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.39';
+} from './editor-storage.js?v=press-system-v3.4.40';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.40';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.40';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.39';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.39';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.39';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.39';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.39';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.39';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.39';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.39';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.39';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.39';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.39';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.39';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.39';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.39';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.39';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.39';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.39';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.39';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.39';
+} from './composer-sync-panel.js?v=press-system-v3.4.40';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.40';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.40';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.40';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.40';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.40';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.40';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.40';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.40';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.40';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.40';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.40';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.40';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.40';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.40';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.40';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.40';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.40';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.40';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.40';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -83,13 +85,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.39';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.39';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.39';
+} from './composer-markdown-state.js?v=press-system-v3.4.40';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.40';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.40';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.39';
+} from './publish/settings-store.js?v=press-system-v3.4.40';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -525,6 +527,51 @@ markdownActionsUi = createComposerMarkdownActionsUi({
   isMarkdownTabProtected,
   setButtonLabel
 });
+const remoteSyncController = createComposerRemoteSyncController({
+  t,
+  fetchContent: (url, options) => fetch(url, options),
+  getContentRootSafe,
+  normalizeRelPath,
+  normalizeMarkdownContent,
+  computeTextSignature,
+  parseEncryptedMarkdownEnvelope,
+  createMarkdownProtectionState,
+  getMarkdownProtectionState,
+  setMarkdownProtectionState,
+  isMarkdownTabProtected,
+  hasMarkdownDraftContent,
+  setDynamicTabStatus,
+  updateDynamicTabDirtyState,
+  updateComposerMarkdownDraftIndicators,
+  getCurrentMode: () => currentMode,
+  getPrimaryEditorApi,
+  basenameFromPath,
+  startRemoteSyncWatcher,
+  showToast,
+  updateMarkdownPushButton,
+  updateMarkdownDiscardButton,
+  updateMarkdownSaveButton,
+  updateMarkdownProtectionButton,
+  parseYAML,
+  prepareIndexState,
+  prepareTabsState,
+  prepareSiteState,
+  cloneSiteState,
+  deepClone,
+  setRemoteBaseline: (kind, value) => {
+    remoteBaseline[kind] = value;
+  },
+  notifyComposerChange,
+  clearDraftStorage,
+  updateUnsyncedSummary,
+  closeComposerDiffModalForKind: (kind) => closeComposerDiffModalForKind(kind)
+});
+const {
+  startMarkdownSyncWatcher,
+  fetchComposerRemoteSnapshot,
+  applyComposerRemoteSnapshot,
+  startComposerSyncWatcher
+} = remoteSyncController;
 const markdownActionsController = createComposerMarkdownActionsController({
   windowRef: window,
   t,
@@ -1567,304 +1614,6 @@ function getActiveComposerFile() {
   if (activeComposerFile === 'tabs') return 'tabs';
   if (activeComposerFile === 'site') return 'site';
   return 'index';
-}
-
-async function fetchMarkdownRemoteSnapshot(tab) {
-  if (!tab || !tab.path) return null;
-  const root = getContentRootSafe();
-  const rel = normalizeRelPath(tab.path);
-  if (!rel) return null;
-  const url = `${root}/${rel}`.replace(/[\\]/g, '/');
-  let res;
-  try {
-    res = await fetch(url, { cache: 'no-store' });
-  } catch (err) {
-    return { state: 'error', status: 0, message: err && err.message ? err.message : t('editor.composer.remoteWatcher.networkError') };
-  }
-
-  const checkedAt = Date.now();
-
-  if (res.status === 404) {
-    return { state: 'missing', status: 404, content: '', signature: computeTextSignature(''), checkedAt };
-  }
-
-  if (!res.ok) {
-    return { state: 'error', status: res.status, message: `HTTP ${res.status}`, checkedAt };
-  }
-
-  const text = normalizeMarkdownContent(await res.text());
-  return {
-    state: 'existing',
-    status: res.status,
-    content: text,
-    signature: computeTextSignature(text),
-    checkedAt
-  };
-}
-
-function applyMarkdownRemoteSnapshot(tab, snapshot, options = {}) {
-  if (!tab) return;
-  const normalized = normalizeMarkdownContent(snapshot && snapshot.content != null ? snapshot.content : '');
-  const envelope = parseEncryptedMarkdownEnvelope(normalized);
-  const protectedSnapshot = envelope.encrypted;
-  const remoteBaseline = protectedSnapshot
-    ? normalizeMarkdownContent((options && options.plaintextContent) || tab.content || '')
-    : normalized;
-  tab.remoteContent = remoteBaseline;
-  tab.remoteSignature = computeTextSignature(normalized);
-  tab.loaded = true;
-  if (protectedSnapshot) {
-    setMarkdownProtectionState(tab, {
-      ...getMarkdownProtectionState(tab),
-      enabled: true,
-      encryptedRemote: true,
-      passwordChanged: false,
-      remoteSignature: tab.remoteSignature,
-      remoteCiphertext: envelope.ciphertext || ''
-    });
-  } else if (!isMarkdownTabProtected(tab)) {
-    setMarkdownProtectionState(tab, createMarkdownProtectionState());
-  }
-
-  const stateLabel = snapshot && snapshot.state === 'missing' ? 'missing' : 'existing';
-  const statusCode = snapshot && snapshot.status;
-  const statusMessage = snapshot && snapshot.state === 'missing'
-    ? t('editor.composer.remoteWatcher.fileNotFoundOnServer')
-    : t('editor.composer.remoteWatcher.remoteSnapshotUpdated');
-
-  setDynamicTabStatus(tab, {
-    state: stateLabel,
-    checkedAt: Date.now(),
-    code: statusCode,
-    message: statusMessage
-  });
-
-  if (!hasMarkdownDraftContent(tab)) {
-    const currentNormalized = normalizeMarkdownContent(tab.content || '');
-    tab.content = currentNormalized;
-    if (currentNormalized !== remoteBaseline) {
-      tab.content = remoteBaseline;
-      if (currentMode === tab.mode) {
-        const editorApi = getPrimaryEditorApi();
-        if (editorApi && typeof editorApi.setValue === 'function') {
-          try { editorApi.setValue(remoteBaseline, { notify: false }); } catch (_) {}
-        }
-      }
-    }
-  }
-
-  updateDynamicTabDirtyState(tab, { autoSave: false });
-  updateComposerMarkdownDraftIndicators({ path: tab.path });
-}
-
-function startMarkdownSyncWatcher(tab, options = {}) {
-  if (!tab || !tab.path) return;
-  const expectedSignature = options.expectedSignature || computeTextSignature(tab.content || '');
-  const label = options.label || tab.label || basenameFromPath(tab.path) || tab.path;
-  const isCreate = !!options.isCreate;
-  const message = isCreate
-    ? t('editor.composer.remoteWatcher.waitingForCreate', { label })
-    : t('editor.composer.remoteWatcher.waitingForUpdate', { label });
-
-  const previousStatus = tab.fileStatus && typeof tab.fileStatus === 'object'
-    ? { ...tab.fileStatus }
-    : null;
-
-  setDynamicTabStatus(tab, {
-    state: 'checking',
-    checkedAt: Date.now(),
-    message: t('editor.composer.remoteWatcher.waitingForCommitStatus')
-  });
-  updateMarkdownPushButton(tab);
-
-  startRemoteSyncWatcher({
-    title: t('editor.composer.remoteWatcher.checkingRemoteChanges'),
-    message,
-    initialStatus: t('editor.composer.remoteWatcher.waitingForCommit'),
-    cancelLabel: t('editor.composer.remoteWatcher.stopWaiting'),
-    fetch: async ({ attempts }) => {
-      const snapshot = await fetchMarkdownRemoteSnapshot(tab);
-      if (!snapshot) {
-        return { done: false, statusMessage: t('editor.composer.remoteWatcher.waitingForRemoteResponse'), retryDelay: 5000 };
-      }
-      if (snapshot.state === 'error') {
-        const msg = snapshot.message
-          ? t('editor.composer.remoteWatcher.errorWithDetail', { message: snapshot.message })
-          : t('editor.composer.remoteWatcher.remoteCheckFailedRetry');
-        return { done: false, statusMessage: msg, retryDelay: 6000 };
-      }
-      if (snapshot.state === 'missing') {
-        const done = expectedSignature === computeTextSignature('');
-        const statusMessage = isCreate
-          ? t('editor.composer.remoteWatcher.remoteFileNotFoundYet')
-          : t('editor.composer.remoteWatcher.remoteFileStillMissing');
-        return { done, data: snapshot, statusMessage, retryDelay: 5600 };
-      }
-      const matches = snapshot.signature === expectedSignature;
-      if (matches) {
-        return { done: true, data: snapshot, statusMessage: t('editor.composer.remoteWatcher.updateDetectedRefreshing') };
-      }
-      const waitingStatus = attempts >= 3
-        ? t('editor.composer.remoteWatcher.remoteFileDiffersWaiting')
-        : t('editor.composer.remoteWatcher.remoteFileExistsDiffersWaiting');
-      const response = {
-        done: false,
-        statusMessage: waitingStatus,
-        retryDelay: 5200
-      };
-      if (attempts === 3) {
-        response.message = t('editor.composer.remoteWatcher.mismatchAdvice');
-      }
-      return response;
-    },
-    onSuccess: (result) => {
-      if (result && result.data) {
-        applyMarkdownRemoteSnapshot(tab, result.data, {
-          plaintextContent: options.plaintextContent || ''
-        });
-        if (result.mismatch) {
-          showToast('warn', t('editor.toasts.remoteMarkdownMismatch'), { duration: 4200 });
-        } else {
-          showToast('success', t('editor.toasts.markdownSynced'));
-        }
-      }
-      updateMarkdownPushButton(tab);
-      updateMarkdownDiscardButton(tab);
-      updateMarkdownSaveButton(tab);
-      updateMarkdownProtectionButton(tab);
-    },
-    onCancel: () => {
-      const fallbackStatus = (previousStatus && previousStatus.state)
-        ? previousStatus
-        : { state: isCreate ? 'missing' : 'existing' };
-      setDynamicTabStatus(tab, {
-        ...fallbackStatus,
-        checkedAt: Date.now(),
-        message: t('editor.composer.remoteWatcher.remoteCheckCanceled')
-      });
-      updateMarkdownPushButton(tab);
-      updateMarkdownDiscardButton(tab);
-      updateMarkdownSaveButton(tab);
-      updateMarkdownProtectionButton(tab);
-      showToast('info', t('editor.toasts.remoteCheckCanceledUseRefresh'));
-    }
-  });
-}
-
-async function fetchComposerRemoteSnapshot(kind) {
-  const safeKind = kind === 'tabs' ? 'tabs' : (kind === 'site' ? 'site' : 'index');
-  const root = getContentRootSafe();
-  const base = safeKind === 'tabs' ? 'tabs' : (safeKind === 'site' ? 'site' : 'index');
-  const urls = [`${root}/${base}.yaml`, `${root}/${base}.yml`];
-  let lastStatus = 404;
-  for (const url of urls) {
-    let res;
-    try {
-      res = await fetch(url, { cache: 'no-store' });
-    } catch (err) {
-      return { state: 'error', status: 0, message: err && err.message ? err.message : t('editor.composer.remoteWatcher.networkError') };
-    }
-    lastStatus = res.status;
-    if (res.status === 404) continue;
-    if (!res.ok) {
-      return { state: 'error', status: res.status, message: `HTTP ${res.status}` };
-    }
-    const text = await res.text();
-    let parsed = null;
-    try { parsed = parseYAML(text); }
-    catch (_) { parsed = null; }
-    return {
-      state: 'existing',
-      status: res.status,
-      text,
-      parsed,
-      signature: computeTextSignature(text)
-    };
-  }
-  return { state: 'missing', status: lastStatus };
-}
-
-function applyComposerRemoteSnapshot(kind, snapshot) {
-  const safeKind = kind === 'tabs' ? 'tabs' : (kind === 'site' ? 'site' : 'index');
-  if (!snapshot || snapshot.state !== 'existing') return;
-  let parsed = snapshot.parsed;
-  if (!parsed || typeof parsed !== 'object') {
-    try { parsed = parseYAML(snapshot.text || ''); }
-    catch (_) { parsed = null; }
-  }
-  if (!parsed || typeof parsed !== 'object') {
-    const targetLabel = safeKind === 'tabs' ? 'tabs.yaml' : (safeKind === 'site' ? 'site.yaml' : 'index.yaml');
-    showToast('warn', t('editor.toasts.yamlParseFailed', { label: targetLabel }), { duration: 4200 });
-    return;
-  }
-  let prepared;
-  if (safeKind === 'tabs') prepared = prepareTabsState(parsed || {});
-  else if (safeKind === 'site') prepared = cloneSiteState(prepareSiteState(parsed || {}));
-  else prepared = prepareIndexState(parsed || {});
-  remoteBaseline[safeKind] = safeKind === 'site' ? prepared : deepClone(prepared);
-  notifyComposerChange(safeKind, { skipAutoSave: true });
-}
-
-function startComposerSyncWatcher(kind, options = {}) {
-  const safeKind = kind === 'tabs' ? 'tabs' : (kind === 'site' ? 'site' : 'index');
-  const label = safeKind === 'tabs' ? 'tabs.yaml' : (safeKind === 'site' ? 'site.yaml' : 'index.yaml');
-  const expectedText = options.expectedText != null ? String(options.expectedText) : '';
-  const expectedSignature = computeTextSignature(expectedText);
-  const message = options.message || t('editor.composer.remoteWatcher.waitingForLabel', { label });
-
-  startRemoteSyncWatcher({
-    title: options.title || t('editor.composer.remoteWatcher.waitingForGitHub'),
-    message,
-    initialStatus: options.initialStatus || t('editor.composer.remoteWatcher.waitingForCommit'),
-    cancelLabel: options.cancelLabel || t('editor.composer.remoteWatcher.stopWaiting'),
-    fetch: async ({ attempts }) => {
-      const snapshot = await fetchComposerRemoteSnapshot(safeKind);
-      if (!snapshot) {
-        return { done: false, statusMessage: t('editor.composer.remoteWatcher.waitingForRemote'), retryDelay: 5200 };
-      }
-      if (snapshot.state === 'missing') {
-        return { done: false, statusMessage: t('editor.composer.remoteWatcher.yamlNotFoundYet', { label }), retryDelay: 5600 };
-      }
-      if (snapshot.state === 'error') {
-        const msg = snapshot.message
-          ? t('editor.composer.remoteWatcher.errorWithDetail', { message: snapshot.message })
-          : t('editor.composer.remoteWatcher.remoteCheckFailedRetry');
-        return { done: false, statusMessage: msg, retryDelay: 6200 };
-      }
-      const matches = snapshot.signature === expectedSignature;
-      if (matches) {
-        return { done: true, data: snapshot, statusMessage: t('editor.composer.remoteWatcher.updateDetectedRefreshing') };
-      }
-      const waitingStatus = attempts >= 3
-        ? t('editor.composer.remoteWatcher.remoteYamlDiffersWaiting')
-        : t('editor.composer.remoteWatcher.remoteYamlExistsDiffersWaiting');
-      const response = {
-        done: false,
-        statusMessage: waitingStatus,
-        retryDelay: 5400
-      };
-      if (attempts === 3) {
-        response.message = t('editor.composer.remoteWatcher.yamlMismatchAdvice');
-      }
-      return response;
-    },
-    onSuccess: (result) => {
-      if (result && result.data) {
-        applyComposerRemoteSnapshot(safeKind, result.data);
-        if (result.mismatch) {
-          showToast('warn', t('editor.toasts.yamlUpdatedDifferently', { label }), { duration: 4600 });
-        } else {
-          clearDraftStorage(safeKind);
-          updateUnsyncedSummary();
-          closeComposerDiffModalForKind(safeKind);
-          showToast('success', t('editor.toasts.yamlSynced', { label }));
-        }
-      }
-    },
-    onCancel: () => {
-      showToast('info', t('editor.toasts.remoteCheckCanceledClickRefresh'));
-    }
-  });
 }
 
 function setButtonLabel(btn, label) {

@@ -2457,7 +2457,6 @@ const {
   promptArticleVersionValue,
   removeEditorLanguage,
   removeEditorVersion,
-  renameEditorEntry,
   restoreDeletedEditorTreeNode
 } = composerContentMutations;
 

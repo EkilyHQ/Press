@@ -307,9 +307,9 @@ export function createComposerRemoteSyncController(options = {}) {
       return;
     }
     let prepared;
-    if (safeKind === 'tabs') prepared = prepareTabsState(parsed || {});
-    else if (safeKind === 'site') prepared = cloneSiteState(prepareSiteState(parsed || {}));
-    else prepared = prepareIndexState(parsed || {});
+    if (safeKind === 'tabs') prepared = prepareTabsState(parsed);
+    else if (safeKind === 'site') prepared = cloneSiteState(prepareSiteState(parsed));
+    else prepared = prepareIndexState(parsed);
     setRemoteBaseline(safeKind, safeKind === 'site' ? prepared : deepClone(prepared));
     notifyComposerChange(safeKind, { skipAutoSave: true });
   }

@@ -60,7 +60,7 @@ function createHarness(overrides = {}) {
       return String(parts.at(-2) || '').toLowerCase();
     }).filter(Boolean)),
     isComposerVersionTag: (value) => /^v\d+\.\d+\.\d+$/.test(String(value || '')),
-    normalizeComposerVersionTag: (value) => String(value || '').trim().toLowerCase().replace(/^v/, 'v'),
+    normalizeComposerVersionTag: (value) => String(value || '').trim().toLowerCase(),
     displayLangName: (value) => String(value || '').toUpperCase(),
     requestAnimationFrameRef: (callback) => {
       calls.push(['raf']);

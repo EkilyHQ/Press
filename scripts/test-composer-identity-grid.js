@@ -27,6 +27,7 @@ const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
+const composerMarkdownActionsPath = resolve(here, '../assets/js/composer-markdown-actions.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -70,6 +71,7 @@ const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
+const composerMarkdownActionsSource = readFileSync(composerMarkdownActionsPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -449,6 +451,24 @@ assert.match(
   composerMarkdownActionsUiSource,
   /const MARKDOWN_PUSH_LABEL_KEYS[\s\S]*export function createComposerMarkdownActionsUi\(options = \{\}\)[\s\S]*function updatePushButton\(tab\)[\s\S]*function updateDiscardButton\(tab\)[\s\S]*function updateSaveButton\(tab\)[\s\S]*function updateProtectionButton\(tab\)/,
   'Markdown actions UI boundary should own Push, Discard, Save, and Protection button state rendering'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-markdown-actions\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown actions controller boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /async function manualSaveActiveMarkdown|async function handleMarkdownProtectionButton|async function openMarkdownPushOnGitHub|async function discardMarkdownLocalChanges|const plaintextContent = normalizeMarkdownContent\(tab\.content != null \? String\(tab\.content\) : ''\);[\s\S]*startMarkdownSyncWatcher\(tab,/,
+  'Markdown action commands should stay outside the main composer shell'
+);
+
+assert.match(
+  composerMarkdownActionsSource,
+  /export function createComposerMarkdownActionsController\(options = \{\}\)[\s\S]*async function manualSaveActiveMarkdown\(triggerButton\)[\s\S]*async function handleMarkdownProtectionButton\(anchor\)[\s\S]*async function openMarkdownPushOnGitHub\(tab\)[\s\S]*async function discardMarkdownLocalChanges\(tab, anchor\)/,
+  'Markdown actions controller should own save, protection, GitHub open, and discard command flows'
 );
 
 assert.match(

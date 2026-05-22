@@ -8,21 +8,21 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { escapeHtml } from './utils.js?v=press-system-v3.4.40';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.40';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.40';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.40';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.40';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.41';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.41';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.41';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.41';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.41';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.40';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.40';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.40';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.40';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.40';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.40';
+} from './encrypted-content.js?v=press-system-v3.4.41';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.41';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.41';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.41';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.41';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.41';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -36,7 +36,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.40';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.41';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -44,36 +44,37 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.40';
+} from './composer-site-model.js?v=press-system-v3.4.41';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.40';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.40';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.40';
+} from './editor-storage.js?v=press-system-v3.4.41';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.41';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.41';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.40';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.40';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.40';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.40';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.40';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.40';
-import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.40';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.40';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.40';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.40';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.40';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.40';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.40';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.40';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.40';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.40';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.40';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.40';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.40';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.40';
+} from './composer-sync-panel.js?v=press-system-v3.4.41';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.41';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.41';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.41';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.41';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.41';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.41';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.41';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.41';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.41';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.41';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.41';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.41';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.41';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.41';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.41';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.41';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.41';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.41';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.41';
+import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.41';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -85,13 +86,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.40';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.40';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.40';
+} from './composer-markdown-state.js?v=press-system-v3.4.41';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.41';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.41';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.40';
+} from './publish/settings-store.js?v=press-system-v3.4.41';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -753,10 +754,22 @@ let activeComposerState = null;
 let remoteBaseline = { index: null, tabs: null, site: null };
 let composerSiteLocalOverride = {};
 let composerDiffCache = { index: null, tabs: null, site: null };
-let composerDraftMeta = { index: null, tabs: null, site: null };
-let composerAutoSaveTimers = { index: null, tabs: null, site: null };
 let activeComposerFile = 'index';
 let composerViewTransition = null;
+
+const composerYamlDraftController = createComposerYamlDraftController({
+  draftStore: composerDraftStore,
+  getStateSlice,
+  setStateSlice,
+  getComposerDiff: (kind) => composerDiffCache[kind],
+  computeBaselineSignature,
+  prepareIndexState,
+  prepareTabsState,
+  cloneSiteState,
+  updateUnsyncedSummary,
+  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
+  clearTimeoutRef: (id) => window.clearTimeout(id)
+});
 
 let composerReduceMotionQuery = null;
 const composerInlineVisibilityAnimations = new WeakMap();
@@ -1636,12 +1649,12 @@ function truncateText(value, max = 60) {
   return `${str.slice(0, Math.max(0, max - 1))}…`;
 }
 
-function readDraftStore() {
-  return composerDraftStore.read();
+function getComposerDraftMeta(kind) {
+  return composerYamlDraftController.getDraftMeta(kind);
 }
 
-function writeDraftStore(store) {
-  composerDraftStore.write(store);
+function hasAnyComposerDraftMeta() {
+  return composerYamlDraftController.hasAnyDraftMeta();
 }
 
 async function requestPasswordForProtectedMarkdown(tab, options = {}) {
@@ -2177,7 +2190,7 @@ function updateModeDirtyIndicators(summaryEntries) {
   if (!composerCount) {
     try {
       if (hasUnsavedComposerChanges()) composerCount = Math.max(composerCount, 1);
-      else if (composerDraftMeta && (composerDraftMeta.index || composerDraftMeta.tabs || composerDraftMeta.site)) composerCount = Math.max(composerCount, 1);
+      else if (hasAnyComposerDraftMeta()) composerCount = Math.max(composerCount, 1);
     } catch (_) { /* ignore */ }
   }
 
@@ -2236,7 +2249,7 @@ function updateDiscardButtonVisibility() {
   const activeKind = getActiveComposerFile();
   const normalizedKind = activeKind === 'tabs' ? 'tabs' : activeKind === 'site' ? 'site' : 'index';
   const diff = composerDiffCache[normalizedKind];
-  const meta = composerDraftMeta[normalizedKind];
+  const meta = getComposerDraftMeta(normalizedKind);
   const hasLocalChanges = !!(diff && diff.hasChanges);
   const hasDraft = !!meta;
   const shouldShow = hasLocalChanges || hasDraft;
@@ -2450,44 +2463,11 @@ const composerSiteSettingsUi = createComposerSiteSettingsUi({
 });
 
 function scheduleAutoDraft(kind) {
-  if (composerAutoSaveTimers[kind]) {
-    clearTimeout(composerAutoSaveTimers[kind]);
-    composerAutoSaveTimers[kind] = null;
-  }
-  const diff = composerDiffCache[kind];
-  if (!diff || !diff.hasChanges) {
-    clearDraftStorage(kind);
-    updateUnsyncedSummary();
-    return;
-  }
-  composerAutoSaveTimers[kind] = setTimeout(() => {
-    composerAutoSaveTimers[kind] = null;
-    saveDraftToStorage(kind, { manual: false });
-  }, 800);
-}
-
-function saveDraftToStorage(kind, opts = {}) {
-  const slice = getStateSlice(kind);
-  if (!slice) return null;
-  let snapshot;
-  if (kind === 'tabs') snapshot = prepareTabsState(slice);
-  else if (kind === 'site') snapshot = cloneSiteState(slice);
-  else snapshot = prepareIndexState(slice);
-  const store = readDraftStore();
-  const savedAt = Date.now();
-  const baseSignature = computeBaselineSignature(kind);
-  store[kind] = { savedAt, data: snapshot, baseSignature };
-  writeDraftStore(store);
-  composerDraftMeta[kind] = { savedAt, baseSignature, lastManual: !!opts.manual };
-  updateUnsyncedSummary();
-  
-  return composerDraftMeta[kind];
+  composerYamlDraftController.scheduleAutoDraft(kind);
 }
 
 function clearDraftStorage(kind) {
-  composerDraftStore.removeEntry(kind);
-  composerDraftMeta[kind] = null;
-
+  composerYamlDraftController.clearDraftStorage(kind);
 }
 
 function notifyComposerChange(kind, options = {}) {
@@ -2559,28 +2539,7 @@ function rebuildTabsUI(preserveOpen = true) {
 }
 
 function loadDraftSnapshotsIntoState(state) {
-  const restored = [];
-  const store = readDraftStore();
-  if (!store) return restored;
-  ['index', 'tabs', 'site'].forEach(kind => {
-    const entry = store[kind];
-    if (!entry || !entry.data) return;
-    let snapshot;
-    if (kind === 'tabs') snapshot = prepareTabsState(entry.data);
-    else if (kind === 'site') snapshot = cloneSiteState(entry.data);
-    else snapshot = prepareIndexState(entry.data);
-    if (kind === 'tabs') state.tabs = snapshot;
-    else if (kind === 'site') state.site = snapshot;
-    else state.index = snapshot;
-    setStateSlice(kind, snapshot);
-    composerDraftMeta[kind] = {
-      savedAt: Number(entry.savedAt) || Date.now(),
-      baseSignature: entry.baseSignature ? String(entry.baseSignature) : '',
-      lastManual: false
-    };
-    restored.push(kind);
-  });
-  return restored;
+  return composerYamlDraftController.loadDraftSnapshotsIntoState(state);
 }
 
 
@@ -3508,7 +3467,7 @@ async function handleComposerDiscard(btn) {
   const target = getActiveComposerFile();
   const label = target === 'tabs' ? 'tabs.yaml' : target === 'site' ? 'site.yaml' : 'index.yaml';
   const diff = composerDiffCache[target];
-  const meta = composerDraftMeta[target];
+  const meta = getComposerDraftMeta(target);
   const hasChanges = !!(diff && diff.hasChanges);
   const hasDraft = !!meta;
   if (!hasChanges && !hasDraft) {
@@ -3577,10 +3536,7 @@ async function handleComposerDiscard(btn) {
     setStateSlice(target, normalized);
     if (target === 'site') applyComposerEffectiveSiteConfig(normalized);
 
-    if (composerAutoSaveTimers[target]) {
-      clearTimeout(composerAutoSaveTimers[target]);
-      composerAutoSaveTimers[target] = null;
-    }
+    composerYamlDraftController.clearAutoDraftTimer(target);
 
     if (target === 'tabs') rebuildTabsUI();
     else if (target === 'site') rebuildSiteUI();
@@ -4733,10 +4689,10 @@ function collectEditorDiffStatusMap() {
   try {
     const siteDiff = composerDiffCache.site || recomputeDiff('site');
     if (siteDiff && siteDiff.hasChanges) add('system:site-settings', 'modified');
-    else if (composerDraftMeta && composerDraftMeta.site) add('system:site-settings', 'saved');
+    else if (getComposerDraftMeta('site')) add('system:site-settings', 'saved');
   } catch (_) {
     try {
-      if (composerDraftMeta && composerDraftMeta.site) add('system:site-settings', 'saved');
+      if (getComposerDraftMeta('site')) add('system:site-settings', 'saved');
     } catch (__) {}
   }
   try {

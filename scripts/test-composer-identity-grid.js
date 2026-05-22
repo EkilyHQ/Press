@@ -15,6 +15,7 @@ const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
 const composerNotificationsPath = resolve(here, '../assets/js/composer-notifications.js');
 const composerRemoteSyncPath = resolve(here, '../assets/js/composer-remote-sync.js');
+const composerYamlDraftsPath = resolve(here, '../assets/js/composer-yaml-drafts.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
@@ -64,6 +65,7 @@ const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'u
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
 const composerNotificationsSource = readFileSync(composerNotificationsPath, 'utf8');
 const composerRemoteSyncSource = readFileSync(composerRemoteSyncPath, 'utf8');
+const composerYamlDraftsSource = readFileSync(composerYamlDraftsPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
@@ -2451,6 +2453,24 @@ assert.match(
   composerRemoteSyncSource,
   /export function createComposerRemoteSyncController\(options = \{\}\)[\s\S]*async function fetchMarkdownRemoteSnapshot\(tab\)[\s\S]*function applyMarkdownRemoteSnapshot\(tab, snapshot, applyOptions = \{\}\)[\s\S]*function startMarkdownSyncWatcher\(tab, watcherOptions = \{\}\)[\s\S]*async function fetchComposerRemoteSnapshot\(kind\)[\s\S]*function applyComposerRemoteSnapshot\(kind, snapshot\)[\s\S]*function startComposerSyncWatcher\(kind, watcherOptions = \{\}\)/,
   'remote sync controller should own Markdown and YAML remote snapshot fetch, apply, and watcher orchestration'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-yaml-drafts\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted YAML draft boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /let composerDraftMeta|let composerAutoSaveTimers|const composerDraftMeta|const composerAutoSaveTimers/,
+  'index/tabs/site draft metadata and timers should stay outside the main composer shell'
+);
+
+assert.match(
+  composerYamlDraftsSource,
+  /export function createComposerYamlDraftController\(options = \{\}\)[\s\S]*const draftMeta = \{ index: null, tabs: null, site: null \};[\s\S]*const autoSaveTimers = \{ index: null, tabs: null, site: null \};[\s\S]*function saveDraftToStorage\(kind, opts = \{\}\)[\s\S]*function scheduleAutoDraft\(kind\)[\s\S]*function loadDraftSnapshotsIntoState\(state\)/,
+  'YAML draft controller should own index/tabs/site draft metadata, autosave timers, persistence, and restore'
 );
 
 assert.match(

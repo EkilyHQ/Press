@@ -1,5 +1,5 @@
-import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.25';
-import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.25';
+import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.26';
+import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.26';
 
 export function createComposerPublishFlow({
   windowRef = window,

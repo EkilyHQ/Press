@@ -32,6 +32,7 @@ const composerContentMutationsPath = resolve(here, '../assets/js/composer-conten
 const composerSetupVerifierPath = resolve(here, '../assets/js/composer-setup-verifier.js');
 const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-controller.js');
 const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
+const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -87,6 +88,7 @@ const composerContentMutationsSource = readFileSync(composerContentMutationsPath
 const composerSetupVerifierSource = readFileSync(composerSetupVerifierPath, 'utf8');
 const composerModeControllerSource = readFileSync(composerModeControllerPath, 'utf8');
 const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
+const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -117,7 +119,7 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const siteSettingsSource = [source, composerSiteSettingsUiSource].join('\n');
+const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -509,6 +511,30 @@ assert.match(
   composerUnsyncedSummarySource,
   /export function createComposerUnsyncedSummaryController\(options = \{\}\)[\s\S]*function collectUnsyncedMarkdownEntries\(\)[\s\S]*function computeUnsyncedSummary\(\)[\s\S]*function updateModeDirtyIndicators\(summaryEntries\)[\s\S]*function updateUnsyncedSummary\(updateOptions = \{\}\)/,
   'unsynced summary controller should own summary aggregation, mode badges, and review/discard button updates'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-runtime-styles\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted runtime style boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function injectComposerStyles|Minimal styles injected for composer behaviors|const css = `[\s\S]*\.ci-item/,
+  'composer should not inline the runtime style sheet'
+);
+
+assert.match(
+  source,
+  /injectComposerRuntimeStyles\(\{ documentRef: document \}\);/,
+  'composer should delegate runtime style injection to the extracted style module'
+);
+
+assert.match(
+  composerRuntimeStylesSource,
+  /export function injectComposerRuntimeStyles\(options = \{\}\)[\s\S]*composer-runtime-styles[\s\S]*\.ci-item[\s\S]*\.cs-publish-transport-settings[\s\S]*@keyframes nsModalFadeIn/,
+  'runtime style module should own composer list, site settings, publish transport, and modal animation styles'
 );
 
 assert.match(
@@ -3683,13 +3709,13 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  siteSettingsSource,
+  composerRuntimeStylesSource,
   /\.cs-identity-grid/,
-  'composer stylesheet should include identity grid layout rules'
+  'runtime stylesheet should include identity grid layout rules'
 );
 
 assert.match(
-  siteSettingsSource,
+  composerRuntimeStylesSource,
   /grid-template-columns:minmax\(88px,max-content\) minmax\(0,1fr\) minmax\(0,3fr\) minmax\(72px,max-content\)/,
   'desktop identity grid should make the title column one quarter of the title/subtitle input area'
 );
@@ -4104,37 +4130,37 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-field\[data-diff="changed"\],\.cs-repo-grid\[data-diff="changed"\],\.cs-extra-list\[data-diff="changed"\],\.cs-single-grid-row\[data-diff="changed"\]\{background:/,
   'Site editor changed-state highlights should not tint whole field containers'
 );
 
 assert.match(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-field\[data-diff="changed"\] \.cs-input,\.cs-field\[data-diff="changed"\] \.cs-select,[\s\S]*\.cs-single-grid-row\[data-diff="changed"\] \.cs-input,[\s\S]*\.cs-single-grid-row\[data-diff="changed"\] \.cs-select[\s\S]*\{background:color-mix\(in srgb,#f59e0b 10%, transparent\);border-color:color-mix\(in srgb,#f59e0b 45%, var\(--border\)\)\}/,
   'Site editor changed-state highlights should tint changed text and select controls'
 );
 
 assert.match(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-field\[data-diff="changed"\] \.cs-empty\{background:color-mix\(in srgb,#f59e0b 10%, var\(--card\)\);border-color:color-mix\(in srgb,#f59e0b 45%, var\(--border\)\)/,
   'Site editor changed-state highlights should tint empty placeholders for changed list fields'
 );
 
 assert.match(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-repo-grid\[data-diff="changed"\] \.cs-repo-field,[\s\S]*\.cs-extra-list\[data-diff="changed"\] li[\s\S]*background:color-mix\(in srgb,#f59e0b 10%, transparent\)/,
   'Site editor changed-state highlights should tint changed repository fields and read-only key rows'
 );
 
 assert.match(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-field\[data-diff="changed"\] \.cs-switch-track,[\s\S]*\.cs-single-grid-row\[data-diff="changed"\] \.cs-switch-track[\s\S]*background:color-mix\(in srgb,#f59e0b 18%, var\(--card\)\)/,
   'Site editor changed-state highlights should tint changed switch tracks'
 );
 
 assert.doesNotMatch(
-  source,
+  composerRuntimeStylesSource,
   /\[data-diff="changed"\][^{]*\{[^}]*box-shadow:inset[^}]*\}/,
   'Site editor changed-state highlights should not add inset bars'
 );
@@ -4440,13 +4466,13 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-localized-row--multiline textarea\.cs-localized-textarea\{box-sizing:border-box;display:block;height:var\(--cs-editor-control-height\);min-height:var\(--cs-editor-control-height\);max-height:var\(--cs-editor-control-height\);padding-block:0;line-height:calc\(var\(--cs-editor-control-height\) - 2px\);resize:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;transition:height \.18s ease/,
   'collapsed multiline textareas should keep the real control but use input-like vertical centering'
 );
 
 assert.match(
-  source,
+  composerRuntimeStylesSource,
   /\.cs-localized-row--multiline\.is-expanded,.cs-localized-row--multiline:has\(textarea\.cs-localized-textarea:focus\)\{align-items:start\}[\s\S]*\.cs-localized-row--multiline\.is-expanded \.cs-remove-lang,.cs-localized-row--multiline:has\(textarea\.cs-localized-textarea:focus\) \.cs-remove-lang\{align-self:start\}[\s\S]*\.cs-localized-row--multiline\.is-expanded textarea\.cs-localized-textarea\{height:4\.6rem;min-height:4\.6rem;max-height:12rem;padding-block:\.3rem;line-height:1\.25;resize:vertical;overflow:auto;white-space:pre-wrap\}[\s\S]*\.cs-localized-row--multiline:has\(textarea\.cs-localized-textarea:focus\) textarea\.cs-localized-textarea\{height:4\.6rem;min-height:4\.6rem;max-height:12rem;padding-block:\.3rem;line-height:1\.25;resize:vertical;overflow:auto;white-space:pre-wrap/,
   'focused multiline textareas should animate open without replacing the control'
 );

@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.26",
-  "tag": "v3.4.26",
-  "version": "3.4.26",
-  "publishedAt": "2026-05-22T07:53:14Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.26.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.26.zip`\n- SHA-256: `77cc50dfe43e0fba32efc7956bd7d0a5ae6a82a9a2cb2fdb311f130fc6d897bd`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/editor-structure-panel-ui.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.25...v3.4.26\n",
+  "name": "v3.4.27",
+  "tag": "v3.4.27",
+  "version": "3.4.27",
+  "publishedAt": "2026-05-22T08:28:56Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.27.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.27.zip`\n- SHA-256: `bbe851fb08f1c4e287d7f988eaa467fbc8d6d312f13233a90b5960c4f67d375c`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-index-tabs-ui.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.26...v3.4.27\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.25 <3.4.26"
+      ">=3.4.26 <3.4.27"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.25 first."
+    "message": "Update to v3.4.26 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.26",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.27",
   "asset": {
-    "name": "press-system-v3.4.26.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.26/press-system-v3.4.26.zip",
-    "size": 1617064,
-    "digest": "sha256:77cc50dfe43e0fba32efc7956bd7d0a5ae6a82a9a2cb2fdb311f130fc6d897bd"
+    "name": "press-system-v3.4.27.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.27/press-system-v3.4.27.zip",
+    "size": 1618409,
+    "digest": "sha256:bbe851fb08f1c4e287d7f988eaa467fbc8d6d312f13233a90b5960c4f67d375c"
   }
 }

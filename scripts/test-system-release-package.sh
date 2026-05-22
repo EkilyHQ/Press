@@ -131,6 +131,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-unsynced-summary.js" "
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-runtime-styles.js" "${entries_file}"; then
+  echo "expected package to include composer runtime style code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-content-tree-controller.js" "${entries_file}"; then
   echo "expected package to include editor content tree controller code" >&2
   exit 1

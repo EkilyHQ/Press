@@ -14,6 +14,7 @@ const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publi
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
 const composerNotificationsPath = resolve(here, '../assets/js/composer-notifications.js');
+const composerRemoteSyncPath = resolve(here, '../assets/js/composer-remote-sync.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
@@ -62,6 +63,7 @@ const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPa
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
 const composerNotificationsSource = readFileSync(composerNotificationsPath, 'utf8');
+const composerRemoteSyncSource = readFileSync(composerRemoteSyncPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
@@ -171,6 +173,12 @@ assert.match(
   editorSource,
   /assets\/js\/editor-boot\.js\?v=[\w.-]+/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
+);
+
+assert.match(
+  source,
+  /import \{ escapeHtml \} from '\.\/utils\.js\?v=[\w.-]+';/,
+  'composer should import the shared HTML escaper before wiring UI controllers'
 );
 
 assert.match(
@@ -2425,6 +2433,24 @@ assert.match(
   composerNotificationsSource,
   /export function createComposerNotificationController\(options = \{\}\)[\s\S]*function ensureToastRoot\(\)[\s\S]*function showToast\(kind, text, toastOptions = \{\}\)[\s\S]*function preparePopupWindow\(\)[\s\S]*function finalizePopupWindow\(win, href\)[\s\S]*function handlePopupBlocked\(href, popupOptions = \{\}\)/,
   'notification boundary should own toast DOM rendering and popup-window fallback behavior'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-remote-sync\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted remote sync boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /async function fetchMarkdownRemoteSnapshot|function applyMarkdownRemoteSnapshot|function startMarkdownSyncWatcher|async function fetchComposerRemoteSnapshot|function applyComposerRemoteSnapshot|function startComposerSyncWatcher/,
+  'Markdown and YAML remote snapshot polling should stay outside the main composer shell'
+);
+
+assert.match(
+  composerRemoteSyncSource,
+  /export function createComposerRemoteSyncController\(options = \{\}\)[\s\S]*async function fetchMarkdownRemoteSnapshot\(tab\)[\s\S]*function applyMarkdownRemoteSnapshot\(tab, snapshot, applyOptions = \{\}\)[\s\S]*function startMarkdownSyncWatcher\(tab, watcherOptions = \{\}\)[\s\S]*async function fetchComposerRemoteSnapshot\(kind\)[\s\S]*function applyComposerRemoteSnapshot\(kind, snapshot\)[\s\S]*function startComposerSyncWatcher\(kind, watcherOptions = \{\}\)/,
+  'remote sync controller should own Markdown and YAML remote snapshot fetch, apply, and watcher orchestration'
 );
 
 assert.match(

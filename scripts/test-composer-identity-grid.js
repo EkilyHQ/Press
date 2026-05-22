@@ -30,6 +30,7 @@ const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markd
 const composerMarkdownActionsPath = resolve(here, '../assets/js/composer-markdown-actions.js');
 const composerMarkdownStatePath = resolve(here, '../assets/js/composer-markdown-state.js');
 const composerMarkdownDraftsPath = resolve(here, '../assets/js/composer-markdown-drafts.js');
+const composerMarkdownSessionPath = resolve(here, '../assets/js/composer-markdown-session.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -76,6 +77,7 @@ const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPa
 const composerMarkdownActionsSource = readFileSync(composerMarkdownActionsPath, 'utf8');
 const composerMarkdownStateSource = readFileSync(composerMarkdownStatePath, 'utf8');
 const composerMarkdownDraftsSource = readFileSync(composerMarkdownDraftsPath, 'utf8');
+const composerMarkdownSessionSource = readFileSync(composerMarkdownSessionPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -2690,7 +2692,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerMarkdownSessionSource,
   /const data = \{[\s\S]*path: normalized,[\s\S]*tabsKey:[\s\S]*tabsLang:[\s\S]*editorTreeNodeId:[\s\S]*lookupKey:/,
   'dynamic markdown tabs should persist a stable identity for shared-path tabs content'
 );
@@ -2762,8 +2764,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function deriveDynamicTabIdentity\(path, options = \{\}\) \{[\s\S]*const explicitLookupKey = String\(opts\.lookupKey \|\| ''\)\.trim\(\);[\s\S]*const source = String\([\s\S]*opts\.source[\s\S]*inferMarkdownSourceFromPath\(normalizedPath\)[\s\S]*const lookupKey = explicitLookupKey \|\| \(\(source === 'tabs' && key && lang\)/,
+  composerMarkdownSessionSource,
+  /function deriveDynamicTabIdentity\(path, identityOptions = \{\}\) \{[\s\S]*const explicitLookupKey = String\(opts\.lookupKey \|\| ''\)\.trim\(\);[\s\S]*const source = String\([\s\S]*opts\.source[\s\S]*inferMarkdownSourceFromPath\(normalizedPath\)[\s\S]*const lookupKey = explicitLookupKey \|\| \(\(source === 'tabs' && key && lang\)/,
   'composer should preserve explicit file-source identity and persisted lookup keys for dynamic markdown tabs'
 );
 
@@ -3109,8 +3111,20 @@ assert.match(
 
 assert.match(
   source,
-  /let activeMarkdownDocument = null;/,
-  'markdown editor should track a single active document instead of visible tab state'
+  /from '\.\/composer-markdown-session\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown session boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /const dynamicEditorTabs = new Map\(\)|const dynamicEditorTabsByLookupKey = new Map\(\)|let dynamicTabCounter|let activeDynamicMode = null|let activeMarkdownDocument = null|function deriveDynamicTabIdentity/,
+  'dynamic markdown tab maps, active document state, and identity derivation should stay outside the main composer shell'
+);
+
+assert.match(
+  composerMarkdownSessionSource,
+  /export function createComposerMarkdownSessionController\(options = \{\}\)[\s\S]*const tabs = new Map\(\);[\s\S]*const tabsByLookupKey = new Map\(\);[\s\S]*let activeDynamicMode = null;[\s\S]*let activeMarkdownDocument = null;[\s\S]*function deriveDynamicTabIdentity\(path, identityOptions = \{\}\)/,
+  'Markdown session controller should own dynamic tabs, active document state, and stable identity derivation'
 );
 
 assert.doesNotMatch(
@@ -3130,26 +3144,26 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
-  /function getOrCreateDynamicMode\(path, options = \{\}\) \{[\s\S]*const identity = deriveDynamicTabIdentity\(path, options\);[\s\S]*const existing = dynamicEditorTabsByLookupKey\.get\(identity\.lookupKey\);[\s\S]*button: null,[\s\S]*dynamicEditorTabs\.set\(modeId, data\);[\s\S]*dynamicEditorTabsByLookupKey\.set\(identity\.lookupKey, modeId\);/,
+  composerMarkdownSessionSource,
+  /function getOrCreateDynamicMode\(path, tabOptions = \{\}\) \{[\s\S]*const identity = deriveDynamicTabIdentity\(path, tabOptions\);[\s\S]*const existing = tabsByLookupKey\.get\(identity\.lookupKey\);[\s\S]*button: null,[\s\S]*tabs\.set\(modeId, data\);[\s\S]*tabsByLookupKey\.set\(identity\.lookupKey, modeId\);/,
   'markdown document state should no longer create visible dynamic tab buttons'
 );
 
 assert.match(
-  source,
-  /function openMarkdownInEditor\(path, options = \{\}\) \{[\s\S]*flushMarkdownDraft\(active\);[\s\S]*const modeId = getOrCreateDynamicMode\(path, options\);[\s\S]*applyMode\(modeId\);/,
+  composerMarkdownSessionSource,
+  /function openMarkdownInEditor\(path, openOptions = \{\}\) \{[\s\S]*flushMarkdownDraft\(active\);[\s\S]*const modeId = getOrCreateDynamicMode\(path, openOptions\);[\s\S]*applyMode\(modeId\);/,
   'switching files from the tree should flush the current markdown draft before opening the next file'
 );
 
 assert.match(
-  source,
-  /function persistDynamicEditorState\(\) \{[\s\S]*const open = Array\.from\(dynamicEditorTabs\.values\(\)\)[\s\S]*lookupKey: tab\.lookupKey \|\| tab\.path,[\s\S]*path: tab\.path,[\s\S]*activeLookupKey: active && \(active\.lookupKey \|\| active\.path\) \? \(active\.lookupKey \|\| active\.path\) : null,[\s\S]*activePath: active && active\.path \? active\.path : null,[\s\S]*expandedNodeIds: editorContentTreeController\.getExpandedNodeIdsSnapshot\(\),/,
+  composerMarkdownSessionSource,
+  /function persistEditorState\(\) \{[\s\S]*const open = valuesFromMap\(tabs\)[\s\S]*lookupKey: tab\.lookupKey \|\| tab\.path,[\s\S]*path: tab\.path,[\s\S]*activeLookupKey: active && \(active\.lookupKey \|\| active\.path\) \? \(active\.lookupKey \|\| active\.path\) : null,[\s\S]*activePath: active && active\.path \? active\.path : null,[\s\S]*expandedNodeIds: getExpandedNodeIdsSnapshot\(\),/,
   'dynamic markdown session state should persist opened files with stable lookup keys, plus active file identity and exact tree expansion'
 );
 
 assert.match(
-  source,
-  /function restoreDynamicEditorState\(\) \{[\s\S]*const open = Array\.isArray\(data\.open\) \? data\.open : \[\];[\s\S]*const lookupKey = item && typeof item === 'object'[\s\S]*const path = item && typeof item === 'object'[\s\S]*getOrCreateDynamicMode\(path, \{[\s\S]*source:[\s\S]*key:[\s\S]*lang:[\s\S]*editorTreeNodeId:[\s\S]*lookupKey[\s\S]*\}\);[\s\S]*editorContentTreeController\.restoreExpandedNodeIds\(data\.expandedNodeIds\);[\s\S]*const activeLookupKey = String\(data\.activeLookupKey \|\| ''\)\.trim\(\);[\s\S]*const activePath = data\.activePath \? normalizeRelPath\(data\.activePath\) : '';[\s\S]*if \(\(isV3 \? data\.mode === 'markdown' : true\) && \(activeLookupKey \|\| activePath\)\) \{[\s\S]*const modeId = \(activeLookupKey && dynamicEditorTabsByLookupKey\.get\(activeLookupKey\)\)[\s\S]*\|\| \(activePath && dynamicEditorTabsByLookupKey\.get\(activePath\)\)[\s\S]*\|\| \(activePath \? getOrCreateDynamicMode\(activePath\) : null\);[\s\S]*applyMode\(modeId, \{ preserveTreeExpansion: true, restoreScroll: true \}\);/,
+  composerMarkdownSessionSource,
+  /function restoreEditorState\(\) \{[\s\S]*const open = Array\.isArray\(data\.open\) \? data\.open : \[\];[\s\S]*const lookupKey = item && typeof item === 'object'[\s\S]*const path = item && typeof item === 'object'[\s\S]*getOrCreateDynamicMode\(path, \{[\s\S]*source:[\s\S]*key:[\s\S]*lang:[\s\S]*editorTreeNodeId:[\s\S]*lookupKey[\s\S]*\}\);[\s\S]*restoreExpandedNodeIds\(data\.expandedNodeIds\);[\s\S]*const activeLookupKey = String\(data\.activeLookupKey \|\| ''\)\.trim\(\);[\s\S]*const activePath = data\.activePath \? normalizeRelPath\(data\.activePath\) : '';[\s\S]*if \(\(isV3 \? data\.mode === 'markdown' : true\) && \(activeLookupKey \|\| activePath\)\) \{[\s\S]*const modeId = \(activeLookupKey && tabsByLookupKey\.get\(activeLookupKey\)\)[\s\S]*\|\| \(activePath && tabsByLookupKey\.get\(activePath\)\)[\s\S]*\|\| \(activePath \? getOrCreateDynamicMode\(activePath\) : null\);[\s\S]*applyMode\(modeId, \{ preserveTreeExpansion: true, restoreScroll: true \}\);/,
   'dynamic markdown session restore should recreate open files and active file identity with stable lookup keys'
 );
 
@@ -3203,7 +3217,7 @@ assert.match(
 
 assert.match(
   source,
-  /function applyMode\(mode, options = \{\}\) \{[\s\S]*mode === 'editor' && dynamicEditorTabs\.size && !options\.forceStructure/,
+  /function applyMode\(mode, options = \{\}\) \{[\s\S]*mode === 'editor' && getDynamicEditorTabs\(\)\.size && !options\.forceStructure/,
   'editor structure selection should be able to bypass dynamic markdown document restoration'
 );
 

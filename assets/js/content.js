@@ -1,4 +1,4 @@
-import { getCanonicalFrontMatterKey, parseMarkdownFrontMatter } from './frontmatter-document.js?v=press-system-v3.4.37';
+import { getCanonicalFrontMatterKey, parseMarkdownFrontMatter } from './frontmatter-document.js?v=press-system-v3.4.38';
 
 // Helpers for generating excerpts/snippets from markdown
 export function stripMarkdownToText(md) {

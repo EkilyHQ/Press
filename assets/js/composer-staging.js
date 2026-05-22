@@ -28,10 +28,21 @@ export function createCommitFileCollector() {
 function normalizeProviderEntries(entries, provider) {
   return (Array.isArray(entries) ? entries : [])
     .filter(entry => entry && typeof entry === 'object')
-    .map(entry => ({
-      ...entry,
-      providerId: entry.providerId || provider.id
-    }));
+    .map(entry => {
+      const next = {
+        ...entry,
+        providerId: entry.providerId || provider.id
+      };
+      if (Object.prototype.hasOwnProperty.call(entry, 'plaintextContent')) {
+        Object.defineProperty(next, 'plaintextContent', {
+          value: String(entry.plaintextContent || ''),
+          enumerable: false,
+          configurable: true,
+          writable: true
+        });
+      }
+      return next;
+    });
 }
 
 export function createStagingRegistry() {

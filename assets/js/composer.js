@@ -8,47 +8,48 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.20';
-import { generateSitemapData, resolveSiteBaseUrl } from './seo.js?v=press-system-v3.4.20';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.20';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.20';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.20';
-import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.21';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.21';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.21';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.21';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.20';
+} from './encrypted-content.js?v=press-system-v3.4.21';
 import {
   collectLocalMarkdownAssetReferences,
   collectManagedMarkdownReferences,
   listLocalMarkdownAssetReferences,
-  planManagedContentDeletions,
   resolveLocalMarkdownAssetReference
-} from './repository-deletions.js?v=press-system-v3.4.20';
-import { createCommitFileCollector, createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.20';
+} from './repository-deletions.js?v=press-system-v3.4.21';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.21';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.21';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.21';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.21';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.21';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.20';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.20';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.20';
+} from './editor-storage.js?v=press-system-v3.4.21';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.21';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.21';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.20';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.20';
+} from './composer-sync-panel.js?v=press-system-v3.4.21';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.21';
 import {
   animateEditorSystemPanelContent as animateSystemPanelContent,
   showEditorSystemPanel as showComposerSystemPanel
-} from './composer-system-panel.js?v=press-system-v3.4.20';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.20';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.20';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.20';
+} from './composer-system-panel.js?v=press-system-v3.4.21';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.21';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.21';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.21';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.20';
+} from './publish/settings-store.js?v=press-system-v3.4.21';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -182,7 +183,7 @@ const publishFlow = createComposerPublishFlow({
   getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
   getTrackedPublishContentRoot: () => getTrackedPublishContentRoot(),
   gatherCommitPayload: (options) => gatherCommitPayload(options),
-  applyLocalPostCommitState: (files) => applyLocalPostCommitState(files),
+  applyLocalPostCommitState: (files) => postCommitStateApplier.apply(files),
   getCachedConnectPublishGrant,
   setCachedConnectPublishGrant,
   clearCachedConnectPublishGrant,
@@ -205,6 +206,112 @@ const {
   ensureConnectPublishGrant
 } = publishFlow;
 const stagingRegistry = createStagingRegistry();
+const indexPublishMetadata = createIndexPublishMetadataEnricher({
+  safeString,
+  normalizeRelPath,
+  normalizeMarkdownContent,
+  isIndexMetadataObject,
+  cloneIndexMetadataValue,
+  getIndexVariantLocation,
+  normalizeIndexVariantList,
+  prepareIndexState,
+  deepClone,
+  sortLangKeys,
+  extractVersionFromPath,
+  findDynamicTabByPath,
+  getLockedEncryptedMarkdownDraft,
+  getMarkdownProtectionState,
+  getContentRootSafe
+});
+const contentCommitStagingProvider = createContentCommitStagingProvider({
+  getDynamicEditorTabs: () => dynamicEditorTabs,
+  flushMarkdownDraft,
+  getStateSlice,
+  getContentRootSafe,
+  getRemoteBaseline: () => remoteBaseline,
+  getComposerDiffCache: () => composerDiffCache,
+  setComposerDiff: (kind, diff) => {
+    composerDiffCache[kind] = diff;
+  },
+  collectCurrentRepositoryMarkdownAssetReferences,
+  collectUnsyncedMarkdownEntries,
+  getPrimaryEditorApi,
+  getActiveDynamicTab,
+  getCurrentMode: () => currentMode,
+  readMarkdownDraftStore,
+  normalizeRelPath,
+  findDynamicTabByPath,
+  getLockedEncryptedMarkdownDraft,
+  normalizeMarkdownContent,
+  isEncryptedMarkdownDraftEntry,
+  prepareMarkdownForProtectedStorage,
+  listMarkdownAssets,
+  isAssetReferencedInContent,
+  removeMarkdownAsset,
+  enrichIndexStateForPublish: indexPublishMetadata.enrichIndexStateForPublish,
+  toIndexYaml,
+  toTabsYaml,
+  toSiteYaml,
+  setStateSlice,
+  computeIndexDiff,
+  recomputeDiff,
+  listMarkdownAssetDeletions,
+  safeString,
+  draftHasAssetDeletions,
+  textWithFallback
+});
+const seoStagingProvider = createSeoStagingProvider({
+  getStateSlice,
+  getContentRootSafe,
+  getRemoteBaselineSite: () => remoteBaseline.site,
+  cloneSiteState,
+  isIndexMetadataObject,
+  getIndexVariantLocation
+});
+const postCommitStateApplier = createPostCommitStateApplier({
+  stagingRegistry,
+  getStateSlice,
+  getRemoteBaseline: () => remoteBaseline,
+  setRemoteBaselineSlice: (kind, value) => {
+    remoteBaseline[kind] = value;
+  },
+  deepClone,
+  prepareIndexState,
+  prepareTabsState,
+  prepareSiteState,
+  cloneSiteState,
+  notifyComposerChange,
+  clearDraftStorage,
+  getContentRootSafe,
+  applyComposerEffectiveSiteConfig,
+  safeString,
+  updateComposerMarkdownDraftIndicators,
+  updateMarkdownPushButton,
+  updateMarkdownDiscardButton,
+  updateMarkdownSaveButton,
+  updateMarkdownProtectionButton,
+  getActiveDynamicTab,
+  normalizeRelPath,
+  clearMarkdownDraftEntry,
+  clearMarkdownAssetsForPath,
+  findDynamicTabByPath,
+  computeTextSignature,
+  setMarkdownProtectionState,
+  createMarkdownProtectionState,
+  setDynamicTabStatus,
+  normalizeMarkdownContent,
+  getMarkdownProtectionState,
+  scheduleMarkdownDraftSave,
+  updateDynamicTabDirtyState,
+  removeMarkdownAsset,
+  removeMarkdownAssetDeletion,
+  updateUnsyncedSummary
+});
+stagingRegistry.registerStagingProvider({
+  id: 'content',
+  required: true,
+  getCommitFiles: (context = {}) => contentCommitStagingProvider.getCommitFiles(context)
+});
 stagingRegistry.registerStagingProvider({
   id: 'system-updates',
   getSummaryEntries: () => getSystemUpdateSummaryEntries().map(entry => ({ ...entry, kind: 'system' })),
@@ -225,7 +332,7 @@ stagingRegistry.registerStagingProvider({
         if (typeof context.setStatus === 'function') context.setStatus('Generating SEO files…');
       } catch (_) { /* ignore */ }
     }
-    return generateSeoCommitFiles();
+    return seoStagingProvider.getCommitFiles(context);
   }
 });
 const editorSessionStateStore = createEditorSessionStateStore({
@@ -4670,1012 +4777,16 @@ function findDynamicTabByPath(path) {
   return null;
 }
 
-function encodeContentToBase64(text) {
-  const input = String(text == null ? '' : text);
-  if (typeof window !== 'undefined' && typeof window.TextEncoder === 'function') {
-    try {
-      const encoder = new TextEncoder();
-      const bytes = encoder.encode(input);
-      const chunkSize = 0x8000;
-      let binary = '';
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const slice = bytes.subarray(i, i + chunkSize);
-        binary += String.fromCharCode.apply(null, slice);
-      }
-      return btoa(binary);
-    } catch (_) {
-      /* fall through to fallback */
-    }
-  }
-  try {
-    return btoa(unescape(encodeURIComponent(input)));
-  } catch (_) {
-    let binary = '';
-    for (let i = 0; i < input.length; i += 1) {
-      const code = input.charCodeAt(i);
-      if (code > 0xFF) {
-        binary += String.fromCharCode(code >> 8, code & 0xFF);
-      } else {
-        binary += String.fromCharCode(code);
-      }
-    }
-    return btoa(binary);
-  }
-}
-
-function exportIndexDataForSeo(state) {
-  const output = {};
-  if (!state || typeof state !== 'object') return output;
-  const keys = Array.isArray(state.__order)
-    ? state.__order.filter((key) => key && key !== '__order')
-    : Object.keys(state);
-  keys.forEach((key) => {
-    if (key === '__order') return;
-    const entry = state[key];
-    if (!entry || typeof entry !== 'object') return;
-    const langs = {};
-    Object.keys(entry).forEach((lang) => {
-      if (lang === '__order') return;
-      const value = entry[lang];
-      if (Array.isArray(value)) {
-        const normalized = value
-          .map((item) => getIndexVariantLocation(item))
-          .filter((item) => item);
-        if (!normalized.length) return;
-        if (normalized.length === 1) langs[lang] = normalized[0];
-        else langs[lang] = normalized;
-      } else if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (trimmed) langs[lang] = trimmed;
-      } else if (isIndexMetadataObject(value)) {
-        const location = getIndexVariantLocation(value);
-        if (location) langs[lang] = location;
-      }
-    });
-    if (Object.keys(langs).length) output[key] = langs;
-  });
-  return output;
-}
-
-const INDEX_PUBLISH_METADATA_KEYS = new Set([
-  'location',
-  'path',
-  'title',
-  'date',
-  'tag',
-  'tags',
-  'image',
-  'thumb',
-  'cover',
-  'excerpt',
-  'readTime',
-  'readMinutes',
-  'minutes',
-  'protected',
-  'encryption',
-  'version',
-  'versionLabel',
-  'ai',
-  'aiGenerated',
-  'llm',
-  'draft',
-  'wip',
-  'unfinished',
-  'inprogress'
-]);
-
-function interpretIndexTruthyFlag(value) {
-  if (value === true) return true;
-  const normalized = String(value ?? '').trim().toLowerCase();
-  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y' || normalized === 'on' || normalized === 'enabled';
-}
-
-function isIndexVariantPublishComplete(value) {
-  if (!isIndexMetadataObject(value)) return false;
-  if (!getIndexVariantLocation(value)) return false;
-  if (!safeString(value.title).trim()) return false;
-  if (value.protected == null && value.encryption == null) return false;
-  const protectedPost = interpretIndexTruthyFlag(value.protected) || !!value.encryption;
-  if (protectedPost) return !!safeString(value.excerpt).trim() || value.readTime != null;
-  return value.readTime != null && safeString(value.excerpt).trim();
-}
-
-function normalizeIndexPublishTags(value) {
-  if (Array.isArray(value)) {
-    const tags = value.map(item => safeString(item).trim()).filter(Boolean);
-    return tags.length ? tags : undefined;
-  }
-  const tag = safeString(value).trim();
-  return tag || undefined;
-}
-
-function resolveIndexPublishImage(image, location) {
-  const raw = safeString(image).trim();
-  if (!raw) return undefined;
-  if (/^(https?:|data:)/i.test(raw) || raw.startsWith('/')) return raw;
-  const lastSlash = safeString(location).lastIndexOf('/');
-  const baseDir = lastSlash >= 0 ? safeString(location).slice(0, lastSlash + 1) : '';
-  return normalizeRelPath(`${baseDir}${raw}`) || raw;
-}
-
-function getIndexGeneratedMetadata(existing = {}) {
-  const out = {};
-  if (!isIndexMetadataObject(existing)) return out;
-  Object.keys(existing).forEach((key) => {
-    if (INDEX_PUBLISH_METADATA_KEYS.has(key)) return;
-    const cloned = cloneIndexMetadataValue(existing[key]);
-    if (cloned !== undefined && cloned !== null && cloned !== '') out[key] = cloned;
-  });
-  return out;
-}
-
-function getIndexField(source, keys) {
-  const input = isIndexMetadataObject(source) ? source : {};
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(input, key)) {
-      return { found: true, key, value: input[key] };
-    }
-  }
-  return { found: false, key: '', value: undefined };
-}
-
-function copyExistingIndexFields(out, existing, keys) {
-  if (!out || !isIndexMetadataObject(existing)) return false;
-  let copied = false;
-  keys.forEach((key) => {
-    if (!Object.prototype.hasOwnProperty.call(existing, key)) return;
-    const cloned = cloneIndexMetadataValue(existing[key]);
-    if (cloned === undefined || cloned === null || cloned === '') return;
-    out[key] = cloned;
-    copied = true;
-  });
-  return copied;
-}
-
-function buildIndexMetadataFromMarkdown(markdown, location, fallbackTitle, existing = {}, options = {}) {
-  const source = normalizeMarkdownContent(markdown || '');
-  const plaintext = normalizeMarkdownContent(options.plaintextContent || '');
-  const envelope = parseEncryptedMarkdownEnvelope(source);
-  const { frontMatter } = parseFrontMatter(source);
-  const fm = frontMatter || {};
-  const protectedField = getIndexField(fm, ['protected', 'encryption']);
-  const explicitUnprotected = options.protectionExplicit === true && options.protected === false;
-  const existingProtected = interpretIndexTruthyFlag(existing.protected) || !!existing.encryption;
-  const protectedPost = !!options.protected
-    || envelope.encrypted
-    || (protectedField.found ? interpretIndexTruthyFlag(protectedField.value) : (!explicitUnprotected && existingProtected));
-  const out = {
-    ...getIndexGeneratedMetadata(existing),
-    location
-  };
-  const title = safeString(fm.title || existing.title || fallbackTitle).trim();
-  if (title) out.title = title;
-  const dateField = getIndexField(fm, ['date']);
-  if (dateField.found) {
-    if (safeString(dateField.value).trim()) out.date = dateField.value;
-  } else {
-    copyExistingIndexFields(out, existing, ['date']);
-  }
-  const tagsField = getIndexField(fm, ['tags', 'tag']);
-  if (tagsField.found) {
-    const tags = normalizeIndexPublishTags(tagsField.value);
-    if (tags !== undefined) out.tags = tags;
-  } else {
-    copyExistingIndexFields(out, existing, ['tags', 'tag']);
-  }
-  const imageField = getIndexField(fm, ['image', 'cover', 'thumb']);
-  if (imageField.found) {
-    const image = resolveIndexPublishImage(imageField.value, location);
-    if (image) out.image = image;
-  } else {
-    copyExistingIndexFields(out, existing, ['image', 'cover', 'thumb']);
-  }
-  const excerptField = getIndexField(fm, ['excerpt']);
-  const excerpt = protectedPost
-    ? safeString(excerptField.found ? excerptField.value : existing.excerpt).trim()
-    : safeString(excerptField.found ? excerptField.value : extractExcerpt(source, 50)).trim();
-  if (excerpt) out.excerpt = excerpt;
-  const readSource = plaintext || (!protectedPost ? source : '');
-  if (readSource) out.readTime = computeReadTime(readSource, 200);
-  else {
-    const readTimeField = getIndexField(existing, ['readTime', 'readMinutes', 'minutes']);
-    if (readTimeField.found && readTimeField.value !== '') out.readTime = cloneIndexMetadataValue(readTimeField.value);
-  }
-  out.protected = !!protectedPost;
-  const versionField = getIndexField(fm, ['version', 'versionLabel']);
-  if (versionField.found) {
-    const versionLabel = safeString(versionField.value).trim();
-    if (versionLabel) out.versionLabel = versionLabel;
-  } else if (!copyExistingIndexFields(out, existing, ['versionLabel', 'version'])) {
-    const versionLabel = safeString(extractVersionFromPath(location)).trim();
-    if (versionLabel) out.versionLabel = versionLabel;
-  }
-  const aiField = getIndexField(fm, ['ai', 'aiGenerated', 'llm']);
-  if (aiField.found) {
-    if (interpretIndexTruthyFlag(aiField.value)) out.ai = true;
-  } else {
-    copyExistingIndexFields(out, existing, ['ai', 'aiGenerated', 'llm']);
-  }
-  const draftField = getIndexField(fm, ['draft', 'wip', 'unfinished', 'inprogress']);
-  if (draftField.found) {
-    if (interpretIndexTruthyFlag(draftField.value)) out.draft = true;
-  } else {
-    copyExistingIndexFields(out, existing, ['draft', 'wip', 'unfinished', 'inprogress']);
-  }
-  return out;
-}
-
-async function readMarkdownForIndexMetadata(location, pendingMarkdownByPath, contentRoot) {
-  const normalized = normalizeRelPath(location);
-  if (!normalized) return null;
-  if (pendingMarkdownByPath && pendingMarkdownByPath.has(normalized)) {
-    const pending = pendingMarkdownByPath.get(normalized);
-    return pending && typeof pending === 'object'
-      ? { ...pending, protectionExplicit: true }
-      : { content: normalizeMarkdownContent(pending || ''), plaintextContent: '', protected: false, protectionExplicit: true };
-  }
-  const tab = findDynamicTabByPath(normalized);
-  if (tab) {
-    const locked = getLockedEncryptedMarkdownDraft(tab);
-    if (locked) return { content: locked, plaintextContent: '', protected: true, protectionExplicit: true };
-    if (tab.content != null) {
-      const protection = getMarkdownProtectionState(tab);
-      return {
-        content: normalizeMarkdownContent(tab.content),
-        plaintextContent: normalizeMarkdownContent(tab.content),
-        protected: !!(protection && protection.enabled),
-        protectionExplicit: true
-      };
-    }
-    if (tab.remoteContent != null) {
-      const protection = getMarkdownProtectionState(tab);
-      return {
-        content: normalizeMarkdownContent(tab.remoteContent),
-        plaintextContent: normalizeMarkdownContent(tab.remoteContent),
-        protected: !!(protection && protection.enabled),
-        protectionExplicit: true
-      };
-    }
-  }
-  const root = safeString(contentRoot || getContentRootSafe() || 'wwwroot').replace(/\\+/g, '/').replace(/\/?$/, '');
-  const url = `${root || 'wwwroot'}/${normalized}`;
-  try {
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response || !response.ok) return null;
-    return { content: normalizeMarkdownContent(await response.text()), plaintextContent: '', protected: false };
-  } catch (_) {
-    return null;
-  }
-}
-
-async function enrichIndexStateForPublish(state, options = {}) {
-  const source = prepareIndexState(state || { __order: [] });
-  const next = deepClone(source);
-  const pendingMarkdownByPath = options.pendingMarkdownByPath instanceof Map ? options.pendingMarkdownByPath : new Map();
-  const contentRoot = options.contentRoot || 'wwwroot';
-  const keys = Array.isArray(next.__order) ? next.__order.slice() : Object.keys(next).filter(key => key !== '__order');
-  for (const key of keys) {
-    const entry = next[key];
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
-    for (const lang of sortLangKeys(entry)) {
-      const originalValue = entry[lang];
-      const originalWasArray = Array.isArray(originalValue);
-      const variants = normalizeIndexVariantList(originalValue);
-      const enriched = [];
-      for (const variant of variants) {
-        const location = getIndexVariantLocation(variant);
-        if (!location) continue;
-        if (isIndexVariantPublishComplete(variant) && !pendingMarkdownByPath.has(location)) {
-          enriched.push(variant);
-          continue;
-        }
-        const markdownEntry = await readMarkdownForIndexMetadata(location, pendingMarkdownByPath, contentRoot);
-        if (!markdownEntry || !markdownEntry.content) {
-          enriched.push(variant);
-          continue;
-        }
-        enriched.push(buildIndexMetadataFromMarkdown(
-          markdownEntry.content,
-          location,
-          key,
-          isIndexMetadataObject(variant) ? variant : {},
-          {
-            plaintextContent: markdownEntry.plaintextContent,
-            protected: markdownEntry.protected,
-            protectionExplicit: markdownEntry.protectionExplicit
-          }
-        ));
-      }
-      if (!enriched.length) {
-        delete entry[lang];
-      } else if (originalWasArray || enriched.length > 1) {
-        entry[lang] = enriched;
-      } else {
-        entry[lang] = enriched[0];
-      }
-    }
-  }
-  return next;
-}
-
-function exportTabsDataForSeo(state) {
-  const output = {};
-  if (!state || typeof state !== 'object') return output;
-  const keys = Array.isArray(state.__order)
-    ? state.__order.filter((key) => key && key !== '__order')
-    : Object.keys(state);
-  keys.forEach((key) => {
-    if (key === '__order') return;
-    const entry = state[key];
-    if (!entry || typeof entry !== 'object') return;
-    const langs = {};
-    Object.keys(entry).forEach((lang) => {
-      if (lang === '__order') return;
-      const value = entry[lang];
-      if (!value || typeof value !== 'object') return;
-      const title = value.title != null ? String(value.title) : '';
-      const location = value.location != null ? String(value.location) : '';
-      if (!title && !location) return;
-      langs[lang] = { title, location };
-    });
-    if (Object.keys(langs).length) output[key] = langs;
-  });
-  return output;
-}
-
-function exportSiteConfigForSeo(state) {
-  const base = cloneSiteState(state || {});
-  if (!base.contentRoot) base.contentRoot = getContentRootSafe() || 'wwwroot';
-  if (!base.defaultLanguage) {
-    try {
-      const baseline = remoteBaseline && remoteBaseline.site;
-      if (baseline && baseline.defaultLanguage) base.defaultLanguage = baseline.defaultLanguage;
-    } catch (_) { /* ignore */ }
-  }
-  return base;
-}
-
-function escapeSeoXml(str) {
-  return String(str || '').replace(/[<>&'\"]/g, (char) => {
-    switch (char) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case "'": return '&apos;';
-      case '"': return '&quot;';
-      default: return char;
-    }
-  });
-}
-
-function escapeSeoHtml(str) {
-  return String(str || '').replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      case "'": return '&#39;';
-      default: return char;
-    }
-  });
-}
-
-function formatSeoXml(xml) {
-  try {
-    const formatted = [];
-    let pad = 0;
-    xml
-      .replace(/>(\s*)</g, '>$1\n<')
-      .split('\n')
-      .forEach((line) => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
-        if (/^<\//.test(trimmed)) pad = Math.max(pad - 1, 0);
-        formatted.push(`${'  '.repeat(pad)}${trimmed}`);
-        if (/^<[^!?][^>]*[^/]>/i.test(trimmed) && !/<.*<\/.*>/.test(trimmed)) pad += 1;
-      });
-    return formatted.join('\n');
-  } catch (_) {
-    return xml;
-  }
-}
-
-function generateSeoSitemapXml(urls) {
-  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
-  urls.forEach((url) => {
-    if (!url || !url.loc) return;
-    xml += '  <url>\n';
-    xml += `    <loc>${escapeSeoXml(url.loc)}</loc>\n`;
-    if (Array.isArray(url.alternates)) {
-      url.alternates.forEach((alt) => {
-        if (!alt || !alt.href || !alt.hreflang) return;
-        xml += `    <xhtml:link rel="alternate" hreflang="${escapeSeoXml(alt.hreflang)}" href="${escapeSeoXml(alt.href)}"/>\n`;
-      });
-      if (url.xdefault) {
-        xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeSeoXml(url.xdefault)}"/>\n`;
-      }
-    }
-    if (url.lastmod) xml += `    <lastmod>${escapeSeoXml(url.lastmod)}</lastmod>\n`;
-    if (url.changefreq) xml += `    <changefreq>${escapeSeoXml(url.changefreq)}</changefreq>\n`;
-    if (url.priority) xml += `    <priority>${escapeSeoXml(url.priority)}</priority>\n`;
-    xml += '  </url>\n';
-  });
-  xml += '</urlset>';
-  return formatSeoXml(xml);
-}
-
-function computeSeoContentRoot(siteConfig) {
-  const raw = siteConfig && siteConfig.contentRoot ? String(siteConfig.contentRoot) : 'wwwroot';
-  const trimmed = raw.trim().replace(/^\/+|\/+$/g, '');
-  return trimmed || 'wwwroot';
-}
-
-function generateSeoRobotsTxt(siteConfig) {
-  const baseUrl = resolveSiteBaseUrl(siteConfig);
-  const contentRoot = computeSeoContentRoot(siteConfig);
-  const deriveBasePath = () => {
-    if (!baseUrl) return '/';
-    const ensureLeadingAndTrailingSlash = (value) => {
-      if (!value) return '/';
-      let normalized = value;
-      if (!normalized.startsWith('/')) normalized = `/${normalized}`;
-      normalized = normalized.replace(/\/+/g, '/');
-      if (normalized !== '/' && !normalized.endsWith('/')) normalized = `${normalized}/`;
-      return normalized === '//' ? '/' : normalized;
-    };
-    const resolvePathname = (raw) => {
-      if (!raw) return '/';
-      try {
-        const parsed = new URL(raw);
-        return parsed.pathname || '/';
-      } catch (_) {
-        try {
-          if (typeof window !== 'undefined' && window.location && window.location.origin) {
-            const parsed = new URL(raw, window.location.origin);
-            return parsed.pathname || '/';
-          }
-        } catch (_) {
-          /* noop */
-        }
-      }
-      if (typeof raw === 'string') {
-        const trimmed = raw.trim();
-        if (trimmed.startsWith('/')) return trimmed;
-      }
-      return '/';
-    };
-    const pathname = resolvePathname(baseUrl);
-    if (!pathname || pathname === '/') return '/';
-    return ensureLeadingAndTrailingSlash(pathname);
-  };
-  const basePath = deriveBasePath();
-  const withBasePath = (path) => {
-    const input = String(path == null ? '' : path).trim();
-    if (!input || input === '/') return basePath;
-    const hasTrailingSlash = input.endsWith('/');
-    const stripped = input.replace(/^\/+/, '');
-    const prefix = basePath === '/' ? '/' : basePath;
-    let combined = prefix === '/' ? `/${stripped}` : `${prefix}${stripped}`;
-    if (hasTrailingSlash && !combined.endsWith('/')) combined += '/';
-    if (!combined.startsWith('/')) combined = `/${combined}`;
-    return combined === '//' ? '/' : combined;
-  };
-  let robots = 'User-agent: *\n';
-  robots += `Allow: ${withBasePath('/')}\n\n`;
-  robots += '# Sitemap\n';
-  robots += `Sitemap: ${baseUrl}sitemap.xml\n\n`;
-  robots += '# Allow crawling of main content\n';
-  robots += `Allow: ${withBasePath(`${contentRoot}/`)}\n`;
-  robots += `Allow: ${withBasePath('assets/')}\n\n`;
-  robots += '# Disallow admin or internal directories\n';
-  robots += `Disallow: ${withBasePath('admin/')}\n`;
-  robots += `Disallow: ${withBasePath('.git/')}\n`;
-  robots += `Disallow: ${withBasePath('node_modules/')}\n`;
-  robots += `Disallow: ${withBasePath('.env')}\n`;
-  robots += `Disallow: ${withBasePath('package.json')}\n`;
-  robots += `Disallow: ${withBasePath('package-lock.json')}\n\n`;
-  robots += '# SEO tools (allow but not priority)\n';
-  robots += `Allow: ${withBasePath('sitemap-generator.html')}\n\n`;
-  robots += '# Crawl delay (be nice to servers)\n';
-  robots += 'Crawl-delay: 1\n\n';
-  robots += '# Generated by Press\n';
-  robots += `# ${new Date().toISOString()}\n`;
-  return robots;
-}
-
-function generateSeoMetaTags(siteConfig) {
-  const baseUrl = resolveSiteBaseUrl(siteConfig);
-  const getLocalizedValue = (val, fallback = '') => {
-    if (!val) return fallback;
-    if (typeof val === 'string') return val;
-    if (val.default) return val.default;
-    const langs = Object.keys(val);
-    if (langs.length) return val[langs[0]];
-    return fallback;
-  };
-  const siteTitle = getLocalizedValue(siteConfig.siteTitle, 'Press');
-  const siteDescription = getLocalizedValue(siteConfig.siteDescription, 'Where knowledge becomes pages.');
-  const siteKeywords = getLocalizedValue(siteConfig.siteKeywords, 'blog, static site, markdown');
-  const avatar = siteConfig.avatar || 'assets/avatar.png';
-  const fullAvatarUrl = avatar.startsWith('http') ? avatar : baseUrl + avatar.replace(/^\/+/, '');
-  let html = '';
-  html += `  <!-- Primary SEO Meta Tags -->\n`;
-  html += `  <title>${escapeSeoHtml(siteTitle)}</title>\n`;
-  html += `  <meta name="title" content="${escapeSeoHtml(siteTitle)}">\n`;
-  html += `  <meta name="description" content="${escapeSeoHtml(siteDescription)}">\n`;
-  html += `  <meta name="keywords" content="${escapeSeoHtml(siteKeywords)}">\n`;
-  html += `  <meta name="author" content="${escapeSeoHtml(siteTitle)}">\n`;
-  html += '  <meta name="robots" content="index, follow">\n';
-  html += `  <link rel="canonical" href="${baseUrl}">\n`;
-  html += '  \n';
-  html += '  <!-- Open Graph / Facebook -->\n';
-  html += '  <meta property="og:type" content="website">\n';
-  html += `  <meta property="og:url" content="${baseUrl}">\n`;
-  html += `  <meta property="og:title" content="${escapeSeoHtml(siteTitle)}">\n`;
-  html += `  <meta property="og:description" content="${escapeSeoHtml(siteDescription)}">\n`;
-  html += `  <meta property="og:image" content="${escapeSeoHtml(fullAvatarUrl)}">\n`;
-  html += `  <meta property="og:logo" content="${escapeSeoHtml(fullAvatarUrl)}">\n`;
-  html += '  \n';
-  html += '  <!-- Twitter -->\n';
-  html += '  <meta property="twitter:card" content="summary_large_image">\n';
-  html += `  <meta property="twitter:url" content="${baseUrl}">\n`;
-  html += `  <meta property="twitter:title" content="${escapeSeoHtml(siteTitle)}">\n`;
-  html += `  <meta property="twitter:description" content="${escapeSeoHtml(siteDescription)}">\n`;
-  html += `  <meta property="twitter:image" content="${escapeSeoHtml(fullAvatarUrl)}">\n`;
-  html += '  \n';
-  html += '  <!-- Initial meta tags - will be updated by dynamic SEO system -->\n';
-  html += '  <meta name="theme-color" content="#1a1a1a">\n';
-  html += '  <meta name="msapplication-TileColor" content="#1a1a1a">\n';
-  html += `  <link rel="icon" type="image/png" href="${escapeSeoHtml(avatar)}">`;
-  return html;
-}
-
-function normalizeSeoLangCode(value) {
-  const raw = safeString(value).trim();
-  if (!raw) return '';
-  const sanitized = raw.replace(/[^0-9A-Za-z-]/g, '');
-  return sanitized || '';
-}
-
-function computeSeoHtmlLang(siteConfig) {
-  const fromConfig = siteConfig && siteConfig.defaultLanguage;
-  const normalized = normalizeSeoLangCode(fromConfig);
-  if (normalized) return normalized;
-  try {
-    if (typeof document !== 'undefined' && document.documentElement) {
-      const docLang = normalizeSeoLangCode(document.documentElement.lang);
-      if (docLang) return docLang;
-    }
-  } catch (_) { /* ignore */ }
-  return 'en';
-}
-
-function applySeoHtmlLang(html, lang) {
-  const normalized = normalizeSeoLangCode(lang);
-  if (!normalized) return html;
-  const langAttrRegex = /(<html\b[^>]*\blang\s*=\s*)(["'])([^"']*)(\2)/i;
-  if (langAttrRegex.test(html)) {
-    return html.replace(langAttrRegex, `$1$2${normalized}$4`);
-  }
-  return html.replace(/<html\b([^>]*)>/i, `<html$1 lang="${normalized}">`);
-}
-
-function injectSeoMetaIntoIndexHtml(baseHtml, metaBlock) {
-  if (!baseHtml) return '';
-  const META_START = '  <!-- Primary SEO Meta Tags -->';
-  const META_NOTE = '  <!-- Note: Structured data is dynamically generated by the SEO system -->';
-  const startIndex = baseHtml.indexOf(META_START);
-  const noteIndex = baseHtml.indexOf(META_NOTE);
-  if (startIndex === -1 || noteIndex === -1 || noteIndex < startIndex) return '';
-  const before = baseHtml.slice(0, startIndex);
-  const after = baseHtml.slice(noteIndex + META_NOTE.length);
-  const trimmedMeta = metaBlock.trimEnd();
-  const replacement = `${trimmedMeta}\n\n${META_NOTE}`;
-  return `${before}${replacement}${after}`;
-}
-
-function buildDefaultIndexHtml(metaBlock, lang) {
-  const langAttr = normalizeSeoLangCode(lang) || 'en';
-  const trimmedMeta = metaBlock.trimEnd();
-  const metaSection = trimmedMeta ? `${trimmedMeta}\n\n` : '';
-  let html = '<!DOCTYPE html>\n';
-  html += `<html lang="${escapeSeoHtml(langAttr)}">\n\n`;
-  html += '<head>\n';
-  html += '  <meta charset="UTF-8">\n';
-  html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n\n';
-  html += metaSection;
-  html += '  <!-- Note: Structured data is dynamically generated by the SEO system -->\n\n';
-  html += '  <script src="assets/js/theme-boot.js?v=press-system-v3.4.20"></script>\n';
-  html += '  <link rel="stylesheet" id="theme-pack">\n';
-  html += '</head>\n\n';
-  html += '<body>\n';
-  html += '  <script type="module" src="assets/main.js?v=press-system-v3.4.20"></script>\n';
-  html += '</body>\n\n';
-  html += '</html>\n';
-  return html;
-}
-
-function generateSeoIndexHtml(siteConfig, baseHtml) {
-  const metaBlock = ensureTrailingNewline(generateSeoMetaTags(siteConfig)).trimEnd();
-  const lang = computeSeoHtmlLang(siteConfig);
-  let html = '';
-  if (baseHtml) {
-    html = injectSeoMetaIntoIndexHtml(baseHtml, metaBlock);
-  }
-  if (!html) {
-    html = buildDefaultIndexHtml(metaBlock, lang);
-  }
-  html = applySeoHtmlLang(html, lang);
-  return ensureTrailingNewline(html);
-}
-
-function ensureTrailingNewline(text) {
-  const str = String(text == null ? '' : text);
-  return str.endsWith('\n') ? str : `${str}\n`;
-}
-
-function normalizeSeoContent(text) {
-  return String(text == null ? '' : text)
-    .replace(/\r\n?/g, '\n')
-    .trim();
-}
-
-async function fetchExistingSeoFile(path) {
-  try {
-    const response = await fetch(path, { cache: 'no-store' });
-    if (!response.ok) return '';
-    return await response.text();
-  } catch (_) {
-    return '';
-  }
-}
-
-async function generateSeoCommitFiles() {
-  try {
-    const siteState = exportSiteConfigForSeo(getStateSlice('site'));
-    const indexState = exportIndexDataForSeo(getStateSlice('index'));
-    const tabsState = exportTabsDataForSeo(getStateSlice('tabs'));
-    const urls = generateSitemapData(indexState, tabsState, siteState) || [];
-    const sitemapXml = ensureTrailingNewline(generateSeoSitemapXml(urls));
-    const robotsTxt = ensureTrailingNewline(generateSeoRobotsTxt(siteState));
-    const remoteIndexHtml = await fetchExistingSeoFile('index.html');
-    const indexHtml = generateSeoIndexHtml(siteState, remoteIndexHtml);
-
-    const candidates = [
-      { seoType: 'sitemap', path: 'sitemap.xml', label: 'sitemap.xml', content: sitemapXml },
-      { seoType: 'robots', path: 'robots.txt', label: 'robots.txt', content: robotsTxt },
-      { seoType: 'index', path: 'index.html', label: 'index.html', content: indexHtml, remote: remoteIndexHtml }
-    ];
-
-    const files = [];
-    for (const candidate of candidates) {
-      const remote = Object.prototype.hasOwnProperty.call(candidate, 'remote')
-        ? candidate.remote
-        : await fetchExistingSeoFile(candidate.path);
-      if (normalizeSeoContent(remote) === normalizeSeoContent(candidate.content)) continue;
-      files.push({
-        kind: 'seo',
-        seoType: candidate.seoType,
-        label: candidate.label,
-        path: candidate.path,
-        content: candidate.content,
-        isSeo: true
-      });
-    }
-    return files;
-  } catch (err) {
-    console.error('Failed to prepare SEO files for commit', err);
-    return [];
-  }
-}
-
 async function gatherCommitPayload(options = {}) {
   const { showSeoStatus = false } = options;
-  const base = await gatherLocalChangesForCommit(options);
-  const files = Array.isArray(base.files) ? base.files.slice() : [];
   const providerResult = await stagingRegistry.getCommitFiles({
     ...options,
     showSeoStatus,
     setStatus: setSyncOverlayStatus
   });
-  const providerFiles = Array.isArray(providerResult.files) ? providerResult.files : [];
-  if (providerFiles.length) files.push(...providerFiles);
-  const seoFiles = providerFiles.filter(file => file && file.kind === 'seo');
+  const files = Array.isArray(providerResult.files) ? providerResult.files : [];
+  const seoFiles = files.filter(file => file && file.kind === 'seo');
   return { files, seoFiles, warnings: providerResult.warnings || [] };
-}
-
-function collectDirtyMarkdownPathsForDeletion() {
-  const paths = new Set();
-  dynamicEditorTabs.forEach((tab) => {
-    if (!tab || !tab.path) return;
-    if (tab.isDirty || hasMarkdownDraftContent(tab)) paths.add(tab.path);
-  });
-  try {
-    const store = readMarkdownDraftStore();
-    if (store && typeof store === 'object') {
-      Object.keys(store).forEach((key) => {
-        const entry = store[key];
-        if (!entry || typeof entry !== 'object') return;
-        const hasContent = entry.content != null && normalizeMarkdownContent(entry.content);
-        const hasAssets = Array.isArray(entry.assets) && entry.assets.length;
-        const hasDeletedAssets = draftHasAssetDeletions(entry);
-        if (hasContent || hasAssets || hasDeletedAssets) paths.add(key);
-      });
-    }
-  } catch (_) {}
-  return Array.from(paths);
-}
-
-function formatRepositoryDeletionBlockers(blocked = []) {
-  const paths = (Array.isArray(blocked) ? blocked : [])
-    .map(item => item && item.path ? String(item.path) : '')
-    .filter(Boolean);
-  if (!paths.length) {
-    return textWithFallback(
-      'editor.toasts.repositoryDeletionDraftsPending',
-      'Unable to delete files while local drafts are still pending.'
-    );
-  }
-  const sample = paths.slice(0, 5).join(', ');
-  const remaining = paths.length > 5 ? paths.length - 5 : 0;
-  const fallbackSuffix = remaining ? `, +${remaining} more` : '';
-  return textWithFallback(
-    'editor.toasts.repositoryDeletionDraftsBlocked',
-    `Publish blocked because deleted files still have local drafts: ${sample}${fallbackSuffix}. Restore, publish, or discard those drafts before deleting the files.`,
-    { sample, remaining }
-  );
-}
-
-async function fetchMarkdownForRepositoryDeletion(file) {
-  const path = file && file.path ? String(file.path).replace(/\\+/g, '/').replace(/^\/+/, '') : '';
-  if (!path) return '';
-  try {
-    const resp = await fetch(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
-    if (!resp.ok) return '';
-    return normalizeMarkdownContent(await resp.text());
-  } catch (_) {
-    return '';
-  }
-}
-
-async function collectDeletedMarkdownAssetFiles(markdownDeletionFiles = [], options = {}) {
-  const contentRoot = options.contentRoot || 'wwwroot';
-  const referencedAssets = options.referencedAssets instanceof Set ? options.referencedAssets : new Set();
-  const out = [];
-  const seen = new Set();
-  for (const file of Array.isArray(markdownDeletionFiles) ? markdownDeletionFiles : []) {
-    if (!file || !file.deleted || !file.markdownPath) continue;
-    const markdown = await fetchMarkdownForRepositoryDeletion(file);
-    if (!markdown) continue;
-    listLocalMarkdownAssetReferences(markdown, file.markdownPath, contentRoot).forEach((resolved) => {
-      if (!resolved || !resolved.contentPath || !resolved.commitPath) return;
-      if (referencedAssets.has(resolved.contentPath)) return;
-      if (seen.has(resolved.commitPath)) return;
-      seen.add(resolved.commitPath);
-      out.push({
-        kind: 'asset',
-        category: 'content-asset',
-        label: resolved.relativePath || resolved.contentPath,
-        path: resolved.commitPath,
-        markdownPath: resolved.markdownPath,
-        assetPath: resolved.contentPath,
-        assetRelativePath: resolved.relativePath || '',
-        state: 'deleted',
-        deleted: true
-      });
-    });
-  }
-  return out;
-}
-
-async function gatherLocalChangesForCommit(options = {}) {
-  const { cleanupUnusedAssets = true } = options;
-  const collector = createCommitFileCollector();
-  const { addFile } = collector;
-
-  try {
-    const flushes = Array.from(dynamicEditorTabs.values()).map((tab) => (
-      flushMarkdownDraft(tab).catch((err) => {
-        console.warn('Failed to flush markdown draft before commit', err);
-        return null;
-      })
-    ));
-    await Promise.all(flushes);
-  } catch (_) { /* ignore */ }
-
-  const siteState = getStateSlice('site');
-  let root;
-  if (siteState && Object.prototype.hasOwnProperty.call(siteState, 'contentRoot')) {
-    root = safeString(siteState.contentRoot);
-  }
-  if (!root) {
-    root = getContentRootSafe();
-  }
-  const normalizedRoot = String(root || '')
-    .replace(/\\+/g, '/').replace(/\/?$/, '');
-  const rootPrefix = normalizedRoot ? `${normalizedRoot}/` : '';
-  const baselineRoot = (() => {
-    const baselineSite = remoteBaseline && remoteBaseline.site && typeof remoteBaseline.site === 'object'
-      ? remoteBaseline.site
-      : {};
-    const raw = Object.prototype.hasOwnProperty.call(baselineSite, 'contentRoot')
-      ? safeString(baselineSite.contentRoot)
-      : '';
-    return String(raw || 'wwwroot').replace(/\\+/g, '/').replace(/\/?$/, '');
-  })();
-  const pendingMarkdownByPath = new Map();
-
-  if (composerDiffCache.tabs && composerDiffCache.tabs.hasChanges) {
-    const state = getStateSlice('tabs') || { __order: [] };
-    const yaml = toTabsYaml(state);
-    addFile({ kind: 'tabs', label: 'tabs.yaml', path: `${rootPrefix}tabs.yaml`, content: yaml });
-  }
-  if (composerDiffCache.site && composerDiffCache.site.hasChanges) {
-    const state = getStateSlice('site') || {};
-    const yaml = toSiteYaml(state);
-    addFile({ kind: 'site', label: 'site.yaml', path: 'site.yaml', content: yaml });
-  }
-
-  const contentDeletionPlan = planManagedContentDeletions({
-    index: getStateSlice('index') || { __order: [] },
-    tabs: getStateSlice('tabs') || { __order: [] },
-    indexBaseline: remoteBaseline.index || { __order: [] },
-    tabsBaseline: remoteBaseline.tabs || { __order: [] },
-    indexDiff: composerDiffCache.index,
-    tabsDiff: composerDiffCache.tabs,
-    contentRoot: normalizedRoot || 'wwwroot',
-    currentContentRoot: normalizedRoot || 'wwwroot',
-    baselineContentRoot: baselineRoot || 'wwwroot',
-    dirtyMarkdownPaths: collectDirtyMarkdownPathsForDeletion()
-  });
-  if (contentDeletionPlan.blocked.length) {
-    throw new Error(formatRepositoryDeletionBlockers(contentDeletionPlan.blocked));
-  }
-  contentDeletionPlan.files.forEach(addFile);
-  const assetReferenceScan = await collectCurrentRepositoryMarkdownAssetReferences({
-    excludeMarkdownPaths: contentDeletionPlan.files.map(file => file && file.markdownPath).filter(Boolean),
-    currentContentRoot: normalizedRoot || 'wwwroot',
-    baselineContentRoot: baselineRoot || 'wwwroot'
-  });
-  const referencedAssetPaths = assetReferenceScan.refs;
-  const assetReferenceScanComplete = !(assetReferenceScan.failures && assetReferenceScan.failures.length);
-  if (assetReferenceScanComplete) {
-    const deletedMarkdownAssetFiles = await collectDeletedMarkdownAssetFiles(contentDeletionPlan.files, {
-      contentRoot: baselineRoot || 'wwwroot',
-      referencedAssets: referencedAssetPaths
-    });
-    deletedMarkdownAssetFiles.forEach(addFile);
-  } else {
-    console.warn('Skipping repository asset deletions because some current markdown files could not be checked.', assetReferenceScan.failures);
-  }
-
-  const markdownEntries = collectUnsyncedMarkdownEntries();
-  if (markdownEntries && markdownEntries.length) {
-    const editorApi = getPrimaryEditorApi();
-    const activeTab = getActiveDynamicTab();
-    let activeValue = null;
-    if (editorApi && typeof editorApi.getValue === 'function' && activeTab && activeTab.mode === currentMode) {
-      try { activeValue = String(editorApi.getValue() || ''); }
-      catch (_) { activeValue = null; }
-    }
-    const draftStore = readMarkdownDraftStore();
-    for (const entry of markdownEntries) {
-      const rel = normalizeRelPath(entry.path);
-      if (!rel) continue;
-      const repoPath = `${rootPrefix}${rel}`;
-      const tab = findDynamicTabByPath(rel);
-      let text = '';
-      let alreadyEncrypted = false;
-      if (tab) {
-        const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft(tab);
-        if (lockedEncryptedDraft) {
-          text = lockedEncryptedDraft;
-          alreadyEncrypted = true;
-        } else if (tab === activeTab && activeValue != null) {
-          tab.content = activeValue;
-          text = normalizeMarkdownContent(tab.content);
-        } else if (tab.content != null && tab.content !== undefined) {
-          text = normalizeMarkdownContent(tab.content);
-        } else if (tab.localDraft && tab.localDraft.content != null) {
-          text = normalizeMarkdownContent(tab.localDraft.content);
-        }
-      } else if (draftStore && draftStore[rel] && typeof draftStore[rel] === 'object') {
-        const draft = draftStore[rel];
-        if (draft.content != null) text = normalizeMarkdownContent(draft.content);
-        alreadyEncrypted = isEncryptedMarkdownDraftEntry(draft);
-      }
-      const prepared = alreadyEncrypted
-        ? { content: text, encrypted: true }
-        : await prepareMarkdownForProtectedStorage(tab, text, { reason: 'commit' });
-      pendingMarkdownByPath.set(rel, {
-        content: prepared.content,
-        plaintextContent: prepared.encrypted && !alreadyEncrypted ? text : '',
-        protected: !!prepared.encrypted
-      });
-      addFile({
-        kind: 'markdown',
-        label: rel,
-        path: repoPath,
-        content: prepared.content,
-        plaintextContent: prepared.encrypted && !alreadyEncrypted ? text : '',
-        markdownPath: rel,
-        state: entry.state || '',
-        protected: !!prepared.encrypted
-      });
-
-      const assets = listMarkdownAssets(rel);
-      if (assets.length) {
-        const normalizedText = normalizeMarkdownContent(text);
-        const unusedAssets = [];
-        assets.forEach((asset) => {
-          if (!asset || !asset.path || !asset.base64) return;
-          const commitPath = `${rootPrefix}${asset.path}`.replace(/\\+/g, '/');
-          if (!alreadyEncrypted && !isAssetReferencedInContent(normalizedText, asset)) {
-            unusedAssets.push(asset.path);
-            return;
-          }
-          addFile({
-            kind: 'asset',
-            label: asset.relativePath || asset.path,
-            path: commitPath,
-            base64: asset.base64,
-            binary: true,
-            mime: asset.mime || 'application/octet-stream',
-            size: Number.isFinite(asset.size) ? asset.size : 0,
-            markdownPath: rel,
-            assetPath: asset.path,
-            assetRelativePath: asset.relativePath || ''
-          });
-        });
-        if (cleanupUnusedAssets && unusedAssets.length) {
-          unusedAssets.forEach((assetPath) => {
-            removeMarkdownAsset(rel, assetPath);
-          });
-        }
-      }
-    }
-  }
-
-  const originalIndexDiff = composerDiffCache.index || recomputeDiff('index');
-  const indexState = getStateSlice('index') || { __order: [] };
-  let indexYaml = toIndexYaml(indexState);
-  let indexMetadataChanged = false;
-  if ((originalIndexDiff && originalIndexDiff.hasChanges) || pendingMarkdownByPath.size > 0) {
-    const enrichedIndexState = await enrichIndexStateForPublish(indexState, {
-      contentRoot: normalizedRoot || 'wwwroot',
-      pendingMarkdownByPath
-    });
-    const enrichedIndexYaml = toIndexYaml(enrichedIndexState);
-    indexMetadataChanged = enrichedIndexYaml !== indexYaml;
-    if (indexMetadataChanged) {
-      setStateSlice('index', enrichedIndexState);
-      composerDiffCache.index = computeIndexDiff(enrichedIndexState, remoteBaseline.index);
-      indexYaml = enrichedIndexYaml;
-    }
-  }
-  if ((originalIndexDiff && originalIndexDiff.hasChanges) || indexMetadataChanged) {
-    addFile({ kind: 'index', label: 'index.yaml', path: `${rootPrefix}index.yaml`, content: indexYaml });
-  }
-
-  const assetDeletionRefs = referencedAssetPaths;
-  if (assetReferenceScanComplete) {
-    listMarkdownAssetDeletions().forEach((asset) => {
-      if (!asset || !asset.assetPath || !asset.deleted) return;
-      if (assetDeletionRefs.has(asset.assetPath)) return;
-      const commitPath = `${rootPrefix}${asset.assetPath}`.replace(/\\+/g, '/');
-      addFile({
-        ...asset,
-        label: asset.assetRelativePath || asset.label || asset.assetPath,
-        path: commitPath,
-        deleted: true,
-        state: 'deleted'
-      });
-    });
-  }
-
-  return { files: collector.getFiles() };
 }
 
 let syncCommitPanelRenderSeq = 0;
@@ -5760,152 +4871,6 @@ function getActiveSiteRepoConfig() {
     ? window.__press_site_repo
     : {};
   return resolveSiteRepoConfig(site, composerSiteLocalOverride, fallback);
-}
-
-function applyLocalPostCommitState(files = []) {
-  if (!Array.isArray(files) || !files.length) return;
-  stagingRegistry.clearCommittedFiles(files);
-  const handledMarkdown = new Set();
-  files.forEach((file) => {
-    if (!file || !file.kind) return;
-    if (file.kind === 'index') {
-      const state = getStateSlice('index') || { __order: [] };
-      remoteBaseline.index = deepClone(prepareIndexState(state));
-      notifyComposerChange('index', { skipAutoSave: true });
-      clearDraftStorage('index');
-    } else if (file.kind === 'tabs') {
-      const state = getStateSlice('tabs') || { __order: [] };
-      remoteBaseline.tabs = deepClone(prepareTabsState(state));
-      notifyComposerChange('tabs', { skipAutoSave: true });
-      clearDraftStorage('tabs');
-    } else if (file.kind === 'site') {
-      const state = getStateSlice('site');
-      const snapshot = state ? cloneSiteState(state) : cloneSiteState(prepareSiteState({}));
-      remoteBaseline.site = snapshot;
-
-      const previousRoot = getContentRootSafe();
-      const effectiveSnapshot = applyComposerEffectiveSiteConfig(snapshot);
-      const rawNextRoot = effectiveSnapshot && typeof effectiveSnapshot === 'object' && Object.prototype.hasOwnProperty.call(effectiveSnapshot, 'contentRoot')
-        ? safeString(effectiveSnapshot.contentRoot)
-        : '';
-      const normalizedNextRoot = (rawNextRoot ? rawNextRoot : 'wwwroot').trim().replace(/[\\]/g, '/').replace(/\/?$/, '');
-      const rootChanged = normalizedNextRoot !== previousRoot;
-
-      notifyComposerChange('site', { skipAutoSave: true });
-      clearDraftStorage('site');
-
-      if (rootChanged) {
-        updateComposerMarkdownDraftIndicators();
-        updateMarkdownPushButton(getActiveDynamicTab());
-        updateMarkdownDiscardButton(getActiveDynamicTab());
-        updateMarkdownSaveButton(getActiveDynamicTab());
-        updateMarkdownProtectionButton(getActiveDynamicTab());
-      }
-    } else if (file.kind === 'markdown') {
-      const norm = normalizeRelPath(file.markdownPath || file.label || '');
-      if (!norm) return;
-      handledMarkdown.add(norm);
-      if (file.deleted) {
-        clearMarkdownDraftEntry(norm);
-        clearMarkdownAssetsForPath(norm);
-        const tab = findDynamicTabByPath(norm);
-        if (tab) {
-          tab.remoteContent = '';
-          tab.remoteSignature = computeTextSignature('');
-          tab.content = '';
-          tab.loaded = true;
-          tab.localDraft = null;
-          tab.draftConflict = false;
-          tab.isDirty = false;
-          setMarkdownProtectionState(tab, createMarkdownProtectionState());
-          setDynamicTabStatus(tab, {
-            state: 'missing',
-            checkedAt: Date.now(),
-            code: 404,
-            message: 'Deleted via Press'
-          });
-        }
-        updateComposerMarkdownDraftIndicators({ path: norm });
-        return;
-      }
-      const committedText = normalizeMarkdownContent(file.content || '');
-      const tab = findDynamicTabByPath(norm);
-      const commitSignature = computeTextSignature(committedText);
-      const committedEnvelope = parseEncryptedMarkdownEnvelope(committedText);
-      const committedProtected = !!file.protected || committedEnvelope.encrypted;
-      const checkedAt = Date.now();
-      if (tab) {
-        const baselineText = committedProtected
-          ? normalizeMarkdownContent(file.plaintextContent || tab.content || '')
-          : committedText;
-        const currentText = normalizeMarkdownContent(tab.content || '');
-        const hasNewerLocalContent = currentText !== baselineText;
-        tab.remoteContent = baselineText;
-        tab.remoteSignature = commitSignature;
-        tab.loaded = true;
-        if (committedProtected) {
-          setMarkdownProtectionState(tab, {
-            ...getMarkdownProtectionState(tab),
-            enabled: true,
-            encryptedRemote: true,
-            passwordChanged: false,
-            remoteSignature: commitSignature,
-            remoteCiphertext: committedEnvelope.ciphertext || ''
-          });
-        } else {
-          setMarkdownProtectionState(tab, createMarkdownProtectionState());
-        }
-        if (hasNewerLocalContent) {
-          if (tab.localDraft) {
-            tab.localDraft = { ...tab.localDraft, remoteSignature: tab.remoteSignature };
-          }
-          scheduleMarkdownDraftSave(tab);
-          updateDynamicTabDirtyState(tab, { autoSave: false });
-          setDynamicTabStatus(tab, {
-            state: 'existing',
-            checkedAt,
-            message: 'Local edits pending sync'
-          });
-        } else {
-          clearMarkdownDraftEntry(norm);
-          clearMarkdownAssetsForPath(norm);
-          tab.content = baselineText;
-          tab.localDraft = null;
-          tab.draftConflict = false;
-          tab.isDirty = false;
-          updateDynamicTabDirtyState(tab, { autoSave: false });
-          setDynamicTabStatus(tab, {
-            state: 'existing',
-            checkedAt,
-            message: 'Synchronized via Press'
-          });
-        }
-      } else {
-        clearMarkdownDraftEntry(norm);
-        clearMarkdownAssetsForPath(norm);
-      }
-      updateComposerMarkdownDraftIndicators({ path: norm });
-    }
-    else if (file.kind === 'asset') {
-      const norm = normalizeRelPath(file.markdownPath || '');
-      if (!norm) return;
-      const assetPath = normalizeRelPath(file.assetPath || '');
-      if (assetPath) {
-        removeMarkdownAsset(norm, assetPath);
-        removeMarkdownAssetDeletion(norm, assetPath);
-      }
-      else if (file.path) {
-        const withoutRoot = file.path.replace(/^\/?(?:wwwroot\/)?/, '');
-        removeMarkdownAsset(norm, normalizeRelPath(withoutRoot));
-        removeMarkdownAssetDeletion(norm, normalizeRelPath(withoutRoot));
-      }
-    }
-  });
-  updateUnsyncedSummary();
-  updateMarkdownPushButton(getActiveDynamicTab());
-  updateMarkdownDiscardButton(getActiveDynamicTab());
-  updateMarkdownSaveButton(getActiveDynamicTab());
-  updateMarkdownProtectionButton(getActiveDynamicTab());
 }
 
 function computeOrderDiffDetails(kind) {

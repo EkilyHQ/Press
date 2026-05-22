@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createPublishSettingsStore } from '../assets/js/publish/settings-store.js';
 import { createEditorSessionStateStore } from '../assets/js/editor-session-state.js';
+import { createStagingRegistry } from '../assets/js/composer-staging.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
@@ -12,6 +13,8 @@ const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-pane
 const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
+const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
+const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -39,6 +42,8 @@ const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
 const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
+const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
+const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -190,20 +195,20 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function getIndexField\(source, keys\)[\s\S]*Object\.prototype\.hasOwnProperty\.call\(input, key\)[\s\S]*function copyExistingIndexFields\(out, existing, keys\)/,
+  composerIndexPublishMetadataSource,
+  /function getIndexField\(source, keys,[^)]+\)[\s\S]*Object\.prototype\.hasOwnProperty\.call\(input, key\)[\s\S]*function copyExistingIndexFields\(out, existing, keys\)/,
   'index publish metadata enrichment should distinguish omitted front matter from explicit empty fields'
 );
 
 assert.match(
-  source,
-  /const dateField = getIndexField\(fm, \['date'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['date'\]\);[\s\S]*const tagsField = getIndexField\(fm, \['tags', 'tag'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['tags', 'tag'\]\);[\s\S]*const imageField = getIndexField\(fm, \['image', 'cover', 'thumb'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['image', 'cover', 'thumb'\]\);/,
+  composerIndexPublishMetadataSource,
+  /const dateField = getIndexField\(fm, \['date'\][^)]*\);[\s\S]*copyExistingIndexFields\(out, existing, \['date'\]\);[\s\S]*const tagsField = getIndexField\(fm, \['tags', 'tag'\][^)]*\);[\s\S]*copyExistingIndexFields\(out, existing, \['tags', 'tag'\]\);[\s\S]*const imageField = getIndexField\(fm, \['image', 'cover', 'thumb'\][^)]*\);[\s\S]*copyExistingIndexFields\(out, existing, \['image', 'cover', 'thumb'\]\);/,
   'index publish metadata enrichment should preserve curated date, tags, and image fields when front matter omits them'
 );
 
 assert.match(
-  source,
-  /const aiField = getIndexField\(fm, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*const draftField = getIndexField\(fm, \['draft', 'wip', 'unfinished', 'inprogress'\]\);[\s\S]*copyExistingIndexFields\(out, existing, \['draft', 'wip', 'unfinished', 'inprogress'\]\);/,
+  composerIndexPublishMetadataSource,
+  /const aiField = getIndexField\(fm, \['ai', 'aiGenerated', 'llm'\][^)]*\);[\s\S]*copyExistingIndexFields\(out, existing, \['ai', 'aiGenerated', 'llm'\]\);[\s\S]*const draftField = getIndexField\(fm, \['draft', 'wip', 'unfinished', 'inprogress'\][^)]*\);[\s\S]*copyExistingIndexFields\(out, existing, \['draft', 'wip', 'unfinished', 'inprogress'\]\);/,
   'index publish metadata enrichment should preserve AI and draft flags when front matter omits them'
 );
 
@@ -214,13 +219,37 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /async function gatherLocalChangesForCommit\(options = \{\}\) \{[\s\S]*const prepared = alreadyEncrypted[\s\S]*await prepareMarkdownForProtectedStorage\(tab, text, \{ reason: 'commit' \}\)[\s\S]*content: prepared\.content/,
+  composerContentStagingSource,
+  /async function getCommitFiles\(options = \{\}\) \{[\s\S]*const prepared = alreadyEncrypted[\s\S]*await prepareMarkdownForProtectedStorage\(tab, text, \{ reason: 'commit' \}\)[\s\S]*content: prepared\.content/,
   'composer commit gathering should stage protected article ciphertext'
 );
 
+const protectedPlaintextEntry = {
+  kind: 'markdown',
+  path: 'wwwroot/post/protected.md',
+  content: 'ciphertext'
+};
+Object.defineProperty(protectedPlaintextEntry, 'plaintextContent', {
+  value: 'plain text baseline',
+  enumerable: false,
+  configurable: true,
+  writable: true
+});
+const protectedStagingRegistry = createStagingRegistry();
+protectedStagingRegistry.registerStagingProvider({
+  id: 'content',
+  getCommitFiles: () => [protectedPlaintextEntry]
+});
+const protectedStagedResult = await protectedStagingRegistry.getCommitFiles();
+assert.equal(protectedStagedResult.files[0].plaintextContent, 'plain text baseline', 'staging registry should preserve protected markdown plaintext baselines');
+assert.equal(
+  Object.prototype.propertyIsEnumerable.call(protectedStagedResult.files[0], 'plaintextContent'),
+  false,
+  'staging registry should keep protected plaintext baselines non-enumerable'
+);
+
 assert.match(
-  source,
+  [source, composerContentStagingSource].join('\n'),
   /function getLockedEncryptedMarkdownDraft\(tab\) \{[\s\S]*return normalizeMarkdownContent\(draft\.encryptedContent \|\| ''\);[\s\S]*const lockedEncryptedDraft = getLockedEncryptedMarkdownDraft\(tab\);[\s\S]*alreadyEncrypted = true;/,
   'composer commit gathering should preserve locked encrypted draft ciphertext after reload'
 );
@@ -2014,13 +2043,13 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerContentStagingSource,
   /from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
   'composer should stage repository markdown deletions from article/page tombstones'
 );
 
 assert.match(
-  source,
+  composerContentStagingSource,
   /function collectDirtyMarkdownPathsForDeletion\(\) \{[\s\S]*const hasContent = entry\.content != null && normalizeMarkdownContent\(entry\.content\);[\s\S]*const hasAssets = Array\.isArray\(entry\.assets\) && entry\.assets\.length;[\s\S]*const hasDeletedAssets = draftHasAssetDeletions\(entry\);[\s\S]*if \(hasContent \|\| hasAssets \|\| hasDeletedAssets\) paths\.add\(key\);/,
   'repository deletion blockers should treat stored deletion-only asset drafts as pending local draft state'
 );
@@ -2044,13 +2073,13 @@ assert.match(
 );
 
 assert.match(
-  source,
+  [source, composerContentStagingSource].join('\n'),
   /async function fetchMarkdownForAssetScan\(contentPath, contentRoot = 'wwwroot'\) \{[\s\S]*if \(!resp\.ok\) return \{ text: '', failed: true \};[\s\S]*return \{ text: normalizeMarkdownContent\(await resp\.text\(\)\), failed: false \};[\s\S]*async function collectCurrentRepositoryMarkdownAssetReferences\(options = \{\}\) \{[\s\S]*const failures = \[\];[\s\S]*currentManagedMarkdownPathsForAssetScan\(currentRoot\)[\s\S]*fetchMarkdownForAssetScan\(norm, currentRoot\)[\s\S]*if \(result\.failed\) \{[\s\S]*failures\.push\(norm\);[\s\S]*return \{ refs, failures \};[\s\S]*const assetReferenceScan = await collectCurrentRepositoryMarkdownAssetReferences\(\{[\s\S]*const assetReferenceScanComplete = !\(assetReferenceScan\.failures && assetReferenceScan\.failures\.length\);[\s\S]*if \(assetReferenceScanComplete\) \{[\s\S]*listMarkdownAssetDeletions\(\)\.forEach\(\(asset\) => \{/,
   'commit payload should fail closed and include asset deletions only after scanning current published markdown references'
 );
 
 assert.match(
-  source,
+  composerContentStagingSource,
   /async function collectDeletedMarkdownAssetFiles\(markdownDeletionFiles = \[\], options = \{\}\) \{[\s\S]*fetchMarkdownForRepositoryDeletion\(file\)[\s\S]*listLocalMarkdownAssetReferences\(markdown, file\.markdownPath, contentRoot\)[\s\S]*if \(referencedAssets\.has\(resolved\.contentPath\)\) return;[\s\S]*deleted: true[\s\S]*collectDeletedMarkdownAssetFiles\(contentDeletionPlan\.files/,
   'deleting an article or page should also stage same-directory local asset deletions unless known markdown still references them'
 );

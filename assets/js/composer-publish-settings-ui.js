@@ -2,7 +2,7 @@ import {
   CONNECT_PUBLISH_PRESETS,
   getDefaultConnectPublishBaseUrl,
   normalizeConnectPublishBaseUrl
-} from './publish/settings-store.js?v=press-system-v3.4.25';
+} from './publish/settings-store.js?v=press-system-v3.4.26';
 
 export function createPublishTransportSettingsUi({
   documentRef = document,

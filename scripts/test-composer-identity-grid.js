@@ -20,6 +20,7 @@ const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
+const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -54,6 +55,7 @@ const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
+const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -292,6 +294,24 @@ assert.match(
   editorFileTreeUiSource,
   /export function createEditorFileTreeUi\(options = \{\}\)[\s\S]*function createEditorTreeIcon\(node\)[\s\S]*function createEditorTreeStatusElement\(node\)[\s\S]*function animateEditorTreeCollapse\(root, node, row\)[\s\S]*function renderEditorFileTree\(root\)/,
   'editor file tree UI boundary should own tree rendering, collapse animation, status badges, and icons'
+);
+
+assert.match(
+  source,
+  /from '\.\/editor-structure-panel-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted editor structure panel UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function renderEditorStructurePanel|function renderEditorEntryPanel|function renderEditorLanguagePanel|function renderEditorDeletedPanel|function renderEditorWelcomePanel|function createEditorStructureDragController|function appendEditorLanguageControl|function appendLanguageSelector|function makeStructureButton|function renderStructureItem|function availableLanguageCodes|function renderPageLanguageStructure|function moveStructureRootEntry/,
+  'editor structure panel rendering and drag UI should stay outside the main composer shell'
+);
+
+assert.match(
+  editorStructurePanelUiSource,
+  /export function createEditorStructurePanelUi\(options = \{\}\)[\s\S]*function createEditorStructureDragController\(list, onMove\)[\s\S]*function renderEditorDeletedPanel\(node, refs\)[\s\S]*function renderEditorWelcomePanel\(refs\)[\s\S]*function renderEditorStructurePanel\(node\)[\s\S]*function renderEditorEntryPanel\(node, refs\)[\s\S]*function renderEditorLanguagePanel\(node, refs\)/,
+  'editor structure panel UI boundary should own structure rendering, welcome/deleted panels, and drag controls'
 );
 
 assert.match(
@@ -2041,13 +2061,13 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /function appendEditorLanguageControl\(body\) \{[\s\S]*id = 'editorLangSwitcher'[\s\S]*id = 'editorLangSelect'[\s\S]*press-editor-language-control-mounted/,
   'editor language controls should be rendered inside the System structure panel'
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /if \(node\.source === 'system'\) \{[\s\S]*appendEditorLanguageControl\(body\);[\s\S]*node\.children\.forEach/,
   'System root panel should include editor language controls before system leaves'
 );
@@ -2209,7 +2229,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /if \(node\.kind === 'root'\) \{[\s\S]*const add = makeStructureButton\(isPages \? treeText\('addPage', 'Page'\) : treeText\('addArticle', 'Article'\)\);[\s\S]*actions\.appendChild\(add\);/,
   'root structure panels should retain add article/page entry actions'
 );
@@ -2536,7 +2556,13 @@ assert.match(
 
 assert.match(
   source,
-  /function animateEditorStructurePanelContent\(panel\) \{[\s\S]*panel\.classList\.remove\('is-content-entering'\);[\s\S]*panel\.getBoundingClientRect\(\);[\s\S]*panel\.classList\.add\('is-content-entering'\);[\s\S]*function renderEditorStructurePanel\(node\) \{[\s\S]*const animate = \(\) => animateEditorStructurePanelContent\(panel\);/,
+  /function animateEditorStructurePanelContent\(panel\) \{[\s\S]*panel\.classList\.remove\('is-content-entering'\);[\s\S]*panel\.getBoundingClientRect\(\);[\s\S]*panel\.classList\.add\('is-content-entering'\);/,
+  'structure panel animation helper should restart the content transition class'
+);
+
+assert.match(
+  editorStructurePanelUiSource,
+  /function renderEditorStructurePanel\(node\) \{[\s\S]*const animate = \(\) => animateEditorStructurePanelContent\(panel\);/,
   'structure panel rendering should restart the content transition after replacing panel contents'
 );
 
@@ -2697,7 +2723,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /function renderEditorStructurePanel\(node\) \{[\s\S]*if \(node\.isDeleted\) \{[\s\S]*renderEditorDeletedPanel\(node, \{ title, kicker, meta, actions, body \}\);[\s\S]*return;[\s\S]*if \(node\.kind === 'root'\)/,
   'deleted tombstones should render a read-only deleted panel before editable entry/language panels are considered'
 );
@@ -2709,12 +2735,12 @@ assert.match(
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /const visibleChildren = node\.children\.filter\(child => !child\.isDeleted\);[\s\S]*visibleChildren\.forEach/,
   'root structure reorder lists should exclude deleted tombstones from draggable current-order rows'
 );
 
-const deletedPanelBody = extractFunctionBody(source, 'renderEditorDeletedPanel');
+const deletedPanelBody = extractFunctionBody(editorStructurePanelUiSource, 'renderEditorDeletedPanel');
 assert.doesNotMatch(
   deletedPanelBody,
   /getIndexEntry|getTabsEntry|appendLanguageSelector|addEditorVersion|renderEditorEntryPanel|renderEditorLanguagePanel/,
@@ -3102,37 +3128,37 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
-  /const moveStructureRootEntry = \(source, from, to\) => \{[\s\S]*const order = Array\.isArray\(state\.__order\) \? state\.__order : \[\];[\s\S]*const \[key\] = order\.splice\(from, 1\);[\s\S]*order\.splice\(to, 0, key\);[\s\S]*notifyComposerChange\(source\);[\s\S]*refreshEditorContentTree\(\);/,
+  editorStructurePanelUiSource,
+  /function moveStructureRootEntry\(source, from, to\) \{[\s\S]*const order = Array\.isArray\(state\.__order\) \? state\.__order : \[\];[\s\S]*const \[key\] = order\.splice\(from, 1\);[\s\S]*order\.splice\(to, 0, key\);[\s\S]*notifyComposerChange\(source\);[\s\S]*refreshEditorContentTree\(\);/,
   'structure panels should reorder the backing root order and refresh the content tree'
 );
 
 assert.match(
-  source,
-  /const dragController = createEditorStructureDragController\(list,[\s\S]*const createStructureDragHandle = \(child, index, source\) => \{[\s\S]*const labelKey = source === 'tabs' \? 'reorderPage' : 'reorderArticle';[\s\S]*return dragController\.createHandle\(index, treeText\(labelKey, source === 'tabs' \? 'Reorder page' : 'Reorder article'\)\);/,
+  editorStructurePanelUiSource,
+  /const dragController = createEditorStructureDragController\(list,[\s\S]*const createStructureDragHandle = \(index, source\) => \{[\s\S]*const labelKey = source === 'tabs' \? 'reorderPage' : 'reorderArticle';[\s\S]*return dragController\.createHandle\(index, treeText\(labelKey, source === 'tabs' \? 'Reorder page' : 'Reorder article'\)\);/,
   'article and page structure rows should render a standalone drag handle with pointer and keyboard reorder hooks'
 );
 
 assert.match(
-  source,
-  /const renderStructureDraggableItem = \(child, detail, index, source\) => \{[\s\S]*item\.className = 'editor-structure-item editor-structure-item--draggable';[\s\S]*const handle = createStructureDragHandle\(child, index, source\);[\s\S]*item\.append\(handle, main, controls\);/,
+  editorStructurePanelUiSource,
+  /const renderStructureDraggableItem = \(child, detail, index, source\) => \{[\s\S]*item\.className = 'editor-structure-item editor-structure-item--draggable';[\s\S]*const handle = createStructureDragHandle\(index, source\);[\s\S]*item\.append\(handle, main, controls\);/,
   'article and page structure rows should compose handle, content, and actions as separate elements'
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /const createPlaceholder = \(item\) => \{[\s\S]*placeholder\.className = 'editor-structure-drop-placeholder';[\s\S]*placeholder\.style\.height = `\$\{itemRect\.height\}px`;/,
   'article structure drag should create an in-list placeholder matching the dragged row height'
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /const applyDragPreview = \(clientY\) => \{[\s\S]*dragState\.dragItem\.style\.transform = `translate3d\(0, \$\{clientY - dragState\.startY\}px, 0\)`[\s\S]*animateRows\(\(\) => \{/,
   'structure drag should move the dragged row with the pointer while previewing the drop position'
 );
 
 assert.match(
-  source,
+  editorStructurePanelUiSource,
   /if \(node\.source === 'index' \|\| node\.source === 'tabs'\) \{[\s\S]*visibleChildren\.forEach\(\(child, index\) => \{[\s\S]*renderStructureDraggableItem\(child, `\$\{child\.children\.length\} \$\{treeText\('languages', 'languages'\)\}`, index, node\.source\)/,
   'articles and pages root panels should both use draggable structure rows for non-deleted current entries'
 );

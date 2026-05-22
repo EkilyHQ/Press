@@ -91,6 +91,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-file-tree-ui.js" "${entr
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-structure-panel-ui.js" "${entries_file}"; then
+  echo "expected package to include editor structure panel UI code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/vendor/highlightjs/highlight.min.js" "${entries_file}"; then
   echo "expected package to include vendored Highlight.js common bundle" >&2
   exit 1

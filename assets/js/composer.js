@@ -8,21 +8,21 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { escapeHtml } from './utils.js?v=press-system-v3.4.41';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.41';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.41';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.41';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.41';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.42';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.42';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.42';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.42';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.42';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.41';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.41';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.41';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.41';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.41';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.41';
+} from './encrypted-content.js?v=press-system-v3.4.42';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.42';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.42';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.42';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.42';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.42';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -36,7 +36,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.41';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.42';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -44,37 +44,38 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.41';
+} from './composer-site-model.js?v=press-system-v3.4.42';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.41';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.41';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.41';
+} from './editor-storage.js?v=press-system-v3.4.42';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.42';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.42';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.41';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.41';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.41';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.41';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.41';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.41';
-import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.41';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.41';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.41';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.41';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.41';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.41';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.41';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.41';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.41';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.41';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.41';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.41';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.41';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.41';
-import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.41';
+} from './composer-sync-panel.js?v=press-system-v3.4.42';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.42';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.42';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.42';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.42';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.42';
+import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.42';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.42';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.42';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.42';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.42';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.42';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.42';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.42';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.42';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.42';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.42';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.42';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.42';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.42';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.42';
+import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.42';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -86,13 +87,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.41';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.41';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.41';
+} from './composer-markdown-state.js?v=press-system-v3.4.42';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.42';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.42';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.41';
+} from './publish/settings-store.js?v=press-system-v3.4.42';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -180,6 +181,16 @@ const {
   finalizePopupWindow,
   handlePopupBlocked
 } = composerNotifications;
+const composerDialogs = createComposerDialogController({
+  documentRef: document,
+  windowRef: window,
+  t
+});
+const {
+  showAddEntryPrompt: showComposerAddEntryPrompt,
+  showDiscardConfirm: showComposerDiscardConfirm,
+  requestMarkdownProtectionPassword
+} = composerDialogs;
 
 const publishSettingsStore = createPublishSettingsStore({
   windowRef: window,
@@ -2601,866 +2612,6 @@ async function handleComposerRefresh(btn) {
     resetButton();
     setTimeout(() => { showStatus(''); }, 2000);
   }
-}
-
-let discardConfirmElements = null;
-let discardConfirmActiveClose = null;
-let discardConfirmHideTimer = null;
-
-let addEntryPromptElements = null;
-let addEntryPromptActiveClose = null;
-let addEntryPromptHideTimer = null;
-
-function ensureComposerAddEntryPromptElements() {
-  if (addEntryPromptElements) return addEntryPromptElements;
-  if (typeof document === 'undefined') return null;
-
-  const popover = document.createElement('div');
-  popover.id = 'composerAddEntryPrompt';
-  popover.className = 'composer-confirm-popover composer-key-popover';
-  popover.setAttribute('role', 'dialog');
-  popover.setAttribute('aria-modal', 'false');
-  popover.hidden = true;
-
-  const fieldWrap = document.createElement('div');
-  fieldWrap.className = 'composer-key-form';
-
-  const label = document.createElement('label');
-  label.className = 'composer-confirm-message';
-  label.id = 'composerAddEntryPromptLabel';
-  label.setAttribute('for', 'composerAddEntryKeyInput');
-  fieldWrap.appendChild(label);
-
-  popover.setAttribute('aria-labelledby', label.id);
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = 'composerAddEntryKeyInput';
-  input.className = 'composer-key-input';
-  input.autocomplete = 'off';
-  input.autocapitalize = 'none';
-  input.spellcheck = false;
-  input.setAttribute('spellcheck', 'false');
-  fieldWrap.appendChild(input);
-
-  const hint = document.createElement('div');
-  hint.className = 'composer-key-hint';
-  hint.id = 'composerAddEntryPromptHint';
-  hint.textContent = t('editor.composer.addEntryPrompt.hint');
-  fieldWrap.appendChild(hint);
-
-  const error = document.createElement('div');
-  error.className = 'composer-key-error';
-  error.id = 'composerAddEntryPromptError';
-  error.setAttribute('role', 'alert');
-  fieldWrap.appendChild(error);
-
-  input.setAttribute('aria-describedby', `${hint.id} ${error.id}`);
-  popover.setAttribute('aria-describedby', `${hint.id} ${error.id}`);
-
-  popover.appendChild(fieldWrap);
-
-  const actions = document.createElement('div');
-  actions.className = 'composer-confirm-actions';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.type = 'button';
-  cancelBtn.className = 'btn-secondary composer-confirm-cancel';
-  cancelBtn.textContent = t('editor.composer.dialogs.cancel');
-
-  const confirmBtn = document.createElement('button');
-  confirmBtn.type = 'button';
-  confirmBtn.className = 'btn-secondary composer-confirm-confirm';
-  confirmBtn.textContent = t('editor.composer.addEntryPrompt.confirm');
-
-  actions.append(cancelBtn, confirmBtn);
-  popover.appendChild(actions);
-
-  document.body.appendChild(popover);
-  addEntryPromptElements = { popover, label, input, hint, error, cancelBtn, confirmBtn };
-  return addEntryPromptElements;
-}
-
-function showComposerAddEntryPrompt(anchor, options) {
-  const elements = ensureComposerAddEntryPromptElements();
-  if (!elements) return Promise.resolve({ confirmed: false, value: '' });
-
-  const { popover, label, input, hint, error, cancelBtn, confirmBtn } = elements;
-  const typeLabel = options && options.typeLabel
-    ? String(options.typeLabel)
-    : t('editor.composer.addEntryPrompt.defaultType');
-  const confirmLabel = options && options.confirmLabel
-    ? String(options.confirmLabel)
-    : t('editor.composer.addEntryPrompt.confirm');
-  const cancelLabel = options && options.cancelLabel
-    ? String(options.cancelLabel)
-    : t('editor.composer.dialogs.cancel');
-  const placeholder = options && options.placeholder
-    ? String(options.placeholder)
-    : t('editor.composer.addEntryPrompt.placeholder');
-  const existingKeys = options && options.existingKeys ? new Set(options.existingKeys) : new Set();
-  const hintText = options && Object.prototype.hasOwnProperty.call(options, 'hint')
-    ? String(options.hint || '')
-    : t('editor.composer.addEntryPrompt.hint');
-  const customValidator = options && typeof options.validate === 'function'
-    ? options.validate
-    : null;
-
-  label.textContent = options && options.message
-    ? String(options.message)
-    : t('editor.composer.addEntryPrompt.message', { label: typeLabel });
-  cancelBtn.textContent = cancelLabel;
-  confirmBtn.textContent = confirmLabel;
-  hint.textContent = hintText;
-  input.value = options && options.initialValue ? String(options.initialValue).trim() : '';
-  input.placeholder = placeholder;
-  input.setAttribute('aria-invalid', 'false');
-  error.textContent = '';
-
-  if (anchor && typeof anchor.setAttribute === 'function') {
-    anchor.setAttribute('aria-haspopup', 'dialog');
-    anchor.setAttribute('aria-controls', popover.id);
-  }
-
-  if (typeof addEntryPromptActiveClose === 'function') {
-    try { addEntryPromptActiveClose(false); } catch (_) {}
-  }
-
-  if (addEntryPromptHideTimer) {
-    window.clearTimeout(addEntryPromptHideTimer);
-    addEntryPromptHideTimer = null;
-  }
-
-  popover.hidden = false;
-  popover.style.visibility = 'hidden';
-  popover.classList.remove('is-visible');
-  popover.dataset.placement = 'bottom';
-
-  const setError = (message) => {
-    const text = String(message || '');
-    error.textContent = text;
-    if (text) {
-      input.setAttribute('aria-invalid', 'true');
-    } else {
-      input.setAttribute('aria-invalid', 'false');
-    }
-  };
-
-  const validateValue = () => {
-    const raw = input.value || '';
-    const value = raw.trim();
-    if (customValidator) {
-      const result = customValidator(value);
-      if (result && typeof result === 'object') {
-        if (result.ok === false) {
-          setError(result.error || t('editor.composer.addEntryPrompt.errorInvalid'));
-          try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-          return null;
-        }
-        const nextValue = Object.prototype.hasOwnProperty.call(result, 'value')
-          ? String(result.value || '').trim()
-          : value;
-        setError('');
-        return nextValue;
-      }
-      if (typeof result === 'string' && result) {
-        setError(result);
-        try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-        return null;
-      }
-      if (result === false) {
-        setError(t('editor.composer.addEntryPrompt.errorInvalid'));
-        try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-        return null;
-      }
-      setError('');
-      return value;
-    }
-    if (!value) {
-      setError(t('editor.composer.addEntryPrompt.errorEmpty'));
-      try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-      return null;
-    }
-    if (!/^[A-Za-z0-9_-]+$/.test(value)) {
-      setError(t('editor.composer.addEntryPrompt.errorInvalid'));
-      try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-      return null;
-    }
-    if (existingKeys.has(value)) {
-      setError(t('editor.composer.addEntryPrompt.errorDuplicate'));
-      try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-      return null;
-    }
-    setError('');
-    return value;
-  };
-
-  let resolve;
-  let closed = false;
-
-  const finish = (result, value) => {
-    if (closed) return;
-    closed = true;
-    addEntryPromptActiveClose = null;
-
-    popover.classList.remove('is-visible');
-    popover.style.visibility = 'hidden';
-
-    if (addEntryPromptHideTimer) {
-      window.clearTimeout(addEntryPromptHideTimer);
-      addEntryPromptHideTimer = null;
-    }
-    addEntryPromptHideTimer = window.setTimeout(() => {
-      popover.hidden = true;
-      popover.style.visibility = '';
-      popover.style.left = '';
-      popover.style.top = '';
-      addEntryPromptHideTimer = null;
-    }, 200);
-
-    cancelBtn.removeEventListener('click', onCancel);
-    confirmBtn.removeEventListener('click', onConfirm);
-    input.removeEventListener('keydown', onInputKeyDown, true);
-    input.removeEventListener('input', onInputChange);
-    document.removeEventListener('keydown', onKeyDown, true);
-    document.removeEventListener('mousedown', onOutside, true);
-    document.removeEventListener('touchstart', onOutside, true);
-    window.removeEventListener('resize', reposition);
-    window.removeEventListener('scroll', reposition, true);
-
-    if (anchor && typeof anchor.setAttribute === 'function') {
-      anchor.setAttribute('aria-expanded', 'false');
-    }
-
-    if (!result && anchor && typeof anchor.focus === 'function') {
-      window.setTimeout(() => {
-        try { anchor.focus({ preventScroll: true }); } catch (_) {}
-      }, 120);
-    }
-
-    setError('');
-    input.value = '';
-
-    if (typeof resolve === 'function') {
-      resolve({ confirmed: !!result, value: result ? String(value || '') : '' });
-    }
-    resolve = null;
-  };
-
-  const onCancel = (event) => {
-    if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    finish(false, '');
-  };
-
-  const onConfirm = (event) => {
-    if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    const value = validateValue();
-    if (value == null) return;
-    finish(true, value);
-  };
-
-  const onInputKeyDown = (event) => {
-    if (!event) return;
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const value = validateValue();
-      if (value == null) return;
-      finish(true, value);
-    }
-  };
-
-  const onInputChange = () => {
-    if (error.textContent) setError('');
-  };
-
-  const onOutside = (event) => {
-    const target = event && event.target;
-    if (!target) return;
-    if (popover.contains(target) || target === anchor) return;
-    finish(false, '');
-  };
-
-  const onKeyDown = (event) => {
-    if (!event) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      finish(false, '');
-      return;
-    }
-    if (event.key === 'Tab') {
-      const focusables = [input, confirmBtn, cancelBtn];
-      const active = document.activeElement;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (event.shiftKey) {
-        if (active === first || !focusables.includes(active)) {
-          event.preventDefault();
-          if (last) last.focus({ preventScroll: true });
-        }
-      } else {
-        if (active === last) {
-          event.preventDefault();
-          if (first) first.focus({ preventScroll: true });
-        } else if (!focusables.includes(active)) {
-          event.preventDefault();
-          if (first) first.focus({ preventScroll: true });
-        }
-      }
-    }
-  };
-
-  const reposition = () => {
-    if (!anchor || !popover.isConnected) {
-      finish(false, '');
-      return;
-    }
-    if (typeof anchor.getBoundingClientRect !== 'function') {
-      finish(false, '');
-      return;
-    }
-    const rect = anchor.getBoundingClientRect();
-    if (!rect || (rect.width === 0 && rect.height === 0)) {
-      finish(false, '');
-      return;
-    }
-    const scrollX = window.scrollX || window.pageXOffset || 0;
-    const scrollY = window.scrollY || window.pageYOffset || 0;
-    const viewportWidth = document.documentElement && document.documentElement.clientWidth
-      ? document.documentElement.clientWidth
-      : (window.innerWidth || 0);
-    const viewportHeight = document.documentElement && document.documentElement.clientHeight
-      ? document.documentElement.clientHeight
-      : (window.innerHeight || 0);
-    const margin = 12;
-    const width = popover.offsetWidth;
-    const height = popover.offsetHeight;
-
-    let left = scrollX + rect.right - width;
-    const minLeft = scrollX + margin;
-    const maxLeft = scrollX + Math.max(margin, viewportWidth - margin - width);
-    if (left < minLeft) left = minLeft;
-    if (left > maxLeft) left = maxLeft;
-
-    let placement = 'bottom';
-    let top = scrollY + rect.bottom + 12;
-    const viewportBottom = scrollY + viewportHeight;
-    const fitsBelow = top + height <= viewportBottom - margin;
-    if (!fitsBelow && rect.top >= height + margin) {
-      placement = 'top';
-      top = scrollY + rect.top - height - 12;
-    } else if (!fitsBelow) {
-      top = Math.max(scrollY + margin, viewportBottom - height - margin);
-    }
-    if (placement === 'bottom') {
-      top = Math.max(top, scrollY + rect.bottom + 4);
-    } else {
-      top = Math.min(top, scrollY + rect.top - 4);
-    }
-
-    popover.dataset.placement = placement;
-    popover.style.left = `${Math.round(left)}px`;
-    popover.style.top = `${Math.round(top)}px`;
-  };
-
-  cancelBtn.addEventListener('click', onCancel);
-  confirmBtn.addEventListener('click', onConfirm);
-  input.addEventListener('keydown', onInputKeyDown, true);
-  input.addEventListener('input', onInputChange);
-  document.addEventListener('keydown', onKeyDown, true);
-  document.addEventListener('mousedown', onOutside, true);
-  document.addEventListener('touchstart', onOutside, true);
-  window.addEventListener('resize', reposition);
-  window.addEventListener('scroll', reposition, true);
-
-  return new Promise((res) => {
-    resolve = res;
-    addEntryPromptActiveClose = () => finish(false, '');
-
-    const runShow = () => {
-      reposition();
-      if (closed) return;
-      popover.style.visibility = '';
-      popover.classList.add('is-visible');
-      if (anchor && typeof anchor.setAttribute === 'function') {
-        anchor.setAttribute('aria-expanded', 'true');
-      }
-      try { input.focus({ preventScroll: true }); input.select(); } catch (_) {}
-    };
-
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(runShow);
-    } else {
-      runShow();
-    }
-  });
-}
-
-let markdownProtectionPasswordDialogElements = null;
-
-function configureMarkdownPasswordInput(input) {
-  if (!input) return;
-  input.type = 'password';
-  input.autocomplete = 'off';
-  input.autocapitalize = 'none';
-  input.spellcheck = false;
-  input.setAttribute('spellcheck', 'false');
-  input.setAttribute('data-1p-ignore', 'true');
-  input.setAttribute('data-lpignore', 'true');
-}
-
-function ensureMarkdownProtectionPasswordDialogElements() {
-  if (markdownProtectionPasswordDialogElements) return markdownProtectionPasswordDialogElements;
-  if (typeof document === 'undefined') return null;
-
-  const overlay = document.createElement('div');
-  overlay.id = 'composerMarkdownProtectionPasswordDialog';
-  overlay.className = 'composer-protection-modal';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.hidden = true;
-
-  const card = document.createElement('div');
-  card.className = 'composer-protection-card';
-
-  const title = document.createElement('h3');
-  title.className = 'composer-protection-title';
-  title.id = 'composerMarkdownProtectionPasswordTitle';
-  overlay.setAttribute('aria-labelledby', title.id);
-  card.appendChild(title);
-
-  const message = document.createElement('p');
-  message.className = 'composer-protection-message';
-  message.id = 'composerMarkdownProtectionPasswordMessage';
-  overlay.setAttribute('aria-describedby', message.id);
-  card.appendChild(message);
-
-  const passwordLabel = document.createElement('label');
-  passwordLabel.className = 'composer-protection-field';
-  passwordLabel.setAttribute('for', 'composerMarkdownProtectionPasswordInput');
-  const passwordText = document.createElement('span');
-  passwordText.className = 'composer-protection-label';
-  passwordText.textContent = t('editor.composer.markdown.protection.passwordLabel');
-  const passwordInput = document.createElement('input');
-  passwordInput.id = 'composerMarkdownProtectionPasswordInput';
-  passwordInput.className = 'composer-key-input composer-protection-input';
-  configureMarkdownPasswordInput(passwordInput);
-  passwordLabel.append(passwordText, passwordInput);
-  card.appendChild(passwordLabel);
-
-  const confirmLabel = document.createElement('label');
-  confirmLabel.className = 'composer-protection-field';
-  confirmLabel.setAttribute('for', 'composerMarkdownProtectionPasswordConfirm');
-  const confirmText = document.createElement('span');
-  confirmText.className = 'composer-protection-label';
-  confirmText.textContent = t('editor.composer.markdown.protection.confirmPasswordLabel');
-  const confirmInput = document.createElement('input');
-  confirmInput.id = 'composerMarkdownProtectionPasswordConfirm';
-  confirmInput.className = 'composer-key-input composer-protection-input';
-  configureMarkdownPasswordInput(confirmInput);
-  confirmLabel.append(confirmText, confirmInput);
-  card.appendChild(confirmLabel);
-
-  const error = document.createElement('div');
-  error.className = 'composer-key-error composer-protection-error';
-  error.id = 'composerMarkdownProtectionPasswordError';
-  error.setAttribute('role', 'alert');
-  card.appendChild(error);
-
-  const actions = document.createElement('div');
-  actions.className = 'composer-confirm-actions composer-protection-actions';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.type = 'button';
-  cancelBtn.className = 'btn-secondary composer-confirm-cancel';
-  cancelBtn.textContent = t('editor.composer.dialogs.cancel');
-
-  const confirmBtn = document.createElement('button');
-  confirmBtn.type = 'button';
-  confirmBtn.className = 'btn-secondary composer-confirm-confirm';
-  confirmBtn.textContent = t('editor.composer.dialogs.confirm');
-
-  actions.append(cancelBtn, confirmBtn);
-  card.appendChild(actions);
-  overlay.appendChild(card);
-  document.body.appendChild(overlay);
-
-  markdownProtectionPasswordDialogElements = {
-    overlay,
-    title,
-    message,
-    passwordText,
-    passwordInput,
-    confirmLabel,
-    confirmText,
-    confirmInput,
-    error,
-    cancelBtn,
-    confirmBtn
-  };
-  return markdownProtectionPasswordDialogElements;
-}
-
-function requestMarkdownProtectionPassword(options = {}) {
-  const elements = ensureMarkdownProtectionPasswordDialogElements();
-  if (!elements) return Promise.resolve('');
-  const {
-    overlay,
-    title,
-    message,
-    passwordText,
-    passwordInput,
-    confirmLabel,
-    confirmText,
-    confirmInput,
-    error,
-    cancelBtn,
-    confirmBtn
-  } = elements;
-  const opts = options && typeof options === 'object' ? options : {};
-  const requireConfirm = opts.confirm === true;
-
-  title.textContent = opts.title ? String(opts.title) : t('editor.composer.markdown.protection.dialogTitle');
-  message.textContent = opts.message ? String(opts.message) : t('editor.composer.markdown.protection.dialogMessage');
-  passwordText.textContent = t('editor.composer.markdown.protection.passwordLabel');
-  confirmText.textContent = t('editor.composer.markdown.protection.confirmPasswordLabel');
-  confirmBtn.textContent = opts.confirmLabel ? String(opts.confirmLabel) : t('editor.composer.dialogs.confirm');
-  cancelBtn.textContent = opts.cancelLabel ? String(opts.cancelLabel) : t('editor.composer.dialogs.cancel');
-  passwordInput.value = '';
-  confirmInput.value = '';
-  error.textContent = '';
-  passwordInput.setAttribute('aria-invalid', 'false');
-  confirmInput.setAttribute('aria-invalid', 'false');
-  confirmLabel.hidden = !requireConfirm;
-
-  return new Promise((resolve) => {
-    let closed = false;
-
-    const setError = (text) => {
-      const value = String(text || '');
-      error.textContent = value;
-      passwordInput.setAttribute('aria-invalid', value ? 'true' : 'false');
-      confirmInput.setAttribute('aria-invalid', value && requireConfirm ? 'true' : 'false');
-    };
-
-    const finish = (value) => {
-      if (closed) return;
-      closed = true;
-      overlay.classList.remove('is-visible');
-      overlay.hidden = true;
-      passwordInput.value = '';
-      confirmInput.value = '';
-      setError('');
-      cancelBtn.removeEventListener('click', onCancel);
-      confirmBtn.removeEventListener('click', onConfirm);
-      passwordInput.removeEventListener('keydown', onKeyDown, true);
-      confirmInput.removeEventListener('keydown', onKeyDown, true);
-      overlay.removeEventListener('mousedown', onOverlayMouseDown, true);
-      document.removeEventListener('keydown', onDocumentKeyDown, true);
-      resolve(value ? String(value) : '');
-    };
-
-    const validate = () => {
-      const password = String(passwordInput.value || '');
-      const confirmation = String(confirmInput.value || '');
-      if (!password) {
-        setError(t('editor.composer.markdown.protection.passwordRequired'));
-        try { passwordInput.focus({ preventScroll: true }); } catch (_) {}
-        return '';
-      }
-      if (requireConfirm && password !== confirmation) {
-        setError(t('editor.composer.markdown.protection.passwordMismatch'));
-        try { confirmInput.focus({ preventScroll: true }); } catch (_) {}
-        return '';
-      }
-      setError('');
-      return password;
-    };
-
-    function onCancel(event) {
-      if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      finish('');
-    }
-
-    function onConfirm(event) {
-      if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      const password = validate();
-      if (!password) return;
-      finish(password);
-    }
-
-    function onKeyDown(event) {
-      if (!event) return;
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        const password = validate();
-        if (!password) return;
-        finish(password);
-      }
-    }
-
-    function onDocumentKeyDown(event) {
-      if (!event) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        finish('');
-      }
-    }
-
-    function onOverlayMouseDown(event) {
-      if (event && event.target === overlay) finish('');
-    }
-
-    cancelBtn.addEventListener('click', onCancel);
-    confirmBtn.addEventListener('click', onConfirm);
-    passwordInput.addEventListener('keydown', onKeyDown, true);
-    confirmInput.addEventListener('keydown', onKeyDown, true);
-    overlay.addEventListener('mousedown', onOverlayMouseDown, true);
-    document.addEventListener('keydown', onDocumentKeyDown, true);
-
-    overlay.hidden = false;
-    overlay.classList.add('is-visible');
-    try { passwordInput.focus({ preventScroll: true }); } catch (_) {}
-  });
-}
-
-function ensureComposerDiscardConfirmElements() {
-  if (discardConfirmElements) return discardConfirmElements;
-  if (typeof document === 'undefined') return null;
-  const popover = document.createElement('div');
-  popover.className = 'composer-confirm-popover';
-  popover.id = 'composerDiscardConfirm';
-  popover.setAttribute('role', 'dialog');
-  popover.setAttribute('aria-modal', 'false');
-  popover.hidden = true;
-
-  const message = document.createElement('div');
-  message.className = 'composer-confirm-message';
-  message.id = 'composerDiscardConfirmMessage';
-  popover.setAttribute('aria-labelledby', message.id);
-  popover.appendChild(message);
-
-  const actions = document.createElement('div');
-  actions.className = 'composer-confirm-actions';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.type = 'button';
-  cancelBtn.className = 'btn-secondary composer-confirm-cancel';
-  cancelBtn.textContent = t('editor.composer.dialogs.cancel');
-
-  const confirmBtn = document.createElement('button');
-  confirmBtn.type = 'button';
-  confirmBtn.className = 'btn-secondary composer-confirm-confirm';
-  confirmBtn.textContent = t('editor.composer.dialogs.confirm');
-
-  actions.append(cancelBtn, confirmBtn);
-  popover.appendChild(actions);
-
-  document.body.appendChild(popover);
-  discardConfirmElements = { popover, message, cancelBtn, confirmBtn };
-  return discardConfirmElements;
-}
-
-function showComposerDiscardConfirm(anchor, messageText, options) {
-  const elements = ensureComposerDiscardConfirmElements();
-  if (!elements) return Promise.resolve(true);
-  const { popover, message, cancelBtn, confirmBtn } = elements;
-  const confirmLabel = options && options.confirmLabel
-    ? String(options.confirmLabel)
-    : t('editor.composer.dialogs.confirm');
-  const cancelLabel = options && options.cancelLabel
-    ? String(options.cancelLabel)
-    : t('editor.composer.dialogs.cancel');
-
-  message.textContent = String(messageText || '');
-  cancelBtn.textContent = cancelLabel;
-  confirmBtn.textContent = confirmLabel;
-
-  if (anchor && typeof anchor.setAttribute === 'function') {
-    anchor.setAttribute('aria-haspopup', 'dialog');
-    anchor.setAttribute('aria-controls', popover.id);
-  }
-
-  if (typeof discardConfirmActiveClose === 'function') {
-    try { discardConfirmActiveClose(false); } catch (_) {}
-  }
-
-  if (discardConfirmHideTimer) {
-    window.clearTimeout(discardConfirmHideTimer);
-    discardConfirmHideTimer = null;
-  }
-
-  popover.hidden = false;
-  popover.style.visibility = 'hidden';
-  popover.classList.remove('is-visible');
-  popover.dataset.placement = 'bottom';
-
-  return new Promise((resolve) => {
-    let closed = false;
-
-    const finish = (result) => {
-      if (closed) return;
-      closed = true;
-      discardConfirmActiveClose = null;
-
-      popover.classList.remove('is-visible');
-      popover.style.visibility = 'hidden';
-      if (discardConfirmHideTimer) {
-        window.clearTimeout(discardConfirmHideTimer);
-        discardConfirmHideTimer = null;
-      }
-      discardConfirmHideTimer = window.setTimeout(() => {
-        popover.hidden = true;
-        popover.style.visibility = '';
-        popover.style.left = '';
-        popover.style.top = '';
-        discardConfirmHideTimer = null;
-      }, 200);
-
-      cancelBtn.removeEventListener('click', onCancel);
-      confirmBtn.removeEventListener('click', onConfirm);
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('mousedown', onOutside, true);
-      document.removeEventListener('touchstart', onOutside, true);
-      window.removeEventListener('resize', reposition);
-      window.removeEventListener('scroll', reposition, true);
-
-      if (anchor && typeof anchor.setAttribute === 'function') {
-        anchor.setAttribute('aria-expanded', 'false');
-      }
-
-      if (!result && anchor && typeof anchor.focus === 'function') {
-        window.setTimeout(() => {
-          try { anchor.focus({ preventScroll: true }); } catch (_) {}
-        }, 120);
-      }
-
-      resolve(!!result);
-    };
-
-    const onCancel = (event) => {
-      if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      finish(false);
-    };
-    const onConfirm = (event) => {
-      if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      finish(true);
-    };
-    const onOutside = (event) => {
-      const target = event && event.target;
-      if (!target) return;
-      if (popover.contains(target) || target === anchor) return;
-      finish(false);
-    };
-    const onKeyDown = (event) => {
-      if (!event) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        finish(false);
-        return;
-      }
-      if (event.key === 'Tab') {
-        const focusables = [cancelBtn, confirmBtn];
-        const active = document.activeElement;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (event.shiftKey) {
-          if (active === first || !focusables.includes(active)) {
-            event.preventDefault();
-            if (last) last.focus({ preventScroll: true });
-          }
-        } else {
-          if (active === last) {
-            event.preventDefault();
-            if (first) first.focus({ preventScroll: true });
-          } else if (!focusables.includes(active)) {
-            event.preventDefault();
-            if (first) first.focus({ preventScroll: true });
-          }
-        }
-      }
-    };
-
-    const reposition = () => {
-      if (closed) return;
-      if (!anchor || !popover.isConnected) {
-        finish(false);
-        return;
-      }
-      if (typeof anchor.getBoundingClientRect !== 'function') {
-        finish(false);
-        return;
-      }
-      const rect = anchor.getBoundingClientRect();
-      if (!rect || (rect.width === 0 && rect.height === 0)) {
-        finish(false);
-        return;
-      }
-      const scrollX = window.scrollX || window.pageXOffset || 0;
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const viewportWidth = document.documentElement && document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : (window.innerWidth || 0);
-      const viewportHeight = document.documentElement && document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : (window.innerHeight || 0);
-      const margin = 12;
-      const width = popover.offsetWidth;
-      const height = popover.offsetHeight;
-
-      let left = scrollX + rect.right - width;
-      const minLeft = scrollX + margin;
-      const maxLeft = scrollX + Math.max(margin, viewportWidth - margin - width);
-      if (left < minLeft) left = minLeft;
-      if (left > maxLeft) left = maxLeft;
-
-      let placement = 'bottom';
-      let top = scrollY + rect.bottom + 12;
-      const viewportBottom = scrollY + viewportHeight;
-      const fitsBelow = top + height <= viewportBottom - margin;
-      if (!fitsBelow && rect.top >= height + margin) {
-        placement = 'top';
-        top = scrollY + rect.top - height - 12;
-      } else if (!fitsBelow) {
-        top = Math.max(scrollY + margin, viewportBottom - height - margin);
-      }
-      if (placement === 'bottom') {
-        top = Math.max(top, scrollY + rect.bottom + 4);
-      } else {
-        top = Math.min(top, scrollY + rect.top - 4);
-      }
-
-      popover.dataset.placement = placement;
-      popover.style.left = `${Math.round(left)}px`;
-      popover.style.top = `${Math.round(top)}px`;
-    };
-
-    cancelBtn.addEventListener('click', onCancel);
-    confirmBtn.addEventListener('click', onConfirm);
-    document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('mousedown', onOutside, true);
-    document.addEventListener('touchstart', onOutside, true);
-    window.addEventListener('resize', reposition);
-    window.addEventListener('scroll', reposition, true);
-
-    discardConfirmActiveClose = finish;
-
-    const runShow = () => {
-      if (closed) return;
-      reposition();
-      if (closed) return;
-      popover.style.visibility = '';
-      popover.classList.add('is-visible');
-      if (anchor && typeof anchor.setAttribute === 'function') {
-        anchor.setAttribute('aria-expanded', 'true');
-      }
-      try { confirmBtn.focus({ preventScroll: true }); } catch (_) {}
-    };
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(runShow);
-    } else {
-      runShow();
-    }
-  });
 }
 
 async function handleComposerDiscard(btn) {

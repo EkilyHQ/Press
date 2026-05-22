@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.37';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.37';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.37';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.37';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.38';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.38';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.38';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.38';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.37';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.37';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.37';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.37';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.37';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.37';
+} from './encrypted-content.js?v=press-system-v3.4.38';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.38';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.38';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.38';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.38';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.38';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.37';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.38';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,33 +43,34 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.37';
+} from './composer-site-model.js?v=press-system-v3.4.38';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.37';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.37';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.37';
+} from './editor-storage.js?v=press-system-v3.4.38';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.38';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.38';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.37';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.37';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.37';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.37';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.37';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.37';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.37';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.37';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.37';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.37';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.37';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.37';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.37';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.37';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.37';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.37';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.37';
+} from './composer-sync-panel.js?v=press-system-v3.4.38';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.38';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.38';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.38';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.38';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.38';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.38';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.38';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.38';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.38';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.38';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.38';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.38';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.38';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.38';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.38';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.38';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.38';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -81,13 +82,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.37';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.37';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.37';
+} from './composer-markdown-state.js?v=press-system-v3.4.38';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.38';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.38';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.37';
+} from './publish/settings-store.js?v=press-system-v3.4.38';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -260,7 +261,7 @@ const markdownAssetManager = createComposerMarkdownAssetManager({
   normalizeMarkdownContent,
   getContentRootSafe,
   getStateSlice,
-  getDynamicEditorTabs: () => dynamicEditorTabs,
+  getDynamicEditorTabs: () => getDynamicEditorTabs(),
   getActiveDynamicTab,
   getPrimaryEditorApi,
   readMarkdownDraftStore,
@@ -310,7 +311,7 @@ const indexPublishMetadata = createIndexPublishMetadataEnricher({
   getContentRootSafe
 });
 const contentCommitStagingProvider = createContentCommitStagingProvider({
-  getDynamicEditorTabs: () => dynamicEditorTabs,
+  getDynamicEditorTabs: () => getDynamicEditorTabs(),
   flushMarkdownDraft,
   getStateSlice,
   getContentRootSafe,
@@ -357,6 +358,7 @@ const seoStagingProvider = createSeoStagingProvider({
 let markdownLoader = null;
 let markdownActionsUi = null;
 let markdownDraftController = null;
+let markdownSessionController = null;
 const postCommitStateApplier = createPostCommitStateApplier({
   stagingRegistry,
   getStateSlice,
@@ -430,13 +432,7 @@ const editorSessionStateStore = createEditorSessionStateStore({
   keys: LS_KEYS
 });
 
-// Track additional markdown editor tabs spawned from Composer
-const dynamicEditorTabs = new Map();            // modeId -> { path, button, content, loaded, baseDir }
-const dynamicEditorTabsByLookupKey = new Map(); // lookupKey -> modeId
-let dynamicTabCounter = 0;
 let currentMode = null;
-let activeDynamicMode = null;
-let activeMarkdownDocument = null;
 let detachPrimaryEditorListener = null;
 let detachPrimaryEditorTabsMetadataListener = null;
 let allowEditorStatePersist = false;
@@ -466,7 +462,7 @@ markdownDraftController = createComposerMarkdownDraftController({
   prepareMarkdownForProtectedStorage,
   getMarkdownProtectionState,
   setMarkdownProtectionState,
-  getDynamicEditorTabs: () => dynamicEditorTabs,
+  getDynamicEditorTabs: () => getDynamicEditorTabs(),
   getCurrentMode: () => currentMode,
   pushEditorCurrentFileInfo,
   updateMarkdownPushButton,
@@ -595,7 +591,7 @@ const editorShell = createComposerEditorShell({
   expandedEditorTreeNodeIds,
   treeText,
   getCurrentMode: () => currentMode,
-  getDynamicEditorTabs: () => dynamicEditorTabs,
+  getDynamicEditorTabs: () => getDynamicEditorTabs(),
   isDynamicMode,
   normalizeRelPath,
   getAllowEditorStatePersist: () => allowEditorStatePersist,
@@ -625,6 +621,46 @@ const {
   setEditorContentScrollByKey,
   getEditorContentScrollSnapshot
 } = editorShell;
+markdownSessionController = createComposerMarkdownSessionController({
+  editorStateVersion: EDITOR_STATE_VERSION,
+  editorSessionStateStore,
+  normalizeRelPath,
+  normalizeLangCode,
+  inferMarkdownSourceFromPath,
+  basenameFromPath,
+  computeBaseDirForPath,
+  createMarkdownProtectionState,
+  ensureMarkdownAssetBucket,
+  restoreMarkdownDraftForTab,
+  loadDynamicTabContent,
+  flushMarkdownDraft,
+  clearMarkdownDraftForTab,
+  hasMarkdownDraftContent,
+  getAllowEditorStatePersist: () => allowEditorStatePersist,
+  getCurrentMode: () => currentMode,
+  captureEditorContentScroll,
+  getActiveNodeId: () => editorContentTreeController.getActiveNodeId(),
+  getExpandedNodeIdsSnapshot: () => editorContentTreeController.getExpandedNodeIdsSnapshot(),
+  getEditorRailScrollTop,
+  getEditorContentScrollSnapshot,
+  setEditorContentScrollByKey,
+  restoreExpandedNodeIds: (ids) => editorContentTreeController.restoreExpandedNodeIds(ids),
+  setActiveNodeIdIfExists: (nodeId) => editorContentTreeController.setActiveNodeIdIfExists(nodeId),
+  setEditorRailScrollTop,
+  restoreEditorContentScrollForMode,
+  requestAnimationFrameRef: (fn) => requestAnimationFrame(fn),
+  applyMode: (mode, options) => applyMode(mode, options),
+  selectEditorTreeNodeByPath,
+  showComposerDiscardConfirm,
+  t,
+  windowRef: window,
+  alertRef: (message) => alert(message),
+  consoleRef: console,
+  updateDynamicTabsGroupState,
+  detachPrimaryEditorListeners,
+  updateMarkdownActionsForTab,
+  updateComposerMarkdownDraftIndicators
+});
 
 function getDynamicTabsContainer() {
   try {
@@ -2511,7 +2547,7 @@ function collectUnsyncedMarkdownEntries() {
   const entries = [];
   const seen = new Set();
 
-  dynamicEditorTabs.forEach((tab) => {
+  getDynamicEditorTabs().forEach((tab) => {
     if (!tab || !tab.path) return;
     const path = normalizeRelPath(tab.path);
     if (!path || seen.has(path)) return;
@@ -2799,12 +2835,7 @@ function updateUnsyncedSummary(options = {}) {
 }
 
 function findDynamicTabByPath(path) {
-  const normalized = normalizeRelPath(path);
-  if (!normalized) return null;
-  for (const tab of dynamicEditorTabs.values()) {
-    if (tab && normalizeRelPath(tab.path) === normalized) return tab;
-  }
-  return null;
+  return getMarkdownSessionController().findTabByPath(path);
 }
 
 async function gatherCommitPayload(options = {}) {
@@ -4176,8 +4207,7 @@ function ensurePrimaryEditorListener() {
   const api = getPrimaryEditorApi();
   if (!api || typeof api.onChange !== 'function') return;
   detachPrimaryEditorListener = api.onChange((value) => {
-    if (!activeDynamicMode) return;
-    const tab = dynamicEditorTabs.get(activeDynamicMode);
+    const tab = getActiveDynamicTab();
     if (tab) {
       tab.content = value;
       updateDynamicTabDirtyState(tab);
@@ -4244,8 +4274,7 @@ function ensurePrimaryEditorTabsMetadataListener() {
   const api = getPrimaryEditorApi();
   if (!api || typeof api.onTabsMetadataChange !== 'function') return;
   detachPrimaryEditorTabsMetadataListener = api.onTabsMetadataChange((metadata) => {
-    if (!activeDynamicMode) return;
-    const tab = dynamicEditorTabs.get(activeDynamicMode);
+    const tab = getActiveDynamicTab();
     if (tab && tab.source === 'tabs') {
       updateTabsEntryTitleForTab(tab, metadata);
     }
@@ -4260,193 +4289,71 @@ function getTrackedPublishContentRoot() {
   return root || 'wwwroot';
 }
 
+function getMarkdownSessionController() {
+  if (!markdownSessionController) throw new Error('Markdown session controller is not initialized');
+  return markdownSessionController;
+}
+
+function getDynamicEditorTabs() {
+  return getMarkdownSessionController().getTabs();
+}
+
+function getDynamicTabByMode(mode) {
+  return getMarkdownSessionController().getTab(mode);
+}
+
 function isDynamicMode(mode) {
-  return !!(mode && dynamicEditorTabs.has(mode));
+  return getMarkdownSessionController().isDynamicMode(mode);
 }
 
 function getFirstDynamicModeId() {
-  try {
-    const iterator = dynamicEditorTabs.keys();
-    const first = iterator.next();
-    return first && !first.done ? first.value : null;
-  } catch (_) {
-    return null;
-  }
+  return getMarkdownSessionController().getFirstDynamicModeId();
+}
+
+function getActiveDynamicMode() {
+  return getMarkdownSessionController().getActiveDynamicMode();
 }
 
 function getActiveDynamicTab() {
-  if (activeMarkdownDocument && activeMarkdownDocument.mode === activeDynamicMode) return activeMarkdownDocument;
-  if (!activeDynamicMode) return null;
-  const tab = dynamicEditorTabs.get(activeDynamicMode);
-  return tab || null;
+  return getMarkdownSessionController().getActiveDynamicTab();
 }
 
-function deriveDynamicTabIdentity(path, options = {}) {
-  const normalizedPath = normalizeRelPath(path);
-  const opts = options && typeof options === 'object' ? options : {};
-  const node = opts.node && typeof opts.node === 'object' ? opts.node : null;
-  const explicitLookupKey = String(opts.lookupKey || '').trim();
-  const lookupKeyParts = explicitLookupKey.startsWith('tabs:') ? explicitLookupKey.split(':') : null;
-  const source = String(
-    opts.source
-    || (node && node.source)
-    || (lookupKeyParts && lookupKeyParts.length >= 3 ? 'tabs' : '')
-    || inferMarkdownSourceFromPath(normalizedPath)
-    || ''
-  ).trim().toLowerCase();
-  const key = String(
-    opts.key
-    || (node && node.key)
-    || (lookupKeyParts && lookupKeyParts.length >= 3 ? lookupKeyParts.slice(1, -1).join(':') : '')
-    || ''
-  ).trim();
-  const lang = normalizeLangCode(
-    opts.lang
-    || (node && node.lang)
-    || (lookupKeyParts && lookupKeyParts.length >= 3 ? lookupKeyParts[lookupKeyParts.length - 1] : '')
-  );
-  const editorTreeNodeId = String(opts.editorTreeNodeId || opts.nodeId || (node && node.id) || '').trim();
-  const lookupKey = explicitLookupKey || ((source === 'tabs' && key && lang)
-    ? `tabs:${key}:${lang}`
-    : normalizedPath);
-  return {
-    path: normalizedPath,
-    source,
-    key,
-    lang,
-    editorTreeNodeId,
-    lookupKey
-  };
+function activateDynamicMode(mode) {
+  return getMarkdownSessionController().activateDynamicMode(mode);
+}
+
+function clearActiveDynamicMode(mode = null) {
+  getMarkdownSessionController().clearActiveDynamicMode(mode);
 }
 
 function persistDynamicEditorState() {
-  if (!allowEditorStatePersist) return;
-  try {
-    captureEditorContentScroll(currentMode);
-    const open = Array.from(dynamicEditorTabs.values())
-      .map((tab) => {
-        if (!tab || !tab.path) return null;
-        return {
-          lookupKey: tab.lookupKey || tab.path,
-          path: tab.path,
-          source: tab.source || '',
-          key: tab.tabsKey || '',
-          lang: tab.tabsLang || '',
-          editorTreeNodeId: tab.editorTreeNodeId || ''
-        };
-      })
-      .filter(Boolean);
-    const active = currentMode && isDynamicMode(currentMode) ? dynamicEditorTabs.get(currentMode) : null;
-    const systemMode = (currentMode === 'composer' || currentMode === 'themes' || currentMode === 'updates' || currentMode === 'sync')
-      ? currentMode
-      : 'structure';
-    const state = {
-      v: EDITOR_STATE_VERSION,
-      mode: active ? 'markdown' : systemMode,
-      activeNodeId: editorContentTreeController.getActiveNodeId() || 'welcome',
-      activeLookupKey: active && (active.lookupKey || active.path) ? (active.lookupKey || active.path) : null,
-      activePath: active && active.path ? active.path : null,
-      open,
-      expandedNodeIds: editorContentTreeController.getExpandedNodeIdsSnapshot(),
-      railScrollTop: getEditorRailScrollTop(),
-      contentScrollByKey: getEditorContentScrollSnapshot(),
-      updatedAt: Date.now()
-    };
-    if (currentMode && isDynamicMode(currentMode)) {
-      state.activeLookupKey = active && (active.lookupKey || active.path) ? (active.lookupKey || active.path) : null;
-      state.activePath = active && active.path ? active.path : null;
-    }
-    editorSessionStateStore.writeEditorState(state);
-  } catch (_) {}
+  return getMarkdownSessionController().persistEditorState();
 }
 
 function restoreDynamicEditorState() {
-  const data = editorSessionStateStore.readEditorState();
-  if (!data || typeof data !== 'object') return false;
-
-  const isV3 = data.v === EDITOR_STATE_VERSION;
-  setEditorContentScrollByKey(data.contentScrollByKey);
-
-  const open = Array.isArray(data.open) ? data.open : [];
-  const seen = new Set();
-  open.forEach((item) => {
-    const lookupKey = item && typeof item === 'object'
-      ? String(item.lookupKey || '').trim()
-      : '';
-    const path = item && typeof item === 'object'
-      ? normalizeRelPath(item.path)
-      : normalizeRelPath(item);
-    const seenKey = lookupKey || path;
-    if (!path || !seenKey || seen.has(seenKey)) return;
-    seen.add(seenKey);
-    getOrCreateDynamicMode(path, {
-      source: item && typeof item === 'object' ? item.source : '',
-      key: item && typeof item === 'object' ? item.key : '',
-      lang: item && typeof item === 'object' ? item.lang : '',
-      editorTreeNodeId: item && typeof item === 'object' ? item.editorTreeNodeId : '',
-      lookupKey
-    });
-  });
-
-  if (isV3 && Array.isArray(data.expandedNodeIds)) {
-    editorContentTreeController.restoreExpandedNodeIds(data.expandedNodeIds);
-  }
-
-  const restoredNodeId = isV3 ? String(data.activeNodeId || '').trim() : '';
-  if (restoredNodeId) {
-    editorContentTreeController.setActiveNodeIdIfExists(restoredNodeId);
-  }
-
-  const finishRestore = (mode) => {
-    try {
-      setEditorRailScrollTop(data.railScrollTop || 0);
-      restoreEditorContentScrollForMode(mode || currentMode);
-      requestAnimationFrame(() => setEditorRailScrollTop(data.railScrollTop || 0));
-    } catch (_) {}
-    return true;
-  };
-
-  const activeLookupKey = String(data.activeLookupKey || '').trim();
-  const activePath = data.activePath ? normalizeRelPath(data.activePath) : '';
-  if ((isV3 ? data.mode === 'markdown' : true) && (activeLookupKey || activePath)) {
-    const modeId = (activeLookupKey && dynamicEditorTabsByLookupKey.get(activeLookupKey))
-      || (activePath && dynamicEditorTabsByLookupKey.get(activePath))
-      || (activePath ? getOrCreateDynamicMode(activePath) : null);
-    if (modeId) {
-      applyMode(modeId, { preserveTreeExpansion: true, restoreScroll: true });
-      return finishRestore(modeId);
-    }
-  }
-
-  if (isV3 && data.mode === 'composer') {
-    applyMode('composer', { preserveTreeExpansion: true, restoreScroll: true });
-    return finishRestore('composer');
-  }
-  if (isV3 && data.mode === 'themes') {
-    applyMode('themes', { preserveTreeExpansion: true, restoreScroll: true });
-    return finishRestore('themes');
-  }
-  if (isV3 && data.mode === 'updates') {
-    applyMode('updates', { preserveTreeExpansion: true, restoreScroll: true });
-    return finishRestore('updates');
-  }
-  if (isV3 && data.mode === 'sync') {
-    applyMode('sync', { preserveTreeExpansion: true, restoreScroll: true });
-    return finishRestore('sync');
-  }
-
-  applyMode('editor', { forceStructure: true, preserveTreeExpansion: true, restoreScroll: true });
-  return finishRestore('editor');
+  return getMarkdownSessionController().restoreEditorState();
 }
 
 function setTabLoadingState(tab, isLoading) {
-  if (!tab || !tab.button) return;
-  try {
-    tab.button.classList.toggle('is-busy', !!isLoading);
-    if (isLoading) tab.button.setAttribute('data-loading', '1');
-    else tab.button.removeAttribute('data-loading');
-    tab.button.setAttribute('aria-busy', isLoading ? 'true' : 'false');
-  } catch (_) {}
+  getMarkdownSessionController().setTabLoadingState(tab, isLoading);
+}
+
+function detachPrimaryEditorListeners() {
+  if (detachPrimaryEditorListener) {
+    try { detachPrimaryEditorListener(); } catch (_) {}
+    detachPrimaryEditorListener = null;
+  }
+  if (detachPrimaryEditorTabsMetadataListener) {
+    try { detachPrimaryEditorTabsMetadataListener(); } catch (_) {}
+    detachPrimaryEditorTabsMetadataListener = null;
+  }
+}
+
+function updateMarkdownActionsForTab(tab) {
+  updateMarkdownPushButton(tab);
+  updateMarkdownDiscardButton(tab);
+  updateMarkdownSaveButton(tab);
+  updateMarkdownProtectionButton(tab);
 }
 
 function getMarkdownActionsUi() {
@@ -4567,138 +4474,11 @@ function setDynamicTabStatus(tab, status) {
 }
 
 async function closeDynamicTab(modeId, options = {}) {
-  const tab = dynamicEditorTabs.get(modeId);
-  if (!tab) return false;
-
-  const opts = options && typeof options === 'object' ? options : {};
-  const hasLocalDraft = hasMarkdownDraftContent(tab);
-  const hasDirty = !!tab.isDirty;
-
-  const resolveAnchor = (candidate) => {
-    if (!candidate) return null;
-    if (typeof candidate.getBoundingClientRect === 'function') return candidate;
-    if (typeof candidate.closest === 'function') {
-      const btnEl = candidate.closest('button');
-      if (btnEl && typeof btnEl.getBoundingClientRect === 'function') return btnEl;
-    }
-    return null;
-  };
-
-  let anchorEl = resolveAnchor(opts.anchor);
-  if (!anchorEl && tab.button && typeof tab.button.getBoundingClientRect === 'function') {
-    anchorEl = tab.button;
-  }
-
-  if (!opts.force && (hasDirty || hasLocalDraft)) {
-    const ref = tab.path || tab.label || t('editor.composer.discardConfirm.closeTabFallback');
-    const promptMessage = t('editor.composer.discardConfirm.closeTabMessage', { label: ref });
-    let proceed = true;
-    const runNativeConfirm = () => {
-      try {
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-          return window.confirm(promptMessage);
-        }
-      } catch (_) {
-        return true;
-      }
-      return true;
-    };
-
-    if (anchorEl) {
-      try {
-        proceed = await showComposerDiscardConfirm(anchorEl, promptMessage, {
-          confirmLabel: t('editor.composer.discardConfirm.discard'),
-          cancelLabel: t('editor.composer.dialogs.cancel')
-        });
-      } catch (err) {
-        console.warn('Markdown tab close prompt failed, falling back to native confirm', err);
-        proceed = runNativeConfirm();
-      }
-    } else {
-      proceed = runNativeConfirm();
-    }
-
-    if (!proceed) return false;
-  }
-
-  clearMarkdownDraftForTab(tab);
-
-  dynamicEditorTabs.delete(modeId);
-  if (tab.lookupKey) dynamicEditorTabsByLookupKey.delete(tab.lookupKey);
-  try { tab.button?.remove(); } catch (_) {}
-  updateDynamicTabsGroupState();
-
-  const wasActive = (currentMode === modeId);
-  if (activeDynamicMode === modeId) activeDynamicMode = null;
-
-  if (!dynamicEditorTabs.size && detachPrimaryEditorListener) {
-    try { detachPrimaryEditorListener(); } catch (_) {}
-    detachPrimaryEditorListener = null;
-  }
-  if (!dynamicEditorTabs.size && detachPrimaryEditorTabsMetadataListener) {
-    try { detachPrimaryEditorTabsMetadataListener(); } catch (_) {}
-    detachPrimaryEditorTabsMetadataListener = null;
-  }
-
-  if (wasActive) {
-    const remainingModes = Array.from(dynamicEditorTabs.keys());
-    const fallbackMode = remainingModes.length ? remainingModes[remainingModes.length - 1] : 'editor';
-    applyMode(fallbackMode);
-  } else {
-    persistDynamicEditorState();
-  }
-  updateMarkdownPushButton(getActiveDynamicTab());
-  updateMarkdownDiscardButton(getActiveDynamicTab());
-  updateMarkdownSaveButton(getActiveDynamicTab());
-  updateMarkdownProtectionButton(getActiveDynamicTab());
-  updateComposerMarkdownDraftIndicators({ path: tab.path });
-  return true;
+  return getMarkdownSessionController().closeDynamicTab(modeId, options);
 }
 
 function getOrCreateDynamicMode(path, options = {}) {
-  const identity = deriveDynamicTabIdentity(path, options);
-  const normalized = identity.path;
-  if (!normalized) return null;
-  const existing = dynamicEditorTabsByLookupKey.get(identity.lookupKey);
-  if (existing) return existing;
-
-  dynamicTabCounter += 1;
-  const modeId = `editor-tab-${dynamicTabCounter}`;
-  const label = basenameFromPath(normalized) || normalized;
-
-  const data = {
-    mode: modeId,
-    path: normalized,
-    source: identity.source,
-    tabsKey: identity.key || '',
-    tabsLang: identity.lang || '',
-    editorTreeNodeId: identity.editorTreeNodeId || '',
-    lookupKey: identity.lookupKey,
-    button: null,
-    label,
-    baseDir: computeBaseDirForPath(normalized),
-    content: '',
-    remoteContent: '',
-    remoteSignature: '',
-    loaded: false,
-    pending: null,
-    fileStatus: null,
-    localDraft: null,
-    draftConflict: false,
-    markdownDraftTimer: null,
-    markdownDraftSaveGeneration: 0,
-    isDirty: false,
-    protection: createMarkdownProtectionState(),
-    pendingAssets: ensureMarkdownAssetBucket(normalized)
-  };
-  restoreMarkdownDraftForTab(data);
-  dynamicEditorTabs.set(modeId, data);
-  dynamicEditorTabsByLookupKey.set(identity.lookupKey, modeId);
-
-  loadDynamicTabContent(data).catch(() => {});
-
-  persistDynamicEditorState();
-  return modeId;
+  return getMarkdownSessionController().getOrCreateDynamicMode(path, options);
 }
 
 async function loadDynamicTabContent(tab) {
@@ -4706,21 +4486,11 @@ async function loadDynamicTabContent(tab) {
 }
 
 function openMarkdownInEditor(path, options = {}) {
-  const active = getActiveDynamicTab();
-  if (active && active.path && normalizeRelPath(active.path) !== normalizeRelPath(path)) {
-    try { flushMarkdownDraft(active); } catch (_) {}
-  }
-  const modeId = getOrCreateDynamicMode(path, options);
-  if (!modeId) {
-    alert('Unable to open editor tab.');
-    return;
-  }
-  applyMode(modeId);
-  try { selectEditorTreeNodeByPath(path); } catch (_) {}
+  return getMarkdownSessionController().openMarkdownInEditor(path, options);
 }
 
 function applyMode(mode, options = {}) {
-  if (mode === 'editor' && dynamicEditorTabs.size && !options.forceStructure && editorContentTreeController.getActiveNodeId() !== 'welcome') {
+  if (mode === 'editor' && getDynamicEditorTabs().size && !options.forceStructure && editorContentTreeController.getActiveNodeId() !== 'welcome') {
     const firstDynamicMode = getFirstDynamicModeId();
     if (firstDynamicMode) {
       applyMode(firstDynamicMode, options);
@@ -4747,15 +4517,13 @@ function applyMode(mode, options = {}) {
       if (layout) layout.classList.toggle('is-dynamic', isDynamicMode(nextMode));
     } catch (_) {}
     if (nextMode === 'editor' && options.forceStructure) {
-      activeDynamicMode = null;
-      activeMarkdownDocument = null;
+      clearActiveDynamicMode();
       setEditorDetailPanelMode('structure');
       pushEditorCurrentFileInfo(null);
       refreshEditorContentTree();
       if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
     } else if (isSystemMode(nextMode)) {
-      activeDynamicMode = null;
-      activeMarkdownDocument = null;
+      clearActiveDynamicMode();
       const activeSystemNodeId = editorContentTreeController.setActiveNodeId(systemModeNodeId(nextMode));
       if (!options.preserveTreeExpansion) {
         expandEditorAncestors(getEditorTreeNodeById(activeSystemNodeId) || { id: activeSystemNodeId, source: 'system' });
@@ -4765,9 +4533,7 @@ function applyMode(mode, options = {}) {
       refreshEditorContentTree({ preserveStructure: true });
       if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
     } else if (isDynamicMode(nextMode)) {
-      activeDynamicMode = nextMode;
-      const tab = dynamicEditorTabs.get(nextMode);
-      activeMarkdownDocument = tab || null;
+      const tab = activateDynamicMode(nextMode);
       if (tab) {
         try { selectEditorTreeNodeForTab(tab, { expandAncestors: !options.preserveTreeExpansion }); } catch (_) {}
       }
@@ -4782,7 +4548,7 @@ function applyMode(mode, options = {}) {
 
   const editorApi = getPrimaryEditorApi();
   if (previousMode && isDynamicMode(previousMode) && editorApi && typeof editorApi.getValue === 'function') {
-    const prevTab = dynamicEditorTabs.get(previousMode);
+    const prevTab = getDynamicTabByMode(previousMode);
     if (prevTab) {
       try {
         prevTab.content = String(editorApi.getValue() || '');
@@ -4830,11 +4596,9 @@ function applyMode(mode, options = {}) {
   if (showEditor) scheduleEditorLayoutRefresh();
 
   if (isDynamicMode(nextMode)) {
-    activeDynamicMode = nextMode;
+    const tab = activateDynamicMode(nextMode);
     ensurePrimaryEditorListener();
     ensurePrimaryEditorTabsMetadataListener();
-    const tab = dynamicEditorTabs.get(nextMode);
-    activeMarkdownDocument = tab || null;
     setEditorDetailPanelMode('markdown');
     if (tab && editorApi) {
       try { selectEditorTreeNodeForTab(tab, { expandAncestors: !options.preserveTreeExpansion }); } catch (_) {}
@@ -4880,8 +4644,7 @@ function applyMode(mode, options = {}) {
       }
     }
   } else if (nextMode === 'editor') {
-    activeDynamicMode = null;
-    activeMarkdownDocument = null;
+    clearActiveDynamicMode();
     setEditorDetailPanelMode('structure');
     if (editorApi) {
       try { editorApi.setView('edit'); } catch (_) {}
@@ -4891,8 +4654,7 @@ function applyMode(mode, options = {}) {
     refreshEditorContentTree();
     if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
   } else if (isSystemMode(nextMode)) {
-    activeDynamicMode = null;
-    activeMarkdownDocument = null;
+    clearActiveDynamicMode();
     const activeSystemNodeId = editorContentTreeController.setActiveNodeId(systemModeNodeId(nextMode));
     if (!options.preserveTreeExpansion) {
       expandEditorAncestors(getEditorTreeNodeById(activeSystemNodeId) || { id: activeSystemNodeId, source: 'system' });
@@ -4903,8 +4665,7 @@ function applyMode(mode, options = {}) {
     if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
     else scrollEditorContentToTop('smooth');
   } else {
-    activeDynamicMode = null;
-    activeMarkdownDocument = null;
+    clearActiveDynamicMode();
     setEditorDetailPanelMode('structure');
     pushEditorCurrentFileInfo(null);
     if (options.restoreScroll) restoreEditorContentScrollForMode(nextMode);
@@ -5530,15 +5291,7 @@ function collectEditorDraftStatusMap() {
 }
 
 function collectEditorFileStatusMap() {
-  const map = new Map();
-  try {
-    dynamicEditorTabs.forEach((tab) => {
-      if (!tab || !tab.path || !tab.fileStatus) return;
-      const state = tab.fileStatus.state || '';
-      if (state) map.set(normalizeRelPath(tab.path), state);
-    });
-  } catch (_) {}
-  return map;
+  return getMarkdownSessionController().collectFileStatusMap();
 }
 
 function collectEditorDiffStatusMap() {

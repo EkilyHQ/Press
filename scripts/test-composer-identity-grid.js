@@ -29,6 +29,7 @@ const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
 const composerContentMutationsPath = resolve(here, '../assets/js/composer-content-mutations.js');
+const composerSetupVerifierPath = resolve(here, '../assets/js/composer-setup-verifier.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -81,6 +82,7 @@ const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'u
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const composerContentMutationsSource = readFileSync(composerContentMutationsPath, 'utf8');
+const composerSetupVerifierSource = readFileSync(composerSetupVerifierPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -437,6 +439,24 @@ assert.match(
   composerContentMutationsSource,
   /export function createComposerContentMutationController\(options = \{\}\)[\s\S]*function renameEditorEntry\(source, oldKey, nextKeyRaw\)[\s\S]*function addEditorLanguage\(source, key, lang\)[\s\S]*function restoreDeletedEditorTreeNode\(node\)[\s\S]*async function addComposerEntry\(kind, anchor\)/,
   'content mutation controller should own entry, language, version, tombstone restore, and add-entry write operations'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-setup-verifier\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted setup verifier boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function buildGhNewLink|function buildGhEditFileLink|async function computeMissingFiles|function openVerifyModal|async function afterAllGood|Verify Setup - Missing Files|Verify Setup – Missing Files/,
+  'setup verification scanning, modal rendering, and GitHub link details should stay outside the main composer shell'
+);
+
+assert.match(
+  composerSetupVerifierSource,
+  /export function createComposerSetupVerifier\(options = \{\}\)[\s\S]*async function computeMissingFiles\(preferredKind\)[\s\S]*function openVerifyModal\(missing, targetKind\)[\s\S]*async function afterAllGood\(targetKind\)[\s\S]*function bindVerifySetup\(\)/,
+  'setup verifier should own missing-file checks, verify modal rendering, YAML drift handling, and binding'
 );
 
 assert.match(

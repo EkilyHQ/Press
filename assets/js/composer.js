@@ -8,21 +8,21 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { escapeHtml } from './utils.js?v=press-system-v3.4.43';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.43';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.43';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.43';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.43';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.44';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.44';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.44';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.44';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.44';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.43';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.43';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.43';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.43';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.43';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.43';
+} from './encrypted-content.js?v=press-system-v3.4.44';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.44';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.44';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.44';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.44';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.44';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -36,7 +36,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.43';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.44';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -44,39 +44,40 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.43';
+} from './composer-site-model.js?v=press-system-v3.4.44';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.43';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.43';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.43';
+} from './editor-storage.js?v=press-system-v3.4.44';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.44';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.44';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.43';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.43';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.43';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.43';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.43';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.43';
-import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.43';
-import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.43';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.43';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.43';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.43';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.43';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.43';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.43';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.43';
-import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.43';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.43';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.43';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.43';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.43';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.43';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.43';
-import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.43';
+} from './composer-sync-panel.js?v=press-system-v3.4.44';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.44';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.44';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.44';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.44';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.44';
+import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.44';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.44';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.44';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.44';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.44';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.44';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.44';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.44';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.44';
+import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.44';
+import { createComposerSetupVerifier } from './composer-setup-verifier.js?v=press-system-v3.4.44';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.44';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.44';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.44';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.44';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.44';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.44';
+import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.44';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -88,13 +89,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.43';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.43';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.43';
+} from './composer-markdown-state.js?v=press-system-v3.4.44';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.44';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.44';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.43';
+} from './publish/settings-store.js?v=press-system-v3.4.44';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -2523,6 +2524,35 @@ const composerSiteSettingsUi = createComposerSiteSettingsUi({
   annotateDiscussionCategoryPresets: ANNOTATE_DISCUSSION_CATEGORY_PRESETS
 });
 
+const composerSetupVerifier = createComposerSetupVerifier({
+  documentRef: document,
+  windowRef: window,
+  consoleRef: console,
+  t,
+  getState: () => activeComposerState,
+  getActiveComposerFile,
+  getActiveSiteRepoConfig,
+  sortLangKeys,
+  normalizeComposerVersionPaths,
+  extractVersionFromPath,
+  makeDefaultMdTemplate,
+  toTabsYaml,
+  toIndexYaml,
+  nsCopyToClipboard,
+  preparePopupWindow,
+  closePopupWindow,
+  finalizePopupWindow,
+  handlePopupBlocked,
+  showToast,
+  fetchComposerRemoteSnapshot,
+  applyComposerRemoteSnapshot,
+  clearDraftStorage,
+  updateUnsyncedSummary,
+  startComposerSyncWatcher,
+  getMarkdownPushLabel
+});
+const { bindVerifySetup } = composerSetupVerifier;
+
 function scheduleAutoDraft(kind) {
   composerYamlDraftController.scheduleAutoDraft(kind);
 }
@@ -4097,376 +4127,7 @@ function bindComposerUI(state) {
     });
   }
 
-  // Verify Setup: check all referenced files exist; if ok, check YAML drift
-  (function bindVerifySetup(){
-    function attach(btn) {
-      if (!btn || btn.__composerVerifyBound) return;
-      btn.__composerVerifyBound = true;
-      const btnLabel = btn.querySelector('.btn-label');
-
-    function dirname(p){ try { const s=String(p||''); const i=s.lastIndexOf('/'); return i>=0? s.slice(0,i) : ''; } catch(_) { return ''; } }
-    function basename(p){ try { const s=String(p||''); const i=s.lastIndexOf('/'); return i>=0? s.slice(i+1) : s; } catch(_) { return String(p||''); } }
-    function uniq(arr){ return Array.from(new Set(arr||[])); }
-
-    function buildGhNewLink(owner, repo, branch, folderPath, filename) {
-      const enc = (s) => encodeURIComponent(String(s || ''));
-      const clean = String(folderPath || '').replace(/^\/+/, '');
-      const base = `https://github.com/${enc(owner)}/${enc(repo)}/new/${enc(branch)}/${clean}`;
-      if (filename) return `${base}?filename=${enc(filename)}`;
-      return base;
-    }
-    function buildGhEditFileLink(owner, repo, branch, filePath) {
-      const enc = (s) => encodeURIComponent(String(s || ''));
-      const clean = String(filePath || '').replace(/^\/+/, '');
-      return `https://github.com/${enc(owner)}/${enc(repo)}/edit/${enc(branch)}/${clean}`;
-    }
-
-    function normalizeTarget(value) {
-      return value === 'tabs' ? 'tabs' : value === 'index' ? 'index' : null;
-    }
-
-    function resolveTargetKind(button) {
-      const ds = button && button.dataset ? button.dataset.kind : null;
-      const normalized = normalizeTarget(ds);
-      if (normalized) return normalized;
-      const attr = button && typeof button.getAttribute === 'function'
-        ? normalizeTarget(button.getAttribute('data-kind'))
-        : null;
-      const fallback = getActiveComposerFile();
-      return normalizeTarget(attr) || (fallback === 'tabs' ? 'tabs' : 'index');
-    }
-
-    async function computeMissingFiles(preferredKind){
-      const contentRoot = (window.__press_content_root || 'wwwroot').replace(/\\+/g,'/').replace(/\/?$/, '');
-      const out = [];
-      const normalizedPreferred = normalizeTarget(preferredKind);
-      const fallback = getActiveComposerFile();
-      const target = normalizedPreferred || (fallback === 'tabs' ? 'tabs' : 'index');
-      // Fetch existence in parallel batches
-      const tasks = [];
-      if (target === 'tabs') {
-        const tbs = state.tabs || {};
-        const keys = Object.keys(tbs).filter(k => k !== '__order');
-        for (const key of keys){
-          const langsObj = tbs[key] || {};
-          const langs = sortLangKeys(langsObj);
-          for (const lang of langs){
-            const obj = langsObj[lang];
-            const rel = obj && typeof obj === 'object' ? obj.location : '';
-            if (!rel) continue; // skip empty
-            const url = `${contentRoot}/${String(rel||'')}`;
-            tasks.push((async () => {
-              try {
-                const r = await fetch(url, { cache: 'no-store' });
-                if (!r || !r.ok) {
-                  out.push({ key, lang, path: rel, version: extractVersionFromPath(rel), folder: dirname(rel), filename: basename(rel) });
-                }
-              } catch(_) { out.push({ key, lang, path: rel, version: extractVersionFromPath(rel), folder: dirname(rel), filename: basename(rel) }); }
-            })());
-          }
-        }
-      } else {
-        const idx = state.index || {};
-        const keys = Object.keys(idx).filter(k => k !== '__order');
-        for (const key of keys){
-          const langsObj = idx[key] || {};
-          const langs = sortLangKeys(langsObj);
-          for (const lang of langs){
-            const val = langsObj[lang];
-            const paths = normalizeComposerVersionPaths(val);
-            for (const rel of paths){
-              const url = `${contentRoot}/${String(rel||'')}`;
-              tasks.push((async () => {
-                try {
-                  const r = await fetch(url, { cache: 'no-store' });
-                  if (!r || !r.ok) {
-                    out.push({ key, lang, path: rel, version: extractVersionFromPath(rel), folder: dirname(rel), filename: basename(rel) });
-                  }
-                } catch(_) { out.push({ key, lang, path: rel, version: extractVersionFromPath(rel), folder: dirname(rel), filename: basename(rel) }); }
-              })());
-            }
-          }
-        }
-      }
-      await Promise.all(tasks);
-      return out;
-    }
-
-    function openVerifyModal(missing, targetKind){
-      // Build modal
-      const modal = document.createElement('div');
-      modal.className = 'press-modal'; modal.setAttribute('aria-hidden', 'true');
-      const dialog = document.createElement('div'); dialog.className = 'press-modal-dialog'; dialog.setAttribute('role','dialog'); dialog.setAttribute('aria-modal','true');
-      const head = document.createElement('div'); head.className = 'comp-guide-head';
-      const left = document.createElement('div'); left.className='comp-head-left';
-      const title = document.createElement('strong'); title.textContent = 'Verify Setup – Missing Files'; title.id='verifyTitle';
-      const sub = document.createElement('span'); sub.className='muted'; sub.textContent = 'Create missing files on GitHub, then Verify again';
-      left.appendChild(title); left.appendChild(sub);
-      const btnClose = document.createElement('button'); btnClose.className = 'press-modal-close btn-secondary'; btnClose.type = 'button'; btnClose.textContent = 'Cancel'; btnClose.setAttribute('aria-label','Cancel');
-      head.appendChild(left); head.appendChild(btnClose);
-      dialog.appendChild(head);
-
-      const body = document.createElement('div'); body.className = 'comp-guide';
-      const listWrap = document.createElement('div'); listWrap.style.margin = '.4rem 0';
-
-      function renderList(items){
-        listWrap.innerHTML = '';
-        if (!items || !items.length){
-          const p = document.createElement('p'); p.textContent = 'All files are present.'; listWrap.appendChild(p); return;
-        }
-        // Group: key -> lang -> entries
-        const byKey = new Map();
-        for (const it of items){
-          if (!byKey.has(it.key)) byKey.set(it.key, new Map());
-          const g = byKey.get(it.key);
-          if (!g.has(it.lang)) g.set(it.lang, []);
-          g.get(it.lang).push(it);
-        }
-        // Render groups
-        for (const [key, g] of byKey.entries()){
-          const sec = document.createElement('section');
-          sec.style.border='1px solid var(--border)';
-          sec.style.borderRadius='8px';
-          sec.style.padding='.5rem';
-          sec.style.margin='.5rem 0';
-          sec.style.background='var(--card)';
-          // Emphasize error groups with a subtle red border
-          sec.style.borderColor = '#fecaca';
-          const h = document.createElement('div'); h.style.display='flex'; h.style.alignItems='center'; h.style.gap='.5rem';
-          const title = document.createElement('strong'); title.textContent = key; h.appendChild(title);
-          // Badges
-          const meta = document.createElement('span'); meta.className='summary-badges';
-          const langs = Array.from(g.keys()); if (langs.length){ const b=document.createElement('span'); b.className='badge badge-lang'; b.textContent = langs.map(x=>String(x).toUpperCase()).join(' '); meta.appendChild(b); }
-          h.appendChild(meta);
-          sec.appendChild(h);
-          for (const [lang, arr] of g.entries()){
-            const langBox = document.createElement('div'); langBox.className='ci-lang';
-            const lh = document.createElement('div'); lh.className='ci-lang-head';
-            const lab = document.createElement('span'); lab.textContent = `Language: ${String(lang).toUpperCase()}`; lh.appendChild(lab);
-            langBox.appendChild(lh);
-            arr.sort((a,b)=>{
-              const av = a.version || ''; const bv = b.version || '';
-              if (av && bv && av!==bv){
-                // compare version desc
-                const vp = (v)=>String(v||'').replace(/^v/i,'').split('.').map(x=>parseInt(x,10)||0);
-                const aa=vp(av), bb=vp(bv); const L=Math.max(aa.length, bb.length);
-                for (let i=0;i<L;i++){ const x=aa[i]||0, y=bb[i]||0; if (x!==y) return y-x; }
-              }
-              return String(a.path).localeCompare(String(b.path));
-            });
-            for (const it of arr){
-              const row = document.createElement('div'); row.className='ci-ver-item';
-              const badge = document.createElement('span'); badge.className='badge badge-ver'; badge.textContent = it.version ? it.version : '—'; row.appendChild(badge);
-              const p = document.createElement('code'); p.textContent = it.path; p.style.flex='1 1 auto'; row.appendChild(p);
-              const actions = document.createElement('div'); actions.className='ci-ver-actions'; actions.style.display='inline-flex'; actions.style.gap='.35rem';
-              const { owner, name, branch } = getActiveSiteRepoConfig();
-              const root = (window.__press_content_root || 'wwwroot').replace(/\\+/g,'/').replace(/\/?$/, '');
-              const aNew = document.createElement('a');
-              const canGh = !!(owner && name);
-              aNew.className = canGh ? 'btn-secondary btn-github' : 'btn-secondary'; aNew.target='_blank'; aNew.rel='noopener';
-              if (canGh) {
-                aNew.innerHTML = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z" fill="currentColor"/></svg><span class="btn-label">Create File</span>';
-              } else {
-                aNew.textContent = 'Create File';
-              }
-              // For missing files under post/..., prefill with default front-matter
-              if (canGh) {
-                const branchName = branch || 'main';
-                let href = buildGhNewLink(owner, name, branchName, `${root}/${it.folder}`, it.filename);
-                try {
-                  if (String(it.folder || '').replace(/^\/+/, '').startsWith('post/')) {
-                    const ver = it && it.version ? String(it.version) : '';
-                    href += `&value=${encodeURIComponent(makeDefaultMdTemplate(ver ? { version: ver } : undefined))}`;
-                  }
-                } catch(_) {}
-                aNew.href = href;
-              } else {
-                aNew.href = '#';
-              }
-              aNew.title = 'Open GitHub new file page with prefilled filename';
-              actions.appendChild(aNew);
-              row.appendChild(actions);
-              langBox.appendChild(row);
-            }
-            sec.appendChild(langBox);
-          }
-          // Card-bottom red banner like the new post wizard
-          const groupCount = Array.from(g.values()).reduce((acc,arr)=>acc + (Array.isArray(arr)?arr.length:0), 0);
-          const warn = document.createElement('div'); warn.className='comp-warn';
-          const wt = document.createElement('div'); wt.className='comp-warn-text';
-          wt.textContent = `${groupCount} missing item(s) remain for this key. Create the files above on GitHub, then Verify again.`;
-          warn.appendChild(wt);
-          sec.appendChild(warn);
-          listWrap.appendChild(sec);
-        }
-      }
-
-      renderList(missing);
-
-      body.appendChild(listWrap);
-      dialog.appendChild(body);
-      const foot = document.createElement('div'); foot.style.display='flex'; foot.style.justifyContent='flex-end'; foot.style.gap='.5rem'; foot.style.marginTop='.5rem';
-      const btnVerify = document.createElement('button'); btnVerify.className='btn-primary'; btnVerify.textContent='Verify';
-      foot.appendChild(btnVerify);
-      dialog.appendChild(foot);
-      modal.appendChild(dialog);
-      document.body.appendChild(modal);
-
-      function open(){
-        const reduce = (function(){ try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(_) { return false; } })();
-        try { modal.classList.remove('press-anim-out'); } catch(_) {}
-        modal.classList.add('is-open');
-        modal.setAttribute('aria-hidden','false');
-        document.body.classList.add('press-modal-open');
-        if (!reduce) {
-          try {
-            modal.classList.add('press-anim-in');
-            const onEnd = () => { try { modal.classList.remove('press-anim-in'); } catch(_) {}; dialog.removeEventListener('animationend', onEnd); };
-            dialog.addEventListener('animationend', onEnd, { once: true });
-          } catch(_) {}
-        }
-      }
-      function close(){
-        const reduce = (function(){ try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(_) { return false; } })();
-        const done = () => { modal.classList.remove('is-open'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('press-modal-open'); try { modal.remove(); } catch(_) {} };
-        if (reduce) { done(); return; }
-        try { modal.classList.remove('press-anim-in'); } catch(_) {}
-        try { modal.classList.add('press-anim-out'); } catch(_) {}
-        const onEnd = () => { dialog.removeEventListener('animationend', onEnd); try { modal.classList.remove('press-anim-out'); } catch(_) {}; done(); };
-        try {
-          dialog.addEventListener('animationend', onEnd, { once: true });
-          setTimeout(onEnd, 200);
-        } catch(_) { onEnd(); }
-      }
-
-      btnClose.addEventListener('click', close);
-      modal.addEventListener('mousedown', (e)=>{ if (e.target === modal) close(); });
-      modal.addEventListener('keydown', (e)=>{ if ((e.key||'').toLowerCase()==='escape') close(); });
-      btnVerify.addEventListener('click', async ()=>{
-        btnVerify.disabled = true; btnVerify.textContent = t('editor.composer.verifying');
-        try {
-          const normalizedTarget = normalizeTarget(targetKind) || (getActiveComposerFile() === 'tabs' ? 'tabs' : 'index');
-          // Also copy YAML snapshot here to leverage the user gesture
-          try {
-            const text = normalizedTarget === 'tabs' ? toTabsYaml(state.tabs || {}) : toIndexYaml(state.index || {});
-            nsCopyToClipboard(text);
-          } catch(_) {}
-          const now = await computeMissingFiles(normalizedTarget);
-          if (!now.length){ close(); await afterAllGood(normalizedTarget); }
-          else { renderList(now); /* no toast: inline red banner shows status */ }
-        } finally {
-          try { btnVerify.disabled = false; btnVerify.textContent = t('editor.composer.verify'); } catch(_) {}
-        }
-      });
-
-      open();
-    }
-
-    async function afterAllGood(targetKind){
-      // Compare current in-memory YAML vs remote file; open GitHub edit if differs
-      const contentRoot = (window.__press_content_root || 'wwwroot').replace(/\\+/g,'/').replace(/\/?$/, '');
-      const fallback = getActiveComposerFile();
-      const target = normalizeTarget(targetKind) || (fallback === 'tabs' ? 'tabs' : 'index');
-      const desired = target === 'tabs' ? toTabsYaml(state.tabs || {}) : toIndexYaml(state.index || {});
-      async function fetchText(url){ try { const r = await fetch(url, { cache: 'no-store' }); if (r && r.ok) return await r.text(); } catch(_){} return ''; }
-      const baseName = target === 'tabs' ? 'tabs' : 'index';
-      const url1 = `${contentRoot}/${baseName}.yaml`; const url2 = `${contentRoot}/${baseName}.yml`;
-      const cur = (await fetchText(url1)) || (await fetchText(url2));
-      const norm = (s)=>String(s||'').replace(/\r\n/g,'\n').trim();
-      const popup = preparePopupWindow();
-      if (norm(cur) === norm(desired)) {
-        closePopupWindow(popup);
-        showToast('success', t('editor.toasts.yamlUpToDate', { name: `${baseName}.yaml` }));
-        try {
-          const snapshot = await fetchComposerRemoteSnapshot(target);
-          if (snapshot && snapshot.state === 'existing') {
-            applyComposerRemoteSnapshot(target, snapshot);
-            clearDraftStorage(target);
-            updateUnsyncedSummary();
-          }
-        } catch (err) {
-          console.warn('Composer: failed to refresh baseline after verify', err);
-        }
-        return;
-      }
-      // Need update -> copy and open GitHub edit/new page
-      try { nsCopyToClipboard(desired); } catch(_) {}
-      const { owner, name, branch } = getActiveSiteRepoConfig();
-      if (owner && name){
-        let href = '';
-        if (cur) href = buildGhEditFileLink(owner, name, branch, `${contentRoot}/${baseName}.yaml`);
-        else href = buildGhNewLink(owner, name, branch, `${contentRoot}`, `${baseName}.yaml`);
-        if (!href) {
-          closePopupWindow(popup);
-          showToast('error', t('editor.toasts.unableResolveYamlSync'));
-          return;
-        }
-        const successMessage = cur
-          ? t('editor.composer.yaml.toastCopiedUpdate', { name: `${baseName}.yaml` })
-          : t('editor.composer.yaml.toastCopiedCreate', { name: `${baseName}.yaml` });
-        const blockedMessage = t('editor.composer.yaml.blocked', { name: `${baseName}.yaml` });
-
-        const startWatcher = () => {
-          startComposerSyncWatcher(target, {
-            expectedText: desired,
-            message: t('editor.composer.remoteWatcher.waitingForLabel', { label: `${baseName}.yaml` })
-          });
-        };
-
-        const opened = finalizePopupWindow(popup, href);
-        if (opened) {
-          showToast('info', successMessage);
-          startWatcher();
-        } else {
-          closePopupWindow(popup);
-          handlePopupBlocked(href, {
-            message: blockedMessage,
-            actionLabel: t('editor.toasts.openGithubAction'),
-            onRetry: () => {
-              showToast('info', successMessage);
-              startWatcher();
-            }
-          });
-        }
-      } else {
-        closePopupWindow(popup);
-        showToast('info', t('editor.toasts.yamlCopiedNoRepo'));
-      }
-    }
-
-      btn.addEventListener('click', async () => {
-        // Perform first pass; if any missing, show modal list; otherwise go to YAML check
-        try {
-          btn.disabled = true;
-          if (btnLabel) btnLabel.textContent = t('editor.composer.verifying');
-          else btn.textContent = t('editor.composer.verifying');
-        } catch(_) {}
-      try {
-        const targetKind = resolveTargetKind(btn);
-        const target = targetKind === 'tabs' ? 'tabs' : 'index';
-        // Copy YAML snapshot up-front to retain user-activation for clipboard
-        try {
-          const text = target === 'tabs' ? toTabsYaml(state.tabs || {}) : toIndexYaml(state.index || {});
-          nsCopyToClipboard(text);
-        } catch(_) {}
-        const missing = await computeMissingFiles(target);
-        if (missing.length) openVerifyModal(missing, target);
-        else await afterAllGood(target);
-      } finally {
-        try {
-          btn.disabled = false;
-          // Restore original label
-          const restoreLabel = getMarkdownPushLabel('default');
-          if (btnLabel) btnLabel.textContent = restoreLabel;
-          else btn.textContent = restoreLabel;
-        } catch(_) {}
-      }
-      });
-      }
-
-      const initialVerifyButton = document.getElementById('btnVerify');
-      if (initialVerifyButton) attach(initialVerifyButton);
-    })();
+  bindVerifySetup();
   }
 
 function showStatus(msg, kind = 'info') {

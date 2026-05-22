@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.38';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.38';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.38';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.38';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.39';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.39';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.39';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.39';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.38';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.38';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.38';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.38';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.38';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.38';
+} from './encrypted-content.js?v=press-system-v3.4.39';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.39';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.39';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.39';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.39';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.39';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.38';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.39';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,34 +43,35 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.38';
+} from './composer-site-model.js?v=press-system-v3.4.39';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.38';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.38';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.38';
+} from './editor-storage.js?v=press-system-v3.4.39';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.39';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.39';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.38';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.38';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.38';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.38';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.38';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.38';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.38';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.38';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.38';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.38';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.38';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.38';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.38';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.38';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.38';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.38';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.38';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.38';
+} from './composer-sync-panel.js?v=press-system-v3.4.39';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.39';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.39';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.39';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.39';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.39';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.39';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.39';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.39';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.39';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.39';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.39';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.39';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.39';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.39';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.39';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.39';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.39';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.39';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -82,13 +83,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.38';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.38';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.38';
+} from './composer-markdown-state.js?v=press-system-v3.4.39';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.39';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.39';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.38';
+} from './publish/settings-store.js?v=press-system-v3.4.39';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -160,6 +161,22 @@ const EDITOR_STORAGE_SCOPE = (() => {
 function scopedEditorStorageKey(key) {
   return createScopedStorageKey(EDITOR_STORAGE_SCOPE, key);
 }
+
+const composerNotifications = createComposerNotificationController({
+  documentRef: document,
+  windowRef: window,
+  t,
+  safeString,
+  alertRef: (message) => alert(message),
+  consoleRef: console
+});
+const {
+  showToast,
+  preparePopupWindow,
+  closePopupWindow,
+  finalizePopupWindow,
+  handlePopupBlocked
+} = composerNotifications;
 
 const publishSettingsStore = createPublishSettingsStore({
   windowRef: window,
@@ -1550,352 +1567,6 @@ function getActiveComposerFile() {
   if (activeComposerFile === 'tabs') return 'tabs';
   if (activeComposerFile === 'site') return 'site';
   return 'index';
-}
-
-function escapeHtml(value) {
-  return safeString(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function ensureToastRoot() {
-  let root = document.getElementById('toast-root');
-  if (!root) {
-    root = document.createElement('div');
-    root.id = 'toast-root';
-    root.setAttribute('role', 'status');
-    root.setAttribute('aria-live', 'polite');
-    root.setAttribute('aria-atomic', 'true');
-    root.style.position = 'fixed';
-    root.style.right = '28px';
-    root.style.bottom = '28px';
-    root.style.left = 'auto';
-    root.style.transform = 'none';
-    root.style.display = 'flex';
-    root.style.flexDirection = 'column';
-    root.style.alignItems = 'flex-end';
-    root.style.gap = '.55rem';
-    root.style.zIndex = '10000';
-    root.style.pointerEvents = 'none';
-    document.body.appendChild(root);
-  }
-  return root;
-}
-
-function prepareToastStackAnimation(container, excluded) {
-  if (!container) return null;
-  const items = Array.from(container.children || [])
-    .filter((child) => child !== excluded && child.dataset && child.dataset.dismissed !== 'true');
-  if (!items.length) return null;
-
-  const initialRects = new Map();
-  for (const item of items) {
-    try {
-      initialRects.set(item, item.getBoundingClientRect());
-    } catch (_) {
-      /* ignore */
-    }
-  }
-
-  return () => {
-    if (!items.length) return;
-    requestAnimationFrame(() => {
-      for (const item of items) {
-        const first = initialRects.get(item);
-        if (!first) continue;
-        let last;
-        try {
-          last = item.getBoundingClientRect();
-        } catch (_) {
-          continue;
-        }
-        const deltaY = first.top - last.top;
-        if (Math.abs(deltaY) < 0.5) continue;
-        try {
-          item.style.willChange = 'transform';
-          const distance = Math.abs(deltaY);
-          const baseDuration = distance > 1 ? Math.min(640, 320 + distance * 4) : 360;
-          if (typeof item.animate === 'function') {
-            const animation = item.animate(
-              [
-                { transform: `translateY(${deltaY}px)` },
-                { transform: 'translateY(0)' }
-              ],
-              {
-                duration: baseDuration,
-                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-                fill: 'none'
-              }
-            );
-            const cleanup = () => {
-              item.style.transform = '';
-              item.style.willChange = '';
-            };
-            animation.addEventListener('finish', cleanup, { once: true });
-            animation.addEventListener('cancel', cleanup, { once: true });
-          } else {
-            const previousTransition = item.style.transition;
-            item.style.transition = 'none';
-            item.style.transform = `translateY(${deltaY}px)`;
-            requestAnimationFrame(() => {
-              item.style.transition = `transform ${baseDuration}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-              item.style.transform = 'translateY(0)';
-              setTimeout(() => {
-                item.style.transition = previousTransition;
-                item.style.transform = '';
-                item.style.willChange = '';
-              }, baseDuration + 80);
-            });
-          }
-        } catch (_) {
-          /* ignore */
-        }
-      }
-    });
-  };
-}
-
-function showToast(kind, text, options = {}) {
-  try {
-    const message = safeString(text);
-    if (!message) return;
-    const root = ensureToastRoot();
-    const el = document.createElement('div');
-    el.className = `toast ${kind || ''}`;
-    el.style.pointerEvents = 'auto';
-    el.style.background = 'color-mix(in srgb, var(--card) 94%, #000 6%)';
-    el.style.color = 'var(--text)';
-    el.style.borderRadius = '999px';
-    el.style.padding = '.55rem 1.1rem';
-    el.style.boxShadow = '0 10px 30px rgba(15,23,42,0.18)';
-    el.style.border = '1px solid color-mix(in srgb, var(--border) 65%, #000 25%)';
-    el.style.fontSize = '.94rem';
-    el.style.display = 'inline-flex';
-    el.style.alignItems = 'center';
-    el.style.justifyContent = 'center';
-    el.style.minWidth = 'min(320px, 90vw)';
-    el.style.maxWidth = '90vw';
-    el.style.textAlign = 'center';
-    el.style.transition = 'opacity .28s ease, transform .28s ease';
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(12px)';
-    el.style.gap = '.7rem';
-
-    const textSpan = document.createElement('span');
-    textSpan.textContent = message;
-    textSpan.style.flex = '1 1 auto';
-    textSpan.style.textAlign = 'center';
-    textSpan.style.minWidth = '0';
-    el.appendChild(textSpan);
-
-    const action = options && options.action;
-    const hasAction = !!(action && (action.href || typeof action.onClick === 'function'));
-    const shouldAutoDismiss = options.sticky !== true && !hasAction;
-
-    const dismiss = () => {
-      if (el.dataset.dismissed === 'true') return;
-      el.dataset.dismissed = 'true';
-      let toastRect = null;
-      let rootRect = null;
-      try {
-        toastRect = el.getBoundingClientRect();
-        rootRect = root.getBoundingClientRect();
-      } catch (_) {
-        /* ignore */
-      }
-      const animateStack = prepareToastStackAnimation(root, el);
-      el.style.pointerEvents = 'none';
-      if (toastRect && rootRect) {
-        const offsetBottom = rootRect.bottom - toastRect.bottom;
-        const offsetRight = rootRect.right - toastRect.right;
-        el.style.position = 'absolute';
-        el.style.bottom = `${offsetBottom}px`;
-        el.style.right = `${offsetRight}px`;
-        el.style.left = 'auto';
-        el.style.top = 'auto';
-        el.style.margin = '0';
-        el.style.width = `${toastRect.width}px`;
-        el.style.height = `${toastRect.height}px`;
-        el.style.zIndex = '1';
-      }
-      if (typeof animateStack === 'function') {
-        try { animateStack(); } catch (_) {}
-      }
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(12px)';
-      setTimeout(() => {
-        try { el.remove(); } catch (_) {}
-      }, 320);
-    };
-
-    if (hasAction) {
-      el.style.justifyContent = 'space-between';
-      textSpan.style.textAlign = 'left';
-      const actionEl = document.createElement(action.href ? 'a' : 'button');
-      actionEl.className = 'toast-action';
-      const defaultLabel = t('editor.toast.openAction');
-      actionEl.textContent = safeString(action.label) || defaultLabel;
-      if (action.href) {
-        actionEl.href = action.href;
-        actionEl.target = action.target || '_blank';
-        actionEl.rel = action.rel || 'noopener';
-      } else {
-        actionEl.type = 'button';
-      }
-      actionEl.style.flex = '0 0 auto';
-      actionEl.style.marginLeft = '.35rem';
-      actionEl.style.padding = '.35rem .85rem';
-      actionEl.style.borderRadius = '999px';
-      actionEl.style.border = '1px solid color-mix(in srgb, var(--primary) 28%, var(--border))';
-      actionEl.style.background = 'color-mix(in srgb, var(--card) 88%, var(--primary) 10%)';
-      actionEl.style.color = 'color-mix(in srgb, var(--primary) 85%, var(--text) 40%)';
-      actionEl.style.fontWeight = '600';
-      actionEl.style.fontSize = '.88rem';
-      actionEl.style.pointerEvents = 'auto';
-      actionEl.style.textDecoration = 'none';
-      actionEl.style.display = 'inline-flex';
-      actionEl.style.alignItems = 'center';
-      actionEl.style.justifyContent = 'center';
-      actionEl.style.gap = '.35rem';
-      actionEl.style.cursor = 'pointer';
-      if (typeof action.onClick === 'function') {
-        actionEl.addEventListener('click', (event) => {
-          try { action.onClick(event); } catch (_) {}
-        });
-      }
-      el.appendChild(actionEl);
-    }
-
-    if (!shouldAutoDismiss) {
-      el.style.justifyContent = 'space-between';
-      textSpan.style.textAlign = 'left';
-      const closeButton = document.createElement('button');
-      closeButton.type = 'button';
-      closeButton.className = 'toast-close';
-      closeButton.setAttribute('aria-label', t('editor.toast.closeAria'));
-      closeButton.textContent = '\u00D7';
-      closeButton.style.flex = '0 0 auto';
-      closeButton.style.marginLeft = '.5rem';
-      closeButton.style.width = '2rem';
-      closeButton.style.height = '2rem';
-      closeButton.style.borderRadius = '50%';
-      closeButton.style.border = '1px solid color-mix(in srgb, var(--border) 70%, transparent)';
-      closeButton.style.background = 'transparent';
-      closeButton.style.color = 'inherit';
-      closeButton.style.fontSize = '1.1rem';
-      closeButton.style.lineHeight = '1';
-      closeButton.style.display = 'inline-flex';
-      closeButton.style.alignItems = 'center';
-      closeButton.style.justifyContent = 'center';
-      closeButton.style.cursor = 'pointer';
-      closeButton.style.pointerEvents = 'auto';
-      closeButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        dismiss();
-      });
-      el.appendChild(closeButton);
-    }
-
-    if (kind === 'error') {
-      el.style.borderColor = 'color-mix(in srgb, #dc2626 45%, transparent)';
-    } else if (kind === 'success') {
-      el.style.borderColor = 'color-mix(in srgb, #16a34a 45%, transparent)';
-    } else if (kind === 'warn' || kind === 'warning') {
-      el.style.borderColor = 'color-mix(in srgb, #f59e0b 45%, transparent)';
-    }
-    root.appendChild(el);
-    requestAnimationFrame(() => {
-      el.style.opacity = '1';
-      el.style.transform = 'translateY(0)';
-    });
-    if (shouldAutoDismiss) {
-      const ttl = typeof options.duration === 'number' ? Math.max(1200, options.duration) : 2300;
-      setTimeout(dismiss, ttl);
-    }
-  } catch (_) {
-    try { alert(text); } catch (__) {}
-  }
-}
-
-function preparePopupWindow() {
-  try {
-    const win = window.open('', '_blank');
-    if (win) {
-      try { win.opener = null; } catch (_) {}
-    }
-    return win;
-  } catch (_) {
-    return null;
-  }
-}
-
-function closePopupWindow(win) {
-  if (!win) return;
-  try {
-    if (!win.closed) win.close();
-  } catch (_) {}
-}
-
-function finalizePopupWindow(win, href) {
-  if (!href) {
-    closePopupWindow(win);
-    return null;
-  }
-  if (win && !win.closed) {
-    try {
-      win.location.replace(href);
-      win.opener = null;
-      return win;
-    } catch (_) {
-      closePopupWindow(win);
-    }
-  }
-  let opened = null;
-  try {
-    opened = window.open(href, '_blank');
-  } catch (_) {
-    opened = null;
-  }
-  if (opened) {
-    try { opened.opener = null; } catch (_) {}
-    return opened;
-  }
-  return null;
-}
-
-function handlePopupBlocked(href, options = {}) {
-  try {
-    console.warn('Popup blocked while opening GitHub window', href);
-  } catch (_) {}
-  const message = safeString(options.message) || t('editor.toasts.popupBlocked');
-  const kind = safeString(options.kind) || 'warn';
-  const duration = typeof options.duration === 'number' ? Math.max(1600, options.duration) : 9000;
-  const actionHref = safeString(options.actionHref || href);
-  const actionLabel = safeString(options.actionLabel) || t('editor.toasts.openGithubAction');
-  const onRetry = typeof options.onRetry === 'function' ? options.onRetry : null;
-
-  showToast(kind, message, {
-    duration,
-    action: actionHref
-      ? {
-          label: actionLabel,
-          href: actionHref,
-          target: safeString(options.actionTarget) || '_blank',
-          rel: safeString(options.actionRel) || 'noopener',
-          onClick: (event) => {
-            if (onRetry) {
-              setTimeout(() => {
-                try { onRetry(event); } catch (_) {}
-              }, 60);
-            }
-          }
-        }
-      : null
-  });
 }
 
 async function fetchMarkdownRemoteSnapshot(tab) {

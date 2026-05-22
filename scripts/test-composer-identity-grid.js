@@ -13,6 +13,7 @@ const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-pane
 const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
+const composerNotificationsPath = resolve(here, '../assets/js/composer-notifications.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
@@ -60,6 +61,7 @@ const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
 const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
+const composerNotificationsSource = readFileSync(composerNotificationsPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
@@ -2408,6 +2410,24 @@ assert.match(
 );
 
 assert.match(
+  source,
+  /from '\.\/composer-notifications\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted notification and popup boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function ensureToastRoot|function prepareToastStackAnimation|function showToast|function preparePopupWindow|function closePopupWindow|function finalizePopupWindow|function handlePopupBlocked/,
+  'toast rendering and popup-window fallback details should stay outside the main composer shell'
+);
+
+assert.match(
+  composerNotificationsSource,
+  /export function createComposerNotificationController\(options = \{\}\)[\s\S]*function ensureToastRoot\(\)[\s\S]*function showToast\(kind, text, toastOptions = \{\}\)[\s\S]*function preparePopupWindow\(\)[\s\S]*function finalizePopupWindow\(win, href\)[\s\S]*function handlePopupBlocked\(href, popupOptions = \{\}\)/,
+  'notification boundary should own toast DOM rendering and popup-window fallback behavior'
+);
+
+assert.match(
   propagationWatcherSource,
   /files\.forEach\(\(file\) => \{[\s\S]*unique\.push\(\{ \.\.\.file, path: normalized \}\);[\s\S]*if \(file\.deleted\) \{[\s\S]*resp\.status !== 404 && resp\.status !== 410[\s\S]*ok = checked && !stillExists && !indeterminate;/,
   'remote propagation checks should verify deleted commit entries disappear'
@@ -3781,8 +3801,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
-  /const hasAction = !!\(action && \(action\.href \|\| typeof action\.onClick === 'function'\)\);[\s\S]*const shouldAutoDismiss = options\.sticky !== true && !hasAction;/,
+  composerNotificationsSource,
+  /const hasAction = !!\(action && \(action\.href \|\| typeof action\.onClick === 'function'\)\);[\s\S]*const shouldAutoDismiss = toastOptions\.sticky !== true && !hasAction;/,
   'plain info toasts such as Loading config should auto-dismiss unless explicitly sticky or actionable'
 );
 

@@ -4310,10 +4310,6 @@ function getFirstDynamicModeId() {
   return getMarkdownSessionController().getFirstDynamicModeId();
 }
 
-function getActiveDynamicMode() {
-  return getMarkdownSessionController().getActiveDynamicMode();
-}
-
 function getActiveDynamicTab() {
   return getMarkdownSessionController().getActiveDynamicTab();
 }

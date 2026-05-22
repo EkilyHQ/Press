@@ -55,7 +55,6 @@ export function createComposerMarkdownSessionController(options = {}) {
   const consoleRef = options.consoleRef || console;
   const updateDynamicTabsGroupState = typeof options.updateDynamicTabsGroupState === 'function' ? options.updateDynamicTabsGroupState : noop;
   const detachPrimaryEditorListeners = typeof options.detachPrimaryEditorListeners === 'function' ? options.detachPrimaryEditorListeners : noop;
-  const persistDynamicEditorStateFallback = typeof options.persistDynamicEditorStateFallback === 'function' ? options.persistDynamicEditorStateFallback : null;
   const updateMarkdownActionsForTab = typeof options.updateMarkdownActionsForTab === 'function' ? options.updateMarkdownActionsForTab : noop;
   const updateComposerMarkdownDraftIndicators = typeof options.updateComposerMarkdownDraftIndicators === 'function' ? options.updateComposerMarkdownDraftIndicators : noop;
 
@@ -291,7 +290,7 @@ export function createComposerMarkdownSessionController(options = {}) {
     if (!opts.force && (hasDirty || hasLocalDraft)) {
       const ref = tab.path || tab.label || t('editor.composer.discardConfirm.closeTabFallback');
       const promptMessage = t('editor.composer.discardConfirm.closeTabMessage', { label: ref });
-      let proceed = true;
+      let proceed;
       const runNativeConfirm = () => {
         try {
           if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(promptMessage);

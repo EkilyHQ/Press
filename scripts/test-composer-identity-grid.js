@@ -14,6 +14,7 @@ const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publi
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
 const composerNotificationsPath = resolve(here, '../assets/js/composer-notifications.js');
+const composerDialogsPath = resolve(here, '../assets/js/composer-dialogs.js');
 const composerRemoteSyncPath = resolve(here, '../assets/js/composer-remote-sync.js');
 const composerYamlDraftsPath = resolve(here, '../assets/js/composer-yaml-drafts.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
@@ -64,6 +65,7 @@ const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPa
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
 const composerNotificationsSource = readFileSync(composerNotificationsPath, 'utf8');
+const composerDialogsSource = readFileSync(composerDialogsPath, 'utf8');
 const composerRemoteSyncSource = readFileSync(composerRemoteSyncPath, 'utf8');
 const composerYamlDraftsSource = readFileSync(composerYamlDraftsPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
@@ -2435,6 +2437,24 @@ assert.match(
   composerNotificationsSource,
   /export function createComposerNotificationController\(options = \{\}\)[\s\S]*function ensureToastRoot\(\)[\s\S]*function showToast\(kind, text, toastOptions = \{\}\)[\s\S]*function preparePopupWindow\(\)[\s\S]*function finalizePopupWindow\(win, href\)[\s\S]*function handlePopupBlocked\(href, popupOptions = \{\}\)/,
   'notification boundary should own toast DOM rendering and popup-window fallback behavior'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-dialogs\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted dialog boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /discardConfirmElements|addEntryPromptElements|markdownProtectionPasswordDialogElements|function ensureComposerAddEntryPromptElements|function ensureComposerDiscardConfirmElements|function requestMarkdownProtectionPassword|function showComposerAddEntryPrompt|function showComposerDiscardConfirm/,
+  'dialog DOM state and overlay implementations should stay outside the main composer shell'
+);
+
+assert.match(
+  composerDialogsSource,
+  /export function createComposerDialogController\(options = \{\}\)[\s\S]*function ensureAddEntryPromptElements\(\)[\s\S]*function showAddEntryPrompt\(anchor, options = \{\}\)[\s\S]*function requestMarkdownProtectionPassword\(options = \{\}\)[\s\S]*function ensureDiscardConfirmElements\(\)[\s\S]*function showDiscardConfirm\(anchor, messageText, options = \{\}\)/,
+  'dialog boundary should own add-entry prompts, discard confirmations, and protection password overlays'
 );
 
 assert.match(

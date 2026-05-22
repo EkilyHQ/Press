@@ -12,6 +12,7 @@ const indexHtml = read('index.html');
 const indexEditorHtml = read('index_editor.html');
 const indexEditorPreviewHtml = read('index_editor_preview.html');
 const composer = read('assets/js/composer.js');
+const composerDialogs = read('assets/js/composer-dialogs.js');
 const composerMarkdownActionsUi = read('assets/js/composer-markdown-actions-ui.js');
 const composerMarkdownActions = read('assets/js/composer-markdown-actions.js');
 const composerMarkdownState = read('assets/js/composer-markdown-state.js');
@@ -160,7 +161,7 @@ assert.match([composerMarkdownState, composerMarkdownDrafts].join('\n'), /functi
 assert.match([composerMarkdownState, composer, composerMarkdownActions].join('\n'), /function createDiscardedMarkdownProtectionState\(protection\)[\s\S]*password: ''[\s\S]*remoteSignature: current\.remoteSignature[\s\S]*setMarkdownProtectionState\(active, (?:options\.)?createDiscardedMarkdownProtectionState\(protection\)\)/, 'discarding a protected markdown edit should clear discarded password changes instead of reusing them on the next save');
 assert.match(composerStaging, /Object\.defineProperty\(next, 'plaintextContent'[\s\S]*enumerable: false/, 'protected markdown commit plaintext baselines should stay non-enumerable in memory');
 assert.match(composerMarkdownActions, /async function openMarkdownPushOnGitHub[\s\S]*const plaintextContent = options\.normalizeMarkdownContent[\s\S]*prepareMarkdownForProtectedStorage\(tab, plaintextContent[\s\S]*nsCopyToClipboard\(preparedContent\)[\s\S]*computeTextSignature\(preparedContent\)/, 'manual GitHub edit flow should copy encrypted markdown and watch the encrypted remote signature');
-assert.match(composer, /configureMarkdownPasswordInput[\s\S]*data-1p-ignore[\s\S]*data-lpignore/, 'editor protection password fields should not opt into browser password-manager storage');
+assert.match(composerDialogs, /configureMarkdownPasswordInput[\s\S]*data-1p-ignore[\s\S]*data-lpignore/, 'editor protection password fields should not opt into browser password-manager storage');
 assert.match(themeLayout, /NATIVE_MODULE_CACHE_KEY = '[\w.-]+'/, 'theme layout should cache-bust native modules when shared i18n boundaries change');
 assert.match(themeLayout, /from '\.\/theme\.js\?v=[\w.-]+';/, 'theme layout should cache-bust theme helper imports');
 assert.match(theme, /NATIVE_STYLE_CACHE_KEY = '[\w.-]+'/, 'theme loader should cache-bust native stylesheet changes');

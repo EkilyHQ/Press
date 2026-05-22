@@ -212,7 +212,7 @@ export function createComposerDialogController(options = {}) {
     }
 
     if (typeof addEntryPromptActiveClose === 'function') {
-      try { addEntryPromptActiveClose(false); } catch (_) {}
+      try { addEntryPromptActiveClose(); } catch (_) {}
     }
 
     if (addEntryPromptHideTimer) {

@@ -1,7 +1,7 @@
 import {
   createConnectPublishCommit,
   ensureConnectPublishGrant as authorizeConnectPublishGrant
-} from './transports/connect-transport.js?v=press-system-v3.4.33';
+} from './transports/connect-transport.js?v=press-system-v3.4.34';
 
 export async function ensurePublishGrant({
   connect,
@@ -66,7 +66,7 @@ export async function publishCommit({
     });
   }
 
-  const { createFineGrainedTokenCommit } = await import('./transports/github-pat-transport.js?v=press-system-v3.4.33');
+  const { createFineGrainedTokenCommit } = await import('./transports/github-pat-transport.js?v=press-system-v3.4.34');
   return createFineGrainedTokenCommit(transport && transport.token, {
     owner,
     name,

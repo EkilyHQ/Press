@@ -26,6 +26,7 @@ const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shel
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
+const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -68,6 +69,7 @@ const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
+const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -429,6 +431,24 @@ assert.match(
   composerMarkdownLoaderSource,
   /export function createComposerMarkdownLoader\(options = \{\}\)[\s\S]*function setDynamicTabStatus\(tab, status\)[\s\S]*async function loadDynamicTabContent\(tab\)[\s\S]*fetchContent\(url, \{ cache: 'no-store' \}\)[\s\S]*tab\.remoteContent = editorText;[\s\S]*tab\.remoteSignature = remoteSignature;/,
   'Markdown loader boundary should own remote markdown fetch, encrypted draft merge, and file-status updates'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-markdown-actions-ui\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown actions UI boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /MARKDOWN_PUSH_LABEL_KEYS|MARKDOWN_DISCARD_LABEL_KEY|MARKDOWN_SAVE_LABEL_KEY|btn\.setAttribute\('data-protected', protectedState \? 'true' : 'false'\)|const hasLocalChanges = !!\(active && active\.path && \(hasDirty \|\| hasDraftContent\)\);/,
+  'Markdown action button labels, tooltips, and DOM state rendering should stay outside the main composer shell'
+);
+
+assert.match(
+  composerMarkdownActionsUiSource,
+  /const MARKDOWN_PUSH_LABEL_KEYS[\s\S]*export function createComposerMarkdownActionsUi\(options = \{\}\)[\s\S]*function updatePushButton\(tab\)[\s\S]*function updateDiscardButton\(tab\)[\s\S]*function updateSaveButton\(tab\)[\s\S]*function updateProtectionButton\(tab\)/,
+  'Markdown actions UI boundary should own Push, Discard, Save, and Protection button state rendering'
 );
 
 assert.match(

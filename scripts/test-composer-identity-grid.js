@@ -22,6 +22,7 @@ const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
+const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -60,6 +61,7 @@ const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
+const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -349,6 +351,24 @@ assert.match(
   composerMarkdownAssetsSource,
   /return \{[\s\S]*ensureMarkdownAssetBucket,[\s\S]*textWithFallback,[\s\S]*collectCurrentRepositoryMarkdownAssetReferences[\s\S]*\};/,
   'Markdown asset manager should expose the adapter helpers still used by composer wiring'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-editor-shell\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted editor shell boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function initEditorRailResize|function initMobileEditorRail|function mountEditorSystemPanels|function bindEditorStatePersistenceListeners|function getEditorContentScrollElement|let editorContentScrollByKey|let editorRailResizeBound|let activeEditorOverlayMode/,
+  'editor shell overlay, rail, system panel, and scroll persistence state should stay outside the main composer shell'
+);
+
+assert.match(
+  composerEditorShellSource,
+  /export function createComposerEditorShell\(options = \{\}\)[\s\S]*let editorContentScrollByKey = \{\};[\s\S]*function bindEditorStatePersistenceListeners\(\)[\s\S]*function mountEditorSystemPanels\(\)[\s\S]*function initEditorRailResize\(\)[\s\S]*function initMobileEditorRail\(\)/,
+  'editor shell boundary should own system panel mounting, scroll persistence, rail resize, and mobile rail state'
 );
 
 assert.match(
@@ -3069,15 +3089,15 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerEditorShellSource,
   /function initEditorRailResize\(\) \{[\s\S]*EDITOR_RAIL_WIDTH_KEY[\s\S]*pointerdown[\s\S]*setEditorRailWidth\([^)]*\{ persist: true \}/,
-  'desktop editor rail should be resizable and persist its width'
+  'desktop editor rail shell module should be resizable and persist its width'
 );
 
 assert.match(
-  source,
-  /function getEditorRailToggles\(\) \{[\s\S]*document\.querySelectorAll\('\[data-editor-rail-toggle\]'\)[\s\S]*function setEditorRailOpen\(open\) \{[\s\S]*const toggles = getEditorRailToggles\(\);[\s\S]*toggles\.forEach\(\(toggle\) => \{[\s\S]*toggle\.setAttribute\('aria-expanded', shouldOpen \? 'true' : 'false'\);[\s\S]*function initMobileEditorRail\(\) \{[\s\S]*const toggles = getEditorRailToggles\(\);[\s\S]*if \(!toggles\.length\) return;[\s\S]*toggles\.forEach\(\(toggle\) => \{[\s\S]*toggle\.addEventListener\('click', \(\) => \{[\s\S]*setEditorRailOpen\(!isOpen\);/,
-  'mobile editor rail should bind every shared drawer toggle and sync expanded state'
+  composerEditorShellSource,
+  /function getEditorRailToggles\(\) \{[\s\S]*documentRef\.querySelectorAll\('\[data-editor-rail-toggle\]'\)[\s\S]*function setEditorRailOpen\(open\) \{[\s\S]*const toggles = getEditorRailToggles\(\);[\s\S]*toggles\.forEach\(\(toggle\) => \{[\s\S]*toggle\.setAttribute\('aria-expanded', shouldOpen \? 'true' : 'false'\);[\s\S]*function initMobileEditorRail\(\) \{[\s\S]*const toggles = getEditorRailToggles\(\);[\s\S]*if \(!toggles\.length\) return;[\s\S]*toggles\.forEach\(\(toggle\) => \{[\s\S]*toggle\.addEventListener\('click', \(\) => \{[\s\S]*setEditorRailOpen\(!isOpen\);/,
+  'mobile editor rail shell module should bind every shared drawer toggle and sync expanded state'
 );
 
 assert.match(
@@ -3531,9 +3551,9 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
+  composerEditorShellSource,
   /function resetSiteSettingsNavOnOpen\(\) \{[\s\S]*modalBody\.scrollTop = 0;[\s\S]*root\.__pressSiteFirstSectionId[\s\S]*setActive\(firstSectionId,[\s\S]*scrollViewport: false[\s\S]*activateFirst\(\);[\s\S]*requestAnimationFrame/,
-  'opening Site Settings should reset the modal body and left navigation to the first section'
+  'opening Site Settings should reset the shell modal body and left navigation to the first section'
 );
 
 assert.match(

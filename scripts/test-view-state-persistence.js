@@ -16,13 +16,13 @@ assert.match(
 
 assert.match(
   composer,
-  /expandedNodeIds: Array\.from\(expandedEditorTreeNodeIds\)\.filter\(Boolean\)[\s\S]*railScrollTop: getEditorRailScrollTop\(\)[\s\S]*contentScrollByKey: \{ \.\.\.editorContentScrollByKey \}/,
+  /expandedNodeIds: editorContentTreeController\.getExpandedNodeIdsSnapshot\(\)[\s\S]*railScrollTop: getEditorRailScrollTop\(\)[\s\S]*contentScrollByKey: getEditorContentScrollSnapshot\(\)/,
   'editor v3 state should include exact tree expansion plus rail and per-view content scroll positions'
 );
 
 assert.match(
   composer,
-  /if \(isV3 && Array\.isArray\(data\.expandedNodeIds\)\) \{[\s\S]*expandedEditorTreeNodeIds\.clear\(\);[\s\S]*expandedEditorTreeNodeIds\.add\(id\);/,
+  /if \(isV3 && Array\.isArray\(data\.expandedNodeIds\)\) \{[\s\S]*editorContentTreeController\.restoreExpandedNodeIds\(data\.expandedNodeIds\);/,
   'restoring v3 state should replace the default expansion set with the saved expansion set'
 );
 

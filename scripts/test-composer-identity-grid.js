@@ -29,6 +29,7 @@ const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
 const composerMarkdownActionsPath = resolve(here, '../assets/js/composer-markdown-actions.js');
 const composerMarkdownStatePath = resolve(here, '../assets/js/composer-markdown-state.js');
+const composerMarkdownDraftsPath = resolve(here, '../assets/js/composer-markdown-drafts.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -74,6 +75,7 @@ const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'u
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
 const composerMarkdownActionsSource = readFileSync(composerMarkdownActionsPath, 'utf8');
 const composerMarkdownStateSource = readFileSync(composerMarkdownStatePath, 'utf8');
+const composerMarkdownDraftsSource = readFileSync(composerMarkdownDraftsPath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -493,6 +495,34 @@ assert.match(
 
 assert.match(
   source,
+  /from '\.\/composer-markdown-drafts\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown drafts boundary'
+);
+
+const restoreMarkdownDraftForTabBody = extractFunctionBody(source, 'restoreMarkdownDraftForTab');
+const saveMarkdownDraftForTabBody = extractFunctionBody(source, 'saveMarkdownDraftForTab');
+const scheduleMarkdownDraftSaveBody = extractFunctionBody(source, 'scheduleMarkdownDraftSave');
+const updateDynamicTabDirtyStateBody = extractFunctionBody(source, 'updateDynamicTabDirtyState');
+
+assert.doesNotMatch(
+  [
+    restoreMarkdownDraftForTabBody,
+    saveMarkdownDraftForTabBody,
+    scheduleMarkdownDraftSaveBody,
+    updateDynamicTabDirtyStateBody
+  ].join('\n'),
+  /importMarkdownAssetsForPath|prepareMarkdownForProtectedStorage|setTimeout|normalizeMarkdownContent|countMarkdownAssetDeletions/,
+  'Markdown draft storage, restore, autosave, and dirty-state lifecycle should stay outside the main composer shell'
+);
+
+assert.match(
+  composerMarkdownDraftsSource,
+  /export function createComposerMarkdownDraftController\(options = \{\}\)[\s\S]*function getDraftEntry\(path\)[\s\S]*function saveDraftEntry\(path, content, remoteSignature = '', assets = \[\], saveOptions = \{\}\)[\s\S]*function restoreDraftForTab\(tab\)[\s\S]*async function saveDraftForTab\(tab, saveOptions = \{\}\)[\s\S]*function updateDynamicTabDirtyState\(tab, dirtyOptions = \{\}\)/,
+  'Markdown drafts boundary should own draft store entries, restore/save/clear, autosave, and dirty-state calculation'
+);
+
+assert.match(
+  source,
   /from '\.\/editor-file-tree-ui\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted editor file tree UI boundary'
 );
@@ -546,8 +576,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*prepareMarkdownForProtectedStorage\(tab, text[\s\S]*saveMarkdownDraftEntry\(tab\.path, prepared\.content/,
+  [source, composerMarkdownDraftsSource].join('\n'),
+  /const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';[\s\S]*async function saveDraftForTab\(tab, saveOptions = \{\}\) \{[\s\S]*prepareMarkdownForProtectedStorage\(tab, text[\s\S]*saveDraftEntry\(tab\.path, prepared\.content/,
   'markdown draft persistence should encrypt protected article content before writing draft storage'
 );
 
@@ -588,7 +618,7 @@ assert.match(
 );
 
 assert.match(
-  [composerMarkdownStateSource, source].join('\n'),
+  [composerMarkdownStateSource, composerMarkdownDraftsSource].join('\n'),
   /function bumpMarkdownDraftSaveGeneration\(tab\) \{[\s\S]*tab\.markdownDraftSaveGeneration = next;[\s\S]*const saveGeneration = getMarkdownDraftSaveGeneration\(tab\);[\s\S]*if \(saveGeneration !== getMarkdownDraftSaveGeneration\(tab\)\) return null;/,
   'composer should cancel stale async encrypted draft saves after discard or tab close'
 );
@@ -2400,8 +2430,8 @@ assert.match(
 );
 
 assert.match(
-  [composerMarkdownStateSource, source, composerMarkdownLoaderSource].join('\n'),
-  /function hasMarkdownDraftContent\(tab\) \{[\s\S]*const deletedAssets = Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length;[\s\S]*return !!\(plain \|\| encrypted \|\| deletedAssets\);[\s\S]*async function saveMarkdownDraftForTab\(tab, options = \{\}\) \{[\s\S]*const deletedAssets = exportMarkdownAssetDeletionBucket\(tab\.path\);[\s\S]*if \(!text && !deletedAssets\.length\) \{[\s\S]*const assetDeletionDirty = countMarkdownAssetDeletions\(tab\.path\) > 0;[\s\S]*const dirty = normalizedContent !== baseline \|\| protectionChanged \|\| assetDeletionDirty;[\s\S]*tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\)[\s\S]*tab\.content = normalizeMarkdownContent\(tab\.localDraft\.content \|\| ''\);/,
+  [composerMarkdownStateSource, composerMarkdownDraftsSource, composerMarkdownLoaderSource].join('\n'),
+  /function hasMarkdownDraftContent\(tab\) \{[\s\S]*const deletedAssets = Array\.isArray\(draft\.deletedAssets\) && draft\.deletedAssets\.length;[\s\S]*return !!\(plain \|\| encrypted \|\| deletedAssets\);[\s\S]*async function saveDraftForTab\(tab, saveOptions = \{\}\) \{[\s\S]*const deletedAssets = exportMarkdownAssetDeletionBucket\(tab\.path\);[\s\S]*if \(!text && !deletedAssets\.length\) \{[\s\S]*const assetDeletionDirty = countMarkdownAssetDeletions\(tab\.path\) > 0;[\s\S]*const dirty = normalizedContent !== baseline \|\| protectionChanged \|\| assetDeletionDirty;[\s\S]*tab\.localDraft && draftHasAssetDeletions\(tab\.localDraft\)[\s\S]*tab\.content = normalizeMarkdownContent\(tab\.localDraft\.content \|\| ''\);/,
   'markdown draft persistence should preserve deletion-only asset drafts across empty-body autosaves, reloads, and remote loads'
 );
 

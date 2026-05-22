@@ -1,5 +1,5 @@
-import { t } from './i18n.js?v=press-system-v3.4.36';
-import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=press-system-v3.4.36';
+import { t } from './i18n.js?v=press-system-v3.4.37';
+import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=press-system-v3.4.37';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';

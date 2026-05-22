@@ -1,4 +1,4 @@
-import { readJsonStore, writeJsonStore } from './editor-storage.js?v=press-system-v3.4.36';
+import { readJsonStore, writeJsonStore } from './editor-storage.js?v=press-system-v3.4.37';
 
 export function createScopedDraftStore({
   storage,

@@ -8,20 +8,20 @@ import {
   resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.36';
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.36';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.36';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.36';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.37';
+import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.37';
+import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.37';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.37';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.36';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.36';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.36';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.36';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.36';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.36';
+} from './encrypted-content.js?v=press-system-v3.4.37';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.37';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.37';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.37';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.37';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.37';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -35,7 +35,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.36';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.37';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -43,52 +43,51 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.36';
+} from './composer-site-model.js?v=press-system-v3.4.37';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.36';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.36';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.36';
+} from './editor-storage.js?v=press-system-v3.4.37';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.37';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.37';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.36';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.36';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.36';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.36';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.36';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.36';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.36';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.36';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.36';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.36';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.36';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.36';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.36';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.36';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.36';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.36';
+} from './composer-sync-panel.js?v=press-system-v3.4.37';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.37';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.37';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.37';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.37';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.37';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.37';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.37';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.37';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.37';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.37';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.37';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.37';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.37';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.37';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.37';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.37';
 import {
-  bumpMarkdownDraftSaveGeneration,
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
   createMarkdownProtectionState,
   getLockedEncryptedMarkdownDraft,
-  getMarkdownDraftSaveGeneration,
   getMarkdownProtectionState,
   hasMarkdownDraftContent,
   isEncryptedMarkdownDraftEntry,
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.36';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.36';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.36';
+} from './composer-markdown-state.js?v=press-system-v3.4.37';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.37';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.37';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.36';
+} from './publish/settings-store.js?v=press-system-v3.4.37';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);
@@ -357,6 +356,7 @@ const seoStagingProvider = createSeoStagingProvider({
 });
 let markdownLoader = null;
 let markdownActionsUi = null;
+let markdownDraftController = null;
 const postCommitStateApplier = createPostCommitStateApplier({
   stagingRegistry,
   getStateSlice,
@@ -451,6 +451,34 @@ try {
     expandedEditorTreeNodeIds.add('system');
   }
 } catch (_) {}
+markdownDraftController = createComposerMarkdownDraftController({
+  markdownDraftStore,
+  normalizeRelPath,
+  normalizeAssetDescriptor,
+  normalizeAssetDeletionDescriptor,
+  importMarkdownAssetsForPath,
+  importMarkdownAssetDeletionsForPath,
+  exportMarkdownAssetBucket,
+  exportMarkdownAssetDeletionBucket,
+  clearMarkdownAssetsForPath,
+  ensureMarkdownAssetBucket,
+  countMarkdownAssetDeletions,
+  prepareMarkdownForProtectedStorage,
+  getMarkdownProtectionState,
+  setMarkdownProtectionState,
+  getDynamicEditorTabs: () => dynamicEditorTabs,
+  getCurrentMode: () => currentMode,
+  pushEditorCurrentFileInfo,
+  updateMarkdownPushButton,
+  updateComposerMarkdownDraftIndicators,
+  refreshEditorContentTree,
+  updateUnsyncedSummary,
+  showToast,
+  t,
+  consoleRef: console,
+  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
+  clearTimeoutRef: (id) => window.clearTimeout(id)
+});
 markdownLoader = createComposerMarkdownLoader({
   getContentRootSafe,
   normalizeRelPath,
@@ -2160,14 +2188,6 @@ function writeDraftStore(store) {
   composerDraftStore.write(store);
 }
 
-function readMarkdownDraftStore() {
-  return markdownDraftStore.read();
-}
-
-function writeMarkdownDraftStore(store) {
-  markdownDraftStore.write(store);
-}
-
 async function requestPasswordForProtectedMarkdown(tab, options = {}) {
   const protection = getMarkdownProtectionState(tab);
   if (protection.password) return protection.password;
@@ -2248,277 +2268,49 @@ async function prepareMarkdownForProtectedStorage(tab, markdown, options = {}) {
   };
 }
 
-function getMarkdownDraftEntry(path) {
-  const norm = normalizeRelPath(path);
-  if (!norm) return null;
-  const store = readMarkdownDraftStore();
-  const entry = store[norm];
-  if (!entry || typeof entry !== 'object') return null;
-  const content = entry.content != null ? normalizeMarkdownContent(entry.content) : '';
-  const savedAt = Number(entry.savedAt);
-  const remoteSignature = entry.remoteSignature ? String(entry.remoteSignature) : '';
-  const assets = Array.isArray(entry.assets)
-    ? entry.assets.map(item => normalizeAssetDescriptor(item, norm)).filter(Boolean)
-    : [];
-  const deletedAssets = Array.isArray(entry.deletedAssets)
-    ? entry.deletedAssets.map(item => normalizeAssetDeletionDescriptor(item, norm)).filter(Boolean)
-    : [];
-  return {
-    path: norm,
-    content,
-    savedAt: Number.isFinite(savedAt) ? savedAt : Date.now(),
-    remoteSignature,
-    assets,
-    deletedAssets,
-    encrypted: isEncryptedMarkdownDraftEntry(entry),
-    protected: isEncryptedMarkdownDraftEntry(entry)
-  };
+function getMarkdownDraftController() {
+  if (!markdownDraftController) throw new Error('Markdown draft controller is not initialized');
+  return markdownDraftController;
 }
 
-function saveMarkdownDraftEntry(path, content, remoteSignature = '', assets = [], options = {}) {
-  const norm = normalizeRelPath(path);
-  if (!norm) return null;
-  const text = normalizeMarkdownContent(content);
-  const store = readMarkdownDraftStore();
-  const savedAt = Date.now();
-  const existing = store[norm] && typeof store[norm] === 'object' ? store[norm] : {};
-  const assetList = Array.isArray(assets)
-    ? assets.map(item => normalizeAssetDescriptor(item, norm)).filter(Boolean)
-    : [];
-  const deletedAssetList = exportMarkdownAssetDeletionBucket(norm).length
-    ? exportMarkdownAssetDeletionBucket(norm)
-    : (Array.isArray(existing.deletedAssets)
-      ? existing.deletedAssets.map(item => normalizeAssetDeletionDescriptor(item, norm)).filter(Boolean)
-      : []);
-  store[norm] = {
-    content: text,
-    savedAt,
-    remoteSignature: String(remoteSignature || ''),
-    assets: assetList
-  };
-  if (deletedAssetList.length) store[norm].deletedAssets = deletedAssetList;
-  if (options && (options.encrypted === true || options.protected === true)) {
-    store[norm].encrypted = true;
-    store[norm].protected = true;
-    store[norm].format = 'press-encrypted-markdown-v1';
-  }
-  writeMarkdownDraftStore(store);
-  return {
-    path: norm,
-    content: text,
-    savedAt,
-    remoteSignature: String(remoteSignature || ''),
-    assets: assetList,
-    deletedAssets: deletedAssetList,
-    encrypted: !!(options && (options.encrypted === true || options.protected === true)),
-    protected: !!(options && (options.encrypted === true || options.protected === true))
-  };
+function readMarkdownDraftStore() {
+  return getMarkdownDraftController().readDraftStore();
+}
+
+function writeMarkdownDraftStore(store) {
+  getMarkdownDraftController().writeDraftStore(store);
+}
+
+function getMarkdownDraftEntry(path) {
+  return getMarkdownDraftController().getDraftEntry(path);
 }
 
 function clearMarkdownDraftEntry(path) {
-  const norm = normalizeRelPath(path);
-  if (!norm) return;
-  markdownDraftStore.removeEntry(norm);
-  clearMarkdownAssetsForPath(norm);
+  getMarkdownDraftController().clearDraftEntry(path);
 }
 
 function restoreMarkdownDraftForTab(tab) {
-  if (!tab || !tab.path) return false;
-  try { clearTimeout(tab.markdownDraftTimer); } catch (_) {}
-  tab.markdownDraftTimer = null;
-  const entry = getMarkdownDraftEntry(tab.path);
-  if (!entry) {
-    tab.localDraft = null;
-    tab.draftConflict = false;
-    return false;
-  }
-  const assetsBucket = importMarkdownAssetsForPath(tab.path, entry.assets || []);
-  importMarkdownAssetDeletionsForPath(tab.path, entry.deletedAssets || []);
-  tab.localDraft = {
-    content: entry.encrypted ? '' : entry.content,
-    encryptedContent: entry.encrypted ? entry.content : '',
-    encrypted: !!entry.encrypted,
-    protected: !!entry.protected,
-    decrypted: !entry.encrypted,
-    savedAt: entry.savedAt,
-    remoteSignature: entry.remoteSignature || '',
-    manual: !!entry.manual,
-    assets: exportMarkdownAssetBucket(tab.path),
-    deletedAssets: exportMarkdownAssetDeletionBucket(tab.path)
-  };
-  if (entry.encrypted) {
-    setMarkdownProtectionState(tab, {
-      ...getMarkdownProtectionState(tab),
-      enabled: true,
-      encryptedDraft: true
-    });
-  } else {
-    tab.content = entry.content;
-  }
-  tab.draftConflict = false;
-  tab.isDirty = true;
-  tab.pendingAssets = assetsBucket || ensureMarkdownAssetBucket(tab.path);
-  if (entry.encrypted) {
-    if (tab.button) {
-      try { tab.button.setAttribute('data-dirty', '1'); } catch (_) {}
-      try { tab.button.setAttribute('data-draft-state', 'saved'); } catch (_) {}
-    }
-    updateComposerMarkdownDraftIndicators({ path: tab.path });
-    try { updateUnsyncedSummary(); } catch (_) {}
-    return true;
-  }
-  updateDynamicTabDirtyState(tab, { autoSave: false });
-  return true;
+  return getMarkdownDraftController().restoreDraftForTab(tab);
 }
 
 async function saveMarkdownDraftForTab(tab, options = {}) {
-  if (!tab || !tab.path) return null;
-  const saveGeneration = getMarkdownDraftSaveGeneration(tab);
-  const text = normalizeMarkdownContent(tab.content || '');
-  const remoteSig = tab.remoteSignature || '';
-  const deletedAssets = exportMarkdownAssetDeletionBucket(tab.path);
-  if (!text && !deletedAssets.length) {
-    bumpMarkdownDraftSaveGeneration(tab);
-    clearMarkdownDraftEntry(tab.path);
-    tab.localDraft = null;
-    tab.draftConflict = false;
-    updateComposerMarkdownDraftIndicators({ path: tab.path });
-    try { updateUnsyncedSummary(); } catch (_) {}
-    return null;
-  }
-  const assets = exportMarkdownAssetBucket(tab.path);
-  const prepared = await prepareMarkdownForProtectedStorage(tab, text, {
-    reason: options && options.reason ? options.reason : 'draft'
-  });
-  if (saveGeneration !== getMarkdownDraftSaveGeneration(tab)) return null;
-  const saved = saveMarkdownDraftEntry(tab.path, prepared.content, remoteSig, assets, {
-    encrypted: prepared.encrypted,
-    protected: prepared.encrypted
-  });
-  if (saved) {
-    tab.localDraft = {
-      content: text,
-      encryptedContent: saved.encrypted ? saved.content : '',
-      encrypted: !!saved.encrypted,
-      protected: !!saved.protected,
-      decrypted: true,
-      savedAt: saved.savedAt,
-      remoteSignature: saved.remoteSignature,
-      manual: !!options.markManual,
-      assets: saved.assets || [],
-      deletedAssets: saved.deletedAssets || []
-    };
-    updateComposerMarkdownDraftIndicators({ path: tab.path });
-    try { updateUnsyncedSummary(); } catch (_) {}
-  }
-  return saved;
+  return getMarkdownDraftController().saveDraftForTab(tab, options);
 }
 
 function clearMarkdownDraftForTab(tab) {
-  if (!tab || !tab.path) return;
-  bumpMarkdownDraftSaveGeneration(tab);
-  try {
-    if (tab.markdownDraftTimer) {
-      clearTimeout(tab.markdownDraftTimer);
-      tab.markdownDraftTimer = null;
-    }
-  } catch (_) {
-    tab.markdownDraftTimer = null;
-  }
-  clearMarkdownDraftEntry(tab.path);
-  tab.localDraft = null;
-  tab.draftConflict = false;
-  tab.isDirty = false;
-  tab.pendingAssets = ensureMarkdownAssetBucket(tab.path);
-  if (tab.button) {
-    try { tab.button.removeAttribute('data-dirty'); }
-    catch (_) {}
-    try { tab.button.removeAttribute('data-draft-state'); }
-    catch (_) {}
-  }
-  updateComposerMarkdownDraftIndicators({ path: tab.path });
-  try { updateUnsyncedSummary(); } catch (_) {}
+  getMarkdownDraftController().clearDraftForTab(tab);
 }
 
 function scheduleMarkdownDraftSave(tab) {
-  if (!tab) return;
-  if (tab.markdownDraftTimer) {
-    clearTimeout(tab.markdownDraftTimer);
-    tab.markdownDraftTimer = null;
-  }
-  tab.markdownDraftTimer = setTimeout(() => {
-    tab.markdownDraftTimer = null;
-    if (!tab.isDirty) {
-      clearMarkdownDraftForTab(tab);
-      return;
-    }
-    saveMarkdownDraftForTab(tab)
-      .then(() => {
-        if (currentMode === tab.mode) pushEditorCurrentFileInfo(tab);
-      })
-      .catch((err) => {
-        console.error('Failed to save markdown draft', err);
-        showToast('error', t('editor.composer.markdown.save.toastError'));
-      });
-  }, 720);
+  getMarkdownDraftController().scheduleDraftSave(tab);
 }
 
 async function flushMarkdownDraft(tab) {
-  if (!tab) return null;
-  if (tab.markdownDraftTimer) {
-    clearTimeout(tab.markdownDraftTimer);
-    tab.markdownDraftTimer = null;
-    if (tab.isDirty) {
-      return saveMarkdownDraftForTab(tab);
-    }
-  }
-  return null;
+  return getMarkdownDraftController().flushDraft(tab);
 }
 
 function updateDynamicTabDirtyState(tab, options = {}) {
-  if (!tab || !tab.path) return;
-  const normalizedContent = normalizeMarkdownContent(tab.content || '');
-  const baseline = normalizeMarkdownContent(tab.remoteContent || '');
-  const protection = getMarkdownProtectionState(tab);
-  const protectionChanged = protection.enabled !== protection.encryptedRemote || protection.passwordChanged;
-  const assetDeletionDirty = countMarkdownAssetDeletions(tab.path) > 0;
-  const dirty = normalizedContent !== baseline || protectionChanged || assetDeletionDirty;
-  tab.isDirty = dirty;
-
-  let conflict = false;
-
-  if (dirty) {
-    conflict = !!(tab.localDraft
-      && tab.localDraft.remoteSignature
-      && tab.remoteSignature
-      && tab.localDraft.remoteSignature !== tab.remoteSignature);
-    if (options.autoSave !== false) {
-      scheduleMarkdownDraftSave(tab);
-    }
-  } else {
-    clearMarkdownDraftForTab(tab);
-  }
-
-  tab.draftConflict = conflict;
-
-  const btn = tab.button;
-  if (btn) {
-    if (dirty) btn.setAttribute('data-dirty', '1');
-    else btn.removeAttribute('data-dirty');
-    if (conflict) btn.setAttribute('data-draft-state', 'conflict');
-    else if (tab.localDraft) btn.setAttribute('data-draft-state', 'saved');
-    else btn.removeAttribute('data-draft-state');
-  }
-
-  if (currentMode === tab.mode) {
-    pushEditorCurrentFileInfo(tab);
-  } else {
-    updateMarkdownPushButton(tab);
-  }
-
-  updateComposerMarkdownDraftIndicators({ path: tab.path });
-  refreshEditorContentTree({ preserveStructure: currentMode === tab.mode });
-  try { updateUnsyncedSummary(); } catch (_) {}
+  getMarkdownDraftController().updateDynamicTabDirtyState(tab, options);
 }
 
 function hasUnsavedComposerChanges() {
@@ -2535,27 +2327,11 @@ function hasUnsavedComposerChanges() {
 }
 
 function hasUnsavedMarkdownDrafts() {
-  for (const tab of dynamicEditorTabs.values()) {
-    if (!tab) continue;
-    if (tab.isDirty) return true;
-    if (hasMarkdownDraftContent(tab)) return true;
-  }
-  try {
-    const store = readMarkdownDraftStore();
-    if (store && Object.keys(store).length) return true;
-  } catch (_) {}
-  return false;
+  return getMarkdownDraftController().hasUnsavedDrafts();
 }
 
 function handleBeforeUnload(event) {
-  try {
-    dynamicEditorTabs.forEach(tab => { flushMarkdownDraft(tab); });
-  } catch (_) {}
-  // Previously we attempted to warn users about unsaved changes. The editor now
-  // performs automatic saving, so the confirmation dialog is no longer needed.
-  // Keep flushing drafts but avoid setting `event.returnValue`, which would
-  // trigger the browser prompt.
-  void event;
+  getMarkdownDraftController().handleBeforeUnload(event);
 }
 
 try {
@@ -2574,16 +2350,7 @@ function cssEscape(value) {
 }
 
 function collectDynamicMarkdownDraftStates() {
-  const map = new Map();
-  dynamicEditorTabs.forEach(tab => {
-    if (!tab || !tab.path) return;
-    const norm = normalizeRelPath(tab.path);
-    if (!norm) return;
-    if (tab.draftConflict) map.set(norm, 'conflict');
-    else if (tab.isDirty) map.set(norm, 'dirty');
-    else if (tab.localDraft) map.set(norm, 'saved');
-  });
-  return map;
+  return getMarkdownDraftController().collectDraftStates();
 }
 
 function getDraftIndicatorMessage(state) {

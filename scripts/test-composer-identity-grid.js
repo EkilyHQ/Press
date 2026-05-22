@@ -33,6 +33,7 @@ const composerSetupVerifierPath = resolve(here, '../assets/js/composer-setup-ver
 const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-controller.js');
 const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
+const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -89,6 +90,7 @@ const composerSetupVerifierSource = readFileSync(composerSetupVerifierPath, 'utf
 const composerModeControllerSource = readFileSync(composerModeControllerPath, 'utf8');
 const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
+const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -244,9 +246,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerSystemThemeBridgeSource,
   /from '\.\/system-updates\.js\?v=[\w.-]+'/,
-  'composer should cache-bust system updates when version compatibility changes'
+  'system/theme bridge should cache-bust system updates when version compatibility changes'
 );
 
 assert.match(
@@ -535,6 +537,30 @@ assert.match(
   composerRuntimeStylesSource,
   /export function injectComposerRuntimeStyles\(options = \{\}\)[\s\S]*composer-runtime-styles[\s\S]*\.ci-item[\s\S]*\.cs-publish-transport-settings[\s\S]*@keyframes nsModalFadeIn/,
   'runtime style module should own composer list, site settings, publish transport, and modal animation styles'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-system-theme-bridge\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted system/theme bridge boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /from '\.\/system-updates\.js\?v=|from '\.\/theme-manager\.js\?v=|initSystemUpdates|getSystemUpdateCommitFiles|clearSystemUpdateState|initThemeManager|getThemeManagerCommitFiles|clearThemeManagerState/,
+  'composer should not import or initialize system/theme managers directly'
+);
+
+assert.match(
+  source,
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*composerSystemThemeBridge\.registerStagingProviders\(stagingRegistry\);[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*composerSystemThemeBridge\.init\(\);/,
+  'composer should delegate system/theme staging, status, and initialization to the bridge'
+);
+
+assert.match(
+  composerSystemThemeBridgeSource,
+  /from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*id: 'themes'[\s\S]*function init\(\)[\s\S]*initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
+  'system/theme bridge should own manager imports, staging providers, and module initialization'
 );
 
 assert.match(

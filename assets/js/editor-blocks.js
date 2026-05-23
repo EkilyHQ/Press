@@ -3,6 +3,7 @@ import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-sy
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksHeadSession } from './editor-blocks-head-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksCommandSession } from './editor-blocks-command-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
@@ -2308,15 +2309,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const blockElements = () => Array.from(list.children).filter(el => el && el.classList && el.classList.contains('blocks-block'));
+  let commandSession = null;
 
   const insertBlankBlock = (index = state.blocks.length, options = {}) => {
     const { block, index: safeIndex } = blocksState.insertBlankBlock(index, options);
     render();
     if (options.command) {
       queueMicrotask(() => {
-        const first = list.querySelector(`.blocks-block[data-block-id="${block.id}"] .blocks-command-menu-item`)
-          || list.querySelector('.blocks-command-menu-item');
-        try { first?.focus(); } catch (_) {}
+        commandSession?.focusFirstCommandItem(block.id);
       });
     } else if (options.focus !== false) {
       focusBlockPrimaryEditable(block, 0);
@@ -2868,58 +2868,48 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return block;
   };
 
-  const closeBlockCommandMenu = (restoreFocus = false) => {
-    if (!state.commandMenuOpen) return;
-    const restoreIndex = blocksState.closeCommandMenu();
-    render();
-    if (restoreFocus) {
-      if (Number.isInteger(restoreIndex) && state.blocks[restoreIndex]) focusBlockPrimaryEditable(state.blocks[restoreIndex], 0);
-      else {
-        const trailingBlank = state.blocks.slice().reverse().find(block => block && block.type === 'blank');
-        if (trailingBlank) focusBlockPrimaryEditable(trailingBlank, 0);
-      }
-    }
-  };
+  let updateInlineToolbarState = () => {};
+  let openLinkEditorForSelection = () => {};
+  let cardPickerSession = null;
 
-  const openBlockCommandMenu = (insertIndex = state.blocks.length) => {
-    closeBlockActionMenu(false);
-    closeInlineMoreMenu(false);
-    blocksState.openCommandMenu(insertIndex);
-    render();
-    queueMicrotask(() => {
-      const first = list.querySelector(`.blocks-block[data-block-id="${state.blocks[state.commandMenuInsertIndex]?.id || ''}"] .blocks-command-menu-item`)
-        || list.querySelector('.blocks-command-menu-item');
-      try { first?.focus(); } catch (_) {}
-    });
-  };
+  commandSession = createEditorBlocksCommandSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    state,
+    blocksState,
+    list,
+    editableSession,
+    text,
+    createBlockTypeIcon,
+    defaultListItems,
+    normalizeEditableMarkdownText,
+    editableText,
+    closeBlockActionMenu,
+    closeInlineMoreMenu,
+    placeCommandBlock,
+    render,
+    emit,
+    focusBlockPrimaryEditable,
+    insertBlankBlock,
+    removeEmptyBlockWithBackspace,
+    handleCrossBlockArrowNavigation,
+    setActive,
+    updateInlineToolbarState: () => updateInlineToolbarState(),
+    getCardPickerSession: () => cardPickerSession,
+    queueTask: task => queueMicrotask(task)
+  });
 
-  const insertCommandBlock = (type, data = {}, options = {}) => {
-    const insertIndex = blocksState.beginCommandBlockInsert(options);
-    const block = placeCommandBlock(type, data, insertIndex);
-    if (options.focus) focusBlockPrimaryEditable(block, options.caretOffset);
-    return block;
-  };
-
-  const cardPickerSession = createEditorBlocksCardPickerSession({
+  cardPickerSession = createEditorBlocksCardPickerSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     runtime,
     blocksState,
     text,
-    insertCardBlock: (data, index) => insertCommandBlock('card', data, { index }),
+    insertCardBlock: (data, index) => commandSession?.insertCommandBlock('card', data, { index }),
     requestRender: () => render()
   });
   if (cardPickerSession) root.appendChild(cardPickerSession.element);
 
-  const createParagraphFromBlankInput = (value, insertIndex = state.blocks.length) => {
-    const textValue = normalizeEditableMarkdownText(value);
-    if (!textValue) return;
-    insertCommandBlock('paragraph', { text: textValue }, { focus: true, caretOffset: textValue.length, index: insertIndex });
-  };
-
   const inlineCommandMark = (kind) => (kind === 'strikeThrough' ? 'strike' : kind);
   const hasPendingInlineMarks = () => blocksState.hasPendingInlineMarks();
-  let updateInlineToolbarState = () => {};
-  let openLinkEditorForSelection = () => {};
 
   const applyRunsToEditable = (editable, runs, caretOffset = null) => {
     renderInlineRunsInto(editable, runs, inlineDomSession);
@@ -3109,68 +3099,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     });
     editable.addEventListener('keyup', () => updateInlineToolbarState());
     editable.addEventListener('mouseup', () => updateInlineToolbarState());
-  };
-
-  const commandBlocks = [
-    ['paragraph', 'paragraph', 'Paragraph', { text: 'New paragraph' }],
-    ['heading', 'heading', 'Heading', { level: 2, text: 'Heading' }],
-    ['image', 'image', 'Image', { alt: '', src: '' }],
-    ['table', 'table', 'Table', { headers: ['Column 1', 'Column 2'], alignments: ['', ''], rows: [['', '']] }],
-    ['list', 'list', 'List', { listType: 'ul', items: defaultListItems() }],
-    ['quote', 'quote', 'Quote', { text: 'Quote' }],
-    ['code', 'code', 'Code', { lang: '', text: '' }],
-    ['math', 'math', 'Math', { tex: '' }],
-    ['source', 'source', 'Markdown', { text: '' }]
-  ];
-
-  const openArticleCardCommand = () => {
-    const insertIndex = Number.isInteger(state.commandMenuInsertIndex) ? state.commandMenuInsertIndex : state.blocks.length;
-    if (cardPickerSession) {
-      cardPickerSession.open(insertIndex);
-      return;
-    }
-    insertCommandBlock('card', { label: 'Article', location: '', title: 'card', forceCard: true }, { index: insertIndex });
-  };
-
-  const runBlockCommand = (type, data = {}) => {
-    const focusTypes = new Set(['paragraph', 'heading', 'table', 'list', 'quote', 'code', 'source']);
-    insertCommandBlock(type, data, { focus: focusTypes.has(type) });
-  };
-
-  const createCommandMenuElement = (isCommandOpen) => {
-    const menu = document.createElement('div');
-    menu.className = 'blocks-command-menu';
-    menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-label', text('commandMenuAria', 'Block selector'));
-    menu.hidden = !isCommandOpen;
-    menu.setAttribute('aria-hidden', isCommandOpen ? 'false' : 'true');
-    commandBlocks.forEach(([key, type, fallback, data]) => {
-      const itemBtn = button('', 'blocks-command-menu-item');
-      itemBtn.dataset.blockCommand = type;
-      itemBtn.setAttribute('role', 'menuitem');
-      itemBtn.appendChild(createBlockTypeIcon(type));
-      const label = document.createElement('span');
-      label.textContent = text(key, fallback);
-      itemBtn.appendChild(label);
-      itemBtn.addEventListener('click', () => runBlockCommand(type, data));
-      menu.appendChild(itemBtn);
-    });
-    const cardBtn = button('', 'blocks-command-menu-item');
-    cardBtn.dataset.blockCommand = 'card';
-    cardBtn.setAttribute('role', 'menuitem');
-    cardBtn.appendChild(createBlockTypeIcon('card'));
-    const cardLabel = document.createElement('span');
-    cardLabel.textContent = text('articleCard', 'Article Card');
-    cardBtn.appendChild(cardLabel);
-    cardBtn.addEventListener('click', openArticleCardCommand);
-    menu.appendChild(cardBtn);
-    menu.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeBlockCommandMenu(true);
-      }
-    });
-    return menu;
   };
 
   const createRichEditable = (tagName, block, key, className, index) => {
@@ -3506,59 +3434,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const renderBlankBlock = (body, block, index) => {
-    const isCommandOpen = state.commandMenuOpen && state.commandMenuInsertIndex === index;
-    body.classList.add('blocks-virtual-body');
-    const editable = document.createElement('p');
-    editable.className = 'blocks-rich-editable blocks-paragraph-text blocks-virtual-editable blocks-blank-editable';
-    editable.contentEditable = 'true';
-    editable.spellcheck = true;
-    editable.setAttribute('aria-label', text('virtualBlockAria', 'New block'));
-    editable.dataset.placeholder = text('virtualBlockPlaceholder', 'Type / to chose a block');
-    editableSession.registerEditable(editable, null);
-    editable.addEventListener('beforeinput', (event) => {
-      if (event.isComposing) return;
-      if (event.inputType !== 'insertText' || event.data == null) return;
-      event.preventDefault();
-      if (event.data === '/') {
-        openBlockCommandMenu(index);
-        return;
-      }
-      createParagraphFromBlankInput(event.data, index);
-    });
-    editable.addEventListener('input', () => {
-      const value = editableText(editable);
-      if (!value) return;
-      if (value === '/') {
-        editable.textContent = '';
-        openBlockCommandMenu(index);
-        return;
-      }
-      createParagraphFromBlankInput(value, index);
-    });
-    editable.addEventListener('paste', (event) => {
-      const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
-      if (!pasted) return;
-      event.preventDefault();
-      createParagraphFromBlankInput(pasted, index);
-    });
-    editable.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && !event.isComposing) {
-        event.preventDefault();
-        insertBlankBlock(index + 1, { focus: true });
-        return;
-      }
-      if (removeEmptyBlockWithBackspace(event, block, index, editable, null)) return;
-      if (handleCrossBlockArrowNavigation(event, index, editable)) return;
-      if (event.key === 'Escape' && isCommandOpen) {
-        event.preventDefault();
-        closeBlockCommandMenu(true);
-      }
-    });
-    editable.addEventListener('focus', () => {
-      setActive(index, editable, null);
-      updateInlineToolbarState();
-    });
-    body.append(editable, createCommandMenuElement(isCommandOpen));
+    commandSession?.renderBlankBlock(body, block, index);
   };
 
   const renderBlockBody = (block, index) => {

@@ -42,6 +42,7 @@ const run = (name, fn) => {
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
+const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
@@ -687,14 +688,14 @@ run('visual editor has no terminal virtual UI and only materializes blank blocks
 
 run('typing or slash command on blank blocks replaces the blank block', () => {
   assert.match(
-    editorBlocksSource,
-    /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*event\.data === '\/'[\s\S]*openBlockCommandMenu\(index\)[\s\S]*createParagraphFromBlankInput\(event\.data, index\)/,
-    'blank block input should either open the command menu or become a paragraph'
+    editorBlocksCommandSessionSource,
+    /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*event\.data === '\/'[\s\S]*openMenu\(index\)[\s\S]*createParagraphFromBlankInput\(event\.data, index\)/,
+    'blank block input should be owned by the command session and either open the command menu or become a paragraph'
   );
   assert.match(
-    editorBlocksSource,
-    /renderBlankBlock[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key === 'Enter' && !event\.shiftKey && !event\.altKey && !event\.ctrlKey && !event\.metaKey && !event\.isComposing[\s\S]*event\.preventDefault\(\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*return;[\s\S]*removeEmptyBlockWithBackspace/,
-    'plain Enter in a blank block should insert a following blank instead of converting the current blank to a paragraph'
+    editorBlocksCommandSessionSource,
+    /renderBlankBlock[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*isPlainEnter\(event\)[\s\S]*prevent\(event\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*return;[\s\S]*removeEmptyBlockWithBackspace/,
+    'plain Enter in a blank block should be handled by the command session and insert a following blank instead of converting the current blank to a paragraph'
   );
   assert.match(
     editorBlocksStateSource,
@@ -715,9 +716,9 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
     'blank Backspace removal should still skip the first block'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksCommandSessionSource,
     /editable\.className = 'blocks-rich-editable blocks-paragraph-text blocks-virtual-editable blocks-blank-editable'/,
-    'blank blocks should expose a rich editable for cross-block arrow targeting'
+    'blank blocks should expose a rich editable for cross-block arrow targeting through the command session'
   );
   assert.match(
     editorBlocksFocusSessionSource,

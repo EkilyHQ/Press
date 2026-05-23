@@ -71,6 +71,7 @@ const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtim
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
 const editorBlocksHeadSessionPath = resolve(here, '../assets/js/editor-blocks-head-session.js');
+const editorBlocksCommandSessionPath = resolve(here, '../assets/js/editor-blocks-command-session.js');
 const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-blocks-editable-session.js');
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
@@ -156,6 +157,7 @@ const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(editorBlocksHeadSessionPath, 'utf8');
+const editorBlocksCommandSessionSource = readFileSync(editorBlocksCommandSessionPath, 'utf8');
 const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessionPath, 'utf8');
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
@@ -291,6 +293,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-head-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks head session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-command-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks command session boundary'
 );
 
 assert.match(
@@ -439,7 +447,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const cardPickerSession = createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
+  /cardPickerSession = createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => commandSession\?\.insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
   'blocks editor should compose article-card picker DOM and result selection through the card picker session boundary'
 );
 
@@ -1535,15 +1543,21 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const placeCommandBlock = \(type, data = \{\}, index = state\.blocks\.length\) => \{[\s\S]*blocksState\.placeCommandBlock\(type, data, index\)[\s\S]*const block = placeCommandBlock\(type, data, insertIndex\);[\s\S]*const cardPickerSession = createEditorBlocksCardPickerSession[\s\S]*insertCardBlock: \(data, index\) => insertCommandBlock\('card', data, \{ index \}\),[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = Number\.isInteger\(state\.commandMenuInsertIndex\) \? state\.commandMenuInsertIndex : state\.blocks\.length;[\s\S]*cardPickerSession\.open\(insertIndex\);/,
-  'blank block commands should replace the active blank block and reuse the article-card picker at that position'
+  `${editorBlocksSource}\n${editorBlocksCommandSessionSource}`,
+  /commandSession = createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => cardPickerSession,[\s\S]*insertCardBlock: \(data, index\) => commandSession\?\.insertCommandBlock\('card', data, \{ index \}\)[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
+  'blank block commands should live behind the command session, replace active blanks, and reuse the article-card picker at that position'
 );
 
 assert.match(
+  `${editorBlocksSource}\n${editorBlocksCommandSessionSource}`,
+  /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*commandSession\?\.renderBlankBlock\(body, block, index\);[\s\S]*const renderBlankBlock = \(body, block, index\) => \{[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*isPlainEnter\(event\)[\s\S]*prevent\(event\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*removeEmptyBlockWithBackspace/,
+  'blank block Enter should be handled inside the command session and create another real blank before browser input can turn the blank into a paragraph'
+);
+
+assert.doesNotMatch(
   editorBlocksSource,
-  /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key === 'Enter' && !event\.shiftKey && !event\.altKey && !event\.ctrlKey && !event\.metaKey && !event\.isComposing[\s\S]*event\.preventDefault\(\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*removeEmptyBlockWithBackspace/,
-  'blank block Enter should create another real blank before browser input can turn the blank into a paragraph'
+  /const commandBlocks|openArticleCardCommand|runBlockCommand|createCommandMenuElement|blocks-command-menu-item|blocks-blank-editable/,
+  'blocks root should not own slash command menu or blank editable DOM assembly'
 );
 
 assert.match(
@@ -2294,7 +2308,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksCommandSessionSource,
   /\['image', 'image', 'Image', \{ alt: '', src: '' \}\]/,
   'inserted image blocks should start with an intentionally empty src so the placeholder is visible'
 );

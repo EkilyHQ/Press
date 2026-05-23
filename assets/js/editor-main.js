@@ -12,6 +12,7 @@ import { createEditorMainCurrentFileSession } from './editor-main-current-file-s
 import { createEditorMainSidebarSession } from './editor-main-sidebar-session.js?v=press-system-v3.4.50';
 import { createEditorMainToolbarSession } from './editor-main-toolbar-session.js?v=press-system-v3.4.50';
 import { createEditorMainImageSession } from './editor-main-image-session.js?v=press-system-v3.4.50';
+import { createEditorMainLinkCardContext } from './editor-main-link-card-context.js?v=press-system-v3.4.50';
 import {
   createEditorMainRuntime,
   normalizeMarkdownEditorView
@@ -31,141 +32,7 @@ function persistMarkdownEditorView(mode) {
 let markdownBlocksEditor = null;
 let syncMarkdownBlocksFromSource = null;
 
-const fetchMarkdownForLinkCard = (loc) => {
-  try {
-    const url = `${getContentRoot()}/${loc}`;
-    return fetch(url, { cache: 'no-store' }).then(resp => (resp && resp.ok) ? resp.text() : '');
-  } catch (_) {
-    return Promise.resolve('');
-  }
-};
-
 let editorSiteConfig = {};
-let editorPostsIndexCache = {};
-let editorAllowedLocations = null;
-let editorLocationAliasMap = new Map();
-let editorPostsByLocationTitle = {};
-let linkCardReady = false;
-let editorPostPickerEntries = [];
-const editorLinkCardContextListeners = new Set();
-
-function rebuildLinkCardContext(posts, rawIndex) {
-  try {
-    const allowed = new Set();
-    if (posts && typeof posts === 'object') {
-      Object.values(posts).forEach(meta => {
-        if (!meta) return;
-        if (meta.location) allowed.add(String(meta.location));
-        if (Array.isArray(meta.versions)) {
-          meta.versions.forEach(ver => { if (ver && ver.location) allowed.add(String(ver.location)); });
-        }
-      });
-    }
-    if (rawIndex && typeof rawIndex === 'object' && !Array.isArray(rawIndex)) {
-      for (const entry of Object.values(rawIndex)) {
-        if (!entry || typeof entry !== 'object') continue;
-        for (const [key, val] of Object.entries(entry)) {
-          if (['tag','tags','image','date','excerpt','thumb','cover'].includes(key)) continue;
-          if (key === 'location' && typeof val === 'string') { allowed.add(String(val)); continue; }
-          if (Array.isArray(val)) { val.forEach(item => { if (typeof item === 'string') allowed.add(String(item)); }); continue; }
-          if (val && typeof val === 'object' && typeof val.location === 'string') { allowed.add(String(val.location)); continue; }
-          if (typeof val === 'string') { allowed.add(String(val)); }
-        }
-      }
-    }
-
-    const byLocation = {};
-    for (const [title, meta] of Object.entries(posts || {})) {
-      if (!meta) continue;
-      if (meta.location) byLocation[String(meta.location)] = title;
-      if (Array.isArray(meta.versions)) {
-        meta.versions.forEach(ver => { if (ver && ver.location) byLocation[String(ver.location)] = title; });
-      }
-    }
-
-    const alias = new Map();
-    const reserved = new Set(['tag','tags','image','date','excerpt','thumb','cover']);
-    const currentLang = normalizeLangKey((getCurrentLang && getCurrentLang()) || 'en');
-    const pickerEntries = new Map();
-    if (rawIndex && typeof rawIndex === 'object' && !Array.isArray(rawIndex)) {
-      for (const [entryKey, entry] of Object.entries(rawIndex)) {
-        if (!entry || typeof entry !== 'object') continue;
-        const variants = [];
-        for (const [key, val] of Object.entries(entry)) {
-          if (reserved.has(key)) continue;
-          if (key === 'location' && typeof val === 'string') {
-            variants.push({ lang: 'default', location: String(val) });
-            continue;
-          }
-          const nk = normalizeLangKey(key);
-          if (typeof val === 'string') {
-            variants.push({ lang: nk, location: String(val) });
-          } else if (Array.isArray(val)) {
-            val.forEach(item => { if (typeof item === 'string') variants.push({ lang: nk, location: String(item) }); });
-          } else if (val && typeof val === 'object' && typeof val.location === 'string') {
-            variants.push({ lang: nk, location: String(val.location) });
-          }
-        }
-        if (!variants.length) continue;
-        const findBy = (langs) => variants.find(v => langs.includes(v.lang));
-        let canonical = null;
-        const preferred = findBy([currentLang]) || findBy(['en']) || findBy(['default']) || variants[0];
-        if (preferred) {
-          const refTitle = byLocation[preferred.location];
-          const refMeta = refTitle ? posts[refTitle] : null;
-          if (refMeta && refMeta.location) canonical = String(refMeta.location);
-        }
-        if (!canonical && preferred) canonical = preferred.location;
-        if (!canonical && variants[0]) canonical = variants[0].location;
-        if (!canonical) continue;
-        variants.forEach(v => {
-          if (v.location && v.location !== canonical) alias.set(v.location, canonical);
-        });
-        const displayTitle = byLocation[canonical] || entry.title || entryKey;
-        const aliasLocations = variants
-          .map(v => v.location)
-          .filter(loc => loc && loc !== canonical);
-        pickerEntries.set(canonical, {
-          key: entryKey,
-          title: displayTitle || entryKey,
-          location: canonical,
-          aliases: aliasLocations
-        });
-      }
-    }
-
-    editorAllowedLocations = allowed;
-    editorPostsByLocationTitle = byLocation;
-    editorLocationAliasMap = alias;
-    editorPostsIndexCache = posts || {};
-    editorPostPickerEntries = Array.from(pickerEntries.values()).map(item => {
-      const tokens = new Set();
-      if (item.key) tokens.add(String(item.key));
-      if (item.title) tokens.add(String(item.title));
-      if (item.location) tokens.add(String(item.location));
-      (item.aliases || []).forEach(loc => { if (loc) tokens.add(String(loc)); });
-      return {
-        key: item.key,
-        title: item.title,
-        location: item.location,
-        aliases: item.aliases || [],
-        search: Array.from(tokens).map(t => t.toLowerCase()).join(' ')
-      };
-    }).sort((a, b) => {
-      const at = (a.title || '').toLowerCase();
-      const bt = (b.title || '').toLowerCase();
-      if (at === bt) return (a.key || '').localeCompare(b.key || '');
-      return at.localeCompare(bt);
-    });
-    editorLinkCardContextListeners.forEach(fn => {
-      try { fn(editorPostPickerEntries); }
-      catch (_) { /* noop */ }
-    });
-    linkCardReady = true;
-  } catch (_) {
-    editorAllowedLocations = editorAllowedLocations || new Set();
-  }
-}
 
 function $(sel) { return document.querySelector(sel); }
 
@@ -334,6 +201,15 @@ editorMainRuntime.onDocumentReady(() => {
     onChange: () => notifyChange()
   });
 
+  const linkCardContext = createEditorMainLinkCardContext({
+    getCurrentLang,
+    normalizeLangKey,
+    getContentRoot,
+    fetch,
+    translate: t,
+    makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
+  });
+
   const inferCurrentFileSource = (path) => metadataPanel.inferCurrentFileSource(path);
 
   const requestLayout = () => {
@@ -383,11 +259,11 @@ editorMainRuntime.onDocumentReady(() => {
     getEditorValue: () => getValue(),
     getCurrentFileInfo: () => currentFileSession.getInfo(),
     getSiteConfig: () => editorSiteConfig || {},
-    getPostsIndex: () => editorPostsIndexCache || {},
-    getPostsByLocationTitle: () => editorPostsByLocationTitle || {},
-    isLinkCardReady: () => linkCardReady,
-    getAllowedLocations: () => editorAllowedLocations,
-    getLocationAliases: () => editorLocationAliasMap,
+    getPostsIndex: () => linkCardContext.getPostsIndex(),
+    getPostsByLocationTitle: () => linkCardContext.getPostsByLocationTitle(),
+    isLinkCardReady: () => linkCardContext.isReady(),
+    getAllowedLocations: () => linkCardContext.getAllowedLocations(),
+    getLocationAliases: () => linkCardContext.getLocationAliases(),
     fetch
   });
   previewSession.bind();
@@ -552,16 +428,10 @@ editorMainRuntime.onDocumentReady(() => {
       },
       hydrateCard: (node) => {
         try {
-          hydrateInternalLinkCards(node, {
-            allowedLocations: linkCardReady ? editorAllowedLocations : null,
-            locationAliasMap: linkCardReady ? editorLocationAliasMap : new Map(),
-            postsByLocationTitle: linkCardReady ? editorPostsByLocationTitle : {},
-            postsIndexCache: linkCardReady ? editorPostsIndexCache : {},
+          hydrateInternalLinkCards(node, linkCardContext.createHydrateOptions({
             siteConfig: editorSiteConfig,
-            translate: t,
-            makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`),
-              fetchMarkdown: fetchMarkdownForLinkCard
-            });
+            translate: t
+          }));
           previewSession.applyAssetOverrides(node, getCurrentMarkdownPath());
         } catch (_) {}
       },
@@ -588,7 +458,7 @@ editorMainRuntime.onDocumentReady(() => {
     cardSearchInput,
     cardListEl,
     cardEmptyEl,
-    getCardEntries: () => editorPostPickerEntries
+    getCardEntries: () => linkCardContext.getCardEntries()
   });
   toolbarSession.bind();
 
@@ -603,12 +473,12 @@ editorMainRuntime.onDocumentReady(() => {
 
   const handleBlocksCardContextUpdate = (entries) => {
     if (!markdownBlocksEditor || typeof markdownBlocksEditor.setCardEntries !== 'function') return;
-    markdownBlocksEditor.setCardEntries(Array.isArray(entries) ? entries : editorPostPickerEntries);
+    markdownBlocksEditor.setCardEntries(Array.isArray(entries) ? entries : linkCardContext.getCardEntries());
   };
-  editorLinkCardContextListeners.add((entries) => toolbarSession.setCardEntries(entries));
-  editorLinkCardContextListeners.add(handleBlocksCardContextUpdate);
-  toolbarSession.setCardEntries(editorPostPickerEntries);
-  handleBlocksCardContextUpdate(editorPostPickerEntries);
+  linkCardContext.onCardEntriesChange((entries) => toolbarSession.setCardEntries(entries));
+  linkCardContext.onCardEntriesChange(handleBlocksCardContextUpdate);
+  toolbarSession.setCardEntries(linkCardContext.getCardEntries());
+  handleBlocksCardContextUpdate(linkCardContext.getCardEntries());
 
   const bindCurrentFileElement = (el) => {
     currentFileSession.bindElement(el);
@@ -752,8 +622,8 @@ editorMainRuntime.onDocumentReady(() => {
       editorMainRuntime.setEditorBaseDir(`${contentRoot}/`, `${contentRoot}/`);
     },
     onIndexLoaded: ({ posts, rawIndex }) => {
-      rebuildLinkCardContext(posts, rawIndex);
-      if (linkCardReady) refreshPreview();
+      linkCardContext.rebuild(posts, rawIndex);
+      if (linkCardContext.isReady()) refreshPreview();
     },
     onOpenMarkdown: async ({ relPath, url, contentRoot }) => {
       const response = await fetch(url, { cache: 'no-store' });

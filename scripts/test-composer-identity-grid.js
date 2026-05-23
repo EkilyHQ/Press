@@ -72,6 +72,7 @@ const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
 const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
+const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -168,6 +169,7 @@ const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSes
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
 const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
+const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -935,8 +937,20 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-link-card-context\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor link-card context boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
+);
+
+assert.match(
+  editorMainSource,
+  /const linkCardContext = createEditorMainLinkCardContext\(\{[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*fetch,[\s\S]*translate: t,[\s\S]*makeHref: \(loc\) => withLangParam\(`\?id=\$\{encodeURIComponent\(loc\)\}`\)[\s\S]*\}\);/,
+  'editor main should compose link-card index state through the explicit link-card context service'
 );
 
 assert.match(
@@ -947,7 +961,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileSession\.getInfo\(\),[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => editorPostsIndexCache \|\| \{\},[\s\S]*getPostsByLocationTitle: \(\) => editorPostsByLocationTitle \|\| \{\},[\s\S]*isLinkCardReady: \(\) => linkCardReady,[\s\S]*getAllowedLocations: \(\) => editorAllowedLocations,[\s\S]*getLocationAliases: \(\) => editorLocationAliasMap,[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
+  /previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileSession\.getInfo\(\),[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
@@ -959,7 +973,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const toolbarSession = createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => editorPostPickerEntries[\s\S]*\}\);[\s\S]*toolbarSession\.bind\(\);/,
+  /const toolbarSession = createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => linkCardContext\.getCardEntries\(\)[\s\S]*\}\);[\s\S]*toolbarSession\.bind\(\);/,
   'editor main should compose markdown toolbar and article-card picker through the toolbar session'
 );
 
@@ -1003,6 +1017,12 @@ assert.doesNotMatch(
   editorMainSource,
   /pendingBlocksImageInsert|pendingImagePickerToken|openImageInputPicker|readFileAsBase64|slugifyAssetBase|inferAssetExtension|buildAssetFileMeta|computeAssetPaths|insertImageMarkdown|isImageFile|containsImageFile|handleImageFiles|insertImageMarkdownAtSelection|resolveLocalMarkdownAssetReference|new FileReader|new MouseEvent|emitAssetAdded\(|requestAssetDelete\(|emitAssetDeleteCanceled\(/,
   'editor main root should not own image picker, file reading, asset path derivation, markdown insertion, or asset event internals'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /fetchMarkdownForLinkCard|rebuildLinkCardContext|editorAllowedLocations|editorLocationAliasMap|editorPostsByLocationTitle|editorPostsIndexCache|editorPostPickerEntries|editorLinkCardContextListeners|linkCardReady/,
+  'editor main root should not own link-card index state, picker entries, alias maps, or context listener fan-out'
 );
 
 assert.doesNotMatch(
@@ -1057,6 +1077,18 @@ assert.match(
   editorMainImageSessionSource,
   /import \{ insertImageMarkdownAtSelection \} from '\.\/editor-markdown-ops\.js';[\s\S]*import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*runtime\.emitAssetAdded\([\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
   'editor image session should route markdown-image operations and asset events through explicit dependencies and runtime services'
+);
+
+assert.match(
+  editorMainLinkCardContextSource,
+  /export function createEditorMainLinkCardContext\(options = \{\}\) \{[\s\S]*let allowedLocations = new Set\(\);[\s\S]*let postsByLocationTitle = \{\};[\s\S]*let locationAliasMap = new Map\(\);[\s\S]*let postsIndexCache = \{\};[\s\S]*let cardEntries = \[\];[\s\S]*let ready = false;[\s\S]*const rebuild = \(posts, rawIndex\) => \{[\s\S]*notifyCardEntries\(\);[\s\S]*createHydrateOptions[\s\S]*onCardEntriesChange/,
+  'editor link-card context should own index state, card picker entries, readiness, and subscriber fan-out'
+);
+
+assert.match(
+  editorMainLinkCardContextSource,
+  /collectAllowedLocations\(posts, rawIndex\)[\s\S]*indexPostsByLocation\(posts\)[\s\S]*buildPickerState\(posts, rawIndex, options\)[\s\S]*fetchMarkdown = \(loc\) => \{[\s\S]*`\$\{getContentRoot\(\)\}\/\$\{loc\}`[\s\S]*makeHref/,
+  'editor link-card context should centralize content-index normalization, markdown fetching, and link-card hydrate options'
 );
 
 assert.match(

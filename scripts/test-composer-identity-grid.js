@@ -73,6 +73,7 @@ const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-me
 const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-blocks-editable-session.js');
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
+const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -144,6 +145,7 @@ const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 
 const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessionPath, 'utf8');
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
+const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -277,9 +279,15 @@ assert.match(
   'blocks editor should cache-bust the explicit blocks inline DOM session boundary'
 );
 
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-caret-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks caret session boundary'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
-  /document\.(?:addEventListener|removeEventListener|createRange|createTextNode|caretPositionFromPoint|caretRangeFromPoint)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|getSelection)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById/,
+  /document\.(?:addEventListener|removeEventListener|createRange|createTextNode|caretPositionFromPoint|caretRangeFromPoint)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|getSelection)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById|\bNodeFilter\b/,
   'blocks editor should route global listeners, clipboard, timers, translation, active-element access, and browser selection/range/caret APIs through explicit runtime boundaries'
 );
 
@@ -293,6 +301,18 @@ assert.match(
   editorBlocksInlineDomSessionSource,
   /export function createEditorBlocksInlineDomSession\([\s\S]*function renderInlineRunsInto\(root, runs\)[\s\S]*function textRangeForDomNode\(editable, node\)[\s\S]*function linkForTextRange\(editable, start, end\)[\s\S]*function markedRangeForNode\(editable, node, mark\)[\s\S]*return \{[\s\S]*renderInlineRunsInto,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*markedRangeForNode/,
   'blocks inline DOM session should own inline node rendering and text-range mapping helpers'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const caretSession = createCaretSession\(selectionSession\);[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\)[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, caretSession\)[\s\S]*textareaTextOffsetFromPoint\(area, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\)/,
+  'blocks editor should route caret offsets, visual-line placement, and textarea mirror measurement through the caret session'
+);
+
+assert.match(
+  editorBlocksCaretSessionSource,
+  /export function createEditorBlocksCaretSession\([\s\S]*function selectionOffsets\(el\)[\s\S]*function isSelectionOnBlankLine\(el\)[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*function placeAtVisualLine\(el, x, edge, fallbackOffset = 0\)[\s\S]*return \{[\s\S]*selectionOffsets,[\s\S]*isSelectionOnBlankLine,[\s\S]*measuredTextOffsetDetailsFromPoint,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*placeAtVisualLine/,
+  'blocks caret session should own selection offsets, blank visual line detection, text-point measurement, textarea mirror measurement, and visual-line placement'
 );
 
 assert.match(
@@ -1351,14 +1371,14 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /function isEditableSelectionOnBlankLine\(el, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*const offsets = getEditableSelectionOffsets\(el, selectionTools\);[\s\S]*!offsets\.collapsed[\s\S]*if \(text\.slice\(lineStart, lineEnd\)\.trim\(\) === ''\) return true;[\s\S]*const caretRect = caretRectForEditable\(el, selectionTools\);[\s\S]*selectionTools\.createTreeWalker\(el, NodeFilter\.SHOW_TEXT\)[\s\S]*range\.selectNodeContents\(node\);[\s\S]*const hasTextOnCaretLine = rects\.some[\s\S]*if \(hasTextOnCaretLine\)[\s\S]*return true;/,
+  editorBlocksCaretSessionSource,
+  /function isSelectionOnBlankLine\(el\) \{[\s\S]*const offsets = selectionOffsets\(el\);[\s\S]*!offsets\.collapsed[\s\S]*if \(text\.slice\(lineStart, lineEnd\)\.trim\(\) === ''\) return true;[\s\S]*const caretRect = rectForEditable\(el\);[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*range\.selectNodeContents\(node\);[\s\S]*const hasTextOnCaretLine = rects\.some[\s\S]*if \(hasTextOnCaretLine\)[\s\S]*return true;/,
   'rich text blocks should detect empty visual lines even when DOM line breaks are not counted by Range.toString offsets'
 );
 
 assert.match(
-  editorBlocksSource,
-  /function shouldInsertBlankBlockOnEnter\(el, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*const offsets = getEditableSelectionOffsets\(el, selectionTools\);[\s\S]*!offsets\.collapsed[\s\S]*const text = editableVisibleText\(el\);[\s\S]*if \(offsets\.start >= text\.length\) return true;[\s\S]*return isEditableSelectionOnBlankLine\(el, selectionTools\);/,
+  editorBlocksCaretSessionSource,
+  /function shouldInsertBlankBlockOnEnter\(el\) \{[\s\S]*const offsets = selectionOffsets\(el\);[\s\S]*!offsets\.collapsed[\s\S]*const text = editableVisibleText\(el\);[\s\S]*if \(offsets\.start >= text\.length\) return true;[\s\S]*return isSelectionOnBlankLine\(el\);/,
   'plain Enter at the end of a rich text block should insert a real blank block without first creating an empty line'
 );
 
@@ -1376,7 +1396,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*!\['paragraph', 'quote', 'heading'\]\.includes\(block\.type\)[\s\S]*!shouldInsertBlankBlockOnEnter\(editable, selectionSession\)[\s\S]*event\.preventDefault\(\);[\s\S]*insertBlankBlockAfter\(index, editable, sync\);/,
+  /editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*!\['paragraph', 'quote', 'heading'\]\.includes\(block\.type\)[\s\S]*!shouldInsertBlankBlockOnEnter\(editable, caretSession\)[\s\S]*event\.preventDefault\(\);[\s\S]*insertBlankBlockAfter\(index, editable, sync\);/,
   'paragraph, quote, and heading Enter handling should exit the block when Enter would create a new empty line'
 );
 
@@ -1394,7 +1414,7 @@ assert.match(
 
 assert.match(
   `${editorBlocksSource}\n${editorBlocksStateSource}`,
-  /const focusListItemEditable = \(block, itemIndex, options = \{\}\) => \{[\s\S]*const items = blockEl\.querySelectorAll\('\.blocks-list-item \.blocks-list-text'\);[\s\S]*else if \(options\.atEnd\) placeCaretAtEnd\(editable, selectionSession\);[\s\S]*const focusPreviousBlockEnd = \(index\) => \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*const itemIndex = editableListItems\(target\.data && target\.data\.items\)\.length - 1;[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);[\s\S]*const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*event\.key !== 'Backspace'[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
+  /const focusListItemEditable = \(block, itemIndex, options = \{\}\) => \{[\s\S]*const items = blockEl\.querySelectorAll\('\.blocks-list-item \.blocks-list-text'\);[\s\S]*else if \(options\.atEnd\) placeCaretAtEnd\(editable, caretSession\);[\s\S]*const focusPreviousBlockEnd = \(index\) => \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*const itemIndex = editableListItems\(target\.data && target\.data\.items\)\.length - 1;[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);[\s\S]*const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*event\.key !== 'Backspace'[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
   'Backspace should remove empty non-first real blocks and move focus to the previous block end, including the last list item'
 );
 
@@ -1780,20 +1800,20 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const CARET_POINT_MEASURE_LIMIT = 12000;[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null\)[\s\S]*selectionTools\.createTreeWalker\(el, NodeFilter\.SHOW_TEXT\)[\s\S]*let insideTextRect = false;[\s\S]*range\.setStart\(node, i\);[\s\S]*range\.setEnd\(node, i \+ 1\);[\s\S]*x >= rect\.left && x <= rect\.right && y >= rect\.top && y <= rect\.bottom[\s\S]*caretBoundaryDistance\(rect, rect\.left, x, y\)[\s\S]*bestOffset = offset \+ i;[\s\S]*caretBoundaryDistance\(rect, rect\.right, x, y\)[\s\S]*bestOffset = offset \+ i \+ 1;[\s\S]*return \{ offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount \};[\s\S]*function measuredTextOffsetFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null\)[\s\S]*return details \? details\.offset : null;/,
+  editorBlocksCaretSessionSource,
+  /export const CARET_POINT_MEASURE_LIMIT = 12000;[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*let insideTextRect = false;[\s\S]*range\.setStart\(node, i\);[\s\S]*range\.setEnd\(node, i \+ 1\);[\s\S]*x >= rect\.left && x <= rect\.right && y >= rect\.top && y <= rect\.bottom[\s\S]*caretBoundaryDistance\(rect, rect\.left, x, y\)[\s\S]*bestOffset = offset \+ i;[\s\S]*caretBoundaryDistance\(rect, rect\.right, x, y\)[\s\S]*bestOffset = offset \+ i \+ 1;[\s\S]*return \{ offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount \};[\s\S]*function measuredTextOffsetFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*return details \? details\.offset : null;/,
   'routed caret fallback should measure text-node character boundaries and report nearest offsets plus text-rect hits'
 );
 
 assert.match(
-  editorBlocksSource,
-  /function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null\)[\s\S]*const mirror = area\.ownerDocument\.createElement\('div'\);[\s\S]*mirror\.style\.whiteSpace = 'pre-wrap';[\s\S]*mirror\.style\.overflowWrap = 'break-word';[\s\S]*'tabSize'[\s\S]*mirror\.textContent = value;[\s\S]*const details = measuredTextOffsetDetailsFromPoint\(mirror, x, y, limit, selectionTools\);[\s\S]*return \{[\s\S]*\.\.\.details,[\s\S]*offset: Math\.max\(0, Math\.min\(value\.length, details\.offset\)\)[\s\S]*function textareaTextOffsetFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null\)[\s\S]*return details \? details\.offset : null;/,
+  editorBlocksCaretSessionSource,
+  /function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*const mirror = area\.ownerDocument\.createElement\('div'\);[\s\S]*mirror\.style\.whiteSpace = 'pre-wrap';[\s\S]*mirror\.style\.overflowWrap = 'break-word';[\s\S]*'tabSize'[\s\S]*mirror\.textContent = value;[\s\S]*const details = measuredTextOffsetDetailsFromPoint\(mirror, x, y, limit\);[\s\S]*return \{[\s\S]*\.\.\.details,[\s\S]*offset: Math\.max\(0, Math\.min\(value\.length, details\.offset\)\)[\s\S]*function textareaTextOffsetFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*return details \? details\.offset : null;/,
   'routed source markdown textarea focus should use a styled mirror to measure nearest offsets and text-rect hits'
 );
 
 assert.match(
   editorBlocksSource,
-  /const setContentEditableCaretFromPoint = \(editable, x, y, hitTarget = editable\) => \{[\s\S]*selectionSession\.rangeFromPoint\(editable, targetX, targetY,[\s\S]*containsNode: nodeContains,[\s\S]*textOnly: true[\s\S]*const hitRect = hitTarget && hitTarget\.getBoundingClientRect \? hitTarget\.getBoundingClientRect\(\) : rect;[\s\S]*const measuredDetails = measuredTextOffsetDetailsFromPoint\(editable, x, y, CARET_POINT_MEASURE_LIMIT, selectionSession\);[\s\S]*const pointInsideEditableRect = !rect \|\| \([\s\S]*x >= rect\.left[\s\S]*y <= rect\.bottom[\s\S]*if \(measuredDetails && !measuredDetails\.insideTextRect\) \{[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, selectionSession\);[\s\S]*return;[\s\S]*if \(pointInsideEditableRect && setRangeFromPoint\(x, y\)\) return;[\s\S]*if \(measuredDetails\) \{[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, selectionSession\);[\s\S]*nearestRectForPoint\(editable, x, y\)[\s\S]*if \(hitRect && y < hitRect\.top \+ \(hitRect\.height \/ 2\)\) placeCaretAtTextOffset\(editable, 0, selectionSession\);/,
+  /const setContentEditableCaretFromPoint = \(editable, x, y, hitTarget = editable\) => \{[\s\S]*selectionSession\.rangeFromPoint\(editable, targetX, targetY,[\s\S]*containsNode: nodeContains,[\s\S]*textOnly: true[\s\S]*const hitRect = hitTarget && hitTarget\.getBoundingClientRect \? hitTarget\.getBoundingClientRect\(\) : rect;[\s\S]*const measuredDetails = measuredTextOffsetDetailsFromPoint\(editable, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*const pointInsideEditableRect = !rect \|\| \([\s\S]*x >= rect\.left[\s\S]*y <= rect\.bottom[\s\S]*if \(measuredDetails && !measuredDetails\.insideTextRect\) \{[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, caretSession\);[\s\S]*return;[\s\S]*if \(pointInsideEditableRect && setRangeFromPoint\(x, y\)\) return;[\s\S]*if \(measuredDetails\) \{[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, caretSession\);[\s\S]*nearestRectForPoint\(editable, x, y\)[\s\S]*if \(hitRect && y < hitRect\.top \+ \(hitRect\.height \/ 2\)\) placeCaretAtTextOffset\(editable, 0, caretSession\);/,
   'routed rich/list/code caret placement should use measured offsets before browser APIs for blank line area clicks, then coarse fallback'
 );
 
@@ -1811,19 +1831,19 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const setTextareaCaretFromPoint = \(area, x, y\) => \{[\s\S]*const measuredOffset = textareaTextOffsetFromPoint\(area, x, y, CARET_POINT_MEASURE_LIMIT, selectionSession\);[\s\S]*const fallbackOffset = rect && y < rect\.top \+ \(rect\.height \/ 2\) \? 0 : valueLength;[\s\S]*const offset = measuredOffset != null \? measuredOffset : fallbackOffset;[\s\S]*area\.setSelectionRange\(offset, offset\);/,
+  /const setTextareaCaretFromPoint = \(area, x, y\) => \{[\s\S]*const measuredOffset = textareaTextOffsetFromPoint\(area, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*const fallbackOffset = rect && y < rect\.top \+ \(rect\.height \/ 2\) \? 0 : valueLength;[\s\S]*const offset = measuredOffset != null \? measuredOffset : fallbackOffset;[\s\S]*area\.setSelectionRange\(offset, offset\);/,
   'routed source markdown textarea focus should prefer mirror-measured offsets before start/end fallback'
 );
 
 assert.match(
   editorBlocksSource,
-  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, selectionSession\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*const suppressUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(suppressUntil\);[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(suppressUntil\);[\s\S]*placeCaretAtTextOffset\(editable, details\.offset, selectionSession\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
+  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, caretSession\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*const suppressUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(suppressUntil\);[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(suppressUntil\);[\s\S]*placeCaretAtTextOffset\(editable, details\.offset, caretSession\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
   'direct quote edge pointerdowns should prevent native start/end snaps, suppress transient link-editor refreshes, and use the measured nearest offset'
 );
 
 assert.match(
   editorBlocksSource,
-  /let sourcePointer = null;[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, selectionSession\);[\s\S]*if \(details && !details\.insideTextRect\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: true \};[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: false \};[\s\S]*area\.addEventListener\('pointermove', \(event\) => \{[\s\S]*> 16\) sourcePointer\.moved = true;[\s\S]*area\.addEventListener\('click', \(event\) => \{[\s\S]*if \(!pointer \|\| pointer\.moved \|\| pointer\.corrected\) return;[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, selectionSession\);[\s\S]*if \(!details \|\| details\.insideTextRect\) return;[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*area\.addEventListener\('blur', \(\) => \{ sourcePointer = null; \}\);/,
+  /let sourcePointer = null;[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*if \(details && !details\.insideTextRect\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: true \};[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: false \};[\s\S]*area\.addEventListener\('pointermove', \(event\) => \{[\s\S]*> 16\) sourcePointer\.moved = true;[\s\S]*area\.addEventListener\('click', \(event\) => \{[\s\S]*if \(!pointer \|\| pointer\.moved \|\| pointer\.corrected\) return;[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*if \(!details \|\| details\.insideTextRect\) return;[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*area\.addEventListener\('blur', \(\) => \{ sourcePointer = null; \}\);/,
   'direct source markdown textarea blank-edge pointerdowns should prevent native end snaps while text clicks and drags keep native behavior'
 );
 
@@ -2189,19 +2209,19 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /outdentEmptyListItemForEnter\(currentItems, itemIndex\)[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\)[\s\S]*isEditableSelectionAtStart\(span, selectionSession\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*makeBlock\('paragraph'[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\)[\s\S]*splitListItemsAtEmptyItem\(currentItems, itemIndex\)[\s\S]*normalizeSplitListStartItems\(emptySplit\.after\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);/,
+  /outdentEmptyListItemForEnter\(currentItems, itemIndex\)[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\)[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*makeBlock\('paragraph'[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\)[\s\S]*splitListItemsAtEmptyItem\(currentItems, itemIndex\)[\s\S]*normalizeSplitListStartItems\(emptySplit\.after\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);/,
   'pressing Enter at a list tail after an inserted empty item should convert the current tail item to a paragraph before normal split'
 );
 
 assert.match(
-  editorBlocksSource,
-  /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*function isEditableSelectionAtStart\(el, selectionSession = null\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, selectionSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)/,
+  `${editorBlocksSource}\n${editorBlocksCaretSessionSource}`,
+  /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
   'Backspace or Delete at the start of a non-first visual list item should merge only structurally safe same-level items'
 );
 
 assert.match(
   editorBlocksSource,
-  /event\.key === 'Backspace' && itemIndex === 0 && index > 0 && isEditableSelectionAtStart\(span, selectionSession\)[\s\S]*mergeFirstListItemIntoPreviousBlock\(previous,[\s\S]*items: currentItems[\s\S]*if \(!merged\) return;[\s\S]*blocksState\.replaceBlocks\(index - 1, 2, replacement,[\s\S]*focusBlockPrimaryEditable\(merged\.previousBlock, merged\.focus\.caretOffset\)/,
+  /event\.key === 'Backspace' && itemIndex === 0 && index > 0 && isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeFirstListItemIntoPreviousBlock\(previous,[\s\S]*items: currentItems[\s\S]*if \(!merged\) return;[\s\S]*blocksState\.replaceBlocks\(index - 1, 2, replacement,[\s\S]*focusBlockPrimaryEditable\(merged\.previousBlock, merged\.focus\.caretOffset\)/,
   'Backspace at the start of the first visual list item should merge into the previous block only through the safe helper'
 );
 
@@ -2225,7 +2245,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /function getEditableCaretTextOffset\(el, selectionSession = null\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.toString\(\)[\s\S]*function placeCaretAtVisualLine\(el, x, edge, fallbackOffset = 0, selectionSession = null\) \{[\s\S]*edge === 'last' \? lineRects\[lineRects\.length - 1\] : lineRects\[0\][\s\S]*event\.key === 'ArrowUp' \|\| event\.key === 'ArrowDown'[\s\S]*const nextIndex = event\.key === 'ArrowUp' \? itemIndex - 1 : itemIndex \+ 1;[\s\S]*if \(!isEditableCaretOnEdgeLine\(span, event\.key === 'ArrowUp' \? 'up' : 'down', selectionSession\)\) return;[\s\S]*placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, selectionSession\);/,
+  /function getEditableCaretTextOffset\(el, caretSession = null\) \{[\s\S]*getTextOffset\(el\)[\s\S]*function placeCaretAtVisualLine\(el, x, edge, fallbackOffset = 0, caretSession = null\) \{[\s\S]*placeAtVisualLine\(el, x, edge, fallbackOffset\)[\s\S]*event\.key === 'ArrowUp' \|\| event\.key === 'ArrowDown'[\s\S]*const nextIndex = event\.key === 'ArrowUp' \? itemIndex - 1 : itemIndex \+ 1;[\s\S]*if \(!isEditableCaretOnEdgeLine\(span, event\.key === 'ArrowUp' \? 'up' : 'down', caretSession\)\) return;[\s\S]*placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, caretSession\);/,
   'ArrowUp and ArrowDown should cross items only from edge lines and enter multiline targets from the correct visual edge'
 );
 

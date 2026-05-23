@@ -6,6 +6,7 @@ import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
+import { CARET_POINT_MEASURE_LIMIT, createEditorBlocksCaretSession } from './editor-blocks-caret-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -57,6 +58,27 @@ function normalizeInlineDomSession(inlineDomSession) {
   return inlineDomSession && typeof inlineDomSession.renderInlineRunsInto === 'function'
     ? inlineDomSession
     : fallbackInlineDomSession;
+}
+
+function createCaretSession(selectionSession = null) {
+  return createEditorBlocksCaretSession({
+    selectionSession: normalizeSelectionSession(selectionSession),
+    nodeContains,
+    serializeInlineDom,
+    editableVisibleText
+  });
+}
+
+const fallbackCaretSession = createCaretSession(fallbackSelectionSession);
+
+function normalizeCaretSession(caretSessionOrSelectionSession) {
+  if (caretSessionOrSelectionSession && typeof caretSessionOrSelectionSession.selectionOffsets === 'function') {
+    return caretSessionOrSelectionSession;
+  }
+  if (caretSessionOrSelectionSession && typeof caretSessionOrSelectionSession.getSelectionRange === 'function') {
+    return createCaretSession(caretSessionOrSelectionSession);
+  }
+  return fallbackCaretSession;
 }
 
 function normalizeText(value) {
@@ -1750,421 +1772,72 @@ export function mergeFirstListItemIntoPreviousBlock(previousBlock, currentBlock,
   };
 }
 
-function isEditableSelectionAtStart(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const range = selectionTools.getSelectionRange(el);
-    if (!el || !range) return false;
-    if (!range.collapsed || !nodeContains(el, range.startContainer)) return false;
-    const beforeRange = selectionTools.createRange(el);
-    if (!beforeRange) return false;
-    beforeRange.selectNodeContents(el);
-    beforeRange.setEnd(range.startContainer, range.startOffset);
-    return serializeInlineDom(beforeRange.cloneContents()).trim() === '';
-  } catch (_) {
-    return false;
-  }
+function isEditableSelectionAtStart(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).isSelectionAtStart(el);
 }
 
-function isEditableSelectionOnBlankLine(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const offsets = getEditableSelectionOffsets(el, selectionTools);
-    if (!offsets || !offsets.collapsed) return false;
-    const text = editableVisibleText(el);
-    const lineStart = text.lastIndexOf('\n', Math.max(0, offsets.start - 1)) + 1;
-    const nextBreak = text.indexOf('\n', offsets.start);
-    const lineEnd = nextBreak >= 0 ? nextBreak : text.length;
-    if (text.slice(lineStart, lineEnd).trim() === '') return true;
-
-    const caretRect = caretRectForEditable(el, selectionTools);
-    if (!caretRect) return false;
-    const tolerance = Math.max(2, caretRect.height * 0.35);
-    const caretMid = caretRect.top + (caretRect.height / 2);
-    const walker = selectionTools.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    const range = selectionTools.createRange(el);
-    if (!walker || !range) return false;
-    let node = walker.nextNode();
-    while (node) {
-      if (/\S/.test(String(node.nodeValue || ''))) {
-        range.selectNodeContents(node);
-        const rects = Array.from(range.getClientRects ? range.getClientRects() : []);
-        const hasTextOnCaretLine = rects.some(rect => rect
-          && rect.height > 0
-          && caretMid >= rect.top - tolerance
-          && caretMid <= rect.bottom + tolerance);
-        if (hasTextOnCaretLine) {
-          range.detach && range.detach();
-          return false;
-        }
-      }
-      node = walker.nextNode();
-    }
-    range.detach && range.detach();
-    return true;
-  } catch (_) {
-    return false;
-  }
+function isEditableSelectionOnBlankLine(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).isSelectionOnBlankLine(el);
 }
 
-function shouldInsertBlankBlockOnEnter(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const offsets = getEditableSelectionOffsets(el, selectionTools);
-    if (!offsets || !offsets.collapsed) return false;
-    const text = editableVisibleText(el);
-    if (offsets.start >= text.length) return true;
-    return isEditableSelectionOnBlankLine(el, selectionTools);
-  } catch (_) {
-    return false;
-  }
+function shouldInsertBlankBlockOnEnter(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).shouldInsertBlankBlockOnEnter(el);
 }
 
-function placeCaretAtEnd(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    if (!el) return;
-    const range = selectionTools.createRange(el);
-    if (!range) return;
-    range.selectNodeContents(el);
-    range.collapse(false);
-    selectionTools.selectRange(range, el);
-  } catch (_) {}
+function placeCaretAtEnd(el, caretSession = null) {
+  normalizeCaretSession(caretSession).placeAtEnd(el);
 }
 
-function placeCaretAtStart(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    if (!el) return;
-    const range = selectionTools.createRange(el);
-    if (!range) return;
-    range.selectNodeContents(el);
-    range.collapse(true);
-    selectionTools.selectRange(range, el);
-  } catch (_) {}
+function placeCaretAtStart(el, caretSession = null) {
+  normalizeCaretSession(caretSession).placeAtStart(el);
 }
 
-function getEditableCaretTextOffset(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const range = selectionTools.getSelectionRange(el);
-    if (!el || !range) return 0;
-    if (!range.collapsed || !nodeContains(el, range.startContainer)) return 0;
-    const beforeRange = selectionTools.createRange(el);
-    if (!beforeRange) return 0;
-    beforeRange.selectNodeContents(el);
-    beforeRange.setEnd(range.startContainer, range.startOffset);
-    return String(beforeRange.toString() || '').length;
-  } catch (_) {
-    return 0;
-  }
+function getEditableCaretTextOffset(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).getTextOffset(el);
 }
 
-function placeCaretAtTextOffset(el, offset, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    if (!el) return;
-    const targetOffset = Math.max(0, Number(offset) || 0);
-    const walker = selectionTools.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    if (!walker) return;
-    let node = walker.nextNode();
-    let remaining = targetOffset;
-    while (node) {
-      const length = String(node.nodeValue || '').length;
-      if (remaining <= length) {
-        const range = selectionTools.createRange(el);
-        if (!range) return;
-        range.setStart(node, remaining);
-        range.collapse(true);
-        selectionTools.selectRange(range, el);
-        return;
-      }
-      remaining -= length;
-      node = walker.nextNode();
-    }
-    placeCaretAtEnd(el, selectionTools);
-  } catch (_) {}
+function placeCaretAtTextOffset(el, offset, caretSession = null) {
+  normalizeCaretSession(caretSession).placeAtTextOffset(el, offset);
 }
 
-const CARET_POINT_MEASURE_LIMIT = 12000;
-
-function caretBoundaryDistance(rect, boundaryX, x, y) {
-  if (!rect) return Number.POSITIVE_INFINITY;
-  const dx = Number(x) - boundaryX;
-  const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
-  return (dx * dx) + (dy * dy * 4);
+function measuredTextOffsetDetailsFromPoint(el, x, y, limit = CARET_POINT_MEASURE_LIMIT, caretSession = null) {
+  return normalizeCaretSession(caretSession).measuredTextOffsetDetailsFromPoint(el, x, y, limit);
 }
 
-function measuredTextOffsetDetailsFromPoint(el, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    if (!el) return null;
-    const walker = selectionTools.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    const range = selectionTools.createRange(el);
-    if (!walker || !range) return null;
-    let node = walker.nextNode();
-    let offset = 0;
-    let bestOffset = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    let insideTextRect = false;
-    let textRectCount = 0;
-    while (node) {
-      const value = String(node.nodeValue || '');
-      if (offset + value.length > limit) {
-        range.detach && range.detach();
-        return null;
-      }
-      for (let i = 0; i < value.length; i += 1) {
-        range.setStart(node, i);
-        range.setEnd(node, i + 1);
-        const rects = Array.from(range.getClientRects ? range.getClientRects() : [])
-          .filter(rect => rect && rect.width >= 0 && rect.height > 0);
-        rects.forEach(rect => {
-          textRectCount += 1;
-          if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) insideTextRect = true;
-          const startDistance = caretBoundaryDistance(rect, rect.left, x, y);
-          if (startDistance < bestDistance) {
-            bestDistance = startDistance;
-            bestOffset = offset + i;
-          }
-          const endDistance = caretBoundaryDistance(rect, rect.right, x, y);
-          if (endDistance < bestDistance) {
-            bestDistance = endDistance;
-            bestOffset = offset + i + 1;
-          }
-        });
-      }
-      offset += value.length;
-      node = walker.nextNode();
-    }
-    range.detach && range.detach();
-    if (offset === 0) return { offset: 0, distance: 0, insideTextRect: false, textRectCount: 0 };
-    if (bestOffset == null) return null;
-    return { offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount };
-  } catch (_) {
-    return null;
-  }
+function measuredTextOffsetFromPoint(el, x, y, limit = CARET_POINT_MEASURE_LIMIT, caretSession = null) {
+  return normalizeCaretSession(caretSession).measuredTextOffsetFromPoint(el, x, y, limit);
 }
 
-function measuredTextOffsetFromPoint(el, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null) {
-  const details = measuredTextOffsetDetailsFromPoint(el, x, y, limit, selectionSession);
-  return details ? details.offset : null;
+function textareaTextOffsetDetailsFromPoint(area, x, y, limit = CARET_POINT_MEASURE_LIMIT, caretSession = null) {
+  return normalizeCaretSession(caretSession).textareaTextOffsetDetailsFromPoint(area, x, y, limit);
 }
 
-function textareaTextOffsetDetailsFromPoint(area, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  const value = String(area && area.value != null ? area.value : '');
-  const body = area && area.ownerDocument ? area.ownerDocument.body : null;
-  if (!area || !body) return null;
-  if (!value) return { offset: 0, distance: 0, insideTextRect: false, textRectCount: 0 };
-  if (value.length > limit) return null;
-  const rect = area.getBoundingClientRect ? area.getBoundingClientRect() : null;
-  if (!rect) return null;
-  const computed = selectionTools.getComputedStyle(area);
-  const mirror = area.ownerDocument.createElement('div');
-  mirror.setAttribute('aria-hidden', 'true');
-  mirror.style.position = 'fixed';
-  mirror.style.left = `${rect.left}px`;
-  mirror.style.top = `${rect.top}px`;
-  mirror.style.width = `${rect.width}px`;
-  mirror.style.minHeight = `${rect.height}px`;
-  mirror.style.visibility = 'hidden';
-  mirror.style.pointerEvents = 'none';
-  mirror.style.zIndex = '-1';
-  mirror.style.overflow = 'hidden';
-  mirror.style.whiteSpace = 'pre-wrap';
-  mirror.style.overflowWrap = 'break-word';
-  mirror.style.wordBreak = computed ? computed.wordBreak : 'normal';
-  mirror.style.boxSizing = computed ? computed.boxSizing : 'border-box';
-  [
-    'fontFamily',
-    'fontSize',
-    'fontStyle',
-    'fontVariant',
-    'fontWeight',
-    'fontStretch',
-    'lineHeight',
-    'letterSpacing',
-    'tabSize',
-    'textTransform',
-    'textIndent',
-    'textAlign',
-    'paddingTop',
-    'paddingRight',
-    'paddingBottom',
-    'paddingLeft',
-    'borderTopWidth',
-    'borderRightWidth',
-    'borderBottomWidth',
-    'borderLeftWidth'
-  ].forEach(prop => {
-    if (computed && computed[prop]) mirror.style[prop] = computed[prop];
-  });
-  mirror.textContent = value;
-  body.appendChild(mirror);
-  const details = measuredTextOffsetDetailsFromPoint(mirror, x, y, limit, selectionTools);
-  mirror.remove();
-  if (!details) return null;
-  return {
-    ...details,
-    offset: Math.max(0, Math.min(value.length, details.offset))
-  };
+function textareaTextOffsetFromPoint(area, x, y, limit = CARET_POINT_MEASURE_LIMIT, caretSession = null) {
+  return normalizeCaretSession(caretSession).textareaTextOffsetFromPoint(area, x, y, limit);
 }
 
-function textareaTextOffsetFromPoint(area, x, y, limit = CARET_POINT_MEASURE_LIMIT, selectionSession = null) {
-  const details = textareaTextOffsetDetailsFromPoint(area, x, y, limit, selectionSession);
-  return details ? details.offset : null;
+function caretRectForEditable(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).rectForEditable(el);
 }
 
-function caretRectForEditable(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const range = selectionTools.getSelectionRange(el);
-    if (!el || !range) return null;
-    if (!range.collapsed || !nodeContains(el, range.startContainer)) return null;
-    const rect = range.getBoundingClientRect && range.getBoundingClientRect();
-    if (rect && (rect.width || rect.height)) return rect;
-    const restoreRange = range.cloneRange();
-    const markerRange = range.cloneRange();
-    const marker = el.ownerDocument.createElement('span');
-    marker.textContent = '\u200b';
-    markerRange.insertNode(marker);
-    const markerRect = marker.getBoundingClientRect();
-    marker.remove();
-    selectionTools.selectRange(restoreRange, el);
-    return markerRect;
-  } catch (_) {
-    return null;
-  }
+function editableVisualLineRects(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).visualLineRects(el);
 }
 
-function editableVisualLineRects(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    if (!el) return [];
-    const walker = selectionTools.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    const range = selectionTools.createRange(el);
-    if (!walker || !range) return [];
-    const lines = [];
-    const lineTolerance = 2;
-    let node = walker.nextNode();
-    while (node) {
-      const value = String(node.nodeValue || '');
-      for (let i = 0; i < value.length; i += 1) {
-        range.setStart(node, i);
-        range.setEnd(node, i + 1);
-        const rects = Array.from(range.getClientRects ? range.getClientRects() : [])
-          .filter(rect => rect && rect.height > 0 && rect.width >= 0);
-        rects.forEach(rect => {
-          const mid = rect.top + (rect.height / 2);
-          let line = lines.find(item => Math.abs(item.mid - mid) <= Math.max(lineTolerance, rect.height * 0.35));
-          if (!line) {
-            line = {
-              top: rect.top,
-              bottom: rect.bottom,
-              left: rect.left,
-              right: rect.right,
-              height: rect.height,
-              mid,
-              count: 0
-            };
-            lines.push(line);
-          } else {
-            line.top = Math.min(line.top, rect.top);
-            line.bottom = Math.max(line.bottom, rect.bottom);
-            line.left = Math.min(line.left, rect.left);
-            line.right = Math.max(line.right, rect.right);
-            line.height = Math.max(line.height, rect.height);
-            line.mid = line.top + ((line.bottom - line.top) / 2);
-          }
-          line.count += 1;
-        });
-      }
-      node = walker.nextNode();
-    }
-    range.detach && range.detach();
-    return lines
-      .filter(line => line && line.count > 0)
-      .sort((a, b) => a.top - b.top);
-  } catch (_) {
-    return [];
-  }
+function isEditableCaretOnEdgeLine(el, direction, caretSession = null) {
+  return normalizeCaretSession(caretSession).isEditableOnEdgeLine(el, direction);
 }
 
-function isEditableCaretOnEdgeLine(el, direction, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const caretRect = caretRectForEditable(el, selectionTools);
-    if (!caretRect) return true;
-    const lineRects = editableVisualLineRects(el, selectionTools);
-    if (lineRects.length <= 1) return true;
-    const tolerance = Math.max(3, caretRect.height * 0.6);
-    const caretTop = caretRect.top;
-    if (direction === 'up') return Math.abs(caretTop - lineRects[0].top) <= tolerance;
-    return Math.abs(caretTop - lineRects[lineRects.length - 1].top) <= tolerance;
-  } catch (_) {
-    return true;
-  }
+function isTextareaCaretOnEdgeLine(area, direction, caretSession = null) {
+  return normalizeCaretSession(caretSession).isTextareaOnEdgeLine(area, direction);
 }
 
-function isTextareaCaretOnEdgeLine(area, direction) {
-  try {
-    if (!area) return false;
-    const start = Number(area.selectionStart);
-    const end = Number(area.selectionEnd);
-    if (start !== end) return false;
-    const text = String(area.value || '');
-    const before = text.slice(0, Math.max(0, start));
-    const lineIndex = before.split('\n').length - 1;
-    const lineCount = text.split('\n').length;
-    if (direction === 'up') return lineIndex <= 0;
-    return lineIndex >= lineCount - 1;
-  } catch (_) {
-    return false;
-  }
+function placeCaretAtVisualLine(el, x, edge, fallbackOffset = 0, caretSession = null) {
+  normalizeCaretSession(caretSession).placeAtVisualLine(el, x, edge, fallbackOffset);
 }
 
-function placeCaretAtVisualLine(el, x, edge, fallbackOffset = 0, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const lineRects = editableVisualLineRects(el, selectionTools);
-    if (!lineRects.length) {
-      placeCaretAtTextOffset(el, fallbackOffset, selectionTools);
-      return;
-    }
-    const line = edge === 'last' ? lineRects[lineRects.length - 1] : lineRects[0];
-    const targetX = Math.max(line.left + 1, Math.min(Number(x) || line.left, line.right - 1));
-    const targetY = line.top + (line.height / 2);
-    const range = selectionTools.rangeFromPoint(el, targetX, targetY, { containsNode: nodeContains });
-    if (!range) {
-      placeCaretAtTextOffset(el, fallbackOffset, selectionTools);
-      return;
-    }
-    range.collapse(true);
-    selectionTools.selectRange(range, el);
-  } catch (_) {
-    placeCaretAtTextOffset(el, fallbackOffset, selectionTools);
-  }
-}
-
-function placeTextareaCaretAtVisualLine(area, x, edge, fallbackOffset = 0, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    if (!area) return;
-    const rect = area.getBoundingClientRect ? area.getBoundingClientRect() : null;
-    const computed = selectionTools.getComputedStyle(area);
-    const lineHeight = computed ? parseFloat(computed.lineHeight) : 0;
-    const usableLineHeight = Number.isFinite(lineHeight) && lineHeight > 0 ? lineHeight : 18;
-    const targetY = rect
-      ? (edge === 'last' ? rect.bottom - (usableLineHeight / 2) : rect.top + (usableLineHeight / 2))
-      : 0;
-    const measured = rect ? textareaTextOffsetFromPoint(area, x, targetY, CARET_POINT_MEASURE_LIMIT, selectionTools) : null;
-    const offset = measured == null ? Math.max(0, Number(fallbackOffset) || 0) : measured;
-    try { area.setSelectionRange(offset, offset); } catch (_) {}
-  } catch (_) {
-    const offset = Math.max(0, Number(fallbackOffset) || 0);
-    try { area.setSelectionRange(offset, offset); } catch (__) {}
-  }
+function placeTextareaCaretAtVisualLine(area, x, edge, fallbackOffset = 0, caretSession = null) {
+  normalizeCaretSession(caretSession).placeTextareaAtVisualLine(area, x, edge, fallbackOffset);
 }
 
 function normalizeCodeEditablePlainText(value) {
@@ -2603,75 +2276,12 @@ export function applyInlineMathToRuns(runs, start, end, tex) {
   return insertInlineRunsAtRange(runs, safeStart, safeEnd, [inlineRun(source, { math: true })]);
 }
 
-function editableTextOffsetForDomPosition(root, container, offset) {
-  let total = 0;
-  let found = false;
-  const countNode = (node) => {
-    if (!node || found) return;
-    if (node === container) {
-      if (node.nodeType === 3) {
-        total += Math.max(0, Math.min(String(node.nodeValue || '').length, Number(offset) || 0));
-      } else if (node.nodeType === 1) {
-        const children = Array.from(node.childNodes || []);
-        children.slice(0, Math.max(0, Math.min(children.length, Number(offset) || 0))).forEach(countWholeNode);
-      }
-      found = true;
-      return;
-    }
-    countWholeNode(node);
-  };
-  const countWholeNode = (node) => {
-    if (!node || found) return;
-    if (node === container) {
-      countNode(node);
-      return;
-    }
-    if (node.nodeType === 3) {
-      total += String(node.nodeValue || '').length;
-      return;
-    }
-    if (node.nodeType !== 1) return;
-    const tag = String(node.tagName || '').toLowerCase();
-    if (tag === 'br') {
-      total += 1;
-      return;
-    }
-    if (node.matches && node.matches('.press-math[data-tex]')) {
-      total += String(node.getAttribute('data-tex') || node.dataset.tex || '').length;
-      return;
-    }
-    Array.from(node.childNodes || []).forEach(countNode);
-    if (!found && tag === 'div') total += 1;
-  };
-  Array.from(root && root.childNodes ? root.childNodes : []).forEach(countNode);
-  return found ? total : null;
+function editableTextOffsetForDomPosition(root, container, offset, caretSession = null) {
+  return normalizeCaretSession(caretSession).textOffsetForDomPosition(root, container, offset);
 }
 
-function getEditableSelectionOffsets(el, selectionSession = null) {
-  const selectionTools = normalizeSelectionSession(selectionSession);
-  try {
-    const range = selectionTools.getSelectionRange(el);
-    if (!el || !range) return null;
-    if (!nodeContains(el, range.startContainer) || !nodeContains(el, range.endContainer)) return null;
-    const customStart = editableTextOffsetForDomPosition(el, range.startContainer, range.startOffset);
-    const customEnd = editableTextOffsetForDomPosition(el, range.endContainer, range.endOffset);
-    let start = customStart;
-    let end = customEnd;
-    if (start == null || end == null) {
-      const startRange = selectionTools.createRange(el);
-      const endRange = selectionTools.createRange(el);
-      if (!startRange || !endRange) return null;
-      startRange.selectNodeContents(el);
-      startRange.setEnd(range.startContainer, range.startOffset);
-      endRange.selectNodeContents(el);
-      endRange.setEnd(range.endContainer, range.endOffset);
-      start = String(startRange.toString() || '').length;
-      end = String(endRange.toString() || '').length;
-    }
-    return { start, end, collapsed: start === end, text: String(range.toString() || ''), range };
-  } catch (_) {
-    return null;
-  }
+function getEditableSelectionOffsets(el, caretSession = null) {
+  return normalizeCaretSession(caretSession).selectionOffsets(el);
 }
 
 export function createMarkdownBlocksEditor(root, options = {}) {
@@ -2718,6 +2328,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     windowRef: runtime.windowRef
   });
   const inlineDomSession = createInlineDomSession(selectionSession, runtime.documentRef);
+  const caretSession = createCaretSession(selectionSession);
 
   root.classList.add('markdown-blocks-shell');
   root.innerHTML = '';
@@ -2793,10 +2404,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           const offset = Math.max(0, Math.min(String(editable.value || '').length, Number(caretOffset) || 0));
           try { editable.setSelectionRange(offset, offset); } catch (_) {}
         } else {
-          placeCaretAtTextOffset(editable, caretOffset, selectionSession);
+          placeCaretAtTextOffset(editable, caretOffset, caretSession);
         }
       } else {
-        placeCaretAtEnd(editable, selectionSession);
+        placeCaretAtEnd(editable, caretSession);
       }
       setActive(index, editable, editableSession.getSync(editable) || null);
     });
@@ -2821,9 +2432,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       catch (_) {
         try { editable.focus(); } catch (__) {}
       }
-      if (options.caretOffset != null) placeCaretAtTextOffset(editable, options.caretOffset, selectionSession);
-      else if (options.atEnd) placeCaretAtEnd(editable, selectionSession);
-      else placeCaretAtStart(editable, selectionSession);
+      if (options.caretOffset != null) placeCaretAtTextOffset(editable, options.caretOffset, caretSession);
+      else if (options.atEnd) placeCaretAtEnd(editable, caretSession);
+      else placeCaretAtStart(editable, caretSession);
       setActive(index, editable, editableSession.getSync(editable) || null);
     });
   };
@@ -2848,10 +2459,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const splitTextBlockAfterCaret = (event, block, index, editable = null) => {
     if (!event || event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return false;
     if (!block || !['paragraph', 'quote', 'heading'].includes(block.type)) return false;
-    const offsets = getEditableSelectionOffsets(editable, selectionSession);
+    const offsets = getEditableSelectionOffsets(editable, caretSession);
     if (!offsets || !offsets.collapsed) return false;
     const currentText = editableVisibleText(editable);
-    if (offsets.start >= currentText.length || isEditableSelectionOnBlankLine(editable, selectionSession)) return false;
+    if (offsets.start >= currentText.length || isEditableSelectionOnBlankLine(editable, caretSession)) return false;
     const split = splitEditableTextAtSelection(editable, selectionSession);
     if (!split.after) return false;
     const nextBlocks = splitTextBlockIntoParagraph(block, split.before, split.after);
@@ -2867,7 +2478,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const mergeTextBlockWithPreviousOnBackspace = (event, block, index, editable = null) => {
     if (!event || event.key !== 'Backspace' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return false;
     if (!Number.isInteger(index) || index <= 0) return false;
-    if (!editable || !isEditableSelectionAtStart(editable, selectionSession)) return false;
+    if (!editable || !isEditableSelectionAtStart(editable, caretSession)) return false;
     if (isBlockEmptyForBackspace(block)) return false;
     const previous = state.blocks[index - 1] || null;
     const previousItems = isMergeableListBlock(previous) ? listBlockItems(previous) : [];
@@ -3610,9 +3221,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       try { editable.focus(); } catch (__) {}
     }
     if (editable.matches && editable.matches('textarea')) {
-      placeTextareaCaretAtVisualLine(editable, x, edge, fallbackOffset, selectionSession);
+      placeTextareaCaretAtVisualLine(editable, x, edge, fallbackOffset, caretSession);
     } else {
-      placeCaretAtVisualLine(editable, x, edge, fallbackOffset, selectionSession);
+      placeCaretAtVisualLine(editable, x, edge, fallbackOffset, caretSession);
     }
     setActive(target.index, editable, target.sync);
     updateInlineToolbarState();
@@ -3626,13 +3237,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!Number.isInteger(index) || index < 0 || index >= state.blocks.length) return false;
     if (editable) {
       const onEdge = editable.matches && editable.matches('textarea')
-        ? isTextareaCaretOnEdgeLine(editable, direction)
-        : isEditableCaretOnEdgeLine(editable, direction, selectionSession);
+        ? isTextareaCaretOnEdgeLine(editable, direction, caretSession)
+        : isEditableCaretOnEdgeLine(editable, direction, caretSession);
       if (!onEdge) return false;
     }
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= state.blocks.length) return false;
-    const caretRect = editable && !(editable.matches && editable.matches('textarea')) ? caretRectForEditable(editable, selectionSession) : null;
+    const caretRect = editable && !(editable.matches && editable.matches('textarea')) ? caretRectForEditable(editable, caretSession) : null;
     const editableRect = editable && editable.getBoundingClientRect ? editable.getBoundingClientRect() : null;
     const blockRect = !editable && blockElements()[index] && blockElements()[index].getBoundingClientRect
       ? blockElements()[index].getBoundingClientRect()
@@ -3657,7 +3268,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     };
     const rect = editable.getBoundingClientRect ? editable.getBoundingClientRect() : null;
     const hitRect = hitTarget && hitTarget.getBoundingClientRect ? hitTarget.getBoundingClientRect() : rect;
-    const measuredDetails = measuredTextOffsetDetailsFromPoint(editable, x, y, CARET_POINT_MEASURE_LIMIT, selectionSession);
+    const measuredDetails = measuredTextOffsetDetailsFromPoint(editable, x, y, CARET_POINT_MEASURE_LIMIT, caretSession);
     const pointInsideEditableRect = !rect || (
       x >= rect.left &&
       x <= rect.right &&
@@ -3665,12 +3276,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       y <= rect.bottom
     );
     if (measuredDetails && !measuredDetails.insideTextRect) {
-      placeCaretAtTextOffset(editable, measuredDetails.offset, selectionSession);
+      placeCaretAtTextOffset(editable, measuredDetails.offset, caretSession);
       return;
     }
     if (pointInsideEditableRect && setRangeFromPoint(x, y)) return;
     if (measuredDetails) {
-      placeCaretAtTextOffset(editable, measuredDetails.offset, selectionSession);
+      placeCaretAtTextOffset(editable, measuredDetails.offset, caretSession);
       return;
     }
     const nearestRect = nearestRectForPoint(editable, x, y);
@@ -3679,15 +3290,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const targetY = nearestRect.top + (nearestRect.height / 2);
       if (setRangeFromPoint(targetX, targetY)) return;
     }
-    if (hitRect && y < hitRect.top + (hitRect.height / 2)) placeCaretAtTextOffset(editable, 0, selectionSession);
-    else placeCaretAtEnd(editable, selectionSession);
+    if (hitRect && y < hitRect.top + (hitRect.height / 2)) placeCaretAtTextOffset(editable, 0, caretSession);
+    else placeCaretAtEnd(editable, caretSession);
   };
 
   const setTextareaCaretFromPoint = (area, x, y) => {
     try {
       const rect = area.getBoundingClientRect ? area.getBoundingClientRect() : null;
       const valueLength = String(area.value || '').length;
-      const measuredOffset = textareaTextOffsetFromPoint(area, x, y, CARET_POINT_MEASURE_LIMIT, selectionSession);
+      const measuredOffset = textareaTextOffsetFromPoint(area, x, y, CARET_POINT_MEASURE_LIMIT, caretSession);
       const fallbackOffset = rect && y < rect.top + (rect.height / 2) ? 0 : valueLength;
       const offset = measuredOffset != null ? measuredOffset : fallbackOffset;
       area.setSelectionRange(offset, offset);
@@ -3698,7 +3309,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const routeDirectQuoteCaretFromPointer = (editable, index, sync, event) => {
     if (!event || event.defaultPrevented || event.button !== 0 || event.isPrimary === false) return false;
     if (!editable || !(editable.classList && editable.classList.contains('blocks-quote-text'))) return false;
-    const details = measuredTextOffsetDetailsFromPoint(editable, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, selectionSession);
+    const details = measuredTextOffsetDetailsFromPoint(editable, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, caretSession);
     if (!details || details.insideTextRect) return false;
     event.preventDefault();
     const suppressUntil = Date.now() + 500;
@@ -3708,7 +3319,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     catch (_) {
       try { editable.focus(); } catch (__) {}
     }
-    placeCaretAtTextOffset(editable, details.offset, selectionSession);
+    placeCaretAtTextOffset(editable, details.offset, caretSession);
     activateEditableFromPointer(index, editable, sync);
     updateInlineToolbarState();
     return true;
@@ -3837,7 +3448,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const applyRunsToEditable = (editable, runs, caretOffset = null) => {
     renderInlineRunsInto(editable, runs, inlineDomSession);
-    if (caretOffset != null) placeCaretAtTextOffset(editable, caretOffset, selectionSession);
+    if (caretOffset != null) placeCaretAtTextOffset(editable, caretOffset, caretSession);
     syncActiveEditable();
     updateInlineToolbarState();
   };
@@ -3860,7 +3471,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       openMathEditorForSelection();
       return;
     }
-    const offsets = getEditableSelectionOffsets(editable, selectionSession);
+    const offsets = getEditableSelectionOffsets(editable, caretSession);
     const runs = inlineRunsFromDom(editable);
     const mark = inlineCommandMark(kind);
     if (mark === 'code') {
@@ -4017,9 +3628,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     try {
       const rect = offsets && offsets.range && offsets.range.getBoundingClientRect && offsets.range.getBoundingClientRect();
       if (rect && (rect.width || rect.height)) return rect;
-      return caretRectForEditable(editable, selectionSession);
+      return caretRectForEditable(editable, caretSession);
     } catch (_) {
-      return caretRectForEditable(editable, selectionSession);
+      return caretRectForEditable(editable, caretSession);
     }
   };
   const applyLinkEditor = () => {
@@ -4087,7 +3698,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     blocksState.clearActiveLink();
     try {
       blocksState.getActiveEditable().focus();
-      placeCaretAtTextOffset(blocksState.getActiveEditable(), linkRange.end, selectionSession);
+      placeCaretAtTextOffset(blocksState.getActiveEditable(), linkRange.end, caretSession);
     } catch (_) {}
     syncActiveEditable();
     hideLinkEditor();
@@ -4105,7 +3716,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       }, 0);
       return;
     }
-    const offsets = getEditableSelectionOffsets(editable, selectionSession);
+    const offsets = getEditableSelectionOffsets(editable, caretSession);
     if (!offsets) return;
     const anchorRect = selectionAnchorRect(editable, offsets);
     blocksState.openLinkSelectionEditor(offsets.collapsed ? 'pending' : 'range', {
@@ -4235,7 +3846,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       openMathEditorForNode(existingMath);
       return;
     }
-    const offsets = getEditableSelectionOffsets(editable, selectionSession);
+    const offsets = getEditableSelectionOffsets(editable, caretSession);
     if (!offsets) return;
     const anchorRect = selectionAnchorRect(editable, offsets);
     const initial = offsets.collapsed ? '' : offsets.text;
@@ -4296,7 +3907,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     }
     const editable = blocksState.getActiveEditable();
     const activeBlock = blockNodes[state.activeIndex] || null;
-    const offsets = editable && nodeContains(root, editable) ? getEditableSelectionOffsets(editable, selectionSession) : null;
+    const offsets = editable && nodeContains(root, editable) ? getEditableSelectionOffsets(editable, caretSession) : null;
     const runs = editable && nodeContains(root, editable) ? inlineRunsFromDom(editable) : [];
     const pending = hasPendingInlineMarks();
     const fallbackMarks = blocksState.rememberedInlineMarksFor(editable);
@@ -4432,7 +4043,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const insertPendingInlineText = (editable, value) => {
     const textValue = String(value || '');
     if (!editable || !textValue || !hasPendingInlineMarks()) return false;
-    const offsets = getEditableSelectionOffsets(editable, selectionSession);
+    const offsets = getEditableSelectionOffsets(editable, caretSession);
     if (!offsets) return false;
     const runs = inlineRunsFromDom(editable);
     const insertRun = inlineRun(textValue, blocksState.pendingInlineForRun());
@@ -4598,7 +4209,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
       if (!['paragraph', 'quote', 'heading'].includes(block.type)) return;
       if (splitTextBlockAfterCaret(event, block, index, editable)) return;
-      if (!shouldInsertBlankBlockOnEnter(editable, selectionSession)) return;
+      if (!shouldInsertBlankBlockOnEnter(editable, caretSession)) return;
       event.preventDefault();
       insertBlankBlockAfter(index, editable, sync);
     });
@@ -5363,7 +4974,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
             updateFromControl(block, { items: outdentedItems }, true);
             return;
           }
-          const trailingParagraph = isEditableSelectionAtStart(span, selectionSession)
+          const trailingParagraph = isEditableSelectionAtStart(span, caretSession)
             ? convertListTailItemAfterEmptyToParagraph(currentItems, itemIndex)
             : null;
           if (trailingParagraph) {
@@ -5438,7 +5049,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           updateFromControl(block, { items: next }, true);
           return;
         }
-        if ((event.key === 'Backspace' || event.key === 'Delete') && itemIndex > 0 && isEditableSelectionAtStart(span, selectionSession)) {
+        if ((event.key === 'Backspace' || event.key === 'Delete') && itemIndex > 0 && isEditableSelectionAtStart(span, caretSession)) {
           const currentText = editableText(span);
           const next = Array.isArray(block.data.items) ? block.data.items.slice() : items.slice();
           next[itemIndex] = { ...(next[itemIndex] || {}), text: currentText };
@@ -5449,7 +5060,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           updateFromControl(block, { items: mergedItem.items.length ? mergedItem.items : [{ text: '', checked: false }] }, true);
           return;
         }
-        if (event.key === 'Backspace' && itemIndex === 0 && index > 0 && isEditableSelectionAtStart(span, selectionSession)) {
+        if (event.key === 'Backspace' && itemIndex === 0 && index > 0 && isEditableSelectionAtStart(span, caretSession)) {
           const currentText = editableText(span);
           const currentItems = Array.isArray(block.data.items) ? block.data.items.slice() : items.slice();
           currentItems[0] = { ...(currentItems[0] || {}), text: currentText };
@@ -5474,15 +5085,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
             handleCrossBlockArrowNavigation(event, index, span);
             return;
           }
-          if (!isEditableCaretOnEdgeLine(span, event.key === 'ArrowUp' ? 'up' : 'down', selectionSession)) return;
+          if (!isEditableCaretOnEdgeLine(span, event.key === 'ArrowUp' ? 'up' : 'down', caretSession)) return;
           event.preventDefault();
-          const caretOffset = getEditableCaretTextOffset(span, selectionSession);
-          const caretRect = caretRectForEditable(span, selectionSession);
+          const caretOffset = getEditableCaretTextOffset(span, caretSession);
+          const caretRect = caretRectForEditable(span, caretSession);
           sync();
           const target = listEl.querySelector(`.blocks-list-item:nth-child(${nextIndex + 1}) .blocks-list-text`);
           if (!target) return;
           try { target.focus(); } catch (_) {}
-          placeCaretAtVisualLine(target, caretRect ? caretRect.left : 0, event.key === 'ArrowUp' ? 'last' : 'first', caretOffset, selectionSession);
+          placeCaretAtVisualLine(target, caretRect ? caretRect.left : 0, event.key === 'ArrowUp' ? 'last' : 'first', caretOffset, caretSession);
           setActive(index);
           return;
         }
@@ -5519,9 +5130,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           if (!nodeContains(root, span)) return;
           const pending = blocksState.takePendingListFocus(block.id, itemIndex);
           try { span.focus(); } catch (_) {}
-          if (pending && pending.caretOffset != null) placeCaretAtTextOffset(span, pending.caretOffset, selectionSession);
-          else if (pending && pending.atEnd) placeCaretAtEnd(span, selectionSession);
-          else if (pending) placeCaretAtStart(span, selectionSession);
+          if (pending && pending.caretOffset != null) placeCaretAtTextOffset(span, pending.caretOffset, caretSession);
+          else if (pending && pending.atEnd) placeCaretAtEnd(span, caretSession);
+          else if (pending) placeCaretAtStart(span, caretSession);
           setActive(index, span, sync);
         });
       }
@@ -5734,7 +5345,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       area.addEventListener('pointerdown', (event) => {
         if (!event || event.button !== 0 || event.isPrimary === false) return;
         activateEditableFromPointer(index, area, sync);
-        const details = textareaTextOffsetDetailsFromPoint(area, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, selectionSession);
+        const details = textareaTextOffsetDetailsFromPoint(area, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, caretSession);
         if (details && !details.insideTextRect) {
           event.preventDefault();
           sourcePointer = { x: event.clientX, y: event.clientY, moved: false, corrected: true };
@@ -5761,7 +5372,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         const pointer = sourcePointer;
         sourcePointer = null;
         if (!pointer || pointer.moved || pointer.corrected) return;
-        const details = textareaTextOffsetDetailsFromPoint(area, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, selectionSession);
+        const details = textareaTextOffsetDetailsFromPoint(area, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, caretSession);
         if (!details || details.insideTextRect) return;
         try {
           area.setSelectionRange(details.offset, details.offset);

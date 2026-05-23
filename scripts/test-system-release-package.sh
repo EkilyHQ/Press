@@ -391,6 +391,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-file-panel-controller.
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-editor-detail-panel-controller.js" "${entries_file}"; then
+  echo "expected package to include composer editor detail panel controller code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-bootstrap.js" "${entries_file}"; then
   echo "expected package to include composer bootstrap and workspace assembly code" >&2
   exit 1

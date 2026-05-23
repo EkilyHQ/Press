@@ -48,6 +48,7 @@ const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js'
 const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
 const composerServiceRegistryPath = resolve(here, '../assets/js/composer-service-registry.js');
 const composerFilePanelControllerPath = resolve(here, '../assets/js/composer-file-panel-controller.js');
+const composerEditorDetailPanelControllerPath = resolve(here, '../assets/js/composer-editor-detail-panel-controller.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
@@ -160,6 +161,7 @@ const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
 const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
 const composerServiceRegistrySource = readFileSync(composerServiceRegistryPath, 'utf8');
 const composerFilePanelControllerSource = readFileSync(composerFilePanelControllerPath, 'utf8');
+const composerEditorDetailPanelControllerSource = readFileSync(composerEditorDetailPanelControllerPath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
 const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
@@ -909,6 +911,30 @@ assert.match(
   composerFilePanelControllerSource,
   /export function createComposerFilePanelController\(options = \{\}\)[\s\S]*function getInitialComposerFile\(\)[\s\S]*function applyComposerFile\(name, applyOptions = \{\}\)[\s\S]*function setComposerFile\(name, applyOptions = \{\}\)/,
   'file panel controller should own initial file resolution, active file application, persistence, and transitions'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-editor-detail-panel-controller\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted editor detail panel controller boundary'
+);
+
+assert.match(
+  source,
+  /const editorDetailPanelController = createComposerEditorDetailPanelController\(\{[\s\S]*setSystemPanelVisible: \(visible\) => setEditorSystemPanelVisible\(visible\),[\s\S]*showSystemPanel: \(mode\) => showEditorSystemPanel\(mode\)[\s\S]*\}\);[\s\S]*animateEditorMarkdownPanelContent,[\s\S]*animateEditorStructurePanelContent,[\s\S]*setEditorDetailPanelMode,[\s\S]*setEditorStructurePanelVisible/,
+  'composer should wire editor detail panels through a focused controller'
+);
+
+assert.doesNotMatch(
+  source,
+  /function setEditorMarkdownPanelVisible|function setEditorStructurePanelVisible|function setEditorDetailPanelMode|function animateEditorStructurePanelContent|function animateEditorMarkdownPanelContent|document\.getElementById\('editorStructurePanel'\)|document\.getElementById\('editorMarkdownPanel'\)/,
+  'composer should not own editor detail panel DOM visibility or animation timers directly'
+);
+
+assert.match(
+  composerEditorDetailPanelControllerSource,
+  /export function createComposerEditorDetailPanelController\(options = \{\}\)[\s\S]*function setEditorDetailPanelMode\(mode\)[\s\S]*function animateEditorStructurePanelContent\(panel = getStructurePanel\(\)\)[\s\S]*function animateEditorMarkdownPanelContent\(panel = getMarkdownPanel\(\)\)/,
+  'editor detail panel controller should own panel mode routing and panel content animations'
 );
 
 assert.match(
@@ -4602,9 +4628,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function animateEditorStructurePanelContent\(panel\) \{[\s\S]*panel\.classList\.remove\('is-content-entering'\);[\s\S]*panel\.getBoundingClientRect\(\);[\s\S]*panel\.classList\.add\('is-content-entering'\);/,
-  'structure panel animation helper should restart the content transition class'
+  composerEditorDetailPanelControllerSource,
+  /function animatePanelContent\(panel, timerKey\) \{[\s\S]*panel\.classList\.remove\('is-content-entering'\);[\s\S]*panel\.getBoundingClientRect\(\);[\s\S]*panel\.classList\.add\('is-content-entering'\);/,
+  'editor detail panel controller should restart content transition classes'
 );
 
 assert.match(
@@ -4614,9 +4640,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /function animateEditorMarkdownPanelContent\(\) \{[\s\S]*document\.getElementById\('editorMarkdownPanel'\)[\s\S]*panel\.classList\.add\('is-content-entering'\);/,
-  'markdown editor panel animation helper should restart the content transition class'
+  composerEditorDetailPanelControllerSource,
+  /function animateEditorMarkdownPanelContent\(panel = getMarkdownPanel\(\)\) \{[\s\S]*animatePanelContent\(panel, '__pressMarkdownAnimationTimer'\);/,
+  'editor detail panel controller should restart the markdown panel transition class'
 );
 
 assert.match(

@@ -57,6 +57,7 @@ import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-s
 import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.50';
 import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.50';
 import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.50';
+import { createComposerEditorDetailPanelController } from './composer-editor-detail-panel-controller.js?v=press-system-v3.4.50';
 import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.50';
 import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.50';
 import { createComposerSetupVerifier } from './composer-setup-verifier.js?v=press-system-v3.4.50';
@@ -605,6 +606,18 @@ const {
   setEditorContentScrollByKey,
   getEditorContentScrollSnapshot
 } = editorShell;
+const editorDetailPanelController = createComposerEditorDetailPanelController({
+  documentRef: document,
+  windowRef: window,
+  setSystemPanelVisible: (visible) => setEditorSystemPanelVisible(visible),
+  showSystemPanel: (mode) => showEditorSystemPanel(mode)
+});
+const {
+  animateEditorMarkdownPanelContent,
+  animateEditorStructurePanelContent,
+  setEditorDetailPanelMode,
+  setEditorStructurePanelVisible
+} = editorDetailPanelController;
 composerServices.setMarkdownSessionController(createComposerMarkdownSessionController({
   editorStateVersion: EDITOR_STATE_VERSION,
   editorSessionStateStore,
@@ -1792,76 +1805,6 @@ const editorStructurePanelUi = createEditorStructurePanelUi({
   moveEditorVersionTo: (key, lang, from, to) => moveEditorVersionTo(key, lang, from, to),
   restoreDeletedEditorTreeNode: (node) => restoreDeletedEditorTreeNode(node)
 });
-
-function setEditorStructurePanelVisible(visible) {
-  const panel = document.getElementById('editorStructurePanel');
-  if (!panel) return;
-  if (visible) {
-    panel.removeAttribute('hidden');
-    panel.removeAttribute('aria-hidden');
-  } else {
-    panel.setAttribute('hidden', '');
-    panel.setAttribute('aria-hidden', 'true');
-  }
-}
-
-function setEditorMarkdownPanelVisible(visible) {
-  const panel = document.getElementById('editorMarkdownPanel');
-  if (!panel) return;
-  if (visible) {
-    panel.removeAttribute('hidden');
-    panel.removeAttribute('aria-hidden');
-  } else {
-    panel.setAttribute('hidden', '');
-    panel.setAttribute('aria-hidden', 'true');
-    panel.classList.remove('is-content-entering');
-  }
-}
-
-function setEditorDetailPanelMode(mode) {
-  const showMarkdown = mode === 'markdown';
-  const showStructure = mode === 'structure';
-  const showSystem = mode === 'composer' || mode === 'themes' || mode === 'updates' || mode === 'sync';
-  setEditorStructurePanelVisible(showStructure);
-  setEditorMarkdownPanelVisible(showMarkdown);
-  setEditorSystemPanelVisible(showSystem);
-  if (showSystem) showEditorSystemPanel(mode);
-}
-
-function animateEditorStructurePanelContent(panel) {
-  if (!panel) return;
-  try {
-    const previousTimer = panel.__pressStructureAnimationTimer;
-    if (previousTimer) window.clearTimeout(previousTimer);
-  } catch (_) {}
-  panel.classList.remove('is-content-entering');
-  try { panel.getBoundingClientRect(); } catch (_) {}
-  panel.classList.add('is-content-entering');
-  try {
-    panel.__pressStructureAnimationTimer = window.setTimeout(() => {
-      panel.classList.remove('is-content-entering');
-      panel.__pressStructureAnimationTimer = null;
-    }, 260);
-  } catch (_) {}
-}
-
-function animateEditorMarkdownPanelContent() {
-  const panel = document.getElementById('editorMarkdownPanel');
-  if (!panel) return;
-  try {
-    const previousTimer = panel.__pressMarkdownAnimationTimer;
-    if (previousTimer) window.clearTimeout(previousTimer);
-  } catch (_) {}
-  panel.classList.remove('is-content-entering');
-  try { panel.getBoundingClientRect(); } catch (_) {}
-  panel.classList.add('is-content-entering');
-  try {
-    panel.__pressMarkdownAnimationTimer = window.setTimeout(() => {
-      panel.classList.remove('is-content-entering');
-      panel.__pressMarkdownAnimationTimer = null;
-    }, 260);
-  } catch (_) {}
-}
 
 function collectEditorDraftStatusMap() {
   const map = new Map();

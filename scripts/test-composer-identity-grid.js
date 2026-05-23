@@ -1449,13 +1449,13 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*state\.suppressSelectionActiveRecoveryUntil = Date\.now\(\) \+ 180;[\s\S]*setActive\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !state\.suppressSelectionActiveRecoveryUntil \|\| Date\.now\(\) > state\.suppressSelectionActiveRecoveryUntil;[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
+  /const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*blocksState\.setSelectionActiveRecoverySuppression\(Date\.now\(\) \+ 180\);[\s\S]*setActive\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !blocksState\.selectionActiveRecoverySuppressed\(Date\.now\(\)\);[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
   'pointerdown activation should briefly prevent stale browser selection from reselecting the previous block toolbar'
 );
 
 assert.match(
   editorBlocksSource,
-  /const activateNonTextBlockFromPointer = \(index, blockEl = null\) => \{[\s\S]*state\.suppressSelectionActiveRecoveryUntil = Date\.now\(\) \+ 180;[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*clearNativeSelection\(\);[\s\S]*setActive\(index\);[\s\S]*\};/,
+  /const activateNonTextBlockFromPointer = \(index, blockEl = null\) => \{[\s\S]*blocksState\.setSelectionActiveRecoverySuppression\(Date\.now\(\) \+ 180\);[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(Date\.now\(\) \+ 500\);[\s\S]*clearNativeSelection\(\);[\s\S]*setActive\(index\);[\s\S]*\};/,
   'non-text block pointer activation should clear stale browser selection before selecting the block'
 );
 
@@ -1653,7 +1653,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*Date\.now\(\) > state\.suppressNextBlockContainerClickUntil[\s\S]*state\.suppressNextBlockContainerClickUntil = 0;[\s\S]*return true;/,
+  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*blocksState\.consumeRoutedBlockContainerClickSuppression\(Date\.now\(\)\);[\s\S]*\};/,
   'routed caret pointerdowns should suppress the following container click from clearing activeEditable'
 );
 
@@ -1725,7 +1725,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(Date\.now\(\) \+ 500\);[\s\S]*placeCaretAtTextOffset\(editable, details\.offset\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
+  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*const suppressUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(suppressUntil\);[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(suppressUntil\);[\s\S]*placeCaretAtTextOffset\(editable, details\.offset\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
   'direct quote edge pointerdowns should prevent native start/end snaps, suppress transient link-editor refreshes, and use the measured nearest offset'
 );
 
@@ -1737,7 +1737,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*nearestEditableFromPoint\(event\.clientX, event\.clientY\)[\s\S]*event\.preventDefault\(\);[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(Date\.now\(\) \+ 500\);[\s\S]*const \{ editable, hitTarget, index, sync \} = candidate;[\s\S]*setTextareaCaretFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*setContentEditableCaretFromPoint\(editable, event\.clientX, event\.clientY, hitTarget\)[\s\S]*setActive\(index, editable, sync\);[\s\S]*list\.addEventListener\('pointerdown', routeBlocksCaretFromPointer\);/,
+  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*nearestEditableFromPoint\(event\.clientX, event\.clientY\)[\s\S]*event\.preventDefault\(\);[\s\S]*const suppressUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(suppressUntil\);[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(suppressUntil\);[\s\S]*const \{ editable, hitTarget, index, sync \} = candidate;[\s\S]*setTextareaCaretFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*setContentEditableCaretFromPoint\(editable, event\.clientX, event\.clientY, hitTarget\)[\s\S]*setActive\(index, editable, sync\);[\s\S]*list\.addEventListener\('pointerdown', routeBlocksCaretFromPointer\);/,
   'blocks list pointerdown should route blank clicks to the nearest editable without dropping active sync or showing a stale link editor'
 );
 

@@ -57,6 +57,43 @@ assert.equal(createEditorBlocksState().activeIndex, -1);
 
 {
   const controller = createEditorBlocksStateController();
+
+  assert.equal(controller.getActiveTableCell(), null);
+  assert.equal(controller.getActiveTableCellForBlock('table-a'), null);
+
+  assert.deepEqual(
+    controller.setActiveTableCell('table-a', { section: 'body', row: 2, col: 3 }),
+    { blockId: 'table-a', section: 'body', row: 2, col: 3 }
+  );
+  const activeCellCopy = controller.getActiveTableCell();
+  activeCellCopy.row = 99;
+  assert.deepEqual(
+    controller.getActiveTableCellForBlock('table-a'),
+    { blockId: 'table-a', section: 'body', row: 2, col: 3 }
+  );
+  assert.equal(controller.activeTableCellMatches('table-a', { section: 'body', row: 2, col: 3 }), true);
+  assert.equal(controller.activeTableCellMatches('table-a', { section: 'body', row: 2, col: 4 }), false);
+  assert.equal(controller.getActiveTableCellForBlock('table-b'), null);
+  controller.clearActiveTableCell();
+  assert.equal(controller.getActiveTableCell(), null);
+
+  controller.setSelectionActiveRecoverySuppression(180);
+  assert.equal(controller.selectionActiveRecoverySuppressed(100), true);
+  assert.equal(controller.selectionActiveRecoverySuppressed(180), true);
+  assert.equal(controller.selectionActiveRecoverySuppressed(181), false);
+  assert.equal(controller.state.suppressSelectionActiveRecoveryUntil, 0);
+
+  controller.setRoutedBlockContainerClickSuppression(500);
+  assert.equal(controller.consumeRoutedBlockContainerClickSuppression(400), true);
+  assert.equal(controller.state.suppressNextBlockContainerClickUntil, 0);
+  assert.equal(controller.consumeRoutedBlockContainerClickSuppression(400), false);
+  controller.setRoutedBlockContainerClickSuppression(500);
+  assert.equal(controller.consumeRoutedBlockContainerClickSuppression(501), false);
+  assert.equal(controller.state.suppressNextBlockContainerClickUntil, 0);
+}
+
+{
+  const controller = createEditorBlocksStateController();
   const editable = { name: 'editable' };
   const otherEditable = { name: 'other' };
 

@@ -3601,13 +3601,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const activateEditableFromPointer = (index, editable, sync) => {
-    state.suppressSelectionActiveRecoveryUntil = Date.now() + 180;
+    blocksState.setSelectionActiveRecoverySuppression(Date.now() + 180);
     setActive(index, editable, sync);
   };
 
   const activateNonTextBlockFromPointer = (index, blockEl = null) => {
-    state.suppressSelectionActiveRecoveryUntil = Date.now() + 180;
-    state.suppressNextBlockContainerClickUntil = Date.now() + 500;
+    blocksState.setSelectionActiveRecoverySuppression(Date.now() + 180);
+    blocksState.setRoutedBlockContainerClickSuppression(Date.now() + 500);
     try { blockEl?.focus({ preventScroll: true }); }
     catch (_) {
       try { blockEl?.focus(); } catch (__) {}
@@ -3617,13 +3617,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const shouldSuppressRoutedBlockContainerClick = () => {
-    if (!state.suppressNextBlockContainerClickUntil) return false;
-    if (Date.now() > state.suppressNextBlockContainerClickUntil) {
-      state.suppressNextBlockContainerClickUntil = 0;
-      return false;
-    }
-    state.suppressNextBlockContainerClickUntil = 0;
-    return true;
+    return blocksState.consumeRoutedBlockContainerClickSuppression(Date.now());
   };
 
   const isBlocksCaretInteractiveTarget = (target) => {
@@ -3846,8 +3840,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const details = measuredTextOffsetDetailsFromPoint(editable, event.clientX, event.clientY);
     if (!details || details.insideTextRect) return false;
     event.preventDefault();
-    state.suppressNextBlockContainerClickUntil = Date.now() + 500;
-    blocksState.setLinkEditorRefreshSuppression(Date.now() + 500);
+    const suppressUntil = Date.now() + 500;
+    blocksState.setRoutedBlockContainerClickSuppression(suppressUntil);
+    blocksState.setLinkEditorRefreshSuppression(suppressUntil);
     try { editable.focus({ preventScroll: true }); }
     catch (_) {
       try { editable.focus(); } catch (__) {}
@@ -3874,8 +3869,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const candidate = nearestEditableFromPoint(event.clientX, event.clientY);
     if (!candidate || !candidate.editable) return;
     event.preventDefault();
-    state.suppressNextBlockContainerClickUntil = Date.now() + 500;
-    blocksState.setLinkEditorRefreshSuppression(Date.now() + 500);
+    const suppressUntil = Date.now() + 500;
+    blocksState.setRoutedBlockContainerClickSuppression(suppressUntil);
+    blocksState.setLinkEditorRefreshSuppression(suppressUntil);
     const { editable, hitTarget, index, sync } = candidate;
     try { editable.focus({ preventScroll: true }); }
     catch (_) {
@@ -4444,7 +4440,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!buttons.length) return;
     const blockNodes = Array.from(list.querySelectorAll('.blocks-block'));
     const selectionEditable = selectionEditableInRoot(root);
-    const canRecoverSelectionActive = !state.suppressSelectionActiveRecoveryUntil || Date.now() > state.suppressSelectionActiveRecoveryUntil;
+    const canRecoverSelectionActive = !blocksState.selectionActiveRecoverySuppressed(Date.now());
     if (selectionEditable && canRecoverSelectionActive) {
       const selectionBlock = closestElement(selectionEditable, '.blocks-block');
       const selectionIndex = blockNodes.indexOf(selectionBlock);
@@ -4926,7 +4922,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const activeTablePositionForBlock = (block) => normalizeTablePosition(
     block,
-    state.activeTableCell?.blockId === block.id ? state.activeTableCell : { section: 'header', row: 0, col: 0 }
+    blocksState.getActiveTableCellForBlock(block.id) || { section: 'header', row: 0, col: 0 }
   );
 
   const tablePositionFromCellInput = (input) => {
@@ -4959,12 +4955,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const isActiveTablePosition = (block, position) => {
-    const active = state.activeTableCell;
-    return !!active
-      && active.blockId === block.id
-      && active.section === position.section
-      && active.row === position.row
-      && active.col === position.col;
+    return blocksState.activeTableCellMatches(block.id, position);
   };
 
   const syncTableAlignmentControlForPosition = (block, position) => {
@@ -4989,19 +4980,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const block = state.blocks.find(candidate => candidate && candidate.id === blockId);
     if (!block || block.type !== 'table') return;
     const normalized = normalizeTablePosition(block, position);
-    state.activeTableCell = {
-      blockId: block.id,
-      ...normalized
-    };
+    blocksState.setActiveTableCell(block.id, normalized);
     syncTableAlignmentControlForPosition(block, normalized);
   };
 
   const setActiveTablePosition = (block, position) => {
     const normalized = normalizeTablePosition(block, position);
-    state.activeTableCell = {
-      blockId: block.id,
-      ...normalized
-    };
+    blocksState.setActiveTableCell(block.id, normalized);
     syncTableAlignmentControlForPosition(block, normalized);
     return normalized;
   };

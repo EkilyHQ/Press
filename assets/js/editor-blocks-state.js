@@ -155,13 +155,79 @@ export function createEditorBlocksStateController({
     return pending;
   }
 
+  function setActiveTableCell(blockId = '', position = null) {
+    if (!blockId || !position) {
+      state.activeTableCell = null;
+      return null;
+    }
+    const row = Number.isFinite(Number(position.row)) ? Number(position.row) : 0;
+    const col = Number.isFinite(Number(position.col)) ? Number(position.col) : 0;
+    state.activeTableCell = {
+      blockId: String(blockId),
+      section: position.section === 'body' ? 'body' : 'header',
+      row: Math.max(0, row),
+      col: Math.max(0, col)
+    };
+    return { ...state.activeTableCell };
+  }
+
+  function clearActiveTableCell() {
+    state.activeTableCell = null;
+  }
+
+  function getActiveTableCell() {
+    return state.activeTableCell ? { ...state.activeTableCell } : null;
+  }
+
+  function getActiveTableCellForBlock(blockId = '') {
+    return state.activeTableCell && state.activeTableCell.blockId === String(blockId || '')
+      ? { ...state.activeTableCell }
+      : null;
+  }
+
+  function activeTableCellMatches(blockId = '', position = null) {
+    const active = getActiveTableCellForBlock(blockId);
+    return !!active
+      && !!position
+      && active.section === position.section
+      && active.row === position.row
+      && active.col === position.col;
+  }
+
+  function setSelectionActiveRecoverySuppression(until) {
+    state.suppressSelectionActiveRecoveryUntil = Number(until) || 0;
+    return state.suppressSelectionActiveRecoveryUntil;
+  }
+
+  function selectionActiveRecoverySuppressed(now) {
+    if (!state.suppressSelectionActiveRecoveryUntil) return false;
+    if ((Number(now) || 0) <= state.suppressSelectionActiveRecoveryUntil) return true;
+    state.suppressSelectionActiveRecoveryUntil = 0;
+    return false;
+  }
+
+  function setRoutedBlockContainerClickSuppression(until) {
+    state.suppressNextBlockContainerClickUntil = Number(until) || 0;
+    return state.suppressNextBlockContainerClickUntil;
+  }
+
+  function consumeRoutedBlockContainerClickSuppression(now) {
+    if (!state.suppressNextBlockContainerClickUntil) return false;
+    if ((Number(now) || 0) > state.suppressNextBlockContainerClickUntil) {
+      state.suppressNextBlockContainerClickUntil = 0;
+      return false;
+    }
+    state.suppressNextBlockContainerClickUntil = 0;
+    return true;
+  }
+
   function resetEditorSession() {
     state.activeIndex = -1;
     clearActiveEditing();
     clearLinkEditorState();
     clearMathEditorState();
     clearInlineState();
-    state.activeTableCell = null;
+    clearActiveTableCell();
     resetTransientMenus({ clearActive: false });
   }
 
@@ -565,6 +631,15 @@ export function createEditorBlocksStateController({
     rememberedInlineRangeFor,
     setPendingListFocus,
     takePendingListFocus,
+    setActiveTableCell,
+    clearActiveTableCell,
+    getActiveTableCell,
+    getActiveTableCellForBlock,
+    activeTableCellMatches,
+    setSelectionActiveRecoverySuppression,
+    selectionActiveRecoverySuppressed,
+    setRoutedBlockContainerClickSuppression,
+    consumeRoutedBlockContainerClickSuppression,
     ensureSeparatorBeforeBlank,
     ensureEditableBlankForEmptyDocument,
     setMarkdown,

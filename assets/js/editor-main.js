@@ -16,6 +16,7 @@ import { createEditorMainContentService } from './editor-main-content-service.js
 import { createEditorMainFileContextService } from './editor-main-file-context-service.js?v=press-system-v3.4.50';
 import { createEditorMainLanguageSession } from './editor-main-language-session.js?v=press-system-v3.4.50';
 import { createEditorMainScrollSession } from './editor-main-scroll-session.js?v=press-system-v3.4.50';
+import { createEditorMainShellService } from './editor-main-shell-service.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
 const FORCE_MARKDOWN_WRAP = true;
@@ -63,19 +64,11 @@ editorMainRuntime.onDocumentReady(() => {
     makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
   });
 
-  const requestLayout = () => {
-    try {
-      if (editor && typeof editor.refreshLayout === 'function') {
-        editor.refreshLayout();
-        return;
-      }
-      if (!ta) return;
-      ta.style.height = '0px';
-      // eslint-disable-next-line no-unused-expressions
-      ta.offsetHeight;
-      ta.style.height = `${ta.scrollHeight}px`;
-    } catch (_) {}
-  };
+  const shellService = createEditorMainShellService({
+    runtime: editorMainRuntime,
+    editor,
+    textarea: ta
+  });
 
   let previewSession = null;
   let blocksSession = null;
@@ -89,7 +82,7 @@ editorMainRuntime.onDocumentReady(() => {
     getPreviewSession: () => previewSession,
     getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
     syncBlocksFromSource: () => { if (blocksSession) blocksSession.syncFromSource(); },
-    requestLayout
+    requestLayout: shellService.requestLayout
   });
   workspaceSession.initialize();
 
@@ -125,7 +118,7 @@ editorMainRuntime.onDocumentReady(() => {
     workspaceSession,
     getPreviewSession: () => previewSession,
     getBlocksSession: () => blocksSession,
-    requestLayout,
+    requestLayout: shellService.requestLayout,
     setBaseDir: contentService.setBaseDir,
     setCurrentFileLabel: fileContextService.setCurrentFileLabel
   });
@@ -159,12 +152,6 @@ editorMainRuntime.onDocumentReady(() => {
   previewSession.bind();
   contentService.bind();
 
-  const emitEditorToast = (kind, message) => {
-    const text = message == null ? '' : String(message);
-    if (!text) return;
-    editorMainRuntime.emitToast(kind, text);
-  };
-
   const imageSession = createEditorMainImageSession({
     runtime: editorMainRuntime,
     windowRef: window,
@@ -178,7 +165,7 @@ editorMainRuntime.onDocumentReady(() => {
     buildMarkdown: documentSession.buildMarkdown,
     setValue: documentSession.setValue,
     getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
-    emitToast: emitEditorToast
+    emitToast: shellService.emitToast
   });
 
   blocksSession = createEditorMainBlocksSession({

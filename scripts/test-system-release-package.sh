@@ -216,6 +216,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-main-scroll-session.js" 
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-main-shell-service.js" "${entries_file}"; then
+  echo "expected package to include editor main shell service boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-model.js" "${entries_file}"; then
   echo "expected package to include editor blocks model boundary code" >&2
   exit 1

@@ -80,6 +80,7 @@ const editorMainContentServicePath = resolve(here, '../assets/js/editor-main-con
 const editorMainFileContextServicePath = resolve(here, '../assets/js/editor-main-file-context-service.js');
 const editorMainLanguageSessionPath = resolve(here, '../assets/js/editor-main-language-session.js');
 const editorMainScrollSessionPath = resolve(here, '../assets/js/editor-main-scroll-session.js');
+const editorMainShellServicePath = resolve(here, '../assets/js/editor-main-shell-service.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -184,6 +185,7 @@ const editorMainContentServiceSource = readFileSync(editorMainContentServicePath
 const editorMainFileContextServiceSource = readFileSync(editorMainFileContextServicePath, 'utf8');
 const editorMainLanguageSessionSource = readFileSync(editorMainLanguageSessionPath, 'utf8');
 const editorMainScrollSessionSource = readFileSync(editorMainScrollSessionPath, 'utf8');
+const editorMainShellServiceSource = readFileSync(editorMainShellServicePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -999,6 +1001,12 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-shell-service\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor shell service boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: notifyDocumentChange[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -1011,13 +1019,19 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const workspaceSession = createEditorMainWorkspaceSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*syncBlocksFromSource: \(\) => \{ if \(blocksSession\) blocksSession\.syncFromSource\(\); \},[\s\S]*requestLayout[\s\S]*\}\);[\s\S]*workspaceSession\.initialize\(\);/,
+  /const shellService = createEditorMainShellService\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*editor,[\s\S]*textarea: ta[\s\S]*\}\);/,
+  'editor main should compose layout refresh and editor toasts through the shell service'
+);
+
+assert.match(
+  editorMainSource,
+  /const workspaceSession = createEditorMainWorkspaceSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*syncBlocksFromSource: \(\) => \{ if \(blocksSession\) blocksSession\.syncFromSource\(\); \},[\s\S]*requestLayout: shellService\.requestLayout[\s\S]*\}\);[\s\S]*workspaceSession\.initialize\(\);/,
   'editor main should compose workspace view, wrap, preview button, and empty-state controls through the workspace session'
 );
 
 assert.match(
   editorMainSource,
-  /documentSession = createEditorMainDocumentSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*metadataPanel,[\s\S]*workspaceSession,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksSession: \(\) => blocksSession,[\s\S]*requestLayout,[\s\S]*setBaseDir: contentService\.setBaseDir,[\s\S]*setCurrentFileLabel: fileContextService\.setCurrentFileLabel[\s\S]*\}\);/,
+  /documentSession = createEditorMainDocumentSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*metadataPanel,[\s\S]*workspaceSession,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksSession: \(\) => blocksSession,[\s\S]*requestLayout: shellService\.requestLayout,[\s\S]*setBaseDir: contentService\.setBaseDir,[\s\S]*setCurrentFileLabel: fileContextService\.setCurrentFileLabel[\s\S]*\}\);/,
   'editor main should compose document value, input, change listeners, and primary-editor API through the document session'
 );
 
@@ -1071,7 +1085,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*emitToast: emitEditorToast[\s\S]*\}\);/,
+  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*emitToast: shellService\.emitToast[\s\S]*\}\);/,
   'editor main should compose image picker, upload, drop, and block image actions through the image session'
 );
 
@@ -1321,10 +1335,16 @@ assert.match(
   'editor scroll session should route page scroll reads and scroll-to-top through the runtime facade'
 );
 
+assert.match(
+  editorMainShellServiceSource,
+  /export function createEditorMainShellService\(options = \{\}\) \{[\s\S]*const requestLayout = \(\) => \{[\s\S]*editor\.refreshLayout\(\);[\s\S]*textarea\.style\.height = '0px';[\s\S]*textarea\.offsetHeight;[\s\S]*textarea\.style\.height = `\$\{textarea\.scrollHeight\}px`;[\s\S]*const emitToast = \(kind, message\) => \{[\s\S]*emitToastImpl\(kind, text\);/,
+  'editor shell service should own layout refresh and toast emission helpers'
+);
+
 assert.doesNotMatch(
   editorMainSource,
-  /editorMainRuntime\.onDocument\('press-editor-language-applied'|editorMainRuntime\.onWindow\('scroll'|getPageYOffset\(\)|getDocumentElement\(\)[\s\S]*scrollTop|initBackToTop/,
-  'editor main root should not own language-event fan-out or back-to-top scroll listeners'
+  /editorMainRuntime\.onDocument\('press-editor-language-applied'|editorMainRuntime\.onWindow\('scroll'|getPageYOffset\(\)|getDocumentElement\(\)[\s\S]*scrollTop|initBackToTop|const requestLayout =|const emitEditorToast =/,
+  'editor main root should not own language-event fan-out, back-to-top scroll listeners, or shell layout/toast helpers'
 );
 
 assert.match(

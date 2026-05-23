@@ -16,6 +16,7 @@ import { createEditorMainContentService } from './editor-main-content-service.js
 import { createEditorMainFileContextService } from './editor-main-file-context-service.js?v=press-system-v3.4.50';
 import { createEditorMainLanguageSession } from './editor-main-language-session.js?v=press-system-v3.4.50';
 import { createEditorMainScrollSession } from './editor-main-scroll-session.js?v=press-system-v3.4.50';
+import { createEditorMainServiceRegistry } from './editor-main-service-registry.js?v=press-system-v3.4.50';
 import { createEditorMainShellService } from './editor-main-shell-service.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
@@ -39,12 +40,9 @@ editorMainRuntime.onDocumentReady(() => {
 
   const seed = `# 新文章标题\n\n> 在左侧编辑 Markdown，切换到 Preview 查看渲染效果。\n\n- 支持代码块、表格、待办列表\n- 图片与视频语法\n\n\`\`\`js\nconsole.log('Hello, Press!');\n\`\`\`\n`;
 
-  let documentSession = null;
-  const notifyDocumentChange = () => {
-    if (documentSession) documentSession.notifyChange();
-  };
+  const appServices = createEditorMainServiceRegistry();
 
-  const metadataPanel = createEditorMainMetadataPanel({
+  const metadataPanel = appServices.setMetadataPanel(createEditorMainMetadataPanel({
     runtime: editorMainRuntime,
     documentRef: document,
     windowRef: window,
@@ -52,8 +50,8 @@ editorMainRuntime.onDocumentReady(() => {
     getCurrentLang,
     normalizeLangKey,
     getContentRoot,
-    onChange: notifyDocumentChange
-  });
+    onChange: appServices.notifyDocumentChange
+  }));
 
   const linkCardContext = createEditorMainLinkCardContext({
     getCurrentLang,
@@ -70,37 +68,34 @@ editorMainRuntime.onDocumentReady(() => {
     textarea: ta
   });
 
-  let previewSession = null;
-  let blocksSession = null;
-  let currentFileSession = null;
-  const workspaceSession = createEditorMainWorkspaceSession({
+  const workspaceSession = appServices.setWorkspaceSession(createEditorMainWorkspaceSession({
     runtime: editorMainRuntime,
     documentRef: document,
     forceMarkdownWrap: FORCE_MARKDOWN_WRAP,
     editor,
     textarea: ta,
-    getPreviewSession: () => previewSession,
-    getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
-    syncBlocksFromSource: () => { if (blocksSession) blocksSession.syncFromSource(); },
+    getPreviewSession: appServices.getPreviewSession,
+    getBlocksEditor: appServices.getBlocksEditor,
+    syncBlocksFromSource: appServices.syncBlocksFromSource,
     requestLayout: shellService.requestLayout
-  });
+  }));
   workspaceSession.initialize();
 
   const fileContextService = createEditorMainFileContextService({
-    getCurrentFileSession: () => currentFileSession,
-    getMetadataPanel: () => metadataPanel,
-    getPreviewSession: () => previewSession,
-    getDocumentSession: () => documentSession
+    getCurrentFileSession: appServices.getCurrentFileSession,
+    getMetadataPanel: appServices.getMetadataPanel,
+    getPreviewSession: appServices.getPreviewSession,
+    getDocumentSession: appServices.getDocumentSession
   });
 
-  const contentService = createEditorMainContentService({
+  const contentService = appServices.setContentService(createEditorMainContentService({
     runtime: editorMainRuntime,
     getContentRoot,
     fetch,
     linkCardContext,
-    getPreviewSession: () => previewSession,
-    getDocumentSession: () => documentSession,
-    getWorkspaceSession: () => workspaceSession,
+    getPreviewSession: appServices.getPreviewSession,
+    getDocumentSession: appServices.getDocumentSession,
+    getWorkspaceSession: appServices.getWorkspaceSession,
     setCurrentFileLabel: fileContextService.setCurrentFileLabel,
     warn: (...args) => {
       try { console.warn(...args); } catch (_) {}
@@ -108,22 +103,22 @@ editorMainRuntime.onDocumentReady(() => {
     alert: (message) => {
       try { window.alert(message); } catch (_) {}
     }
-  });
+  }));
 
-  documentSession = createEditorMainDocumentSession({
+  const documentSession = appServices.setDocumentSession(createEditorMainDocumentSession({
     runtime: editorMainRuntime,
     editor,
     textarea: ta,
     metadataPanel,
     workspaceSession,
-    getPreviewSession: () => previewSession,
-    getBlocksSession: () => blocksSession,
+    getPreviewSession: appServices.getPreviewSession,
+    getBlocksSession: appServices.getBlocksSession,
     requestLayout: shellService.requestLayout,
     setBaseDir: contentService.setBaseDir,
     setCurrentFileLabel: fileContextService.setCurrentFileLabel
-  });
+  }));
 
-  currentFileSession = createEditorMainCurrentFileSession({
+  const currentFileSession = appServices.setCurrentFileSession(createEditorMainCurrentFileSession({
     runtime: editorMainRuntime,
     documentRef: document,
     translate: t,
@@ -132,27 +127,27 @@ editorMainRuntime.onDocumentReady(() => {
     inferCurrentFileSource: fileContextService.inferCurrentFileSource,
     applyEditorEmptyState: workspaceSession.applyEditorEmptyState,
     onRendered: fileContextService.handleCurrentFileRendered
-  });
+  }));
 
-  previewSession = createEditorMainPreviewSession({
+  const previewSession = appServices.setPreviewSession(createEditorMainPreviewSession({
     runtime: editorMainRuntime,
     documentRef: document,
     windowRef: window,
     getContentRoot,
-    getEditorValue: () => documentSession.getValue(),
+    getEditorValue: appServices.getEditorValue,
     getCurrentFileInfo: fileContextService.getCurrentFileInfo,
-    getSiteConfig: () => contentService.getSiteConfig(),
+    getSiteConfig: appServices.getSiteConfig,
     getPostsIndex: () => linkCardContext.getPostsIndex(),
     getPostsByLocationTitle: () => linkCardContext.getPostsByLocationTitle(),
     isLinkCardReady: () => linkCardContext.isReady(),
     getAllowedLocations: () => linkCardContext.getAllowedLocations(),
     getLocationAliases: () => linkCardContext.getLocationAliases(),
     fetch
-  });
+  }));
   previewSession.bind();
   contentService.bind();
 
-  const imageSession = createEditorMainImageSession({
+  const imageSession = appServices.setImageSession(createEditorMainImageSession({
     runtime: editorMainRuntime,
     windowRef: window,
     translate: t,
@@ -164,11 +159,11 @@ editorMainRuntime.onDocumentReady(() => {
     getEditorBody: documentSession.getEditorBody,
     buildMarkdown: documentSession.buildMarkdown,
     setValue: documentSession.setValue,
-    getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
+    getBlocksEditor: appServices.getBlocksEditor,
     emitToast: shellService.emitToast
-  });
+  }));
 
-  blocksSession = createEditorMainBlocksSession({
+  const blocksSession = appServices.setBlocksSession(createEditorMainBlocksSession({
     runtime: editorMainRuntime,
     root: blocksWrap,
     translate: t,
@@ -176,15 +171,15 @@ editorMainRuntime.onDocumentReady(() => {
     getEditorBody: documentSession.getEditorBody,
     onBodyChange: documentSession.setBodyFromBlocks,
     getCurrentMarkdownPath: fileContextService.getCurrentMarkdownPath,
-    getSiteConfig: () => contentService.getSiteConfig(),
-    getPreviewSession: () => previewSession,
-    getImageSession: () => imageSession,
+    getSiteConfig: appServices.getSiteConfig,
+    getPreviewSession: appServices.getPreviewSession,
+    getImageSession: appServices.getImageSession,
     linkCardContext,
     resolveImageSrc
-  });
+  }));
   blocksSession.initialize();
 
-  const toolbarSession = createEditorMainToolbarSession({
+  const toolbarSession = appServices.setToolbarSession(createEditorMainToolbarSession({
     runtime: editorMainRuntime,
     documentRef: document,
     windowRef: window,
@@ -197,15 +192,15 @@ editorMainRuntime.onDocumentReady(() => {
     cardListEl,
     cardEmptyEl,
     getCardEntries: () => linkCardContext.getCardEntries()
-  });
+  }));
   toolbarSession.bind();
 
   const languageSession = createEditorMainLanguageSession({
     runtime: editorMainRuntime,
-    getToolbarSession: () => toolbarSession,
-    getCurrentFileSession: () => currentFileSession,
-    getBlocksSession: () => blocksSession,
-    getMetadataPanel: () => metadataPanel
+    getToolbarSession: appServices.getToolbarSession,
+    getCurrentFileSession: appServices.getCurrentFileSession,
+    getBlocksSession: appServices.getBlocksSession,
+    getMetadataPanel: appServices.getMetadataPanel
   });
   languageSession.bind();
 

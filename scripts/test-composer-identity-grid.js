@@ -23,6 +23,7 @@ const composerNotificationsPath = resolve(here, '../assets/js/composer-notificat
 const composerDialogsPath = resolve(here, '../assets/js/composer-dialogs.js');
 const composerRemoteSyncPath = resolve(here, '../assets/js/composer-remote-sync.js');
 const composerYamlDraftsPath = resolve(here, '../assets/js/composer-yaml-drafts.js');
+const composerYamlActionsPath = resolve(here, '../assets/js/composer-yaml-actions.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
@@ -82,6 +83,7 @@ const composerNotificationsSource = readFileSync(composerNotificationsPath, 'utf
 const composerDialogsSource = readFileSync(composerDialogsPath, 'utf8');
 const composerRemoteSyncSource = readFileSync(composerRemoteSyncPath, 'utf8');
 const composerYamlDraftsSource = readFileSync(composerYamlDraftsPath, 'utf8');
+const composerYamlActionsSource = readFileSync(composerYamlActionsPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
@@ -587,6 +589,24 @@ assert.match(
   source,
   /from '\.\/editor-content-tree-controller\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted editor content tree controller boundary'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-yaml-actions\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted YAML action boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /async function handleComposerRefresh\(btn\)|async function handleComposerDiscard\(btn\)|Refresh failed|Discard failed/,
+  'composer should delegate YAML refresh/discard action flows to the extracted action module'
+);
+
+assert.match(
+  composerYamlActionsSource,
+  /export function createComposerYamlActions\(options = \{\}\)[\s\S]*async function handleRefresh\(button = null\)[\s\S]*async function handleDiscard\(button = null\)[\s\S]*return \{[\s\S]*handleDiscard,[\s\S]*handleRefresh/,
+  'YAML action module should own refresh and discard flows'
 );
 
 assert.doesNotMatch(

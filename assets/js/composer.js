@@ -90,6 +90,7 @@ import {
   createComposerSiteConfigController,
   inferRepoConfigFromGitHubPagesUrl
 } from './composer-site-config.js?v=press-system-v3.4.48';
+import { createComposerYamlActions } from './composer-yaml-actions.js?v=press-system-v3.4.48';
 import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.48';
 import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.48';
 import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.48';
@@ -1654,161 +1655,42 @@ function loadDraftSnapshotsIntoState(state) {
   return composerYamlDraftController.loadDraftSnapshotsIntoState(state);
 }
 
-
-
-async function handleComposerRefresh(btn) {
-  const target = getActiveComposerFile();
-  const button = btn;
-  const resetButton = () => {
-    if (!button) return;
-    button.disabled = false;
-    button.classList.remove('is-busy');
-    button.removeAttribute('aria-busy');
-    button.textContent = t('editor.composer.refresh');
-  };
-  try {
-    if (button) {
-      button.disabled = true;
-      button.classList.add('is-busy');
-      button.setAttribute('aria-busy', 'true');
-      button.textContent = t('editor.composer.refreshing');
-    }
-    const contentRoot = getContentRootSafe();
-    const fileBase = target === 'tabs' ? 'tabs' : target === 'site' ? 'site' : 'index';
-    const remote = target === 'site'
-      ? await fetchComposerTrackedSiteConfig()
-      : await fetchConfigWithYamlFallback([`${contentRoot}/${fileBase}.yaml`, `${contentRoot}/${fileBase}.yml`]);
-    let prepared;
-    if (target === 'tabs') prepared = prepareTabsState(remote || {});
-    else if (target === 'site') prepared = cloneSiteState(prepareSiteState(remote || {}));
-    else prepared = prepareIndexState(remote || {});
-    const baselineSignatureBefore = computeBaselineSignature(target);
-    remoteBaseline[target] = prepared;
-    const diffBefore = composerDiffCache[target];
-    const hadLocalChanges = diffBefore && diffBefore.hasChanges;
-    if (!hadLocalChanges) {
-      setStateSlice(target, deepClone(prepared));
-      if (target === 'site') applyComposerEffectiveSiteConfig(prepared);
-      if (target === 'tabs') rebuildTabsUI();
-      else if (target === 'site') rebuildSiteUI();
-      else rebuildIndexUI();
-      showStatus(
-        t('editor.composer.statusMessages.refreshSuccess', {
-          name: `${fileBase}.yaml`
-        })
-      );
-    } else {
-      notifyComposerChange(target, { skipAutoSave: true });
-      const baselineSignatureAfter = computeBaselineSignature(target);
-      if (baselineSignatureAfter !== baselineSignatureBefore) {
-        showStatus(t('editor.composer.statusMessages.remoteUpdated'));
-      } else {
-        showStatus(t('editor.composer.statusMessages.remoteUnchanged'));
-      }
-    }
-  } catch (err) {
-    console.error('Refresh failed', err);
-    showStatus(t('editor.composer.statusMessages.refreshFailed'));
-  } finally {
-    resetButton();
-    setTimeout(() => { showStatus(''); }, 2000);
-  }
-}
-
-async function handleComposerDiscard(btn) {
-  const target = getActiveComposerFile();
-  const label = target === 'tabs' ? 'tabs.yaml' : target === 'site' ? 'site.yaml' : 'index.yaml';
-  const diff = composerDiffCache[target];
-  const meta = getComposerDraftMeta(target);
-  const hasChanges = !!(diff && diff.hasChanges);
-  const hasDraft = !!meta;
-  if (!hasChanges && !hasDraft) {
-    return;
-  }
-
-  const promptMessage = t('editor.composer.discardConfirm.messageReload', { label });
-  let proceed = true;
-  try {
-    proceed = await showComposerDiscardConfirm(btn, promptMessage);
-  } catch (err) {
-    console.warn('Custom discard prompt failed, falling back to native confirm', err);
-    try {
-      if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-        proceed = window.confirm(promptMessage);
-      }
-    } catch (_) {
-      proceed = true;
-    }
-  }
-  if (!proceed) return;
-
-  const button = btn;
-  const resetButton = () => {
-    if (!button) return;
-    button.disabled = false;
-    button.classList.remove('is-busy');
-    button.removeAttribute('aria-busy');
-    button.textContent = t('editor.composer.discardConfirm.discard');
-  };
-
-  try {
-    if (button) {
-      button.disabled = true;
-      button.classList.add('is-busy');
-      button.setAttribute('aria-busy', 'true');
-      button.textContent = t('editor.composer.discardConfirm.discarding');
-    }
-
-    let prepared = null;
-    let fetchedFresh = false;
-    try {
-      const contentRoot = getContentRootSafe();
-      const fileBase = target === 'tabs' ? 'tabs' : target === 'site' ? 'site' : 'index';
-      const remote = target === 'site'
-        ? await fetchComposerTrackedSiteConfig()
-        : await fetchConfigWithYamlFallback([`${contentRoot}/${fileBase}.yaml`, `${contentRoot}/${fileBase}.yml`]);
-      if (remote != null) {
-        if (target === 'tabs') prepared = prepareTabsState(remote);
-        else if (target === 'site') prepared = cloneSiteState(prepareSiteState(remote));
-        else prepared = prepareIndexState(remote);
-        fetchedFresh = true;
-      }
-    } catch (err) {
-      console.warn('Discard: failed to fetch fresh remote snapshot', err);
-    }
-
-    if (!prepared) {
-      const baseline = remoteBaseline[target];
-      if (target === 'site') prepared = baseline ? cloneSiteState(baseline) : cloneSiteState(prepareSiteState({}));
-      else prepared = baseline ? deepClone(baseline) : { __order: [] };
-    }
-
-    const normalized = target === 'site' ? cloneSiteState(prepared) : deepClone(prepared);
-    remoteBaseline[target] = target === 'site' ? cloneSiteState(prepared) : deepClone(prepared);
-    setStateSlice(target, normalized);
-    if (target === 'site') applyComposerEffectiveSiteConfig(normalized);
-
-    composerYamlDraftController.clearAutoDraftTimer(target);
-
-    if (target === 'tabs') rebuildTabsUI();
-    else if (target === 'site') rebuildSiteUI();
-    else rebuildIndexUI();
-
-    clearDraftStorage(target);
-
-    const msg = fetchedFresh
-      ? t('editor.composer.discardConfirm.successFresh', { label })
-      : t('editor.composer.discardConfirm.successCached', { label });
-    showStatus(msg);
-    setTimeout(() => { showStatus(''); }, 2000);
-  } catch (err) {
-    console.error('Discard failed', err);
-    showStatus(t('editor.composer.discardConfirm.failed'));
-    setTimeout(() => { showStatus(''); }, 2000);
-  } finally {
-    resetButton();
-  }
-}
+const composerYamlActions = createComposerYamlActions({
+  windowRef: window,
+  consoleRef: console,
+  t,
+  fetchConfigWithYamlFallback,
+  fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
+  getActiveComposerFile,
+  getContentRootSafe,
+  prepareIndexState,
+  prepareTabsState,
+  prepareSiteState,
+  cloneSiteState,
+  deepClone,
+  computeBaselineSignature,
+  getComposerDiff: (kind) => composerDiffCache[kind],
+  getRemoteBaseline: (kind) => remoteBaseline[kind],
+  setRemoteBaseline: (kind, value) => {
+    remoteBaseline[kind] = value;
+  },
+  setStateSlice,
+  applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
+  rebuildIndexUI,
+  rebuildTabsUI,
+  rebuildSiteUI,
+  notifyComposerChange,
+  showStatus,
+  getDraftMeta: getComposerDraftMeta,
+  clearAutoDraftTimer: (kind) => composerYamlDraftController.clearAutoDraftTimer(kind),
+  clearDraftStorage,
+  showDiscardConfirm: showComposerDiscardConfirm,
+  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay)
+});
+const {
+  handleDiscard: handleComposerDiscard,
+  handleRefresh: handleComposerRefresh
+} = composerYamlActions;
 
 function getPrimaryEditorApi() {
   try {

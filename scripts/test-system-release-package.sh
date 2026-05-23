@@ -206,6 +206,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-link-session.js" 
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-math-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks math session code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-system-theme-bridge.js" "${entries_file}"; then
   echo "expected package to include composer system/theme bridge code" >&2
   exit 1

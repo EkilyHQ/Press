@@ -12,6 +12,7 @@ import { createEditorBlocksPointerSession } from './editor-blocks-pointer-sessio
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksMathSession } from './editor-blocks-math-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2939,32 +2940,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateFromControl(block, { items }, true);
   };
 
-  const positionPopupAtRect = (popup, rect) => {
-    try {
-      if (!popup || !rect) return;
-      const rootRect = root.getBoundingClientRect();
-      const editorRect = popup.getBoundingClientRect();
-      const gap = 6;
-      const minLeft = 0;
-      const maxLeft = Math.max(minLeft, rootRect.width - editorRect.width);
-      const nextLeft = Math.min(maxLeft, Math.max(minLeft, rect.left - rootRect.left));
-      popup.style.left = `${nextLeft}px`;
-      popup.style.top = `${rect.bottom - rootRect.top + gap}px`;
-    } catch (_) {}
-  };
-
-  const selectionAnchorRect = (editable, offsets) => {
-    try {
-      const rect = offsets && offsets.range && offsets.range.getBoundingClientRect && offsets.range.getBoundingClientRect();
-      if (rect && (rect.width || rect.height)) return rect;
-      return caretRectForEditable(editable, caretSession);
-    } catch (_) {
-      return caretRectForEditable(editable, caretSession);
-    }
-  };
-
   let refreshLinkEditor = () => {};
-  let refreshMathIn = () => {};
   let openMathEditorForSelection = () => {};
   let openMathEditorForNode = () => {};
   let openMathEditorForBlock = () => {};
@@ -3307,155 +3283,37 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     openLinkEditorForSelection = () => linkSession.openForSelection();
   }
 
-  const mathEditor = document.createElement('div');
-  mathEditor.className = 'blocks-math-editor';
-  mathEditor.hidden = true;
-  mathEditor.setAttribute('aria-hidden', 'true');
-  const mathSource = document.createElement('textarea');
-  mathSource.className = 'blocks-math-source';
-  mathSource.rows = 3;
-  mathSource.placeholder = text('mathSource', 'LaTeX source');
-  mathSource.setAttribute('aria-label', text('mathSource', 'LaTeX source'));
-  const removeMath = button(text('removeMath', 'Remove'), 'blocks-inline-btn blocks-remove-math-btn');
-  removeMath.title = text('removeMath', 'Remove');
-  removeMath.setAttribute('aria-label', text('removeMath', 'Remove'));
-  const mathEditorFocused = () => {
-    try { return mathEditor.contains(runtime.getActiveElement()); } catch (_) { return false; }
-  };
-  const hideMathEditor = () => {
-    blocksState.clearMathEditorState();
-    mathEditor.hidden = true;
-    mathEditor.setAttribute('aria-hidden', 'true');
-  };
-  const syncMathSourceHeight = () => {
-    try {
-      mathSource.style.height = 'auto';
-      mathSource.style.height = `${mathSource.scrollHeight}px`;
-    } catch (_) {}
-  };
-  const syncMathNodePreview = (node, tex) => {
-    if (!node) return;
-    node.dataset.pressMathRendered = '';
-    node.dataset.tex = String(tex || '');
-    node.setAttribute('data-tex', String(tex || ''));
-    node.textContent = String(tex || '');
-    try { renderPressMath(node.parentElement || node); } catch (_) {}
-  };
-  const mathBlockById = (id) => state.blocks.find(block => block && block.id === id && block.type === 'math') || null;
-  const applyMathEditor = () => {
-    const tex = inputValue(mathSource).trim();
-    if (blocksState.getMathEditMode() === 'block') {
-      const block = mathBlockById(blocksState.getActiveMathBlockId());
-      if (!block) return;
-      updateFromControl(block, { tex });
-      const blockEl = list.querySelector(`.blocks-block[data-block-id="${block.id}"]`);
-      const node = blockEl ? blockEl.querySelector('.press-math-display') : null;
-      syncMathNodePreview(node, tex);
-      return;
-    }
-    if (blocksState.getMathEditMode() === 'range') {
-      const selection = blocksState.getMathSelection();
-      if (!selection || !selection.editable || !nodeContains(root, selection.editable)) return;
-      const nextRuns = applyInlineMathToRuns(inlineRunsFromDom(selection.editable), selection.start, selection.end, tex);
-      const nextEnd = selection.start + tex.length;
-      renderInlineRunsInto(selection.editable, nextRuns, inlineDomSession);
-      blocksState.updateMathSelection({ end: nextEnd, text: tex });
-      syncActiveEditable();
-      updateInlineToolbarState();
-      return;
-    }
-    const math = blocksState.getActiveMath();
-    if (!math || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), math)) return;
-    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), math, inlineDomSession);
-    if (!mathRange) return;
-    const nextRuns = applyInlineMathToRuns(inlineRunsFromDom(blocksState.getActiveEditable()), mathRange.start, mathRange.end, tex);
-    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns, inlineDomSession);
-    blocksState.clearActiveMath();
-    syncActiveEditable();
-    updateInlineToolbarState();
-  };
-  mathSource.addEventListener('input', () => {
-    applyMathEditor();
-    syncMathSourceHeight();
+  const mathSession = createEditorBlocksMathSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    root,
+    list,
+    runtime,
+    blocksState,
+    selectionSession,
+    caretSession,
+    inlineDomSession,
+    containsNode: nodeContains,
+    closestElement,
+    text,
+    renderMath: renderPressMath,
+    getMathBlockById: id => state.blocks.find(block => block && block.id === id && block.type === 'math') || null,
+    getEditableSelectionOffsets,
+    caretRectForEditable,
+    selectionMathInEditable,
+    inlineRunsFromDom,
+    applyInlineMathToRuns,
+    renderInlineRunsInto,
+    textRangeForDomNode,
+    syncActiveEditable,
+    updateInlineToolbarState: () => updateInlineToolbarState(),
+    updateFromControl,
+    onDocument
   });
-  removeMath.addEventListener('mousedown', (event) => event.preventDefault());
-  removeMath.addEventListener('click', () => {
-    mathSource.value = '';
-    applyMathEditor();
-    hideMathEditor();
-    updateInlineToolbarState();
-  });
-  openMathEditorForNode = (mathNode) => {
-    if (!mathNode || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), mathNode)) return;
-    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), mathNode, inlineDomSession);
-    if (!mathRange) return;
-    const tex = mathNode.getAttribute('data-tex') || mathNode.dataset.tex || '';
-    blocksState.openInlineMathEditor(mathNode, {
-      editable: blocksState.getActiveEditable(),
-      start: mathRange.start,
-      end: mathRange.end,
-      text: tex,
-      anchorRect: mathNode.getBoundingClientRect()
-    });
-    mathSource.value = tex;
-    mathEditor.hidden = false;
-    mathEditor.setAttribute('aria-hidden', 'false');
-    positionPopupAtRect(mathEditor, mathNode.getBoundingClientRect());
-    syncMathSourceHeight();
-    runtime.setTimer(() => {
-      try { mathSource.focus(); mathSource.select(); } catch (_) {}
-    }, 0);
-    updateInlineToolbarState();
-  };
-  openMathEditorForSelection = () => {
-    const editable = blocksState.getActiveEditable();
-    if (!editable || !nodeContains(root, editable)) return;
-    const existingMath = selectionMathInEditable(editable, selectionSession);
-    if (existingMath) {
-      openMathEditorForNode(existingMath);
-      return;
-    }
-    const offsets = getEditableSelectionOffsets(editable, caretSession);
-    if (!offsets) return;
-    const anchorRect = selectionAnchorRect(editable, offsets);
-    const initial = offsets.collapsed ? '' : offsets.text;
-    blocksState.openInlineMathEditor(null, { editable, start: offsets.start, end: offsets.end, text: initial, anchorRect });
-    mathSource.value = initial;
-    mathEditor.hidden = false;
-    mathEditor.setAttribute('aria-hidden', 'false');
-    positionPopupAtRect(mathEditor, anchorRect);
-    syncMathSourceHeight();
-    runtime.setTimer(() => {
-      try { mathSource.focus(); mathSource.select(); } catch (_) {}
-    }, 0);
-    updateInlineToolbarState();
-  };
-  openMathEditorForBlock = (block, blockEl = null) => {
-    if (!block || block.type !== 'math') return;
-    blocksState.openBlockMathEditor(block.id);
-    mathSource.value = block.data.tex || '';
-    mathEditor.hidden = false;
-    mathEditor.setAttribute('aria-hidden', 'false');
-    const target = blockEl || list.querySelector(`.blocks-block[data-block-id="${block.id}"]`);
-    const preview = target ? target.querySelector('.press-math-display') : null;
-    positionPopupAtRect(mathEditor, (preview || target || root).getBoundingClientRect());
-    syncMathSourceHeight();
-    runtime.setTimer(() => {
-      try { mathSource.focus(); mathSource.select(); } catch (_) {}
-    }, 0);
-  };
-  const isMathEditorInternalTarget = (target) => {
-    if (nodeContains(mathEditor, target)) return true;
-    const math = closestElement(target, '.press-math[data-tex]');
-    return !!(math && nodeContains(root, math));
-  };
-  const handleMathEditorOutsidePointer = (event) => {
-    if (mathEditor.hidden) return;
-    const target = event && event.target;
-    if (!target || isMathEditorInternalTarget(target)) return;
-    hideMathEditor();
-    updateInlineToolbarState();
-  };
+  if (mathSession) {
+    openMathEditorForSelection = () => mathSession.openForSelection();
+    openMathEditorForNode = mathNode => mathSession.openForNode(mathNode);
+    openMathEditorForBlock = (block, blockEl = null) => mathSession.openForBlock(block, blockEl);
+  }
 
   const inlineToolbarSession = createEditorBlocksInlineToolbarSession({
     state,
@@ -3480,14 +3338,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     inlineCommandMark
   });
   updateInlineToolbarState = () => inlineToolbarSession.update();
-  mathEditor.append(mathSource, removeMath);
   if (linkSession) {
     root.appendChild(linkSession.element);
     linkSession.bind();
   }
-  root.appendChild(mathEditor);
-  onDocument('pointerdown', handleMathEditorOutsidePointer, true);
-  onDocument('mousedown', handleMathEditorOutsidePointer, true);
+  if (mathSession) {
+    root.appendChild(mathSession.element);
+    mathSession.bind();
+  }
 
   const insertPendingInlineText = (editable, value) => {
     const textValue = String(value || '');

@@ -37,6 +37,7 @@ const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
 const editorBlocksActiveSession = read('assets/js/editor-blocks-active-session.js');
+const editorBlocksMathSession = read('assets/js/editor-blocks-math-session.js');
 const syntaxHighlight = read('assets/js/syntax-highlight.js');
 const highlightJsBundle = read('assets/js/vendor/highlightjs/highlight.min.js');
 const nativeCss = read('assets/themes/native/base.css');
@@ -118,7 +119,7 @@ assert.match(editorBlocks, /from '\.\/math-render\.js\?v=[\w.-]+';/, 'block edit
 assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block editor should register a math block type');
 assert.match(editorBlocks, /\['∑', 'math', 'inlineMath', 'Math'\]/, 'block editor should expose an inline math command');
 assert.match(indexEditorHtml, /blocks-math-editor[\s\S]*blocks-math-editor textarea/, 'block editor should include math source popover styling');
-assert.match(editorBlocks, /mathSource\.className = 'blocks-math-source'/, 'block editor should create a math source popover field');
+assert.match(editorBlocksMathSession, /mathSource\.className = 'blocks-math-source'/, 'block editor math session should create a math source popover field');
 assert.match(main, /from '\.\/js\/theme-layout\.js\?v=[\w.-]+';/, 'main should cache-bust theme layout when preview theme mount generation changes');
 assert.match(main, /from '\.\/js\/theme\.js\?v=[\w.-]+';/, 'main should cache-bust theme helpers when local theme overlays change');
 assert.match(theme, /fetchThemePackList\('assets\/themes\/packs\.local\.json', true\)/, 'main-site theme controls should allow ignored local theme-pack overlays for development');

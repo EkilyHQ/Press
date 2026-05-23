@@ -79,6 +79,7 @@ const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
+const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-math-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -156,6 +157,7 @@ const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSession
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
+const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -327,6 +329,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-math-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks math session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -357,6 +365,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /const mathSession = createEditorBlocksMathSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderPressMath,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\);[\s\S]*openMathEditorForSelection = \(\) => mathSession\.openForSelection\(\);[\s\S]*openMathEditorForNode = mathNode => mathSession\.openForNode\(mathNode\);[\s\S]*openMathEditorForBlock = \(block, blockEl = null\) => mathSession\.openForBlock\(block, blockEl\);/,
+  'blocks editor should compose inline and display math overlay behavior through the math session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*focusSession\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
   'blocks editor should delegate cross-block arrow navigation to the focus session'
 );
@@ -374,9 +388,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const inlineDomSession = createInlineDomSession\(selectionSession, runtime\.documentRef\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(blocksState\.getActiveEditable\(\), math, inlineDomSession\)/,
-  'blocks editor should route inline run rendering plus math DOM range mapping through the inline DOM session'
+  `${editorBlocksSource}\n${editorBlocksMathSessionSource}`,
+  /const inlineDomSession = createInlineDomSession\(selectionSession, runtime\.documentRef\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(editable, mathNode, inlineDomSession\)/,
+  'blocks editor should route inline run rendering plus math DOM range mapping through explicit inline DOM session dependencies'
 );
 
 assert.match(
@@ -2002,6 +2016,12 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksMathSessionSource,
+  /export function createEditorBlocksMathSession\([\s\S]*const mathEditor = documentRef\.createElement\('div'\);[\s\S]*mathEditor\.className = 'blocks-math-editor'[\s\S]*const mathSource = documentRef\.createElement\('textarea'\);[\s\S]*mathSource\.className = 'blocks-math-source'[\s\S]*const removeMath = createButton\(documentRef, text\('removeMath', 'Remove'\), 'blocks-inline-btn blocks-remove-math-btn'\);/,
+  'math session should own inline and display math editor DOM creation and controls'
+);
+
+assert.match(
   editorBlocksStateSource,
   /suppressLinkEditorRefreshUntil: 0,/,
   'blocks state controller should own routed link-editor refresh suppression state'
@@ -2019,10 +2039,28 @@ assert.match(
   'inline link editor should close from a capture-phase outside pointer or mouse press'
 );
 
+assert.match(
+  editorBlocksMathSessionSource,
+  /const apply = \(\) => \{[\s\S]*mathEditMode\(\) === 'block'[\s\S]*updateFromControl\(block, \{ tex \}\)[\s\S]*mathEditMode\(\) === 'range'[\s\S]*applyInlineMathToRuns\(inlineRunsFromDom\(selection\.editable\), selection\.start, selection\.end, tex\)[\s\S]*textRangeForDomNode\(editable, math, inlineDomSession\)[\s\S]*const openForSelection = \(\) => \{[\s\S]*selectionMathInEditable\(editable, selectionSession\)[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*const openForBlock = \(block, blockEl = null\) => \{[\s\S]*blocksState\.openBlockMathEditor\(block\.id\)/,
+  'math session should own math apply/open behavior across range, DOM, and block modes'
+);
+
+assert.match(
+  editorBlocksMathSessionSource,
+  /const handleOutsidePointer = \(event\) => \{[\s\S]*if \(mathEditor\.hidden\) return;[\s\S]*isInternalTarget\(target\)[\s\S]*hide\(\);[\s\S]*const bind = \(\) => \{[\s\S]*onDocument\('pointerdown', handleOutsidePointer, true\)[\s\S]*onDocument\('mousedown', handleOutsidePointer, true\)/,
+  'math editor should close from a capture-phase outside pointer or mouse press through its session boundary'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
   /const linkEditor = document\.createElement\('div'\)|const handleLinkEditorOutsidePointer|const applyLinkEditor = \(\) =>/,
   'blocks editor root should not own link editor overlay DOM, outside-pointer, or apply state'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const mathEditor = document\.createElement\('div'\)|const handleMathEditorOutsidePointer|const applyMathEditor = \(\)|const syncMathNodePreview/,
+  'blocks editor root should not own math editor overlay DOM, outside-pointer, or apply state'
 );
 
 assert.doesNotMatch(

@@ -16,6 +16,7 @@ import { createEditorBlocksTableSession } from './editor-blocks-table-session.js
 import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksImageSession } from './editor-blocks-image-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksCodeSession } from './editor-blocks-code-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksSourceSession } from './editor-blocks-source-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const fallbackSelectionSession = createEditorBlocksSelectionSession();
@@ -2634,35 +2635,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return wrap;
   };
 
-  const sourceReasonText = (block) => {
-    const reason = block && block.data && block.data.sourceReason ? String(block.data.sourceReason) : 'unsupported';
-    return text(`sourceReason.${reason}`, text('sourceReason.unsupported', 'This Markdown is kept as source because the block editor cannot safely convert it to a visual block without changing the original structure.'));
-  };
-
-  const createSourceReasonHelp = (block, index) => {
-    const wrap = document.createElement('span');
-    wrap.className = 'blocks-source-help-wrap';
-    const help = button('?', 'blocks-source-help');
-    const tooltipId = `blocks-source-help-${block && block.id ? block.id : index}`;
-    const message = sourceReasonText(block);
-    help.setAttribute('aria-label', message);
-    help.setAttribute('aria-describedby', tooltipId);
-    const bubble = document.createElement('span');
-    bubble.id = tooltipId;
-    bubble.className = 'blocks-source-help-bubble';
-    bubble.setAttribute('role', 'tooltip');
-    bubble.textContent = message;
-    wrap.append(help, bubble);
-    return wrap;
-  };
-
-  const sourceAutofixLabel = (block) => {
-    const reason = block && block.data && block.data.sourceReason ? String(block.data.sourceReason) : '';
-    return text(`sourceAutofix.${reason}`, text('sourceAutofix.unsupported', 'Autofix'));
-  };
-
-  const canAutofixSourceBlock = (block) => !!(block && block.type === 'source' && block.data && block.data.sourceReason === 'indentedList');
-
   const applySourceAutofix = (index) => {
     const block = state.blocks[index];
     const nextBlocks = autofixMarkdownSourceBlock(block);
@@ -2671,23 +2643,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     render();
     setActive(index);
     emit();
-  };
-
-  const createSourceAutofixButton = (block, index) => {
-    const label = sourceAutofixLabel(block);
-    const autofix = button('', 'blocks-source-autofix');
-    autofix.innerHTML = '<span aria-hidden="true">★</span><span class="blocks-source-autofix-label"></span>';
-    const labelSpan = autofix.querySelector('.blocks-source-autofix-label');
-    if (labelSpan) labelSpan.textContent = text('sourceAutofix.label', 'Autofix');
-    autofix.title = label;
-    autofix.setAttribute('aria-label', label);
-    autofix.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setActive(index);
-      applySourceAutofix(index);
-    });
-    return autofix;
   };
 
   const syncActiveEditable = () => {
@@ -3604,6 +3559,23 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     area.style.height = `${area.scrollHeight}px`;
   };
 
+  const sourceSession = createEditorBlocksSourceSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    editableSession,
+    text,
+    caretSession,
+    measureLimit: CARET_POINT_MEASURE_LIMIT,
+    textareaTextOffsetDetailsFromPoint,
+    autoSizeTextarea,
+    removeEmptyBlockWithBackspace,
+    handleCrossBlockArrowNavigation,
+    updateFromControl,
+    setActive,
+    activateEditableFromPointer,
+    applyAutofix: index => applySourceAutofix(index),
+    queueTask: task => queueMicrotask(task)
+  });
+
   const renderListBlock = (body, block, index) => {
     const items = editableListItems(block.data.items);
     const listType = block.data.listType === 'ol' || block.data.listType === 'task' || block.data.listType === 'mixed' ? block.data.listType : 'ul';
@@ -3845,6 +3817,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     codeSession?.renderBlock(body, block, index);
   };
 
+  const renderSourceBlock = (body, block, index) => {
+    sourceSession?.renderBlock(body, block, index);
+  };
+
   const renderMathBlock = (body, block, index) => {
     const preview = document.createElement('div');
     preview.className = 'blocks-math-preview';
@@ -3977,68 +3953,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       renderMathBlock(body, block, index);
     } else if (block.type === 'card') {
       renderCardBlock(body, block, index);
+    } else if (block.type === 'source') {
+      renderSourceBlock(body, block, index);
     } else {
-      const area = document.createElement('textarea');
-      area.className = 'blocks-textarea blocks-source-textarea';
-      area.spellcheck = false;
-      area.rows = 1;
-      area.value = block.data.text != null ? block.data.text : block.raw || '';
-      const sync = () => updateFromControl(block, { text: area.value });
-      let sourcePointer = null;
-      editableSession.registerEditable(area, sync);
-      area.addEventListener('input', () => {
-        sync();
-        autoSizeTextarea(area);
-      });
-      area.addEventListener('keydown', (event) => {
-        if (removeEmptyBlockWithBackspace(event, block, index, area, sync)) return;
-        handleCrossBlockArrowNavigation(event, index, area);
-      });
-      area.addEventListener('pointerdown', (event) => {
-        if (!event || event.button !== 0 || event.isPrimary === false) return;
-        activateEditableFromPointer(index, area, sync);
-        const details = textareaTextOffsetDetailsFromPoint(area, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, caretSession);
-        if (details && !details.insideTextRect) {
-          event.preventDefault();
-          sourcePointer = { x: event.clientX, y: event.clientY, moved: false, corrected: true };
-          try { area.focus({ preventScroll: true }); }
-          catch (_) {
-            try { area.focus(); } catch (__) {}
-          }
-          try {
-            area.setSelectionRange(details.offset, details.offset);
-            autoSizeTextarea(area);
-            setActive(index, area, sync);
-          } catch (_) {}
-          return;
-        }
-        sourcePointer = { x: event.clientX, y: event.clientY, moved: false, corrected: false };
-      });
-      area.addEventListener('pointermove', (event) => {
-        if (!sourcePointer) return;
-        const dx = event.clientX - sourcePointer.x;
-        const dy = event.clientY - sourcePointer.y;
-        if ((dx * dx) + (dy * dy) > 16) sourcePointer.moved = true;
-      });
-      area.addEventListener('click', (event) => {
-        const pointer = sourcePointer;
-        sourcePointer = null;
-        if (!pointer || pointer.moved || pointer.corrected) return;
-        const details = textareaTextOffsetDetailsFromPoint(area, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, caretSession);
-        if (!details || details.insideTextRect) return;
-        try {
-          area.setSelectionRange(details.offset, details.offset);
-          autoSizeTextarea(area);
-          setActive(index, area, sync);
-        } catch (_) {}
-      });
-      area.addEventListener('blur', () => { sourcePointer = null; });
-      area.addEventListener('focus', () => {
-        autoSizeTextarea(area);
-        setActive(index, area, sync);
-      });
-      queueMicrotask(() => autoSizeTextarea(area));
-      body.appendChild(area);
+      renderSourceBlock(body, block, index);
     }
     body.addEventListener('click', (event) => {
       if (shouldSuppressRoutedBlockContainerClick()) {
@@ -4070,8 +3988,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     head.appendChild(type);
     head.addEventListener('wheel', forwardBlockHeadWheel, { passive: false });
     if (block.type === 'source') {
-      head.appendChild(createSourceReasonHelp(block, index));
-      if (canAutofixSourceBlock(block)) head.appendChild(createSourceAutofixButton(block, index));
+      const help = sourceSession?.createReasonHelp(block, index);
+      if (help) head.appendChild(help);
+      if (sourceSession?.canAutofix(block)) {
+        const autofix = sourceSession.createAutofixButton(block, index);
+        if (autofix) head.appendChild(autofix);
+      }
     }
     if (block.type === 'heading') {
       head.appendChild(createHeadingLevelSelect(block));

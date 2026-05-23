@@ -84,6 +84,7 @@ const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-t
 const editorBlocksCardPickerSessionPath = resolve(here, '../assets/js/editor-blocks-card-picker-session.js');
 const editorBlocksImageSessionPath = resolve(here, '../assets/js/editor-blocks-image-session.js');
 const editorBlocksCodeSessionPath = resolve(here, '../assets/js/editor-blocks-code-session.js');
+const editorBlocksSourceSessionPath = resolve(here, '../assets/js/editor-blocks-source-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -166,6 +167,7 @@ const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath
 const editorBlocksCardPickerSessionSource = readFileSync(editorBlocksCardPickerSessionPath, 'utf8');
 const editorBlocksImageSessionSource = readFileSync(editorBlocksImageSessionPath, 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(editorBlocksCodeSessionPath, 'utf8');
+const editorBlocksSourceSessionSource = readFileSync(editorBlocksSourceSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -363,6 +365,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-code-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks code session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-source-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks source session boundary'
 );
 
 assert.match(
@@ -1584,14 +1592,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'[\s\S]*area\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, area, sync\)\) return;/,
-  'empty Backspace handling should run before rich Enter, list row, and source textarea handling'
+  /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'/,
+  'empty Backspace handling should run before rich Enter and list row handling'
 );
 
 assert.match(
   editorBlocksCodeSessionSource,
   /code\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, code, sync\)[\s\S]*event\.key !== 'Enter'/,
   'code session should run empty Backspace handling before code Enter handling'
+);
+
+assert.match(
+  editorBlocksSourceSessionSource,
+  /area\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, area, sync\)\) return;[\s\S]*handleCrossBlockArrowNavigation\(event, index, area\);/,
+  'source session should run empty Backspace handling before source textarea cross-block arrows'
 );
 
 assert.match(
@@ -1761,14 +1775,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /editable\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, editable, sync\);[\s\S]*routeDirectQuoteCaretFromPointer\(editable, index, sync, event\);[\s\S]*span\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, span, sync\);[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, area, sync\);/,
-  'root-owned editable block pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
+  /editable\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, editable, sync\);[\s\S]*routeDirectQuoteCaretFromPointer\(editable, index, sync, event\);[\s\S]*span\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, span, sync\);/,
+  'root-owned rich and list editable pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
 );
 
 assert.match(
   editorBlocksCodeSessionSource,
   /code\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, code, sync\);/,
   'code session pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
+);
+
+assert.match(
+  editorBlocksSourceSessionSource,
+  /area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, area, sync\);/,
+  'source session pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
 );
 
 assert.match(
@@ -2036,8 +2056,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /let sourcePointer = null;[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*if \(details && !details\.insideTextRect\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: true \};[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: false \};[\s\S]*area\.addEventListener\('pointermove', \(event\) => \{[\s\S]*> 16\) sourcePointer\.moved = true;[\s\S]*area\.addEventListener\('click', \(event\) => \{[\s\S]*if \(!pointer \|\| pointer\.moved \|\| pointer\.corrected\) return;[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*if \(!details \|\| details\.insideTextRect\) return;[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*area\.addEventListener\('blur', \(\) => \{ sourcePointer = null; \}\);/,
+  editorBlocksSourceSessionSource,
+  /let sourcePointer = null;[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, measureLimit, caretSession\);[\s\S]*if \(details && !details\.insideTextRect\) \{[\s\S]*event\.preventDefault\(\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: true \};[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*sourcePointer = \{ x: event\.clientX, y: event\.clientY, moved: false, corrected: false \};[\s\S]*area\.addEventListener\('pointermove', \(event\) => \{[\s\S]*> 16\) sourcePointer\.moved = true;[\s\S]*area\.addEventListener\('click', \(event\) => \{[\s\S]*if \(!pointer \|\| pointer\.moved \|\| pointer\.corrected\) return;[\s\S]*const details = textareaTextOffsetDetailsFromPoint\(area, event\.clientX, event\.clientY, measureLimit, caretSession\);[\s\S]*if \(!details \|\| details\.insideTextRect\) return;[\s\S]*area\.setSelectionRange\(details\.offset, details\.offset\);[\s\S]*area\.addEventListener\('blur', \(\) => \{ sourcePointer = null; \}\);/,
   'direct source markdown textarea blank-edge pointerdowns should prevent native end snaps while text clicks and drags keep native behavior'
 );
 
@@ -2407,6 +2427,48 @@ assert.doesNotMatch(
   'blocks editor root should not own code block selector, gutter, badge, highlight, or language-resolution helpers'
 );
 
+assert.match(
+  editorBlocksSource,
+  /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*\};[\s\S]*const sourceSession = createEditorBlocksSourceSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: index => applySourceAutofix\(index\),/,
+  'blocks editor root should compose source Markdown DOM/control behavior through the source session boundary'
+);
+
+assert.match(
+  editorBlocksSourceSessionSource,
+  /const sourceReasonText = \(block\) => \{[\s\S]*sourceReason\.unsupported[\s\S]*const createReasonHelp = \(block, index\) => \{[\s\S]*wrap\.className = 'blocks-source-help-wrap';[\s\S]*help\.setAttribute\('aria-label', message\);[\s\S]*bubble\.className = 'blocks-source-help-bubble';/,
+  'source session should own source Markdown reason help DOM and tooltip text'
+);
+
+assert.match(
+  editorBlocksSourceSessionSource,
+  /const canAutofix = \(block\) => !!\(block && block\.type === 'source' && block\.data && block\.data\.sourceReason === 'indentedList'\);[\s\S]*const createAutofixButton = \(block, index\) => \{[\s\S]*createButton\(documentRef, '', 'blocks-source-autofix'\);[\s\S]*icon\.textContent = '\\u2605';[\s\S]*labelSpan\.className = 'blocks-source-autofix-label';[\s\S]*setActive\(index\);[\s\S]*applyAutofix\(index\);/,
+  'source session should own source Markdown autofix affordance DOM and dispatch through callbacks'
+);
+
+assert.match(
+  editorBlocksSourceSessionSource,
+  /const renderBlock = \(body, block, index\) => \{[\s\S]*const area = documentRef\.createElement\('textarea'\);[\s\S]*area\.className = 'blocks-textarea blocks-source-textarea';[\s\S]*const sync = \(\) => updateFromControl\(block, \{ text: area\.value \}\);[\s\S]*editableSession\.registerEditable\(area, sync\);[\s\S]*area\.addEventListener\('input', \(\) => \{[\s\S]*sync\(\);[\s\S]*autoSizeTextarea\(area\);[\s\S]*area\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, area, sync\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, area\);/,
+  'source session should own source Markdown textarea rendering, editable registration, autosize, sync, and key routing'
+);
+
+assert.match(
+  editorBlocksSource,
+  /if \(block\.type === 'source'\) \{[\s\S]*const help = sourceSession\?\.createReasonHelp\(block, index\);[\s\S]*if \(help\) head\.appendChild\(help\);[\s\S]*if \(sourceSession\?\.canAutofix\(block\)\) \{[\s\S]*const autofix = sourceSession\.createAutofixButton\(block, index\);[\s\S]*if \(autofix\) head\.appendChild\(autofix\);/,
+  'source block help and autofix controls should be appended to the floating toolbar through the source session'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const renderSourceBlock = \(body, block, index\) => \{[\s\S]*sourceSession\?\.renderBlock\(body, block, index\);[\s\S]*\};[\s\S]*if \(block\.type === 'source'\) \{[\s\S]*renderSourceBlock\(body, block, index\);/,
+  'source block body rendering should delegate to the source session'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /sourceReasonText|createSourceReasonHelp|sourceAutofixLabel|canAutofixSourceBlock|createSourceAutofixButton|blocks-source-help-wrap|blocks-source-autofix|area\.addEventListener\('input', \(\) => \{[\s\S]*autoSizeTextarea\(area\);/,
+  'blocks editor root should not own source Markdown help, autofix, or textarea event wiring'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
   /lang\.type = 'text'|updateFromControl\(block, \{ lang: inputValue\(lang\) \}\)/,
@@ -2445,12 +2507,18 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = 'auto';[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*area\.rows = 1;[\s\S]*area\.addEventListener\('input', \(\) => \{[\s\S]*autoSizeTextarea\(area\);[\s\S]*queueMicrotask\(\(\) => autoSizeTextarea\(area\)\);/,
+  /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = 'auto';[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*\};/,
+  'blocks editor root should provide the shared textarea autosize service'
+);
+
+assert.match(
+  editorBlocksSourceSessionSource,
+  /area\.rows = 1;[\s\S]*area\.addEventListener\('input', \(\) => \{[\s\S]*autoSizeTextarea\(area\);[\s\S]*queueTask\(\(\) => autoSizeTextarea\(area\)\);/,
   'source markdown textareas should auto-size to their content from a one-row baseline'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksSourceSessionSource,
   /const sync = \(\) => updateFromControl\(block, \{ text: area\.value \}\);[\s\S]*editableSession\.registerEditable\(area, sync\);[\s\S]*area\.addEventListener\('focus', \(\) => \{[\s\S]*setActive\(index, area, sync\);/,
   'source markdown textareas should register active sync for routed caret focus'
 );

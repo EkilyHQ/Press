@@ -135,17 +135,128 @@ export function createEditorBlocksStateController({
   function resetEditorSession() {
     state.activeIndex = -1;
     clearActiveEditing();
-    state.activeLink = null;
-    state.activeLinkHoldUntil = 0;
+    clearLinkEditorState();
+    clearMathEditorState();
+    clearInlineState();
+    state.activeTableCell = null;
+    resetTransientMenus({ clearActive: false });
+  }
+
+  function clearLinkEditorState({ clearActiveLink = true, clearHold = true } = {}) {
+    if (clearActiveLink) state.activeLink = null;
+    if (clearHold) state.activeLinkHoldUntil = 0;
     state.linkEditMode = '';
     state.linkSelection = null;
+  }
+
+  function getLinkEditMode() {
+    return state.linkEditMode;
+  }
+
+  function getLinkSelection() {
+    return state.linkSelection;
+  }
+
+  function updateLinkSelection(patch = {}) {
+    if (!state.linkSelection) return null;
+    state.linkSelection = { ...state.linkSelection, ...(patch || {}) };
+    return state.linkSelection;
+  }
+
+  function getActiveLink() {
+    return state.activeLink;
+  }
+
+  function getActiveLinkHoldUntil() {
+    return state.activeLinkHoldUntil;
+  }
+
+  function setActiveLink(link = null, options = {}) {
+    state.activeLink = link || null;
+    if (Object.prototype.hasOwnProperty.call(options || {}, 'holdUntil')) {
+      state.activeLinkHoldUntil = Number(options.holdUntil) || 0;
+    }
+    return state.activeLink;
+  }
+
+  function clearActiveLink() {
+    state.activeLink = null;
+    state.activeLinkHoldUntil = 0;
+  }
+
+  function openDomLinkEditor(link = null, { holdUntil } = {}) {
+    setActiveLink(link, { holdUntil });
+    state.linkEditMode = 'dom';
+    state.linkSelection = null;
+    return state.activeLink;
+  }
+
+  function openLinkSelectionEditor(mode, selection = null) {
+    state.activeLink = null;
+    state.linkEditMode = mode || '';
+    state.linkSelection = selection ? { ...selection } : null;
+    return state.linkSelection;
+  }
+
+  function setLinkEditorRefreshSuppression(until) {
+    state.suppressLinkEditorRefreshUntil = Number(until) || 0;
+    return state.suppressLinkEditorRefreshUntil;
+  }
+
+  function linkEditorRefreshSuppressed(now) {
+    if (!state.suppressLinkEditorRefreshUntil) return false;
+    if ((Number(now) || 0) < state.suppressLinkEditorRefreshUntil) return true;
+    state.suppressLinkEditorRefreshUntil = 0;
+    return false;
+  }
+
+  function clearMathEditorState() {
     state.activeMath = null;
     state.activeMathBlockId = '';
     state.mathEditMode = '';
     state.mathSelection = null;
-    clearInlineState();
-    state.activeTableCell = null;
-    resetTransientMenus({ clearActive: false });
+  }
+
+  function getMathEditMode() {
+    return state.mathEditMode;
+  }
+
+  function getMathSelection() {
+    return state.mathSelection;
+  }
+
+  function updateMathSelection(patch = {}) {
+    if (!state.mathSelection) return null;
+    state.mathSelection = { ...state.mathSelection, ...(patch || {}) };
+    return state.mathSelection;
+  }
+
+  function getActiveMath() {
+    return state.activeMath;
+  }
+
+  function clearActiveMath() {
+    state.activeMath = null;
+  }
+
+  function getActiveMathBlockId() {
+    return state.activeMathBlockId;
+  }
+
+  function openInlineMathEditor(mathNode = null, selection = null) {
+    state.activeMath = mathNode || null;
+    state.activeMathBlockId = '';
+    state.mathEditMode = 'range';
+    state.mathSelection = selection ? { ...selection } : null;
+    return state.mathSelection;
+  }
+
+  function openBlockMathEditor(blockId = '') {
+    state.activeMath = null;
+    state.activeMathBlockId = String(blockId || '');
+    state.mathEditMode = 'block';
+    state.mathSelection = null;
+    return state.activeMathBlockId;
   }
 
   function hasPendingInlineMarks() {
@@ -392,6 +503,27 @@ export function createEditorBlocksStateController({
     updateBlockData,
     setActiveIndex,
     resetTransientMenus,
+    clearLinkEditorState,
+    getLinkEditMode,
+    getLinkSelection,
+    updateLinkSelection,
+    getActiveLink,
+    getActiveLinkHoldUntil,
+    setActiveLink,
+    clearActiveLink,
+    openDomLinkEditor,
+    openLinkSelectionEditor,
+    setLinkEditorRefreshSuppression,
+    linkEditorRefreshSuppressed,
+    clearMathEditorState,
+    getMathEditMode,
+    getMathSelection,
+    updateMathSelection,
+    getActiveMath,
+    clearActiveMath,
+    getActiveMathBlockId,
+    openInlineMathEditor,
+    openBlockMathEditor,
     hasPendingInlineMarks,
     pendingInlineMark,
     pendingInlineForRun,

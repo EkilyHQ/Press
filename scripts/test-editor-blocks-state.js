@@ -70,6 +70,55 @@ assert.equal(createEditorBlocksState().activeIndex, -1);
 }
 
 {
+  const controller = createEditorBlocksStateController();
+  const editable = { name: 'editable' };
+  const linkNode = { name: 'link' };
+  const mathNode = { name: 'math' };
+
+  assert.equal(controller.getLinkEditMode(), '');
+  controller.openLinkSelectionEditor('range', { editable, start: 1, end: 4, text: 'abc' });
+  assert.equal(controller.getLinkEditMode(), 'range');
+  assert.deepEqual(controller.getLinkSelection(), { editable, start: 1, end: 4, text: 'abc' });
+  controller.updateLinkSelection({ end: 7, text: 'abcdef' });
+  assert.deepEqual(controller.getLinkSelection(), { editable, start: 1, end: 7, text: 'abcdef' });
+
+  controller.openDomLinkEditor(linkNode, { holdUntil: 200 });
+  assert.equal(controller.getActiveLink(), linkNode);
+  assert.equal(controller.getActiveLinkHoldUntil(), 200);
+  assert.equal(controller.getLinkEditMode(), 'dom');
+  assert.equal(controller.getLinkSelection(), null);
+
+  controller.clearLinkEditorState({ clearActiveLink: false, clearHold: false });
+  assert.equal(controller.getActiveLink(), linkNode);
+  assert.equal(controller.getActiveLinkHoldUntil(), 200);
+  assert.equal(controller.getLinkEditMode(), '');
+  controller.clearLinkEditorState();
+  assert.equal(controller.getActiveLink(), null);
+  assert.equal(controller.getActiveLinkHoldUntil(), 0);
+
+  controller.setLinkEditorRefreshSuppression(500);
+  assert.equal(controller.linkEditorRefreshSuppressed(400), true);
+  assert.equal(controller.linkEditorRefreshSuppressed(600), false);
+  assert.equal(controller.state.suppressLinkEditorRefreshUntil, 0);
+
+  controller.openInlineMathEditor(mathNode, { editable, start: 2, end: 3, text: 'x' });
+  assert.equal(controller.getMathEditMode(), 'range');
+  assert.equal(controller.getActiveMath(), mathNode);
+  assert.deepEqual(controller.getMathSelection(), { editable, start: 2, end: 3, text: 'x' });
+  controller.updateMathSelection({ end: 5, text: 'xyz' });
+  assert.deepEqual(controller.getMathSelection(), { editable, start: 2, end: 5, text: 'xyz' });
+
+  controller.openBlockMathEditor('math-block');
+  assert.equal(controller.getMathEditMode(), 'block');
+  assert.equal(controller.getActiveMathBlockId(), 'math-block');
+  assert.equal(controller.getActiveMath(), null);
+  assert.equal(controller.getMathSelection(), null);
+  controller.clearMathEditorState();
+  assert.equal(controller.getMathEditMode(), '');
+  assert.equal(controller.getActiveMathBlockId(), '');
+}
+
+{
   const parsed = [
     makeBlock('paragraph', 'A', { text: 'A', after: '\n' }),
     makeBlock('paragraph', 'B', { text: 'B', after: '\n\n' })

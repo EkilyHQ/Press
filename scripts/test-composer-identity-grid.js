@@ -1725,7 +1725,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*state\.suppressLinkEditorRefreshUntil = Date\.now\(\) \+ 500;[\s\S]*placeCaretAtTextOffset\(editable, details\.offset\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
+  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(Date\.now\(\) \+ 500\);[\s\S]*placeCaretAtTextOffset\(editable, details\.offset\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
   'direct quote edge pointerdowns should prevent native start/end snaps, suppress transient link-editor refreshes, and use the measured nearest offset'
 );
 
@@ -1737,7 +1737,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*nearestEditableFromPoint\(event\.clientX, event\.clientY\)[\s\S]*event\.preventDefault\(\);[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*state\.suppressLinkEditorRefreshUntil = Date\.now\(\) \+ 500;[\s\S]*const \{ editable, hitTarget, index, sync \} = candidate;[\s\S]*setTextareaCaretFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*setContentEditableCaretFromPoint\(editable, event\.clientX, event\.clientY, hitTarget\)[\s\S]*setActive\(index, editable, sync\);[\s\S]*list\.addEventListener\('pointerdown', routeBlocksCaretFromPointer\);/,
+  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*nearestEditableFromPoint\(event\.clientX, event\.clientY\)[\s\S]*event\.preventDefault\(\);[\s\S]*state\.suppressNextBlockContainerClickUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(Date\.now\(\) \+ 500\);[\s\S]*const \{ editable, hitTarget, index, sync \} = candidate;[\s\S]*setTextareaCaretFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*setContentEditableCaretFromPoint\(editable, event\.clientX, event\.clientY, hitTarget\)[\s\S]*setActive\(index, editable, sync\);[\s\S]*list\.addEventListener\('pointerdown', routeBlocksCaretFromPointer\);/,
   'blocks list pointerdown should route blank clicks to the nearest editable without dropping active sync or showing a stale link editor'
 );
 
@@ -1779,7 +1779,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*if \(!explicitLinkNode && state\.suppressLinkEditorRefreshUntil\) \{[\s\S]*Date\.now\(\) < state\.suppressLinkEditorRefreshUntil[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && state\.activeEditable && nodeContains\(state\.activeEditable, explicitLinkNode\)[\s\S]*if \(explicitLinkNode\) state\.activeLinkHoldUntil = Date\.now\(\) \+ 800;/,
+  /refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*blocksState\.linkEditorRefreshSuppressed\(Date\.now\(\)\)[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && state\.activeEditable && nodeContains\(state\.activeEditable, explicitLinkNode\)[\s\S]*blocksState\.setActiveLink\(link, explicitLinkNode \? \{ holdUntil: Date\.now\(\) \+ 800 \} : \{\}\);/,
   'inline link editor should ignore automatic selection refreshes during routed blank-area caret clicks while still honoring explicit link clicks'
 );
 

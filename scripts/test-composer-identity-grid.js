@@ -1437,7 +1437,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /function selectionEditableInRoot\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSyncMap = new WeakMap\(\);[\s\S]*state\.activeEditable = selectionEditable;[\s\S]*state\.activeSync = editableSyncMap\.get\(selectionEditable\) \|\| state\.activeSync;[\s\S]*editableSyncMap\.set\(editable, sync\);[\s\S]*editableSyncMap\.set\(span, sync\);/,
+  /function selectionEditableInRoot\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSyncMap = new WeakMap\(\);[\s\S]*blocksState\.setActiveEditing\(selectionEditable, editableSyncMap\.get\(selectionEditable\) \|\| blocksState\.getActiveSync\(\)\);[\s\S]*editableSyncMap\.set\(editable, sync\);[\s\S]*editableSyncMap\.set\(span, sync\);/,
   'inline toolbar state should recover the active rich editable directly from the browser selection'
 );
 
@@ -1521,7 +1521,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const blockNodes = Array\.from\(list\.querySelectorAll\('\.blocks-block'\)\);[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*const keepEditable = state\.activeEditable && activeBlock && nodeContains\(activeBlock, state\.activeEditable\);[\s\S]*state\.activeEditable = null;[\s\S]*state\.activeSync = null;[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*blockNodes\.forEach\(\(el, idx\) => \{/,
+  /const blockNodes = Array\.from\(list\.querySelectorAll\('\.blocks-block'\)\);[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*const activeEditable = blocksState\.getActiveEditable\(\);[\s\S]*const keepEditable = activeEditable && activeBlock && nodeContains\(activeBlock, activeEditable\);[\s\S]*blocksState\.clearActiveEditing\(\);[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*blockNodes\.forEach\(\(el, idx\) => \{/,
   'container-only block selection should clear stale editable state from another block'
 );
 
@@ -1779,7 +1779,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*blocksState\.linkEditorRefreshSuppressed\(Date\.now\(\)\)[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && state\.activeEditable && nodeContains\(state\.activeEditable, explicitLinkNode\)[\s\S]*blocksState\.setActiveLink\(link, explicitLinkNode \? \{ holdUntil: Date\.now\(\) \+ 800 \} : \{\}\);/,
+  /refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*blocksState\.linkEditorRefreshSuppressed\(Date\.now\(\)\)[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && blocksState\.getActiveEditable\(\) && nodeContains\(blocksState\.getActiveEditable\(\), explicitLinkNode\)[\s\S]*blocksState\.setActiveLink\(link, explicitLinkNode \? \{ holdUntil: Date\.now\(\) \+ 800 \} : \{\}\);/,
   'inline link editor should ignore automatic selection refreshes during routed blank-area caret clicks while still honoring explicit link clicks'
 );
 

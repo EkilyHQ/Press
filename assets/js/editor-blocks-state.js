@@ -101,6 +101,29 @@ export function createEditorBlocksStateController({
     state.activeSync = null;
   }
 
+  function getActiveEditable() {
+    return state.activeEditable;
+  }
+
+  function getActiveSync() {
+    return state.activeSync;
+  }
+
+  function setActiveEditing(editable = null, sync = null) {
+    state.activeEditable = editable || null;
+    state.activeSync = sync || null;
+    return {
+      editable: state.activeEditable,
+      sync: state.activeSync
+    };
+  }
+
+  function invokeActiveSync() {
+    if (typeof state.activeSync !== 'function') return false;
+    state.activeSync();
+    return true;
+  }
+
   function resetTransientMenus({ clearActive = true } = {}) {
     state.commandMenuOpen = false;
     state.commandMenuInsertIndex = null;
@@ -502,6 +525,11 @@ export function createEditorBlocksStateController({
     markDirty,
     updateBlockData,
     setActiveIndex,
+    getActiveEditable,
+    getActiveSync,
+    setActiveEditing,
+    clearActiveEditing,
+    invokeActiveSync,
     resetTransientMenus,
     clearLinkEditorState,
     getLinkEditMode,

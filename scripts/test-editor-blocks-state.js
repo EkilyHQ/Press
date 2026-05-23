@@ -35,6 +35,29 @@ assert.equal(createEditorBlocksState().activeIndex, -1);
 {
   const controller = createEditorBlocksStateController();
   const editable = { name: 'editable' };
+  let syncCalls = 0;
+  const sync = () => {
+    syncCalls += 1;
+  };
+
+  assert.equal(controller.getActiveEditable(), null);
+  assert.equal(controller.getActiveSync(), null);
+  assert.equal(controller.invokeActiveSync(), false);
+
+  assert.deepEqual(controller.setActiveEditing(editable, sync), { editable, sync });
+  assert.equal(controller.getActiveEditable(), editable);
+  assert.equal(controller.getActiveSync(), sync);
+  assert.equal(controller.invokeActiveSync(), true);
+  assert.equal(syncCalls, 1);
+
+  controller.clearActiveEditing();
+  assert.equal(controller.getActiveEditable(), null);
+  assert.equal(controller.getActiveSync(), null);
+}
+
+{
+  const controller = createEditorBlocksStateController();
+  const editable = { name: 'editable' };
   const otherEditable = { name: 'other' };
 
   assert.equal(controller.hasPendingInlineMarks(), false);

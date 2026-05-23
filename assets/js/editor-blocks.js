@@ -3323,7 +3323,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const syncActiveEditable = () => {
     try {
-      if (typeof state.activeSync === 'function') state.activeSync();
+      blocksState.invokeActiveSync();
     } catch (_) {}
   };
 
@@ -3464,7 +3464,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const activeListItemIndex = (block, index) => {
     const activeBlock = state.blocks[index];
     if (!block || activeBlock !== block) return 0;
-    const item = closestElement(state.activeEditable, '.blocks-list-item');
+    const item = closestElement(blocksState.getActiveEditable(), '.blocks-list-item');
     if (!item) return 0;
     const itemIndex = Number(item.dataset.itemIndex);
     return Number.isFinite(itemIndex) ? itemIndex : 0;
@@ -3570,23 +3570,22 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const blockNodes = Array.from(list.querySelectorAll('.blocks-block'));
     const activeBlock = blockNodes[state.activeIndex] || null;
     if (editable) {
-      if (editable !== state.activeEditable) {
+      if (editable !== blocksState.getActiveEditable()) {
         blocksState.clearInlineState();
         blocksState.clearLinkEditorState({ clearActiveLink: false, clearHold: false });
       }
-      state.activeEditable = editable;
-      state.activeSync = sync;
+      blocksState.setActiveEditing(editable, sync);
     } else {
-      const keepEditable = state.activeEditable && activeBlock && nodeContains(activeBlock, state.activeEditable);
+      const activeEditable = blocksState.getActiveEditable();
+      const keepEditable = activeEditable && activeBlock && nodeContains(activeBlock, activeEditable);
       if (!keepEditable) {
         try {
           const focused = runtime.getActiveElement();
-          if (focused && state.activeEditable && nodeContains(state.activeEditable, focused) && typeof focused.blur === 'function') {
+          if (focused && activeEditable && nodeContains(activeEditable, focused) && typeof focused.blur === 'function') {
             focused.blur();
           }
         } catch (_) {}
-        state.activeEditable = null;
-        state.activeSync = null;
+        blocksState.clearActiveEditing();
         blocksState.clearLinkEditorState();
         blocksState.clearInlineState();
       }
@@ -3597,7 +3596,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     syncActiveListTypeSelect(blockNodes);
     refreshLinkEditor();
     updateInlineToolbarState();
-    syncActiveTableAlignmentFromEditable(activeBlock, editable || state.activeEditable || runtime.getActiveElement());
+    syncActiveTableAlignmentFromEditable(activeBlock, editable || blocksState.getActiveEditable() || runtime.getActiveElement());
     requestStickyBlockHeadUpdate();
   };
 
@@ -3993,7 +3992,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const applyInlineCommand = (kind) => {
-    const editable = state.activeEditable;
+    const editable = blocksState.getActiveEditable();
     if (!editable || !nodeContains(root, editable)) return;
     try { editable.focus(); } catch (_) {}
     if (kind === 'link') {
@@ -4167,7 +4166,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const isLinkEditorInternalTarget = (target) => {
     if (nodeContains(linkEditor, target)) return true;
     const clickedLink = closestElement(target, 'a[href]');
-    return !!(clickedLink && state.activeEditable && nodeContains(state.activeEditable, clickedLink));
+    return !!(clickedLink && blocksState.getActiveEditable() && nodeContains(blocksState.getActiveEditable(), clickedLink));
   };
   const handleLinkEditorOutsidePointer = (event) => {
     if (linkEditor.hidden) return;
@@ -4209,17 +4208,17 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return;
     }
     const link = blocksState.getActiveLink();
-    if (!link || !state.activeEditable || !nodeContains(state.activeEditable, link)) return;
-    const linkRange = textRangeForDomNode(state.activeEditable, link);
+    if (!link || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), link)) return;
+    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link);
     if (!linkRange) return;
-    const runs = inlineRunsFromDom(state.activeEditable);
+    const runs = inlineRunsFromDom(blocksState.getActiveEditable());
     const currentText = inlineRangeText(runs, linkRange.start, linkRange.end);
     const nextText = inputValue(linkText);
     const replacementText = nextText !== currentText ? nextText : null;
     const nextRuns = applyInlineLinkToRuns(runs, linkRange.start, linkRange.end, href, replacementText, title);
     const nextEnd = linkRange.start + (replacementText != null ? nextText.length : currentText.length);
-    renderInlineRunsInto(state.activeEditable, nextRuns);
-    blocksState.setActiveLink(linkForTextRange(state.activeEditable, linkRange.start, nextEnd));
+    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns);
+    blocksState.setActiveLink(linkForTextRange(blocksState.getActiveEditable(), linkRange.start, nextEnd));
     syncActiveEditable();
     updateInlineToolbarState();
   };
@@ -4242,22 +4241,22 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return;
     }
     const link = blocksState.getActiveLink();
-    if (!link || !state.activeEditable || !nodeContains(state.activeEditable, link)) return;
-    const linkRange = textRangeForDomNode(state.activeEditable, link);
+    if (!link || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), link)) return;
+    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link);
     if (!linkRange) return;
-    const nextRuns = applyInlineLinkToRuns(inlineRunsFromDom(state.activeEditable), linkRange.start, linkRange.end, '');
-    renderInlineRunsInto(state.activeEditable, nextRuns);
+    const nextRuns = applyInlineLinkToRuns(inlineRunsFromDom(blocksState.getActiveEditable()), linkRange.start, linkRange.end, '');
+    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns);
     blocksState.clearActiveLink();
     try {
-      state.activeEditable.focus();
-      placeCaretAtTextOffset(state.activeEditable, linkRange.end);
+      blocksState.getActiveEditable().focus();
+      placeCaretAtTextOffset(blocksState.getActiveEditable(), linkRange.end);
     } catch (_) {}
     syncActiveEditable();
     hideLinkEditor();
     updateInlineToolbarState();
   });
   openLinkEditorForSelection = () => {
-    const editable = state.activeEditable;
+    const editable = blocksState.getActiveEditable();
     if (!editable || !nodeContains(root, editable)) return;
     const existingLink = selectionLinkInEditable(editable);
     if (existingLink) {
@@ -4348,11 +4347,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return;
     }
     const math = blocksState.getActiveMath();
-    if (!math || !state.activeEditable || !nodeContains(state.activeEditable, math)) return;
-    const mathRange = textRangeForDomNode(state.activeEditable, math);
+    if (!math || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), math)) return;
+    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), math);
     if (!mathRange) return;
-    const nextRuns = applyInlineMathToRuns(inlineRunsFromDom(state.activeEditable), mathRange.start, mathRange.end, tex);
-    renderInlineRunsInto(state.activeEditable, nextRuns);
+    const nextRuns = applyInlineMathToRuns(inlineRunsFromDom(blocksState.getActiveEditable()), mathRange.start, mathRange.end, tex);
+    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns);
     blocksState.clearActiveMath();
     syncActiveEditable();
     updateInlineToolbarState();
@@ -4369,12 +4368,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateInlineToolbarState();
   });
   openMathEditorForNode = (mathNode) => {
-    if (!mathNode || !state.activeEditable || !nodeContains(state.activeEditable, mathNode)) return;
-    const mathRange = textRangeForDomNode(state.activeEditable, mathNode);
+    if (!mathNode || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), mathNode)) return;
+    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), mathNode);
     if (!mathRange) return;
     const tex = mathNode.getAttribute('data-tex') || mathNode.dataset.tex || '';
     blocksState.openInlineMathEditor(mathNode, {
-      editable: state.activeEditable,
+      editable: blocksState.getActiveEditable(),
       start: mathRange.start,
       end: mathRange.end,
       text: tex,
@@ -4391,7 +4390,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateInlineToolbarState();
   };
   openMathEditorForSelection = () => {
-    const editable = state.activeEditable;
+    const editable = blocksState.getActiveEditable();
     if (!editable || !nodeContains(root, editable)) return;
     const existingMath = selectionMathInEditable(editable);
     if (existingMath) {
@@ -4451,14 +4450,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const selectionIndex = blockNodes.indexOf(selectionBlock);
       if (selectionIndex >= 0) {
         blocksState.setActiveIndex(selectionIndex);
-        state.activeEditable = selectionEditable;
-        state.activeSync = editableSyncMap.get(selectionEditable) || state.activeSync;
+        blocksState.setActiveEditing(selectionEditable, editableSyncMap.get(selectionEditable) || blocksState.getActiveSync());
         blockNodes.forEach((el, idx) => {
           el.classList.toggle('is-active', idx === state.activeIndex);
         });
       }
     }
-    const editable = state.activeEditable;
+    const editable = blocksState.getActiveEditable();
     const activeBlock = blockNodes[state.activeIndex] || null;
     const offsets = editable && nodeContains(root, editable) ? getEditableSelectionOffsets(editable) : null;
     const runs = editable && nodeContains(root, editable) ? inlineRunsFromDom(editable) : [];
@@ -4546,20 +4544,20 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       updateInlineToolbarState();
       return;
     }
-    const link = explicitLinkNode && state.activeEditable && nodeContains(state.activeEditable, explicitLinkNode)
+    const link = explicitLinkNode && blocksState.getActiveEditable() && nodeContains(blocksState.getActiveEditable(), explicitLinkNode)
       ? explicitLinkNode
-      : selectionLinkInEditable(state.activeEditable);
+      : selectionLinkInEditable(blocksState.getActiveEditable());
     if (link) {
       blocksState.setActiveLink(link, explicitLinkNode ? { holdUntil: Date.now() + 800 } : {});
     } else if (!linkEditorFocused()) {
       const activeLink = blocksState.getActiveLink();
       const keepClickedLink = activeLink
-        && state.activeEditable
-        && nodeContains(state.activeEditable, activeLink)
+        && blocksState.getActiveEditable()
+        && nodeContains(blocksState.getActiveEditable(), activeLink)
         && Date.now() < blocksState.getActiveLinkHoldUntil();
       if (!keepClickedLink) blocksState.clearActiveLink();
     }
-    const activeLink = blocksState.getActiveLink() && state.activeEditable && nodeContains(state.activeEditable, blocksState.getActiveLink())
+    const activeLink = blocksState.getActiveLink() && blocksState.getActiveEditable() && nodeContains(blocksState.getActiveEditable(), blocksState.getActiveLink())
       ? blocksState.getActiveLink()
       : null;
     if (!activeLink) {
@@ -4589,7 +4587,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   onWindow('resize', refreshLinkEditor);
   onWindow('scroll', refreshLinkEditor, true);
   onDocument('selectionchange', () => {
-    if (!state.activeEditable || !nodeContains(root, state.activeEditable)) return;
+    if (!blocksState.getActiveEditable() || !nodeContains(root, blocksState.getActiveEditable())) return;
     refreshLinkEditor();
   });
 

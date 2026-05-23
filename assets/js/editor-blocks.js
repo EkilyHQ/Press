@@ -3,6 +3,7 @@ import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2806,6 +2807,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     onWindow,
     containsNode: nodeContains
   });
+  const editableSession = createEditorBlocksEditableSession();
 
   root.classList.add('markdown-blocks-shell');
   root.innerHTML = '';
@@ -2820,7 +2822,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   picker.setAttribute('aria-hidden', 'true');
 
   root.append(list, picker);
-  const editableSyncMap = new WeakMap();
 
   const markDirty = blocksState.markDirty;
 
@@ -2887,7 +2888,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       } else {
         placeCaretAtEnd(editable);
       }
-      setActive(index, editable, editableSyncMap.get(editable) || null);
+      setActive(index, editable, editableSession.getSync(editable) || null);
     });
   };
 
@@ -2913,7 +2914,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (options.caretOffset != null) placeCaretAtTextOffset(editable, options.caretOffset);
       else if (options.atEnd) placeCaretAtEnd(editable);
       else placeCaretAtStart(editable);
-      setActive(index, editable, editableSyncMap.get(editable) || null);
+      setActive(index, editable, editableSession.getSync(editable) || null);
     });
   };
 
@@ -3637,7 +3638,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           editable,
           hitTarget: closestElement(editable, '.blocks-list-item') || editable,
           index,
-          sync: editableSyncMap.get(editable) || null
+          sync: editableSession.getSync(editable) || null
         });
       });
       const editables = blockEl.querySelectorAll('.blocks-rich-editable:not(.blocks-list-text), .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea');
@@ -3646,7 +3647,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           editable,
           hitTarget: editable,
           index,
-          sync: editableSyncMap.get(editable) || null
+          sync: editableSession.getSync(editable) || null
         });
       });
     });
@@ -3683,7 +3684,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         blockEl,
         editable,
         index,
-        sync: editableSyncMap.get(editable) || null
+        sync: editableSession.getSync(editable) || null
       };
     }
     return { blockEl, editable: null, index, sync: null };
@@ -4392,7 +4393,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const selectionIndex = blockNodes.indexOf(selectionBlock);
       if (selectionIndex >= 0) {
         blocksState.setActiveIndex(selectionIndex);
-        blocksState.setActiveEditing(selectionEditable, editableSyncMap.get(selectionEditable) || blocksState.getActiveSync());
+        editableSession.bindActiveEditing(blocksState, selectionEditable, blocksState.getActiveSync());
         blockNodes.forEach((el, idx) => {
           el.classList.toggle('is-active', idx === state.activeIndex);
         });
@@ -4690,7 +4691,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     editable.spellcheck = true;
     setPlainContentEditableValue(editable, block.data[key] || '');
     const sync = () => updateFromControl(block, { [key]: editableText(editable) });
-    editableSyncMap.set(editable, sync);
+    editableSession.registerEditable(editable, sync);
     editable.addEventListener('input', () => {
       sync();
       updateInlineToolbarState();
@@ -5109,7 +5110,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     caption.textContent = block.data.alt || '';
     caption.classList.toggle('is-empty', !block.data.alt);
     const syncCaption = () => syncImageAltFromCaption(block, caption);
-    editableSyncMap.set(caption, syncCaption);
+    editableSession.registerEditable(caption, syncCaption);
     caption.addEventListener('input', syncCaption);
     caption.addEventListener('paste', (event) => {
       const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
@@ -5172,7 +5173,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
         updateFromControl(block, next);
       };
-      editableSyncMap.set(input, sync);
+      editableSession.registerEditable(input, sync);
       input.addEventListener('input', sync);
       input.addEventListener('paste', (event) => {
         const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
@@ -5443,7 +5444,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         const next = patchListItem(block.data.items, itemIndex, { text: editableText(span) });
         updateFromControl(block, { items: next });
       };
-      editableSyncMap.set(span, sync);
+      editableSession.registerEditable(span, sync);
       span.addEventListener('input', () => {
         sync();
         updateInlineToolbarState();
@@ -5661,7 +5662,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       renderCodeGutter(gutter, text);
       renderCodeHighlight(highlight, languageLabel, text, block.data.lang || '');
     };
-    editableSyncMap.set(code, sync);
+    editableSession.registerEditable(code, sync);
     code.addEventListener('input', sync);
     code.addEventListener('keydown', (event) => {
       if (removeEmptyBlockWithBackspace(event, block, index, code, sync)) return;
@@ -5745,7 +5746,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     editable.spellcheck = true;
     editable.setAttribute('aria-label', text('virtualBlockAria', 'New block'));
     editable.dataset.placeholder = text('virtualBlockPlaceholder', 'Type / to chose a block');
-    editableSyncMap.set(editable, null);
+    editableSession.registerEditable(editable, null);
     editable.addEventListener('beforeinput', (event) => {
       if (event.isComposing) return;
       if (event.inputType !== 'insertText' || event.data == null) return;
@@ -5826,7 +5827,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       area.value = block.data.text != null ? block.data.text : block.raw || '';
       const sync = () => updateFromControl(block, { text: area.value });
       let sourcePointer = null;
-      editableSyncMap.set(area, sync);
+      editableSession.registerEditable(area, sync);
       area.addEventListener('input', () => {
         sync();
         autoSizeTextarea(area);

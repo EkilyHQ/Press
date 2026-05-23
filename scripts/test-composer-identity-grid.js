@@ -70,6 +70,7 @@ const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
+const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-blocks-editable-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -138,6 +139,7 @@ const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
+const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -251,6 +253,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-menu-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks menu session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-editable-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks editable session boundary'
 );
 
 assert.doesNotMatch(
@@ -1451,8 +1459,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /function selectionEditableInRoot\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSyncMap = new WeakMap\(\);[\s\S]*blocksState\.setActiveEditing\(selectionEditable, editableSyncMap\.get\(selectionEditable\) \|\| blocksState\.getActiveSync\(\)\);[\s\S]*editableSyncMap\.set\(editable, sync\);[\s\S]*editableSyncMap\.set\(span, sync\);/,
+  /function selectionEditableInRoot\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*editableSession\.bindActiveEditing\(blocksState, selectionEditable, blocksState\.getActiveSync\(\)\);[\s\S]*editableSession\.registerEditable\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
   'inline toolbar state should recover the active rich editable directly from the browser selection'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /editableSyncMap/,
+  'blocks editor should not own the editable sync WeakMap directly'
+);
+
+assert.match(
+  editorBlocksEditableSessionSource,
+  /export function createEditorBlocksEditableSession\(\) \{[\s\S]*const editableSyncMap = new WeakMap\(\);[\s\S]*function registerEditable\(editable, sync = null\)[\s\S]*function bindActiveEditing\(blocksState, editable, fallbackSync = null\)/,
+  'editable sync WeakMap should live behind an explicit editable session service'
 );
 
 assert.match(
@@ -1709,7 +1729,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const editableCaretCandidates = \(\) => \{[\s\S]*querySelectorAll\('\.blocks-list-item \.blocks-list-text'\)[\s\S]*hitTarget: closestElement\(editable, '\.blocks-list-item'\) \|\| editable[\s\S]*querySelectorAll\('\.blocks-rich-editable:not\(\.blocks-list-text\), \.blocks-code-preview code\[contenteditable="true"\], \.blocks-image-caption, \.blocks-source-textarea'\)[\s\S]*sync: editableSyncMap\.get\(editable\) \|\| null/,
+  /const editableCaretCandidates = \(\) => \{[\s\S]*querySelectorAll\('\.blocks-list-item \.blocks-list-text'\)[\s\S]*hitTarget: closestElement\(editable, '\.blocks-list-item'\) \|\| editable[\s\S]*querySelectorAll\('\.blocks-rich-editable:not\(\.blocks-list-text\), \.blocks-code-preview code\[contenteditable="true"\], \.blocks-image-caption, \.blocks-source-textarea'\)[\s\S]*sync: editableSession\.getSync\(editable\) \|\| null/,
   'routed caret candidates should include whole-row list item hit targets, rich text, code editors, image captions, and source markdown textareas with sync callbacks'
 );
 
@@ -2003,7 +2023,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /renderCodeGutter\(gutter, block\.data\.text \|\| ''\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, block\.data\.text \|\| '', block\.data\.lang \|\| ''\);[\s\S]*const sync = \(\) => \{[\s\S]*const text = codeEditableText\(code\);[\s\S]*updateFromControl\(block, \{ text \}\);[\s\S]*renderCodeGutter\(gutter, text\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, text, block\.data\.lang \|\| ''\);[\s\S]*editableSyncMap\.set\(code, sync\);[\s\S]*code\.addEventListener\('input', sync\);[\s\S]*code\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*const text = insertCodeEditableTextAtSelection\(code, '\\n'\);[\s\S]*updateFromControl\(block, \{ text \}\);[\s\S]*renderCodeGutter\(gutter, text\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, text, block\.data\.lang \|\| ''\);[\s\S]*code\.addEventListener\('focus', \(\) => setActive\(index, code, sync\)\);[\s\S]*surface\.append\(highlight, code\);[\s\S]*scroll\.append\(gutter, surface\);[\s\S]*pre\.appendChild\(scroll\);[\s\S]*pre\.appendChild\(languageLabel\);/,
+  /renderCodeGutter\(gutter, block\.data\.text \|\| ''\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, block\.data\.text \|\| '', block\.data\.lang \|\| ''\);[\s\S]*const sync = \(\) => \{[\s\S]*const text = codeEditableText\(code\);[\s\S]*updateFromControl\(block, \{ text \}\);[\s\S]*renderCodeGutter\(gutter, text\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, text, block\.data\.lang \|\| ''\);[\s\S]*editableSession\.registerEditable\(code, sync\);[\s\S]*code\.addEventListener\('input', sync\);[\s\S]*code\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*const text = insertCodeEditableTextAtSelection\(code, '\\n'\);[\s\S]*updateFromControl\(block, \{ text \}\);[\s\S]*renderCodeGutter\(gutter, text\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, text, block\.data\.lang \|\| ''\);[\s\S]*code\.addEventListener\('focus', \(\) => setActive\(index, code, sync\)\);[\s\S]*surface\.append\(highlight, code\);[\s\S]*scroll\.append\(gutter, surface\);[\s\S]*pre\.appendChild\(scroll\);[\s\S]*pre\.appendChild\(languageLabel\);/,
   'code block editing surfaces should sync text, gutter, highlight, and badge without rewriting the editable code node'
 );
 
@@ -2087,7 +2107,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const sync = \(\) => updateFromControl\(block, \{ text: area\.value \}\);[\s\S]*editableSyncMap\.set\(area, sync\);[\s\S]*area\.addEventListener\('focus', \(\) => \{[\s\S]*setActive\(index, area, sync\);/,
+  /const sync = \(\) => updateFromControl\(block, \{ text: area\.value \}\);[\s\S]*editableSession\.registerEditable\(area, sync\);[\s\S]*area\.addEventListener\('focus', \(\) => \{[\s\S]*setActive\(index, area, sync\);/,
   'source markdown textareas should register active sync for routed caret focus'
 );
 

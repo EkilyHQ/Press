@@ -161,6 +161,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-layout-session.js
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-body-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks body session code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-state.js" "${entries_file}"; then
   echo "expected package to include editor blocks state controller code" >&2
   exit 1

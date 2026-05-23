@@ -1,6 +1,7 @@
 import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksLayoutSession } from './editor-blocks-layout-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksBodySession } from './editor-blocks-body-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksHeadSession } from './editor-blocks-head-session.js?v=press-system-v3.4.50';
@@ -32,7 +33,6 @@ import {
   editableListItems,
   editableTableData,
   effectiveListItemType,
-  escapeHtml,
   inlineMarksAtOffset,
   inlineRangeAnyMarked,
   inlineRangeFullyMarked,
@@ -553,10 +553,6 @@ function selectionMathInEditable(editable, selectionSession = null) {
   }
 }
 
-function escapeAttribute(value) {
-  return escapeHtml(value).replace(/`/g, '&#096;');
-}
-
 function editableTextOffsetForDomPosition(root, container, offset, caretSession = null) {
   return normalizeCaretSession(caretSession).textOffsetForDomPosition(root, container, offset);
 }
@@ -657,6 +653,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   let focusSession = null;
   let pointerSession = null;
   let activeSession = null;
+  let bodySession = null;
 
   const focusBlockPrimaryEditable = (block, caretOffset = null) => {
     focusSession?.focusBlockPrimaryEditable(block, caretOffset);
@@ -731,6 +728,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
   const moveBlock = (index, direction) => {
     layoutSession?.moveBlock(index, direction);
+  };
+
+  const replaceAdjacentBlockElements = (index, targetIndex) => {
+    return bodySession?.replaceAdjacentBlockElements(index, targetIndex) || false;
   };
 
   const closeBlockActionMenu = (restoreFocus = false) => {
@@ -1287,20 +1288,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     clearNativeSelection
   });
 
-  const renderHeadingBlock = (body, block, index) => {
-    const level = Math.max(1, Math.min(6, Number(block.data.level) || 2));
-    const heading = createRichEditable(`h${level}`, block, 'text', `blocks-rich-editable blocks-heading-text blocks-heading-h${level}`, index);
-    body.appendChild(heading);
-  };
-
-  const renderImageBlock = (body, block, index) => {
-    imageSession?.renderBlock(body, block, index);
-  };
-
-  const renderTableBlock = (body, block, index) => {
-    tableSession?.renderBlock(body, block, index);
-  };
-
   const createMathEditButton = (block, index) => {
     const edit = button(text('editMath', 'Edit math'), 'blocks-btn blocks-math-edit');
     edit.title = text('editMath', 'Edit math');
@@ -1419,156 +1406,34 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     deleteBlockAt
   });
 
-  const renderListBlock = (body, block, index) => {
-    listSession?.renderBlock(body, block, index);
-  };
-
-  const renderCodeBlock = (body, block, index) => {
-    codeSession?.renderBlock(body, block, index);
-  };
-
-  const renderSourceBlock = (body, block, index) => {
-    sourceSession?.renderBlock(body, block, index);
-  };
-
-  const renderMathBlock = (body, block, index) => {
-    const preview = document.createElement('div');
-    preview.className = 'blocks-math-preview';
-    const math = document.createElement('div');
-    math.className = 'press-math press-math-display blocks-display-math';
-    math.dataset.tex = block.data.tex || '';
-    math.setAttribute('data-tex', block.data.tex || '');
-    math.textContent = block.data.tex || text('math', 'Math');
-    preview.appendChild(math);
-    preview.addEventListener('pointerdown', (event) => {
-      if (!event || event.button !== 0 || event.isPrimary === false) return;
-      event.preventDefault();
-      event.stopPropagation();
-      activateNonTextBlockFromPointer(index, closestElement(preview, '.blocks-block-math'));
-    });
-    preview.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setActive(index);
-      openMathEditorForBlock(block, closestElement(preview, '.blocks-block-math'));
-    });
-    body.appendChild(preview);
-    try { renderPressMath(preview); } catch (_) {}
-  };
-
-  const renderCardBlock = (body, block, index) => {
-    const preview = document.createElement('div');
-    preview.className = 'blocks-card-preview';
-    const href = `?id=${encodeURIComponent(String(block.data.location || '').trim())}`;
-    const label = String(block.data.label || block.data.location || text('articleCard', 'Article Card')).trim() || text('articleCard', 'Article Card');
-    preview.innerHTML = `<span class="blocks-card-source"><a href="${escapeAttribute(href)}" title="card">${escapeHtml(label)}</a></span>`;
-    preview.addEventListener('pointerdown', (event) => {
-      if (!event || event.button !== 0 || event.isPrimary === false) return;
-      event.preventDefault();
-      event.stopPropagation();
-      activateNonTextBlockFromPointer(index, closestElement(preview, '.blocks-block-card'));
-    });
-    preview.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setActive(index);
-    });
-    body.appendChild(preview);
-    hydrateCard(preview);
-    preview.querySelectorAll('a[href]').forEach((link) => {
-      link.tabIndex = -1;
-      link.setAttribute('aria-disabled', 'true');
-    });
-  };
-
-  const renderBlankBlock = (body, block, index) => {
-    commandSession?.renderBlankBlock(body, block, index);
-  };
-
-  const renderBlockBody = (block, index) => {
-    const body = document.createElement('div');
-    body.className = 'blocks-block-body blocks-visual-body';
-    if (block.type === 'blank') {
-      renderBlankBlock(body, block, index);
-    } else if (block.type === 'heading') {
-      renderHeadingBlock(body, block, index);
-    } else if (block.type === 'paragraph') {
-      body.appendChild(createRichEditable('p', block, 'text', 'blocks-rich-editable blocks-paragraph-text', index));
-    } else if (block.type === 'quote') {
-      const quote = document.createElement('blockquote');
-      quote.className = 'blocks-quote-preview';
-      quote.appendChild(createRichEditable('p', block, 'text', 'blocks-rich-editable blocks-quote-text', index));
-      body.appendChild(quote);
-    } else if (block.type === 'image') {
-      renderImageBlock(body, block, index);
-    } else if (block.type === 'table') {
-      renderTableBlock(body, block, index);
-    } else if (block.type === 'list') {
-      renderListBlock(body, block, index);
-    } else if (block.type === 'code') {
-      renderCodeBlock(body, block, index);
-    } else if (block.type === 'math') {
-      renderMathBlock(body, block, index);
-    } else if (block.type === 'card') {
-      renderCardBlock(body, block, index);
-    } else if (block.type === 'source') {
-      renderSourceBlock(body, block, index);
-    } else {
-      renderSourceBlock(body, block, index);
+  bodySession = createEditorBlocksBodySession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    state,
+    list,
+    text,
+    headSession,
+    blockElements,
+    closestElement,
+    createRichEditable,
+    renderMath: renderPressMath,
+    hydrateCard,
+    setActive,
+    activateNonTextBlockFromPointer,
+    openMathEditorForBlock,
+    shouldSuppressRoutedBlockContainerClick,
+    removeEmptyBlockWithBackspace,
+    handleCrossBlockArrowNavigation,
+    renderers: {
+      blank: (body, block, index) => commandSession?.renderBlankBlock(body, block, index),
+      image: (body, block, index) => imageSession?.renderBlock(body, block, index),
+      table: (body, block, index) => tableSession?.renderBlock(body, block, index),
+      list: (body, block, index) => listSession?.renderBlock(body, block, index),
+      code: (body, block, index) => codeSession?.renderBlock(body, block, index),
+      source: (body, block, index) => sourceSession?.renderBlock(body, block, index)
     }
-    body.addEventListener('click', (event) => {
-      if (shouldSuppressRoutedBlockContainerClick()) {
-        event.stopPropagation();
-        return;
-      }
-      setActive(index);
-    });
-    return body;
-  };
+  });
 
-  const renderBlockElement = (block, index) => {
-    const item = document.createElement('section');
-    item.className = `blocks-block blocks-block-${block.type}`;
-    if (index === state.activeIndex) item.classList.add('is-active');
-    item.dataset.type = block.type;
-    item.dataset.blockId = block.id;
-    item.tabIndex = -1;
-    const head = headSession.createBlockHead({
-      block,
-      index,
-      blockCount: state.blocks.length,
-    });
-    item.append(head, renderBlockBody(block, index));
-    item.addEventListener('click', (event) => {
-      if (shouldSuppressRoutedBlockContainerClick()) return;
-      if (closestElement(event.target, '.blocks-block-head')) return;
-      setActive(index);
-    });
-    item.addEventListener('focusin', () => setActive(index));
-    item.addEventListener('keydown', (event) => {
-      if (event.target !== item) return;
-      if (removeEmptyBlockWithBackspace(event, block, index)) return;
-      handleCrossBlockArrowNavigation(event, index);
-    });
-    return item;
-  };
-
-  const replaceAdjacentBlockElements = (index, targetIndex) => {
-    const firstIndex = Math.min(index, targetIndex);
-    const secondIndex = Math.max(index, targetIndex);
-    const nodes = blockElements();
-    const firstOld = nodes[firstIndex];
-    const secondOld = nodes[secondIndex];
-    if (!firstOld || !secondOld || !firstOld.parentNode || !secondOld.parentNode) return false;
-    const firstNew = renderBlockElement(state.blocks[firstIndex], firstIndex);
-    const secondNew = renderBlockElement(state.blocks[secondIndex], secondIndex);
-    list.insertBefore(firstNew, firstOld);
-    firstOld.remove();
-    list.insertBefore(secondNew, secondOld);
-    secondOld.remove();
-    setActive(state.activeIndex);
-    return true;
-  };
+  const renderBlockElement = (block, index) => bodySession.renderBlockElement(block, index);
 
   function render() {
     closeBlockActionMenu(false);

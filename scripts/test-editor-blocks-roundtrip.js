@@ -41,6 +41,7 @@ const run = (name, fn) => {
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
 const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
+const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
 const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
@@ -591,7 +592,7 @@ run('cross-block arrows focus non-text block containers and continue from them',
     'non-text navigation targets should focus the block container'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBodySessionSource,
     /if \(event\.target !== item\) return;[\s\S]*handleCrossBlockArrowNavigation\(event, index\);/,
     'focused non-text block containers should continue cross-block arrow navigation'
   );
@@ -728,8 +729,8 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
     'cross-block target discovery should respect edge direction for table cells'
   );
   assert.match(
-    editorBlocksSource,
-    /const head = headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: state\.blocks\.length,[\s\S]*\}\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
+    editorBlocksBodySessionSource,
+    /headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: Array\.isArray\(state\.blocks\) \? state\.blocks\.length : 0[\s\S]*\}\)[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
     'blank blocks should use the normal floating block toolbar'
   );
   assert.match(

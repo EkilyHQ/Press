@@ -70,6 +70,7 @@ const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
+const editorBlocksBodySessionPath = resolve(here, '../assets/js/editor-blocks-body-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
 const editorBlocksHeadSessionPath = resolve(here, '../assets/js/editor-blocks-head-session.js');
@@ -159,6 +160,7 @@ const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
+const editorBlocksBodySessionSource = readFileSync(editorBlocksBodySessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(editorBlocksHeadSessionPath, 'utf8');
@@ -299,6 +301,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-layout-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks layout session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-body-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks body session boundary'
 );
 
 assert.match(
@@ -1591,9 +1599,15 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksCommandSessionSource}`,
-  /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*commandSession\?\.renderBlankBlock\(body, block, index\);[\s\S]*const renderBlankBlock = \(body, block, index\) => \{[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*isPlainEnter\(event\)[\s\S]*prevent\(event\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*removeEmptyBlockWithBackspace/,
+  editorBlocksCommandSessionSource,
+  /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*isPlainEnter\(event\)[\s\S]*prevent\(event\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*removeEmptyBlockWithBackspace/,
   'blank block Enter should be handled inside the command session and create another real blank before browser input can turn the blank into a paragraph'
+);
+
+assert.match(
+  editorBlocksSource,
+  /blank: \(body, block, index\) => commandSession\?\.renderBlankBlock\(body, block, index\)/,
+  'blocks root should route blank body rendering through the command session renderer passed to the body session'
 );
 
 assert.doesNotMatch(
@@ -1942,8 +1956,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /item\.addEventListener\('click', \(event\) => \{[\s\S]*shouldSuppressRoutedBlockContainerClick\(\)[\s\S]*closestElement\(event\.target, '\.blocks-block-head'\)[\s\S]*setActive\(index\);[\s\S]*\}\);[\s\S]*item\.addEventListener\('focusin', \(\) => setActive\(index\)\);/,
+  editorBlocksBodySessionSource,
+  /item\.addEventListener\('click', \(event\) => \{[\s\S]*shouldSuppressRoutedBlockContainerClick\(\)[\s\S]*closest\(event\.target, '\.blocks-block-head'\)[\s\S]*setActive\(index\);[\s\S]*\}\);[\s\S]*item\.addEventListener\('focusin', \(\) => setActive\(index\)\);/,
   'block section container clicks should select the block without hijacking toolbar action clicks or routed carets'
 );
 
@@ -2002,15 +2016,15 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBodySessionSource,
   /const replaceAdjacentBlockElements = \(index, targetIndex\) => \{[\s\S]*const firstIndex = Math\.min\(index, targetIndex\);[\s\S]*const secondIndex = Math\.max\(index, targetIndex\);[\s\S]*const firstNew = renderBlockElement\(state\.blocks\[firstIndex\], firstIndex\);[\s\S]*const secondNew = renderBlockElement\(state\.blocks\[secondIndex\], secondIndex\);[\s\S]*firstOld\.remove\(\);[\s\S]*secondOld\.remove\(\);[\s\S]*setActive\(state\.activeIndex\);[\s\S]*return true;/,
-  'adjacent move should avoid a full list render by replacing only the two swapped block nodes'
+  'body session should let adjacent move avoid a full list render by replacing only the two swapped block nodes'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const item = document\.createElement\('section'\);[\s\S]*item\.className = `blocks-block blocks-block-\$\{block\.type\}`;[\s\S]*if \(index === state\.activeIndex\) item\.classList\.add\('is-active'\);[\s\S]*item\.dataset\.blockId = block\.id;/,
-  'active block should be marked during node creation so the toolbar does not fade out and back in after reorder render'
+  editorBlocksBodySessionSource,
+  /const renderBlockElement = \(block, index\) => \{[\s\S]*const item = createElement\(doc, 'section'\);[\s\S]*item\.className = `blocks-block blocks-block-\$\{type\}`;[\s\S]*if \(index === state\.activeIndex\) item\.classList\.add\('is-active'\);[\s\S]*item\.dataset\.blockId = block && block\.id \? block\.id : '';/,
+  'body session should mark the active block during node creation so the toolbar does not fade out and back in after reorder render'
 );
 
 assert.match(
@@ -2068,9 +2082,21 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksBodySessionSource,
+  /headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: Array\.isArray\(state\.blocks\) \? state\.blocks\.length : 0[\s\S]*\}\)[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
+  'body session should mount a block head produced by the head session'
+);
+
+assert.match(
   editorBlocksSource,
-  /const head = headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: state\.blocks\.length,[\s\S]*\}\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
-  'block element rendering should mount a block head produced by the head session'
+  /bodySession = createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderPressMath,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => commandSession\?\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\);/,
+  'blocks editor root should compose block body rendering through the body session boundary'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const renderBlockBody =|const renderMathBlock =|const renderCardBlock =|const renderHeadingBlock =/,
+  'blocks editor root should not own block body DOM rendering'
 );
 
 assert.doesNotMatch(
@@ -2200,7 +2226,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBodySessionSource,
   /body\.addEventListener\('click', \(event\) => \{[\s\S]*shouldSuppressRoutedBlockContainerClick\(\)[\s\S]*event\.stopPropagation\(\);[\s\S]*setActive\(index\);/,
   'block body click selection should not override a caret that was just routed on pointerdown'
 );
@@ -2332,8 +2358,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const heading = createRichEditable\(`h\$\{level\}`, block, 'text', `blocks-rich-editable blocks-heading-text/,
+  editorBlocksBodySessionSource,
+  /createRichEditable\?\.\(`h\$\{level\}`, block, 'text', `blocks-rich-editable blocks-heading-text/,
   'heading blocks should render as real heading elements in the visual canvas'
 );
 
@@ -2476,8 +2502,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const quote = document\.createElement\('blockquote'\);[\s\S]*blocks-quote-preview/,
+  editorBlocksBodySessionSource,
+  /const quote = createElement\(doc, 'blockquote'\);[\s\S]*blocks-quote-preview/,
   'quote blocks should render as blockquote elements'
 );
 
@@ -2590,8 +2616,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const renderSourceBlock = \(body, block, index\) => \{[\s\S]*sourceSession\?\.renderBlock\(body, block, index\);[\s\S]*\};[\s\S]*if \(block\.type === 'source'\) \{[\s\S]*renderSourceBlock\(body, block, index\);/,
+  `${editorBlocksSource}\n${editorBlocksBodySessionSource}`,
+  /source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*callRenderer\(renderers, 'source', body, block, index\)/,
   'source block body rendering should delegate to the source session'
 );
 
@@ -2608,8 +2634,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const renderListBlock = \(body, block, index\) => \{[\s\S]*listSession\?\.renderBlock\(body, block, index\);[\s\S]*\};/,
+  `${editorBlocksSource}\n${editorBlocksBodySessionSource}`,
+  /list: \(body, block, index\) => listSession\?\.renderBlock\(body, block, index\)[\s\S]*type === 'list'[\s\S]*callRenderer\(renderers, 'list', body, block, index\)/,
   'list block body rendering should delegate to the list session'
 );
 
@@ -2644,20 +2670,20 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /preview\.innerHTML = `<span class="blocks-card-source"><a href="\$\{escapeAttribute\(href\)\}" title="card">[\s\S]*hydrateCard\(preview\);[\s\S]*link\.tabIndex = -1;/,
-  'article-card blocks should keep the preview wrapper while rendering through the card hydration path'
+  editorBlocksBodySessionSource,
+  /const renderCardBlock = \(body, block, index\) => \{[\s\S]*preview\.className = 'blocks-card-preview';[\s\S]*const span = createElement\(doc, 'span'\);[\s\S]*span\.className = 'blocks-card-source';[\s\S]*const link = createElement\(doc, 'a'\);[\s\S]*link\.setAttribute\('href', href\);[\s\S]*link\.setAttribute\('title', 'card'\);[\s\S]*link\.textContent = label;[\s\S]*span\.appendChild\(link\);[\s\S]*preview\.appendChild\(span\);[\s\S]*hydrateCard\(preview\);[\s\S]*item\.tabIndex = -1;/,
+  'article-card blocks should keep the preview wrapper while rendering through the body-session card hydration path'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBodySessionSource,
   /preview\.addEventListener\('click', \(event\) => \{[\s\S]*event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*setActive\(index\);/,
   'article-card block clicks should select the block instead of following the hydrated link'
 );
 
 assert.match(
-  editorBlocksSource,
-  /preview\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*activateNonTextBlockFromPointer\(index, closestElement\(preview, '\.blocks-block-card'\)\);/,
+  editorBlocksBodySessionSource,
+  /preview\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*event\.preventDefault\(\);[\s\S]*event\.stopPropagation\(\);[\s\S]*activateNonTextBlockFromPointer\(index, closest\(preview, '\.blocks-block-card'\)\);/,
   'article-card pointerdowns should clear stale text selection and select the card block before click recovery runs'
 );
 

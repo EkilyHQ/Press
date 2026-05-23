@@ -37,6 +37,7 @@ const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
 const editorBlocksModel = read('assets/js/editor-blocks-model.js');
+const editorBlocksBodySession = read('assets/js/editor-blocks-body-session.js');
 const editorBlocksHeadSession = read('assets/js/editor-blocks-head-session.js');
 const editorBlocksActiveSession = read('assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSession = read('assets/js/editor-blocks-inline-toolbar-session.js');
@@ -268,7 +269,8 @@ assert.match(nativeCss, /\.protected-post-excerpt[\s\S]*color: var\(--text\);/, 
 assert.match(editorBlocksModel, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*\]\);/, 'block model should register a visual table block type');
 assert.match(editorBlocksModel, /function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'block model should parse supported pipe tables into structured table data');
 assert.match(editorBlocksTableSession, /const renderBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'table session should render editable table cell inputs with alignment hooks');
-assert.match(editorBlocks, /const renderTableBlock = \(body, block, index\) => \{[\s\S]*tableSession\?\.renderBlock\(body, block, index\);[\s\S]*\};/, 'block editor root should delegate table rendering through the table session boundary');
+assert.match(editorBlocks, /table: \(body, block, index\) => tableSession\?\.renderBlock\(body, block, index\)/, 'block editor root should pass table rendering through the body-session renderer map');
+assert.match(editorBlocksBodySession, /type === 'table'[\s\S]*callRenderer\(renderers, 'table', body, block, index\)/, 'block body session should delegate visual table bodies through the table session boundary');
 assert.match(editorBlocksTableSession, /const createControls = \(block, index\) => \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/, 'table session should expose table row, column, and alignment controls');
 assert.match(editorBlocksHeadSession, /if \(block\.type === 'table'\) appendIf\(head, tableSession\?\.createControls\?\.\(block, index\)\);/, 'block head session should delegate table toolbar controls through the table session boundary');
 assert.match(editorBlocksActiveSession, /syncActiveTableAlignmentFromEditable\(\s*activeBlock,\s*editable \|\| \(hasBlocksState\('getActiveEditable'\) \? blocksState\.getActiveEditable\(\) : null\) \|\| activeElementFrom\(runtime\)\s*\);/, 'active block selection should sync table alignment from the focused table cell');

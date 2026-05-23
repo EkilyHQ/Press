@@ -45,6 +45,7 @@ import {
   COMPOSER_RUNTIME_EVENTS,
   createComposerRuntime
 } from './composer-runtime.js?v=press-system-v3.4.50';
+import { createComposerServiceRegistry } from './composer-service-registry.js?v=press-system-v3.4.50';
 import { createComposerPublishService } from './composer-publish-service.js?v=press-system-v3.4.50';
 import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.50';
 import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.50';
@@ -367,13 +368,7 @@ const composerPublishStateService = createComposerPublishStateService({
   updateUnsyncedSummary,
   registerExternalStagingProviders: (registry) => composerSystemThemeBridge.registerStagingProviders(registry)
 });
-let markdownLoader = null;
-let markdownActionsUi = null;
-let markdownDraftController = null;
-let markdownSessionController = null;
-let markdownWorkspaceController = null;
-let modeController = null;
-let unsyncedSummaryController = null;
+const composerServices = createComposerServiceRegistry();
 const editorSessionStateStore = createEditorSessionStateStore({
   storage: editorRuntime.storage,
   scopeKey: scopedEditorStorageKey,
@@ -392,7 +387,7 @@ try {
     expandedEditorTreeNodeIds.add('system');
   }
 } catch (_) {}
-markdownDraftController = createComposerMarkdownDraftController({
+composerServices.setMarkdownDraftController(createComposerMarkdownDraftController({
   markdownDraftStore,
   normalizeRelPath,
   normalizeAssetDescriptor,
@@ -419,8 +414,8 @@ markdownDraftController = createComposerMarkdownDraftController({
   consoleRef: console,
   setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
   clearTimeoutRef: (id) => window.clearTimeout(id)
-});
-markdownLoader = createComposerMarkdownLoader({
+}));
+composerServices.setMarkdownLoader(createComposerMarkdownLoader({
   getContentRootSafe,
   normalizeRelPath,
   normalizeMarkdownContent,
@@ -441,8 +436,8 @@ markdownLoader = createComposerMarkdownLoader({
   draftProtectionMessage: () => t('editor.composer.markdown.protection.draftMessage'),
   openProtectionTitle: () => t('editor.composer.markdown.protection.openTitle'),
   openProtectionMessage: () => t('editor.composer.markdown.protection.openMessage')
-});
-markdownActionsUi = createComposerMarkdownActionsUi({
+}));
+composerServices.setMarkdownActionsUi(createComposerMarkdownActionsUi({
   documentRef: document,
   translate: t,
   getCurrentMode: () => getCurrentComposerMode(),
@@ -452,7 +447,7 @@ markdownActionsUi = createComposerMarkdownActionsUi({
   getManualMarkdownSaveState,
   isMarkdownTabProtected,
   setButtonLabel
-});
+}));
 const remoteSyncController = createComposerRemoteSyncController({
   t,
   fetchContent: (url, options) => fetch(url, options),
@@ -609,7 +604,7 @@ const {
   setEditorContentScrollByKey,
   getEditorContentScrollSnapshot
 } = editorShell;
-markdownSessionController = createComposerMarkdownSessionController({
+composerServices.setMarkdownSessionController(createComposerMarkdownSessionController({
   editorStateVersion: EDITOR_STATE_VERSION,
   editorSessionStateStore,
   normalizeRelPath,
@@ -648,8 +643,8 @@ markdownSessionController = createComposerMarkdownSessionController({
   detachPrimaryEditorListeners,
   updateMarkdownActionsForTab,
   updateComposerMarkdownDraftIndicators
-});
-markdownWorkspaceController = createComposerMarkdownWorkspaceController({
+}));
+composerServices.setMarkdownWorkspaceController(createComposerMarkdownWorkspaceController({
   getPrimaryEditorApi: () => editorRuntime.globals.getPrimaryEditorApi(),
   getMarkdownSessionController,
   getMarkdownActionsUi,
@@ -661,8 +656,8 @@ markdownWorkspaceController = createComposerMarkdownWorkspaceController({
   updateDynamicTabDirtyState,
   inferMarkdownSourceFromPath,
   buildCurrentFileBreadcrumb
-});
-modeController = createComposerModeController({
+}));
+composerServices.setModeController(createComposerModeController({
   documentRef: document,
   windowRef: window,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
@@ -695,10 +690,10 @@ modeController = createComposerModeController({
   loadDynamicTabContent,
   alertRef: (message) => alert(message),
   consoleRef: console
-});
+}));
 
 function getCurrentComposerMode() {
-  return modeController ? modeController.getCurrentMode() : null;
+  return composerServices.getCurrentMode();
 }
 
 function shouldPreserveEditorStructureForMode(mode) {
@@ -806,7 +801,7 @@ const {
   renderComposerInlineSummary,
   renderOrderStatsChips
 } = composerDiffUi;
-unsyncedSummaryController = createComposerUnsyncedSummaryController({
+composerServices.setUnsyncedSummaryController(createComposerUnsyncedSummaryController({
   documentRef: document,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   normalizeRelPath,
@@ -829,7 +824,7 @@ unsyncedSummaryController = createComposerUnsyncedSummaryController({
   shouldPreserveEditorStructure: () => shouldPreserveEditorStructureForMode(getCurrentComposerMode()),
   refreshComposerInlineMeta,
   scheduleSyncCommitPanelRefresh
-});
+}));
 
 function getActiveComposerFile() {
   if (activeComposerFile === 'tabs') return 'tabs';
@@ -946,8 +941,7 @@ async function prepareMarkdownForProtectedStorage(tab, markdown, options = {}) {
 }
 
 function getMarkdownDraftController() {
-  if (!markdownDraftController) throw new Error('Markdown draft controller is not initialized');
-  return markdownDraftController;
+  return composerServices.getMarkdownDraftController();
 }
 
 function readMarkdownDraftStore() {
@@ -1173,8 +1167,7 @@ function refreshEditorLanguageUi() {
 editorRuntime.events.onDocument('press-editor-language-applied', refreshEditorLanguageUi);
 
 function getUnsyncedSummaryController() {
-  if (!unsyncedSummaryController) throw new Error('Unsynced summary controller is not initialized');
-  return unsyncedSummaryController;
+  return composerServices.getUnsyncedSummaryController();
 }
 
 function collectUnsyncedMarkdownEntries() {
@@ -1508,23 +1501,19 @@ const {
 } = composerYamlActions;
 
 function getMarkdownSessionController() {
-  if (!markdownSessionController) throw new Error('Markdown session controller is not initialized');
-  return markdownSessionController;
+  return composerServices.getMarkdownSessionController();
 }
 
 function getMarkdownActionsUi() {
-  if (!markdownActionsUi) throw new Error('Markdown actions UI is not initialized');
-  return markdownActionsUi;
+  return composerServices.getMarkdownActionsUi();
 }
 
 function getMarkdownLoader() {
-  if (!markdownLoader) throw new Error('Markdown loader is not initialized');
-  return markdownLoader;
+  return composerServices.getMarkdownLoader();
 }
 
 function getMarkdownWorkspaceController() {
-  if (!markdownWorkspaceController) throw new Error('Markdown workspace controller is not initialized');
-  return markdownWorkspaceController;
+  return composerServices.getMarkdownWorkspaceController();
 }
 
 function getPrimaryEditorApi() { return getMarkdownWorkspaceController().getPrimaryEditorApi(); }
@@ -1572,8 +1561,7 @@ function getTrackedPublishContentRoot() {
 }
 
 function applyMode(mode, options = {}) {
-  if (!modeController) return;
-  modeController.applyMode(mode, options);
+  composerServices.applyMode(mode, options);
 }
 
 function getInitialComposerFile() {

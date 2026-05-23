@@ -46,6 +46,7 @@ const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-s
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
 const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js');
 const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
+const composerServiceRegistryPath = resolve(here, '../assets/js/composer-service-registry.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
@@ -156,6 +157,7 @@ const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
 const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
 const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
+const composerServiceRegistrySource = readFileSync(composerServiceRegistryPath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
 const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
@@ -879,8 +881,38 @@ assert.match(
 
 assert.match(
   source,
-  /function applyMode\(mode, options = \{\}\) \{\s*if \(!modeController\) return;\s*modeController\.applyMode\(mode, options\);\s*\}/,
-  'composer applyMode should delegate to the extracted mode controller'
+  /from '\.\/composer-service-registry\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the explicit composer service registry boundary'
+);
+
+assert.match(
+  source,
+  /const composerServices = createComposerServiceRegistry\(\);[\s\S]*composerServices\.setMarkdownDraftController\(createComposerMarkdownDraftController\(\{[\s\S]*composerServices\.setMarkdownLoader\(createComposerMarkdownLoader\(\{[\s\S]*composerServices\.setMarkdownActionsUi\(createComposerMarkdownActionsUi\(\{[\s\S]*composerServices\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServices\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*composerServices\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
+  'composer should register late-bound controllers through the explicit composer service registry'
+);
+
+assert.doesNotMatch(
+  source,
+  /let\s+(?:markdownLoader|markdownActionsUi|markdownDraftController|markdownSessionController|markdownWorkspaceController|modeController|unsyncedSummaryController)\s*=|(?:markdownLoader|markdownActionsUi|markdownDraftController|markdownSessionController|markdownWorkspaceController|modeController|unsyncedSummaryController)\s*=\s*create/,
+  'composer should not own ad hoc late-bound controller slots at the root'
+);
+
+assert.match(
+  composerServiceRegistrySource,
+  /const SERVICE_NAMES = \[[\s\S]*'markdownActionsUi'[\s\S]*'markdownDraftController'[\s\S]*'markdownLoader'[\s\S]*'markdownSessionController'[\s\S]*'markdownWorkspaceController'[\s\S]*'modeController'[\s\S]*'unsyncedSummaryController'[\s\S]*\];/,
+  'composer service registry should name every allowed late-bound composer dependency'
+);
+
+assert.match(
+  composerServiceRegistrySource,
+  /getCurrentMode: \(\) => call\('modeController', 'getCurrentMode', null\),[\s\S]*getMarkdownDraftController: \(\) => requireService\('markdownDraftController', 'Markdown draft controller'\),[\s\S]*getMarkdownWorkspaceController: \(\) => requireService\('markdownWorkspaceController', 'Markdown workspace controller'\),[\s\S]*setModeController: \(service\) => set\('modeController', service\),/,
+  'composer service registry should expose explicit service getters and setters instead of anonymous root slots'
+);
+
+assert.match(
+  source,
+  /function applyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}/,
+  'composer applyMode should delegate through the composer service registry'
 );
 
 assert.match(

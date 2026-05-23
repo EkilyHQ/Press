@@ -381,6 +381,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-publish-state-service.
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-service-registry.js" "${entries_file}"; then
+  echo "expected package to include composer service registry code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-bootstrap.js" "${entries_file}"; then
   echo "expected package to include composer bootstrap and workspace assembly code" >&2
   exit 1

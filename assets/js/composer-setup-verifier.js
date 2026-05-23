@@ -28,13 +28,19 @@ export function createComposerSetupVerifier(options = {}) {
   const getMarkdownPushLabel = typeof options.getMarkdownPushLabel === 'function'
     ? options.getMarkdownPushLabel
     : () => t('editor.composer.verify');
+  const runtime = options.runtime || null;
+  const readContentRoot = typeof options.getContentRoot === 'function'
+    ? options.getContentRoot
+    : (runtime && typeof runtime.getContentRoot === 'function' ? runtime.getContentRoot : () => {
+        const value = windowRef && windowRef.__press_content_root;
+        return value || 'wwwroot';
+      });
   const fetchRef = typeof options.fetchRef === 'function'
     ? options.fetchRef
     : (windowRef && typeof windowRef.fetch === 'function' ? windowRef.fetch.bind(windowRef) : async () => ({ ok: false, text: async () => '' }));
 
   function getContentRoot() {
-    const fromOption = typeof options.getContentRoot === 'function' ? options.getContentRoot() : '';
-    const value = fromOption || (windowRef && windowRef.__press_content_root) || 'wwwroot';
+    const value = readContentRoot() || 'wwwroot';
     return String(value || 'wwwroot').replace(/[\\]+/g, '/').replace(/\/?$/, '');
   }
 

@@ -136,6 +136,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-runtime-styles.js" "${
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-runtime.js" "${entries_file}"; then
+  echo "expected package to include composer runtime boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-app-runtime.js" "${entries_file}"; then
   echo "expected package to include explicit editor app runtime code" >&2
   exit 1

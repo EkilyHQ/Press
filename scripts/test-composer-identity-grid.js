@@ -43,6 +43,7 @@ const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynce
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
 const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js');
+const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
@@ -150,6 +151,7 @@ const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
 const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
+const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
 const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
@@ -938,9 +940,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerRuntimeSource,
   /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'/,
-  'composer should cache-bust the explicit editor app runtime boundary'
+  'composer runtime should cache-bust the shared editor app runtime boundary'
 );
 
 assert.match(
@@ -1401,7 +1403,13 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const editorRuntime = createEditorAppRuntime\(\{[\s\S]*windowRef: window,[\s\S]*documentRef: document[\s\S]*\}\);[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
+  /from '\.\/composer-runtime\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the explicit composer runtime boundary'
+);
+
+assert.match(
+  source,
+  /const editorRuntime = createComposerRuntime\(\{[\s\S]*windowRef: window,[\s\S]*documentRef: document[\s\S]*\}\);[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
   'composer should create an explicit runtime and state store instead of owning root mutable state directly'
 );
 
@@ -1421,6 +1429,12 @@ assert.match(
   editorAppRuntimeSource,
   /export function createEditorStateStore\([\s\S]*getStateSlice\(kind\)[\s\S]*setStateSlice\(kind, value\)[\s\S]*getRemoteBaseline\(kind\)[\s\S]*setRemoteBaseline\(kind, value\)[\s\S]*getDiff\(kind\)[\s\S]*setDiff\(kind, value\)[\s\S]*export function createEditorAppRuntime/,
   'editor app runtime should expose explicit state, baseline, diff, storage, event, and global-access boundaries'
+);
+
+assert.match(
+  composerRuntimeSource,
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)/,
+  'composer runtime should own composer-specific DOM ready, content-root, site-repo, and app-event boundaries'
 );
 
 assert.doesNotMatch(
@@ -1473,8 +1487,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerBootstrapSource,
-  /export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*restoreDynamicEditorState[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*documentRef\.addEventListener\('DOMContentLoaded'/,
-  'bootstrap module should own DOM startup, Markdown toolbar binding, initial config loading, and workspace assembly'
+  /export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*ensureSiteRepo\(\)[\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*getLocation\(\)[\s\S]*restoreDynamicEditorState[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*options\.onDocumentReady\(handler\)/,
+  'bootstrap module should own startup, Markdown toolbar binding, initial config loading, and workspace assembly through runtime callbacks'
 );
 
 assert.match(
@@ -1515,8 +1529,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteConfigSource,
-  /export function inferRepoConfigFromGitHubPagesUrl\(locationLike\)[\s\S]*export function applyInferredRepoConfig\(site, inferred\)[\s\S]*export function createComposerSiteConfigController\(options = \{\}\)[\s\S]*fetchSiteLocalOverride[\s\S]*applyEffectiveSiteConfig/,
-  'site config module should own Pages repo inference, site-local override loading, and effective config broadcasting'
+  /export function inferRepoConfigFromGitHubPagesUrl\(locationLike\)[\s\S]*export function applyInferredRepoConfig\(site, inferred\)[\s\S]*export function createComposerSiteConfigController\(options = \{\}\)[\s\S]*const runtime = options\.runtime \|\| null;[\s\S]*setContentRoot\(root\);[\s\S]*setSiteRepo\(\{[\s\S]*emitSiteConfigChange\(cloneValue\(effective\)\);/,
+  'site config module should own Pages repo inference and route effective config globals/events through injected runtime callbacks'
 );
 
 assert.match(
@@ -1801,8 +1815,8 @@ assert.notEqual(
 
 assert.match(
   source,
-  /const EDITOR_STORAGE_SCOPE = [\s\S]*resolveEditorStorageScope\(window\.location\)[\s\S]*function scopedEditorStorageKey\(key\) \{[\s\S]*return createScopedStorageKey\(EDITOR_STORAGE_SCOPE, key\);/,
-  'composer should derive a site-scoped local storage key suffix from window.location'
+  /const EDITOR_STORAGE_SCOPE = [\s\S]*resolveEditorStorageScope\(editorRuntime\.getLocation\(\)\)[\s\S]*function scopedEditorStorageKey\(key\) \{[\s\S]*return createScopedStorageKey\(EDITOR_STORAGE_SCOPE, key\);/,
+  'composer should derive a site-scoped local storage key suffix through the runtime location boundary'
 );
 
 assert.match(
@@ -1982,13 +1996,13 @@ assert.equal(
 
 assert.match(
   source,
-  /initializeComposerApp\(\{[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\)/,
+  /initializeComposerApp\(\{[\s\S]*onDocumentReady: editorRuntime\.onDocumentReady,[\s\S]*ensureSiteRepo: \(\) => editorRuntime\.ensureSiteRepo\(\),[\s\S]*getLocation: \(\) => editorRuntime\.getLocation\(\),[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\)/,
   'composer should wire inferred starter repository config into the extracted workspace assembly before rendering Site Settings'
 );
 
 assert.match(
   composerBootstrapSource,
-  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(windowRef && windowRef\.location\)[\s\S]*applyEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(getElement\(documentRef, 'composerSite'\), state\);[\s\S]*notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
+  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(getLocation\(\)\)[\s\S]*applyEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(getElement\(documentRef, 'composerSite'\), state\);[\s\S]*notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
   'composer should mark inferred site repo changes dirty while preserving normal initialization behavior'
 );
 

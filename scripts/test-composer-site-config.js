@@ -50,6 +50,7 @@ assert.equal(isPlaceholderRepoConfig({ owner: 'EkilyHQ', name: 'Press' }), false
 
 {
   const events = [];
+  const globals = {};
   class TestCustomEvent {
     constructor(type, options = {}) {
       this.type = type;
@@ -63,6 +64,20 @@ assert.equal(isPlaceholderRepoConfig({ owner: 'EkilyHQ', name: 'Press' }), false
     }
   };
   const controller = createComposerSiteConfigController({
+    runtime: {
+      setContentRoot(root) {
+        globals.contentRoot = root;
+        return root;
+      },
+      setSiteRepo(repo) {
+        globals.siteRepo = repo;
+        return repo;
+      },
+      emitSiteConfigChange(siteConfig) {
+        events.push({ type: 'runtime:site-config-change', detail: { siteConfig } });
+        return true;
+      }
+    },
     windowRef,
     deepClone(value) {
       return JSON.parse(JSON.stringify(value));
@@ -74,10 +89,10 @@ assert.equal(isPlaceholderRepoConfig({ owner: 'EkilyHQ', name: 'Press' }), false
   });
 
   assert.deepEqual(effective.repo, { owner: 'EkilyHQ', name: 'Press', branch: 'docs' });
-  assert.equal(windowRef.__press_content_root, 'content');
-  assert.deepEqual(windowRef.__press_site_repo, { owner: 'EkilyHQ', name: 'Press', branch: 'docs' });
+  assert.equal(globals.contentRoot, 'content');
+  assert.deepEqual(globals.siteRepo, { owner: 'EkilyHQ', name: 'Press', branch: 'docs' });
   assert.equal(events.length, 1, 'effective site config should dispatch one change event');
-  assert.equal(events[0].type, 'press-editor-site-config-change');
+  assert.equal(events[0].type, 'runtime:site-config-change');
   assert.deepEqual(events[0].detail.siteConfig, effective);
 
   assert.deepEqual(

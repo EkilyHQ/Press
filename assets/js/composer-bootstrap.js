@@ -207,6 +207,7 @@ export async function loadInitialComposerState({
   windowRef,
   consoleRef = console,
   t = (key) => key,
+  ensureSiteRepo = noop,
   fetchTrackedSiteConfig,
   applyEffectiveSiteConfig,
   fetchConfigWithYamlFallback,
@@ -221,9 +222,7 @@ export async function loadInitialComposerState({
   showStatus = noop
 } = {}) {
   try {
-    if (windowRef && (!windowRef.__press_site_repo || typeof windowRef.__press_site_repo !== 'object')) {
-      windowRef.__press_site_repo = { owner: '', name: '', branch: 'main' };
-    }
+    ensureSiteRepo();
   } catch (_) {}
 
   const state = { index: {}, tabs: {}, site: {} };
@@ -270,6 +269,7 @@ export function assembleComposerWorkspace({
   loadDraftSnapshotsIntoState,
   applyInferredRepoConfig,
   inferRepoConfigFromGitHubPagesUrl,
+  getLocation = () => (windowRef && windowRef.location),
   applyEffectiveSiteConfig,
   updateMarkdownPushButton = noop,
   getActiveDynamicTab = () => null,
@@ -291,7 +291,7 @@ export function assembleComposerWorkspace({
   try {
     inferredSiteRepoApplied = applyInferredRepoConfig(
       state.site,
-      inferRepoConfigFromGitHubPagesUrl(windowRef && windowRef.location)
+      inferRepoConfigFromGitHubPagesUrl(getLocation())
     );
   } catch (_) {
     inferredSiteRepoApplied = false;
@@ -369,6 +369,10 @@ export async function initializeComposerOnDomReady(options = {}) {
 export function initializeComposerApp(options = {}) {
   const documentRef = options.documentRef;
   const handler = () => initializeComposerOnDomReady(options);
-  documentRef.addEventListener('DOMContentLoaded', handler);
+  if (typeof options.onDocumentReady === 'function') {
+    options.onDocumentReady(handler);
+  } else {
+    documentRef.addEventListener('DOMContentLoaded', handler);
+  }
   return handler;
 }

@@ -45,7 +45,10 @@ import {
 } from './editor-storage.js?v=press-system-v3.4.50';
 import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.50';
 import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.50';
-import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+import {
+  COMPOSER_RUNTIME_EVENTS,
+  createComposerRuntime
+} from './composer-runtime.js?v=press-system-v3.4.50';
 import { createComposerSyncCommitController } from './composer-sync-commit-controller.js?v=press-system-v3.4.50';
 import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.50';
 import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.50';
@@ -126,9 +129,14 @@ const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 const PREFERRED_LANG_ORDER = ['en', 'chs', 'cht-tw', 'cht-hk', 'ja'];
 const LANG_CODE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]+)*$/i;
-const LANGUAGE_POOL_CHANGED_EVENT = 'press-composer-language-pool-changed';
+const LANGUAGE_POOL_CHANGED_EVENT = COMPOSER_RUNTIME_EVENTS.languagePoolChanged;
+const editorRuntime = createComposerRuntime({
+  windowRef: window,
+  documentRef: document
+});
 const composerPathTools = createComposerPathTools({
   windowRef: window,
+  getContentRoot: () => editorRuntime.getContentRoot(),
   preferredLangOrder: PREFERRED_LANG_ORDER,
   getIndexVariantLocation,
   isIndexMetadataObject,
@@ -155,7 +163,7 @@ const {
 } = composerPathTools;
 
 function broadcastLanguagePoolChange() {
-  editorRuntime.events.emitDocument(LANGUAGE_POOL_CHANGED_EVENT);
+  editorRuntime.emitLanguagePoolChanged();
 }
 
 function normalizeLangCode(code) {
@@ -180,7 +188,7 @@ const LS_KEYS = {
 const EDITOR_STATE_VERSION = 3;
 
 const EDITOR_STORAGE_SCOPE = (() => {
-  try { return resolveEditorStorageScope(window.location); }
+  try { return resolveEditorStorageScope(editorRuntime.getLocation()); }
   catch (_) { return 'unknown'; }
 })();
 
@@ -188,10 +196,6 @@ function scopedEditorStorageKey(key) {
   return createScopedStorageKey(EDITOR_STORAGE_SCOPE, key);
 }
 
-const editorRuntime = createEditorAppRuntime({
-  windowRef: window,
-  documentRef: document
-});
 const composerStateStore = editorRuntime.createStateStore({
   kinds: ['index', 'tabs', 'site'],
   defaultKind: 'index'
@@ -842,6 +846,7 @@ let gitHubCommitInFlight = false;
 let activeComposerFile = 'index';
 let composerViewTransition = null;
 const composerSiteConfigController = createComposerSiteConfigController({
+  runtime: editorRuntime,
   windowRef: window,
   deepClone
 });
@@ -1356,7 +1361,7 @@ syncCommitController = createComposerSyncCommitController({
 
 function getActiveSiteRepoConfig() {
   const site = getStateSlice('site');
-  return resolveActiveSiteRepoConfig(site, editorRuntime.globals.getPressSiteRepo());
+  return resolveActiveSiteRepoConfig(site, editorRuntime.getSiteRepo());
 }
 
 const composerOrderDiffUi = createComposerOrderDiffUi({
@@ -1504,6 +1509,7 @@ const composerSiteSettingsUi = createComposerSiteSettingsUi({
 });
 
 const composerSetupVerifier = createComposerSetupVerifier({
+  runtime: editorRuntime,
   documentRef: document,
   windowRef: window,
   consoleRef: console,
@@ -1528,7 +1534,8 @@ const composerSetupVerifier = createComposerSetupVerifier({
   clearDraftStorage,
   updateUnsyncedSummary,
   startComposerSyncWatcher,
-  getMarkdownPushLabel
+  getMarkdownPushLabel,
+  getContentRoot: () => editorRuntime.getContentRoot()
 });
 const { bindVerifySetup } = composerSetupVerifier;
 
@@ -2346,6 +2353,7 @@ function rebuildSiteUI() {
 
 initializeComposerApp({
   documentRef: document,
+  onDocumentReady: editorRuntime.onDocumentReady,
   setActiveComposerState: (state) => {
     composerStateStore.setActiveState(state);
   },
@@ -2371,6 +2379,7 @@ initializeComposerApp({
     updateMarkdownDiscardButton
   },
   initialState: {
+    ensureSiteRepo: () => editorRuntime.ensureSiteRepo(),
     windowRef: window,
     consoleRef: console,
     t,
@@ -2392,6 +2401,7 @@ initializeComposerApp({
   workspace: {
     documentRef: document,
     windowRef: window,
+    getLocation: () => editorRuntime.getLocation(),
     t,
     loadDraftSnapshotsIntoState,
     applyInferredRepoConfig,

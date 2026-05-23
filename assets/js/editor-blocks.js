@@ -4,6 +4,7 @@ import { createEditorBlocksStateController } from './editor-blocks-state.js?v=pr
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksHeadSession } from './editor-blocks-head-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksCommandSession } from './editor-blocks-command-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksRichTextSession } from './editor-blocks-rich-text-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
@@ -3069,87 +3070,39 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     mathSession.bind();
   }
 
-  const insertPendingInlineText = (editable, value) => {
-    const textValue = String(value || '');
-    if (!editable || !textValue || !hasPendingInlineMarks()) return false;
-    const offsets = getEditableSelectionOffsets(editable, caretSession);
-    if (!offsets) return false;
-    const runs = inlineRunsFromDom(editable);
-    const insertRun = inlineRun(textValue, blocksState.pendingInlineForRun());
-    const nextRuns = insertInlineRunsAtRange(runs, offsets.start, offsets.end, [insertRun]);
-    applyRunsToEditable(editable, nextRuns, offsets.start + textValue.length);
-    return true;
-  };
+  const richTextSession = createEditorBlocksRichTextSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    blocksState,
+    editableSession,
+    selectionSession,
+    inlineDomSession,
+    caretSession,
+    setPlainContentEditableValue,
+    editableText,
+    inlineRunsFromDom,
+    inlineRun,
+    insertInlineRunsAtRange,
+    getEditableSelectionOffsets,
+    applyRunsToEditable,
+    updateFromControl,
+    removeEmptyBlockWithBackspace,
+    mergeTextBlockWithPreviousOnBackspace,
+    handleCrossBlockArrowNavigation,
+    splitTextBlockAfterCaret,
+    shouldInsertBlankBlockOnEnter,
+    insertBlankBlockAfter,
+    setActive,
+    activateEditableFromPointer,
+    routeDirectQuoteCaretFromPointer,
+    inlineMarksFromPointerEvent,
+    inlineMarkedDomRangeFromPointerEvent,
+    updateInlineToolbarState: () => updateInlineToolbarState(),
+    refreshLinkEditor: link => refreshLinkEditor(link),
+    openMathEditorForNode: node => openMathEditorForNode(node)
+  });
 
-  const wireInlineEditable = (editable, index, sync) => {
-    editable.addEventListener('beforeinput', (event) => {
-      if (event.isComposing || !hasPendingInlineMarks()) return;
-      if (event.inputType !== 'insertText' || event.data == null) return;
-      event.preventDefault();
-      setActive(index, editable, sync);
-      insertPendingInlineText(editable, event.data);
-    });
-    editable.addEventListener('paste', (event) => {
-      if (!hasPendingInlineMarks()) return;
-      const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
-      if (!pasted) return;
-      event.preventDefault();
-      setActive(index, editable, sync);
-      insertPendingInlineText(editable, pasted);
-    });
-    editable.addEventListener('keyup', () => updateInlineToolbarState());
-    editable.addEventListener('mouseup', () => updateInlineToolbarState());
-  };
-
-  const createRichEditable = (tagName, block, key, className, index) => {
-    const editable = document.createElement(tagName);
-    editable.className = className || 'blocks-rich-editable';
-    editable.contentEditable = 'true';
-    editable.spellcheck = true;
-    setPlainContentEditableValue(editable, block.data[key] || '');
-    const sync = () => updateFromControl(block, { [key]: editableText(editable) });
-    editableSession.registerEditable(editable, sync);
-    editable.addEventListener('input', () => {
-      sync();
-      updateInlineToolbarState();
-    });
-    editable.addEventListener('keydown', (event) => {
-      if (removeEmptyBlockWithBackspace(event, block, index, editable, sync)) return;
-      if (mergeTextBlockWithPreviousOnBackspace(event, block, index, editable)) return;
-      if (handleCrossBlockArrowNavigation(event, index, editable)) return;
-      if (event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
-      if (!['paragraph', 'quote', 'heading'].includes(block.type)) return;
-      if (splitTextBlockAfterCaret(event, block, index, editable)) return;
-      if (!shouldInsertBlankBlockOnEnter(editable, caretSession)) return;
-      event.preventDefault();
-      insertBlankBlockAfter(index, editable, sync);
-    });
-    editable.addEventListener('focus', () => setActive(index, editable, sync));
-    editable.addEventListener('pointerdown', (event) => {
-      if (event && event.button === 0 && event.isPrimary !== false) {
-        activateEditableFromPointer(index, editable, sync);
-      }
-      routeDirectQuoteCaretFromPointer(editable, index, sync, event);
-    });
-    editable.addEventListener('click', (event) => {
-      const clickedLink = event.target && event.target.closest ? event.target.closest('a[href]') : null;
-      const clickedMath = event.target && event.target.closest ? event.target.closest('.press-math[data-tex]') : null;
-      if (clickedLink || clickedMath) event.preventDefault();
-      setActive(index, editable, sync);
-      const pointerMarks = inlineMarksFromPointerEvent(event, editable, selectionSession);
-        const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, editable, 'code', selectionSession, inlineDomSession) : null;
-      blocksState.rememberInlineMarks(
-        editable,
-        pointerMarks,
-        pointerCodeRange ? { mark: 'code', ...pointerCodeRange } : null
-      );
-      updateInlineToolbarState();
-      if (clickedLink) refreshLinkEditor(clickedLink);
-      if (clickedMath) openMathEditorForNode(clickedMath);
-    });
-    wireInlineEditable(editable, index, sync);
-    return editable;
-  };
+  const createRichEditable = (...args) => richTextSession?.createRichEditable(...args);
+  const wireInlineEditable = (...args) => richTextSession?.wireInlineEditable(...args);
 
   const createHeadingLevelSelect = (block) => {
     const select = document.createElement('select');

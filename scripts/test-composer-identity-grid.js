@@ -72,6 +72,7 @@ const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
 const editorBlocksHeadSessionPath = resolve(here, '../assets/js/editor-blocks-head-session.js');
 const editorBlocksCommandSessionPath = resolve(here, '../assets/js/editor-blocks-command-session.js');
+const editorBlocksRichTextSessionPath = resolve(here, '../assets/js/editor-blocks-rich-text-session.js');
 const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-blocks-editable-session.js');
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
@@ -158,6 +159,7 @@ const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(editorBlocksHeadSessionPath, 'utf8');
 const editorBlocksCommandSessionSource = readFileSync(editorBlocksCommandSessionPath, 'utf8');
+const editorBlocksRichTextSessionSource = readFileSync(editorBlocksRichTextSessionPath, 'utf8');
 const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessionPath, 'utf8');
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
@@ -303,6 +305,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-rich-text-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks rich text session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /from '\.\/editor-blocks-editable-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks editable session boundary'
 );
@@ -419,6 +427,18 @@ assert.match(
   editorBlocksSource,
   /const inlineToolbarSession = createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\);[\s\S]*updateInlineToolbarState = \(\) => inlineToolbarSession\.update\(\);/,
   'blocks editor should compose inline toolbar DOM controls and state through the inline toolbar session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const richTextSession = createEditorBlocksRichTextSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\)[\s\S]*\}\);[\s\S]*const createRichEditable = \(\.\.\.args\) => richTextSession\?\.createRichEditable\(\.\.\.args\);[\s\S]*const wireInlineEditable = \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\(\.\.\.args\);/,
+  'blocks editor should compose rich text editable DOM and input events through the rich text session boundary'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const insertPendingInlineText = \(editable|const wireInlineEditable = \(editable|const createRichEditable = \(tagName|editable\.addEventListener\('beforeinput', \(event\) => \{[\s\S]*insertPendingInlineText/,
+  'blocks root should not own rich text editable DOM event wiring'
 );
 
 assert.match(
@@ -1585,8 +1605,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*!\['paragraph', 'quote', 'heading'\]\.includes\(block\.type\)[\s\S]*!shouldInsertBlankBlockOnEnter\(editable, caretSession\)[\s\S]*event\.preventDefault\(\);[\s\S]*insertBlankBlockAfter\(index, editable, sync\);/,
+  editorBlocksRichTextSessionSource,
+  /editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*isPlainEnter\(event\)[\s\S]*!\['paragraph', 'quote', 'heading'\]\.includes\(block\?\.type\)[\s\S]*!shouldInsertBlankBlockOnEnter\(editable, caretSession\)[\s\S]*prevent\(event\);[\s\S]*insertBlankBlockAfter\(index, editable, sync\);/,
   'paragraph, quote, and heading Enter handling should exit the block when Enter would create a new empty line'
 );
 
@@ -1621,8 +1641,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
-  /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'/,
+  `${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
+  /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*isPlainEnter\(event\)[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'/,
   'empty Backspace handling should run before rich Enter and list row handling'
 );
 
@@ -1720,8 +1740,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
-  /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\.registerEditable\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
+  `${editorBlocksSource}\n${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
+  /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\?\.registerEditable\?\.\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
   'blocks editor should provide registered editables and a browser-selection lookup for inline toolbar recovery'
 );
 
@@ -1804,15 +1824,15 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
-  /setActive\(index, editable, sync\);[\s\S]*const pointerMarks = inlineMarksFromPointerEvent\(event, editable, selectionSession\);[\s\S]*blocksState\.rememberInlineMarks\([\s\S]*editable,[\s\S]*pointerMarks,[\s\S]*pointerCodeRange \? \{ mark: 'code', \.\.\.pointerCodeRange \} : null[\s\S]*updateInlineToolbarState\(\);[\s\S]*setActive\(index, span, sync\);[\s\S]*const pointerMarks = inlineMarksFromPointerEvent\(event, span, selectionSession\);[\s\S]*blocksState\.rememberInlineMarks\([\s\S]*span,[\s\S]*pointerMarks,[\s\S]*pointerCodeRange \? \{ mark: 'code', \.\.\.pointerCodeRange \} : null[\s\S]*updateInlineToolbarState\(\);/,
+  `${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
+  /setActive\(index, editable, sync\);[\s\S]*const pointerMarks = inlineMarksFromPointerEvent\(event, editable, selectionSession\);[\s\S]*blocksState\?\.rememberInlineMarks\?\.\([\s\S]*editable,[\s\S]*pointerMarks,[\s\S]*pointerCodeRange \? \{ mark: 'code', \.\.\.pointerCodeRange \} : null[\s\S]*updateInlineToolbarState\(\);[\s\S]*setActive\(index, span, sync\);[\s\S]*const pointerMarks = inlineMarksFromPointerEvent\(event, span, selectionSession\);[\s\S]*blocksState\.rememberInlineMarks\([\s\S]*span,[\s\S]*pointerMarks,[\s\S]*pointerCodeRange \? \{ mark: 'code', \.\.\.pointerCodeRange \} : null[\s\S]*updateInlineToolbarState\(\);/,
   'paragraph and list rich-text clicks should capture inline marks after activation and refresh the toolbar'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
   /editable\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, editable, sync\);[\s\S]*routeDirectQuoteCaretFromPointer\(editable, index, sync, event\);[\s\S]*span\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, span, sync\);/,
-  'root-owned rich and list editable pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
+  'rich and list editable pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
 );
 
 assert.match(

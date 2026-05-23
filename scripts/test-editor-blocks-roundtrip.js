@@ -43,6 +43,7 @@ const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js',
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
 const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
+const editorBlocksRichTextSessionSource = readFileSync(new URL('../assets/js/editor-blocks-rich-text-session.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
@@ -326,7 +327,7 @@ run('mid-enter split leaves end-of-block Enter on the blank block insertion path
     'split path should bail out before splitting when the caret is at the end'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksRichTextSessionSource,
     /splitTextBlockAfterCaret\(event, block, index, editable\)[\s\S]*shouldInsertBlankBlockOnEnter\(editable, caretSession\)[\s\S]*insertBlankBlockAfter\(index, editable, sync\)/,
     'plain Enter should try mid-split before falling back to real blank block insertion'
   );
@@ -497,8 +498,8 @@ run('first list item Backspace refuses nested or child-owning items', () => {
 
 run('backspace merge path runs after empty-block removal and before Enter handling', () => {
   assert.match(
-    editorBlocksSource,
-    /removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*event\.key !== 'Enter'/,
+    editorBlocksRichTextSessionSource,
+    /removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*isPlainEnter\(event\)/,
     'text block Backspace merge should run after empty-block removal and before Enter handling'
   );
   assert.match(
@@ -610,8 +611,8 @@ run('cross-block arrows keep list item navigation before block-level fallback', 
 
 run('cross-block arrows wire rich text, code, and source editables', () => {
   assert.match(
-    editorBlocksSource,
-    /mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, editable\)[\s\S]*event\.key !== 'Enter'/,
+    editorBlocksRichTextSessionSource,
+    /mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, editable\)[\s\S]*isPlainEnter\(event\)/,
     'rich text editables should run cross-block arrows before Enter handling'
   );
   assert.match(

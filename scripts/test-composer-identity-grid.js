@@ -78,6 +78,7 @@ const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-f
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
+const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -154,6 +155,7 @@ const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
+const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -319,6 +321,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-link-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks link session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -343,6 +351,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /const linkSession = createEditorBlocksLinkSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\);[\s\S]*refreshLinkEditor = \(explicitLink = null\) => linkSession\.refresh\(explicitLink\);[\s\S]*openLinkEditorForSelection = \(\) => linkSession\.openForSelection\(\);/,
+  'blocks editor should compose inline link overlay behavior through the link session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*focusSession\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
   'blocks editor should delegate cross-block arrow navigation to the focus session'
 );
@@ -361,8 +375,14 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const inlineDomSession = createInlineDomSession\(selectionSession, runtime\.documentRef\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(blocksState\.getActiveEditable\(\), link, inlineDomSession\)[\s\S]*linkForTextRange\(blocksState\.getActiveEditable\(\), linkRange\.start, nextEnd, inlineDomSession\)[\s\S]*textRangeForDomNode\(blocksState\.getActiveEditable\(\), math, inlineDomSession\)/,
-  'blocks editor should route inline run rendering plus link/math DOM range mapping through the inline DOM session'
+  /const inlineDomSession = createInlineDomSession\(selectionSession, runtime\.documentRef\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(blocksState\.getActiveEditable\(\), math, inlineDomSession\)/,
+  'blocks editor should route inline run rendering plus math DOM range mapping through the inline DOM session'
+);
+
+assert.match(
+  editorBlocksLinkSessionSource,
+  /textRangeForDomNode\(editable, link, inlineDomSession\)[\s\S]*linkForTextRange\(editable, linkRange\.start, nextEnd, inlineDomSession\)/,
+  'link session should route active link DOM range mapping through the inline DOM session'
 );
 
 assert.match(
@@ -1976,9 +1996,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /function selectionLinkInEditable\(editable, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(editable\)[\s\S]*closestElement\(candidate, 'a\[href\]'\)[\s\S]*const positionLinkEditor = \(link\) => \{[\s\S]*link\.getBoundingClientRect\(\)[\s\S]*root\.getBoundingClientRect\(\)[\s\S]*const linkEditor = document\.createElement\('div'\);[\s\S]*linkEditor\.className = 'blocks-link-editor'[\s\S]*linkText\.addEventListener\('input', applyLinkEditor\)[\s\S]*linkHref\.addEventListener\('input', applyLinkEditor\)[\s\S]*unlink\.addEventListener\('click',[\s\S]*root\.appendChild\(linkEditor\)[\s\S]*positionLinkEditor\(activeLink\)/,
-  'inline link editor should float near the active link and expose text, URL, and unlink controls'
+  editorBlocksLinkSessionSource,
+  /export function createEditorBlocksLinkSession\([\s\S]*const linkEditor = documentRef\.createElement\('div'\);[\s\S]*linkEditor\.className = 'blocks-link-editor'[\s\S]*const linkText = documentRef\.createElement\('input'\);[\s\S]*const linkHref = documentRef\.createElement\('input'\);[\s\S]*const linkTitle = documentRef\.createElement\('input'\);[\s\S]*const unlink = createButton\(documentRef, text\('unlink', 'Unlink'\), 'blocks-inline-btn blocks-unlink-btn'\);/,
+  'link session should own inline link editor DOM creation and controls'
 );
 
 assert.match(
@@ -1988,15 +2008,21 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*blocksState\.linkEditorRefreshSuppressed\(Date\.now\(\)\)[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && blocksState\.getActiveEditable\(\) && nodeContains\(blocksState\.getActiveEditable\(\), explicitLinkNode\)[\s\S]*blocksState\.setActiveLink\(link, explicitLinkNode \? \{ holdUntil: Date\.now\(\) \+ 800 \} : \{\}\);/,
+  editorBlocksLinkSessionSource,
+  /const refresh = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*blocksState\.linkEditorRefreshSuppressed\(now\(\)\)[\s\S]*hide\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && editable && containsNode\(editable, explicitLinkNode\)[\s\S]*blocksState\.setActiveLink\(link, explicitLinkNode \? \{ holdUntil: now\(\) \+ 800 \} : \{\}\);/,
   'inline link editor should ignore automatic selection refreshes during routed blank-area caret clicks while still honoring explicit link clicks'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const handleLinkEditorOutsidePointer = \(event\) => \{[\s\S]*if \(linkEditor\.hidden\) return;[\s\S]*isLinkEditorInternalTarget\(target\)[\s\S]*hideLinkEditor\(\);[\s\S]*onDocument\('pointerdown', handleLinkEditorOutsidePointer, true\);[\s\S]*onDocument\('mousedown', handleLinkEditorOutsidePointer, true\);/,
+  editorBlocksLinkSessionSource,
+  /const handleOutsidePointer = \(event\) => \{[\s\S]*if \(linkEditor\.hidden\) return;[\s\S]*isInternalTarget\(target\)[\s\S]*hide\(\);[\s\S]*const bind = \(\) => \{[\s\S]*addRootListener\('keyup', refresh\);[\s\S]*addRootListener\('mouseup', refresh\);[\s\S]*addRootListener\('focusin', refresh\);[\s\S]*onDocument\('pointerdown', handleOutsidePointer, true\)[\s\S]*onDocument\('mousedown', handleOutsidePointer, true\)[\s\S]*onWindow\('resize', refresh\)[\s\S]*onWindow\('scroll', refresh, true\)[\s\S]*onDocument\('selectionchange'/,
   'inline link editor should close from a capture-phase outside pointer or mouse press'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const linkEditor = document\.createElement\('div'\)|const handleLinkEditorOutsidePointer|const applyLinkEditor = \(\) =>/,
+  'blocks editor root should not own link editor overlay DOM, outside-pointer, or apply state'
 );
 
 assert.doesNotMatch(

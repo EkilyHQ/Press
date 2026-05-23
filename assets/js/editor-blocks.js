@@ -11,6 +11,7 @@ import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js
 import { createEditorBlocksPointerSession } from './editor-blocks-pointer-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2938,35 +2939,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateFromControl(block, { items }, true);
   };
 
-  const positionLinkEditor = (link) => {
-    try {
-      if (!link || !nodeContains(root, link)) return;
-      const linkRect = link.getBoundingClientRect();
-      const rootRect = root.getBoundingClientRect();
-      const editorRect = linkEditor.getBoundingClientRect();
-      const gap = 6;
-      const minLeft = 0;
-      const maxLeft = Math.max(minLeft, rootRect.width - editorRect.width);
-      const nextLeft = Math.min(maxLeft, Math.max(minLeft, linkRect.left - rootRect.left));
-      linkEditor.style.left = `${nextLeft}px`;
-      linkEditor.style.top = `${linkRect.bottom - rootRect.top + gap}px`;
-    } catch (_) {}
-  };
-
-  const positionLinkEditorAtRect = (rect) => {
-    try {
-      if (!rect) return;
-      const rootRect = root.getBoundingClientRect();
-      const editorRect = linkEditor.getBoundingClientRect();
-      const gap = 6;
-      const minLeft = 0;
-      const maxLeft = Math.max(minLeft, rootRect.width - editorRect.width);
-      const nextLeft = Math.min(maxLeft, Math.max(minLeft, rect.left - rootRect.left));
-      linkEditor.style.left = `${nextLeft}px`;
-      linkEditor.style.top = `${rect.bottom - rootRect.top + gap}px`;
-    } catch (_) {}
-  };
-
   const positionPopupAtRect = (popup, rect) => {
     try {
       if (!popup || !rect) return;
@@ -2979,6 +2951,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       popup.style.left = `${nextLeft}px`;
       popup.style.top = `${rect.bottom - rootRect.top + gap}px`;
     } catch (_) {}
+  };
+
+  const selectionAnchorRect = (editable, offsets) => {
+    try {
+      const rect = offsets && offsets.range && offsets.range.getBoundingClientRect && offsets.range.getBoundingClientRect();
+      if (rect && (rect.width || rect.height)) return rect;
+      return caretRectForEditable(editable, caretSession);
+    } catch (_) {
+      return caretRectForEditable(editable, caretSession);
+    }
   };
 
   let refreshLinkEditor = () => {};
@@ -3292,161 +3274,38 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return controls;
   };
 
-  const linkEditor = document.createElement('div');
-  linkEditor.className = 'blocks-link-editor';
-  linkEditor.hidden = true;
-  linkEditor.setAttribute('aria-hidden', 'true');
-  const linkText = document.createElement('input');
-  linkText.type = 'text';
-  linkText.className = 'blocks-link-text';
-  linkText.placeholder = text('linkText', 'Link text');
-  linkText.setAttribute('aria-label', text('linkText', 'Link text'));
-  const linkHref = document.createElement('input');
-  linkHref.type = 'text';
-  linkHref.className = 'blocks-link-href';
-  linkHref.placeholder = text('linkHref', 'Link URL');
-  linkHref.setAttribute('aria-label', text('linkHref', 'Link URL'));
-  const linkTitle = document.createElement('input');
-  linkTitle.type = 'text';
-  linkTitle.className = 'blocks-link-title';
-  linkTitle.placeholder = text('linkTitle', 'Link title');
-  linkTitle.setAttribute('aria-label', text('linkTitle', 'Link title'));
-  const unlink = button(text('unlink', 'Unlink'), 'blocks-inline-btn blocks-unlink-btn');
-  unlink.title = text('unlink', 'Unlink');
-  unlink.setAttribute('aria-label', text('unlink', 'Unlink'));
-  const linkEditorFocused = () => {
-    try { return linkEditor.contains(runtime.getActiveElement()); } catch (_) { return false; }
-  };
-  const hideLinkEditor = () => {
-    blocksState.clearLinkEditorState();
-    linkEditor.hidden = true;
-    linkEditor.setAttribute('aria-hidden', 'true');
-  };
-  const isLinkEditorInternalTarget = (target) => {
-    if (nodeContains(linkEditor, target)) return true;
-    const clickedLink = closestElement(target, 'a[href]');
-    return !!(clickedLink && blocksState.getActiveEditable() && nodeContains(blocksState.getActiveEditable(), clickedLink));
-  };
-  const handleLinkEditorOutsidePointer = (event) => {
-    if (linkEditor.hidden) return;
-    const target = event && event.target;
-    if (!target || isLinkEditorInternalTarget(target)) return;
-    hideLinkEditor();
-    updateInlineToolbarState();
-  };
-  const selectionAnchorRect = (editable, offsets) => {
-    try {
-      const rect = offsets && offsets.range && offsets.range.getBoundingClientRect && offsets.range.getBoundingClientRect();
-      if (rect && (rect.width || rect.height)) return rect;
-      return caretRectForEditable(editable, caretSession);
-    } catch (_) {
-      return caretRectForEditable(editable, caretSession);
-    }
-  };
-  const applyLinkEditor = () => {
-    const href = sanitizeEditorLinkHref(inputValue(linkHref));
-    const title = sanitizeEditorLinkTitle(inputValue(linkTitle));
-    if (blocksState.getLinkEditMode() === 'pending') {
-      blocksState.setPendingInlinePatch({ code: false, link: href, linkTitle: title });
-      updateInlineToolbarState();
-      return;
-    }
-    if (blocksState.getLinkEditMode() === 'range') {
-      const selection = blocksState.getLinkSelection();
-      if (!selection || !selection.editable || !nodeContains(root, selection.editable)) return;
-      const runs = inlineRunsFromDom(selection.editable);
-      const currentText = inlineRangeText(runs, selection.start, selection.end);
-      const nextText = inputValue(linkText);
-      const replacementText = nextText !== currentText ? nextText : null;
-      const nextRuns = applyInlineLinkToRuns(runs, selection.start, selection.end, href, replacementText, title);
-      const nextEnd = selection.start + (replacementText != null ? nextText.length : currentText.length);
-      renderInlineRunsInto(selection.editable, nextRuns, inlineDomSession);
-      blocksState.updateLinkSelection({ end: nextEnd, text: nextText });
-      syncActiveEditable();
-      updateInlineToolbarState();
-      return;
-    }
-    const link = blocksState.getActiveLink();
-    if (!link || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), link)) return;
-    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link, inlineDomSession);
-    if (!linkRange) return;
-    const runs = inlineRunsFromDom(blocksState.getActiveEditable());
-    const currentText = inlineRangeText(runs, linkRange.start, linkRange.end);
-    const nextText = inputValue(linkText);
-    const replacementText = nextText !== currentText ? nextText : null;
-    const nextRuns = applyInlineLinkToRuns(runs, linkRange.start, linkRange.end, href, replacementText, title);
-    const nextEnd = linkRange.start + (replacementText != null ? nextText.length : currentText.length);
-    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns, inlineDomSession);
-    blocksState.setActiveLink(linkForTextRange(blocksState.getActiveEditable(), linkRange.start, nextEnd, inlineDomSession));
-    syncActiveEditable();
-    updateInlineToolbarState();
-  };
-  linkText.addEventListener('input', applyLinkEditor);
-  linkHref.addEventListener('input', applyLinkEditor);
-  linkTitle.addEventListener('input', applyLinkEditor);
-  unlink.addEventListener('mousedown', (event) => event.preventDefault());
-  unlink.addEventListener('click', () => {
-    if (blocksState.getLinkEditMode() === 'pending') {
-      blocksState.setPendingInlinePatch({ link: '', linkTitle: '' });
-      hideLinkEditor();
-      updateInlineToolbarState();
-      return;
-    }
-    if (blocksState.getLinkEditMode() === 'range') {
-      linkHref.value = '';
-      applyLinkEditor();
-      hideLinkEditor();
-      updateInlineToolbarState();
-      return;
-    }
-    const link = blocksState.getActiveLink();
-    if (!link || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), link)) return;
-    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link, inlineDomSession);
-    if (!linkRange) return;
-    const nextRuns = applyInlineLinkToRuns(inlineRunsFromDom(blocksState.getActiveEditable()), linkRange.start, linkRange.end, '');
-    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns, inlineDomSession);
-    blocksState.clearActiveLink();
-    try {
-      blocksState.getActiveEditable().focus();
-      placeCaretAtTextOffset(blocksState.getActiveEditable(), linkRange.end, caretSession);
-    } catch (_) {}
-    syncActiveEditable();
-    hideLinkEditor();
-    updateInlineToolbarState();
+  const linkSession = createEditorBlocksLinkSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    root,
+    runtime,
+    blocksState,
+    selectionSession,
+    caretSession,
+    inlineDomSession,
+    containsNode: nodeContains,
+    closestElement,
+    text,
+    sanitizeLinkHref: sanitizeEditorLinkHref,
+    sanitizeLinkTitle: sanitizeEditorLinkTitle,
+    selectionLinkInEditable,
+    getEditableSelectionOffsets,
+    caretRectForEditable,
+    inlineRunsFromDom,
+    inlineRangeText,
+    applyInlineLinkToRuns,
+    renderInlineRunsInto,
+    textRangeForDomNode,
+    linkForTextRange,
+    placeCaretAtTextOffset,
+    syncActiveEditable,
+    updateInlineToolbarState: () => updateInlineToolbarState(),
+    onDocument,
+    onWindow
   });
-  openLinkEditorForSelection = () => {
-    const editable = blocksState.getActiveEditable();
-    if (!editable || !nodeContains(root, editable)) return;
-    const existingLink = selectionLinkInEditable(editable, selectionSession);
-    if (existingLink) {
-      blocksState.openDomLinkEditor(existingLink);
-      refreshLinkEditor(existingLink);
-      runtime.setTimer(() => {
-        try { linkHref.focus(); linkHref.select(); } catch (_) {}
-      }, 0);
-      return;
-    }
-    const offsets = getEditableSelectionOffsets(editable, caretSession);
-    if (!offsets) return;
-    const anchorRect = selectionAnchorRect(editable, offsets);
-    blocksState.openLinkSelectionEditor(offsets.collapsed ? 'pending' : 'range', {
-      editable,
-      start: offsets.start,
-      end: offsets.end,
-      text: offsets.text,
-      anchorRect
-    });
-    linkText.value = offsets.collapsed ? '' : offsets.text;
-    linkHref.value = offsets.collapsed ? (blocksState.pendingInlineMark('link') || '') : '';
-    linkTitle.value = offsets.collapsed ? (blocksState.pendingInlineMark('linkTitle') || '') : '';
-    linkEditor.hidden = false;
-    linkEditor.setAttribute('aria-hidden', 'false');
-    positionLinkEditorAtRect(anchorRect);
-    runtime.setTimer(() => {
-      try { linkHref.focus(); linkHref.select(); } catch (_) {}
-    }, 0);
-    updateInlineToolbarState();
-  };
+  if (linkSession) {
+    refreshLinkEditor = (explicitLink = null) => linkSession.refresh(explicitLink);
+    openLinkEditorForSelection = () => linkSession.openForSelection();
+  }
 
   const mathEditor = document.createElement('div');
   mathEditor.className = 'blocks-math-editor';
@@ -3621,78 +3480,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     inlineCommandMark
   });
   updateInlineToolbarState = () => inlineToolbarSession.update();
-  linkEditor.append(linkText, linkHref, linkTitle, unlink);
   mathEditor.append(mathSource, removeMath);
-  root.appendChild(linkEditor);
+  if (linkSession) {
+    root.appendChild(linkSession.element);
+    linkSession.bind();
+  }
   root.appendChild(mathEditor);
-
-  refreshLinkEditor = (explicitLink = null) => {
-    const explicitLinkNode = explicitLink
-      && explicitLink.nodeType === Node.ELEMENT_NODE
-      && explicitLink.matches
-      && explicitLink.matches('a[href]')
-      ? explicitLink
-      : null;
-    if (!explicitLinkNode && blocksState.linkEditorRefreshSuppressed(Date.now())) {
-      if (!linkEditorFocused()) hideLinkEditor();
-      updateInlineToolbarState();
-      return;
-    }
-    const linkEditMode = blocksState.getLinkEditMode();
-    if (linkEditMode === 'range' || linkEditMode === 'pending') {
-      const linkSelection = blocksState.getLinkSelection();
-      if (!linkEditor.hidden && linkSelection && linkSelection.anchorRect) {
-        positionLinkEditorAtRect(linkSelection.anchorRect);
-      }
-      updateInlineToolbarState();
-      return;
-    }
-    const link = explicitLinkNode && blocksState.getActiveEditable() && nodeContains(blocksState.getActiveEditable(), explicitLinkNode)
-      ? explicitLinkNode
-      : selectionLinkInEditable(blocksState.getActiveEditable(), selectionSession);
-    if (link) {
-      blocksState.setActiveLink(link, explicitLinkNode ? { holdUntil: Date.now() + 800 } : {});
-    } else if (!linkEditorFocused()) {
-      const activeLink = blocksState.getActiveLink();
-      const keepClickedLink = activeLink
-        && blocksState.getActiveEditable()
-        && nodeContains(blocksState.getActiveEditable(), activeLink)
-        && Date.now() < blocksState.getActiveLinkHoldUntil();
-      if (!keepClickedLink) blocksState.clearActiveLink();
-    }
-    const activeLink = blocksState.getActiveLink() && blocksState.getActiveEditable() && nodeContains(blocksState.getActiveEditable(), blocksState.getActiveLink())
-      ? blocksState.getActiveLink()
-      : null;
-    if (!activeLink) {
-      if (!linkEditorFocused()) hideLinkEditor();
-      updateInlineToolbarState();
-      return;
-    }
-    blocksState.openDomLinkEditor(activeLink);
-    linkEditor.hidden = false;
-    linkEditor.setAttribute('aria-hidden', 'false');
-    if (!linkEditorFocused()) {
-      linkText.value = activeLink.textContent || '';
-      linkHref.value = activeLink.getAttribute('href') || '';
-      linkTitle.value = activeLink.getAttribute('title') || '';
-    }
-    positionLinkEditor(activeLink);
-    updateInlineToolbarState();
-  };
-
-  root.addEventListener('keyup', refreshLinkEditor);
-  root.addEventListener('mouseup', refreshLinkEditor);
-  root.addEventListener('focusin', refreshLinkEditor);
-  onDocument('pointerdown', handleLinkEditorOutsidePointer, true);
-  onDocument('mousedown', handleLinkEditorOutsidePointer, true);
   onDocument('pointerdown', handleMathEditorOutsidePointer, true);
   onDocument('mousedown', handleMathEditorOutsidePointer, true);
-  onWindow('resize', refreshLinkEditor);
-  onWindow('scroll', refreshLinkEditor, true);
-  onDocument('selectionchange', () => {
-    if (!blocksState.getActiveEditable() || !nodeContains(root, blocksState.getActiveEditable())) return;
-    refreshLinkEditor();
-  });
 
   const insertPendingInlineText = (editable, value) => {
     const textValue = String(value || '');

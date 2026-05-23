@@ -569,14 +569,20 @@ assert.match(
 
 assert.doesNotMatch(
   editorMainSource,
-  /localStorage\.(?:getItem|setItem)|window\.__press_editor_base_dir|window\.__press_primary_editor|window\.dispatchEvent\(new CustomEvent\('press-editor-|document\.dispatchEvent\(new CustomEvent\('press-editor-current-file-breadcrumb-select'|window\.addEventListener\('press-editor-site-config-change'/,
-  'editor main should route editor storage, app events, and browser globals through its runtime boundary'
+  /localStorage\.(?:getItem|setItem)|window\.__press_editor_base_dir|window\.__press_primary_editor|window\.dispatchEvent\(new CustomEvent\('press-editor-|document\.dispatchEvent\(new CustomEvent\('press-editor-current-file-breadcrumb-select'|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|cancelAnimationFrame|matchMedia|scrollTo)|document\.(?:addEventListener|removeEventListener)|requestAnimationFrame\(|cancelAnimationFrame\(|setTimeout\(|clearTimeout\(/,
+  'editor main should route editor storage, app events, global listeners, timers, animation frames, and scroll controls through its runtime boundary'
 );
 
 assert.match(
   editorMainRuntimeSource,
-  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)/,
+  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop/,
   'editor main runtime should own storage, browser global, and cross-component event service adapters'
+);
+
+assert.match(
+  editorMainSource,
+  /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*editorMainRuntime\.onWindow\('press-editor-asset-preview'[\s\S]*editorMainRuntime\.onWindow\('message'[\s\S]*editorMainRuntime\.onDocument\('keydown'/,
+  'editor main startup, preview messaging, keyboard escape, and asset-preview events should be wired through the runtime boundary'
 );
 
 assert.match(
@@ -3077,7 +3083,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver/,
+  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*editorMainRuntime\.requestFrame\(fn\)[\s\S]*ResizeObserver/,
   'front matter labels should be measured after render and shared through a CSS variable'
 );
 
@@ -3101,7 +3107,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /document\.addEventListener\('press-editor-language-applied'[\s\S]*frontMatterManager\.applySectionDescriptions\(\);[\s\S]*syncFrontMatterLabelWidth\(frontMatterManager\.panel\);/,
+  /editorMainRuntime\.onDocument\('press-editor-language-applied'[\s\S]*frontMatterManager\.applySectionDescriptions\(\);[\s\S]*syncFrontMatterLabelWidth\(frontMatterManager\.panel\);/,
   'front matter labels should resync after editor language changes update localized labels'
 );
 

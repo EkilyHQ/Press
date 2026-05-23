@@ -187,6 +187,123 @@ function createRuntimeGlobals(windowRef) {
   };
 }
 
+function createRuntimeBrowser({ documentRef, windowRef } = {}) {
+  function requestFrame(fn) {
+    const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
+      ? windowRef.requestAnimationFrame.bind(windowRef)
+      : (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null);
+    if (raf) return raf(fn);
+    return setTimeout(fn, 0);
+  }
+
+  function cancelFrame(id) {
+    if (id == null) return;
+    const caf = windowRef && typeof windowRef.cancelAnimationFrame === 'function'
+      ? windowRef.cancelAnimationFrame.bind(windowRef)
+      : (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : null);
+    try {
+      if (caf) caf(id);
+      else clearTimeout(id);
+    } catch (_) {}
+  }
+
+  function setTimer(fn, delay = 0) {
+    const timer = windowRef && typeof windowRef.setTimeout === 'function'
+      ? windowRef.setTimeout.bind(windowRef)
+      : (typeof setTimeout === 'function' ? setTimeout : null);
+    return timer ? timer(fn, delay) : null;
+  }
+
+  function clearTimer(id) {
+    if (id == null) return;
+    const clear = windowRef && typeof windowRef.clearTimeout === 'function'
+      ? windowRef.clearTimeout.bind(windowRef)
+      : (typeof clearTimeout === 'function' ? clearTimeout : null);
+    if (clear) {
+      try { clear(id); } catch (_) {}
+    }
+  }
+
+  function getLocationOrigin() {
+    try {
+      return (windowRef && windowRef.location && windowRef.location.origin) || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function postMessage(targetWindow, payload, targetOrigin = getLocationOrigin()) {
+    try {
+      if (!targetWindow || typeof targetWindow.postMessage !== 'function') return false;
+      targetWindow.postMessage(payload, targetOrigin || '*');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function matchesMedia(query) {
+    try {
+      return !!(windowRef && typeof windowRef.matchMedia === 'function' && windowRef.matchMedia(query).matches);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getPageYOffset() {
+    try {
+      return Number(windowRef && windowRef.pageYOffset) || 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function scrollToTop({ smooth = true } = {}) {
+    try {
+      if (!windowRef || typeof windowRef.scrollTo !== 'function') return false;
+      if (smooth) windowRef.scrollTo({ top: 0, behavior: 'smooth' });
+      else windowRef.scrollTo(0, 0);
+      return true;
+    } catch (_) {
+      try {
+        if (windowRef && typeof windowRef.scrollTo === 'function') {
+          windowRef.scrollTo(0, 0);
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+  }
+
+  return {
+    getElementById: (id) => {
+      try { return documentRef && typeof documentRef.getElementById === 'function' ? documentRef.getElementById(id) : null; }
+      catch (_) { return null; }
+    },
+    querySelector: (selector) => {
+      try { return documentRef && typeof documentRef.querySelector === 'function' ? documentRef.querySelector(selector) : null; }
+      catch (_) { return null; }
+    },
+    querySelectorAll: (selector) => {
+      try { return documentRef && typeof documentRef.querySelectorAll === 'function' ? Array.from(documentRef.querySelectorAll(selector)) : []; }
+      catch (_) { return []; }
+    },
+    getDocumentElement: () => {
+      try { return documentRef && documentRef.documentElement ? documentRef.documentElement : null; }
+      catch (_) { return null; }
+    },
+    requestFrame,
+    cancelFrame,
+    setTimer,
+    clearTimer,
+    getLocationOrigin,
+    postMessage,
+    matchesMedia,
+    getPageYOffset,
+    scrollToTop
+  };
+}
+
 function resolveWindowStorage(windowRef) {
   try {
     return windowRef && windowRef.localStorage ? windowRef.localStorage : null;
@@ -206,6 +323,7 @@ export function createEditorAppRuntime({
     documentRef,
     storage: createRuntimeStorage(runtimeStorage),
     events: createRuntimeEvents({ documentRef, windowRef }),
+    browser: createRuntimeBrowser({ documentRef, windowRef }),
     globals: createRuntimeGlobals(windowRef),
     createStateStore: createEditorStateStore
   };

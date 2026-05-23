@@ -87,6 +87,29 @@ class FakeCustomEvent {
   };
   windowRef.__press_site_repo = { owner: 'EkilyHQ', name: 'Press' };
   windowRef.__press_primary_editor = { setView() {} };
+  const timers = [];
+  const messages = [];
+  const scrolls = [];
+  windowRef.location = { origin: 'https://example.test' };
+  windowRef.innerHeight = 900;
+  windowRef.requestAnimationFrame = (fn) => {
+    fn();
+    return 17;
+  };
+  windowRef.cancelAnimationFrame = id => timers.push(`cancel:${id}`);
+  windowRef.setTimeout = (fn, delay) => {
+    timers.push(delay);
+    fn();
+    return 23;
+  };
+  windowRef.clearTimeout = id => timers.push(`clear:${id}`);
+  windowRef.matchMedia = query => ({ media: query, matches: query.includes('reduced-motion') });
+  windowRef.pageYOffset = 321;
+  windowRef.scrollTo = (...args) => scrolls.push(args);
+  documentRef.getElementById = id => ({ id });
+  documentRef.querySelector = selector => ({ selector });
+  documentRef.querySelectorAll = selector => [{ selector }];
+  documentRef.documentElement = { scrollTop: 11 };
 
   const runtime = createEditorAppRuntime({ windowRef, documentRef });
   assert.equal(runtime.storage.setItem('mode', 'sync'), true);
@@ -110,6 +133,25 @@ class FakeCustomEvent {
   assert.equal(runtime.globals.getPrimaryEditorApi(), windowRef.__press_primary_editor);
   assert.equal(runtime.globals.setString('__press_editor_base_dir', 'wwwroot/'), true);
   assert.equal(runtime.globals.getString('__press_editor_base_dir'), 'wwwroot/');
+
+  assert.equal(runtime.browser.getElementById('previewFrame').id, 'previewFrame');
+  assert.equal(runtime.browser.querySelector('.view-toggle').selector, '.view-toggle');
+  assert.deepEqual(runtime.browser.querySelectorAll('[data-preview-resize]').map(item => item.selector), ['[data-preview-resize]']);
+  assert.equal(runtime.browser.requestFrame(() => {}), 17);
+  runtime.browser.cancelFrame(17);
+  assert.equal(timers.includes('cancel:17'), true);
+  assert.equal(runtime.browser.setTimer(() => {}, 1200), 23);
+  runtime.browser.clearTimer(23);
+  assert.equal(timers.includes('clear:23'), true);
+  runtime.browser.clearTimer(0);
+  assert.equal(timers.includes('clear:0'), true);
+  assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
+  assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
+  assert.equal(runtime.browser.getPageYOffset(), 321);
+  assert.equal(runtime.browser.scrollToTop({ smooth: true }), true);
+  assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
+  assert.equal(runtime.browser.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { ok: true }), true);
+  assert.deepEqual(messages.at(-1), { payload: { ok: true }, origin: 'https://example.test' });
 }
 
 {

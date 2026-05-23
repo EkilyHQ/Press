@@ -61,6 +61,29 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   const windowRef = createEventTarget();
   windowRef.CustomEvent = FakeCustomEvent;
   const documentRef = createEventTarget();
+  documentRef.readyState = 'complete';
+  documentRef.getElementById = id => ({ id });
+  documentRef.querySelector = selector => ({ selector });
+  documentRef.querySelectorAll = selector => [{ selector }];
+  documentRef.documentElement = { scrollTop: 44 };
+  const timers = [];
+  const messages = [];
+  const scrolls = [];
+  windowRef.location = { origin: 'https://press.test' };
+  windowRef.requestAnimationFrame = (fn) => {
+    fn();
+    return 17;
+  };
+  windowRef.cancelAnimationFrame = id => timers.push(`cancel:${id}`);
+  windowRef.setTimeout = (fn, delay) => {
+    timers.push(delay);
+    fn();
+    return 23;
+  };
+  windowRef.clearTimeout = id => timers.push(`clear:${id}`);
+  windowRef.matchMedia = query => ({ media: query, matches: query.includes('reduced-motion') });
+  windowRef.pageYOffset = 320;
+  windowRef.scrollTo = (...args) => scrolls.push(args);
   const storage = createStorage({
     press_editor_markdown_view_v2: 'edit',
     press_editor_wrap_enabled: 'true'
@@ -74,6 +97,29 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(runtime.readWrapEnabled({ force: true }), true);
   runtime.persistWrapEnabled(false);
   assert.equal(storage.snapshot().press_editor_wrap_enabled, '0');
+
+  let readyCalls = 0;
+  const detachReady = runtime.onDocumentReady(() => { readyCalls += 1; });
+  assert.equal(readyCalls, 1);
+  detachReady();
+  assert.equal(timers.includes('clear:23'), true);
+  assert.equal(runtime.getElementById('mdInput').id, 'mdInput');
+  assert.equal(runtime.querySelector('.view-toggle').selector, '.view-toggle');
+  assert.deepEqual(runtime.querySelectorAll('[data-preview-resize]').map(item => item.selector), ['[data-preview-resize]']);
+  assert.equal(runtime.getDocumentElement().scrollTop, 44);
+  assert.equal(runtime.requestFrame(() => {}), 17);
+  runtime.cancelFrame(17);
+  assert.equal(timers.includes('cancel:17'), true);
+  assert.equal(runtime.setTimer(() => {}, 1200), 23);
+  runtime.clearTimer(23);
+  assert.equal(timers.includes('clear:23'), true);
+  assert.equal(runtime.getLocationOrigin(), 'https://press.test');
+  assert.equal(runtime.prefersReducedMotion(), true);
+  assert.equal(runtime.getPageYOffset(), 320);
+  assert.equal(runtime.scrollToTop({ smooth: true }), true);
+  assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
+  assert.equal(runtime.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { preview: true }), true);
+  assert.deepEqual(messages.at(-1), { payload: { preview: true }, origin: 'https://press.test' });
 
   assert.equal(runtime.setEditorBaseDir('wwwroot\\posts', 'wwwroot/'), 'wwwroot/posts/');
   assert.equal(runtime.getEditorBaseDir('fallback/'), 'wwwroot/posts/');

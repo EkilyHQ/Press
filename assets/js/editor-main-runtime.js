@@ -41,6 +41,18 @@ function parseWrapState(raw) {
 export function createEditorMainRuntime(options = {}) {
   const runtime = createEditorAppRuntime(options);
 
+  function onDocumentReady(handler) {
+    if (typeof handler !== 'function') return () => {};
+    const documentRef = runtime.documentRef;
+    try {
+      if (documentRef && documentRef.readyState && documentRef.readyState !== 'loading') {
+        const timer = runtime.browser.setTimer(handler, 0);
+        return () => { runtime.browser.clearTimer(timer); };
+      }
+    } catch (_) {}
+    return runtime.events.onDocument('DOMContentLoaded', handler);
+  }
+
   function readMarkdownEditorView() {
     return normalizeMarkdownEditorView(runtime.storage.getItem(LS_VIEW_KEY));
   }
@@ -87,6 +99,10 @@ export function createEditorMainRuntime(options = {}) {
     return runtime.events.onWindow(EVENT_NAMES.siteConfigChange, handler);
   }
 
+  function prefersReducedMotion() {
+    return runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)');
+  }
+
   function emitToast(kind, message) {
     const text = message == null ? '' : String(message);
     if (!text) return false;
@@ -115,6 +131,22 @@ export function createEditorMainRuntime(options = {}) {
     persistMarkdownEditorView,
     readWrapEnabled,
     persistWrapEnabled,
+    onDocumentReady,
+    onDocument: runtime.events.onDocument,
+    onWindow: runtime.events.onWindow,
+    getElementById: runtime.browser.getElementById,
+    querySelector: runtime.browser.querySelector,
+    querySelectorAll: runtime.browser.querySelectorAll,
+    getDocumentElement: runtime.browser.getDocumentElement,
+    requestFrame: runtime.browser.requestFrame,
+    cancelFrame: runtime.browser.cancelFrame,
+    setTimer: runtime.browser.setTimer,
+    clearTimer: runtime.browser.clearTimer,
+    postMessage: runtime.browser.postMessage,
+    getLocationOrigin: runtime.browser.getLocationOrigin,
+    getPageYOffset: runtime.browser.getPageYOffset,
+    scrollToTop: runtime.browser.scrollToTop,
+    prefersReducedMotion,
     setContentRoot,
     getEditorBaseDir,
     setEditorBaseDir,

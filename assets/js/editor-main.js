@@ -100,22 +100,8 @@ function syncFrontMatterLabelWidth(root) {
 
   let frame = 0;
   let observer = null;
-  const requestFrame = (fn) => {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      return window.requestAnimationFrame(fn);
-    }
-    if (typeof requestAnimationFrame === 'function') return requestAnimationFrame(fn);
-    return setTimeout(fn, 0);
-  };
-  const cancelFrame = (id) => {
-    if (!id) return;
-    if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
-      window.cancelAnimationFrame(id);
-      return;
-    }
-    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
-    else clearTimeout(id);
-  };
+  const requestFrame = (fn) => editorMainRuntime.requestFrame(fn);
+  const cancelFrame = (id) => editorMainRuntime.cancelFrame(id);
   const measureLabelText = (label) => {
     let width = label.scrollWidth || 0;
     try {
@@ -791,43 +777,43 @@ function getPreviewPayload(mdText) {
 function renderPreview(mdText) {
   try {
     updatePreviewThemeSelect();
-    const previewWrap = document.getElementById('preview-wrap');
+    const previewWrap = editorMainRuntime.getElementById('preview-wrap');
     if (!previewWrap || previewWrap.hidden) return;
-    const frame = document.getElementById('previewFrame');
+    const frame = editorMainRuntime.getElementById('previewFrame');
     if (!frame || !frame.contentWindow) return;
     const payload = getPreviewPayload(mdText);
     frame.__pressPendingPreviewPayload = payload;
-    frame.contentWindow.postMessage(payload, window.location.origin);
+    editorMainRuntime.postMessage(frame.contentWindow, payload);
   } catch (_) {}
 }
 
 // ---- Local draft storage removed (temporary) ----
 
-document.addEventListener('DOMContentLoaded', () => {
-  const ta = document.getElementById('mdInput');
+editorMainRuntime.onDocumentReady(() => {
+  const ta = editorMainRuntime.getElementById('mdInput');
   const editor = createHiEditor(ta, 'markdown', false);
-  const imageButton = document.getElementById('btnInsertImage');
-  const imageInput = document.getElementById('editorImageInput');
-  const editorToolbarEl = document.getElementById('editorToolbar');
-  const blocksWrap = document.getElementById('blocks-wrap');
-  const previewWrap = document.getElementById('preview-wrap');
-  const previewFrame = document.getElementById('previewFrame');
-  const previewFrameSizer = document.getElementById('previewFrameSizer');
-  const previewViewportShell = document.getElementById('previewViewportShell');
-  const previewPathLabel = document.getElementById('previewPathLabel');
-  const closePreviewButton = document.getElementById('btnClosePreview');
-  const previewThemeSelect = document.getElementById('previewThemeSelect');
-  const cardButton = document.getElementById('btnInsertCard');
-  const cardPopover = document.getElementById('editorCardPicker');
-  const cardSearchInput = document.getElementById('cardPickerSearch');
-  const cardListEl = document.getElementById('cardPickerList');
-  const cardEmptyEl = document.getElementById('cardPickerEmpty');
-  const wrapToggle = document.getElementById('wrapToggle');
+  const imageButton = editorMainRuntime.getElementById('btnInsertImage');
+  const imageInput = editorMainRuntime.getElementById('editorImageInput');
+  const editorToolbarEl = editorMainRuntime.getElementById('editorToolbar');
+  const blocksWrap = editorMainRuntime.getElementById('blocks-wrap');
+  const previewWrap = editorMainRuntime.getElementById('preview-wrap');
+  const previewFrame = editorMainRuntime.getElementById('previewFrame');
+  const previewFrameSizer = editorMainRuntime.getElementById('previewFrameSizer');
+  const previewViewportShell = editorMainRuntime.getElementById('previewViewportShell');
+  const previewPathLabel = editorMainRuntime.getElementById('previewPathLabel');
+  const closePreviewButton = editorMainRuntime.getElementById('btnClosePreview');
+  const previewThemeSelect = editorMainRuntime.getElementById('previewThemeSelect');
+  const cardButton = editorMainRuntime.getElementById('btnInsertCard');
+  const cardPopover = editorMainRuntime.getElementById('editorCardPicker');
+  const cardSearchInput = editorMainRuntime.getElementById('cardPickerSearch');
+  const cardListEl = editorMainRuntime.getElementById('cardPickerList');
+  const cardEmptyEl = editorMainRuntime.getElementById('cardPickerEmpty');
+  const wrapToggle = editorMainRuntime.getElementById('wrapToggle');
   const wrapToggleButtons = wrapToggle ? Array.from(wrapToggle.querySelectorAll('[data-wrap]')) : [];
-  const editorLayoutEl = document.getElementById('mode-editor');
+  const editorLayoutEl = editorMainRuntime.getElementById('mode-editor');
   const editorMainEl = editorLayoutEl ? editorLayoutEl.querySelector('.editor-main') : null;
-  const editorEmptyStateEl = document.getElementById('editorEmptyState');
-  const editorMarkdownPanelEl = document.getElementById('editorMarkdownPanel');
+  const editorEmptyStateEl = editorMainRuntime.getElementById('editorEmptyState');
+  const editorMarkdownPanelEl = editorMainRuntime.getElementById('editorMarkdownPanel');
   let wrapEnabled = false;
 
   const applyEditorEmptyState = (isEmpty) => {
@@ -1523,8 +1509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  try { window.addEventListener('press-editor-asset-preview', handleAssetPreviewEvent); }
-  catch (_) {}
+  editorMainRuntime.onWindow('press-editor-asset-preview', handleAssetPreviewEvent);
 
   const requestLayout = () => {
     try {
@@ -1594,21 +1579,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const clearPreviewOverlayAnimation = () => {
     if (previewOverlayFrame) {
-      try { cancelAnimationFrame(previewOverlayFrame); } catch (_) {}
+      editorMainRuntime.cancelFrame(previewOverlayFrame);
       previewOverlayFrame = 0;
     }
     if (previewOverlayCloseTimer) {
-      clearTimeout(previewOverlayCloseTimer);
+      editorMainRuntime.clearTimer(previewOverlayCloseTimer);
       previewOverlayCloseTimer = 0;
     }
   };
 
   const prefersReducedPreviewMotion = () => {
-    try {
-      return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    } catch (_) {
-      return false;
-    }
+    return editorMainRuntime.prefersReducedMotion();
   };
 
   const openPreviewOverlay = () => {
@@ -1620,7 +1601,7 @@ document.addEventListener('DOMContentLoaded', () => {
     previewWrap.removeAttribute('aria-hidden');
     previewWrap.classList.remove('is-closing');
     previewWrap.classList.remove('is-open');
-    previewOverlayFrame = requestAnimationFrame(() => {
+    previewOverlayFrame = editorMainRuntime.requestFrame(() => {
       previewOverlayFrame = 0;
       previewWrap.classList.add('is-open');
     });
@@ -1641,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     previewWrap.classList.add('is-closing');
-    previewOverlayCloseTimer = setTimeout(() => {
+    previewOverlayCloseTimer = editorMainRuntime.setTimer(() => {
       previewOverlayCloseTimer = 0;
       previewWrap.hidden = true;
       previewWrap.classList.remove('is-closing');
@@ -1664,24 +1645,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const delta = currentX - startX;
       setPreviewViewportWidth(startWidth + (delta * direction * 2));
     };
+    let detachMove = () => {};
+    let detachUp = () => {};
+    let detachCancel = () => {};
     const handleEnd = () => {
-      document.removeEventListener('pointermove', handleMove);
-      document.removeEventListener('pointerup', handleEnd);
-      document.removeEventListener('pointercancel', handleEnd);
+      detachMove();
+      detachUp();
+      detachCancel();
       previewFrameSizer.classList.remove('is-resizing');
       if (previewFrame) previewFrame.style.pointerEvents = '';
     };
 
-    document.addEventListener('pointermove', handleMove);
-    document.addEventListener('pointerup', handleEnd, { once: true });
-    document.addEventListener('pointercancel', handleEnd, { once: true });
+    detachMove = editorMainRuntime.onDocument('pointermove', handleMove);
+    detachUp = editorMainRuntime.onDocument('pointerup', handleEnd, { once: true });
+    detachCancel = editorMainRuntime.onDocument('pointercancel', handleEnd, { once: true });
   };
 
   const flushPendingPreview = () => {
     try {
       if (!previewFrame || !previewFrame.contentWindow || !previewFrame.__pressPendingPreviewPayload) return;
       if (!previewFrameReady) return;
-      previewFrame.contentWindow.postMessage(previewFrame.__pressPendingPreviewPayload, window.location.origin);
+      editorMainRuntime.postMessage(previewFrame.contentWindow, previewFrame.__pressPendingPreviewPayload);
     } catch (_) {}
   };
 
@@ -1724,12 +1708,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (previewFrame) {
     previewFrame.addEventListener('load', () => {
       previewFrameReady = false;
-      setTimeout(flushPendingPreview, 0);
+      editorMainRuntime.setTimer(flushPendingPreview, 0);
     });
   }
 
-  window.addEventListener('message', (event) => {
-    if (event.origin !== window.location.origin) return;
+  editorMainRuntime.onWindow('message', (event) => {
+    if (event.origin !== editorMainRuntime.getLocationOrigin()) return;
     if (!previewFrame || event.source !== previewFrame.contentWindow) return;
     const detail = event.data && typeof event.data === 'object' ? event.data : {};
     if (detail.type === PREVIEW_READY_MESSAGE) {
@@ -1755,12 +1739,12 @@ document.addEventListener('DOMContentLoaded', () => {
       closePreviewOverlay();
     });
   }
-  document.querySelectorAll('[data-preview-resize]').forEach((handle) => {
+  editorMainRuntime.querySelectorAll('[data-preview-resize]').forEach((handle) => {
     handle.addEventListener('pointerdown', (event) => {
       startPreviewResize(event, handle.getAttribute('data-preview-resize') || 'right');
     });
   });
-  document.addEventListener('keydown', (event) => {
+  editorMainRuntime.onDocument('keydown', (event) => {
     if (!event || event.key !== 'Escape') return;
     if (!previewWrap || previewWrap.hidden) return;
     event.preventDefault();
@@ -1881,13 +1865,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingImagePickerToken = 0;
   const armImagePickerCancelReset = (token) => {
     const clearIfPickerStillPending = () => {
-      window.setTimeout(() => {
+      editorMainRuntime.setTimer(() => {
         if (token !== pendingImagePickerToken) return;
         const hasFiles = imageInput && imageInput.files && imageInput.files.length;
         if (!hasFiles) pendingBlocksImageInsert = null;
       }, 250);
     };
-    window.addEventListener('focus', clearIfPickerStillPending, { once: true });
+    editorMainRuntime.onWindow('focus', clearIfPickerStillPending, { once: true });
     if (imageInput) {
       imageInput.addEventListener('cancel', clearIfPickerStillPending, { once: true });
       imageInput.addEventListener('blur', clearIfPickerStillPending, { once: true });
@@ -2037,6 +2021,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let cardPopoverClosing = false;
   let cardPopoverCloseTimer = null;
   let cardPopoverTransitionHandler = null;
+  let detachCardMouseDown = () => {};
+  let detachCardKeydown = () => {};
+  let detachCardResize = () => {};
+  let detachCardScroll = () => {};
 
   const tooltipButtons = new Set();
 
@@ -2399,9 +2387,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cardPopoverOpen) positionCardPopover(cardButton);
   };
 
+  const detachCardPopoverWatchers = () => {
+    detachCardMouseDown();
+    detachCardKeydown();
+    detachCardResize();
+    detachCardScroll();
+    detachCardMouseDown = () => {};
+    detachCardKeydown = () => {};
+    detachCardResize = () => {};
+    detachCardScroll = () => {};
+  };
+
+  const attachCardPopoverWatchers = () => {
+    detachCardPopoverWatchers();
+    detachCardMouseDown = editorMainRuntime.onDocument('mousedown', handleCardOutsideClick, true);
+    detachCardKeydown = editorMainRuntime.onDocument('keydown', handleCardKeydown, true);
+    detachCardResize = editorMainRuntime.onWindow('resize', handleCardRelayout, true);
+    detachCardScroll = editorMainRuntime.onWindow('scroll', handleCardRelayout, true);
+  };
+
   const clearCardPopoverCloseWatcher = () => {
     if (cardPopoverCloseTimer) {
-      clearTimeout(cardPopoverCloseTimer);
+      editorMainRuntime.clearTimer(cardPopoverCloseTimer);
       cardPopoverCloseTimer = null;
     }
     if (cardPopover && cardPopoverTransitionHandler) {
@@ -2429,10 +2436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cardPopoverOpen = false;
     cardPopoverClosing = true;
     if (cardButton) cardButton.setAttribute('aria-expanded', 'false');
-    document.removeEventListener('mousedown', handleCardOutsideClick, true);
-    document.removeEventListener('keydown', handleCardKeydown, true);
-    window.removeEventListener('resize', handleCardRelayout, true);
-    window.removeEventListener('scroll', handleCardRelayout, true);
+    detachCardPopoverWatchers();
     if (!cardPopover) {
       finalizeCardPopoverClose();
       if (cardSearchInput) cardSearchInput.value = '';
@@ -2449,7 +2453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     cardPopoverTransitionHandler = handleTransitionEnd;
     cardPopover.addEventListener('transitionend', handleTransitionEnd);
-    cardPopoverCloseTimer = window.setTimeout(finalizeCardPopoverClose, 360);
+    cardPopoverCloseTimer = editorMainRuntime.setTimer(finalizeCardPopoverClose, 360);
     if (cardSearchInput) cardSearchInput.value = '';
   };
 
@@ -2470,16 +2474,13 @@ document.addEventListener('DOMContentLoaded', () => {
     cardPopover.classList.add('is-visible');
     cardButton.setAttribute('aria-expanded', 'true');
     cardPopoverOpen = true;
-    setTimeout(() => {
+    editorMainRuntime.setTimer(() => {
       if (cardSearchInput) {
         try { cardSearchInput.focus(); }
         catch (_) {}
       }
     }, 0);
-    document.addEventListener('mousedown', handleCardOutsideClick, true);
-    document.addEventListener('keydown', handleCardKeydown, true);
-    window.addEventListener('resize', handleCardRelayout, true);
-    window.addEventListener('scroll', handleCardRelayout, true);
+    attachCardPopoverWatchers();
   };
 
   function handleCardOutsideClick(event) {
@@ -2566,7 +2567,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   recordSelection();
 
-  document.addEventListener('press-editor-language-applied', () => {
+  editorMainRuntime.onDocument('press-editor-language-applied', () => {
     tooltipButtons.forEach(btn => applyButtonTooltipState(btn, !!btn.disabled));
     renderCurrentFileIndicator();
     if (markdownBlocksEditor && typeof markdownBlocksEditor.requestLayout === 'function') {
@@ -3267,7 +3268,7 @@ document.addEventListener('DOMContentLoaded', () => {
       applyMarkdownEditorView(a.dataset.view, { persist: true });
     });
   });
-  const previewOpenButton = document.getElementById('btnOpenPreview');
+  const previewOpenButton = editorMainRuntime.getElementById('btnOpenPreview');
   if (previewOpenButton) {
     previewOpenButton.addEventListener('click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
@@ -3321,19 +3322,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Back-to-top button behavior
   (function initBackToTop() {
-    const btn = document.getElementById('backToTop');
+    const btn = editorMainRuntime.getElementById('backToTop');
     if (!btn) return;
     try { btn.hidden = false; } catch (_) {}
     const threshold = 260;
     const toggle = () => {
-      const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const documentElement = editorMainRuntime.getDocumentElement();
+      const y = editorMainRuntime.getPageYOffset() || (documentElement && documentElement.scrollTop) || 0;
       if (y > threshold) btn.classList.add('show');
       else btn.classList.remove('show');
     };
-    window.addEventListener('scroll', toggle, { passive: true });
+    editorMainRuntime.onWindow('scroll', toggle, { passive: true });
     btn.addEventListener('click', () => {
-      try { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-      catch (_) { window.scrollTo(0, 0); }
+      editorMainRuntime.scrollToTop({ smooth: true });
     });
     toggle();
   })();
@@ -3396,7 +3397,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (currentActive) currentActive.classList.remove('is-active');
           currentActive = li; currentActive.classList.add('is-active');
           switchView('edit');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          editorMainRuntime.scrollToTop({ smooth: true });
           setStatus('');
         } catch (err) {
           console.error('Failed to load markdown:', err);
@@ -3480,7 +3481,7 @@ document.addEventListener('DOMContentLoaded', () => {
           panel.style.transition = `height ${ANIM_MS}ms ${ease}, opacity ${ANIM_MS}ms ${ease}`;
           const target = panel.scrollHeight;
           // next frame
-          requestAnimationFrame(() => {
+          editorMainRuntime.requestFrame(() => {
             panel.style.height = `${target}px`;
             panel.style.opacity = '1';
           });
@@ -3504,7 +3505,7 @@ document.addEventListener('DOMContentLoaded', () => {
           panel.style.opacity = '1';
           panel.style.transition = `height ${ANIM_MS}ms ${ease}, opacity ${ANIM_MS}ms ${ease}`;
           // next frame
-          requestAnimationFrame(() => {
+          editorMainRuntime.requestFrame(() => {
             panel.style.height = '0px';
             panel.style.opacity = '0';
           });

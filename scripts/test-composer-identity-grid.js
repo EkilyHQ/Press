@@ -35,6 +35,7 @@ const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
+const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
@@ -148,6 +149,7 @@ const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
+const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
@@ -935,6 +937,42 @@ assert.match(
   composerEditorDetailPanelControllerSource,
   /export function createComposerEditorDetailPanelController\(options = \{\}\)[\s\S]*function setEditorDetailPanelMode\(mode\)[\s\S]*function animateEditorStructurePanelContent\(panel = getStructurePanel\(\)\)[\s\S]*function animateEditorMarkdownPanelContent\(panel = getMarkdownPanel\(\)\)/,
   'editor detail panel controller should own panel mode routing and panel content animations'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-yaml-panels-controller\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted YAML panels controller boundary'
+);
+
+assert.match(
+  source,
+  /const composerYamlPanelsController = createComposerYamlPanelsController\(\{[\s\S]*buildIndexUI: \(root, state\) => composerIndexTabsUi\.buildIndexUI\(root, state\),[\s\S]*buildTabsUI: \(root, state\) => composerIndexTabsUi\.buildTabsUI\(root, state\),[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\),[\s\S]*updateMarkdownDraftIndicators: \(\) => updateComposerMarkdownDraftIndicators\(\)[\s\S]*\}\);/,
+  'composer should wire YAML panel rebuilds through a focused controller'
+);
+
+assert.match(
+  source,
+  /function rebuildIndexUI\(preserveOpen = true\) \{\s*return composerYamlPanelsController\.rebuildIndexUI\(preserveOpen\);\s*\}[\s\S]*function rebuildTabsUI\(preserveOpen = true\) \{\s*return composerYamlPanelsController\.rebuildTabsUI\(preserveOpen\);\s*\}/,
+  'composer rebuild wrappers should delegate to the YAML panels controller for early callback wiring'
+);
+
+assert.match(
+  source,
+  /function rebuildSiteUI\(\) \{\s*return composerYamlPanelsController\.rebuildSiteUI\(\);\s*\}/,
+  'composer site rebuild wrapper should delegate to the YAML panels controller'
+);
+
+assert.doesNotMatch(
+  source,
+  /function getDynamicTabsContainer|document\.getElementById\('modeDynamicTabs'\)|document\.getElementById\('composerIndex'\)|document\.getElementById\('composerTabs'\)|document\.getElementById\('composerSite'\)/,
+  'composer should not own YAML panel root DOM lookups directly'
+);
+
+assert.match(
+  composerYamlPanelsControllerSource,
+  /export function createComposerYamlPanelsController\(options = \{\}\)[\s\S]*function updateDynamicTabsGroupState\(\)[\s\S]*function rebuildIndexUI\(preserveOpen = true\)[\s\S]*function rebuildTabsUI\(preserveOpen = true\)[\s\S]*function rebuildSiteUI\(\)/,
+  'YAML panels controller should own dynamic tab group state and YAML panel rebuilds'
 );
 
 assert.match(

@@ -55,6 +55,7 @@ import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.
 import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.50';
 import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.50';
 import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.50';
+import { createComposerYamlPanelsController } from './composer-yaml-panels-controller.js?v=press-system-v3.4.50';
 import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.50';
 import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.50';
 import { createComposerEditorDetailPanelController } from './composer-editor-detail-panel-controller.js?v=press-system-v3.4.50';
@@ -714,21 +715,8 @@ function shouldPreserveEditorStructureForMode(mode) {
   return !!(mode && (isDynamicMode(mode) || isComposerSystemMode(mode)));
 }
 
-function getDynamicTabsContainer() {
-  try {
-    return document.getElementById('modeDynamicTabs');
-  } catch (_) {
-    return null;
-  }
-}
-
 function updateDynamicTabsGroupState() {
-  const container = getDynamicTabsContainer();
-  if (!container) return;
-  const hasTabs = !!container.querySelector('.mode-tab.dynamic-mode');
-  container.hidden = !hasTabs;
-  if (hasTabs) container.removeAttribute('aria-hidden');
-  else container.setAttribute('aria-hidden', 'true');
+  return composerYamlPanelsController.updateDynamicTabsGroupState();
 }
 
 const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
@@ -1383,6 +1371,18 @@ const composerSiteSettingsUi = createComposerSiteSettingsUi({
   annotateDiscussionCategoryPresets: ANNOTATE_DISCUSSION_CATEGORY_PRESETS
 });
 
+const composerYamlPanelsController = createComposerYamlPanelsController({
+  documentRef: document,
+  cssEscape,
+  clearInlineSlideStyles,
+  getActiveState: () => composerStateStore.getActiveState(),
+  buildIndexUI: (root, state) => composerIndexTabsUi.buildIndexUI(root, state),
+  buildTabsUI: (root, state) => composerIndexTabsUi.buildTabsUI(root, state),
+  buildSiteUI: (root, state) => composerSiteSettingsUi.buildSiteUI(root, state),
+  notifyComposerChange,
+  updateMarkdownDraftIndicators: () => updateComposerMarkdownDraftIndicators()
+});
+
 const composerSetupVerifier = createComposerSetupVerifier({
   runtime: editorRuntime,
   documentRef: document,
@@ -1441,53 +1441,11 @@ function notifyComposerChange(kind, options = {}) {
 }
 
 function rebuildIndexUI(preserveOpen = true) {
-  const root = document.getElementById('composerIndex');
-  if (!root) return;
-  const openKeys = preserveOpen
-    ? Array.from(root.querySelectorAll('.ci-item.is-open')).map(el => el.getAttribute('data-key')).filter(Boolean)
-    : [];
-  composerIndexTabsUi.buildIndexUI(root, composerStateStore.getActiveState());
-  openKeys.forEach(key => {
-    if (!key) return;
-    const row = root.querySelector(`.ci-item[data-key="${cssEscape(key)}"]`);
-    if (!row) return;
-    const body = row.querySelector('.ci-body');
-    const btn = row.querySelector('.ci-expand');
-    row.classList.add('is-open');
-    if (body) {
-      body.style.display = 'block';
-      body.dataset.open = '1';
-      clearInlineSlideStyles(body);
-    }
-    if (btn) btn.setAttribute('aria-expanded', 'true');
-  });
-  notifyComposerChange('index', { skipAutoSave: true });
-  updateComposerMarkdownDraftIndicators();
+  return composerYamlPanelsController.rebuildIndexUI(preserveOpen);
 }
 
 function rebuildTabsUI(preserveOpen = true) {
-  const root = document.getElementById('composerTabs');
-  if (!root) return;
-  const openKeys = preserveOpen
-    ? Array.from(root.querySelectorAll('.ct-item.is-open')).map(el => el.getAttribute('data-key')).filter(Boolean)
-    : [];
-  composerIndexTabsUi.buildTabsUI(root, composerStateStore.getActiveState());
-  openKeys.forEach(key => {
-    if (!key) return;
-    const row = root.querySelector(`.ct-item[data-key="${cssEscape(key)}"]`);
-    if (!row) return;
-    const body = row.querySelector('.ct-body');
-    const btn = row.querySelector('.ct-expand');
-    row.classList.add('is-open');
-    if (body) {
-      body.style.display = 'block';
-      body.dataset.open = '1';
-      clearInlineSlideStyles(body);
-    }
-    if (btn) btn.setAttribute('aria-expanded', 'true');
-  });
-  notifyComposerChange('tabs', { skipAutoSave: true });
-  updateComposerMarkdownDraftIndicators();
+  return composerYamlPanelsController.rebuildTabsUI(preserveOpen);
 }
 
 function loadDraftSnapshotsIntoState(state) {
@@ -1961,10 +1919,7 @@ function showStatus(msg, kind = 'info') {
 }
 
 function rebuildSiteUI() {
-  const root = document.getElementById('composerSite');
-  if (!root) return;
-  composerSiteSettingsUi.buildSiteUI(root, composerStateStore.getActiveState());
-  notifyComposerChange('site', { skipAutoSave: true });
+  return composerYamlPanelsController.rebuildSiteUI();
 }
 
 initializeComposerApp({

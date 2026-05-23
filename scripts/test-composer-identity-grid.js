@@ -74,6 +74,7 @@ const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-too
 const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
 const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
 const editorMainWorkspaceSessionPath = resolve(here, '../assets/js/editor-main-workspace-session.js');
+const editorMainBlocksSessionPath = resolve(here, '../assets/js/editor-main-blocks-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -172,6 +173,7 @@ const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath
 const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
 const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
 const editorMainWorkspaceSessionSource = readFileSync(editorMainWorkspaceSessionPath, 'utf8');
+const editorMainBlocksSessionSource = readFileSync(editorMainBlocksSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -290,9 +292,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
+  editorMainBlocksSessionSource,
   /from '\.\/editor-blocks\.js\?v=[\w.-]+'/,
-  'editor preview should cache-bust the Markdown blocks editor when math block handling changes'
+  'editor main blocks session should cache-bust the Markdown blocks editor when math block handling changes'
 );
 
 assert.match(
@@ -951,6 +953,12 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-blocks-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor blocks session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -963,7 +971,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const workspaceSession = createEditorMainWorkspaceSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksEditor: \(\) => markdownBlocksEditor,[\s\S]*syncBlocksFromSource: \(\) => \{[\s\S]*syncMarkdownBlocksFromSource\(\);[\s\S]*\},[\s\S]*requestLayout[\s\S]*\}\);[\s\S]*workspaceSession\.initialize\(\);/,
+  /const workspaceSession = createEditorMainWorkspaceSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*syncBlocksFromSource: \(\) => \{ if \(blocksSession\) blocksSession\.syncFromSource\(\); \},[\s\S]*requestLayout[\s\S]*\}\);[\s\S]*workspaceSession\.initialize\(\);/,
   'editor main should compose workspace view, wrap, preview button, and empty-state controls through the workspace session'
 );
 
@@ -993,8 +1001,14 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea,[\s\S]*getEditorBody,[\s\S]*buildMarkdown: \(body\) => metadataPanel\.buildMarkdown\(body\),[\s\S]*setValue,[\s\S]*getBlocksEditor: \(\) => markdownBlocksEditor,[\s\S]*emitToast: emitEditorToast[\s\S]*\}\);[\s\S]*requestImageUpload: \(detail\) => imageSession\.requestBlocksImageUpload\(detail\),[\s\S]*canDeleteImageResource: \(src\) => imageSession\.canDeleteImageResource\(src\),[\s\S]*requestImageDelete: \(detail\) => imageSession\.requestBlocksImageDelete\(detail\)[\s\S]*imageSession\.bind\(\);/,
+  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea,[\s\S]*getEditorBody,[\s\S]*buildMarkdown: \(body\) => metadataPanel\.buildMarkdown\(body\),[\s\S]*setValue,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*emitToast: emitEditorToast[\s\S]*\}\);/,
   'editor main should compose image picker, upload, drop, and block image actions through the image session'
+);
+
+assert.match(
+  editorMainSource,
+  /blocksSession = createEditorMainBlocksSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*root: blocksWrap,[\s\S]*translate: t,[\s\S]*getContentRoot,[\s\S]*getEditorBody,[\s\S]*onBodyChange: setEditorBodyFromBlocks,[\s\S]*getCurrentMarkdownPath,[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getImageSession: \(\) => imageSession,[\s\S]*linkCardContext,[\s\S]*resolveImageSrc[\s\S]*\}\);[\s\S]*blocksSession\.initialize\(\);/,
+  'editor main should compose the Blocks editor through an explicit blocks session service'
 );
 
 assert.doesNotMatch(
@@ -1043,6 +1057,12 @@ assert.doesNotMatch(
   editorMainSource,
   /function switchView|let wrapEnabled|const applyEditorEmptyState|const applyWrapState|const handleWrapSelection|wrapToggleButtons\.forEach|const previewOpenButton|document\.querySelectorAll\('\.vt-btn\[data-view\]'\)|document\.querySelector\('\.view-toggle'\)/,
   'editor main root should not own workspace view switching, wrap toggle state, empty-state DOM, or preview button bindings'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /createMarkdownBlocksEditor|hydrateInternalLinkCards|let markdownBlocksEditor|syncMarkdownBlocksFromSource|blockLabelFallbacks|const blockLabels|handleBlocksCardContextUpdate|requestImageUpload: \(detail\) => imageSession\.requestBlocksImageUpload/,
+  'editor main root should not own Blocks editor construction, block labels, card-entry fan-out, or block image callback plumbing'
 );
 
 assert.doesNotMatch(
@@ -1121,6 +1141,24 @@ assert.match(
   editorMainWorkspaceSessionSource,
   /readWrapEnabled\(\{ force: forceMarkdownWrap \}\)[\s\S]*persistWrapEnabled\(on\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*getBlocksEditor\(\)[\s\S]*normalizeMarkdownEditorView\(mode\)[\s\S]*getPreviewSession\(\)/,
   'editor workspace session should route storage and cross-session calls through explicit runtime and dependency accessors'
+);
+
+assert.match(
+  editorMainBlocksSessionSource,
+  /import \{ createMarkdownBlocksEditor \} from '\.\/editor-blocks\.js\?v=[\w.-]+';[\s\S]*import \{ hydrateInternalLinkCards \} from '\.\/link-cards\.js\?v=[\w.-]+';[\s\S]*const blockLabelFallbacks = \{/,
+  'editor blocks session should own block editor imports and local fallback labels'
+);
+
+assert.match(
+  editorMainBlocksSessionSource,
+  /export function createEditorMainBlocksSession\(options = \{\}\) \{[\s\S]*const createBlocksEditor = typeof options\.createBlocksEditor === 'function'[\s\S]*const hydrateLinkCards = typeof options\.hydrateLinkCards === 'function'[\s\S]*const setCardEntries = \(entries\) => \{[\s\S]*blocksEditor\.setCardEntries\(Array\.isArray\(entries\) \? entries : fallback\);[\s\S]*const bindCardEntries = \(\) => \{[\s\S]*linkCardContext\.onCardEntriesChange\(\(entries\) => setCardEntries\(entries\)\);[\s\S]*const initialize = \(\) => \{[\s\S]*blocksEditor = createBlocksEditor\(root, \{[\s\S]*labels: createBlockLabels\(translate\),[\s\S]*onChange: onBodyChange,[\s\S]*hydrateImages,[\s\S]*hydrateCard,[\s\S]*requestImageUpload,[\s\S]*canDeleteImageResource,[\s\S]*requestImageDelete[\s\S]*\}\);/,
+  'editor blocks session should own blocks-editor construction, card entry subscription, hydration, and image callbacks'
+);
+
+assert.match(
+  editorMainBlocksSessionSource,
+  /const syncFromSource = \(\) => \{[\s\S]*blocksEditor\.setMarkdown\(getEditorBody\(\)\);[\s\S]*const syncIfVisible = \(body\) => \{[\s\S]*if \(!root \|\| root\.hidden\) return false;[\s\S]*blocksEditor\.setMarkdown\(body == null \? '' : String\(body\)\);[\s\S]*const requestLayout = \(\) => \{[\s\S]*blocksEditor\.requestLayout\(\);[\s\S]*const focus = \(\) => \{[\s\S]*blocksEditor\.focus\(\);/,
+  'editor blocks session should expose source sync, visible sync, layout, and focus as explicit session API'
 );
 
 assert.match(
@@ -1915,19 +1953,19 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /const blockLabels = new Proxy\(\{\}, \{[\s\S]*const translationKey = `editor\.blocks\.\$\{name\}`;[\s\S]*const translated = t\(translationKey\);[\s\S]*translated !== translationKey \? translated : \(blockLabelFallbacks\[name\] \|\| name\);/,
+  editorMainBlocksSessionSource,
+  /function createBlockLabels\(translateImpl\) \{[\s\S]*const translationKey = `editor\.blocks\.\$\{name\}`;[\s\S]*translated = translateImpl\(translationKey\);[\s\S]*translated !== translationKey[\s\S]*: \(blockLabelFallbacks\[name\] \|\| name\);/,
   'block labels should use local fallbacks when i18n returns the key for a missing translation'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainBlocksSessionSource,
   /linkTitle: 'Link title'/,
   'block link title field should have a local fallback label'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainBlocksSessionSource,
   /replaceImage: 'Replace image'/,
   'block replace image button should have a local fallback label'
 );

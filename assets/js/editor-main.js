@@ -1,9 +1,7 @@
 import { configureFetchCachePolicy } from './cache-control.js';
-import { createMarkdownBlocksEditor } from './editor-blocks.js?v=press-system-v3.4.50';
 import { createHiEditor } from './hieditor.js?v=press-system-v3.4.50';
 import { normalizeLineEndings } from './frontmatter-document.js?v=press-system-v3.4.50';
 import { getContentRoot, resolveImageSrc } from './safe-html.js?v=press-system-v3.4.50';
-import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.50';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
 import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
 import { createEditorMainMetadataPanel } from './editor-main-metadata-panel.js?v=press-system-v3.4.50';
@@ -14,13 +12,11 @@ import { createEditorMainToolbarSession } from './editor-main-toolbar-session.js
 import { createEditorMainImageSession } from './editor-main-image-session.js?v=press-system-v3.4.50';
 import { createEditorMainLinkCardContext } from './editor-main-link-card-context.js?v=press-system-v3.4.50';
 import { createEditorMainWorkspaceSession } from './editor-main-workspace-session.js?v=press-system-v3.4.50';
+import { createEditorMainBlocksSession } from './editor-main-blocks-session.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
 const FORCE_MARKDOWN_WRAP = true;
 const editorMainRuntime = createEditorMainRuntime();
-
-let markdownBlocksEditor = null;
-let syncMarkdownBlocksFromSource = null;
 
 let editorSiteConfig = {};
 
@@ -86,6 +82,7 @@ editorMainRuntime.onDocumentReady(() => {
   };
 
   let previewSession = null;
+  let blocksSession = null;
   const workspaceSession = createEditorMainWorkspaceSession({
     runtime: editorMainRuntime,
     documentRef: document,
@@ -93,10 +90,8 @@ editorMainRuntime.onDocumentReady(() => {
     editor,
     textarea: ta,
     getPreviewSession: () => previewSession,
-    getBlocksEditor: () => markdownBlocksEditor,
-    syncBlocksFromSource: () => {
-      if (typeof syncMarkdownBlocksFromSource === 'function') syncMarkdownBlocksFromSource();
-    },
+    getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
+    syncBlocksFromSource: () => { if (blocksSession) blocksSession.syncFromSource(); },
     requestLayout
   });
   workspaceSession.initialize();
@@ -162,9 +157,7 @@ editorMainRuntime.onDocumentReady(() => {
     if (editor) editor.setValue(bodyText);
     else if (ta) ta.value = bodyText;
     requestLayout();
-    if (markdownBlocksEditor && blocksWrap && !blocksWrap.hidden && typeof markdownBlocksEditor.setMarkdown === 'function') {
-      try { markdownBlocksEditor.setMarkdown(bodyText); } catch (_) {}
-    }
+    if (blocksSession) blocksSession.syncIfVisible(bodyText);
     if (preview) refreshPreview();
     if (notify) notifyChange();
   };
@@ -174,83 +167,6 @@ editorMainRuntime.onDocumentReady(() => {
     editorMainRuntime.setEditorBaseDir(dir, fallback);
   };
 
-  const blockLabelFallbacks = {
-    toolbarAria: 'Block tools',
-    listAria: 'Markdown blocks',
-    virtualBlockAria: 'New block',
-    virtualBlockPlaceholder: 'Type / to chose a block',
-    commandMenuAria: 'Block selector',
-    paragraph: 'Paragraph',
-    heading: 'Heading',
-    image: 'Image',
-    list: 'List',
-    quote: 'Quote',
-    code: 'Code',
-    math: 'Math',
-    source: 'Markdown',
-    articleCard: 'Article Card',
-    uploadImage: 'Upload Image',
-    cardSearch: 'Search articles...',
-    cardEmpty: 'No matching articles',
-    empty: 'No blocks yet.',
-    actions: 'More actions',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
-    addBefore: 'Add before',
-    addAfter: 'Add after',
-    delete: 'Delete',
-    imageAlt: 'Alt text',
-    imagePath: 'Image path',
-    replaceImage: 'Replace image',
-    deleteImageResource: 'Delete resource',
-    unordered: 'Bulleted',
-    ordered: 'Numbered',
-    task: 'Checklist',
-    codeLanguage: 'Language',
-    cardLabel: 'Card label',
-    cardLocation: 'post/path/file.md',
-    inlineToolbarAria: 'Inline formatting',
-    inlineBold: 'Bold',
-    inlineItalic: 'Italic',
-    inlineStrike: 'Strikethrough',
-    inlineCode: 'Inline code',
-    inlineLink: 'Link',
-    inlineMath: 'Math',
-    inlineMore: 'More formatting',
-    linkPrompt: 'Link URL',
-    linkText: 'Link text',
-    linkHref: 'Link URL',
-    linkTitle: 'Link title',
-    unlink: 'Unlink',
-    mathSource: 'LaTeX source',
-    removeMath: 'Remove',
-    editMath: 'Edit math',
-    listAddItem: 'Add item',
-    listRemoveItem: 'Remove item',
-    imageTitle: 'Image title',
-    'sourceReason.blank': 'This empty Markdown segment is preserved as source.',
-    'sourceReason.frontMatter': 'Front matter is preserved as raw Markdown so document metadata stays intact.',
-    'sourceReason.unclosedFence': 'This fenced code block is incomplete, so it is kept as Markdown source.',
-    'sourceReason.unclosedMath': 'This display math block is incomplete, so it is kept as Markdown source.',
-    'sourceReason.callout': 'This block uses callout-style Markdown that the visual block editor does not edit directly.',
-    'sourceReason.table': 'This table-like Markdown is kept as source because the visual block editor does not support table editing yet.',
-    'sourceReason.indentedList': 'This list starts with indentation, so it is kept as source to avoid changing whether it means a nested list or code-like Markdown.',
-    'sourceReason.mixedList': 'This list starts from an unsupported mixed indentation, so it is kept as Markdown source.',
-    'sourceReason.image': 'This paragraph contains inline image Markdown, so it is kept as source to avoid changing the mixed content.',
-    'sourceReason.rawHtml': 'This paragraph contains raw HTML outside inline code, so it is kept as Markdown source.',
-    'sourceReason.unsupported': 'This Markdown is kept as source because the block editor cannot safely convert it to a visual block without changing the original structure.',
-    'sourceAutofix.label': 'Autofix',
-    'sourceAutofix.indentedList': 'Autofix: remove the shared list indentation and convert this Markdown into a visual list block.',
-    'sourceAutofix.unsupported': 'Autofix'
-  };
-  const blockLabels = new Proxy({}, {
-    get: (_target, key) => {
-      const name = String(key || '');
-      const translationKey = `editor.blocks.${name}`;
-      const translated = t(translationKey);
-      return translated != null && translated !== translationKey ? translated : (blockLabelFallbacks[name] || name);
-    }
-  });
   const setEditorBodyFromBlocks = (body) => {
     const text = body == null ? '' : String(body);
     if (editor) editor.setValue(text);
@@ -287,38 +203,25 @@ editorMainRuntime.onDocumentReady(() => {
     getEditorBody,
     buildMarkdown: (body) => metadataPanel.buildMarkdown(body),
     setValue,
-    getBlocksEditor: () => markdownBlocksEditor,
+    getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
     emitToast: emitEditorToast
   });
 
-  if (blocksWrap) {
-    markdownBlocksEditor = createMarkdownBlocksEditor(blocksWrap, {
-      labels: blockLabels,
-      onChange: setEditorBodyFromBlocks,
-      getBaseDir: () => editorMainRuntime.getEditorBaseDir(`${getContentRoot()}/`),
-      resolveImageSrc,
-      hydrateImages: (node) => {
-        try { previewSession.applyAssetOverrides(node, getCurrentMarkdownPath()); } catch (_) {}
-      },
-      hydrateCard: (node) => {
-        try {
-          hydrateInternalLinkCards(node, linkCardContext.createHydrateOptions({
-            siteConfig: editorSiteConfig,
-            translate: t
-          }));
-          previewSession.applyAssetOverrides(node, getCurrentMarkdownPath());
-        } catch (_) {}
-      },
-      requestImageUpload: (detail) => imageSession.requestBlocksImageUpload(detail),
-      canDeleteImageResource: (src) => imageSession.canDeleteImageResource(src),
-      requestImageDelete: (detail) => imageSession.requestBlocksImageDelete(detail)
-    });
-    syncMarkdownBlocksFromSource = () => {
-      if (markdownBlocksEditor && typeof markdownBlocksEditor.setMarkdown === 'function') {
-        markdownBlocksEditor.setMarkdown(getEditorBody());
-      }
-    };
-  }
+  blocksSession = createEditorMainBlocksSession({
+    runtime: editorMainRuntime,
+    root: blocksWrap,
+    translate: t,
+    getContentRoot,
+    getEditorBody,
+    onBodyChange: setEditorBodyFromBlocks,
+    getCurrentMarkdownPath,
+    getSiteConfig: () => editorSiteConfig || {},
+    getPreviewSession: () => previewSession,
+    getImageSession: () => imageSession,
+    linkCardContext,
+    resolveImageSrc
+  });
+  blocksSession.initialize();
 
   const toolbarSession = createEditorMainToolbarSession({
     runtime: editorMainRuntime,
@@ -339,20 +242,12 @@ editorMainRuntime.onDocumentReady(() => {
   editorMainRuntime.onDocument('press-editor-language-applied', () => {
     toolbarSession.syncLanguage();
     currentFileSession.render();
-    if (markdownBlocksEditor && typeof markdownBlocksEditor.requestLayout === 'function') {
-      try { markdownBlocksEditor.requestLayout(); } catch (_) {}
-    }
+    blocksSession.requestLayout();
     metadataPanel.syncLanguage();
   });
 
-  const handleBlocksCardContextUpdate = (entries) => {
-    if (!markdownBlocksEditor || typeof markdownBlocksEditor.setCardEntries !== 'function') return;
-    markdownBlocksEditor.setCardEntries(Array.isArray(entries) ? entries : linkCardContext.getCardEntries());
-  };
   linkCardContext.onCardEntriesChange((entries) => toolbarSession.setCardEntries(entries));
-  linkCardContext.onCardEntriesChange(handleBlocksCardContextUpdate);
   toolbarSession.setCardEntries(linkCardContext.getCardEntries());
-  handleBlocksCardContextUpdate(linkCardContext.getCardEntries());
 
   const bindCurrentFileElement = (el) => {
     currentFileSession.bindElement(el);

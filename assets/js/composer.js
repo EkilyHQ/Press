@@ -4,19 +4,19 @@ import {
   fetchConfigWithYamlFallback,
   parseYAML
 } from './yaml.js';
-import { escapeHtml } from './utils.js?v=press-system-v3.4.48';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.48';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.48';
+import { escapeHtml } from './utils.js?v=press-system-v3.4.49';
+import { t, getAvailableLangs, getLanguageLabel } from './i18n.js?v=press-system-v3.4.49';
+import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js?v=press-system-v3.4.49';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
-} from './encrypted-content.js?v=press-system-v3.4.48';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.48';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.48';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.48';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.48';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.48';
+} from './encrypted-content.js?v=press-system-v3.4.49';
+import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.49';
+import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.49';
+import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.49';
+import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.49';
+import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.49';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -30,7 +30,7 @@ import {
   prepareIndexState,
   prepareTabsState,
   safeString
-} from './composer-index-tabs-model.js?v=press-system-v3.4.48';
+} from './composer-index-tabs-model.js?v=press-system-v3.4.49';
 import {
   cloneSiteState,
   computeSiteDiff,
@@ -38,37 +38,37 @@ import {
   prepareSiteState,
   toSiteYaml,
   writeYamlValue
-} from './composer-site-model.js?v=press-system-v3.4.48';
+} from './composer-site-model.js?v=press-system-v3.4.49';
 import {
   createScopedStorageKey,
   resolveEditorStorageScope
-} from './editor-storage.js?v=press-system-v3.4.48';
-import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.48';
-import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.48';
+} from './editor-storage.js?v=press-system-v3.4.49';
+import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.49';
+import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.49';
 import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.48';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.48';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.48';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.48';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.48';
-import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.48';
-import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.48';
-import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.48';
-import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.48';
-import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.48';
-import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.48';
-import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.48';
-import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.48';
-import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.48';
-import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.48';
-import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.48';
-import { createComposerSetupVerifier } from './composer-setup-verifier.js?v=press-system-v3.4.48';
-import { createComposerModeController, isComposerSystemMode } from './composer-mode-controller.js?v=press-system-v3.4.48';
-import { createComposerUnsyncedSummaryController } from './composer-unsynced-summary.js?v=press-system-v3.4.48';
-import { injectComposerRuntimeStyles } from './composer-runtime-styles.js?v=press-system-v3.4.48';
-import { createComposerSystemThemeBridge } from './composer-system-theme-bridge.js?v=press-system-v3.4.48';
+} from './composer-sync-panel.js?v=press-system-v3.4.49';
+import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.49';
+import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.49';
+import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.49';
+import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.49';
+import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.49';
+import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.49';
+import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.49';
+import { createComposerDiffUi } from './composer-diff-ui.js?v=press-system-v3.4.49';
+import { createComposerOrderDiffUi } from './composer-order-diff-ui.js?v=press-system-v3.4.49';
+import { createComposerIndexTabsUi } from './composer-index-tabs-ui.js?v=press-system-v3.4.49';
+import { createComposerSiteSettingsUi } from './composer-site-settings-ui.js?v=press-system-v3.4.49';
+import { createComposerMarkdownAssetManager } from './composer-markdown-assets.js?v=press-system-v3.4.49';
+import { createComposerEditorShell } from './composer-editor-shell.js?v=press-system-v3.4.49';
+import { createComposerPathTools } from './composer-path-tools.js?v=press-system-v3.4.49';
+import { createComposerContentMutationController } from './composer-content-mutations.js?v=press-system-v3.4.49';
+import { createComposerSetupVerifier } from './composer-setup-verifier.js?v=press-system-v3.4.49';
+import { createComposerModeController, isComposerSystemMode } from './composer-mode-controller.js?v=press-system-v3.4.49';
+import { createComposerUnsyncedSummaryController } from './composer-unsynced-summary.js?v=press-system-v3.4.49';
+import { injectComposerRuntimeStyles } from './composer-runtime-styles.js?v=press-system-v3.4.49';
+import { createComposerSystemThemeBridge } from './composer-system-theme-bridge.js?v=press-system-v3.4.49';
 import {
   animateComposerInlineVisibility,
   animateComposerListTransition,
@@ -84,20 +84,20 @@ import {
   resolveComposerScrollDuration,
   slideToggle,
   syncSiteEditorSingleLabelWidth
-} from './composer-ui-motion.js?v=press-system-v3.4.48';
+} from './composer-ui-motion.js?v=press-system-v3.4.49';
 import {
   applyInferredRepoConfig,
   createComposerSiteConfigController,
   inferRepoConfigFromGitHubPagesUrl
-} from './composer-site-config.js?v=press-system-v3.4.48';
-import { createComposerYamlActions } from './composer-yaml-actions.js?v=press-system-v3.4.48';
-import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.48';
-import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.48';
-import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.48';
-import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.48';
-import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.48';
-import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.48';
-import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.48';
+} from './composer-site-config.js?v=press-system-v3.4.49';
+import { createComposerYamlActions } from './composer-yaml-actions.js?v=press-system-v3.4.49';
+import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.49';
+import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.49';
+import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.49';
+import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.49';
+import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.49';
+import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.49';
+import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.49';
 import {
   computeTextSignature,
   createDiscardedMarkdownProtectionState,
@@ -109,13 +109,13 @@ import {
   isMarkdownTabProtected,
   normalizeMarkdownContent,
   setMarkdownProtectionState
-} from './composer-markdown-state.js?v=press-system-v3.4.48';
-import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.48';
-import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.48';
+} from './composer-markdown-state.js?v=press-system-v3.4.49';
+import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.49';
+import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.49';
 import {
   CONNECT_PUBLISH_PRESETS,
   createPublishSettingsStore
-} from './publish/settings-store.js?v=press-system-v3.4.48';
+} from './publish/settings-store.js?v=press-system-v3.4.49';
 
 // Utility helpers
 const $ = (s, r = document) => r.querySelector(s);

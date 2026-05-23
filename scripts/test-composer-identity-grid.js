@@ -70,6 +70,7 @@ const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-meta
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
+const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -164,6 +165,7 @@ const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
+const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -919,6 +921,12 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-toolbar-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor toolbar session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -939,6 +947,12 @@ assert.match(
   editorMainSource,
   /const sidebarSession = createEditorMainSidebarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*normalizeLangKey,[\s\S]*bindCurrentFileElement,[\s\S]*loadSiteConfig: \(\) => fetchMergedSiteConfig\(\),[\s\S]*loadIndexData: \(contentRoot\) => loadContentJsonWithRaw\(contentRoot, 'index'\),[\s\S]*loadTabsConfig: \(contentRoot\) => fetchConfigWithYamlFallback\(\[`\$\{contentRoot\}\/tabs\.yaml`, `\$\{contentRoot\}\/tabs\.yml`\]\),[\s\S]*onSiteConfigLoaded:[\s\S]*onIndexLoaded:[\s\S]*onOpenMarkdown:[\s\S]*\}\);[\s\S]*sidebarSession\.initialize\(\);/,
   'editor main should compose file sidebar rendering and loading through the sidebar session'
+);
+
+assert.match(
+  editorMainSource,
+  /const toolbarSession = createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => editorPostPickerEntries[\s\S]*\}\);[\s\S]*toolbarSession\.bind\(\);/,
+  'editor main should compose markdown toolbar and article-card picker through the toolbar session'
 );
 
 assert.doesNotMatch(
@@ -963,6 +977,12 @@ assert.doesNotMatch(
   editorMainSource,
   /initArticleBrowser|renderGroupedIndex|renderGroupedTabs|makeGroupHeader|makeSubHeader|compareVersionDesc|let currentActive|let activeGroup|document\.getElementById\('listIndex'\)|document\.getElementById\('groupTabs'\)|document\.querySelectorAll\('\.sidebar-tab'\)/,
   'editor main root should not own sidebar file tree rendering, filter state, group switching, or active row state'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /lastSelectionRange|suppressSelectionTracking|formattingButtons|cardPopoverOpen|renderCardPickerList|openCardPopover|closeCardPopover|applyInlineFormat|toggleLinePrefix|applyCodeBlockFormat|insertCardLink|BUTTON_DISABLED_HINT_KEYS|applyButtonTooltipState|registerButtonTooltip/,
+  'editor main root should not own markdown toolbar selection state, formatting actions, or article-card popover internals'
 );
 
 assert.doesNotMatch(
@@ -993,6 +1013,18 @@ assert.match(
   editorMainSidebarSessionSource,
   /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
   'editor sidebar session should own file list active state, grouped rendering, filtering, group switching, and initialization'
+);
+
+assert.match(
+  editorMainToolbarSessionSource,
+  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*let lastSelectionRange = \{ start: 0, end: 0 \};[\s\S]*let suppressSelectionTracking = false;[\s\S]*let formattingButtons = \[\];[\s\S]*let cardPopoverOpen = false;[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const applyInlineFormat = \(prefix, suffix\) => \{[\s\S]*const toggleLinePrefix = \(prefix\) => \{[\s\S]*const applyCodeBlockFormat = \(\) => \{[\s\S]*const insertCardLink = \(entry\) => \{[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*const openCardPopover = \(\) => \{[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
+  'editor toolbar session should own selection tracking, markdown formatting actions, and article-card picker lifecycle'
+);
+
+assert.match(
+  editorMainToolbarSessionSource,
+  /const onDocument = typeof runtime\.onDocument === 'function'[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*const clearTimer = typeof runtime\.clearTimer === 'function'[\s\S]*detachCardMouseDown = onDocument\('mousedown', handleCardOutsideClick, true\);[\s\S]*detachCardResize = onWindow\('resize', handleCardRelayout, true\);/,
+  'editor toolbar session should route popover document/window/timer effects through the runtime boundary'
 );
 
 assert.match(

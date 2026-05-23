@@ -1,4 +1,4 @@
-import { normalizeMarkdownDraftContent } from './composer-markdown-save.js?v=press-system-v3.4.49';
+import { normalizeMarkdownDraftContent } from './composer-markdown-save.js?v=press-system-v3.4.50';
 
 export function normalizeMarkdownContent(text) {
   return normalizeMarkdownDraftContent(text);

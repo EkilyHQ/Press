@@ -3571,11 +3571,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const activeBlock = blockNodes[state.activeIndex] || null;
     if (editable) {
       if (editable !== state.activeEditable) {
-        state.pendingInline = {};
+        blocksState.clearInlineState();
         state.linkEditMode = '';
         state.linkSelection = null;
-        state.lastInlineMarks = null;
-        state.lastInlineMarkedRange = null;
       }
       state.activeEditable = editable;
       state.activeSync = sync;
@@ -3594,9 +3592,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         state.activeLinkHoldUntil = 0;
         state.linkEditMode = '';
         state.linkSelection = null;
-        state.lastInlineMarks = null;
-        state.lastInlineMarkedRange = null;
-        state.pendingInline = {};
+        blocksState.clearInlineState();
       }
     }
     blockNodes.forEach((el, idx) => {
@@ -3983,10 +3979,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const inlineCommandMark = (kind) => (kind === 'strikeThrough' ? 'strike' : kind);
-  const hasPendingInlineMarks = () => !!(state.pendingInline.bold
-    || state.pendingInline.italic
-    || state.pendingInline.strike
-    || state.pendingInline.link);
+  const hasPendingInlineMarks = () => blocksState.hasPendingInlineMarks();
   let updateInlineToolbarState = () => {};
   let openLinkEditorForSelection = () => {};
 
@@ -3999,9 +3992,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const togglePendingInlineMark = (kind) => {
     const mark = inlineCommandMark(kind);
-    if (mark === 'code') return;
-    const active = !!state.pendingInline[mark];
-    state.pendingInline = { ...state.pendingInline, code: false, [mark]: !active };
+    blocksState.togglePendingInlineMark(mark);
     updateInlineToolbarState();
   };
 
@@ -4022,16 +4013,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const mark = inlineCommandMark(kind);
     if (mark === 'code') {
       const selectedCodeRange = inlineMarkedDomRangeFromSelection(editable, mark);
-      const rememberedCodeRange = state.lastInlineMarkedRange
-        && state.lastInlineMarkedRange.editable === editable
-        && state.lastInlineMarkedRange.mark === mark
-        ? state.lastInlineMarkedRange
-        : null;
+      const rememberedCodeRange = blocksState.rememberedInlineRangeFor(editable, mark);
       const codeRange = selectedCodeRange || rememberedCodeRange;
       if ((!offsets || offsets.collapsed) && codeRange) {
-        state.pendingInline = {};
-        state.lastInlineMarks = null;
-        state.lastInlineMarkedRange = null;
+        blocksState.clearInlineState();
         const nextRuns = removeInlineMarkInRange(runs, codeRange.start, codeRange.end, mark);
         applyRunsToEditable(editable, nextRuns, offsets ? offsets.start : codeRange.start);
         return;
@@ -4040,9 +4025,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!offsets) return;
     if (offsets.collapsed) {
       if (mark === 'code' && inlineMarksAtOffset(runs, offsets.start).code) {
-        state.pendingInline = {};
-        state.lastInlineMarks = null;
-        state.lastInlineMarkedRange = null;
+        blocksState.clearInlineState();
         const nextRuns = removeInlineMarkAroundOffset(runs, offsets.start, mark);
         applyRunsToEditable(editable, nextRuns, offsets.start);
         return;
@@ -4051,7 +4034,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       togglePendingInlineMark(kind);
       return;
     }
-    state.pendingInline = {};
+    blocksState.clearPendingInline();
     const nextRuns = toggleInlineMarkOnRuns(runs, offsets.start, offsets.end, inlineCommandMark(kind));
     applyRunsToEditable(editable, nextRuns, offsets.end);
   };
@@ -4212,7 +4195,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const href = sanitizeEditorLinkHref(inputValue(linkHref));
     const title = sanitizeEditorLinkTitle(inputValue(linkTitle));
     if (state.linkEditMode === 'pending') {
-      state.pendingInline = { ...state.pendingInline, code: false, link: href, linkTitle: title };
+      blocksState.setPendingInlinePatch({ code: false, link: href, linkTitle: title });
       updateInlineToolbarState();
       return;
     }
@@ -4252,7 +4235,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   unlink.addEventListener('mousedown', (event) => event.preventDefault());
   unlink.addEventListener('click', () => {
     if (state.linkEditMode === 'pending') {
-      state.pendingInline = { ...state.pendingInline, link: '', linkTitle: '' };
+      blocksState.setPendingInlinePatch({ link: '', linkTitle: '' });
       hideLinkEditor();
       updateInlineToolbarState();
       return;
@@ -4299,8 +4282,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     state.linkEditMode = offsets.collapsed ? 'pending' : 'range';
     state.linkSelection = { editable, start: offsets.start, end: offsets.end, text: offsets.text, anchorRect };
     linkText.value = offsets.collapsed ? '' : offsets.text;
-    linkHref.value = offsets.collapsed ? (state.pendingInline.link || '') : '';
-    linkTitle.value = offsets.collapsed ? (state.pendingInline.linkTitle || '') : '';
+    linkHref.value = offsets.collapsed ? (blocksState.pendingInlineMark('link') || '') : '';
+    linkTitle.value = offsets.collapsed ? (blocksState.pendingInlineMark('linkTitle') || '') : '';
     linkEditor.hidden = false;
     linkEditor.setAttribute('aria-hidden', 'false');
     positionLinkEditorAtRect(anchorRect);
@@ -4495,15 +4478,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const offsets = editable && nodeContains(root, editable) ? getEditableSelectionOffsets(editable) : null;
     const runs = editable && nodeContains(root, editable) ? inlineRunsFromDom(editable) : [];
     const pending = hasPendingInlineMarks();
-    const fallbackMarks = state.lastInlineMarks
-      && state.lastInlineMarks.editable === editable
-      ? state.lastInlineMarks.marks
-      : null;
-    const rememberedCodeRange = state.lastInlineMarkedRange
-      && state.lastInlineMarkedRange.editable === editable
-      && state.lastInlineMarkedRange.mark === 'code'
-      ? state.lastInlineMarkedRange
-      : null;
+    const fallbackMarks = blocksState.rememberedInlineMarksFor(editable);
+    const rememberedCodeRange = blocksState.rememberedInlineRangeFor(editable, 'code');
     buttons.forEach(btn => {
       if (!activeBlock || !activeBlock.contains(btn)) {
         btn.classList.remove('is-active');
@@ -4519,7 +4495,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       let active = false;
       let disabled = false;
       if (offsets && command === 'link') {
-        active = !!state.pendingInline.link
+        active = !!blocksState.pendingInlineMark('link')
           || !!selectionLinkInEditable(editable)
           || (!offsets.collapsed && inlineRangeFullyMarked(runs, offsets.start, offsets.end, 'link'));
       } else if (offsets && command === 'math') {
@@ -4539,7 +4515,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         }
       } else if (offsets && offsets.collapsed) {
         const marks = inlineMarksAtOffset(runs, offsets.start);
-        active = pending ? !!state.pendingInline[mark] : !!(marks[mark] || (fallbackMarks && fallbackMarks[mark]));
+        active = pending ? !!blocksState.pendingInlineMark(mark) : !!(marks[mark] || (fallbackMarks && fallbackMarks[mark]));
       } else if (offsets) {
         active = ['bold', 'italic', 'strike'].includes(mark)
           ? inlineRangeAnyMarked(runs, offsets.start, offsets.end, mark)
@@ -4640,7 +4616,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const offsets = getEditableSelectionOffsets(editable);
     if (!offsets) return false;
     const runs = inlineRunsFromDom(editable);
-    const insertRun = inlineRun(textValue, state.pendingInline);
+    const insertRun = inlineRun(textValue, blocksState.pendingInlineForRun());
     const nextRuns = insertInlineRunsAtRange(runs, offsets.start, offsets.end, [insertRun]);
     applyRunsToEditable(editable, nextRuns, offsets.start + textValue.length);
     return true;
@@ -4820,9 +4796,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (clickedLink || clickedMath) event.preventDefault();
       setActive(index, editable, sync);
       const pointerMarks = inlineMarksFromPointerEvent(event, editable);
-      state.lastInlineMarks = { editable, marks: pointerMarks };
       const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, editable, 'code') : null;
-      state.lastInlineMarkedRange = pointerCodeRange ? { editable, mark: 'code', ...pointerCodeRange } : null;
+      blocksState.rememberInlineMarks(
+        editable,
+        pointerMarks,
+        pointerCodeRange ? { mark: 'code', ...pointerCodeRange } : null
+      );
       updateInlineToolbarState();
       if (clickedLink) refreshLinkEditor(clickedLink);
       if (clickedMath) openMathEditorForNode(clickedMath);
@@ -5715,9 +5694,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         if (clickedLink || clickedMath) event.preventDefault();
         setActive(index, span, sync);
         const pointerMarks = inlineMarksFromPointerEvent(event, span);
-        state.lastInlineMarks = { editable: span, marks: pointerMarks };
         const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, span, 'code') : null;
-        state.lastInlineMarkedRange = pointerCodeRange ? { editable: span, mark: 'code', ...pointerCodeRange } : null;
+        blocksState.rememberInlineMarks(
+          span,
+          pointerMarks,
+          pointerCodeRange ? { mark: 'code', ...pointerCodeRange } : null
+        );
         updateInlineToolbarState();
         if (clickedLink) refreshLinkEditor(clickedLink);
         if (clickedMath) openMathEditorForNode(clickedMath);

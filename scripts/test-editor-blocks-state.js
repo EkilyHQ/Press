@@ -33,6 +33,43 @@ function splitBlankLineUnits(value) {
 assert.equal(createEditorBlocksState().activeIndex, -1);
 
 {
+  const controller = createEditorBlocksStateController();
+  const editable = { name: 'editable' };
+  const otherEditable = { name: 'other' };
+
+  assert.equal(controller.hasPendingInlineMarks(), false);
+  controller.togglePendingInlineMark('bold');
+  assert.equal(controller.hasPendingInlineMarks(), true);
+  assert.equal(controller.pendingInlineMark('bold'), true);
+  assert.deepEqual(controller.pendingInlineForRun(), { code: false, bold: true });
+
+  const pendingCopy = controller.pendingInlineForRun();
+  pendingCopy.bold = false;
+  assert.equal(controller.pendingInlineMark('bold'), true);
+
+  controller.togglePendingInlineMark('bold');
+  assert.equal(controller.hasPendingInlineMarks(), false);
+  assert.equal(controller.pendingInlineMark('bold'), false);
+
+  controller.setPendingInlinePatch({ link: 'https://example.com', linkTitle: 'Example' });
+  assert.equal(controller.hasPendingInlineMarks(), true);
+  assert.equal(controller.pendingInlineMark('linkTitle'), 'Example');
+  controller.clearPendingInline();
+  assert.deepEqual(controller.pendingInlineForRun(), {});
+
+  const remembered = controller.rememberInlineMarks(editable, { bold: true, code: true }, { mark: 'code', start: 2, end: 6 });
+  assert.deepEqual(remembered.marks.marks, { bold: true, code: true });
+  assert.deepEqual(controller.rememberedInlineMarksFor(editable), { bold: true, code: true });
+  assert.equal(controller.rememberedInlineMarksFor(otherEditable), null);
+  assert.deepEqual(controller.rememberedInlineRangeFor(editable, 'code'), { editable, mark: 'code', start: 2, end: 6 });
+  assert.equal(controller.rememberedInlineRangeFor(editable, 'bold'), null);
+
+  controller.clearRememberedInlineMarks();
+  assert.equal(controller.rememberedInlineMarksFor(editable), null);
+  assert.equal(controller.rememberedInlineRangeFor(editable, 'code'), null);
+}
+
+{
   const parsed = [
     makeBlock('paragraph', 'A', { text: 'A', after: '\n' }),
     makeBlock('paragraph', 'B', { text: 'B', after: '\n\n' })

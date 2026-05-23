@@ -143,11 +143,77 @@ export function createEditorBlocksStateController({
     state.activeMathBlockId = '';
     state.mathEditMode = '';
     state.mathSelection = null;
-    state.pendingInline = {};
-    state.lastInlineMarks = null;
-    state.lastInlineMarkedRange = null;
+    clearInlineState();
     state.activeTableCell = null;
     resetTransientMenus({ clearActive: false });
+  }
+
+  function hasPendingInlineMarks() {
+    return !!(state.pendingInline.bold
+      || state.pendingInline.italic
+      || state.pendingInline.strike
+      || state.pendingInline.link);
+  }
+
+  function pendingInlineMark(mark) {
+    return state.pendingInline[mark];
+  }
+
+  function pendingInlineForRun() {
+    return { ...state.pendingInline };
+  }
+
+  function setPendingInlinePatch(patch = {}) {
+    state.pendingInline = { ...state.pendingInline, ...(patch || {}) };
+    return state.pendingInline;
+  }
+
+  function clearPendingInline() {
+    state.pendingInline = {};
+    return state.pendingInline;
+  }
+
+  function clearRememberedInlineMarks() {
+    state.lastInlineMarks = null;
+    state.lastInlineMarkedRange = null;
+  }
+
+  function clearInlineState() {
+    clearPendingInline();
+    clearRememberedInlineMarks();
+  }
+
+  function togglePendingInlineMark(mark) {
+    if (mark === 'code') return state.pendingInline;
+    state.pendingInline = {
+      ...state.pendingInline,
+      code: false,
+      [mark]: !state.pendingInline[mark]
+    };
+    return state.pendingInline;
+  }
+
+  function rememberInlineMarks(editable, marks = {}, markedRange = null) {
+    state.lastInlineMarks = editable ? { editable, marks: { ...(marks || {}) } } : null;
+    state.lastInlineMarkedRange = editable && markedRange ? { editable, ...markedRange } : null;
+    return {
+      marks: state.lastInlineMarks,
+      range: state.lastInlineMarkedRange
+    };
+  }
+
+  function rememberedInlineMarksFor(editable) {
+    return state.lastInlineMarks && state.lastInlineMarks.editable === editable
+      ? state.lastInlineMarks.marks
+      : null;
+  }
+
+  function rememberedInlineRangeFor(editable, mark) {
+    return state.lastInlineMarkedRange
+      && state.lastInlineMarkedRange.editable === editable
+      && state.lastInlineMarkedRange.mark === mark
+      ? state.lastInlineMarkedRange
+      : null;
   }
 
   function ensureSeparatorBeforeBlank(index) {
@@ -326,6 +392,17 @@ export function createEditorBlocksStateController({
     updateBlockData,
     setActiveIndex,
     resetTransientMenus,
+    hasPendingInlineMarks,
+    pendingInlineMark,
+    pendingInlineForRun,
+    setPendingInlinePatch,
+    clearPendingInline,
+    clearRememberedInlineMarks,
+    clearInlineState,
+    togglePendingInlineMark,
+    rememberInlineMarks,
+    rememberedInlineMarksFor,
+    rememberedInlineRangeFor,
     setPendingListFocus,
     takePendingListFocus,
     ensureSeparatorBeforeBlank,

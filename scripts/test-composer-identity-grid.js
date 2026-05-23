@@ -74,6 +74,7 @@ const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-block
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
 const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
+const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -146,6 +147,7 @@ const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessi
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
+const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -283,6 +285,24 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-caret-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks caret session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-focus-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks focus session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
+  'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*focusSession\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
+  'blocks editor should delegate cross-block arrow navigation to the focus session'
 );
 
 assert.doesNotMatch(
@@ -1413,9 +1433,15 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksFocusSessionSource,
+  /function focusListItemEditable\(block, itemIndex, options = \{\}\) \{[\s\S]*const items = blockEl\.querySelectorAll\('\.blocks-list-item \.blocks-list-text'\);[\s\S]*else if \(options\.atEnd\) placeEditableAtEnd\(editable\);[\s\S]*function focusPreviousBlockEnd\(index\) \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*const itemIndex = listItems\(target\.data && target\.data\.items\)\.length - 1;[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);/,
+  'blocks focus session should move focus to the previous block end, including the last list item'
+);
+
+assert.match(
   `${editorBlocksSource}\n${editorBlocksStateSource}`,
-  /const focusListItemEditable = \(block, itemIndex, options = \{\}\) => \{[\s\S]*const items = blockEl\.querySelectorAll\('\.blocks-list-item \.blocks-list-text'\);[\s\S]*else if \(options\.atEnd\) placeCaretAtEnd\(editable, caretSession\);[\s\S]*const focusPreviousBlockEnd = \(index\) => \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*const itemIndex = editableListItems\(target\.data && target\.data\.items\)\.length - 1;[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);[\s\S]*const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*event\.key !== 'Backspace'[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
-  'Backspace should remove empty non-first real blocks and move focus to the previous block end, including the last list item'
+  /const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*event\.key !== 'Backspace'[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
+  'Backspace should remove empty non-first real blocks and delegate previous-end focus through the focus session'
 );
 
 assert.doesNotMatch(

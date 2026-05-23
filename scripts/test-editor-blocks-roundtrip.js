@@ -42,6 +42,7 @@ const run = (name, fn) => {
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
+const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 
 const functionSource = (name) => {
   const start = editorBlocksSource.indexOf(`function ${name}`);
@@ -525,12 +526,12 @@ run('backspace merge focuses previous block at its rendered text length', () => 
 
 run('cross-block arrows only handle plain vertical arrow keys', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksFocusSessionSource,
     /event\.key !== 'ArrowUp' && event\.key !== 'ArrowDown'/,
     'cross-block navigation should only consider vertical arrow keys'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksFocusSessionSource,
     /event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing/,
     'cross-block navigation should ignore modified arrow key chords and IME composition'
   );
@@ -538,13 +539,13 @@ run('cross-block arrows only handle plain vertical arrow keys', () => {
 
 run('cross-block arrows only leave text editables from edge lines', () => {
   assert.match(
-    editorBlocksSource,
-    /isEditableCaretOnEdgeLine\(editable, direction, caretSession\)[\s\S]*if \(!onEdge\) return false;/,
+    editorBlocksFocusSessionSource,
+    /caretSession\.isEditableOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
     'contenteditable arrow navigation should only cross blocks on the first or last visual line'
   );
   assert.match(
-    editorBlocksSource,
-    /isTextareaCaretOnEdgeLine\(editable, direction, caretSession\)[\s\S]*if \(!onEdge\) return false;/,
+    editorBlocksFocusSessionSource,
+    /caretSession\.isTextareaOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
     'textarea arrow navigation should only cross blocks at the first or last text line'
   );
 });
@@ -578,7 +579,7 @@ run('cross-block arrows place target caret using grouped visual text lines', () 
 
 run('cross-block arrows focus non-text block containers and continue from them', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksFocusSessionSource,
     /if \(!editable\) \{[\s\S]*activateNonTextBlockFromPointer\(target\.index, target\.blockEl\);[\s\S]*return true;[\s\S]*\}/,
     'non-text navigation targets should focus the block container'
   );
@@ -715,8 +716,8 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
     'blank blocks should expose a rich editable for cross-block arrow targeting'
   );
   assert.match(
-    editorBlocksSource,
-    /const tableCells = Array\.from\(blockEl\.querySelectorAll\('\.blocks-table-cell-input'\)\);[\s\S]*const tableTarget = tableCells\.length \? \(edge === 'last' \? tableCells\[tableCells\.length - 1\] : tableCells\[0\]\) : null;[\s\S]*const editable = listTarget[\s\S]*\|\| tableTarget/,
+    editorBlocksFocusSessionSource,
+    /const tableCells = safeArray\(blockEl\.querySelectorAll\('\.blocks-table-cell-input'\)\);[\s\S]*const tableTarget = tableCells\.length \? \(edge === 'last' \? tableCells\[tableCells\.length - 1\] : tableCells\[0\]\) : null;[\s\S]*const editable = listTarget[\s\S]*\|\| tableTarget/,
     'cross-block target discovery should respect edge direction for table cells'
   );
   assert.match(
@@ -725,8 +726,8 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
     'blank blocks should use the normal floating block toolbar'
   );
   assert.match(
-    editorBlocksSource,
-    /const focusPreviousBlockEnd = \(index\) => \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*editableListItems\(target\.data && target\.data\.items\)\.length - 1[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);/,
+    editorBlocksFocusSessionSource,
+    /function focusPreviousBlockEnd\(index\) \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*listItems\(target\.data && target\.data\.items\)\.length - 1[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);/,
     'empty-block Backspace should focus the previous list block at its last item end'
   );
 });

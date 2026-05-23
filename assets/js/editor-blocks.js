@@ -7,6 +7,7 @@ import { createEditorBlocksEditableSession } from './editor-blocks-editable-sess
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
 import { CARET_POINT_MEASURE_LIMIT, createEditorBlocksCaretSession } from './editor-blocks-caret-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -1828,16 +1829,8 @@ function isEditableCaretOnEdgeLine(el, direction, caretSession = null) {
   return normalizeCaretSession(caretSession).isEditableOnEdgeLine(el, direction);
 }
 
-function isTextareaCaretOnEdgeLine(area, direction, caretSession = null) {
-  return normalizeCaretSession(caretSession).isTextareaOnEdgeLine(area, direction);
-}
-
 function placeCaretAtVisualLine(el, x, edge, fallbackOffset = 0, caretSession = null) {
   normalizeCaretSession(caretSession).placeAtVisualLine(el, x, edge, fallbackOffset);
-}
-
-function placeTextareaCaretAtVisualLine(area, x, edge, fallbackOffset = 0, caretSession = null) {
-  normalizeCaretSession(caretSession).placeTextareaAtVisualLine(area, x, edge, fallbackOffset);
 }
 
 function normalizeCodeEditablePlainText(value) {
@@ -2377,78 +2370,18 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return block;
   };
 
+  let focusSession = null;
+
   const focusBlockPrimaryEditable = (block, caretOffset = null) => {
-    const blockId = block && typeof block === 'object' ? block.id : String(block || '');
-    if (!blockId) return;
-    queueMicrotask(() => {
-      const nodes = blockElements();
-      const blockEl = nodes.find(el => el && el.dataset && el.dataset.blockId === blockId);
-      if (!blockEl) return;
-      const index = nodes.indexOf(blockEl);
-      const body = blockEl.querySelector('.blocks-block-body');
-      const editable = body ? body.querySelector('.blocks-rich-editable, .blocks-table-cell-input, .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea') : null;
-      if (!editable) {
-        try { blockEl.focus({ preventScroll: true }); }
-        catch (_) {
-          try { blockEl.focus(); } catch (__) {}
-        }
-        setActive(index);
-        return;
-      }
-      try { editable.focus({ preventScroll: true }); }
-      catch (_) {
-        try { editable.focus(); } catch (__) {}
-      }
-      if (caretOffset != null) {
-        if (editable.matches && editable.matches('textarea')) {
-          const offset = Math.max(0, Math.min(String(editable.value || '').length, Number(caretOffset) || 0));
-          try { editable.setSelectionRange(offset, offset); } catch (_) {}
-        } else {
-          placeCaretAtTextOffset(editable, caretOffset, caretSession);
-        }
-      } else {
-        placeCaretAtEnd(editable, caretSession);
-      }
-      setActive(index, editable, editableSession.getSync(editable) || null);
-    });
+    focusSession?.focusBlockPrimaryEditable(block, caretOffset);
   };
 
   const focusListItemEditable = (block, itemIndex, options = {}) => {
-    const blockId = block && typeof block === 'object' ? block.id : String(block || '');
-    if (!blockId) return;
-    queueMicrotask(() => {
-      const nodes = blockElements();
-      const blockEl = nodes.find(el => el && el.dataset && el.dataset.blockId === blockId);
-      if (!blockEl) return;
-      const index = nodes.indexOf(blockEl);
-      const items = blockEl.querySelectorAll('.blocks-list-item .blocks-list-text');
-      if (!items.length) {
-        focusBlockPrimaryEditable(block, options.caretOffset);
-        return;
-      }
-      const safeIndex = Math.max(0, Math.min(Number(itemIndex) || 0, items.length - 1));
-      const editable = items[safeIndex];
-      try { editable.focus({ preventScroll: true }); }
-      catch (_) {
-        try { editable.focus(); } catch (__) {}
-      }
-      if (options.caretOffset != null) placeCaretAtTextOffset(editable, options.caretOffset, caretSession);
-      else if (options.atEnd) placeCaretAtEnd(editable, caretSession);
-      else placeCaretAtStart(editable, caretSession);
-      setActive(index, editable, editableSession.getSync(editable) || null);
-    });
+    focusSession?.focusListItemEditable(block, itemIndex, options);
   };
 
   const focusPreviousBlockEnd = (index) => {
-    const targetIndex = Math.max(0, Math.min((Number(index) || 0) - 1, state.blocks.length - 1));
-    const target = state.blocks[targetIndex] || null;
-    if (!target) return;
-    if (target.type === 'list') {
-      const itemIndex = editableListItems(target.data && target.data.items).length - 1;
-      focusListItemEditable(target, itemIndex, { atEnd: true });
-      return;
-    }
-    focusBlockPrimaryEditable(target);
+    focusSession?.focusPreviousBlockEnd(index);
   };
 
   const insertBlankBlockAfter = (index, editable = null, sync = null) => {
@@ -3100,6 +3033,20 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     setActive(index);
   };
 
+  focusSession = createEditorBlocksFocusSession({
+    state,
+    caretSession,
+    editableSession,
+    blockElements,
+    editableListItems,
+    setActive,
+    activateNonTextBlockFromPointer,
+    onInlineToolbarUpdate: () => {
+      try { updateInlineToolbarState(); } catch (_) {}
+    },
+    queueTask: task => queueMicrotask(task)
+  });
+
   const shouldSuppressRoutedBlockContainerClick = () => {
     return blocksState.consumeRoutedBlockContainerClickSuppression(Date.now());
   };
@@ -3187,73 +3134,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const blockNavigationTarget = (index, edge = 'first') => {
-    const nodes = blockElements();
-    const blockEl = nodes[index] || null;
-    if (!blockEl) return null;
-    const listTexts = Array.from(blockEl.querySelectorAll('.blocks-list-item .blocks-list-text'));
-    const listTarget = listTexts.length ? (edge === 'last' ? listTexts[listTexts.length - 1] : listTexts[0]) : null;
-    const tableCells = Array.from(blockEl.querySelectorAll('.blocks-table-cell-input'));
-    const tableTarget = tableCells.length ? (edge === 'last' ? tableCells[tableCells.length - 1] : tableCells[0]) : null;
-    const editable = listTarget
-      || tableTarget
-      || blockEl.querySelector('.blocks-rich-editable:not(.blocks-list-text), .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea');
-    if (editable) {
-      return {
-        blockEl,
-        editable,
-        index,
-        sync: editableSession.getSync(editable) || null
-      };
-    }
-    return { blockEl, editable: null, index, sync: null };
+    return focusSession ? focusSession.blockNavigationTarget(index, edge) : null;
   };
 
   const focusBlockNavigationTarget = (target, direction, x, fallbackOffset = 0) => {
-    if (!target || !target.blockEl) return false;
-    const edge = direction === 'up' ? 'last' : 'first';
-    const editable = target.editable || null;
-    if (!editable) {
-      activateNonTextBlockFromPointer(target.index, target.blockEl);
-      return true;
-    }
-    try { editable.focus({ preventScroll: true }); }
-    catch (_) {
-      try { editable.focus(); } catch (__) {}
-    }
-    if (editable.matches && editable.matches('textarea')) {
-      placeTextareaCaretAtVisualLine(editable, x, edge, fallbackOffset, caretSession);
-    } else {
-      placeCaretAtVisualLine(editable, x, edge, fallbackOffset, caretSession);
-    }
-    setActive(target.index, editable, target.sync);
-    updateInlineToolbarState();
-    return true;
+    return !!(focusSession && focusSession.focusBlockNavigationTarget(target, direction, x, fallbackOffset));
   };
 
   const handleCrossBlockArrowNavigation = (event, index, editable = null) => {
-    if (!event || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return false;
-    if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return false;
-    const direction = event.key === 'ArrowUp' ? 'up' : 'down';
-    if (!Number.isInteger(index) || index < 0 || index >= state.blocks.length) return false;
-    if (editable) {
-      const onEdge = editable.matches && editable.matches('textarea')
-        ? isTextareaCaretOnEdgeLine(editable, direction, caretSession)
-        : isEditableCaretOnEdgeLine(editable, direction, caretSession);
-      if (!onEdge) return false;
-    }
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= state.blocks.length) return false;
-    const caretRect = editable && !(editable.matches && editable.matches('textarea')) ? caretRectForEditable(editable, caretSession) : null;
-    const editableRect = editable && editable.getBoundingClientRect ? editable.getBoundingClientRect() : null;
-    const blockRect = !editable && blockElements()[index] && blockElements()[index].getBoundingClientRect
-      ? blockElements()[index].getBoundingClientRect()
-      : null;
-    const x = caretRect ? caretRect.left : ((editableRect || blockRect) ? (editableRect || blockRect).left + 1 : 0);
-    const target = blockNavigationTarget(targetIndex, direction === 'up' ? 'last' : 'first');
-    if (!target) return false;
-    event.preventDefault();
-    focusBlockNavigationTarget(target, direction, x);
-    return true;
+    return !!(focusSession && focusSession.handleCrossBlockArrowNavigation(event, index, editable));
   };
 
   const setContentEditableCaretFromPoint = (editable, x, y, hitTarget = editable) => {

@@ -99,6 +99,7 @@ import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.
 import { createComposerMarkdownActionsController } from './composer-markdown-actions.js?v=press-system-v3.4.50';
 import { createComposerMarkdownDraftController } from './composer-markdown-drafts.js?v=press-system-v3.4.50';
 import { createComposerMarkdownSessionController } from './composer-markdown-session.js?v=press-system-v3.4.50';
+import { createComposerMarkdownWorkspaceController } from './composer-markdown-workspace.js?v=press-system-v3.4.50';
 import { createComposerYamlDraftController } from './composer-yaml-drafts.js?v=press-system-v3.4.50';
 import {
   computeTextSignature,
@@ -427,6 +428,7 @@ let markdownLoader = null;
 let markdownActionsUi = null;
 let markdownDraftController = null;
 let markdownSessionController = null;
+let markdownWorkspaceController = null;
 let modeController = null;
 let unsyncedSummaryController = null;
 const postCommitStateApplier = createPostCommitStateApplier({
@@ -489,8 +491,6 @@ const editorSessionStateStore = createEditorSessionStateStore({
   keys: LS_KEYS
 });
 
-let detachPrimaryEditorListener = null;
-let detachPrimaryEditorTabsMetadataListener = null;
 let allowEditorStatePersist = false;
 const expandedEditorTreeNodeIds = new Set(['articles', 'pages']);
 let hasEditorStateV3Snapshot = false;
@@ -759,6 +759,19 @@ markdownSessionController = createComposerMarkdownSessionController({
   detachPrimaryEditorListeners,
   updateMarkdownActionsForTab,
   updateComposerMarkdownDraftIndicators
+});
+markdownWorkspaceController = createComposerMarkdownWorkspaceController({
+  getPrimaryEditorApi: () => editorRuntime.globals.getPrimaryEditorApi(),
+  getMarkdownSessionController,
+  getMarkdownActionsUi,
+  getMarkdownLoader,
+  getCurrentMode: () => getCurrentComposerMode(),
+  getTabsEntry,
+  getEditorTreeFileNodeByPath,
+  notifyComposerChange,
+  updateDynamicTabDirtyState,
+  inferMarkdownSourceFromPath,
+  buildCurrentFileBreadcrumb
 });
 modeController = createComposerModeController({
   documentRef: document,
@@ -1291,7 +1304,7 @@ function updateUnsyncedSummary(options = {}) {
 }
 
 function findDynamicTabByPath(path) {
-  return getMarkdownSessionController().findTabByPath(path);
+  return getMarkdownWorkspaceController().findDynamicTabByPath(path);
 }
 
 async function gatherCommitPayload(options = {}) {
@@ -1634,169 +1647,9 @@ const {
   handleRefresh: handleComposerRefresh
 } = composerYamlActions;
 
-function getPrimaryEditorApi() {
-  return editorRuntime.globals.getPrimaryEditorApi();
-}
-
-function restorePrimaryEditorMarkdownView(editorApi) {
-  if (!editorApi) return;
-  try {
-    if (typeof editorApi.restorePersistedView === 'function') {
-      editorApi.restorePersistedView();
-      return;
-    }
-    if (typeof editorApi.setView === 'function') editorApi.setView('edit');
-  } catch (_) {}
-}
-
-function ensurePrimaryEditorListener() {
-  if (detachPrimaryEditorListener) return;
-  const api = getPrimaryEditorApi();
-  if (!api || typeof api.onChange !== 'function') return;
-  detachPrimaryEditorListener = api.onChange((value) => {
-    const tab = getActiveDynamicTab();
-    if (tab) {
-      tab.content = value;
-      updateDynamicTabDirtyState(tab);
-    }
-  });
-}
-
-function getTabsMetadataForPath(path) {
-  const node = getEditorTreeFileNodeByPath(path);
-  if (!node || node.source !== 'tabs' || !node.key || !node.lang) return { title: '' };
-  const entry = getTabsEntry(node.key);
-  const langEntry = entry && entry[node.lang] && typeof entry[node.lang] === 'object'
-    ? entry[node.lang]
-    : {};
-  return { title: String(langEntry.title || '') };
-}
-
-function getTabsMetadataForTab(tab) {
-  if (tab && tab.tabsKey && tab.tabsLang) {
-    const entry = getTabsEntry(tab.tabsKey);
-    const langEntry = entry && entry[tab.tabsLang] && typeof entry[tab.tabsLang] === 'object'
-      ? entry[tab.tabsLang]
-      : {};
-    return { title: String(langEntry.title || '') };
-  }
-  return getTabsMetadataForPath(tab && tab.path ? tab.path : '');
-}
-
-function updateTabsEntryTitleFromPath(path, metadata) {
-  const node = getEditorTreeFileNodeByPath(path);
-  if (!node || node.source !== 'tabs' || !node.key || !node.lang) return false;
-  const entry = getTabsEntry(node.key);
-  entry[node.lang] = entry[node.lang] && typeof entry[node.lang] === 'object'
-    ? entry[node.lang]
-    : {};
-  const nextTitle = metadata && typeof metadata === 'object'
-    ? String(metadata.title || '')
-    : '';
-  if (String(entry[node.lang].title || '') === nextTitle) return false;
-  entry[node.lang].title = nextTitle;
-  notifyComposerChange('tabs');
-  return true;
-}
-
-function updateTabsEntryTitleForTab(tab, metadata) {
-  if (tab && tab.tabsKey && tab.tabsLang) {
-    const entry = getTabsEntry(tab.tabsKey);
-    entry[tab.tabsLang] = entry[tab.tabsLang] && typeof entry[tab.tabsLang] === 'object'
-      ? entry[tab.tabsLang]
-      : {};
-    const nextTitle = metadata && typeof metadata === 'object'
-      ? String(metadata.title || '')
-      : '';
-    if (String(entry[tab.tabsLang].title || '') === nextTitle) return false;
-    entry[tab.tabsLang].title = nextTitle;
-    notifyComposerChange('tabs');
-    return true;
-  }
-  return updateTabsEntryTitleFromPath(tab && tab.path ? tab.path : '', metadata);
-}
-
-function ensurePrimaryEditorTabsMetadataListener() {
-  if (detachPrimaryEditorTabsMetadataListener) return;
-  const api = getPrimaryEditorApi();
-  if (!api || typeof api.onTabsMetadataChange !== 'function') return;
-  detachPrimaryEditorTabsMetadataListener = api.onTabsMetadataChange((metadata) => {
-    const tab = getActiveDynamicTab();
-    if (tab && tab.source === 'tabs') {
-      updateTabsEntryTitleForTab(tab, metadata);
-    }
-  });
-}
-
-function getTrackedPublishContentRoot() {
-  const site = getStateSlice('site') || {};
-  const root = safeString(site.contentRoot || 'wwwroot')
-    .replace(/[\\]/g, '/')
-    .replace(/\/+$/g, '');
-  return root || 'wwwroot';
-}
-
 function getMarkdownSessionController() {
   if (!markdownSessionController) throw new Error('Markdown session controller is not initialized');
   return markdownSessionController;
-}
-
-function getDynamicEditorTabs() {
-  return getMarkdownSessionController().getTabs();
-}
-
-function getDynamicTabByMode(mode) {
-  return getMarkdownSessionController().getTab(mode);
-}
-
-function isDynamicMode(mode) {
-  return getMarkdownSessionController().isDynamicMode(mode);
-}
-
-function getFirstDynamicModeId() {
-  return getMarkdownSessionController().getFirstDynamicModeId();
-}
-
-function getActiveDynamicTab() {
-  return getMarkdownSessionController().getActiveDynamicTab();
-}
-
-function activateDynamicMode(mode) {
-  return getMarkdownSessionController().activateDynamicMode(mode);
-}
-
-function clearActiveDynamicMode(mode = null) {
-  getMarkdownSessionController().clearActiveDynamicMode(mode);
-}
-
-function persistDynamicEditorState() {
-  return getMarkdownSessionController().persistEditorState();
-}
-
-function restoreDynamicEditorState() {
-  return getMarkdownSessionController().restoreEditorState();
-}
-
-function setTabLoadingState(tab, isLoading) {
-  getMarkdownSessionController().setTabLoadingState(tab, isLoading);
-}
-
-function detachPrimaryEditorListeners() {
-  if (detachPrimaryEditorListener) {
-    try { detachPrimaryEditorListener(); } catch (_) {}
-    detachPrimaryEditorListener = null;
-  }
-  if (detachPrimaryEditorTabsMetadataListener) {
-    try { detachPrimaryEditorTabsMetadataListener(); } catch (_) {}
-    detachPrimaryEditorTabsMetadataListener = null;
-  }
-}
-
-function updateMarkdownActionsForTab(tab) {
-  updateMarkdownPushButton(tab);
-  updateMarkdownDiscardButton(tab);
-  updateMarkdownSaveButton(tab);
-  updateMarkdownProtectionButton(tab);
 }
 
 function getMarkdownActionsUi() {
@@ -1804,132 +1657,62 @@ function getMarkdownActionsUi() {
   return markdownActionsUi;
 }
 
-function getMarkdownPushButton() {
-  return getMarkdownActionsUi().getPushButton();
-}
-
-function getMarkdownDiscardButton() {
-  return getMarkdownActionsUi().getDiscardButton();
-}
-
-function getMarkdownSaveButton() {
-  return getMarkdownActionsUi().getSaveButton();
-}
-
-function setMarkdownPushButton(button) {
-  getMarkdownActionsUi().setPushButton(button);
-}
-
-function setMarkdownDiscardButton(button) {
-  getMarkdownActionsUi().setDiscardButton(button);
-}
-
-function setMarkdownSaveButton(button) {
-  getMarkdownActionsUi().setSaveButton(button);
-}
-
-function setMarkdownProtectionButton(button) {
-  getMarkdownActionsUi().setProtectionButton(button);
-}
-
-function getMarkdownPushLabel(kind) {
-  return getMarkdownActionsUi().getPushLabel(kind);
-}
-
-function getMarkdownDiscardLabel() {
-  return getMarkdownActionsUi().getDiscardLabel();
-}
-
-function getMarkdownDiscardBusyLabel() {
-  return getMarkdownActionsUi().getDiscardBusyLabel();
-}
-
-function getMarkdownSaveLabel() {
-  return getMarkdownActionsUi().getSaveLabel();
-}
-
-function getMarkdownSaveBusyLabel() {
-  return getMarkdownActionsUi().getSaveBusyLabel();
-}
-
-function getMarkdownSaveTooltip(kind) {
-  return getMarkdownActionsUi().getSaveTooltip(kind);
-}
-
-function updateMarkdownPushButton(tab) {
-  getMarkdownActionsUi().updatePushButton(tab);
-}
-
-function updateMarkdownDiscardButton(tab) {
-  getMarkdownActionsUi().updateDiscardButton(tab);
-}
-
-function updateMarkdownSaveButton(tab) {
-  getMarkdownActionsUi().updateSaveButton(tab);
-}
-
-function updateMarkdownProtectionButton(tab) {
-  getMarkdownActionsUi().updateProtectionButton(tab);
-}
-
-function pushEditorCurrentFileInfo(tab) {
-  const editorApi = getPrimaryEditorApi();
-  if (!editorApi || typeof editorApi.setCurrentFileLabel !== 'function') return;
-  const payload = tab
-    ? {
-        path: tab.path || '',
-        source: tab.source || inferMarkdownSourceFromPath(tab.path),
-        breadcrumb: buildCurrentFileBreadcrumb(tab),
-        status: tab.fileStatus || null,
-        dirty: !!tab.isDirty,
-        loaded: !!tab.loaded,
-        draft: tab.localDraft
-          ? {
-              savedAt: Number(tab.localDraft.savedAt) || Date.now(),
-              conflict: !!tab.draftConflict,
-              hasContent: true,
-              remoteSignature: tab.localDraft.remoteSignature || ''
-            }
-          : null
-      }
-    : { path: '', status: null, dirty: false, draft: null };
-  try { editorApi.setCurrentFileLabel(payload); }
-  catch (_) {}
-  if (typeof editorApi.setTabsMetadata === 'function') {
-    try {
-      editorApi.setTabsMetadata(tab && tab.source === 'tabs' ? getTabsMetadataForTab(tab) : null, { silent: true });
-    } catch (_) {}
-  }
-  const activeTab = (tab && tab.mode && tab.mode === getCurrentComposerMode()) ? tab : getActiveDynamicTab();
-  updateMarkdownPushButton(activeTab);
-  updateMarkdownDiscardButton(activeTab);
-  updateMarkdownSaveButton(activeTab);
-  updateMarkdownProtectionButton(activeTab);
-}
-
 function getMarkdownLoader() {
   if (!markdownLoader) throw new Error('Markdown loader is not initialized');
   return markdownLoader;
 }
 
-function setDynamicTabStatus(tab, status) {
-  return getMarkdownLoader().setDynamicTabStatus(tab, status);
+function getMarkdownWorkspaceController() {
+  if (!markdownWorkspaceController) throw new Error('Markdown workspace controller is not initialized');
+  return markdownWorkspaceController;
 }
 
-async function closeDynamicTab(modeId, options = {}) {
-  return getMarkdownSessionController().closeDynamicTab(modeId, options);
-}
+function getPrimaryEditorApi() { return getMarkdownWorkspaceController().getPrimaryEditorApi(); }
+function restorePrimaryEditorMarkdownView(editorApi) { getMarkdownWorkspaceController().restorePrimaryEditorMarkdownView(editorApi); }
+function ensurePrimaryEditorListener() { getMarkdownWorkspaceController().ensurePrimaryEditorListener(); }
+function ensurePrimaryEditorTabsMetadataListener() { getMarkdownWorkspaceController().ensurePrimaryEditorTabsMetadataListener(); }
+function getDynamicEditorTabs() { return getMarkdownWorkspaceController().getDynamicEditorTabs(); }
+function getDynamicTabByMode(mode) { return getMarkdownWorkspaceController().getDynamicTabByMode(mode); }
+function isDynamicMode(mode) { return getMarkdownWorkspaceController().isDynamicMode(mode); }
+function getFirstDynamicModeId() { return getMarkdownWorkspaceController().getFirstDynamicModeId(); }
+function getActiveDynamicTab() { return getMarkdownWorkspaceController().getActiveDynamicTab(); }
+function activateDynamicMode(mode) { return getMarkdownWorkspaceController().activateDynamicMode(mode); }
+function clearActiveDynamicMode(mode = null) { getMarkdownWorkspaceController().clearActiveDynamicMode(mode); }
+function persistDynamicEditorState() { return getMarkdownWorkspaceController().persistDynamicEditorState(); }
+function restoreDynamicEditorState() { return getMarkdownWorkspaceController().restoreDynamicEditorState(); }
+function setTabLoadingState(tab, isLoading) { getMarkdownWorkspaceController().setTabLoadingState(tab, isLoading); }
+function detachPrimaryEditorListeners() { getMarkdownWorkspaceController().detachPrimaryEditorListeners(); }
+function updateMarkdownActionsForTab(tab) { getMarkdownWorkspaceController().updateMarkdownActionsForTab(tab); }
+function getMarkdownPushButton() { return getMarkdownWorkspaceController().getMarkdownPushButton(); }
+function getMarkdownDiscardButton() { return getMarkdownWorkspaceController().getMarkdownDiscardButton(); }
+function getMarkdownSaveButton() { return getMarkdownWorkspaceController().getMarkdownSaveButton(); }
+function setMarkdownPushButton(button) { getMarkdownWorkspaceController().setMarkdownPushButton(button); }
+function setMarkdownDiscardButton(button) { getMarkdownWorkspaceController().setMarkdownDiscardButton(button); }
+function setMarkdownSaveButton(button) { getMarkdownWorkspaceController().setMarkdownSaveButton(button); }
+function setMarkdownProtectionButton(button) { getMarkdownWorkspaceController().setMarkdownProtectionButton(button); }
+function getMarkdownPushLabel(kind) { return getMarkdownWorkspaceController().getMarkdownPushLabel(kind); }
+function getMarkdownDiscardLabel() { return getMarkdownWorkspaceController().getMarkdownDiscardLabel(); }
+function getMarkdownDiscardBusyLabel() { return getMarkdownWorkspaceController().getMarkdownDiscardBusyLabel(); }
+function getMarkdownSaveLabel() { return getMarkdownWorkspaceController().getMarkdownSaveLabel(); }
+function getMarkdownSaveBusyLabel() { return getMarkdownWorkspaceController().getMarkdownSaveBusyLabel(); }
+function getMarkdownSaveTooltip(kind) { return getMarkdownWorkspaceController().getMarkdownSaveTooltip(kind); }
+function updateMarkdownPushButton(tab) { getMarkdownWorkspaceController().updateMarkdownPushButton(tab); }
+function updateMarkdownDiscardButton(tab) { getMarkdownWorkspaceController().updateMarkdownDiscardButton(tab); }
+function updateMarkdownSaveButton(tab) { getMarkdownWorkspaceController().updateMarkdownSaveButton(tab); }
+function updateMarkdownProtectionButton(tab) { getMarkdownWorkspaceController().updateMarkdownProtectionButton(tab); }
+function pushEditorCurrentFileInfo(tab) { getMarkdownWorkspaceController().pushEditorCurrentFileInfo(tab); }
+function setDynamicTabStatus(tab, status) { return getMarkdownWorkspaceController().setDynamicTabStatus(tab, status); }
+async function closeDynamicTab(modeId, options = {}) { return getMarkdownWorkspaceController().closeDynamicTab(modeId, options); }
+function getOrCreateDynamicMode(path, options = {}) { return getMarkdownWorkspaceController().getOrCreateDynamicMode(path, options); }
+async function loadDynamicTabContent(tab) { return getMarkdownWorkspaceController().loadDynamicTabContent(tab); }
+function openMarkdownInEditor(path, options = {}) { return getMarkdownWorkspaceController().openMarkdownInEditor(path, options); }
 
-function getOrCreateDynamicMode(path, options = {}) {
-  return getMarkdownSessionController().getOrCreateDynamicMode(path, options);
-}
-
-async function loadDynamicTabContent(tab) {
-  return getMarkdownLoader().loadDynamicTabContent(tab);
-}
-
-function openMarkdownInEditor(path, options = {}) {
-  return getMarkdownSessionController().openMarkdownInEditor(path, options);
+function getTrackedPublishContentRoot() {
+  const site = getStateSlice('site') || {};
+  const root = safeString(site.contentRoot || 'wwwroot')
+    .replace(/[\\]/g, '/')
+    .replace(/\/+$/g, '');
+  return root || 'wwwroot';
 }
 
 function applyMode(mode, options = {}) {

@@ -201,6 +201,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-markdown-session.js" "
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-markdown-workspace.js" "${entries_file}"; then
+  echo "expected package to include composer Markdown workspace controller code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-notifications.js" "${entries_file}"; then
   echo "expected package to include composer notification and popup code" >&2
   exit 1

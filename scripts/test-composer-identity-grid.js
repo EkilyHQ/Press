@@ -52,6 +52,7 @@ const composerMarkdownActionsPath = resolve(here, '../assets/js/composer-markdow
 const composerMarkdownStatePath = resolve(here, '../assets/js/composer-markdown-state.js');
 const composerMarkdownDraftsPath = resolve(here, '../assets/js/composer-markdown-drafts.js');
 const composerMarkdownSessionPath = resolve(here, '../assets/js/composer-markdown-session.js');
+const composerMarkdownWorkspacePath = resolve(here, '../assets/js/composer-markdown-workspace.js');
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
@@ -115,6 +116,7 @@ const composerMarkdownActionsSource = readFileSync(composerMarkdownActionsPath, 
 const composerMarkdownStateSource = readFileSync(composerMarkdownStatePath, 'utf8');
 const composerMarkdownDraftsSource = readFileSync(composerMarkdownDraftsPath, 'utf8');
 const composerMarkdownSessionSource = readFileSync(composerMarkdownSessionPath, 'utf8');
+const composerMarkdownWorkspaceSource = readFileSync(composerMarkdownWorkspacePath, 'utf8');
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
@@ -735,6 +737,24 @@ assert.match(
   'composer should cache-bust the extracted Markdown actions controller boundary'
 );
 
+assert.match(
+  source,
+  /from '\.\/composer-markdown-workspace\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Markdown workspace controller boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /let detachPrimaryEditorListener|let detachPrimaryEditorTabsMetadataListener|function getTabsMetadataForPath|function updateTabsEntryTitleForTab\(tab, metadata\) \{|setCurrentFileLabel\(payload\)|setTabsMetadata\(tab && tab\.source === 'tabs'/,
+  'composer should not own primary editor listeners, tab metadata synchronization, or current-file payload emission'
+);
+
+assert.match(
+  composerMarkdownWorkspaceSource,
+  /export function createComposerMarkdownWorkspaceController\([\s\S]*function ensurePrimaryEditorListener\(\)[\s\S]*function getTabsMetadataForTab\(tab\)[\s\S]*function updateTabsEntryTitleForTab\(tab, metadata\)[\s\S]*function pushEditorCurrentFileInfo\(tab\)[\s\S]*function loadDynamicTabContent\(tab\)/,
+  'Markdown workspace controller should own primary editor listeners, dynamic tab adapters, action UI proxying, and current-file payload synchronization'
+);
+
 assert.doesNotMatch(
   source,
   /async function manualSaveActiveMarkdown|async function handleMarkdownProtectionButton|async function openMarkdownPushOnGitHub|async function discardMarkdownLocalChanges|const plaintextContent = normalizeMarkdownContent\(tab\.content != null \? String\(tab\.content\) : ''\);[\s\S]*startMarkdownSyncWatcher\(tab,/,
@@ -1167,9 +1187,15 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerMarkdownWorkspaceSource,
   /function restorePrimaryEditorMarkdownView\(editorApi\) \{[\s\S]*typeof editorApi\.restorePersistedView === 'function'[\s\S]*editorApi\.restorePersistedView\(\);[\s\S]*editorApi\.setView\('edit'\);/,
-  'composer should keep the persisted markdown editor view restore helper available for mode routing'
+  'Markdown workspace controller should keep the persisted markdown editor view restore helper available for mode routing'
+);
+
+assert.match(
+  source,
+  /function restorePrimaryEditorMarkdownView\(editorApi\) \{ getMarkdownWorkspaceController\(\)\.restorePrimaryEditorMarkdownView\(editorApi\); \}/,
+  'composer should route markdown view restoration through the workspace controller'
 );
 
 assert.match(
@@ -3040,20 +3066,20 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerMarkdownWorkspaceSource,
   /function getTabsMetadataForTab\(tab\) \{[\s\S]*tab\.tabsKey[\s\S]*tab\.tabsLang[\s\S]*getTabsEntry\(tab\.tabsKey\)[\s\S]*entry && entry\[tab\.tabsLang\][\s\S]*title/,
   'tabs metadata reads should prefer the dynamic tab stable identity over path-only lookup'
 );
 
 assert.match(
-  source,
+  composerMarkdownWorkspaceSource,
   /function updateTabsEntryTitleForTab\(tab, metadata\) \{[\s\S]*tab\.tabsKey[\s\S]*tab\.tabsLang[\s\S]*getTabsEntry\(tab\.tabsKey\)[\s\S]*entry\[tab\.tabsLang\]\.title = nextTitle;/,
   'tabs metadata writes should target the dynamic tab stable identity instead of the first matching path'
 );
 
 assert.match(
-  source,
-  /detachPrimaryEditorTabsMetadataListener = api\.onTabsMetadataChange\(\(metadata\) => \{[\s\S]*if \(tab && tab\.source === 'tabs'\) \{[\s\S]*updateTabsEntryTitleForTab\(tab, metadata\);/,
+  composerMarkdownWorkspaceSource,
+  /detachPrimaryEditorTabsMetadataListener = api\.onTabsMetadataChange\(\(metadata\) => \{[\s\S]*if \(tab && tab\.source === 'tabs'\)[\s\S]*updateTabsEntryTitleForTab\(tab, metadata\);/,
   'tabs metadata bridge should write through the active dynamic tab identity'
 );
 
@@ -3142,9 +3168,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /if \(!api \|\| typeof api\.onTabsMetadataChange !== 'function'\) return;[\s\S]*detachPrimaryEditorTabsMetadataListener = api\.onTabsMetadataChange\(\(metadata\) => \{[\s\S]*if \(tab && tab\.source === 'tabs'\) \{[\s\S]*updateTabsEntryTitleForTab\(tab, metadata\);/,
-  'composer should subscribe to tabs metadata changes and write title edits back into tabs state'
+  composerMarkdownWorkspaceSource,
+  /if \(!api \|\| typeof api\.onTabsMetadataChange !== 'function'\) return;[\s\S]*detachPrimaryEditorTabsMetadataListener = api\.onTabsMetadataChange\(\(metadata\) => \{[\s\S]*if \(tab && tab\.source === 'tabs'\)[\s\S]*updateTabsEntryTitleForTab\(tab, metadata\);/,
+  'Markdown workspace controller should subscribe to tabs metadata changes and write title edits back into tabs state'
 );
 
 assert.match(
@@ -3570,9 +3596,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerMarkdownWorkspaceSource,
   /breadcrumb: buildCurrentFileBreadcrumb\(tab\),/,
-  'composer should include the current file breadcrumb in the editor header payload'
+  'Markdown workspace should include the current file breadcrumb in the editor header payload'
 );
 
 assert.match(

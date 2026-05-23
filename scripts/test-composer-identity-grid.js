@@ -18,6 +18,7 @@ const composerSyncPanelPath = resolve(here, '../assets/js/composer-sync-panel.js
 const composerSyncCommitControllerPath = resolve(here, '../assets/js/composer-sync-commit-controller.js');
 const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
 const composerPublishServicePath = resolve(here, '../assets/js/composer-publish-service.js');
+const composerPublishStateServicePath = resolve(here, '../assets/js/composer-publish-state-service.js');
 const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
@@ -127,6 +128,7 @@ const composerSyncPanelSource = readFileSync(composerSyncPanelPath, 'utf8');
 const composerSyncCommitControllerSource = readFileSync(composerSyncCommitControllerPath, 'utf8');
 const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
 const composerPublishServiceSource = readFileSync(composerPublishServicePath, 'utf8');
+const composerPublishStateServiceSource = readFileSync(composerPublishStateServicePath, 'utf8');
 const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
@@ -1459,8 +1461,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*composerSystemThemeBridge\.registerStagingProviders\(stagingRegistry\);[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
-  'composer should delegate system/theme staging, status, and initialization to the bridge'
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
+  'composer should delegate system/theme staging, status, and initialization through app-service callbacks'
 );
 
 assert.match(
@@ -1471,14 +1473,44 @@ assert.match(
 
 assert.match(
   source,
+  /from '\.\/composer-publish-state-service\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted publish state service boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /from '\.\/composer-staging\.js\?v=|from '\.\/composer-index-publish-metadata\.js\?v=|from '\.\/composer-content-staging\.js\?v=|from '\.\/composer-seo-staging\.js\?v=|from '\.\/composer-post-commit-state\.js\?v=|createStagingRegistry\(|createIndexPublishMetadataEnricher\(|createContentCommitStagingProvider\(|createSeoStagingProvider\(|createPostCommitStateApplier\(|stagingRegistry/,
+  'composer should not own publish staging registry, staging providers, or post-commit state applier wiring'
+);
+
+assert.match(
+  source,
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  'composer should reduce publish persistence to explicit app-service callbacks'
+);
+
+assert.match(
+  composerPublishStateServiceSource,
+  /from '\.\/composer-staging\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-index-publish-metadata\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-content-staging\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-seo-staging\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-post-commit-state\.js\?v=[\w.-]+'/,
+  'publish state service should cache-bust the staging and post-commit modules it composes'
+);
+
+assert.match(
+  composerPublishStateServiceSource,
+  /export function createComposerPublishStateService\(options = \{\}\)[\s\S]*const stagingRegistry = createStagingRegistryRef\(\)[\s\S]*const indexPublishMetadata = createIndexPublishMetadataEnricherRef\([\s\S]*const contentCommitStagingProvider = createContentCommitStagingProviderRef\([\s\S]*const seoStagingProvider = createSeoStagingProviderRef\([\s\S]*const postCommitStateApplier = createPostCommitStateApplierRef\(\{[\s\S]*applyComposerEffectiveSiteConfig: options\.applyComposerEffectiveSiteConfig[\s\S]*stagingRegistry\.registerStagingProvider\(\{[\s\S]*id: 'content'[\s\S]*options\.registerExternalStagingProviders\(stagingRegistry\)[\s\S]*id: 'seo'[\s\S]*function getStagingSummaryEntries\(context = \{\}\)[\s\S]*function applyLocalPostCommitState\(files = \[\]\)[\s\S]*return \{[\s\S]*gatherCommitPayload,[\s\S]*getTrackedPublishContentRoot,[\s\S]*getStagingSummaryEntries,[\s\S]*applyLocalPostCommitState[\s\S]*\};/,
+  'publish state service should own staging assembly, state application, and expose only app-level publish state operations'
+);
+
+assert.match(
+  source,
   /from '\.\/composer-bootstrap\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted DOM bootstrap and workspace assembly boundary'
 );
 
 assert.match(
-  source,
-  /createPostCommitStateApplier\(\{[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),/,
-  'composer should pass site-config application lazily into early top-level wiring to avoid startup TDZ failures'
+  composerPublishStateServiceSource,
+  /createPostCommitStateApplierRef\(\{[\s\S]*applyComposerEffectiveSiteConfig: options\.applyComposerEffectiveSiteConfig/,
+  'publish state service should pass site-config application lazily into post-commit wiring to avoid startup TDZ failures'
 );
 
 assert.doesNotMatch(
@@ -3947,7 +3979,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishService = createComposerPublishService\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => postCommitStateApplier\.apply\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*setGitHubCommitInFlight/,
+  /const composerPublishService = createComposerPublishService\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*setGitHubCommitInFlight/,
   'composer should pass app callbacks into the publish service instead of assembling the publish control plane itself'
 );
 

@@ -21,8 +21,14 @@ assert.doesNotMatch(
 
 assert.match(
   composerSource,
-  /composerSystemThemeBridge\.registerStagingProviders\(stagingRegistry\);/,
-  'system/theme staging providers should be registered through the bridge'
+  /registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)/,
+  'system/theme staging providers should be registered through the publish state service callback'
+);
+
+assert.doesNotMatch(
+  composerSource,
+  /stagingRegistry|composerSystemThemeBridge\.registerStagingProviders\(stagingRegistry\)/,
+  'composer should not own the staging registry after publish state service extraction'
 );
 
 assert.match(

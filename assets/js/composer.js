@@ -12,11 +12,7 @@ import {
   encryptMarkdownDocument,
   parseEncryptedMarkdownEnvelope
 } from './encrypted-content.js?v=press-system-v3.4.50';
-import { createStagingRegistry } from './composer-staging.js?v=press-system-v3.4.50';
-import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js?v=press-system-v3.4.50';
-import { createContentCommitStagingProvider } from './composer-content-staging.js?v=press-system-v3.4.50';
-import { createSeoStagingProvider } from './composer-seo-staging.js?v=press-system-v3.4.50';
-import { createPostCommitStateApplier } from './composer-post-commit-state.js?v=press-system-v3.4.50';
+import { createComposerPublishStateService } from './composer-publish-state-service.js?v=press-system-v3.4.50';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -230,7 +226,7 @@ const composerPublishService = createComposerPublishService({
   getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
   getTrackedPublishContentRoot: () => getTrackedPublishContentRoot(),
   gatherCommitPayload: (options) => gatherCommitPayload(options),
-  applyLocalPostCommitState: (files) => postCommitStateApplier.apply(files),
+  applyLocalPostCommitState: (files) => applyLocalPostCommitState(files),
   getCurrentMode: () => getCurrentComposerMode(),
   computeUnsyncedSummary,
   applyMode: (mode, options) => applyMode(mode, options),
@@ -298,7 +294,6 @@ const {
   draftHasAssetDeletions,
   collectCurrentRepositoryMarkdownAssetReferences
 } = markdownAssetManager;
-const stagingRegistry = createStagingRegistry();
 const composerSystemThemeBridge = createComposerSystemThemeBridge({
   consoleRef: console,
   getStateSlice,
@@ -307,7 +302,7 @@ const composerSystemThemeBridge = createComposerSystemThemeBridge({
   updateUnsyncedSummary,
   refreshEditorContentTree
 });
-const indexPublishMetadata = createIndexPublishMetadataEnricher({
+const composerPublishStateService = createComposerPublishStateService({
   safeString,
   normalizeRelPath,
   normalizeMarkdownContent,
@@ -322,13 +317,10 @@ const indexPublishMetadata = createIndexPublishMetadataEnricher({
   findDynamicTabByPath,
   getLockedEncryptedMarkdownDraft,
   getMarkdownProtectionState,
-  getContentRootSafe
-});
-const contentCommitStagingProvider = createContentCommitStagingProvider({
+  getContentRootSafe,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   flushMarkdownDraft,
   getStateSlice,
-  getContentRootSafe,
   getRemoteBaseline: () => composerStateStore.getRemoteBaseline(),
   getComposerDiffCache: () => composerStateStore.getDiffCache(),
   setComposerDiff: (kind, diff) => composerStateStore.setDiff(kind, diff),
@@ -338,16 +330,11 @@ const contentCommitStagingProvider = createContentCommitStagingProvider({
   getActiveDynamicTab,
   getCurrentMode: () => getCurrentComposerMode(),
   readMarkdownDraftStore,
-  normalizeRelPath,
-  findDynamicTabByPath,
-  getLockedEncryptedMarkdownDraft,
-  normalizeMarkdownContent,
   isEncryptedMarkdownDraftEntry,
   prepareMarkdownForProtectedStorage,
   listMarkdownAssets,
   isAssetReferencedInContent,
   removeMarkdownAsset,
-  enrichIndexStateForPublish: indexPublishMetadata.enrichIndexStateForPublish,
   toIndexYaml,
   toTabsYaml,
   toSiteYaml,
@@ -355,17 +342,30 @@ const contentCommitStagingProvider = createContentCommitStagingProvider({
   computeIndexDiff,
   recomputeDiff,
   listMarkdownAssetDeletions,
-  safeString,
   draftHasAssetDeletions,
-  textWithFallback
-});
-const seoStagingProvider = createSeoStagingProvider({
-  getStateSlice,
-  getContentRootSafe,
+  textWithFallback,
   getRemoteBaselineSite: () => composerStateStore.getRemoteBaseline('site'),
   cloneSiteState,
-  isIndexMetadataObject,
-  getIndexVariantLocation
+  setRemoteBaselineSlice: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
+  notifyComposerChange,
+  clearDraftStorage,
+  applyComposerEffectiveSiteConfig: (site) => applyComposerEffectiveSiteConfig(site),
+  updateComposerMarkdownDraftIndicators,
+  updateMarkdownPushButton,
+  updateMarkdownDiscardButton,
+  updateMarkdownSaveButton,
+  updateMarkdownProtectionButton,
+  clearMarkdownDraftEntry,
+  clearMarkdownAssetsForPath,
+  computeTextSignature,
+  setMarkdownProtectionState,
+  createMarkdownProtectionState,
+  setDynamicTabStatus,
+  scheduleMarkdownDraftSave,
+  updateDynamicTabDirtyState,
+  removeMarkdownAssetDeletion,
+  updateUnsyncedSummary,
+  registerExternalStagingProviders: (registry) => composerSystemThemeBridge.registerStagingProviders(registry)
 });
 let markdownLoader = null;
 let markdownActionsUi = null;
@@ -374,60 +374,6 @@ let markdownSessionController = null;
 let markdownWorkspaceController = null;
 let modeController = null;
 let unsyncedSummaryController = null;
-const postCommitStateApplier = createPostCommitStateApplier({
-  stagingRegistry,
-  getStateSlice,
-  getRemoteBaseline: () => composerStateStore.getRemoteBaseline(),
-  setRemoteBaselineSlice: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
-  deepClone,
-  prepareIndexState,
-  prepareTabsState,
-  prepareSiteState,
-  cloneSiteState,
-  notifyComposerChange,
-  clearDraftStorage,
-  getContentRootSafe,
-  applyComposerEffectiveSiteConfig: (site) => applyComposerEffectiveSiteConfig(site),
-  safeString,
-  updateComposerMarkdownDraftIndicators,
-  updateMarkdownPushButton,
-  updateMarkdownDiscardButton,
-  updateMarkdownSaveButton,
-  updateMarkdownProtectionButton,
-  getActiveDynamicTab,
-  normalizeRelPath,
-  clearMarkdownDraftEntry,
-  clearMarkdownAssetsForPath,
-  findDynamicTabByPath,
-  computeTextSignature,
-  setMarkdownProtectionState,
-  createMarkdownProtectionState,
-  setDynamicTabStatus,
-  normalizeMarkdownContent,
-  getMarkdownProtectionState,
-  scheduleMarkdownDraftSave,
-  updateDynamicTabDirtyState,
-  removeMarkdownAsset,
-  removeMarkdownAssetDeletion,
-  updateUnsyncedSummary
-});
-stagingRegistry.registerStagingProvider({
-  id: 'content',
-  required: true,
-  getCommitFiles: (context = {}) => contentCommitStagingProvider.getCommitFiles(context)
-});
-composerSystemThemeBridge.registerStagingProviders(stagingRegistry);
-stagingRegistry.registerStagingProvider({
-  id: 'seo',
-  async getCommitFiles(context = {}) {
-    if (context.showSeoStatus) {
-      try {
-        if (typeof context.setStatus === 'function') context.setStatus('Generating SEO files…');
-      } catch (_) { /* ignore */ }
-    }
-    return seoStagingProvider.getCommitFiles(context);
-  }
-});
 const editorSessionStateStore = createEditorSessionStateStore({
   storage: editorRuntime.storage,
   scopeKey: scopedEditorStorageKey,
@@ -873,7 +819,7 @@ unsyncedSummaryController = createComposerUnsyncedSummaryController({
   countMarkdownAssetDeletions,
   listMarkdownAssetDeletions,
   getComposerDiffCache: () => composerStateStore.getDiffCache(),
-  getStagingSummaryEntries: () => stagingRegistry.getSummaryEntries(),
+  getStagingSummaryEntries: () => getStagingSummaryEntries(),
   getActiveComposerFile,
   getComposerDraftMeta,
   hasUnsavedComposerChanges,
@@ -1252,15 +1198,18 @@ function findDynamicTabByPath(path) {
 }
 
 async function gatherCommitPayload(options = {}) {
-  const { showSeoStatus = false } = options;
-  const providerResult = await stagingRegistry.getCommitFiles({
+  return composerPublishStateService.gatherCommitPayload({
     ...options,
-    showSeoStatus,
     setStatus: setSyncOverlayStatus
   });
-  const files = Array.isArray(providerResult.files) ? providerResult.files : [];
-  const seoFiles = files.filter(file => file && file.kind === 'seo');
-  return { files, seoFiles, warnings: providerResult.warnings || [] };
+}
+
+function getStagingSummaryEntries(context = {}) {
+  return composerPublishStateService.getStagingSummaryEntries(context);
+}
+
+function applyLocalPostCommitState(files = []) {
+  return composerPublishStateService.applyLocalPostCommitState(files);
 }
 
 function getActiveSiteRepoConfig() {
@@ -1619,11 +1568,7 @@ async function loadDynamicTabContent(tab) { return getMarkdownWorkspaceControlle
 function openMarkdownInEditor(path, options = {}) { return getMarkdownWorkspaceController().openMarkdownInEditor(path, options); }
 
 function getTrackedPublishContentRoot() {
-  const site = getStateSlice('site') || {};
-  const root = safeString(site.contentRoot || 'wwwroot')
-    .replace(/[\\]/g, '/')
-    .replace(/\/+$/g, '');
-  return root || 'wwwroot';
+  return composerPublishStateService.getTrackedPublishContentRoot();
 }
 
 function applyMode(mode, options = {}) {

@@ -40,6 +40,7 @@ const run = (name, fn) => {
 };
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
+const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 
 const functionSource = (name) => {
   const start = editorBlocksSource.indexOf(`function ${name}`);
@@ -651,19 +652,19 @@ run('blank blocks replace the inline virtual insertion state', () => {
 
 run('visual editor has no terminal virtual UI and only materializes blank blocks for empty documents', () => {
   assert.match(
-    editorBlocksSource,
-    /const ensureEditableBlankForEmptyDocument = \(\) => \{[\s\S]*if \(state\.blocks\.length\) return null;[\s\S]*Empty documents still need one real blank block[\s\S]*non-empty documents rely on Enter at the end instead[\s\S]*makeBlankBlock\('\\n', \{ dirty: true \}\)[\s\S]*state\.blocks\.push\(block\)/,
+    editorBlocksStateSource,
+    /function ensureEditableBlankForEmptyDocument\(\) \{[\s\S]*if \(state\.blocks\.length\) return null;[\s\S]*makeBlankBlock\('\\n', \{ dirty: true \}\)[\s\S]*state\.blocks\.push\(block\)/,
     'visual editor state should create a dirty real blank only for empty documents'
   );
   assert.match(
-    editorBlocksSource,
-    /setMarkdown\(markdown\) \{[\s\S]*state\.blocks = parseMarkdownBlocks\(markdown\);[\s\S]*ensureEditableBlankForEmptyDocument\(\);[\s\S]*state\.activeIndex = -1;/,
+    editorBlocksStateSource,
+    /function setMarkdown\(markdown\) \{[\s\S]*state\.blocks = parseMarkdownBlocksRef\(markdown\);[\s\S]*ensureEditableBlankForEmptyDocument\(\);[\s\S]*resetEditorSession\(\);/,
     'setMarkdown should add a real blank only when the parsed document has no blocks'
   );
   const setMarkdownSource = editorBlocksSource.match(/setMarkdown\(markdown\) \{[\s\S]*?\n    \},/)?.[0] || '';
   assert.match(
     setMarkdownSource,
-    /ensureEditableBlankForEmptyDocument\(\);[\s\S]*render\(\);/,
+    /blocksState\.setMarkdown\(markdown\);[\s\S]*render\(\);/,
     'setMarkdown should render the empty-document blank'
   );
   assert.doesNotMatch(
@@ -690,8 +691,8 @@ run('typing or slash command on blank blocks replaces the blank block', () => {
     'plain Enter in a blank block should insert a following blank instead of converting the current blank to a paragraph'
   );
   assert.match(
-    editorBlocksSource,
-    /if \(state\.blocks\[safeIndex\] && state\.blocks\[safeIndex\]\.type === 'blank'\) \{[\s\S]*state\.blocks\.splice\(safeIndex, 1, block\);[\s\S]*render\(\);/,
+    editorBlocksStateSource,
+    /function placeCommandBlock\(type, data = \{\}, index = state\.blocks\.length\) \{[\s\S]*if \(state\.blocks\[safeIndex\] && state\.blocks\[safeIndex\]\.type === 'blank'\) \{[\s\S]*state\.blocks\.splice\(safeIndex, 1, block\);/,
     'command-selected blocks should replace an existing blank block without forcing a new trailing blank'
   );
 });

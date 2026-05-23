@@ -68,6 +68,7 @@ const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
+const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -134,6 +135,7 @@ const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
+const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -237,10 +239,28 @@ assert.match(
   'blocks editor should cache-bust the explicit blocks runtime boundary'
 );
 
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-state\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks state controller boundary'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
-  /document\.(?:addEventListener|removeEventListener)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame)|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById/,
+  /document\.(?:addEventListener|removeEventListener)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById/,
   'blocks editor should route global listeners, clipboard, timers, translation, and active-element access through its runtime boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const blocksState = createEditorBlocksStateController\(\{[\s\S]*parseMarkdownBlocksRef: parseMarkdownBlocks,[\s\S]*serializeMarkdownBlocksRef: serializeMarkdownBlocks,[\s\S]*const state = blocksState\.state;[\s\S]*const markDirty = blocksState\.markDirty;[\s\S]*blocksState\.updateBlockData\(block, patch\)[\s\S]*blocksState\.setMarkdown\(markdown\)/,
+  'blocks editor should route common block state commands through the state controller boundary'
+);
+
+assert.match(
+  editorBlocksStateSource,
+  /export function createEditorBlocksStateController\([\s\S]*function setMarkdown\(markdown\)[\s\S]*function insertBlankBlock\(index = state\.blocks\.length, options = \{\}\)[\s\S]*function insertBlock\(type, data = \{\}, index = state\.activeIndex \+ 1\)[\s\S]*function moveBlock\(index, direction\)[\s\S]*function resolveBlockTarget\(target = state\.activeIndex, predicate = \(\) => true\)/,
+  'blocks state controller should own markdown reset, insert, move, delete, command menu, card picker, and target-resolution state commands'
 );
 
 assert.match(
@@ -1269,14 +1289,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const ensureEditableBlankForEmptyDocument = \(\) => \{[\s\S]*if \(state\.blocks\.length\) return null;[\s\S]*Empty documents still need one real blank block[\s\S]*non-empty documents rely on Enter at the end instead[\s\S]*state\.blocks\.push\(block\);[\s\S]*setMarkdown\(markdown\) \{[\s\S]*state\.blocks = parseMarkdownBlocks\(markdown\);[\s\S]*ensureEditableBlankForEmptyDocument\(\);/,
+  editorBlocksStateSource,
+  /function ensureEditableBlankForEmptyDocument\(\) \{[\s\S]*if \(state\.blocks\.length\) return null;[\s\S]*state\.blocks\.push\(block\);[\s\S]*function setMarkdown\(markdown\) \{[\s\S]*state\.blocks = parseMarkdownBlocksRef\(markdown\);[\s\S]*ensureEditableBlankForEmptyDocument\(\);[\s\S]*resetEditorSession\(\);/,
   'blocks mode should materialize a real blank block only for empty documents'
 );
 
 assert.match(
   editorBlocksSource,
-  /const placeCommandBlock = \(type, data = \{\}, index = state\.blocks\.length\) => \{[\s\S]*state\.blocks\[safeIndex\]\.type === 'blank'[\s\S]*state\.blocks\.splice\(safeIndex, 1, block\);[\s\S]*const block = placeCommandBlock\(type, data, insertIndex\);[\s\S]*placeCommandBlock\('card',[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = Number\.isInteger\(state\.commandMenuInsertIndex\) \? state\.commandMenuInsertIndex : state\.blocks\.length;[\s\S]*state\.cardPickerInsertIndex = insertIndex;/,
+  /const placeCommandBlock = \(type, data = \{\}, index = state\.blocks\.length\) => \{[\s\S]*blocksState\.placeCommandBlock\(type, data, index\)[\s\S]*const block = placeCommandBlock\(type, data, insertIndex\);[\s\S]*placeCommandBlock\('card',[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = Number\.isInteger\(state\.commandMenuInsertIndex\) \? state\.commandMenuInsertIndex : state\.blocks\.length;[\s\S]*blocksState\.openCardPicker\(insertIndex\);/,
   'blank block commands should replace the active blank block and reuse the article-card picker at that position'
 );
 
@@ -1299,8 +1319,14 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksStateSource,
+  /commandMenuInsertIndex: null,[\s\S]*function insertBlankBlock\(index = state\.blocks\.length, options = \{\}\) \{[\s\S]*state\.commandMenuOpen = !!options\.command;[\s\S]*state\.commandMenuInsertIndex = options\.command \? safeIndex : null;[\s\S]*state\.cardPickerOpen = false;[\s\S]*state\.cardPickerInsertIndex = null;[\s\S]*clearActiveEditing\(\);/,
+  'blocks state controller should own blank-block command menu state'
+);
+
+assert.match(
   editorBlocksSource,
-  /commandMenuInsertIndex: null,[\s\S]*const insertBlankBlockAfter = \(index, editable = null, sync = null\) => \{[\s\S]*if \(typeof sync === 'function'\) sync\(\);[\s\S]*insertBlankBlock\(Math\.max\(0, Math\.min\(\(Number\(index\) \|\| 0\) \+ 1, state\.blocks\.length\)\), \{ focus: true \}\);/,
+  /const insertBlankBlockAfter = \(index, editable = null, sync = null\) => \{[\s\S]*if \(typeof sync === 'function'\) sync\(\);[\s\S]*insertBlankBlock\(Math\.max\(0, Math\.min\(\(Number\(index\) \|\| 0\) \+ 1, state\.blocks\.length\)\), \{ focus: true \}\);/,
   'Enter should create a focused real blank block after the current block'
 );
 
@@ -1416,8 +1442,14 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksStateSource,
+  /suppressSelectionActiveRecoveryUntil: 0,/,
+  'blocks state controller should own pointer selection recovery suppression state'
+);
+
+assert.match(
   editorBlocksSource,
-  /suppressSelectionActiveRecoveryUntil: 0,[\s\S]*const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*state\.suppressSelectionActiveRecoveryUntil = Date\.now\(\) \+ 180;[\s\S]*setActive\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !state\.suppressSelectionActiveRecoveryUntil \|\| Date\.now\(\) > state\.suppressSelectionActiveRecoveryUntil;[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
+  /const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*state\.suppressSelectionActiveRecoveryUntil = Date\.now\(\) \+ 180;[\s\S]*setActive\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !state\.suppressSelectionActiveRecoveryUntil \|\| Date\.now\(\) > state\.suppressSelectionActiveRecoveryUntil;[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
   'pointerdown activation should briefly prevent stale browser selection from reselecting the previous block toolbar'
 );
 
@@ -1428,8 +1460,14 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksStateSource,
+  /lastInlineMarks: null,[\s\S]*lastInlineMarkedRange: null,/,
+  'blocks state controller should own remembered inline mark fallback state'
+);
+
+assert.match(
   editorBlocksSource,
-  /function inlineMarksFromDomNode\(node, editable\)[\s\S]*tag === 'strong' \|\| tag === 'b'[\s\S]*function inlineMarksFromPointerEvent\(event, editable\)[\s\S]*document\.caretPositionFromPoint[\s\S]*document\.caretRangeFromPoint[\s\S]*lastInlineMarks: null,[\s\S]*fallbackMarks && fallbackMarks\[mark\]/,
+  /function inlineMarksFromDomNode\(node, editable\)[\s\S]*tag === 'strong' \|\| tag === 'b'[\s\S]*function inlineMarksFromPointerEvent\(event, editable\)[\s\S]*document\.caretPositionFromPoint[\s\S]*document\.caretRangeFromPoint[\s\S]*fallbackMarks && fallbackMarks\[mark\]/,
   'inline toolbar state should fall back to marks from the clicked rich-text DOM path when selection offsets are unavailable or ambiguous'
 );
 
@@ -1518,7 +1556,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksStateSource,
   /reorderAnimating: false/,
   'block move animation should guard against overlapping reorder operations'
 );
@@ -1608,8 +1646,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
+  editorBlocksStateSource,
+  /suppressNextBlockContainerClickUntil: 0,/,
+  'blocks state controller should own routed caret click suppression state'
+);
+
+assert.match(
   editorBlocksSource,
-  /suppressNextBlockContainerClickUntil: 0,[\s\S]*const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*Date\.now\(\) > state\.suppressNextBlockContainerClickUntil[\s\S]*state\.suppressNextBlockContainerClickUntil = 0;[\s\S]*return true;/,
+  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*Date\.now\(\) > state\.suppressNextBlockContainerClickUntil[\s\S]*state\.suppressNextBlockContainerClickUntil = 0;[\s\S]*return true;/,
   'routed caret pointerdowns should suppress the following container click from clearing activeEditable'
 );
 
@@ -1728,8 +1772,14 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksStateSource,
+  /suppressLinkEditorRefreshUntil: 0,/,
+  'blocks state controller should own routed link-editor refresh suppression state'
+);
+
+assert.match(
   editorBlocksSource,
-  /suppressLinkEditorRefreshUntil: 0,[\s\S]*refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*if \(!explicitLinkNode && state\.suppressLinkEditorRefreshUntil\) \{[\s\S]*Date\.now\(\) < state\.suppressLinkEditorRefreshUntil[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && state\.activeEditable && nodeContains\(state\.activeEditable, explicitLinkNode\)[\s\S]*if \(explicitLinkNode\) state\.activeLinkHoldUntil = Date\.now\(\) \+ 800;/,
+  /refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*const explicitLinkNode = explicitLink[\s\S]*explicitLink\.matches\('a\[href\]'\)[\s\S]*if \(!explicitLinkNode && state\.suppressLinkEditorRefreshUntil\) \{[\s\S]*Date\.now\(\) < state\.suppressLinkEditorRefreshUntil[\s\S]*hideLinkEditor\(\);[\s\S]*return;[\s\S]*const link = explicitLinkNode && state\.activeEditable && nodeContains\(state\.activeEditable, explicitLinkNode\)[\s\S]*if \(explicitLinkNode\) state\.activeLinkHoldUntil = Date\.now\(\) \+ 800;/,
   'inline link editor should ignore automatic selection refreshes during routed blank-area caret clicks while still honoring explicit link clicks'
 );
 
@@ -1806,8 +1856,14 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksStateSource,
+  /function resolveBlockTarget\(target = state\.activeIndex, predicate = \(\) => true\) \{[\s\S]*const expectedBlockId = target && typeof target === 'object' && typeof target\.blockId === 'string'[\s\S]*if \(!Number\.isInteger\(safeIndex\) \|\| safeIndex < 0 \|\| safeIndex >= state\.blocks\.length\) \{[\s\S]*if \(!expectedBlockId\) return null;[\s\S]*state\.blocks\.findIndex\(item => item && item\.id === expectedBlockId\)[\s\S]*if \(expectedBlockId && \(!block \|\| block\.id !== expectedBlockId\)\) \{[\s\S]*if \(!block \|\| !predicate\(block\)\) return null;[\s\S]*return \{ block, index: safeIndex \};/,
+  'blocks state controller should resolve block targets by identity and predicate'
+);
+
+assert.match(
   editorBlocksSource,
-  /const resolveImageBlockTarget = \(target = state\.activeIndex\) => \{[\s\S]*const expectedBlockId = target && typeof target === 'object' && typeof target\.blockId === 'string'[\s\S]*if \(!Number\.isInteger\(safeIndex\) \|\| safeIndex < 0 \|\| safeIndex >= state\.blocks\.length\) \{[\s\S]*if \(!expectedBlockId\) return null;[\s\S]*state\.blocks\.findIndex\(item => item && item\.id === expectedBlockId\)[\s\S]*if \(expectedBlockId && \(!block \|\| block\.id !== expectedBlockId\)\) \{[\s\S]*block\.type !== 'image'[\s\S]*return \{ block, index: safeIndex \};[\s\S]*replaceImageBlock\(src, target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*updateFromControl\(block, \{ src \}, true\);[\s\S]*return \{ index: safeIndex \};/,
+  /const resolveImageBlockTarget = \(target = state\.activeIndex\) => \{[\s\S]*return blocksState\.resolveBlockTarget\(target, block => block && block\.type === 'image'\);[\s\S]*replaceImageBlock\(src, target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*updateFromControl\(block, \{ src \}, true\);[\s\S]*return \{ index: safeIndex \};/,
   'image replacement should validate the target image identity and re-render toolbar controls after updating an existing block'
 );
 
@@ -2082,8 +2138,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /activeIndex: -1[\s\S]*setMarkdown\(markdown\) \{[\s\S]*state\.activeIndex = -1;/,
+  editorBlocksStateSource,
+  /activeIndex: -1[\s\S]*function resetEditorSession\(\) \{[\s\S]*state\.activeIndex = -1;[\s\S]*function setMarkdown\(markdown\) \{[\s\S]*resetEditorSession\(\);/,
   'blocks mode should start with no selected block so controls are not shown by default'
 );
 

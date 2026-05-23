@@ -1,6 +1,7 @@
 import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
+import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2791,36 +2792,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
   const onDocument = (type, handler, listenerOptions) => trackRuntimeDisposer(runtime.onDocument(type, handler, listenerOptions));
   const onWindow = (type, handler, listenerOptions) => trackRuntimeDisposer(runtime.onWindow(type, handler, listenerOptions));
-  const state = {
-    blocks: [],
-    activeIndex: -1,
-    activeEditable: null,
-    activeSync: null,
-    activeLink: null,
-    activeLinkHoldUntil: 0,
-    linkEditMode: '',
-    linkSelection: null,
-    activeMath: null,
-    activeMathBlockId: '',
-    mathEditMode: '',
-    mathSelection: null,
-    lastInlineMarks: null,
-    lastInlineMarkedRange: null,
-    pendingInline: {},
-    pendingListFocus: null,
-    activeTableCell: null,
-    suppressNextBlockContainerClickUntil: 0,
-    suppressLinkEditorRefreshUntil: 0,
-    suppressSelectionActiveRecoveryUntil: 0,
-    cardEntries: [],
-    cardPickerOpen: false,
-    cardPickerInsertIndex: null,
-    commandMenuOpen: false,
-    commandMenuInsertIndex: null,
-    reorderAnimating: false,
-    openActionMenu: null,
-    openInlineMenu: null
-  };
+  const blocksState = createEditorBlocksStateController({
+    parseMarkdownBlocksRef: parseMarkdownBlocks,
+    serializeMarkdownBlocksRef: serializeMarkdownBlocks,
+    makeBlockRef: makeBlock,
+    makeBlankBlockRef: makeBlankBlock,
+    splitBlankLineUnitsRef: splitBlankLineUnits
+  });
+  const state = blocksState.state;
 
   root.classList.add('markdown-blocks-shell');
   root.innerHTML = '';
@@ -2837,59 +2816,25 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   root.append(list, picker);
   const editableSyncMap = new WeakMap();
 
-  const markDirty = (block) => {
-    if (!block) return;
-    block.dirty = true;
-    if (block.data && block.data.after == null) block.data.after = '\n\n';
-  };
+  const markDirty = blocksState.markDirty;
 
   const emit = () => {
     if (typeof options.onChange === 'function') {
-      options.onChange(serializeMarkdownBlocks(state.blocks));
+      options.onChange(blocksState.serialize());
     }
   };
 
   const updateFromControl = (block, patch, renderAfter = false) => {
     if (!block) return;
-    Object.assign(block.data, patch || {});
-    markDirty(block);
+    blocksState.updateBlockData(block, patch);
     if (renderAfter) render();
     emit();
   };
 
   const blockElements = () => Array.from(list.children).filter(el => el && el.classList && el.classList.contains('blocks-block'));
 
-  const ensureSeparatorBeforeBlank = (index) => {
-    const previous = Number.isInteger(index) ? state.blocks[index - 1] : null;
-    if (!previous || previous.type === 'blank') return;
-    previous.data = previous.data || {};
-    const after = String(previous.data.after != null ? previous.data.after : '\n\n');
-    if (splitBlankLineUnits(after).length >= 2) return;
-    previous.data.after = '\n\n';
-    previous.dirty = true;
-  };
-
-  const ensureEditableBlankForEmptyDocument = () => {
-    if (state.blocks.length) return null;
-
-    // Empty documents still need one real blank block so visual editing has a
-    // focusable surface; non-empty documents rely on Enter at the end instead.
-    const block = makeBlankBlock('\n', { dirty: true });
-    state.blocks.push(block);
-    return block;
-  };
-
   const insertBlankBlock = (index = state.blocks.length, options = {}) => {
-    const safeIndex = Math.max(0, Math.min(Number(index) || 0, state.blocks.length));
-    ensureSeparatorBeforeBlank(safeIndex);
-    const block = makeBlankBlock('\n', { dirty: true });
-    state.blocks.splice(safeIndex, 0, block);
-    state.commandMenuOpen = !!options.command;
-    state.commandMenuInsertIndex = options.command ? safeIndex : null;
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
-    state.activeEditable = null;
-    state.activeSync = null;
+    const { block, index: safeIndex } = blocksState.insertBlankBlock(index, options);
     render();
     if (options.command) {
       queueMicrotask(() => {
@@ -2996,12 +2941,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!nextBlocks) return false;
     event.preventDefault();
     state.blocks.splice(index, 1, ...nextBlocks);
-    state.commandMenuOpen = false;
-    state.commandMenuInsertIndex = null;
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
-    state.activeEditable = null;
-    state.activeSync = null;
+    resetTransientBlockMenus();
     render();
     focusBlockPrimaryEditable(nextBlocks[1], 0);
     emit();
@@ -3020,12 +2960,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!merged) return false;
     event.preventDefault();
     state.blocks.splice(index - 1, 2, merged);
-    state.commandMenuOpen = false;
-    state.commandMenuInsertIndex = null;
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
-    state.activeEditable = null;
-    state.activeSync = null;
+    resetTransientBlockMenus();
     if (merged.type === 'list') {
       state.pendingListFocus = {
         blockId: merged.id,
@@ -3125,12 +3060,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const moveBlockInState = (index, direction) => {
-    const targetIndex = index + direction;
-    if (index < 0 || targetIndex < 0 || index >= state.blocks.length || targetIndex >= state.blocks.length) return null;
-    const [moved] = state.blocks.splice(index, 1);
-    state.blocks.splice(targetIndex, 0, moved);
-    state.activeIndex = targetIndex;
-    return { targetIndex };
+    return blocksState.moveBlock(index, direction);
   };
 
   const commitBlockMove = (index, direction) => {
@@ -3205,9 +3135,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const deleteBlockAt = (index) => {
-    state.blocks.splice(index, 1);
+    const deleted = blocksState.deleteBlock(index);
+    if (!deleted) return;
     render();
-    setActive(Math.min(index, state.blocks.length - 1));
+    setActive(deleted.activeIndex);
     emit();
   };
 
@@ -3222,12 +3153,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const resetTransientBlockMenus = () => {
-    state.commandMenuOpen = false;
-    state.commandMenuInsertIndex = null;
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
-    state.activeEditable = null;
-    state.activeSync = null;
+    blocksState.resetTransientMenus();
   };
 
   const removeEmptyBlockWithBackspace = (event, block, index, editable = null, sync = null) => {
@@ -3238,12 +3164,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!isBlockEmptyForBackspace(block)) return false;
     event.preventDefault();
     state.blocks.splice(index, 1);
-    state.commandMenuOpen = false;
-    state.commandMenuInsertIndex = null;
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
-    state.activeEditable = null;
-    state.activeSync = null;
+    resetTransientBlockMenus();
     render();
     focusPreviousBlockEnd(index);
     emit();
@@ -4015,10 +3936,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const insertBlock = (type, data = {}, index = state.activeIndex + 1) => {
-    const safeIndex = Math.max(0, Math.min(index, state.blocks.length));
-    const block = makeBlock(type, '', { after: '\n\n', dirty: true, ...data });
-    block.dirty = true;
-    state.blocks.splice(safeIndex, 0, block);
+    const { block, index: safeIndex } = blocksState.insertBlock(type, data, index);
     render();
     setActive(safeIndex);
     emit();
@@ -4026,24 +3944,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const placeCommandBlock = (type, data = {}, index = state.blocks.length) => {
-    const safeIndex = Math.max(0, Math.min(index, state.blocks.length));
-    const block = makeBlock(type, '', { after: '\n\n', dirty: true, ...data });
-    block.dirty = true;
-    if (state.blocks[safeIndex] && state.blocks[safeIndex].type === 'blank') {
-      state.blocks.splice(safeIndex, 1, block);
-      render();
-      setActive(safeIndex);
-      emit();
-      return block;
-    }
-    return insertBlock(type, data, safeIndex);
+    const { block, index: safeIndex } = blocksState.placeCommandBlock(type, data, index);
+    render();
+    setActive(safeIndex);
+    emit();
+    return block;
   };
 
   const closeBlockCommandMenu = (restoreFocus = false) => {
     if (!state.commandMenuOpen) return;
-    state.commandMenuOpen = false;
-    const restoreIndex = state.commandMenuInsertIndex;
-    state.commandMenuInsertIndex = null;
+    const restoreIndex = blocksState.closeCommandMenu();
     render();
     if (restoreFocus) {
       if (Number.isInteger(restoreIndex) && state.blocks[restoreIndex]) focusBlockPrimaryEditable(state.blocks[restoreIndex], 0);
@@ -4057,10 +3967,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const openBlockCommandMenu = (insertIndex = state.blocks.length) => {
     closeBlockActionMenu(false);
     closeInlineMoreMenu(false);
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
-    state.commandMenuOpen = true;
-    state.commandMenuInsertIndex = Math.max(0, Math.min(Number(insertIndex) || 0, state.blocks.length));
+    blocksState.openCommandMenu(insertIndex);
     render();
     queueMicrotask(() => {
       const first = list.querySelector(`.blocks-block[data-block-id="${state.blocks[state.commandMenuInsertIndex]?.id || ''}"] .blocks-command-menu-item`)
@@ -4070,13 +3977,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const insertCommandBlock = (type, data = {}, options = {}) => {
-    const insertIndex = Number.isInteger(options.index)
-      ? options.index
-      : (Number.isInteger(state.commandMenuInsertIndex) ? state.commandMenuInsertIndex : state.blocks.length);
-    state.commandMenuOpen = false;
-    state.commandMenuInsertIndex = null;
-    state.cardPickerOpen = false;
-    state.cardPickerInsertIndex = null;
+    const insertIndex = blocksState.beginCommandBlockInsert(options);
     const block = placeCommandBlock(type, data, insertIndex);
     if (options.focus) focusBlockPrimaryEditable(block, options.caretOffset);
     return block;
@@ -4393,7 +4294,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       state.linkEditMode = 'dom';
       state.linkSelection = null;
       refreshLinkEditor(existingLink);
-      setTimeout(() => {
+      runtime.setTimer(() => {
         try { linkHref.focus(); linkHref.select(); } catch (_) {}
       }, 0);
       return;
@@ -4410,7 +4311,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     linkEditor.hidden = false;
     linkEditor.setAttribute('aria-hidden', 'false');
     positionLinkEditorAtRect(anchorRect);
-    setTimeout(() => {
+    runtime.setTimer(() => {
       try { linkHref.focus(); linkHref.select(); } catch (_) {}
     }, 0);
     updateInlineToolbarState();
@@ -4517,7 +4418,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     mathEditor.setAttribute('aria-hidden', 'false');
     positionPopupAtRect(mathEditor, mathNode.getBoundingClientRect());
     syncMathSourceHeight();
-    setTimeout(() => {
+    runtime.setTimer(() => {
       try { mathSource.focus(); mathSource.select(); } catch (_) {}
     }, 0);
     updateInlineToolbarState();
@@ -4543,7 +4444,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     mathEditor.setAttribute('aria-hidden', 'false');
     positionPopupAtRect(mathEditor, anchorRect);
     syncMathSourceHeight();
-    setTimeout(() => {
+    runtime.setTimer(() => {
       try { mathSource.focus(); mathSource.select(); } catch (_) {}
     }, 0);
     updateInlineToolbarState();
@@ -4561,7 +4462,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const preview = target ? target.querySelector('.press-math-display') : null;
     positionPopupAtRect(mathEditor, (preview || target || root).getBoundingClientRect());
     syncMathSourceHeight();
-    setTimeout(() => {
+    runtime.setTimer(() => {
       try { mathSource.focus(); mathSource.select(); } catch (_) {}
     }, 0);
   };
@@ -4805,8 +4706,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         const item = button(entry.title || entry.key || entry.location || text('articleCard', 'Article Card'), 'blocks-card-result');
         item.addEventListener('click', () => {
           const insertIndex = Number.isInteger(state.cardPickerInsertIndex) ? state.cardPickerInsertIndex : state.blocks.length;
-          state.cardPickerOpen = false;
-          state.cardPickerInsertIndex = null;
+          blocksState.closeCardPicker();
           placeCommandBlock('card', {
             label: entry.title || entry.key || entry.location || 'Article',
             location: entry.location || '',
@@ -4823,7 +4723,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     search.addEventListener('input', draw);
     picker.append(search, results);
     draw();
-    setTimeout(() => {
+    runtime.setTimer(() => {
       try { search.focus(); } catch (_) {}
     }, 0);
   };
@@ -4842,14 +4742,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const openArticleCardCommand = () => {
     const insertIndex = Number.isInteger(state.commandMenuInsertIndex) ? state.commandMenuInsertIndex : state.blocks.length;
-    state.commandMenuOpen = false;
-    state.commandMenuInsertIndex = null;
-    state.cardPickerInsertIndex = insertIndex;
     if (!state.cardEntries.length) {
       insertCommandBlock('card', { label: 'Article', location: '', title: 'card', forceCard: true }, { index: insertIndex });
       return;
     }
-    state.cardPickerOpen = true;
+    blocksState.openCardPicker(insertIndex);
     render();
   };
 
@@ -6198,50 +6095,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }
 
   const resolveImageBlockTarget = (target = state.activeIndex) => {
-    const targetIndex = target && typeof target === 'object' ? target.index : target;
-    const expectedBlockId = target && typeof target === 'object' && typeof target.blockId === 'string'
-      ? target.blockId
-      : '';
-    let safeIndex = Number.isInteger(targetIndex) ? targetIndex : state.activeIndex;
-    if (!Number.isInteger(safeIndex) || safeIndex < 0 || safeIndex >= state.blocks.length) {
-      if (!expectedBlockId) return null;
-      safeIndex = state.blocks.findIndex(item => item && item.id === expectedBlockId);
-      if (safeIndex < 0) return null;
-    }
-    let block = state.blocks[safeIndex];
-    if (expectedBlockId && (!block || block.id !== expectedBlockId)) {
-      safeIndex = state.blocks.findIndex(item => item && item.id === expectedBlockId);
-      if (safeIndex < 0) return null;
-      block = state.blocks[safeIndex];
-    }
-    if (!block || block.type !== 'image') return null;
-    return { block, index: safeIndex };
+    return blocksState.resolveBlockTarget(target, block => block && block.type === 'image');
   };
 
   const api = {
     setMarkdown(markdown) {
-      state.blocks = parseMarkdownBlocks(markdown);
-      ensureEditableBlankForEmptyDocument();
-      state.activeIndex = -1;
-      state.activeEditable = null;
-      state.activeSync = null;
-      state.activeLink = null;
-      state.linkEditMode = '';
-      state.linkSelection = null;
-      state.activeMath = null;
-      state.activeMathBlockId = '';
-      state.mathEditMode = '';
-      state.mathSelection = null;
-      state.pendingInline = {};
-      state.lastInlineMarkedRange = null;
-      state.cardPickerOpen = false;
-      state.cardPickerInsertIndex = null;
-      state.commandMenuOpen = false;
-      state.commandMenuInsertIndex = null;
+      blocksState.setMarkdown(markdown);
       render();
     },
     getMarkdown() {
-      return serializeMarkdownBlocks(state.blocks);
+      return blocksState.serialize();
     },
     insertImageBlock(src, alt, index = state.activeIndex + 1) {
       const block = insertBlock('image', { src, alt: alt || '', title: '' }, index);

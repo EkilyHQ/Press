@@ -45,6 +45,7 @@ const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
 const editorBlocksSourceSessionSource = readFileSync(new URL('../assets/js/editor-blocks-source-session.js', import.meta.url), 'utf8');
+const editorBlocksListSessionSource = readFileSync(new URL('../assets/js/editor-blocks-list-session.js', import.meta.url), 'utf8');
 
 const functionSource = (name) => {
   const start = editorBlocksSource.indexOf(`function ${name}`);
@@ -594,12 +595,12 @@ run('cross-block arrows focus non-text block containers and continue from them',
 
 run('cross-block arrows keep list item navigation before block-level fallback', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksListSessionSource,
     /nextIndex < 0 \|\| nextIndex >= items\.length[\s\S]*handleCrossBlockArrowNavigation\(event, index, span\)/,
     'list items should cross blocks only when arrowing beyond the first or last item'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksListSessionSource,
     /placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, caretSession\)/,
     'existing list item visual-line navigation should be preserved'
   );
@@ -625,12 +626,12 @@ run('cross-block arrows wire rich text, code, and source editables', () => {
 
 run('empty list item Enter exits or splits the list before normal item splitting', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksListSessionSource,
     /if \(event\.key === 'Enter'\) \{[\s\S]*const currentText = editableText\(span\);[\s\S]*const outdentedItems = outdentEmptyListItemForEnter\(currentItems, itemIndex\);[\s\S]*if \(outdentedItems\) \{[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\);[\s\S]*return;[\s\S]*const trailingParagraph = isEditableSelectionAtStart\(span, caretSession\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\);[\s\S]*const emptySplit = splitListItemsAtEmptyItem\(currentItems, itemIndex\);[\s\S]*const splitAfter = normalizeSplitListStartItems\(emptySplit\.after\);[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*return;[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
     'empty list item Enter should delete the empty item and choose list split, blank exit, or blank replacement before normal item splitting'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksListSessionSource,
     /if \(event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing\) return;[\s\S]*if \(event\.key === 'Enter'\)/,
     'empty list item Enter should share the existing plain-Enter-only guard'
   );

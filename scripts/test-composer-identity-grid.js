@@ -85,6 +85,7 @@ const editorBlocksCardPickerSessionPath = resolve(here, '../assets/js/editor-blo
 const editorBlocksImageSessionPath = resolve(here, '../assets/js/editor-blocks-image-session.js');
 const editorBlocksCodeSessionPath = resolve(here, '../assets/js/editor-blocks-code-session.js');
 const editorBlocksSourceSessionPath = resolve(here, '../assets/js/editor-blocks-source-session.js');
+const editorBlocksListSessionPath = resolve(here, '../assets/js/editor-blocks-list-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -168,6 +169,7 @@ const editorBlocksCardPickerSessionSource = readFileSync(editorBlocksCardPickerS
 const editorBlocksImageSessionSource = readFileSync(editorBlocksImageSessionPath, 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(editorBlocksCodeSessionPath, 'utf8');
 const editorBlocksSourceSessionSource = readFileSync(editorBlocksSourceSessionPath, 'utf8');
+const editorBlocksListSessionSource = readFileSync(editorBlocksListSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -371,6 +373,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-source-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks source session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-list-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks list session boundary'
 );
 
 assert.match(
@@ -1591,7 +1599,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'/,
   'empty Backspace handling should run before rich Enter and list row handling'
 );
@@ -1666,7 +1674,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /const indentListItem = \(block, index, delta\) => \{[\s\S]*activeListItemIndex\(block, index\)[\s\S]*indent: nextIndent,[\s\S]*indentText: '  '\.repeat\(nextIndent\)[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex, atEnd: false \}\);[\s\S]*if \(event\.key === 'Tab'[\s\S]*indentListItem\(block, index, event\.shiftKey \? -1 : 1\);/,
   'Tab and toolbar list indentation should share the same item indentation path'
 );
@@ -1684,7 +1692,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\.registerEditable\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
   'blocks editor should provide registered editables and a browser-selection lookup for inline toolbar recovery'
 );
@@ -1768,13 +1776,13 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /setActive\(index, editable, sync\);[\s\S]*const pointerMarks = inlineMarksFromPointerEvent\(event, editable, selectionSession\);[\s\S]*blocksState\.rememberInlineMarks\([\s\S]*editable,[\s\S]*pointerMarks,[\s\S]*pointerCodeRange \? \{ mark: 'code', \.\.\.pointerCodeRange \} : null[\s\S]*updateInlineToolbarState\(\);[\s\S]*setActive\(index, span, sync\);[\s\S]*const pointerMarks = inlineMarksFromPointerEvent\(event, span, selectionSession\);[\s\S]*blocksState\.rememberInlineMarks\([\s\S]*span,[\s\S]*pointerMarks,[\s\S]*pointerCodeRange \? \{ mark: 'code', \.\.\.pointerCodeRange \} : null[\s\S]*updateInlineToolbarState\(\);/,
   'paragraph and list rich-text clicks should capture inline marks after activation and refresh the toolbar'
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /editable\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, editable, sync\);[\s\S]*routeDirectQuoteCaretFromPointer\(editable, index, sync, event\);[\s\S]*span\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, span, sync\);/,
   'root-owned rich and list editable pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
 );
@@ -2338,8 +2346,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const listEl = document\.createElement\(isTaskList \? 'ul' : 'div'\);[\s\S]*const li = document\.createElement\(isTaskList \? 'li' : 'div'\);[\s\S]*span\.contentEditable = 'true'/,
+  editorBlocksListSessionSource,
+  /const listEl = documentRef\.createElement\(isTaskList \? 'ul' : 'div'\);[\s\S]*const li = documentRef\.createElement\(isTaskList \? 'li' : 'div'\);[\s\S]*span\.contentEditable = 'true'/,
   'list blocks should render editable list item elements instead of a textarea'
 );
 
@@ -2469,6 +2477,36 @@ assert.doesNotMatch(
   'blocks editor root should not own source Markdown help, autofix, or textarea event wiring'
 );
 
+assert.match(
+  editorBlocksSource,
+  /const listSession = createEditorBlocksListSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*editableListItems,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);/,
+  'blocks editor root should compose list item DOM and input behavior through the list session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const renderListBlock = \(body, block, index\) => \{[\s\S]*listSession\?\.renderBlock\(body, block, index\);[\s\S]*\};/,
+  'list block body rendering should delegate to the list session'
+);
+
+assert.match(
+  editorBlocksListSessionSource,
+  /const renderBlock = \(body, block, index\) => \{[\s\S]*const listEl = documentRef\.createElement\(isTaskList \? 'ul' : 'div'\);[\s\S]*li\.className = 'blocks-list-item';[\s\S]*span\.className = 'blocks-rich-editable blocks-list-text';[\s\S]*editableSession\.registerEditable\(span, sync\);[\s\S]*span\.addEventListener\('keydown', \(event\) => \{/,
+  'list session should own visual list DOM, editable registration, and row key routing'
+);
+
+assert.match(
+  editorBlocksListSessionSource,
+  /if \(state && state\.pendingListFocus && state\.pendingListFocus\.blockId === block\.id[\s\S]*queueTask\(\(\) => \{[\s\S]*blocksState\.takePendingListFocus\(block\.id, itemIndex\);[\s\S]*placeCaretAtTextOffset\(span, pending\.caretOffset, caretSession\);[\s\S]*setActive\(index, span, sync\);/,
+  'list session should own pending list focus restoration after rerender'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const listEl = document\.createElement\(isTaskList \? 'ul' : 'div'\)|span\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key === 'Tab'/,
+  'blocks editor root should not own visual list DOM or list item keydown wiring'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
   /lang\.type = 'text'|updateFromControl\(block, \{ lang: inputValue\(lang\) \}\)/,
@@ -2554,25 +2592,25 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /function splitEditableTextAtSelection\(el, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)[\s\S]*afterRange\.cloneContents\(\)[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);[\s\S]*next\[itemIndex\] = \{ \.\.\.next\[itemIndex\], text: split\.before \};[\s\S]*next\.splice\(itemIndex \+ 1, 0, \{[\s\S]*text: split\.after,[\s\S]*checked: false,[\s\S]*indent: currentIndent,[\s\S]*indentText:[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
   'pressing Enter in a visual list item should keep the caret semantic position by focusing the after item'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksListSessionSource,
   /outdentEmptyListItemForEnter\(currentItems, itemIndex\)[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\)[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*makeBlock\('paragraph'[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\)[\s\S]*splitListItemsAtEmptyItem\(currentItems, itemIndex\)[\s\S]*normalizeSplitListStartItems\(emptySplit\.after\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);/,
   'pressing Enter at a list tail after an inserted empty item should convert the current tail item to a paragraph before normal split'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksCaretSessionSource}`,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
   /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
   'Backspace or Delete at the start of a non-first visual list item should merge only structurally safe same-level items'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksListSessionSource,
   /event\.key === 'Backspace' && itemIndex === 0 && index > 0 && isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeFirstListItemIntoPreviousBlock\(previous,[\s\S]*items: currentItems[\s\S]*if \(!merged\) return;[\s\S]*blocksState\.replaceBlocks\(index - 1, 2, replacement,[\s\S]*focusBlockPrimaryEditable\(merged\.previousBlock, merged\.focus\.caretOffset\)/,
   'Backspace at the start of the first visual list item should merge into the previous block only through the safe helper'
 );
@@ -2596,7 +2634,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
   /function getEditableCaretTextOffset\(el, caretSession = null\) \{[\s\S]*getTextOffset\(el\)[\s\S]*function placeCaretAtVisualLine\(el, x, edge, fallbackOffset = 0, caretSession = null\) \{[\s\S]*placeAtVisualLine\(el, x, edge, fallbackOffset\)[\s\S]*event\.key === 'ArrowUp' \|\| event\.key === 'ArrowDown'[\s\S]*const nextIndex = event\.key === 'ArrowUp' \? itemIndex - 1 : itemIndex \+ 1;[\s\S]*if \(!isEditableCaretOnEdgeLine\(span, event\.key === 'ArrowUp' \? 'up' : 'down', caretSession\)\) return;[\s\S]*placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, caretSession\);/,
   'ArrowUp and ArrowDown should cross items only from edge lines and enter multiline targets from the correct visual edge'
 );

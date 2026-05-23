@@ -17,6 +17,7 @@ import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker
 import { createEditorBlocksImageSession } from './editor-blocks-image-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksCodeSession } from './editor-blocks-code-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksSourceSession } from './editor-blocks-source-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksListSession } from './editor-blocks-list-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const fallbackSelectionSession = createEditorBlocksSelectionSession();
@@ -3576,241 +3577,64 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     queueTask: task => queueMicrotask(task)
   });
 
+  const listSession = createEditorBlocksListSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    root,
+    state,
+    blocksState,
+    editableSession,
+    selectionSession,
+    caretSession,
+    inlineDomSession,
+    containsNode: nodeContains,
+    editableListItems,
+    summarizeListType,
+    listVisualMarkerLabels,
+    effectiveListItemType,
+    itemIndentLevel,
+    patchListItem,
+    setPlainContentEditableValue,
+    editableText,
+    splitEditableTextAtSelection,
+    outdentEmptyListItemForEnter,
+    convertListTailItemAfterEmptyToParagraph,
+    splitListItemsAtEmptyItem,
+    normalizeSplitListStartItems,
+    mergeListItemIntoPreviousItem,
+    mergeFirstListItemIntoPreviousBlock,
+    makeBlock,
+    makeSplitListBlock,
+    makeBlankBlock,
+    markDirty,
+    render,
+    emit,
+    updateFromControl,
+    insertBlankBlock,
+    focusBlockPrimaryEditable,
+    removeEmptyBlockWithBackspace,
+    handleCrossBlockArrowNavigation,
+    isEditableSelectionAtStart,
+    isEditableCaretOnEdgeLine,
+    getEditableCaretTextOffset,
+    caretRectForEditable,
+    placeCaretAtVisualLine,
+    placeCaretAtTextOffset,
+    placeCaretAtStart,
+    placeCaretAtEnd,
+    indentListItem,
+    setActive,
+    activateEditableFromPointer,
+    inlineMarksFromPointerEvent,
+    inlineMarkedDomRangeFromPointerEvent,
+    updateInlineToolbarState,
+    refreshLinkEditor,
+    openMathEditorForNode,
+    wireInlineEditable,
+    queueTask: task => queueMicrotask(task)
+  });
+
   const renderListBlock = (body, block, index) => {
-    const items = editableListItems(block.data.items);
-    const listType = block.data.listType === 'ol' || block.data.listType === 'task' || block.data.listType === 'mixed' ? block.data.listType : 'ul';
-    const isTaskList = listType === 'task';
-    const listEl = document.createElement(isTaskList ? 'ul' : 'div');
-    listEl.className = isTaskList
-      ? 'blocks-visual-list blocks-visual-list-task'
-      : `blocks-visual-list blocks-visual-list-standard blocks-visual-list-${summarizeListType(items, listType)}`;
-    if (!isTaskList) listEl.setAttribute('role', 'list');
-    const visualMarkerLabels = listVisualMarkerLabels(items, listType);
-    items.forEach((item, itemIndex) => {
-      const itemType = effectiveListItemType(item, listType);
-      const isTaskItem = itemType === 'task';
-      const li = document.createElement(isTaskList ? 'li' : 'div');
-      li.className = 'blocks-list-item';
-      li.dataset.itemIndex = String(itemIndex);
-      li.dataset.listType = itemType;
-      if (!isTaskList) li.setAttribute('role', 'listitem');
-      const itemIndent = itemIndentLevel(item);
-      li.dataset.indent = String(itemIndent);
-      if (itemIndent) li.style.marginLeft = `${itemIndent * 1.75}rem`;
-      if (isTaskItem) {
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = !!item.checked;
-        checkbox.addEventListener('change', () => {
-          const next = patchListItem(block.data.items, itemIndex, { checked: checkbox.checked });
-          updateFromControl(block, { items: next });
-        });
-        li.appendChild(checkbox);
-      } else {
-        const marker = document.createElement('span');
-        marker.className = `blocks-list-marker blocks-list-marker-${itemType}`;
-        marker.setAttribute('aria-hidden', 'true');
-        marker.textContent = visualMarkerLabels[itemIndex] || (itemType === 'ol' ? '1.' : '•');
-        li.appendChild(marker);
-      }
-      const span = document.createElement('span');
-      span.className = 'blocks-rich-editable blocks-list-text';
-      span.contentEditable = 'true';
-      span.spellcheck = true;
-      setPlainContentEditableValue(span, item.text || '');
-      const sync = () => {
-        const next = patchListItem(block.data.items, itemIndex, { text: editableText(span) });
-        updateFromControl(block, { items: next });
-      };
-      editableSession.registerEditable(span, sync);
-      span.addEventListener('input', () => {
-        sync();
-        updateInlineToolbarState();
-      });
-      span.addEventListener('keydown', (event) => {
-        if (removeEmptyBlockWithBackspace(event, block, index, span, sync)) return;
-        if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey && !event.isComposing) {
-          event.preventDefault();
-          indentListItem(block, index, event.shiftKey ? -1 : 1);
-          return;
-        }
-        if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          const currentText = editableText(span);
-          const currentItems = Array.isArray(block.data.items) ? block.data.items.slice() : items.slice();
-          currentItems[itemIndex] = { ...(currentItems[itemIndex] || {}), text: currentText };
-          const outdentedItems = outdentEmptyListItemForEnter(currentItems, itemIndex);
-          if (outdentedItems) {
-            blocksState.setPendingListFocus({ blockId: block.id, itemIndex, atEnd: false });
-            updateFromControl(block, { items: outdentedItems }, true);
-            return;
-          }
-          const trailingParagraph = isEditableSelectionAtStart(span, caretSession)
-            ? convertListTailItemAfterEmptyToParagraph(currentItems, itemIndex)
-            : null;
-          if (trailingParagraph) {
-            const blockAfter = block.data && block.data.after != null ? block.data.after : '\n\n';
-            const paragraph = makeBlock('paragraph', '', { text: trailingParagraph.text, after: blockAfter, dirty: true });
-            if (trailingParagraph.before.length) {
-              block.data.items = trailingParagraph.before;
-              block.data.after = '\n\n';
-              markDirty(block);
-              blocksState.replaceBlocks(index, 1, [block, paragraph]);
-              render();
-              focusBlockPrimaryEditable(paragraph, 0);
-            } else {
-              blocksState.replaceBlocks(index, 1, [paragraph]);
-              render();
-              focusBlockPrimaryEditable(paragraph, 0);
-            }
-            emit();
-            return;
-          }
-          const emptySplit = splitListItemsAtEmptyItem(currentItems, itemIndex);
-          if (emptySplit) {
-            const splitAfter = normalizeSplitListStartItems(emptySplit.after);
-            const blockAfter = block.data && block.data.after != null ? block.data.after : '\n\n';
-            if (splitAfter.length) {
-              if (emptySplit.before.length) {
-                block.data.items = emptySplit.before;
-                block.data.after = '\n\n';
-                markDirty(block);
-                const nextBlock = makeSplitListBlock(block, splitAfter, blockAfter);
-                blocksState.replaceBlocks(index, 1, [block, nextBlock], {
-                  pendingListFocus: { blockId: nextBlock.id, itemIndex: 0, atEnd: false }
-                });
-              } else {
-                block.data.items = splitAfter;
-                block.data.after = blockAfter;
-                markDirty(block);
-                blocksState.replaceBlocks(index, 1, [block], {
-                  pendingListFocus: { blockId: block.id, itemIndex: 0, atEnd: false }
-                });
-              }
-              render();
-              emit();
-            } else if (emptySplit.before.length) {
-              block.data.items = emptySplit.before;
-              markDirty(block);
-              insertBlankBlock(index + 1, { focus: true });
-            } else {
-              const blank = makeBlankBlock('\n', { dirty: true });
-              blocksState.replaceBlocks(index, 1, [blank]);
-              render();
-              focusBlockPrimaryEditable(blank, 0);
-              emit();
-            }
-            return;
-          }
-          const split = splitEditableTextAtSelection(span, selectionSession);
-          const next = currentItems;
-          next[itemIndex] = { ...next[itemIndex], text: split.before };
-          const current = next[itemIndex] || {};
-          const currentIndent = itemIndentLevel(current);
-          next.splice(itemIndex + 1, 0, {
-            text: split.after,
-            checked: false,
-            indent: currentIndent,
-            indentText: typeof current.indentText === 'string' ? current.indentText : '  '.repeat(currentIndent),
-            listType: effectiveListItemType(current, listType),
-            marker: current.marker,
-            delimiter: current.delimiter
-          });
-          blocksState.setPendingListFocus({ blockId: block.id, itemIndex: itemIndex + 1, caretOffset: 0 });
-          updateFromControl(block, { items: next }, true);
-          return;
-        }
-        if ((event.key === 'Backspace' || event.key === 'Delete') && itemIndex > 0 && isEditableSelectionAtStart(span, caretSession)) {
-          const currentText = editableText(span);
-          const next = Array.isArray(block.data.items) ? block.data.items.slice() : items.slice();
-          next[itemIndex] = { ...(next[itemIndex] || {}), text: currentText };
-          const mergedItem = mergeListItemIntoPreviousItem(next, itemIndex);
-          if (!mergedItem) return;
-          event.preventDefault();
-          blocksState.setPendingListFocus({ blockId: block.id, itemIndex: mergedItem.focusItemIndex, caretOffset: mergedItem.caretOffset });
-          updateFromControl(block, { items: mergedItem.items.length ? mergedItem.items : [{ text: '', checked: false }] }, true);
-          return;
-        }
-        if (event.key === 'Backspace' && itemIndex === 0 && index > 0 && isEditableSelectionAtStart(span, caretSession)) {
-          const currentText = editableText(span);
-          const currentItems = Array.isArray(block.data.items) ? block.data.items.slice() : items.slice();
-          currentItems[0] = { ...(currentItems[0] || {}), text: currentText };
-          const previous = state.blocks[index - 1] || null;
-          const merged = mergeFirstListItemIntoPreviousBlock(previous, { ...block, data: { ...(block.data || {}), items: currentItems } }, itemIndex);
-          if (!merged) return;
-          event.preventDefault();
-          const replacement = merged.currentBlock ? [merged.previousBlock, merged.currentBlock] : [merged.previousBlock];
-          blocksState.replaceBlocks(index - 1, 2, replacement, {
-            pendingListFocus: merged.focus && merged.focus.type === 'list'
-              ? { blockId: merged.previousBlock.id, itemIndex: merged.focus.itemIndex, caretOffset: merged.focus.caretOffset }
-              : null
-          });
-          render();
-          if (merged.focus && merged.focus.type === 'text') focusBlockPrimaryEditable(merged.previousBlock, merged.focus.caretOffset);
-          emit();
-          return;
-        }
-        if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && items.length > 1) {
-          const nextIndex = event.key === 'ArrowUp' ? itemIndex - 1 : itemIndex + 1;
-          if (nextIndex < 0 || nextIndex >= items.length) {
-            handleCrossBlockArrowNavigation(event, index, span);
-            return;
-          }
-          if (!isEditableCaretOnEdgeLine(span, event.key === 'ArrowUp' ? 'up' : 'down', caretSession)) return;
-          event.preventDefault();
-          const caretOffset = getEditableCaretTextOffset(span, caretSession);
-          const caretRect = caretRectForEditable(span, caretSession);
-          sync();
-          const target = listEl.querySelector(`.blocks-list-item:nth-child(${nextIndex + 1}) .blocks-list-text`);
-          if (!target) return;
-          try { target.focus(); } catch (_) {}
-          placeCaretAtVisualLine(target, caretRect ? caretRect.left : 0, event.key === 'ArrowUp' ? 'last' : 'first', caretOffset, caretSession);
-          setActive(index);
-          return;
-        }
-        if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && items.length <= 1) {
-          handleCrossBlockArrowNavigation(event, index, span);
-        }
-      });
-      span.addEventListener('focus', () => setActive(index, span, sync));
-      span.addEventListener('pointerdown', (event) => {
-        if (event && event.button === 0 && event.isPrimary !== false) {
-          activateEditableFromPointer(index, span, sync);
-        }
-      });
-      span.addEventListener('click', (event) => {
-        const clickedLink = event.target && event.target.closest ? event.target.closest('a[href]') : null;
-        const clickedMath = event.target && event.target.closest ? event.target.closest('.press-math[data-tex]') : null;
-        if (clickedLink || clickedMath) event.preventDefault();
-        setActive(index, span, sync);
-        const pointerMarks = inlineMarksFromPointerEvent(event, span, selectionSession);
-        const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, span, 'code', selectionSession, inlineDomSession) : null;
-        blocksState.rememberInlineMarks(
-          span,
-          pointerMarks,
-          pointerCodeRange ? { mark: 'code', ...pointerCodeRange } : null
-        );
-        updateInlineToolbarState();
-        if (clickedLink) refreshLinkEditor(clickedLink);
-        if (clickedMath) openMathEditorForNode(clickedMath);
-      });
-      wireInlineEditable(span, index, sync);
-      li.appendChild(span);
-      if (state.pendingListFocus && state.pendingListFocus.blockId === block.id && state.pendingListFocus.itemIndex === itemIndex) {
-        queueMicrotask(() => {
-          if (!nodeContains(root, span)) return;
-          const pending = blocksState.takePendingListFocus(block.id, itemIndex);
-          try { span.focus(); } catch (_) {}
-          if (pending && pending.caretOffset != null) placeCaretAtTextOffset(span, pending.caretOffset, caretSession);
-          else if (pending && pending.atEnd) placeCaretAtEnd(span, caretSession);
-          else if (pending) placeCaretAtStart(span, caretSession);
-          setActive(index, span, sync);
-        });
-      }
-      listEl.appendChild(li);
-    });
-    body.appendChild(listEl);
+    listSession?.renderBlock(body, block, index);
   };
 
   const renderCodeBlock = (body, block, index) => {

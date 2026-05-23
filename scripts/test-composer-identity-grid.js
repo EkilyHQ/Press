@@ -68,6 +68,7 @@ const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
+const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -160,6 +161,7 @@ const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
+const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -903,13 +905,25 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-current-file-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor current-file session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
 
 assert.match(
   editorMainSource,
-  /const previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileInfo,[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => editorPostsIndexCache \|\| \{\},[\s\S]*getPostsByLocationTitle: \(\) => editorPostsByLocationTitle \|\| \{\},[\s\S]*isLinkCardReady: \(\) => linkCardReady,[\s\S]*getAllowedLocations: \(\) => editorAllowedLocations,[\s\S]*getLocationAliases: \(\) => editorLocationAliasMap,[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
+  /const currentFileSession = createEditorMainCurrentFileSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*inferCurrentFileSource,[\s\S]*applyEditorEmptyState,[\s\S]*onRendered: \(\) => \{[\s\S]*if \(previewSession\) previewSession\.updatePathLabel\(\);[\s\S]*\}[\s\S]*\}\);/,
+  'editor main should compose current file state and header rendering through the current-file session'
+);
+
+assert.match(
+  editorMainSource,
+  /previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileSession\.getInfo\(\),[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => editorPostsIndexCache \|\| \{\},[\s\S]*getPostsByLocationTitle: \(\) => editorPostsByLocationTitle \|\| \{\},[\s\S]*isLinkCardReady: \(\) => linkCardReady,[\s\S]*getAllowedLocations: \(\) => editorAllowedLocations,[\s\S]*getLocationAliases: \(\) => editorLocationAliasMap,[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
@@ -927,6 +941,12 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
   editorMainSource,
+  /let currentFileInfo|let currentFileElRef|STATUS_LABEL_KEYS|STATUS_STATES|normalizeCurrentFileBreadcrumb|normalizeCurrentFilePayload|renderCurrentFileBreadcrumb|renderCurrentFileIndicator|formatRelativeTime|getPlainText/,
+  'editor main root should not own current-file state normalization, breadcrumb rendering, draft labels, or header DOM internals'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
   /localStorage\.(?:getItem|setItem)|window\.__press_editor_base_dir|window\.__press_primary_editor|window\.dispatchEvent\(new CustomEvent\('press-editor-|document\.dispatchEvent\(new CustomEvent\('press-editor-current-file-breadcrumb-select'|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|cancelAnimationFrame|matchMedia|scrollTo)|document\.(?:addEventListener|removeEventListener)|requestAnimationFrame\(|cancelAnimationFrame\(|setTimeout\(|clearTimeout\(/,
   'editor main should route editor storage, app events, global listeners, timers, animation frames, and scroll controls through its runtime boundary'
 );
@@ -939,7 +959,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const previewSession = createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
+  /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*let previewSession = null;[\s\S]*previewSession = createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
   'editor main startup should wire the preview session through the editor runtime boundary'
 );
 
@@ -3945,7 +3965,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const assignCurrentFileLabel = \(input\) => \{[\s\S]*metadataPanel\.applyCurrentFileSource\(currentFileInfo\.source\);/,
+  /const assignCurrentFileLabel = \(input\) => \{[\s\S]*const info = currentFileSession\.set\(input\);[\s\S]*metadataPanel\.applyCurrentFileSource\(info\.source\);/,
   'editor main should delegate file-source metadata mode changes to the metadata panel session'
 );
 
@@ -4396,19 +4416,19 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  editorMainSource,
+  `${editorMainSource}\n${editorMainCurrentFileSessionSource}`,
   /<button type="button" class="cf-breadcrumb-item/,
   'current file breadcrumb should not use native buttons that inherit the bordered toolbar style'
 );
 
 assert.doesNotMatch(
-  editorMainSource,
+  `${editorMainSource}\n${editorMainCurrentFileSessionSource}`,
   /<a href="#" class="cf-breadcrumb-item\$\{currentClass\}"[\s\S]*data-current-file-node-id=/,
   'current file breadcrumb should no longer render clickable links'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainCurrentFileSessionSource,
   /const normalizeCurrentFileBreadcrumb = \(value, fallbackPath = ''\) => \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>/,
   'current file indicator should normalize and emit static breadcrumb entries'
 );

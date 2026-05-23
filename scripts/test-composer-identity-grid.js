@@ -15,6 +15,7 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
 const composerSyncPanelPath = resolve(here, '../assets/js/composer-sync-panel.js');
+const composerSyncCommitControllerPath = resolve(here, '../assets/js/composer-sync-commit-controller.js');
 const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
 const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
@@ -54,6 +55,7 @@ const composerMarkdownSessionPath = resolve(here, '../assets/js/composer-markdow
 const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js');
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
+const editorAppRuntimePath = resolve(here, '../assets/js/editor-app-runtime.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
 const connectTransportPath = resolve(here, '../assets/js/publish/transports/connect-transport.js');
@@ -76,6 +78,7 @@ const languagesManifestPath = resolve(here, '../assets/i18n/languages.json');
 const i18nPath = resolve(here, '../assets/js/i18n.js');
 const source = readFileSync(composerPath, 'utf8');
 const composerSyncPanelSource = readFileSync(composerSyncPanelPath, 'utf8');
+const composerSyncCommitControllerSource = readFileSync(composerSyncCommitControllerPath, 'utf8');
 const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
 const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
@@ -115,6 +118,7 @@ const composerMarkdownSessionSource = readFileSync(composerMarkdownSessionPath, 
 const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
+const editorAppRuntimeSource = readFileSync(editorAppRuntimePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
 const connectTransportSource = readFileSync(connectTransportPath, 'utf8');
@@ -525,6 +529,42 @@ assert.match(
   composerRuntimeStylesSource,
   /export function injectComposerRuntimeStyles\(options = \{\}\)[\s\S]*composer-runtime-styles[\s\S]*\.ci-item[\s\S]*\.cs-publish-transport-settings[\s\S]*@keyframes nsModalFadeIn/,
   'runtime style module should own composer list, site settings, publish transport, and modal animation styles'
+);
+
+assert.match(
+  source,
+  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the explicit editor app runtime boundary'
+);
+
+assert.match(
+  source,
+  /const editorRuntime = createEditorAppRuntime\(\{[\s\S]*windowRef: window,[\s\S]*documentRef: document[\s\S]*\}\);[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
+  'composer should create an explicit runtime and state store instead of owning root mutable state directly'
+);
+
+assert.doesNotMatch(
+  source,
+  /let activeComposerState|let remoteBaseline|let composerDiffCache/,
+  'composer root state, remote baselines, and diff cache should live behind the runtime state store'
+);
+
+assert.match(
+  source,
+  /function getStateSlice\(kind\) \{\s*return composerStateStore\.getStateSlice\(kind\);\s*\}[\s\S]*function setStateSlice\(kind, value\) \{\s*composerStateStore\.setStateSlice\(kind, value\);\s*\}/,
+  'composer state access should be routed through the explicit runtime state store'
+);
+
+assert.match(
+  editorAppRuntimeSource,
+  /export function createEditorStateStore\([\s\S]*getStateSlice\(kind\)[\s\S]*setStateSlice\(kind, value\)[\s\S]*getRemoteBaseline\(kind\)[\s\S]*setRemoteBaseline\(kind, value\)[\s\S]*getDiff\(kind\)[\s\S]*setDiff\(kind, value\)[\s\S]*export function createEditorAppRuntime/,
+  'editor app runtime should expose explicit state, baseline, diff, storage, event, and global-access boundaries'
+);
+
+assert.doesNotMatch(
+  source,
+  /window\.__press_site_repo|window\.__press_primary_editor|document\.dispatchEvent\(new CustomEvent\(LANGUAGE_POOL_CHANGED_EVENT\)|localStorage\.getItem\(scopedEditorStorageKey|localStorage\.setItem\(scopedEditorStorageKey/,
+  'composer should route browser globals, app events, and scoped persisted UI state through the runtime boundary'
 );
 
 assert.match(
@@ -2591,8 +2631,26 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /function getSyncCommitPanelHost\(\) \{[\s\S]*panel\.id = 'syncCommitPanel';[\s\S]*syncPanel\.appendChild\(panel\);/,
-  'Sync page should host the GitHub commit form inline'
+  /from '\.\/composer-sync-commit-controller\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted Sync commit controller boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /let syncCommitPanelRenderSeq|let syncCommitPanelRefreshTimer|function appendPublishTransportStatus|function getSyncCommitPanelHost/,
+  'composer should not own Sync commit panel render sequencing, host creation, or transport status DOM'
+);
+
+assert.match(
+  source,
+  /syncCommitController = createComposerSyncCommitController\(\{[\s\S]*computeUnsyncedSummary,[\s\S]*gatherCommitPayload,[\s\S]*resolvePublishTransport,[\s\S]*ensureConnectPublishGrant,[\s\S]*performConnectGithubCommit,[\s\S]*performDirectGithubCommit/,
+  'composer should wire the Sync commit controller with app services instead of rendering the commit panel itself'
+);
+
+assert.match(
+  composerSyncCommitControllerSource,
+  /export function createComposerSyncCommitController\([\s\S]*function appendPublishTransportStatus\(host\)[\s\S]*function getSyncCommitPanelHost\(\)[\s\S]*panel\.id = 'syncCommitPanel';[\s\S]*async function refresh\(options = \{\}\)[\s\S]*refreshSyncCommitPanelView\(options,[\s\S]*function scheduleRefresh\(\)[\s\S]*scheduleSyncCommitPanelRefreshView/,
+  'Sync commit controller should own inline host creation, transport status, render sequencing, and refresh scheduling'
 );
 
 assert.match(
@@ -3592,7 +3650,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /function refreshEditorLanguageUi\(\) \{[\s\S]*refreshFileDirtyBadges\(\);[\s\S]*refreshEditorContentTree\([\s\S]*document\.addEventListener\('press-editor-language-applied', refreshEditorLanguageUi\)/,
+  /function refreshEditorLanguageUi\(\) \{[\s\S]*refreshFileDirtyBadges\(\);[\s\S]*refreshEditorContentTree\([\s\S]*editorRuntime\.events\.onDocument\('press-editor-language-applied', refreshEditorLanguageUi\)/,
   'composer file switch dirty labels and tree panels should be recomputed after editor language changes'
 );
 

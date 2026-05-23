@@ -45,10 +45,8 @@ import {
 } from './editor-storage.js?v=press-system-v3.4.50';
 import { createScopedDraftStore } from './editor-drafts.js?v=press-system-v3.4.50';
 import { createEditorSessionStateStore } from './editor-session-state.js?v=press-system-v3.4.50';
-import {
-  refreshSyncCommitPanelView,
-  scheduleSyncCommitPanelRefreshView
-} from './composer-sync-panel.js?v=press-system-v3.4.50';
+import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+import { createComposerSyncCommitController } from './composer-sync-commit-controller.js?v=press-system-v3.4.50';
 import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.50';
 import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.50';
 import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.50';
@@ -156,10 +154,7 @@ const {
 } = composerPathTools;
 
 function broadcastLanguagePoolChange() {
-  if (typeof document === 'undefined' || typeof document.dispatchEvent !== 'function') return;
-  try {
-    document.dispatchEvent(new CustomEvent(LANGUAGE_POOL_CHANGED_EVENT));
-  } catch (_) {}
+  editorRuntime.events.emitDocument(LANGUAGE_POOL_CHANGED_EVENT);
 }
 
 function normalizeLangCode(code) {
@@ -192,6 +187,15 @@ function scopedEditorStorageKey(key) {
   return createScopedStorageKey(EDITOR_STORAGE_SCOPE, key);
 }
 
+const editorRuntime = createEditorAppRuntime({
+  windowRef: window,
+  documentRef: document
+});
+const composerStateStore = editorRuntime.createStateStore({
+  kinds: ['index', 'tabs', 'site'],
+  defaultKind: 'index'
+});
+
 const composerNotifications = createComposerNotificationController({
   documentRef: document,
   windowRef: window,
@@ -222,6 +226,7 @@ const publishSettingsStore = createPublishSettingsStore({
   windowRef: window,
   scopeKey: scopedEditorStorageKey
 });
+let syncCommitController = null;
 const syncOverlayController = createSyncOverlayController({
   documentRef: document,
   windowRef: window,
@@ -302,12 +307,12 @@ const {
 const DRAFT_STORAGE_KEY = 'press_composer_drafts_v1';
 const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';
 const composerDraftStore = createScopedDraftStore({
-  storage: window.localStorage,
+  storage: editorRuntime.storage,
   storageKey: DRAFT_STORAGE_KEY,
   scopeKey: scopedEditorStorageKey
 });
 const markdownDraftStore = createScopedDraftStore({
-  storage: window.localStorage,
+  storage: editorRuntime.storage,
   storageKey: MARKDOWN_DRAFT_STORAGE_KEY,
   scopeKey: scopedEditorStorageKey
 });
@@ -380,11 +385,9 @@ const contentCommitStagingProvider = createContentCommitStagingProvider({
   flushMarkdownDraft,
   getStateSlice,
   getContentRootSafe,
-  getRemoteBaseline: () => remoteBaseline,
-  getComposerDiffCache: () => composerDiffCache,
-  setComposerDiff: (kind, diff) => {
-    composerDiffCache[kind] = diff;
-  },
+  getRemoteBaseline: () => composerStateStore.getRemoteBaseline(),
+  getComposerDiffCache: () => composerStateStore.getDiffCache(),
+  setComposerDiff: (kind, diff) => composerStateStore.setDiff(kind, diff),
   collectCurrentRepositoryMarkdownAssetReferences,
   collectUnsyncedMarkdownEntries,
   getPrimaryEditorApi,
@@ -415,7 +418,7 @@ const contentCommitStagingProvider = createContentCommitStagingProvider({
 const seoStagingProvider = createSeoStagingProvider({
   getStateSlice,
   getContentRootSafe,
-  getRemoteBaselineSite: () => remoteBaseline.site,
+  getRemoteBaselineSite: () => composerStateStore.getRemoteBaseline('site'),
   cloneSiteState,
   isIndexMetadataObject,
   getIndexVariantLocation
@@ -429,10 +432,8 @@ let unsyncedSummaryController = null;
 const postCommitStateApplier = createPostCommitStateApplier({
   stagingRegistry,
   getStateSlice,
-  getRemoteBaseline: () => remoteBaseline,
-  setRemoteBaselineSlice: (kind, value) => {
-    remoteBaseline[kind] = value;
-  },
+  getRemoteBaseline: () => composerStateStore.getRemoteBaseline(),
+  setRemoteBaselineSlice: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
   deepClone,
   prepareIndexState,
   prepareTabsState,
@@ -483,7 +484,7 @@ stagingRegistry.registerStagingProvider({
   }
 });
 const editorSessionStateStore = createEditorSessionStateStore({
-  storage: window.localStorage,
+  storage: editorRuntime.storage,
   scopeKey: scopedEditorStorageKey,
   keys: LS_KEYS
 });
@@ -594,9 +595,7 @@ const remoteSyncController = createComposerRemoteSyncController({
   prepareSiteState,
   cloneSiteState,
   deepClone,
-  setRemoteBaseline: (kind, value) => {
-    remoteBaseline[kind] = value;
-  },
+  setRemoteBaseline: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
   notifyComposerChange,
   clearDraftStorage,
   updateUnsyncedSummary,
@@ -827,9 +826,6 @@ const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
 
 let gitHubCommitInFlight = false;
 
-let activeComposerState = null;
-let remoteBaseline = { index: null, tabs: null, site: null };
-let composerDiffCache = { index: null, tabs: null, site: null };
 let activeComposerFile = 'index';
 let composerViewTransition = null;
 const composerSiteConfigController = createComposerSiteConfigController({
@@ -846,7 +842,7 @@ const composerYamlDraftController = createComposerYamlDraftController({
   draftStore: composerDraftStore,
   getStateSlice,
   setStateSlice,
-  getComposerDiff: (kind) => composerDiffCache[kind],
+  getComposerDiff: (kind) => composerStateStore.getDiff(kind),
   computeBaselineSignature,
   prepareIndexState,
   prepareTabsState,
@@ -890,8 +886,8 @@ const composerDiffUi = createComposerDiffUi({
   escapeHtml,
   siteFieldLabelMap: SITE_FIELD_LABEL_MAP,
   getStateSlice,
-  getRemoteBaseline: () => remoteBaseline,
-  getComposerDiff: (kind) => composerDiffCache[kind],
+  getRemoteBaseline: () => composerStateStore.getRemoteBaseline(),
+  getComposerDiff: (kind) => composerStateStore.getDiff(kind),
   recomputeDiff,
   getActiveComposerFile,
   animateInlineVisibility: animateComposerInlineVisibility
@@ -919,7 +915,7 @@ unsyncedSummaryController = createComposerUnsyncedSummaryController({
   countMarkdownAssets,
   countMarkdownAssetDeletions,
   listMarkdownAssetDeletions,
-  getComposerDiffCache: () => composerDiffCache,
+  getComposerDiffCache: () => composerStateStore.getDiffCache(),
   getStagingSummaryEntries: () => stagingRegistry.getSummaryEntries(),
   getActiveComposerFile,
   getComposerDraftMeta,
@@ -1093,13 +1089,13 @@ function updateDynamicTabDirtyState(tab, options = {}) {
 
 function hasUnsavedComposerChanges() {
   try {
-    if (composerDiffCache && composerDiffCache.index && composerDiffCache.index.hasChanges) return true;
+    if (composerStateStore.hasDiff('index')) return true;
   } catch (_) {}
   try {
-    if (composerDiffCache && composerDiffCache.tabs && composerDiffCache.tabs.hasChanges) return true;
+    if (composerStateStore.hasDiff('tabs')) return true;
   } catch (_) {}
   try {
-    if (composerDiffCache && composerDiffCache.site && composerDiffCache.site.hasChanges) return true;
+    if (composerStateStore.hasDiff('site')) return true;
   } catch (_) {}
   return false;
 }
@@ -1112,11 +1108,7 @@ function handleBeforeUnload(event) {
   getMarkdownDraftController().handleBeforeUnload(event);
 }
 
-try {
-  if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener('beforeunload', handleBeforeUnload);
-  }
-} catch (_) {}
+editorRuntime.events.onWindow('beforeunload', handleBeforeUnload);
 
 
 
@@ -1235,23 +1227,17 @@ function updateComposerMarkdownDraftIndicators(options = {}) {
 }
 
 function getStateSlice(kind) {
-  if (!activeComposerState) return null;
-  if (kind === 'tabs') return activeComposerState.tabs;
-  if (kind === 'site') return activeComposerState.site;
-  return activeComposerState.index;
+  return composerStateStore.getStateSlice(kind);
 }
 
 function setStateSlice(kind, value) {
-  if (!activeComposerState) return;
-  if (kind === 'tabs') activeComposerState.tabs = value;
-  else if (kind === 'site') activeComposerState.site = value;
-  else activeComposerState.index = value;
+  composerStateStore.setStateSlice(kind, value);
 }
 
 function computeBaselineSignature(kind) {
-  if (kind === 'tabs') return computeTabsSignature(remoteBaseline.tabs);
-  if (kind === 'site') return computeSiteSignature(remoteBaseline.site);
-  return computeIndexSignature(remoteBaseline.index);
+  if (kind === 'tabs') return computeTabsSignature(composerStateStore.getRemoteBaseline('tabs'));
+  if (kind === 'site') return computeSiteSignature(composerStateStore.getRemoteBaseline('site'));
+  return computeIndexSignature(composerStateStore.getRemoteBaseline('index'));
 }
 
 function recomputeDiff(kind) {
@@ -1259,16 +1245,16 @@ function recomputeDiff(kind) {
   let baselineSlice;
   let diff;
   if (kind === 'tabs') {
-    baselineSlice = remoteBaseline.tabs;
+    baselineSlice = composerStateStore.getRemoteBaseline('tabs');
     diff = computeTabsDiff(slice, baselineSlice);
   } else if (kind === 'site') {
-    baselineSlice = remoteBaseline.site;
+    baselineSlice = composerStateStore.getRemoteBaseline('site');
     diff = computeSiteDiff(slice, baselineSlice);
   } else {
-    baselineSlice = remoteBaseline.index;
+    baselineSlice = composerStateStore.getRemoteBaseline('index');
     diff = computeIndexDiff(slice, baselineSlice);
   }
-  composerDiffCache[kind] = diff;
+  composerStateStore.setDiff(kind, diff);
   return diff;
 }
 
@@ -1281,9 +1267,7 @@ function refreshEditorLanguageUi() {
   } catch (_) {}
 }
 
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-  document.addEventListener('press-editor-language-applied', refreshEditorLanguageUi);
-}
+editorRuntime.events.onDocument('press-editor-language-applied', refreshEditorLanguageUi);
 
 function getUnsyncedSummaryController() {
   if (!unsyncedSummaryController) throw new Error('Unsynced summary controller is not initialized');
@@ -1322,88 +1306,44 @@ async function gatherCommitPayload(options = {}) {
   return { files, seoFiles, warnings: providerResult.warnings || [] };
 }
 
-let syncCommitPanelRenderSeq = 0;
-let syncCommitPanelRefreshTimer = 0;
-
-function appendPublishTransportStatus(host) {
-  const transport = resolvePublishTransport();
-  const note = document.createElement('p');
-  note.className = 'muted sync-publish-transport';
-  if (transport.type === 'connect') {
-    if (transport.invalid) {
-      note.textContent = t('editor.composer.github.modal.connectInvalidUrl');
-    } else {
-      const cached = getMatchingConnectPublishGrant(transport.connect);
-      note.textContent = cached
-        ? t('editor.composer.github.modal.connectConnected')
-        : t('editor.composer.github.modal.connectReady');
-    }
-  } else {
-    note.textContent = t('editor.composer.github.modal.subtitle');
-  }
-  host.appendChild(note);
-}
-
-function getSyncCommitPanelHost() {
-  const syncPanel = document.getElementById('mode-sync');
-  if (!syncPanel) return null;
-  let panel = document.getElementById('syncCommitPanel');
-  if (!panel) {
-    panel = document.createElement('section');
-    panel.id = 'syncCommitPanel';
-    panel.className = 'sync-commit-panel';
-    syncPanel.appendChild(panel);
-  }
-  return panel;
+function getSyncCommitController() {
+  if (!syncCommitController) throw new Error('Sync commit controller is not initialized');
+  return syncCommitController;
 }
 
 async function refreshSyncCommitPanel(options = {}) {
-  return refreshSyncCommitPanelView(options, {
-    documentRef: document,
-    t,
-    getSyncCommitPanelHost,
-    nextRenderId: () => {
-      syncCommitPanelRenderSeq += 1;
-      return syncCommitPanelRenderSeq;
-    },
-    getRenderId: () => syncCommitPanelRenderSeq,
-    computeUnsyncedSummary,
-    gatherCommitPayload,
-    appendPublishTransportStatus,
-    resolvePublishTransport,
-    renderFineGrainedTokenSettings,
-    appendGithubCommitSummary,
-    getVisibleFineGrainedTokenInput,
-    getFineGrainedTokenValue,
-    setCachedFineGrainedToken,
-    ensureConnectPublishGrant,
-    getActiveSiteRepoConfig,
-    showToast,
-    performConnectGithubCommit,
-    performDirectGithubCommit,
-    switchToPatFallbackAndFocusToken,
-    refreshSyncCommitPanel
-  });
+  return getSyncCommitController().refresh(options);
 }
 
 function scheduleSyncCommitPanelRefresh() {
-  syncCommitPanelRefreshTimer = scheduleSyncCommitPanelRefreshView({
-    currentMode: getCurrentComposerMode(),
-    windowRef: window,
-    timer: syncCommitPanelRefreshTimer,
-    setTimer: (timer) => {
-      syncCommitPanelRefreshTimer = timer;
-    },
-    refreshSyncCommitPanel
-  });
+  return getSyncCommitController().scheduleRefresh();
 }
+
+syncCommitController = createComposerSyncCommitController({
+  documentRef: document,
+  windowRef: window,
+  t,
+  getCurrentMode: () => getCurrentComposerMode(),
+  computeUnsyncedSummary,
+  gatherCommitPayload,
+  resolvePublishTransport,
+  getMatchingConnectPublishGrant,
+  renderFineGrainedTokenSettings,
+  appendGithubCommitSummary,
+  getVisibleFineGrainedTokenInput,
+  getFineGrainedTokenValue,
+  setCachedFineGrainedToken,
+  ensureConnectPublishGrant,
+  getActiveSiteRepoConfig,
+  showToast,
+  performConnectGithubCommit,
+  performDirectGithubCommit,
+  switchToPatFallbackAndFocusToken
+});
 
 function getActiveSiteRepoConfig() {
   const site = getStateSlice('site');
-  const fallback = window.__press_site_repo && typeof window.__press_site_repo === 'object'
-    ? window.__press_site_repo
-    : {};
-  return resolveActiveSiteRepoConfig(site, fallback);
+  return resolveActiveSiteRepoConfig(site, editorRuntime.globals.getPressSiteRepo());
 }
 
 const composerOrderDiffUi = createComposerOrderDiffUi({
@@ -1413,8 +1353,8 @@ const composerOrderDiffUi = createComposerOrderDiffUi({
   tComposerDiff,
   truncateText,
   getStateSlice,
-  getRemoteBaseline: () => remoteBaseline,
-  getComposerDiff: (kind) => composerDiffCache[kind],
+  getRemoteBaseline: () => composerStateStore.getRemoteBaseline(),
+  getComposerDiff: (kind) => composerStateStore.getDiff(kind),
   recomputeDiff,
   computeOrderDiffDetails,
   buildEntryDiffBadges,
@@ -1555,7 +1495,7 @@ const composerSetupVerifier = createComposerSetupVerifier({
   windowRef: window,
   consoleRef: console,
   t,
-  getState: () => activeComposerState,
+  getState: () => composerStateStore.getActiveState(),
   getActiveComposerFile,
   getActiveSiteRepoConfig,
   sortLangKeys,
@@ -1611,7 +1551,7 @@ function rebuildIndexUI(preserveOpen = true) {
   const openKeys = preserveOpen
     ? Array.from(root.querySelectorAll('.ci-item.is-open')).map(el => el.getAttribute('data-key')).filter(Boolean)
     : [];
-  composerIndexTabsUi.buildIndexUI(root, activeComposerState);
+  composerIndexTabsUi.buildIndexUI(root, composerStateStore.getActiveState());
   openKeys.forEach(key => {
     if (!key) return;
     const row = root.querySelector(`.ci-item[data-key="${cssEscape(key)}"]`);
@@ -1636,7 +1576,7 @@ function rebuildTabsUI(preserveOpen = true) {
   const openKeys = preserveOpen
     ? Array.from(root.querySelectorAll('.ct-item.is-open')).map(el => el.getAttribute('data-key')).filter(Boolean)
     : [];
-  composerIndexTabsUi.buildTabsUI(root, activeComposerState);
+  composerIndexTabsUi.buildTabsUI(root, composerStateStore.getActiveState());
   openKeys.forEach(key => {
     if (!key) return;
     const row = root.querySelector(`.ct-item[data-key="${cssEscape(key)}"]`);
@@ -1673,11 +1613,9 @@ const composerYamlActions = createComposerYamlActions({
   cloneSiteState,
   deepClone,
   computeBaselineSignature,
-  getComposerDiff: (kind) => composerDiffCache[kind],
-  getRemoteBaseline: (kind) => remoteBaseline[kind],
-  setRemoteBaseline: (kind, value) => {
-    remoteBaseline[kind] = value;
-  },
+  getComposerDiff: (kind) => composerStateStore.getDiff(kind),
+  getRemoteBaseline: (kind) => composerStateStore.getRemoteBaseline(kind),
+  setRemoteBaseline: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
   setStateSlice,
   applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
   rebuildIndexUI,
@@ -1697,12 +1635,7 @@ const {
 } = composerYamlActions;
 
 function getPrimaryEditorApi() {
-  try {
-    const api = window.__press_primary_editor;
-    return api && typeof api === 'object' ? api : null;
-  } catch (_) {
-    return null;
-  }
+  return editorRuntime.globals.getPrimaryEditorApi();
 }
 
 function restorePrimaryEditorMarkdownView(editorApi) {
@@ -2006,7 +1939,7 @@ function applyMode(mode, options = {}) {
 
 function getInitialComposerFile() {
   try {
-    const v = (localStorage.getItem(scopedEditorStorageKey(LS_KEYS.cfile)) || '').toLowerCase();
+    const v = (editorRuntime.storage.getItem(scopedEditorStorageKey(LS_KEYS.cfile)) || '').toLowerCase();
     if (v === 'site') return v;
   } catch (_) {}
   return 'site';
@@ -2506,10 +2439,10 @@ function collectEditorDiffStatusMap() {
       });
     });
   };
-  applyDiff('index', composerDiffCache.index);
-  applyDiff('tabs', composerDiffCache.tabs);
+  applyDiff('index', composerStateStore.getDiff('index'));
+  applyDiff('tabs', composerStateStore.getDiff('tabs'));
   try {
-    const siteDiff = composerDiffCache.site || recomputeDiff('site');
+    const siteDiff = composerStateStore.getDiff('site') || recomputeDiff('site');
     if (siteDiff && siteDiff.hasChanges) add('system:site-settings', 'modified');
     else if (getComposerDraftMeta('site')) add('system:site-settings', 'saved');
   } catch (_) {
@@ -2543,10 +2476,10 @@ function buildCurrentEditorTree() {
     draftStates: collectEditorDraftStatusMap(),
     diffStates: collectEditorDiffStatusMap(),
     fileStates: collectEditorFileStatusMap(),
-    indexDiff: composerDiffCache.index || null,
-    tabsDiff: composerDiffCache.tabs || null,
-    indexBaseline: remoteBaseline.index || null,
-    tabsBaseline: remoteBaseline.tabs || null
+    indexDiff: composerStateStore.getDiff('index') || null,
+    tabsDiff: composerStateStore.getDiff('tabs') || null,
+    indexBaseline: composerStateStore.getRemoteBaseline('index') || null,
+    tabsBaseline: composerStateStore.getRemoteBaseline('tabs') || null
   });
 }
 
@@ -2594,14 +2527,12 @@ function handleEditorTreeSelection(nodeId) {
   editorContentTreeController.handleSelection(nodeId);
 }
 
-try {
-  document.addEventListener('press-editor-current-file-breadcrumb-select', (event) => {
-    const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
-    const nodeId = String(detail.nodeId || '').trim();
-    if (!nodeId) return;
-    handleEditorTreeSelection(nodeId);
-  });
-} catch (_) {}
+editorRuntime.events.onDocument('press-editor-current-file-breadcrumb-select', (event) => {
+  const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
+  const nodeId = String(detail.nodeId || '').trim();
+  if (!nodeId) return;
+  handleEditorTreeSelection(nodeId);
+});
 
 function getIndexEntry(key) {
   const state = getStateSlice('index') || {};
@@ -2626,14 +2557,14 @@ function showStatus(msg, kind = 'info') {
 function rebuildSiteUI() {
   const root = document.getElementById('composerSite');
   if (!root) return;
-  composerSiteSettingsUi.buildSiteUI(root, activeComposerState);
+  composerSiteSettingsUi.buildSiteUI(root, composerStateStore.getActiveState());
   notifyComposerChange('site', { skipAutoSave: true });
 }
 
 initializeComposerApp({
   documentRef: document,
   setActiveComposerState: (state) => {
-    activeComposerState = state;
+    composerStateStore.setActiveState(state);
   },
   markdownToolbar: {
     t,
@@ -2669,7 +2600,7 @@ initializeComposerApp({
     cloneSiteState,
     deepClone,
     setRemoteBaseline: (kind, value) => {
-      remoteBaseline[kind] = value;
+      composerStateStore.setRemoteBaseline(kind, value);
     },
     getActiveDynamicTab,
     updateMarkdownPushButton,
@@ -2701,7 +2632,7 @@ initializeComposerApp({
         applyComposerFile(name, options);
         try {
           const normalized = name === 'tabs' ? 'tabs' : (name === 'site' ? 'site' : 'index');
-          localStorage.setItem(scopedEditorStorageKey(LS_KEYS.cfile), normalized);
+          editorRuntime.storage.setItem(scopedEditorStorageKey(LS_KEYS.cfile), normalized);
         } catch (_) {}
       },
       getInitialComposerFile,

@@ -34,6 +34,7 @@ const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-con
 const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
+const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -91,6 +92,7 @@ const composerModeControllerSource = readFileSync(composerModeControllerPath, 'u
 const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
+const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -121,7 +123,7 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource].join('\n');
+const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -561,6 +563,24 @@ assert.match(
   composerSystemThemeBridgeSource,
   /from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*id: 'themes'[\s\S]*function init\(\)[\s\S]*initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
   'system/theme bridge should own manager imports, staging providers, and module initialization'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-ui-motion\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted UI motion boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function syncSiteEditorSingleLabelWidth\(root\)|function animateComposerInlineVisibility\(element, show|function slideToggle\(el, toOpen\)|const __activeAnims = new WeakMap\(\)|const composerListTransitions = new WeakMap\(\)/,
+  'composer should not own low-level UI motion and measurement helpers'
+);
+
+assert.match(
+  composerUiMotionSource,
+  /export function syncSiteEditorSingleLabelWidth\(root\)[\s\S]*export function animateComposerInlineVisibility\(element, show, options = \{\}\)[\s\S]*export function animateComposerListTransition\(list, previousRect, options = \{\}\)[\s\S]*export function animateComposerOrderMainReset\(host, previousRect, options = \{\}\)[\s\S]*export function slideToggle\(el, toOpen\)[\s\S]*export function getComposerSlideDurations\(\)/,
+  'UI motion module should own composer label measurement, inline/list/order animations, slide toggles, and shared durations'
 );
 
 assert.match(
@@ -3879,8 +3899,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver[\s\S]*--cs-editor-single-label-width/,
+  composerUiMotionSource,
+  /export function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver/,
   'compact single-value labels should be measured once after render and shared through a CSS variable'
 );
 

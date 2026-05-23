@@ -41,6 +41,7 @@ const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-con
 const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
+const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
@@ -101,6 +102,7 @@ const composerModeControllerSource = readFileSync(composerModeControllerPath, 'u
 const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
+const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
 const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
@@ -539,7 +541,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*composerSystemThemeBridge\.registerStagingProviders\(stagingRegistry\);[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*composerSystemThemeBridge\.init\(\);/,
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*composerSystemThemeBridge\.registerStagingProviders\(stagingRegistry\);[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
   'composer should delegate system/theme staging, status, and initialization to the bridge'
 );
 
@@ -547,6 +549,36 @@ assert.match(
   composerSystemThemeBridgeSource,
   /from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*id: 'themes'[\s\S]*function init\(\)[\s\S]*initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
   'system/theme bridge should own manager imports, staging providers, and module initialization'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-bootstrap\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted DOM bootstrap and workspace assembly boundary'
+);
+
+assert.match(
+  source,
+  /createPostCommitStateApplier\(\{[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),/,
+  'composer should pass site-config application lazily into early top-level wiring to avoid startup TDZ failures'
+);
+
+assert.doesNotMatch(
+  source,
+  /document\.addEventListener\('DOMContentLoaded'|function bindComposerUI\(/,
+  'composer should not own DOMContentLoaded startup or workspace event binding'
+);
+
+assert.match(
+  composerBootstrapSource,
+  /export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*restoreDynamicEditorState[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*documentRef\.addEventListener\('DOMContentLoaded'/,
+  'bootstrap module should own DOM startup, Markdown toolbar binding, initial config loading, and workspace assembly'
+);
+
+assert.match(
+  source,
+  /applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\)/,
+  'composer should pass site config application lazily to avoid top-level bootstrap TDZ during module evaluation'
 );
 
 assert.match(
@@ -1030,13 +1062,13 @@ assert.equal(
 
 assert.match(
   source,
-  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(window\.location\)[\s\S]*applyComposerEffectiveSiteConfig\(state\.site\);[\s\S]*composerSiteSettingsUi\.buildSiteUI\(\$\(\'#composerSite\'\), state\);/,
-  'composer should infer starter repository config before rendering Site Settings'
+  /initializeComposerApp\(\{[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\)/,
+  'composer should wire inferred starter repository config into the extracted workspace assembly before rendering Site Settings'
 );
 
 assert.match(
-  source,
-  /notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
+  composerBootstrapSource,
+  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(windowRef && windowRef\.location\)[\s\S]*applyEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(getElement\(documentRef, 'composerSite'\), state\);[\s\S]*notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
   'composer should mark inferred site repo changes dirty while preserving normal initialization behavior'
 );
 
@@ -3444,8 +3476,8 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /refreshEditorContentTree\(\);\s*const restoredEditorState = restoreDynamicEditorState\(\);\s*if \(!restoredEditorState\) applyMode\('editor'\);\s*allowEditorStatePersist = true;/,
+  composerBootstrapSource,
+  /refreshEditorContentTree\(\);\s*const restoredEditorState = restoreDynamicEditorState\(\);\s*if \(!restoredEditorState\) applyMode\('editor'\);\s*setAllowEditorStatePersist\(true\);/,
   'editor boot should restore dynamic markdown session state before falling back to the file tree'
 );
 

@@ -33,7 +33,7 @@ assert.match(
 
 assert.match(
   composerSource,
-  /composerSystemThemeBridge\.init\(\);/,
+  /initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
   'system/theme module initialization should be delegated to the bridge'
 );
 

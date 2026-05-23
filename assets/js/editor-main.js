@@ -1,9 +1,7 @@
-import { configureFetchCachePolicy } from './cache-control.js';
 import { createHiEditor } from './hieditor.js?v=press-system-v3.4.50';
 import { normalizeLineEndings } from './frontmatter-document.js?v=press-system-v3.4.50';
 import { getContentRoot, resolveImageSrc } from './safe-html.js?v=press-system-v3.4.50';
-import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
-import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
+import { t, withLangParam, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
 import { createEditorMainMetadataPanel } from './editor-main-metadata-panel.js?v=press-system-v3.4.50';
 import { createEditorMainPreviewSession } from './editor-main-preview-session.js?v=press-system-v3.4.50';
 import { createEditorMainCurrentFileSession } from './editor-main-current-file-session.js?v=press-system-v3.4.50';
@@ -14,12 +12,11 @@ import { createEditorMainLinkCardContext } from './editor-main-link-card-context
 import { createEditorMainWorkspaceSession } from './editor-main-workspace-session.js?v=press-system-v3.4.50';
 import { createEditorMainBlocksSession } from './editor-main-blocks-session.js?v=press-system-v3.4.50';
 import { createEditorMainDocumentSession } from './editor-main-document-session.js?v=press-system-v3.4.50';
+import { createEditorMainContentService } from './editor-main-content-service.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
 const FORCE_MARKDOWN_WRAP = true;
 const editorMainRuntime = createEditorMainRuntime();
-
-let editorSiteConfig = {};
 
 // ---- Local draft storage removed (temporary) ----
 
@@ -65,11 +62,6 @@ editorMainRuntime.onDocumentReady(() => {
 
   const inferCurrentFileSource = (path) => metadataPanel.inferCurrentFileSource(path);
 
-  const setBaseDir = (dir) => {
-    const fallback = `${getContentRoot()}/`;
-    editorMainRuntime.setEditorBaseDir(dir, fallback);
-  };
-
   const requestLayout = () => {
     try {
       if (editor && typeof editor.refreshLayout === 'function') {
@@ -99,6 +91,23 @@ editorMainRuntime.onDocumentReady(() => {
   });
   workspaceSession.initialize();
 
+  const contentService = createEditorMainContentService({
+    runtime: editorMainRuntime,
+    getContentRoot,
+    fetch,
+    linkCardContext,
+    getPreviewSession: () => previewSession,
+    getDocumentSession: () => documentSession,
+    getWorkspaceSession: () => workspaceSession,
+    setCurrentFileLabel: (label) => assignCurrentFileLabel(label),
+    warn: (...args) => {
+      try { console.warn(...args); } catch (_) {}
+    },
+    alert: (message) => {
+      try { window.alert(message); } catch (_) {}
+    }
+  });
+
   documentSession = createEditorMainDocumentSession({
     runtime: editorMainRuntime,
     editor,
@@ -108,7 +117,7 @@ editorMainRuntime.onDocumentReady(() => {
     getPreviewSession: () => previewSession,
     getBlocksSession: () => blocksSession,
     requestLayout,
-    setBaseDir,
+    setBaseDir: contentService.setBaseDir,
     setCurrentFileLabel: (label) => assignCurrentFileLabel(label)
   });
 
@@ -132,7 +141,7 @@ editorMainRuntime.onDocumentReady(() => {
     getContentRoot,
     getEditorValue: () => documentSession.getValue(),
     getCurrentFileInfo: () => currentFileSession.getInfo(),
-    getSiteConfig: () => editorSiteConfig || {},
+    getSiteConfig: () => contentService.getSiteConfig(),
     getPostsIndex: () => linkCardContext.getPostsIndex(),
     getPostsByLocationTitle: () => linkCardContext.getPostsByLocationTitle(),
     isLinkCardReady: () => linkCardContext.isReady(),
@@ -141,15 +150,7 @@ editorMainRuntime.onDocumentReady(() => {
     fetch
   });
   previewSession.bind();
-
-  editorMainRuntime.onSiteConfigChange((event) => {
-    const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
-    if (detail.siteConfig && typeof detail.siteConfig === 'object') {
-      editorSiteConfig = detail.siteConfig;
-      try { configureFetchCachePolicy(editorSiteConfig, { context: 'editor' }); } catch (_) {}
-      previewSession.handleSiteConfigChange();
-    }
-  });
+  contentService.bind();
 
   const getCurrentMarkdownPath = () => {
     return currentFileSession.getPath();
@@ -185,7 +186,7 @@ editorMainRuntime.onDocumentReady(() => {
     getEditorBody: documentSession.getEditorBody,
     onBodyChange: documentSession.setBodyFromBlocks,
     getCurrentMarkdownPath,
-    getSiteConfig: () => editorSiteConfig || {},
+    getSiteConfig: () => contentService.getSiteConfig(),
     getPreviewSession: () => previewSession,
     getImageSession: () => imageSession,
     linkCardContext,
@@ -237,7 +238,7 @@ editorMainRuntime.onDocumentReady(() => {
   // If empty, seed default text; otherwise render current content once.
   documentSession.renderInitial(seed);
 
-  setBaseDir('');
+  contentService.setBaseDir('');
   imageSession.bind();
   documentSession.registerPrimaryEditorApi();
 
@@ -273,43 +274,14 @@ editorMainRuntime.onDocumentReady(() => {
     windowRef: window,
     normalizeLangKey,
     bindCurrentFileElement,
-    loadSiteConfig: () => fetchMergedSiteConfig(),
-    loadIndexData: (contentRoot) => loadContentJsonWithRaw(contentRoot, 'index'),
-    loadTabsConfig: (contentRoot) => fetchConfigWithYamlFallback([`${contentRoot}/tabs.yaml`, `${contentRoot}/tabs.yml`]),
-    onSiteConfigLoaded: ({ siteConfig, contentRoot }) => {
-      editorSiteConfig = siteConfig || {};
-      try { configureFetchCachePolicy(editorSiteConfig, { context: 'editor' }); } catch (_) {}
-      previewSession.handleSiteConfigChange();
-      editorMainRuntime.setContentRoot(contentRoot);
-      editorMainRuntime.setEditorBaseDir(`${contentRoot}/`, `${contentRoot}/`);
-    },
-    onIndexLoaded: ({ posts, rawIndex }) => {
-      linkCardContext.rebuild(posts, rawIndex);
-      if (linkCardContext.isReady()) documentSession.refreshPreview();
-    },
-    onOpenMarkdown: async ({ relPath, url, contentRoot }) => {
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
-      try {
-        const lastSlash = relPath.lastIndexOf('/');
-        const dir = lastSlash >= 0 ? relPath.slice(0, lastSlash + 1) : '';
-        const base = `${contentRoot}/${dir}`.replace(/\\+/g, '/');
-        setBaseDir(base);
-      } catch (_) {
-        setBaseDir(`${contentRoot}/`);
-      }
-      documentSession.setValue(text);
-      assignCurrentFileLabel(`${relPath}`);
-      workspaceSession.setView('edit');
-      editorMainRuntime.scrollToTop({ smooth: true });
-    },
-    onWarn: (...args) => {
-      try { console.warn(...args); } catch (_) {}
-    },
-    alert: (message) => {
-      try { window.alert(message); } catch (_) {}
-    }
+    loadSiteConfig: contentService.loadSiteConfig,
+    loadIndexData: contentService.loadIndexData,
+    loadTabsConfig: contentService.loadTabsConfig,
+    onSiteConfigLoaded: contentService.handleSiteConfigLoaded,
+    onIndexLoaded: contentService.handleIndexLoaded,
+    onOpenMarkdown: contentService.openMarkdown,
+    onWarn: contentService.warn,
+    alert: contentService.alert
   });
   sidebarSession.initialize();
 });

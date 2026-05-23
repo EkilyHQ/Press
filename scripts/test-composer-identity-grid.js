@@ -77,6 +77,7 @@ const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-c
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
+const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -152,6 +153,7 @@ const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
+const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -311,6 +313,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-inline-toolbar-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks inline toolbar session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -325,6 +333,12 @@ assert.match(
   editorBlocksSource,
   /activeSession = createEditorBlocksActiveSession\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*list,[\s\S]*runtime,[\s\S]*containsNode: nodeContains,[\s\S]*syncActiveListTypeSelect,[\s\S]*refreshLinkEditor,[\s\S]*updateInlineToolbarState,[\s\S]*syncActiveTableAlignmentFromEditable,[\s\S]*requestStickyBlockHeadUpdate,[\s\S]*clearNativeSelection[\s\S]*\}\);/,
   'blocks editor should compose active block state transitions through the active session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const inlineToolbarSession = createEditorBlocksInlineToolbarSession\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\);[\s\S]*updateInlineToolbarState = \(\) => inlineToolbarSession\.update\(\);/,
+  'blocks editor should compose inline toolbar state through the inline toolbar session boundary'
 );
 
 assert.match(
@@ -1554,7 +1568,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineRangeAnyMarked\(runs, start, end, mark\)[\s\S]*next > safeStart && cursor < safeEnd && !!run\[mark\][\s\S]*const shouldApply = command === 'code'[\s\S]*inlineRangeAnyMarked\(runs, start, end, command\)[\s\S]*inlineRangeAnyMarked\(runs, offsets\.start, offsets\.end, mark\)/,
   'B/I/S inline formatting should treat mixed selected ranges as active when any selected text has the mark'
 );
@@ -1567,8 +1581,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\.bindActiveEditing\(blocksState, selectionEditable, blocksState\.getActiveSync\(\)\);[\s\S]*editableSession\.registerEditable\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
-  'inline toolbar state should recover the active rich editable directly from the browser selection'
+  /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\.registerEditable\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
+  'blocks editor should provide registered editables and a browser-selection lookup for inline toolbar recovery'
+);
+
+assert.match(
+  editorBlocksInlineToolbarSessionSource,
+  /function recoverActiveFromSelection\(nodes\) \{[\s\S]*const selectionEditable = selectionEditableInRoot\(root, selectionSession\);[\s\S]*const canRecoverSelectionActive = !\([\s\S]*blocksState\.selectionActiveRecoverySuppressed\(now\(\)\)[\s\S]*blocksState\.setActiveIndex\(selectionIndex\);[\s\S]*editableSession\.bindActiveEditing\([\s\S]*blocksState,[\s\S]*selectionEditable,[\s\S]*blocksState\.getActiveSync\(\)[\s\S]*\);/,
+  'inline toolbar session should recover the active rich editable directly from the browser selection'
 );
 
 assert.doesNotMatch(
@@ -1614,8 +1634,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*activeSession\?\.activateEditableFromPointer\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !blocksState\.selectionActiveRecoverySuppressed\(Date\.now\(\)\);[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
+  editorBlocksInlineToolbarSessionSource,
+  /const canRecoverSelectionActive = !\([\s\S]*blocksState\.selectionActiveRecoverySuppressed\(now\(\)\)[\s\S]*if \(!selectionEditable \|\| !canRecoverSelectionActive\) return;/,
   'pointerdown activation should briefly prevent stale browser selection from reselecting the previous block toolbar'
 );
 
@@ -1638,7 +1658,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineMarksFromDomNode\(node, editable\)[\s\S]*tag === 'strong' \|\| tag === 'b'[\s\S]*function inlineMarksFromPointerEvent\(event, editable, selectionSession = null\)[\s\S]*selectionTools\.nodeFromPoint\(event, editable, event && event\.target, \{ containsNode: nodeContains \}\)[\s\S]*fallbackMarks && fallbackMarks\[mark\]/,
   'inline toolbar state should fall back to marks from the clicked rich-text DOM path when selection offsets are unavailable or ambiguous'
 );
@@ -1674,8 +1694,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const rememberedCodeRange = blocksState\.rememberedInlineRangeFor\(editable, 'code'\);[\s\S]*else if \(mark === 'code'\) \{[\s\S]*if \(offsets && offsets\.collapsed\) \{[\s\S]*active = !!\(marks\.code \|\| \(fallbackMarks && fallbackMarks\.code\)\);[\s\S]*disabled = !active;[\s\S]*disabled = !rangeHasInlineText\(runs, offsets\.start, offsets\.end\);[\s\S]*btn\.classList\.toggle\('is-disabled', disabled\);[\s\S]*btn\.disabled = false;[\s\S]*btn\.tabIndex = disabled \? -1 : 0;/,
+  editorBlocksInlineToolbarSessionSource,
+  /const rememberedCodeRange = hasBlocksState\('rememberedInlineRangeFor'\)[\s\S]*blocksState\.rememberedInlineRangeFor\(editable, 'code'\)[\s\S]*else if \(mark === 'code'\) \{[\s\S]*if \(offsets && offsets\.collapsed\) \{[\s\S]*active = !!\(marks\.code \|\| \(fallbackMarks && fallbackMarks\.code\)\);[\s\S]*disabled = !active;[\s\S]*disabled = !rangeHasInlineText\(runs, offsets\.start, offsets\.end\);[\s\S]*applyButtonState\(btn, active, disabled\);/,
   'inline code toolbar button should be aria-disabled for plain collapsed carets without using native disabled'
 );
 
@@ -1686,8 +1706,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const blockNodes = Array\.from\(list\.querySelectorAll\('\.blocks-block'\)\);[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*if \(!activeBlock \|\| !activeBlock\.contains\(btn\)\) \{[\s\S]*btn\.classList\.remove\('is-active'\);[\s\S]*btn\.setAttribute\('aria-pressed', 'false'\);/,
+  editorBlocksInlineToolbarSessionSource,
+  /const activeBlock = nodes\[currentState\(\)\.activeIndex\] \|\| null;[\s\S]*if \(!activeBlock \|\| !activeBlock\.contains\(btn\)\) \{[\s\S]*clearButtonState\(btn\);/,
   'hidden non-active block toolbars should not retain inline formatting active state'
 );
 
@@ -1939,7 +1959,7 @@ assert.match(
 
 assert.doesNotMatch(
   editorBlocksSource,
-  /blocks-inline-toolbar|execCommand/,
+  /className\s*=\s*['"]blocks-inline-toolbar|execCommand/,
   'blocks mode should not use a standalone inline toolbar or document execCommand'
 );
 
@@ -1981,7 +2001,7 @@ assert.match(
 
 assert.doesNotMatch(
   editorBlocksSource,
-  /inlineToolbar\.appendChild\(linkEditor\)|blocks-inline-toolbar/,
+  /inlineToolbar\.appendChild\(linkEditor\)|className\s*=\s*['"]blocks-inline-toolbar/,
   'inline link editor should not be placed inside the sticky inline toolbar'
 );
 

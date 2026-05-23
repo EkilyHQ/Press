@@ -10,6 +10,7 @@ import { CARET_POINT_MEASURE_LIMIT, createEditorBlocksCaretSession } from './edi
 import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksPointerSession } from './editor-blocks-pointer-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -3597,85 +3598,29 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateInlineToolbarState();
   };
 
-  updateInlineToolbarState = () => {
-    const buttons = root.querySelectorAll('[data-inline-command]');
-    if (!buttons.length) return;
-    const blockNodes = Array.from(list.querySelectorAll('.blocks-block'));
-    const selectionEditable = selectionEditableInRoot(root, selectionSession);
-    const canRecoverSelectionActive = !blocksState.selectionActiveRecoverySuppressed(Date.now());
-    if (selectionEditable && canRecoverSelectionActive) {
-      const selectionBlock = closestElement(selectionEditable, '.blocks-block');
-      const selectionIndex = blockNodes.indexOf(selectionBlock);
-      if (selectionIndex >= 0) {
-        blocksState.setActiveIndex(selectionIndex);
-        editableSession.bindActiveEditing(blocksState, selectionEditable, blocksState.getActiveSync());
-        blockNodes.forEach((el, idx) => {
-          el.classList.toggle('is-active', idx === state.activeIndex);
-        });
-      }
-    }
-    const editable = blocksState.getActiveEditable();
-    const activeBlock = blockNodes[state.activeIndex] || null;
-    const offsets = editable && nodeContains(root, editable) ? getEditableSelectionOffsets(editable, caretSession) : null;
-    const runs = editable && nodeContains(root, editable) ? inlineRunsFromDom(editable) : [];
-    const pending = hasPendingInlineMarks();
-    const fallbackMarks = blocksState.rememberedInlineMarksFor(editable);
-    const rememberedCodeRange = blocksState.rememberedInlineRangeFor(editable, 'code');
-    buttons.forEach(btn => {
-      if (!activeBlock || !activeBlock.contains(btn)) {
-        btn.classList.remove('is-active');
-        btn.classList.remove('is-disabled');
-        btn.setAttribute('aria-pressed', 'false');
-        btn.disabled = false;
-        btn.removeAttribute('aria-disabled');
-        btn.tabIndex = 0;
-        return;
-      }
-      const command = btn.dataset.inlineCommand || '';
-      const mark = inlineCommandMark(command);
-      let active = false;
-      let disabled = false;
-      if (offsets && command === 'link') {
-        active = !!blocksState.pendingInlineMark('link')
-          || !!selectionLinkInEditable(editable, selectionSession)
-          || (!offsets.collapsed && inlineRangeFullyMarked(runs, offsets.start, offsets.end, 'link'));
-      } else if (offsets && command === 'math') {
-        active = !!selectionMathInEditable(editable, selectionSession)
-          || (!offsets.collapsed && inlineRangeFullyMarked(runs, offsets.start, offsets.end, 'math'));
-      } else if (mark === 'code') {
-        if (offsets && offsets.collapsed) {
-          const marks = inlineMarksAtOffset(runs, offsets.start);
-          active = !!(marks.code || (fallbackMarks && fallbackMarks.code));
-          disabled = !active;
-        } else if (offsets) {
-          active = inlineRangeFullyMarked(runs, offsets.start, offsets.end, mark);
-          disabled = !rangeHasInlineText(runs, offsets.start, offsets.end);
-        } else {
-          active = !!(fallbackMarks && fallbackMarks.code);
-          disabled = !rememberedCodeRange;
-        }
-      } else if (offsets && offsets.collapsed) {
-        const marks = inlineMarksAtOffset(runs, offsets.start);
-        active = pending ? !!blocksState.pendingInlineMark(mark) : !!(marks[mark] || (fallbackMarks && fallbackMarks[mark]));
-      } else if (offsets) {
-        active = ['bold', 'italic', 'strike'].includes(mark)
-          ? inlineRangeAnyMarked(runs, offsets.start, offsets.end, mark)
-          : inlineRangeFullyMarked(runs, offsets.start, offsets.end, mark);
-      } else if (fallbackMarks && ['bold', 'italic', 'strike', 'code'].includes(mark)) {
-        active = !!fallbackMarks[mark];
-      }
-      btn.classList.toggle('is-active', active);
-      btn.classList.toggle('is-disabled', disabled);
-      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-      btn.disabled = false;
-      btn.tabIndex = disabled ? -1 : 0;
-      if (disabled) {
-        btn.setAttribute('aria-disabled', 'true');
-      } else {
-        btn.removeAttribute('aria-disabled');
-      }
-    });
-  };
+  const inlineToolbarSession = createEditorBlocksInlineToolbarSession({
+    state,
+    blocksState,
+    editableSession,
+    root,
+    list,
+    selectionSession,
+    caretSession,
+    containsNode: nodeContains,
+    closestElement,
+    selectionEditableInRoot,
+    getEditableSelectionOffsets,
+    inlineRunsFromDom,
+    hasPendingInlineMarks,
+    selectionLinkInEditable,
+    selectionMathInEditable,
+    inlineRangeFullyMarked,
+    inlineRangeAnyMarked,
+    inlineMarksAtOffset,
+    rangeHasInlineText,
+    inlineCommandMark
+  });
+  updateInlineToolbarState = () => inlineToolbarSession.update();
   linkEditor.append(linkText, linkHref, linkTitle, unlink);
   mathEditor.append(mathSource, removeMath);
   root.appendChild(linkEditor);

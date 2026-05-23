@@ -72,6 +72,7 @@ const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
 const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-blocks-editable-session.js');
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
+const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -142,6 +143,7 @@ const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
 const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessionPath, 'utf8');
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
+const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -269,10 +271,28 @@ assert.match(
   'blocks editor should cache-bust the explicit blocks selection session boundary'
 );
 
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-inline-dom-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks inline DOM session boundary'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
-  /document\.(?:addEventListener|removeEventListener|caretPositionFromPoint|caretRangeFromPoint)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|getSelection)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById/,
-  'blocks editor should route global listeners, clipboard, timers, translation, active-element access, and browser selection/caret APIs through explicit runtime boundaries'
+  /document\.(?:addEventListener|removeEventListener|createRange|createTextNode|caretPositionFromPoint|caretRangeFromPoint)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|getSelection)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById/,
+  'blocks editor should route global listeners, clipboard, timers, translation, active-element access, and browser selection/range/caret APIs through explicit runtime boundaries'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const inlineDomSession = createInlineDomSession\(selectionSession, runtime\.documentRef\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(blocksState\.getActiveEditable\(\), link, inlineDomSession\)[\s\S]*linkForTextRange\(blocksState\.getActiveEditable\(\), linkRange\.start, nextEnd, inlineDomSession\)[\s\S]*textRangeForDomNode\(blocksState\.getActiveEditable\(\), math, inlineDomSession\)/,
+  'blocks editor should route inline run rendering plus link/math DOM range mapping through the inline DOM session'
+);
+
+assert.match(
+  editorBlocksInlineDomSessionSource,
+  /export function createEditorBlocksInlineDomSession\([\s\S]*function renderInlineRunsInto\(root, runs\)[\s\S]*function textRangeForDomNode\(editable, node\)[\s\S]*function linkForTextRange\(editable, start, end\)[\s\S]*function markedRangeForNode\(editable, node, mark\)[\s\S]*return \{[\s\S]*renderInlineRunsInto,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*markedRangeForNode/,
+  'blocks inline DOM session should own inline node rendering and text-range mapping helpers'
 );
 
 assert.match(

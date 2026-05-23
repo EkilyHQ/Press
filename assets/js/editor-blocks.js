@@ -5,6 +5,7 @@ import { createEditorBlocksStateController } from './editor-blocks-state.js?v=pr
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -36,6 +37,26 @@ function normalizeSelectionSession(selectionSession) {
   return selectionSession && typeof selectionSession.getSelectionRange === 'function'
     ? selectionSession
     : fallbackSelectionSession;
+}
+
+function createInlineDomSession(selectionSession = null, documentRef = typeof document !== 'undefined' ? document : null) {
+  return createEditorBlocksInlineDomSession({
+    documentRef,
+    selectionSession: normalizeSelectionSession(selectionSession),
+    mergeInlineRuns,
+    sanitizeLinkHref: sanitizeEditorLinkHref,
+    linkTitleForRun,
+    renderMath: renderPressMath,
+    nodeContains
+  });
+}
+
+const fallbackInlineDomSession = createInlineDomSession(fallbackSelectionSession);
+
+function normalizeInlineDomSession(inlineDomSession) {
+  return inlineDomSession && typeof inlineDomSession.renderInlineRunsInto === 'function'
+    ? inlineDomSession
+    : fallbackInlineDomSession;
 }
 
 function normalizeText(value) {
@@ -1362,49 +1383,8 @@ export function serializeInlineRuns(runs) {
   return mergeInlineRuns(runs).map(serializeInlineRun).join('');
 }
 
-function appendInlineNode(parent, run) {
-  if (run && run.math) {
-    const span = document.createElement('span');
-    span.className = 'press-math press-math-inline blocks-inline-math';
-    span.contentEditable = 'false';
-    span.dataset.tex = String(run.text || '');
-    span.setAttribute('data-tex', String(run.text || ''));
-    span.setAttribute('role', 'button');
-    span.setAttribute('tabindex', '-1');
-    span.textContent = String(run.text || '');
-    parent.appendChild(span);
-    return;
-  }
-  const textNode = document.createTextNode(String(run && run.text != null ? run.text : ''));
-  let node = textNode;
-  const wrap = (tagName, attrs = {}) => {
-    const el = document.createElement(tagName);
-    Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
-    el.appendChild(node);
-    node = el;
-  };
-  if (run && run.code) {
-    wrap('code');
-  } else {
-    if (run && run.italic) wrap('em');
-    if (run && run.bold) wrap('strong');
-    if (run && run.strike) wrap('s');
-    if (run && run.link) wrap('a', { href: sanitizeEditorLinkHref(run.link), title: linkTitleForRun(run) });
-  }
-  parent.appendChild(node);
-}
-
-function renderInlineRunsInto(root, runs) {
-  if (!root) return;
-  root.innerHTML = '';
-  mergeInlineRuns(runs).forEach(run => {
-    const lines = String(run.text || '').split('\n');
-    lines.forEach((line, index) => {
-      if (index > 0) root.appendChild(document.createElement('br'));
-      if (line) appendInlineNode(root, { ...run, text: line });
-    });
-  });
-  try { renderPressMath(root); } catch (_) {}
+function renderInlineRunsInto(root, runs, inlineDomSession = null) {
+  normalizeInlineDomSession(inlineDomSession).renderInlineRunsInto(root, runs);
 }
 
 function inlineRunsFromDom(root) {
@@ -2331,97 +2311,34 @@ function inlineMarksFromPointerEvent(event, editable, selectionSession = null) {
   return inlineMarksFromDomNode(node, editable);
 }
 
-function textRangeForDomNode(editable, node) {
-  try {
-    if (!editable || !node || !nodeContains(editable, node)) return null;
-    if (node.nodeType === 1 && node.matches && node.matches('.press-math[data-tex]')) {
-      let start = 0;
-      let found = false;
-      const count = (current) => {
-        if (!current || found) return;
-        if (current === node) {
-          found = true;
-          return;
-        }
-        if (current.nodeType === 3) {
-          start += String(current.nodeValue || '').length;
-          return;
-        }
-        if (current.nodeType !== 1) return;
-        const tag = String(current.tagName || '').toLowerCase();
-        if (tag === 'br') {
-          start += 1;
-          return;
-        }
-        if (current.matches && current.matches('.press-math[data-tex]')) {
-          start += String(current.getAttribute('data-tex') || current.dataset.tex || '').length;
-          return;
-        }
-        Array.from(current.childNodes || []).forEach(count);
-        if (tag === 'div') start += 1;
-      };
-      Array.from(editable.childNodes || []).forEach(count);
-      if (found) {
-        const length = String(node.getAttribute('data-tex') || node.dataset.tex || '').length;
-        return length > 0 ? { start, end: start + length } : null;
-      }
-    }
-    const beforeRange = document.createRange();
-    beforeRange.selectNodeContents(editable);
-    beforeRange.setEndBefore(node);
-    const nodeRange = document.createRange();
-    nodeRange.selectNodeContents(node);
-    const start = String(beforeRange.toString() || '').length;
-    const length = String(nodeRange.toString() || '').length;
-    if (length <= 0) return null;
-    return { start, end: start + length };
-  } catch (_) {
-    return null;
-  }
+function textRangeForDomNode(editable, node, inlineDomSession = null) {
+  return normalizeInlineDomSession(inlineDomSession).textRangeForDomNode(editable, node);
 }
 
-function linkForTextRange(editable, start, end) {
-  try {
-    const safeStart = Math.max(0, Number(start) || 0);
-    const safeEnd = Math.max(safeStart, Number(end) || 0);
-    return Array.from(editable ? editable.querySelectorAll('a') : []).find(link => {
-      const range = textRangeForDomNode(editable, link);
-      return range && range.start === safeStart && range.end === safeEnd;
-    }) || null;
-  } catch (_) {
-    return null;
-  }
+function linkForTextRange(editable, start, end, inlineDomSession = null) {
+  return normalizeInlineDomSession(inlineDomSession).linkForTextRange(editable, start, end);
 }
 
-function inlineMarkedDomRangeFromNode(editable, node, mark) {
-  const command = mark === 'strikeThrough' ? 'strike' : mark;
-  if (command === 'code') {
-    const code = closestElement(node, 'code');
-    return code && nodeContains(editable, code) ? textRangeForDomNode(editable, code) : null;
-  }
-  if (command === 'math') {
-    const math = closestElement(node, '.press-math[data-tex]');
-    return math && nodeContains(editable, math) ? textRangeForDomNode(editable, math) : null;
-  }
-  return null;
+function inlineMarkedDomRangeFromNode(editable, node, mark, inlineDomSession = null) {
+  return normalizeInlineDomSession(inlineDomSession).markedRangeForNode(editable, node, mark);
 }
 
-function inlineMarkedDomRangeFromSelection(editable, mark, selectionSession = null) {
+function inlineMarkedDomRangeFromSelection(editable, mark, selectionSession = null, inlineDomSession = null) {
   const selectionTools = normalizeSelectionSession(selectionSession);
   try {
     const range = selectionTools.getSelectionRange(editable);
     if (!editable || !range) return null;
     if (!nodeContains(editable, range.startContainer)) return null;
-    return inlineMarkedDomRangeFromNode(editable, range.startContainer, mark);
+    return inlineMarkedDomRangeFromNode(editable, range.startContainer, mark, inlineDomSession);
   } catch (_) {
     return null;
   }
 }
 
-function inlineMarkedDomRangeFromPointerEvent(event, editable, mark, selectionSession = null) {
+function inlineMarkedDomRangeFromPointerEvent(event, editable, mark, selectionSession = null, inlineDomSession = null) {
   const selectionTools = normalizeSelectionSession(selectionSession);
   const node = selectionTools.nodeFromPoint(event, editable, event && event.target, { containsNode: nodeContains });
-  return inlineMarkedDomRangeFromNode(editable, node, mark);
+  return inlineMarkedDomRangeFromNode(editable, node, mark, inlineDomSession);
 }
 
 function selectionLinkInEditable(editable, selectionSession = null) {
@@ -2800,6 +2717,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     documentRef: runtime.documentRef,
     windowRef: runtime.windowRef
   });
+  const inlineDomSession = createInlineDomSession(selectionSession, runtime.documentRef);
 
   root.classList.add('markdown-blocks-shell');
   root.innerHTML = '';
@@ -3918,7 +3836,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   let openLinkEditorForSelection = () => {};
 
   const applyRunsToEditable = (editable, runs, caretOffset = null) => {
-    renderInlineRunsInto(editable, runs);
+    renderInlineRunsInto(editable, runs, inlineDomSession);
     if (caretOffset != null) placeCaretAtTextOffset(editable, caretOffset, selectionSession);
     syncActiveEditable();
     updateInlineToolbarState();
@@ -3946,7 +3864,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const runs = inlineRunsFromDom(editable);
     const mark = inlineCommandMark(kind);
     if (mark === 'code') {
-      const selectedCodeRange = inlineMarkedDomRangeFromSelection(editable, mark, selectionSession);
+      const selectedCodeRange = inlineMarkedDomRangeFromSelection(editable, mark, selectionSession, inlineDomSession);
       const rememberedCodeRange = blocksState.rememberedInlineRangeFor(editable, mark);
       const codeRange = selectedCodeRange || rememberedCodeRange;
       if ((!offsets || offsets.collapsed) && codeRange) {
@@ -4121,7 +4039,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const replacementText = nextText !== currentText ? nextText : null;
       const nextRuns = applyInlineLinkToRuns(runs, selection.start, selection.end, href, replacementText, title);
       const nextEnd = selection.start + (replacementText != null ? nextText.length : currentText.length);
-      renderInlineRunsInto(selection.editable, nextRuns);
+      renderInlineRunsInto(selection.editable, nextRuns, inlineDomSession);
       blocksState.updateLinkSelection({ end: nextEnd, text: nextText });
       syncActiveEditable();
       updateInlineToolbarState();
@@ -4129,7 +4047,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     }
     const link = blocksState.getActiveLink();
     if (!link || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), link)) return;
-    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link);
+    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link, inlineDomSession);
     if (!linkRange) return;
     const runs = inlineRunsFromDom(blocksState.getActiveEditable());
     const currentText = inlineRangeText(runs, linkRange.start, linkRange.end);
@@ -4137,8 +4055,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const replacementText = nextText !== currentText ? nextText : null;
     const nextRuns = applyInlineLinkToRuns(runs, linkRange.start, linkRange.end, href, replacementText, title);
     const nextEnd = linkRange.start + (replacementText != null ? nextText.length : currentText.length);
-    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns);
-    blocksState.setActiveLink(linkForTextRange(blocksState.getActiveEditable(), linkRange.start, nextEnd));
+    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns, inlineDomSession);
+    blocksState.setActiveLink(linkForTextRange(blocksState.getActiveEditable(), linkRange.start, nextEnd, inlineDomSession));
     syncActiveEditable();
     updateInlineToolbarState();
   };
@@ -4162,10 +4080,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     }
     const link = blocksState.getActiveLink();
     if (!link || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), link)) return;
-    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link);
+    const linkRange = textRangeForDomNode(blocksState.getActiveEditable(), link, inlineDomSession);
     if (!linkRange) return;
     const nextRuns = applyInlineLinkToRuns(inlineRunsFromDom(blocksState.getActiveEditable()), linkRange.start, linkRange.end, '');
-    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns);
+    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns, inlineDomSession);
     blocksState.clearActiveLink();
     try {
       blocksState.getActiveEditable().focus();
@@ -4260,7 +4178,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (!selection || !selection.editable || !nodeContains(root, selection.editable)) return;
       const nextRuns = applyInlineMathToRuns(inlineRunsFromDom(selection.editable), selection.start, selection.end, tex);
       const nextEnd = selection.start + tex.length;
-      renderInlineRunsInto(selection.editable, nextRuns);
+      renderInlineRunsInto(selection.editable, nextRuns, inlineDomSession);
       blocksState.updateMathSelection({ end: nextEnd, text: tex });
       syncActiveEditable();
       updateInlineToolbarState();
@@ -4268,10 +4186,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     }
     const math = blocksState.getActiveMath();
     if (!math || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), math)) return;
-    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), math);
+    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), math, inlineDomSession);
     if (!mathRange) return;
     const nextRuns = applyInlineMathToRuns(inlineRunsFromDom(blocksState.getActiveEditable()), mathRange.start, mathRange.end, tex);
-    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns);
+    renderInlineRunsInto(blocksState.getActiveEditable(), nextRuns, inlineDomSession);
     blocksState.clearActiveMath();
     syncActiveEditable();
     updateInlineToolbarState();
@@ -4289,7 +4207,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
   openMathEditorForNode = (mathNode) => {
     if (!mathNode || !blocksState.getActiveEditable() || !nodeContains(blocksState.getActiveEditable(), mathNode)) return;
-    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), mathNode);
+    const mathRange = textRangeForDomNode(blocksState.getActiveEditable(), mathNode, inlineDomSession);
     if (!mathRange) return;
     const tex = mathNode.getAttribute('data-tex') || mathNode.dataset.tex || '';
     blocksState.openInlineMathEditor(mathNode, {
@@ -4697,7 +4615,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (clickedLink || clickedMath) event.preventDefault();
       setActive(index, editable, sync);
       const pointerMarks = inlineMarksFromPointerEvent(event, editable, selectionSession);
-      const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, editable, 'code', selectionSession) : null;
+        const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, editable, 'code', selectionSession, inlineDomSession) : null;
       blocksState.rememberInlineMarks(
         editable,
         pointerMarks,
@@ -5584,7 +5502,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         if (clickedLink || clickedMath) event.preventDefault();
         setActive(index, span, sync);
         const pointerMarks = inlineMarksFromPointerEvent(event, span, selectionSession);
-        const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, span, 'code', selectionSession) : null;
+        const pointerCodeRange = pointerMarks.code ? inlineMarkedDomRangeFromPointerEvent(event, span, 'code', selectionSession, inlineDomSession) : null;
         blocksState.rememberInlineMarks(
           span,
           pointerMarks,

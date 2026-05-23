@@ -8,6 +8,7 @@ import { createEditorBlocksSelectionSession } from './editor-blocks-selection-se
 import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
 import { CARET_POINT_MEASURE_LIMIT, createEditorBlocksCaretSession } from './editor-blocks-caret-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksPointerSession } from './editor-blocks-pointer-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2371,6 +2372,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   let focusSession = null;
+  let pointerSession = null;
 
   const focusBlockPrimaryEditable = (block, caretOffset = null) => {
     focusSession?.focusBlockPrimaryEditable(block, caretOffset);
@@ -3047,90 +3049,30 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     queueTask: task => queueMicrotask(task)
   });
 
+  pointerSession = createEditorBlocksPointerSession({
+    blocksState,
+    caretSession,
+    selectionSession,
+    editableSession,
+    blockElements,
+    closestElement,
+    containsNode: nodeContains,
+    setActive,
+    activateEditableFromPointer,
+    activateNonTextBlockFromPointer,
+    onInlineToolbarUpdate: () => {
+      try { updateInlineToolbarState(); } catch (_) {}
+    },
+    autoSizeTextarea: area => autoSizeTextarea(area),
+    measureLimit: CARET_POINT_MEASURE_LIMIT
+  });
+
   const shouldSuppressRoutedBlockContainerClick = () => {
     return blocksState.consumeRoutedBlockContainerClickSuppression(Date.now());
   };
 
   const isBlocksCaretInteractiveTarget = (target) => {
-    return !!closestElement(target, [
-      '.blocks-block-head',
-      '.blocks-command-menu',
-      '.blocks-link-editor',
-      '.blocks-card-picker',
-      '.blocks-card-preview',
-      '.blocks-inspector',
-      'button',
-      'input',
-      'select',
-      'textarea',
-      'label',
-      'a[href]',
-      '.blocks-image-caption',
-      '[contenteditable="true"]'
-    ].join(','));
-  };
-
-  const rectDistanceSquared = (rect, x, y) => {
-    if (!rect) return Number.POSITIVE_INFINITY;
-    const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
-    const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
-    return (dx * dx) + (dy * dy);
-  };
-
-  const nearestRectForPoint = (el, x, y) => {
-    const rects = Array.from(el && el.getClientRects ? el.getClientRects() : [])
-      .filter(rect => rect && (rect.width > 0 || rect.height > 0));
-    if (!rects.length && el && el.getBoundingClientRect) rects.push(el.getBoundingClientRect());
-    let best = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    rects.forEach(rect => {
-      const distance = rectDistanceSquared(rect, x, y);
-      if (distance < bestDistance) {
-        best = rect;
-        bestDistance = distance;
-      }
-    });
-    return best;
-  };
-
-  const editableCaretCandidates = () => {
-    const blockNodes = Array.from(list.querySelectorAll('.blocks-block'));
-    const candidates = [];
-    blockNodes.forEach((blockEl, index) => {
-      const listTexts = blockEl.querySelectorAll('.blocks-list-item .blocks-list-text');
-      listTexts.forEach(editable => {
-        candidates.push({
-          editable,
-          hitTarget: closestElement(editable, '.blocks-list-item') || editable,
-          index,
-          sync: editableSession.getSync(editable) || null
-        });
-      });
-      const editables = blockEl.querySelectorAll('.blocks-rich-editable:not(.blocks-list-text), .blocks-code-preview code[contenteditable="true"], .blocks-image-caption, .blocks-source-textarea');
-      editables.forEach(editable => {
-        candidates.push({
-          editable,
-          hitTarget: editable,
-          index,
-          sync: editableSession.getSync(editable) || null
-        });
-      });
-    });
-    return candidates;
-  };
-
-  const nearestEditableFromPoint = (x, y) => {
-    let best = null;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    editableCaretCandidates().forEach(candidate => {
-      const rect = nearestRectForPoint(candidate.hitTarget || candidate.editable, x, y);
-      const distance = rectDistanceSquared(rect, x, y);
-      if (distance < bestDistance) {
-        best = candidate;
-        bestDistance = distance;
-      }
-    });
-    return best;
+    return !!(pointerSession && pointerSession.isBlocksCaretInteractiveTarget(target));
   };
 
   const blockNavigationTarget = (index, edge = 'first') => {
@@ -3146,104 +3088,19 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const setContentEditableCaretFromPoint = (editable, x, y, hitTarget = editable) => {
-    const setRangeFromPoint = (targetX, targetY) => {
-      const range = selectionSession.rangeFromPoint(editable, targetX, targetY, {
-        containsNode: nodeContains,
-        textOnly: true
-      });
-      if (!range) return false;
-      range.collapse(true);
-      return selectionSession.selectRange(range, editable);
-    };
-    const rect = editable.getBoundingClientRect ? editable.getBoundingClientRect() : null;
-    const hitRect = hitTarget && hitTarget.getBoundingClientRect ? hitTarget.getBoundingClientRect() : rect;
-    const measuredDetails = measuredTextOffsetDetailsFromPoint(editable, x, y, CARET_POINT_MEASURE_LIMIT, caretSession);
-    const pointInsideEditableRect = !rect || (
-      x >= rect.left &&
-      x <= rect.right &&
-      y >= rect.top &&
-      y <= rect.bottom
-    );
-    if (measuredDetails && !measuredDetails.insideTextRect) {
-      placeCaretAtTextOffset(editable, measuredDetails.offset, caretSession);
-      return;
-    }
-    if (pointInsideEditableRect && setRangeFromPoint(x, y)) return;
-    if (measuredDetails) {
-      placeCaretAtTextOffset(editable, measuredDetails.offset, caretSession);
-      return;
-    }
-    const nearestRect = nearestRectForPoint(editable, x, y);
-    if (nearestRect) {
-      const targetX = Math.max(nearestRect.left + 1, Math.min(Number(x) || nearestRect.left, nearestRect.right - 1));
-      const targetY = nearestRect.top + (nearestRect.height / 2);
-      if (setRangeFromPoint(targetX, targetY)) return;
-    }
-    if (hitRect && y < hitRect.top + (hitRect.height / 2)) placeCaretAtTextOffset(editable, 0, caretSession);
-    else placeCaretAtEnd(editable, caretSession);
+    pointerSession?.setContentEditableCaretFromPoint(editable, x, y, hitTarget);
   };
 
   const setTextareaCaretFromPoint = (area, x, y) => {
-    try {
-      const rect = area.getBoundingClientRect ? area.getBoundingClientRect() : null;
-      const valueLength = String(area.value || '').length;
-      const measuredOffset = textareaTextOffsetFromPoint(area, x, y, CARET_POINT_MEASURE_LIMIT, caretSession);
-      const fallbackOffset = rect && y < rect.top + (rect.height / 2) ? 0 : valueLength;
-      const offset = measuredOffset != null ? measuredOffset : fallbackOffset;
-      area.setSelectionRange(offset, offset);
-      autoSizeTextarea(area);
-    } catch (_) {}
+    pointerSession?.setTextareaCaretFromPoint(area, x, y);
   };
 
   const routeDirectQuoteCaretFromPointer = (editable, index, sync, event) => {
-    if (!event || event.defaultPrevented || event.button !== 0 || event.isPrimary === false) return false;
-    if (!editable || !(editable.classList && editable.classList.contains('blocks-quote-text'))) return false;
-    const details = measuredTextOffsetDetailsFromPoint(editable, event.clientX, event.clientY, CARET_POINT_MEASURE_LIMIT, caretSession);
-    if (!details || details.insideTextRect) return false;
-    event.preventDefault();
-    const suppressUntil = Date.now() + 500;
-    blocksState.setRoutedBlockContainerClickSuppression(suppressUntil);
-    blocksState.setLinkEditorRefreshSuppression(suppressUntil);
-    try { editable.focus({ preventScroll: true }); }
-    catch (_) {
-      try { editable.focus(); } catch (__) {}
-    }
-    placeCaretAtTextOffset(editable, details.offset, caretSession);
-    activateEditableFromPointer(index, editable, sync);
-    updateInlineToolbarState();
-    return true;
+    return !!(pointerSession && pointerSession.routeDirectQuoteCaretFromPointer(editable, index, sync, event));
   };
 
   const routeBlocksCaretFromPointer = (event) => {
-    if (!event || event.defaultPrevented || event.button !== 0) return;
-    if (event.isPrimary === false) return;
-    if (isBlocksCaretInteractiveTarget(event.target)) return;
-    const imageBlock = closestElement(event.target, '.blocks-block-image');
-    if (imageBlock) {
-      const imageIndex = blockElements().indexOf(imageBlock);
-      if (imageIndex >= 0) {
-        event.preventDefault();
-        activateNonTextBlockFromPointer(imageIndex, imageBlock);
-        return;
-      }
-    }
-    const candidate = nearestEditableFromPoint(event.clientX, event.clientY);
-    if (!candidate || !candidate.editable) return;
-    event.preventDefault();
-    const suppressUntil = Date.now() + 500;
-    blocksState.setRoutedBlockContainerClickSuppression(suppressUntil);
-    blocksState.setLinkEditorRefreshSuppression(suppressUntil);
-    const { editable, hitTarget, index, sync } = candidate;
-    try { editable.focus({ preventScroll: true }); }
-    catch (_) {
-      try { editable.focus(); } catch (__) {}
-    }
-    if (editable.matches && editable.matches('textarea')) {
-      setTextareaCaretFromPoint(editable, event.clientX, event.clientY);
-    } else {
-      setContentEditableCaretFromPoint(editable, event.clientX, event.clientY, hitTarget);
-    }
-    setActive(index, editable, sync);
+    pointerSession?.routeBlocksCaretFromPointer(event);
   };
 
   list.addEventListener('pointerdown', routeBlocksCaretFromPointer);

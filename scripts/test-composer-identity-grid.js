@@ -75,6 +75,7 @@ const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-bloc
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
 const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
+const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -148,6 +149,7 @@ const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSes
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
+const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -295,14 +297,32 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-pointer-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks pointer session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
 
 assert.match(
   editorBlocksSource,
+  /pointerSession = createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,/,
+  'blocks editor should compose blank-area pointer routing through the pointer session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*focusSession\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
   'blocks editor should delegate cross-block arrow navigation to the focus session'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*pointerSession\?\.routeBlocksCaretFromPointer\(event\)/,
+  'blocks editor should delegate blank-area pointer caret routing to the pointer session'
 );
 
 assert.doesNotMatch(
@@ -324,8 +344,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const caretSession = createCaretSession\(selectionSession\);[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\)[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, caretSession\)[\s\S]*textareaTextOffsetFromPoint\(area, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\)/,
+  `${editorBlocksSource}\n${editorBlocksPointerSessionSource}\n${editorBlocksFocusSessionSource}`,
+  /const caretSession = createCaretSession\(selectionSession\);[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*caretSession\.measuredTextOffsetDetailsFromPoint\(editable, x, y, measureLimit\)[\s\S]*caretSession\.placeAtTextOffset\(editable, measuredDetails\.offset\)[\s\S]*caretSession\.textareaTextOffsetFromPoint\(area, x, y, measureLimit\)[\s\S]*caretSession\.placeAtVisualLine\(editable, x, edge, fallbackOffset\)/,
   'blocks editor should route caret offsets, visual-line placement, and textarea mirror measurement through the caret session'
 );
 
@@ -1551,8 +1571,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef[\s\S]*\}\);[\s\S]*selectionSession\.clearSelection\(root\)[\s\S]*selectionSession\.rangeFromPoint\(editable, targetX, targetY,[\s\S]*selectionSession\.selectRange\(range, editable\)/,
-  'blocks editor should route caret recovery and native selection clearing through the selection session service'
+  /const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef[\s\S]*\}\);[\s\S]*selectionSession\.clearSelection\(root\)/,
+  'blocks editor should route native selection clearing through the selection session service'
+);
+
+assert.match(
+  editorBlocksPointerSessionSource,
+  /selectionSession\.rangeFromPoint\(editable, targetX, targetY,[\s\S]*containsNode,[\s\S]*textOnly: true[\s\S]*selectionSession\.selectRange\(range, editable\)/,
+  'blocks pointer session should route caret recovery through the selection session service'
 );
 
 assert.match(
@@ -1796,8 +1822,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const isBlocksCaretInteractiveTarget = \(target\) => \{[\s\S]*closestElement\(target, \[[\s\S]*'\.blocks-block-head'[\s\S]*'\.blocks-command-menu'[\s\S]*'\.blocks-link-editor'[\s\S]*'\.blocks-card-preview'[\s\S]*'\.blocks-inspector'[\s\S]*'button'[\s\S]*'input'[\s\S]*'select'[\s\S]*'textarea'[\s\S]*'a\[href\]'[\s\S]*'\.blocks-image-caption'[\s\S]*'\[contenteditable="true"\]'[\s\S]*\]\.join/,
+  editorBlocksPointerSessionSource,
+  /function isBlocksCaretInteractiveTarget\(target\) \{[\s\S]*closestElement\(target, \[[\s\S]*'\.blocks-block-head'[\s\S]*'\.blocks-command-menu'[\s\S]*'\.blocks-link-editor'[\s\S]*'\.blocks-card-preview'[\s\S]*'\.blocks-inspector'[\s\S]*'button'[\s\S]*'input'[\s\S]*'select'[\s\S]*'textarea'[\s\S]*'a\[href\]'[\s\S]*'\.blocks-image-caption'[\s\S]*'\[contenteditable="true"\]'[\s\S]*\]\.join/,
   'blocks caret routing should exclude command menus, link editors, article cards, controls, links, image captions, and native editable targets'
 );
 
@@ -1808,19 +1834,19 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*const imageBlock = closestElement\(event\.target, '\.blocks-block-image'\);[\s\S]*event\.preventDefault\(\);[\s\S]*activateNonTextBlockFromPointer\(imageIndex, imageBlock\);[\s\S]*return;[\s\S]*const candidate = nearestEditableFromPoint\(event\.clientX, event\.clientY\);/,
+  editorBlocksPointerSessionSource,
+  /function routeBlocksCaretFromPointer\(event\) \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*const imageBlock = closestElement\(event\.target, '\.blocks-block-image'\);[\s\S]*event\.preventDefault\(\);[\s\S]*activateNonTextBlockFromPointer\(imageIndex, imageBlock\);[\s\S]*return true;[\s\S]*const candidate = nearestEditableFromPoint\(event\.clientX, event\.clientY\);/,
   'image block pointerdowns should use non-text block activation before routing a caret to nearby text'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const editableCaretCandidates = \(\) => \{[\s\S]*querySelectorAll\('\.blocks-list-item \.blocks-list-text'\)[\s\S]*hitTarget: closestElement\(editable, '\.blocks-list-item'\) \|\| editable[\s\S]*querySelectorAll\('\.blocks-rich-editable:not\(\.blocks-list-text\), \.blocks-code-preview code\[contenteditable="true"\], \.blocks-image-caption, \.blocks-source-textarea'\)[\s\S]*sync: editableSession\.getSync\(editable\) \|\| null/,
+  editorBlocksPointerSessionSource,
+  /function editableCaretCandidates\(\) \{[\s\S]*querySelectorAll\('\.blocks-list-item \.blocks-list-text'\)[\s\S]*hitTarget: closestElement\(editable, '\.blocks-list-item'\) \|\| editable[\s\S]*querySelectorAll\('\.blocks-rich-editable:not\(\.blocks-list-text\), \.blocks-code-preview code\[contenteditable="true"\], \.blocks-image-caption, \.blocks-source-textarea'\)[\s\S]*sync: editableSync\(editableSession, editable\)/,
   'routed caret candidates should include whole-row list item hit targets, rich text, code editors, image captions, and source markdown textareas with sync callbacks'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksPointerSessionSource,
   /editableCaretCandidates\(\)\.forEach\(candidate => \{[\s\S]*nearestRectForPoint\(candidate\.hitTarget \|\| candidate\.editable, x, y\)[\s\S]*best = candidate;/,
   'nearest editable routing should measure list items by their larger hit target while focusing the editable surface'
 );
@@ -1838,8 +1864,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const setContentEditableCaretFromPoint = \(editable, x, y, hitTarget = editable\) => \{[\s\S]*selectionSession\.rangeFromPoint\(editable, targetX, targetY,[\s\S]*containsNode: nodeContains,[\s\S]*textOnly: true[\s\S]*const hitRect = hitTarget && hitTarget\.getBoundingClientRect \? hitTarget\.getBoundingClientRect\(\) : rect;[\s\S]*const measuredDetails = measuredTextOffsetDetailsFromPoint\(editable, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*const pointInsideEditableRect = !rect \|\| \([\s\S]*x >= rect\.left[\s\S]*y <= rect\.bottom[\s\S]*if \(measuredDetails && !measuredDetails\.insideTextRect\) \{[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, caretSession\);[\s\S]*return;[\s\S]*if \(pointInsideEditableRect && setRangeFromPoint\(x, y\)\) return;[\s\S]*if \(measuredDetails\) \{[\s\S]*placeCaretAtTextOffset\(editable, measuredDetails\.offset, caretSession\);[\s\S]*nearestRectForPoint\(editable, x, y\)[\s\S]*if \(hitRect && y < hitRect\.top \+ \(hitRect\.height \/ 2\)\) placeCaretAtTextOffset\(editable, 0, caretSession\);/,
+  editorBlocksPointerSessionSource,
+  /function setContentEditableCaretFromPoint\(editable, x, y, hitTarget = editable\) \{[\s\S]*selectionSession\.rangeFromPoint\(editable, targetX, targetY,[\s\S]*containsNode,[\s\S]*textOnly: true[\s\S]*const hitRect = hitTarget && hitTarget\.getBoundingClientRect \? hitTarget\.getBoundingClientRect\(\) : rect;[\s\S]*caretSession\.measuredTextOffsetDetailsFromPoint\(editable, x, y, measureLimit\)[\s\S]*const pointInsideEditableRect = !rect \|\| \([\s\S]*x >= rect\.left[\s\S]*y <= rect\.bottom[\s\S]*if \(measuredDetails && !measuredDetails\.insideTextRect\) \{[\s\S]*caretSession\.placeAtTextOffset\(editable, measuredDetails\.offset\);[\s\S]*return;[\s\S]*if \(pointInsideEditableRect && setRangeFromPoint\(x, y\)\) return;[\s\S]*if \(measuredDetails\) \{[\s\S]*caretSession\.placeAtTextOffset\(editable, measuredDetails\.offset\);[\s\S]*nearestRectForPoint\(editable, x, y\)[\s\S]*if \(hitRect && y < hitRect\.top \+ \(hitRect\.height \/ 2\)\) \{[\s\S]*caretSession\.placeAtTextOffset\(editable, 0\);/,
   'routed rich/list/code caret placement should use measured offsets before browser APIs for blank line area clicks, then coarse fallback'
 );
 
@@ -1856,14 +1882,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const setTextareaCaretFromPoint = \(area, x, y\) => \{[\s\S]*const measuredOffset = textareaTextOffsetFromPoint\(area, x, y, CARET_POINT_MEASURE_LIMIT, caretSession\);[\s\S]*const fallbackOffset = rect && y < rect\.top \+ \(rect\.height \/ 2\) \? 0 : valueLength;[\s\S]*const offset = measuredOffset != null \? measuredOffset : fallbackOffset;[\s\S]*area\.setSelectionRange\(offset, offset\);/,
+  editorBlocksPointerSessionSource,
+  /function setTextareaCaretFromPoint\(area, x, y\) \{[\s\S]*const measuredOffset = caretSession && typeof caretSession\.textareaTextOffsetFromPoint === 'function'[\s\S]*caretSession\.textareaTextOffsetFromPoint\(area, x, y, measureLimit\)[\s\S]*const fallbackOffset = rect && y < rect\.top \+ \(rect\.height \/ 2\) \? 0 : valueLength;[\s\S]*const offset = measuredOffset != null \? measuredOffset : fallbackOffset;[\s\S]*area\.setSelectionRange\(offset, offset\);/,
   'routed source markdown textarea focus should prefer mirror-measured offsets before start/end fallback'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const routeDirectQuoteCaretFromPointer = \(editable, index, sync, event\) => \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY, CARET_POINT_MEASURE_LIMIT, caretSession\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*const suppressUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(suppressUntil\);[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(suppressUntil\);[\s\S]*placeCaretAtTextOffset\(editable, details\.offset, caretSession\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
+  editorBlocksPointerSessionSource,
+  /function routeDirectQuoteCaretFromPointer\(editable, index, sync, event\) \{[\s\S]*classList\.contains\('blocks-quote-text'\)[\s\S]*caretSession\.measuredTextOffsetDetailsFromPoint\(editable, event\.clientX, event\.clientY, measureLimit\)[\s\S]*details\.insideTextRect[\s\S]*event\.preventDefault\(\);[\s\S]*suppressRoutedCaretClick\(\);[\s\S]*caretSession\.placeAtTextOffset\(editable, details\.offset\);[\s\S]*activateEditableFromPointer\(index, editable, sync\);/,
   'direct quote edge pointerdowns should prevent native start/end snaps, suppress transient link-editor refreshes, and use the measured nearest offset'
 );
 
@@ -1874,8 +1900,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*nearestEditableFromPoint\(event\.clientX, event\.clientY\)[\s\S]*event\.preventDefault\(\);[\s\S]*const suppressUntil = Date\.now\(\) \+ 500;[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(suppressUntil\);[\s\S]*blocksState\.setLinkEditorRefreshSuppression\(suppressUntil\);[\s\S]*const \{ editable, hitTarget, index, sync \} = candidate;[\s\S]*setTextareaCaretFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*setContentEditableCaretFromPoint\(editable, event\.clientX, event\.clientY, hitTarget\)[\s\S]*setActive\(index, editable, sync\);[\s\S]*list\.addEventListener\('pointerdown', routeBlocksCaretFromPointer\);/,
+  `${editorBlocksPointerSessionSource}\n${editorBlocksSource}`,
+  /function routeBlocksCaretFromPointer\(event\) \{[\s\S]*isBlocksCaretInteractiveTarget\(event\.target\)[\s\S]*nearestEditableFromPoint\(event\.clientX, event\.clientY\)[\s\S]*event\.preventDefault\(\);[\s\S]*suppressRoutedCaretClick\(\);[\s\S]*const \{ editable, hitTarget, index, sync \} = candidate;[\s\S]*setTextareaCaretFromPoint\(editable, event\.clientX, event\.clientY\)[\s\S]*setContentEditableCaretFromPoint\(editable, event\.clientX, event\.clientY, hitTarget\)[\s\S]*setActive\(index, editable, sync\);[\s\S]*list\.addEventListener\('pointerdown', routeBlocksCaretFromPointer\);/,
   'blocks list pointerdown should route blank clicks to the nearest editable without dropping active sync or showing a stale link editor'
 );
 

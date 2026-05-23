@@ -70,6 +70,7 @@ const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
+const editorBlocksHeadSessionPath = resolve(here, '../assets/js/editor-blocks-head-session.js');
 const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-blocks-editable-session.js');
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
@@ -154,6 +155,7 @@ const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
+const editorBlocksHeadSessionSource = readFileSync(editorBlocksHeadSessionPath, 'utf8');
 const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessionPath, 'utf8');
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
@@ -283,6 +285,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-menu-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks menu session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-head-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks head session boundary'
 );
 
 assert.match(
@@ -1867,8 +1875,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const findVerticalScrollParent = \(node\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*const forwardBlockHeadWheel = \(event\) => \{[\s\S]*absX > absY[\s\S]*scrollParent\.scrollTop = before \+ deltaY;[\s\S]*event\.preventDefault\(\);[\s\S]*head\.addEventListener\('wheel', forwardBlockHeadWheel, \{ passive: false \}\);/,
-  'active block toolbar should forward vertical wheel gestures to the editor content scroll pane'
+  /const findVerticalScrollParent = \(node\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*const forwardBlockHeadWheel = \(event\) => \{[\s\S]*absX > absY[\s\S]*scrollParent\.scrollTop = before \+ deltaY;[\s\S]*event\.preventDefault\(\);/,
+  'active block toolbar wheel forwarding should keep the editor content scroll-pane logic in the root runtime boundary'
+);
+
+assert.match(
+  editorBlocksHeadSessionSource,
+  /head\.addEventListener\('wheel', forwardBlockHeadWheel, \{ passive: false \}\);/,
+  'block head session should bind the forwarded wheel handler on generated block heads'
 );
 
 assert.match(
@@ -1957,6 +1971,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
+  'blocks editor should compose block-head controls through an explicit head session service'
+);
+
+assert.match(
+  editorBlocksSource,
   /const actionMenuBoundaryLeft = \(\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*return Math\.max\(8, Math\.floor\(rect\.left\)\);[\s\S]*const alignBlockActionMenu = \(menu, trigger = null\) => \{[\s\S]*menu\.classList\.remove\('is-open-right'\);[\s\S]*const boundaryLeft = actionMenuBoundaryLeft\(\);[\s\S]*const triggerRect = trigger && trigger\.getBoundingClientRect[\s\S]*const leftSpace = triggerRect \? triggerRect\.right - boundaryLeft : menuRect\.left - boundaryLeft;[\s\S]*if \(leftSpace < menuRect\.width \+ 8\) menu\.classList\.add\('is-open-right'\);/,
   'block action overflow menu should flip right when the button has insufficient left-side room inside the editor content boundary'
 );
@@ -1968,15 +1988,33 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksHeadSessionSource,
+  /const createActionControls = \(index, blockCount\) => \{[\s\S]*menuSession\?\.createActionControls\?\.\(\{[\s\S]*index,[\s\S]*blockCount,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt,[\s\S]*onReposition: \(menu, trigger\) => alignBlockActionMenu\(menu, trigger\)[\s\S]*\}\) \|\| null;/,
+  'block head session should mount action controls produced by the menu session'
+);
+
+assert.match(
+  editorBlocksHeadSessionSource,
+  /export function createEditorBlocksHeadSession\(\{[\s\S]*menuSession = null,[\s\S]*sourceSession = null,[\s\S]*listSession = null,[\s\S]*inlineToolbarSession = null,[\s\S]*const createBlockHead = \(\{[\s\S]*head\.className = 'blocks-block-head';[\s\S]*appendIf\(head, createTypeBadge\(block\)\);[\s\S]*head\.addEventListener\('wheel', forwardBlockHeadWheel, \{ passive: false \}\);[\s\S]*appendTypeControls\(head, block, index\);[\s\S]*appendIf\(head, createActionControls\(index, blockCount\)\);/,
+  'block head session should own block-head DOM assembly and type-specific toolbar controls'
+);
+
+assert.match(
   editorBlocksSource,
-  /const actions = menuSession\.createActionControls\(\{[\s\S]*index,[\s\S]*blockCount: state\.blocks\.length,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt,[\s\S]*onReposition: \(menu, trigger\) => alignBlockActionMenu\(menu, trigger\)[\s\S]*\}\);[\s\S]*if \(actions\) head\.appendChild\(actions\);/,
-  'block head rendering should mount action controls produced by the menu session'
+  /const head = headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: state\.blocks\.length,[\s\S]*\}\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
+  'block element rendering should mount a block head produced by the head session'
 );
 
 assert.doesNotMatch(
   editorBlocksSource,
   /const createBlockActionMenu|blocks-action-trigger|blocks-action-menu|blocks-action-menu-item|blocks-action-menu-delete/,
   'blocks editor root should not own block action menu DOM construction'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /head\.appendChild\(createHeadingLevelSelect|listSession\?\.createTypeSelect|codeSession\?\.createLanguageInput|imageSession\?\.createMetadataControls|tableSession\?\.createControls|inlineToolbarSession\?\.createControls|menuSession\.createActionControls/,
+  'blocks editor root should not assemble block-head toolbar controls directly'
 );
 
 assert.match(
@@ -2106,13 +2144,13 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /if \(block\.type === 'paragraph' \|\| block\.type === 'quote' \|\| block\.type === 'list'\) \{[\s\S]*const inlineToolbarControls = inlineToolbarSession\?\.createControls\(index\);[\s\S]*if \(inlineToolbarControls\) head\.appendChild\(inlineToolbarControls\);[\s\S]*\}/,
+  editorBlocksHeadSessionSource,
+  /if \(block\.type === 'paragraph' \|\| block\.type === 'quote' \|\| block\.type === 'list'\) \{[\s\S]*appendIf\(head, inlineToolbarSession\?\.createControls\?\.\(index\)\);[\s\S]*\}/,
   'paragraph, quote, and list blocks should receive inline controls in the floating block toolbar through the inline toolbar session'
 );
 
 assert.doesNotMatch(
-  editorBlocksSource,
+  editorBlocksHeadSessionSource,
   /block\.type === 'heading'[\s\S]{0,160}createControls/,
   'heading block toolbar should not receive inline formatting controls'
 );
@@ -2286,8 +2324,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /if \(block\.type === 'image'\) \{[\s\S]*const controls = imageSession\?\.createMetadataControls\(block, index\);[\s\S]*if \(controls\) head\.appendChild\(controls\);[\s\S]*\}/,
+  editorBlocksHeadSessionSource,
+  /if \(block\.type === 'image'\) appendIf\(head, imageSession\?\.createMetadataControls\?\.\(block, index\)\);/,
   'image block controls should be appended to the floating block toolbar'
 );
 
@@ -2412,8 +2450,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /if \(block\.type === 'code'\) \{[\s\S]*const control = codeSession\?\.createLanguageInput\(block\);[\s\S]*if \(control\) head\.appendChild\(control\);[\s\S]*\}/,
+  editorBlocksHeadSessionSource,
+  /if \(block\.type === 'code'\) appendIf\(head, codeSession\?\.createLanguageInput\?\.\(block\)\);/,
   'code block language control should be appended to the floating block toolbar through the code session'
 );
 
@@ -2478,8 +2516,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /if \(block\.type === 'source'\) \{[\s\S]*const help = sourceSession\?\.createReasonHelp\(block, index\);[\s\S]*if \(help\) head\.appendChild\(help\);[\s\S]*if \(sourceSession\?\.canAutofix\(block\)\) \{[\s\S]*const autofix = sourceSession\.createAutofixButton\(block, index\);[\s\S]*if \(autofix\) head\.appendChild\(autofix\);/,
+  editorBlocksHeadSessionSource,
+  /const appendSourceControls = \(head, block, index\) => \{[\s\S]*appendIf\(head, sourceSession\?\.createReasonHelp\?\.\(block, index\)\);[\s\S]*if \(sourceSession\?\.canAutofix\?\.\(block\)\) \{[\s\S]*appendIf\(head, sourceSession\.createAutofixButton\?\.\(block, index\)\);/,
   'source block help and autofix controls should be appended to the floating toolbar through the source session'
 );
 
@@ -2844,8 +2882,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const head = document\.createElement\('div'\);[\s\S]*head\.className = 'blocks-block-head';[\s\S]*type\.className = 'blocks-block-type';[\s\S]*const typeLabel = text\(block\.type === 'card' \? 'articleCard' : block\.type, block\.type\);[\s\S]*type\.title = typeLabel;[\s\S]*type\.setAttribute\('role', 'img'\);[\s\S]*type\.setAttribute\('aria-label', typeLabel\);[\s\S]*type\.appendChild\(createBlockTypeIcon\(block\.type\)\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
+  editorBlocksHeadSessionSource,
+  /const createTypeBadge = \(block\) => \{[\s\S]*type\.className = 'blocks-block-type';[\s\S]*const typeLabel = text\(block\.type === 'card' \? 'articleCard' : block\.type, block\.type\);[\s\S]*type\.title = typeLabel;[\s\S]*type\.setAttribute\('role', 'img'\);[\s\S]*type\.setAttribute\('aria-label', typeLabel\);[\s\S]*appendIf\(type, createBlockTypeIcon\(block\.type\)\);/,
   'block type badge should render an accessible SVG icon for every block, including blank blocks'
 );
 
@@ -3146,15 +3184,21 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /if \(block\.type === 'list'\) \{[\s\S]*const typeSelect = listSession\?\.createTypeSelect\(block, index\);[\s\S]*if \(typeSelect\) head\.appendChild\(typeSelect\);[\s\S]*const indentControls = listSession\?\.createIndentControls\(block, index\);[\s\S]*if \(indentControls\) head\.appendChild\(indentControls\);[\s\S]*\}/,
+  editorBlocksHeadSessionSource,
+  /const appendListControls = \(head, block, index\) => \{[\s\S]*appendIf\(head, listSession\?\.createTypeSelect\?\.\(block, index\)\);[\s\S]*appendIf\(head, listSession\?\.createIndentControls\?\.\(block, index\)\);[\s\S]*\};/,
   'list type and indent controls should be mounted in the floating block toolbar through the list session'
 );
 
 assert.match(
   editorBlocksSource,
-  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);[\s\S]*if \(block\.type === 'heading'\) \{[\s\S]*head\.appendChild\(createHeadingLevelSelect\(block\)\);[\s\S]*\}/,
-  'heading level control should live in the floating block toolbar'
+  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
+  'heading level select control should preserve its data update behavior'
+);
+
+assert.match(
+  editorBlocksHeadSessionSource,
+  /if \(block\.type === 'heading'\) appendIf\(head, createHeadingLevelSelect\(block\)\);/,
+  'heading level control should be mounted in the floating block toolbar through the head session'
 );
 
 assert.doesNotMatch(

@@ -36,6 +36,7 @@ const themeLayout = read('assets/js/theme-layout.js');
 const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
+const editorBlocksHeadSession = read('assets/js/editor-blocks-head-session.js');
 const editorBlocksActiveSession = read('assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSession = read('assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksMathSession = read('assets/js/editor-blocks-math-session.js');
@@ -268,7 +269,7 @@ assert.match(editorBlocks, /function parseTableBlock\(raw\)[\s\S]*parsePipeTable
 assert.match(editorBlocksTableSession, /const renderBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'table session should render editable table cell inputs with alignment hooks');
 assert.match(editorBlocks, /const renderTableBlock = \(body, block, index\) => \{[\s\S]*tableSession\?\.renderBlock\(body, block, index\);[\s\S]*\};/, 'block editor root should delegate table rendering through the table session boundary');
 assert.match(editorBlocksTableSession, /const createControls = \(block, index\) => \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/, 'table session should expose table row, column, and alignment controls');
-assert.match(editorBlocks, /const controls = tableSession\?\.createControls\(block, index\);[\s\S]*if \(controls\) head\.appendChild\(controls\);/, 'block editor root should delegate table toolbar controls through the table session boundary');
+assert.match(editorBlocksHeadSession, /if \(block\.type === 'table'\) appendIf\(head, tableSession\?\.createControls\?\.\(block, index\)\);/, 'block head session should delegate table toolbar controls through the table session boundary');
 assert.match(editorBlocksActiveSession, /syncActiveTableAlignmentFromEditable\(\s*activeBlock,\s*editable \|\| \(hasBlocksState\('getActiveEditable'\) \? blocksState\.getActiveEditable\(\) : null\) \|\| activeElementFrom\(runtime\)\s*\);/, 'active block selection should sync table alignment from the focused table cell');
 assert.match(editorBlocksTableSession, /const setAlignmentSelectValue = \(alignment, value\) => \{[\s\S]*alignment\.value = normalized;[\s\S]*option\.selected = option\.value === normalized;[\s\S]*const syncActiveAlignmentFromEditable = \(activeBlock, editable, stateBlocks = \[\]\) => \{[\s\S]*positionFromCellInput\(cell\)[\s\S]*setActivePosition\(block, normalizePosition\(block, position\)\);/, 'table alignment control should force the select value and selected option from active table cell DOM state');
 assert.match(editorBlocksTableSession, /const isActivePosition = \(block, position\) => \{[\s\S]*blocksState\.activeTableCellMatches\(block && block\.id, position\)[\s\S]*const applyIfCurrent = \(\) => \{[\s\S]*isActivePosition\(block, normalized\)[\s\S]*requestFrame\(applyIfCurrent\)[\s\S]*setTimer\(applyIfCurrent\);/, 'deferred table alignment sync should not overwrite newer active table cells');

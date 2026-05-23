@@ -2,6 +2,7 @@ import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksHeadSession } from './editor-blocks-head-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-session.js?v=press-system-v3.4.50';
@@ -3421,6 +3422,27 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     queueTask: task => queueMicrotask(task)
   });
 
+  const headSession = createEditorBlocksHeadSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    text,
+    createBlockTypeIcon,
+    menuSession,
+    sourceSession,
+    listSession,
+    codeSession,
+    imageSession,
+    tableSession,
+    inlineToolbarSession,
+    createHeadingLevelSelect,
+    createMathEditButton,
+    forwardBlockHeadWheel,
+    alignBlockActionMenu,
+    setActive,
+    moveBlock,
+    insertBlankBlock,
+    deleteBlockAt
+  });
+
   const renderListBlock = (body, block, index) => {
     listSession?.renderBlock(body, block, index);
   };
@@ -3587,63 +3609,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     item.dataset.type = block.type;
     item.dataset.blockId = block.id;
     item.tabIndex = -1;
-    const head = document.createElement('div');
-    head.className = 'blocks-block-head';
-    const type = document.createElement('span');
-    type.className = 'blocks-block-type';
-    const typeLabel = text(block.type === 'card' ? 'articleCard' : block.type, block.type);
-    type.title = typeLabel;
-    type.setAttribute('role', 'img');
-    type.setAttribute('aria-label', typeLabel);
-    type.appendChild(createBlockTypeIcon(block.type));
-    const actions = menuSession.createActionControls({
+    const head = headSession.createBlockHead({
+      block,
       index,
       blockCount: state.blocks.length,
-      setActive,
-      moveBlock,
-      insertBlankBlock,
-      deleteBlockAt,
-      onReposition: (menu, trigger) => alignBlockActionMenu(menu, trigger)
     });
-    head.appendChild(type);
-    head.addEventListener('wheel', forwardBlockHeadWheel, { passive: false });
-    if (block.type === 'source') {
-      const help = sourceSession?.createReasonHelp(block, index);
-      if (help) head.appendChild(help);
-      if (sourceSession?.canAutofix(block)) {
-        const autofix = sourceSession.createAutofixButton(block, index);
-        if (autofix) head.appendChild(autofix);
-      }
-    }
-    if (block.type === 'heading') {
-      head.appendChild(createHeadingLevelSelect(block));
-    }
-    if (block.type === 'list') {
-      const typeSelect = listSession?.createTypeSelect(block, index);
-      if (typeSelect) head.appendChild(typeSelect);
-      const indentControls = listSession?.createIndentControls(block, index);
-      if (indentControls) head.appendChild(indentControls);
-    }
-    if (block.type === 'code') {
-      const control = codeSession?.createLanguageInput(block);
-      if (control) head.appendChild(control);
-    }
-    if (block.type === 'math') {
-      head.appendChild(createMathEditButton(block, index));
-    }
-    if (block.type === 'image') {
-      const controls = imageSession?.createMetadataControls(block, index);
-      if (controls) head.appendChild(controls);
-    }
-    if (block.type === 'table') {
-      const controls = tableSession?.createControls(block, index);
-      if (controls) head.appendChild(controls);
-    }
-    if (block.type === 'paragraph' || block.type === 'quote' || block.type === 'list') {
-      const inlineToolbarControls = inlineToolbarSession?.createControls(index);
-      if (inlineToolbarControls) head.appendChild(inlineToolbarControls);
-    }
-    if (actions) head.appendChild(actions);
     item.append(head, renderBlockBody(block, index));
     item.addEventListener('click', (event) => {
       if (shouldSuppressRoutedBlockContainerClick()) return;

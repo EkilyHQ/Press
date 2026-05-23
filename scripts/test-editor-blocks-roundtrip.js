@@ -41,6 +41,7 @@ const run = (name, fn) => {
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
+const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
@@ -725,8 +726,13 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
   );
   assert.match(
     editorBlocksSource,
-    /const head = document\.createElement\('div'\);[\s\S]*head\.className = 'blocks-block-head';[\s\S]*head\.appendChild\(actions\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
+    /const head = headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: state\.blocks\.length,[\s\S]*\}\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
     'blank blocks should use the normal floating block toolbar'
+  );
+  assert.match(
+    editorBlocksHeadSessionSource,
+    /const createBlockHead = \(\{[\s\S]*head\.className = 'blocks-block-head';[\s\S]*appendIf\(head, createActionControls\(index, blockCount\)\);/,
+    'blank block toolbar rendering should be provided by the head session'
   );
   assert.match(
     editorBlocksFocusSessionSource,

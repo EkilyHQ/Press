@@ -2940,8 +2940,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const nextBlocks = splitTextBlockIntoParagraph(block, split.before, split.after);
     if (!nextBlocks) return false;
     event.preventDefault();
-    state.blocks.splice(index, 1, ...nextBlocks);
-    resetTransientBlockMenus();
+    blocksState.replaceBlocks(index, 1, nextBlocks);
     render();
     focusBlockPrimaryEditable(nextBlocks[1], 0);
     emit();
@@ -2959,15 +2958,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const merged = mergeTextBlockIntoPrevious(previous, block) || mergeTextBlockIntoPreviousList(previous, block);
     if (!merged) return false;
     event.preventDefault();
-    state.blocks.splice(index - 1, 2, merged);
-    resetTransientBlockMenus();
-    if (merged.type === 'list') {
-      state.pendingListFocus = {
+    blocksState.replaceBlocks(index - 1, 2, [merged], {
+      pendingListFocus: merged.type === 'list' ? {
         blockId: merged.id,
         itemIndex: Number.isInteger(merged.focusItemIndex) ? merged.focusItemIndex : previousListItemIndex,
         caretOffset: merged.focusCaretOffset
-      };
-    }
+      } : null
+    });
     render();
     if (merged.type !== 'list') focusBlockPrimaryEditable(merged, merged.focusCaretOffset);
     emit();
@@ -3163,8 +3160,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (typeof sync === 'function') sync();
     if (!isBlockEmptyForBackspace(block)) return false;
     event.preventDefault();
-    state.blocks.splice(index, 1);
-    resetTransientBlockMenus();
+    blocksState.removeBlock(index);
     render();
     focusPreviousBlockEnd(index);
     emit();
@@ -3302,8 +3298,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const block = state.blocks[index];
     const nextBlocks = autofixMarkdownSourceBlock(block);
     if (!nextBlocks.length) return;
-    state.blocks.splice(index, 1, ...nextBlocks);
-    state.activeIndex = index;
+    blocksState.replaceBlocks(index, 1, nextBlocks, { activeIndex: index });
     render();
     setActive(index);
     emit();
@@ -3498,7 +3493,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     const items = editableListItems(block.data && block.data.items).slice();
     const itemIndex = Math.max(0, Math.min(activeListItemIndex(block, index), items.length - 1));
     const nextPatch = patchListItemType(items, itemIndex, normalizedType, block.data && block.data.listType);
-    state.pendingListFocus = { blockId: block.id, itemIndex, atEnd: false };
+    blocksState.setPendingListFocus({ blockId: block.id, itemIndex, atEnd: false });
     updateFromControl(block, nextPatch, true);
   };
 
@@ -3517,7 +3512,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       indent: nextIndent,
       indentText: '  '.repeat(nextIndent)
     };
-    state.pendingListFocus = { blockId: block.id, itemIndex, atEnd: false };
+    blocksState.setPendingListFocus({ blockId: block.id, itemIndex, atEnd: false });
     updateFromControl(block, { items }, true);
   };
 
@@ -3571,9 +3566,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   let openMathEditorForBlock = () => {};
 
   const setActive = (index, editable = null, sync = null) => {
-    const maxIndex = state.blocks.length - 1;
-    const numericIndex = Number.isFinite(Number(index)) ? Number(index) : -1;
-    state.activeIndex = maxIndex >= 0 ? Math.max(-1, Math.min(numericIndex, maxIndex)) : -1;
+    blocksState.setActiveIndex(index);
     const blockNodes = Array.from(list.querySelectorAll('.blocks-block'));
     const activeBlock = blockNodes[state.activeIndex] || null;
     if (editable) {
@@ -4489,7 +4482,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const selectionBlock = closestElement(selectionEditable, '.blocks-block');
       const selectionIndex = blockNodes.indexOf(selectionBlock);
       if (selectionIndex >= 0) {
-        state.activeIndex = selectionIndex;
+        blocksState.setActiveIndex(selectionIndex);
         state.activeEditable = selectionEditable;
         state.activeSync = editableSyncMap.get(selectionEditable) || state.activeSync;
         blockNodes.forEach((el, idx) => {
@@ -5579,7 +5572,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           currentItems[itemIndex] = { ...(currentItems[itemIndex] || {}), text: currentText };
           const outdentedItems = outdentEmptyListItemForEnter(currentItems, itemIndex);
           if (outdentedItems) {
-            state.pendingListFocus = { blockId: block.id, itemIndex, atEnd: false };
+            blocksState.setPendingListFocus({ blockId: block.id, itemIndex, atEnd: false });
             updateFromControl(block, { items: outdentedItems }, true);
             return;
           }
@@ -5589,16 +5582,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           if (trailingParagraph) {
             const blockAfter = block.data && block.data.after != null ? block.data.after : '\n\n';
             const paragraph = makeBlock('paragraph', '', { text: trailingParagraph.text, after: blockAfter, dirty: true });
-            resetTransientBlockMenus();
             if (trailingParagraph.before.length) {
               block.data.items = trailingParagraph.before;
               block.data.after = '\n\n';
               markDirty(block);
-              state.blocks.splice(index + 1, 0, paragraph);
+              blocksState.replaceBlocks(index, 1, [block, paragraph]);
               render();
               focusBlockPrimaryEditable(paragraph, 0);
             } else {
-              state.blocks.splice(index, 1, paragraph);
+              blocksState.replaceBlocks(index, 1, [paragraph]);
               render();
               focusBlockPrimaryEditable(paragraph, 0);
             }
@@ -5609,20 +5601,22 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           if (emptySplit) {
             const splitAfter = normalizeSplitListStartItems(emptySplit.after);
             const blockAfter = block.data && block.data.after != null ? block.data.after : '\n\n';
-            resetTransientBlockMenus();
             if (splitAfter.length) {
               if (emptySplit.before.length) {
                 block.data.items = emptySplit.before;
                 block.data.after = '\n\n';
                 markDirty(block);
                 const nextBlock = makeSplitListBlock(block, splitAfter, blockAfter);
-                state.blocks.splice(index + 1, 0, nextBlock);
-                state.pendingListFocus = { blockId: nextBlock.id, itemIndex: 0, atEnd: false };
+                blocksState.replaceBlocks(index, 1, [block, nextBlock], {
+                  pendingListFocus: { blockId: nextBlock.id, itemIndex: 0, atEnd: false }
+                });
               } else {
                 block.data.items = splitAfter;
                 block.data.after = blockAfter;
                 markDirty(block);
-                state.pendingListFocus = { blockId: block.id, itemIndex: 0, atEnd: false };
+                blocksState.replaceBlocks(index, 1, [block], {
+                  pendingListFocus: { blockId: block.id, itemIndex: 0, atEnd: false }
+                });
               }
               render();
               emit();
@@ -5632,7 +5626,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
               insertBlankBlock(index + 1, { focus: true });
             } else {
               const blank = makeBlankBlock('\n', { dirty: true });
-              state.blocks.splice(index, 1, blank);
+              blocksState.replaceBlocks(index, 1, [blank]);
               render();
               focusBlockPrimaryEditable(blank, 0);
               emit();
@@ -5653,7 +5647,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
             marker: current.marker,
             delimiter: current.delimiter
           });
-          state.pendingListFocus = { blockId: block.id, itemIndex: itemIndex + 1, caretOffset: 0 };
+          blocksState.setPendingListFocus({ blockId: block.id, itemIndex: itemIndex + 1, caretOffset: 0 });
           updateFromControl(block, { items: next }, true);
           return;
         }
@@ -5664,7 +5658,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           const mergedItem = mergeListItemIntoPreviousItem(next, itemIndex);
           if (!mergedItem) return;
           event.preventDefault();
-          state.pendingListFocus = { blockId: block.id, itemIndex: mergedItem.focusItemIndex, caretOffset: mergedItem.caretOffset };
+          blocksState.setPendingListFocus({ blockId: block.id, itemIndex: mergedItem.focusItemIndex, caretOffset: mergedItem.caretOffset });
           updateFromControl(block, { items: mergedItem.items.length ? mergedItem.items : [{ text: '', checked: false }] }, true);
           return;
         }
@@ -5676,12 +5670,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           const merged = mergeFirstListItemIntoPreviousBlock(previous, { ...block, data: { ...(block.data || {}), items: currentItems } }, itemIndex);
           if (!merged) return;
           event.preventDefault();
-          resetTransientBlockMenus();
           const replacement = merged.currentBlock ? [merged.previousBlock, merged.currentBlock] : [merged.previousBlock];
-          state.blocks.splice(index - 1, 2, ...replacement);
-          if (merged.focus && merged.focus.type === 'list') {
-            state.pendingListFocus = { blockId: merged.previousBlock.id, itemIndex: merged.focus.itemIndex, caretOffset: merged.focus.caretOffset };
-          }
+          blocksState.replaceBlocks(index - 1, 2, replacement, {
+            pendingListFocus: merged.focus && merged.focus.type === 'list'
+              ? { blockId: merged.previousBlock.id, itemIndex: merged.focus.itemIndex, caretOffset: merged.focus.caretOffset }
+              : null
+          });
           render();
           if (merged.focus && merged.focus.type === 'text') focusBlockPrimaryEditable(merged.previousBlock, merged.focus.caretOffset);
           emit();
@@ -5733,8 +5727,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (state.pendingListFocus && state.pendingListFocus.blockId === block.id && state.pendingListFocus.itemIndex === itemIndex) {
         queueMicrotask(() => {
           if (!nodeContains(root, span)) return;
-          const pending = state.pendingListFocus;
-          state.pendingListFocus = null;
+          const pending = blocksState.takePendingListFocus(block.id, itemIndex);
           try { span.focus(); } catch (_) {}
           if (pending && pending.caretOffset != null) placeCaretAtTextOffset(span, pending.caretOffset);
           else if (pending && pending.atEnd) placeCaretAtEnd(span);

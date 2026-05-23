@@ -72,6 +72,17 @@ assert.equal(createEditorBlocksState().activeIndex, -1);
   assert.equal(paragraph.index, controller.state.blocks.length - 1);
   assert.equal(paragraph.block.dirty, true);
 
+  const replacement = makeBlock('quote', '', { text: 'Replacement' });
+  const replacedBlocks = controller.replaceBlocks(0, 1, [replacement], {
+    pendingListFocus: { blockId: replacement.id, itemIndex: 0, atEnd: true },
+    activeIndex: 0
+  });
+  assert.equal(replacedBlocks.index, 0);
+  assert.equal(controller.state.blocks[0].type, 'quote');
+  assert.deepEqual(controller.state.pendingListFocus, { blockId: replacement.id, itemIndex: 0, atEnd: true });
+  assert.deepEqual(controller.takePendingListFocus(replacement.id, 0), { blockId: replacement.id, itemIndex: 0, atEnd: true });
+  assert.equal(controller.state.pendingListFocus, null);
+
   const replaced = controller.placeCommandBlock('heading', { text: 'Title' }, 1);
   assert.equal(replaced.replacedBlank, true);
   assert.equal(controller.state.blocks[1].type, 'heading');
@@ -97,9 +108,12 @@ assert.equal(createEditorBlocksState().activeIndex, -1);
   assert.equal(target.index, 1);
   assert.equal(controller.resolveBlockTarget({ blockId: 'missing' }), null);
 
+  const removed = controller.removeBlock(1);
+  assert.equal(removed.index, 1);
+  assert.equal(controller.state.activeIndex, 1);
+
   const deleted = controller.deleteBlock(1);
   assert.equal(deleted.index, 1);
-  assert.equal(controller.state.activeIndex, 1);
 }
 
 {

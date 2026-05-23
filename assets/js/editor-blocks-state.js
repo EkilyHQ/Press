@@ -29,6 +29,11 @@ function clampIndex(index, length) {
   return Math.max(0, Math.min(Number(index) || 0, Math.max(0, length)));
 }
 
+function normalizeBlocks(blocks) {
+  if (Array.isArray(blocks)) return blocks.filter(Boolean);
+  return blocks ? [blocks] : [];
+}
+
 export function createEditorBlocksState() {
   return {
     blocks: [],
@@ -104,6 +109,29 @@ export function createEditorBlocksStateController({
     if (clearActive) clearActiveEditing();
   }
 
+  function clampActiveIndex(index) {
+    const maxIndex = state.blocks.length - 1;
+    const numericIndex = Number.isFinite(Number(index)) ? Number(index) : -1;
+    return maxIndex >= 0 ? Math.max(-1, Math.min(numericIndex, maxIndex)) : -1;
+  }
+
+  function setActiveIndex(index) {
+    state.activeIndex = clampActiveIndex(index);
+    return state.activeIndex;
+  }
+
+  function setPendingListFocus(focus = null) {
+    state.pendingListFocus = focus && typeof focus === 'object' ? { ...focus } : null;
+    return state.pendingListFocus;
+  }
+
+  function takePendingListFocus(blockId, itemIndex) {
+    const pending = state.pendingListFocus;
+    if (!pending || pending.blockId !== blockId || pending.itemIndex !== itemIndex) return null;
+    state.pendingListFocus = null;
+    return pending;
+  }
+
   function resetEditorSession() {
     state.activeIndex = -1;
     clearActiveEditing();
@@ -170,6 +198,37 @@ export function createEditorBlocksStateController({
     block.dirty = true;
     state.blocks.splice(safeIndex, 0, block);
     return { block, index: safeIndex };
+  }
+
+  function replaceBlocks(index, deleteCount = 1, blocks = [], options = {}) {
+    const safeIndex = clampIndex(index, state.blocks.length);
+    const safeDeleteCount = Math.max(0, Math.min(Number(deleteCount) || 0, state.blocks.length - safeIndex));
+    const replacements = normalizeBlocks(blocks);
+    state.blocks.splice(safeIndex, safeDeleteCount, ...replacements);
+    if (options.resetTransient !== false) resetTransientMenus();
+    if (Object.prototype.hasOwnProperty.call(options, 'pendingListFocus')) {
+      setPendingListFocus(options.pendingListFocus);
+    }
+    if (Object.prototype.hasOwnProperty.call(options, 'activeIndex')) {
+      setActiveIndex(options.activeIndex);
+    }
+    return {
+      index: safeIndex,
+      deleteCount: safeDeleteCount,
+      blocks: replacements
+    };
+  }
+
+  function removeBlock(index, options = {}) {
+    const result = replaceBlocks(index, 1, [], options);
+    if (result.deleteCount < 1) return null;
+    if (!Object.prototype.hasOwnProperty.call(options, 'activeIndex')) {
+      setActiveIndex(Math.min(result.index, state.blocks.length - 1));
+    }
+    return {
+      index: result.index,
+      activeIndex: state.activeIndex
+    };
   }
 
   function placeCommandBlock(type, data = {}, index = state.blocks.length) {
@@ -265,13 +324,18 @@ export function createEditorBlocksStateController({
     state,
     markDirty,
     updateBlockData,
+    setActiveIndex,
     resetTransientMenus,
+    setPendingListFocus,
+    takePendingListFocus,
     ensureSeparatorBeforeBlank,
     ensureEditableBlankForEmptyDocument,
     setMarkdown,
     serialize,
     insertBlankBlock,
     insertBlock,
+    replaceBlocks,
+    removeBlock,
     placeCommandBlock,
     moveBlock,
     deleteBlock,

@@ -81,6 +81,7 @@ const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
 const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-math-session.js');
 const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-table-session.js');
+const editorBlocksCardPickerSessionPath = resolve(here, '../assets/js/editor-blocks-card-picker-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -160,6 +161,7 @@ const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineTo
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
 const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 'utf8');
 const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath, 'utf8');
+const editorBlocksCardPickerSessionSource = readFileSync(editorBlocksCardPickerSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -343,6 +345,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-card-picker-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks card picker session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -381,6 +389,12 @@ assert.match(
   editorBlocksSource,
   /const tableSession = createEditorBlocksTableSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\(activeBlock, editable, state\.blocks\);/,
   'blocks editor should compose table DOM, active-cell, and control behavior through the table session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const cardPickerSession = createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
+  'blocks editor should compose article-card picker DOM and result selection through the card picker session boundary'
 );
 
 assert.match(
@@ -1476,7 +1490,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const placeCommandBlock = \(type, data = \{\}, index = state\.blocks\.length\) => \{[\s\S]*blocksState\.placeCommandBlock\(type, data, index\)[\s\S]*const block = placeCommandBlock\(type, data, insertIndex\);[\s\S]*placeCommandBlock\('card',[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = Number\.isInteger\(state\.commandMenuInsertIndex\) \? state\.commandMenuInsertIndex : state\.blocks\.length;[\s\S]*blocksState\.openCardPicker\(insertIndex\);/,
+  /const placeCommandBlock = \(type, data = \{\}, index = state\.blocks\.length\) => \{[\s\S]*blocksState\.placeCommandBlock\(type, data, index\)[\s\S]*const block = placeCommandBlock\(type, data, insertIndex\);[\s\S]*const cardPickerSession = createEditorBlocksCardPickerSession[\s\S]*insertCardBlock: \(data, index\) => insertCommandBlock\('card', data, \{ index \}\),[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = Number\.isInteger\(state\.commandMenuInsertIndex\) \? state\.commandMenuInsertIndex : state\.blocks\.length;[\s\S]*cardPickerSession\.open\(insertIndex\);/,
   'blank block commands should replace the active blank block and reuse the article-card picker at that position'
 );
 
@@ -1518,7 +1532,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /state\.blocks\.forEach\(\(block, index\) => \{[\s\S]*list\.appendChild\(renderBlockElement\(block, index\)\);[\s\S]*\}\);[\s\S]*renderCardPicker\(\);/,
+  /state\.blocks\.forEach\(\(block, index\) => \{[\s\S]*list\.appendChild\(renderBlockElement\(block, index\)\);[\s\S]*\}\);[\s\S]*cardPickerSession\?\.render\(\);/,
   'rendering should use real blank blocks for persistent insertion points without appending a terminal virtual block'
 );
 
@@ -2054,9 +2068,27 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksCardPickerSessionSource,
+  /export function createEditorBlocksCardPickerSession\([\s\S]*element\.className = 'blocks-card-picker'[\s\S]*search\.className = 'blocks-card-search'[\s\S]*results\.className = 'blocks-card-results'[\s\S]*'blocks-card-result'[\s\S]*item\.addEventListener\('click', \(\) => chooseEntry\(entry\)\)/,
+  'card picker session should own article-card picker DOM, search input, results, and result click handling'
+);
+
+assert.match(
+  editorBlocksCardPickerSessionSource,
+  /const open = \(insertIndex\) => \{[\s\S]*if \(!safeArray\(state\.entries\)\.length\) \{[\s\S]*insertCardBlock\(\{[\s\S]*label: 'Article'[\s\S]*forceCard: true[\s\S]*\}, safeIndex\);[\s\S]*blocksState\.openCardPicker\(safeIndex\);[\s\S]*requestRender\(\);/,
+  'card picker session should own empty-card fallback and picker open/render orchestration'
+);
+
+assert.match(
   editorBlocksStateSource,
   /suppressLinkEditorRefreshUntil: 0,/,
   'blocks state controller should own routed link-editor refresh suppression state'
+);
+
+assert.match(
+  editorBlocksStateSource,
+  /function setCardEntries\(entries = \[\]\) \{[\s\S]*state\.cardEntries = Array\.isArray\(entries\) \? entries\.slice\(\) : \[\];[\s\S]*function getCardPickerState\(\) \{[\s\S]*open: !!state\.cardPickerOpen,[\s\S]*insertIndex: state\.cardPickerInsertIndex,[\s\S]*entries: getCardEntries\(\),[\s\S]*blockCount: state\.blocks\.length/,
+  'blocks state controller should expose card picker entries and open state through explicit state APIs'
 );
 
 assert.match(
@@ -2099,6 +2131,12 @@ assert.doesNotMatch(
   editorBlocksSource,
   /function createTableControls|const setTableAlignmentSelectValue|const syncTableAlignmentControlForPosition|const tablePositionFromCellInput|new Event\(/,
   'blocks editor root should not own table toolbar helpers, active-cell DOM mapping, or synthetic DOM events'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const renderCardPicker|blocks-card-search|blocks-card-result|state\.cardEntries/,
+  'blocks editor root should not own article-card picker DOM rendering or direct card-entry state'
 );
 
 assert.doesNotMatch(

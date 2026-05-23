@@ -240,6 +240,14 @@ assert.equal(createEditorBlocksState().activeIndex, -1);
   controller.openCardPicker(1);
   assert.equal(controller.state.cardPickerOpen, true);
   assert.equal(controller.state.cardPickerInsertIndex, 1);
+  controller.setCardEntries([{ title: 'Alpha' }]);
+  assert.deepEqual(controller.getCardEntries(), [{ title: 'Alpha' }]);
+  assert.deepEqual(controller.getCardPickerState(), {
+    open: true,
+    insertIndex: 1,
+    entries: [{ title: 'Alpha' }],
+    blockCount: controller.state.blocks.length
+  });
   controller.closeCardPicker();
   assert.equal(controller.state.cardPickerOpen, false);
   assert.equal(controller.state.cardPickerInsertIndex, null);

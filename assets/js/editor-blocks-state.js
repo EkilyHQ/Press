@@ -563,6 +563,24 @@ export function createEditorBlocksStateController({
     state.cardPickerInsertIndex = null;
   }
 
+  function setCardEntries(entries = []) {
+    state.cardEntries = Array.isArray(entries) ? entries.slice() : [];
+    return state.cardEntries.slice();
+  }
+
+  function getCardEntries() {
+    return state.cardEntries.slice();
+  }
+
+  function getCardPickerState() {
+    return {
+      open: !!state.cardPickerOpen,
+      insertIndex: state.cardPickerInsertIndex,
+      entries: getCardEntries(),
+      blockCount: state.blocks.length
+    };
+  }
+
   function resolveBlockTarget(target = state.activeIndex, predicate = () => true) {
     const targetIndex = target && typeof target === 'object' ? target.index : target;
     const expectedBlockId = target && typeof target === 'object' && typeof target.blockId === 'string'
@@ -654,6 +672,9 @@ export function createEditorBlocksStateController({
     beginCommandBlockInsert,
     openCardPicker,
     closeCardPicker,
+    setCardEntries,
+    getCardEntries,
+    getCardPickerState,
     resolveBlockTarget
   };
 }

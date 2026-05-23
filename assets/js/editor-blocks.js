@@ -14,6 +14,7 @@ import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-t
 import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksMathSession } from './editor-blocks-math-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksTableSession } from './editor-blocks-table-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2336,12 +2337,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   list.className = 'blocks-list';
   list.setAttribute('aria-label', text('listAria', 'Markdown blocks'));
 
-  const picker = document.createElement('div');
-  picker.className = 'blocks-card-picker';
-  picker.hidden = true;
-  picker.setAttribute('aria-hidden', 'true');
-
-  root.append(list, picker);
+  root.appendChild(list);
 
   const markDirty = blocksState.markDirty;
 
@@ -3104,6 +3100,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return block;
   };
 
+  const cardPickerSession = createEditorBlocksCardPickerSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    runtime,
+    blocksState,
+    text,
+    insertCardBlock: (data, index) => insertCommandBlock('card', data, { index }),
+    requestRender: () => render()
+  });
+  if (cardPickerSession) root.appendChild(cardPickerSession.element);
+
   const createParagraphFromBlankInput = (value, insertIndex = state.blocks.length) => {
     const textValue = normalizeEditableMarkdownText(value);
     if (!textValue) return;
@@ -3380,61 +3386,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     editable.addEventListener('mouseup', () => updateInlineToolbarState());
   };
 
-  const renderCardPicker = () => {
-    picker.innerHTML = '';
-    if (!state.cardPickerOpen) {
-      picker.hidden = true;
-      picker.setAttribute('aria-hidden', 'true');
-      return;
-    }
-    picker.hidden = false;
-    picker.setAttribute('aria-hidden', 'false');
-    const search = document.createElement('input');
-    search.type = 'search';
-    search.className = 'blocks-card-search';
-    search.placeholder = text('cardSearch', 'Search articles...');
-    const results = document.createElement('div');
-    results.className = 'blocks-card-results';
-    const draw = () => {
-      const query = search.value.trim().toLowerCase();
-      results.innerHTML = '';
-      const entries = state.cardEntries.filter(entry => {
-        if (!query) return true;
-        return String(entry.search || `${entry.title || ''} ${entry.key || ''} ${entry.location || ''}`).toLowerCase().includes(query);
-      });
-      if (!entries.length) {
-        const empty = document.createElement('div');
-        empty.className = 'blocks-empty';
-        empty.textContent = text('cardEmpty', 'No matching articles');
-        results.appendChild(empty);
-        return;
-      }
-      entries.slice(0, 30).forEach(entry => {
-        const item = button(entry.title || entry.key || entry.location || text('articleCard', 'Article Card'), 'blocks-card-result');
-        item.addEventListener('click', () => {
-          const insertIndex = Number.isInteger(state.cardPickerInsertIndex) ? state.cardPickerInsertIndex : state.blocks.length;
-          blocksState.closeCardPicker();
-          placeCommandBlock('card', {
-            label: entry.title || entry.key || entry.location || 'Article',
-            location: entry.location || '',
-            title: 'card',
-            forceCard: true
-          }, insertIndex);
-        });
-        const meta = document.createElement('span');
-        meta.textContent = entry.location || '';
-        item.appendChild(meta);
-        results.appendChild(item);
-      });
-    };
-    search.addEventListener('input', draw);
-    picker.append(search, results);
-    draw();
-    runtime.setTimer(() => {
-      try { search.focus(); } catch (_) {}
-    }, 0);
-  };
-
   const commandBlocks = [
     ['paragraph', 'paragraph', 'Paragraph', { text: 'New paragraph' }],
     ['heading', 'heading', 'Heading', { level: 2, text: 'Heading' }],
@@ -3449,12 +3400,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const openArticleCardCommand = () => {
     const insertIndex = Number.isInteger(state.commandMenuInsertIndex) ? state.commandMenuInsertIndex : state.blocks.length;
-    if (!state.cardEntries.length) {
-      insertCommandBlock('card', { label: 'Article', location: '', title: 'card', forceCard: true }, { index: insertIndex });
+    if (cardPickerSession) {
+      cardPickerSession.open(insertIndex);
       return;
     }
-    blocksState.openCardPicker(insertIndex);
-    render();
+    insertCommandBlock('card', { label: 'Article', location: '', title: 'card', forceCard: true }, { index: insertIndex });
   };
 
   const runBlockCommand = (type, data = {}) => {
@@ -4503,7 +4453,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     state.blocks.forEach((block, index) => {
       list.appendChild(renderBlockElement(block, index));
     });
-    renderCardPicker();
+    cardPickerSession?.render();
     setActive(state.activeIndex);
     requestStickyBlockHeadUpdate();
   }
@@ -4544,8 +4494,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return { index: resolved.index, src };
     },
     setCardEntries(entries) {
-      state.cardEntries = Array.isArray(entries) ? entries.slice() : [];
-      if (state.cardPickerOpen) renderCardPicker();
+      if (cardPickerSession) cardPickerSession.setEntries(entries);
+      else blocksState.setCardEntries(entries);
     },
     focus() {
       const active = list.querySelector('.blocks-block.is-active [contenteditable="true"], .blocks-block.is-active .blocks-image-caption, .blocks-block.is-active input, .blocks-block.is-active textarea');

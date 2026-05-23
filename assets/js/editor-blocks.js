@@ -15,6 +15,7 @@ import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js?v
 import { createEditorBlocksMathSession } from './editor-blocks-math-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksTableSession } from './editor-blocks-table-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksImageSession } from './editor-blocks-image-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -1490,16 +1491,6 @@ function createBlockTypeIcon(blockType) {
   svg.setAttribute('focusable', 'false');
   svg.innerHTML = BLOCK_TYPE_ICON_PATHS[blockType] || BLOCK_TYPE_ICON_PATHS.paragraph;
   return svg;
-}
-
-function inputValue(input) {
-  return input ? String(input.value || '') : '';
-}
-
-function plainEditableValue(editable) {
-  return String(editable && editable.textContent != null ? editable.textContent : '')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[\r\n]+/g, ' ');
 }
 
 function insertPlainTextIntoEditable(editable, text, selectionSession = null) {
@@ -3513,101 +3504,27 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return select;
   };
 
-  const syncRenderedImageBlock = (block) => {
-    const blockEl = blockElements().find(el => el && el.dataset && el.dataset.blockId === block.id);
-    if (!blockEl) return;
-    const figure = blockEl.querySelector('.blocks-image-figure');
-    const img = blockEl.querySelector('.blocks-image-preview');
-    const caption = blockEl.querySelector('.blocks-image-figure figcaption');
-    if (img) {
-      img.alt = block.data.alt || '';
-      const nextSrc = resolveAssetSrc(block.data.src || '');
-      configureImagePreview(figure, img, nextSrc);
-    }
-    if (caption) {
-      caption.textContent = block.data.alt || '';
-      caption.classList.toggle('is-empty', !block.data.alt);
-    }
-    hydrateImages(blockEl);
-  };
-
-  const syncImageAltFromCaption = (block, caption) => {
-    const blockEl = blockElements().find(el => el && el.dataset && el.dataset.blockId === block.id);
-    const img = blockEl && blockEl.querySelector('.blocks-image-preview');
-    const alt = plainEditableValue(caption);
-    if (img) img.alt = alt;
-    if (caption) caption.classList.toggle('is-empty', !alt);
-    updateFromControl(block, { alt });
-  };
-
-  const setImagePlaceholderVisible = (figure, visible) => {
-    if (!figure) return;
-    figure.classList.toggle('is-image-placeholder', !!visible);
-  };
-
-  const configureImagePreview = (figure, img, src) => {
-    if (!img) return;
-    const nextSrc = String(src || '').trim();
-    img.dataset.blocksResolvedSrc = nextSrc;
-    img.onload = () => {
-      if (img.dataset.blocksResolvedSrc !== nextSrc || !nextSrc) return;
-      setImagePlaceholderVisible(figure, false);
-    };
-    img.onerror = () => {
-      if (img.dataset.blocksResolvedSrc !== nextSrc) return;
-      setImagePlaceholderVisible(figure, true);
-    };
-    if (!nextSrc) {
-      img.removeAttribute('src');
-      setImagePlaceholderVisible(figure, true);
-      return;
-    }
-    setImagePlaceholderVisible(figure, false);
-    if (img.getAttribute('src') !== nextSrc) img.src = nextSrc;
-    if (img.complete && img.naturalWidth === 0) setImagePlaceholderVisible(figure, true);
-  };
-
-  const createImageMetadataControls = (block, index) => {
-    const controls = document.createElement('div');
-    controls.className = 'blocks-image-meta-controls';
-    const replace = button(text('replaceImage', 'Replace image'), 'blocks-btn blocks-image-replace');
-    replace.title = text('replaceImage', 'Replace image');
-    replace.setAttribute('aria-label', text('replaceImage', 'Replace image'));
-    const deleteResource = button(text('deleteImageResource', 'Delete resource'), 'blocks-btn blocks-image-delete-resource');
-    deleteResource.title = text('deleteImageResource', 'Delete resource');
-    deleteResource.setAttribute('aria-label', text('deleteImageResource', 'Delete resource'));
-    const title = document.createElement('input');
-    title.type = 'text';
-    title.className = 'blocks-image-title';
-    title.value = block.data.title || '';
-    title.placeholder = text('imageTitle', 'Image title');
-    title.setAttribute('aria-label', text('imageTitle', 'Image title'));
-    const update = () => {
-      updateFromControl(block, { title: inputValue(title) });
-    };
-    title.addEventListener('input', update);
-    replace.addEventListener('mousedown', (event) => event.preventDefault());
-    replace.addEventListener('click', () => {
-      setActive(index);
-      if (typeof options.requestImageUpload === 'function') {
-        options.requestImageUpload({ replaceIndex: index, replaceBlockId: block.id });
-      }
-    });
-    deleteResource.disabled = !(typeof options.canDeleteImageResource === 'function' && options.canDeleteImageResource(block.data.src || '', {
-      index,
-      blockId: block.id
-    }));
-    deleteResource.addEventListener('mousedown', (event) => event.preventDefault());
-    deleteResource.addEventListener('click', () => {
-      if (deleteResource.disabled) return;
-      setActive(index);
-      if (typeof options.requestImageDelete === 'function') {
-        options.requestImageDelete({ index, blockId: block.id, src: block.data.src || '' });
-      }
-    });
-    controls.append(title, replace, deleteResource);
-    return controls;
-  };
+  const imageSession = createEditorBlocksImageSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    blocksState,
+    editableSession,
+    blockElements,
+    text,
+    selectionSession,
+    insertPlainTextIntoEditable,
+    removeEmptyBlockWithBackspace,
+    handleCrossBlockArrowNavigation,
+    updateInlineToolbarState,
+    updateFromControl,
+    insertBlock,
+    deleteBlockAt,
+    setActive,
+    resolveAssetSrc,
+    hydrateImages,
+    requestImageUpload: options.requestImageUpload,
+    canDeleteImageResource: options.canDeleteImageResource,
+    requestImageDelete: options.requestImageDelete
+  });
 
   const tableSession = createEditorBlocksTableSession({
     documentRef: runtime.documentRef || root.ownerDocument,
@@ -3652,55 +3569,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const renderImageBlock = (body, block, index) => {
-    const figure = document.createElement('figure');
-    figure.className = 'blocks-image-figure';
-    const img = document.createElement('img');
-    img.className = 'blocks-image-preview';
-    img.alt = block.data.alt || '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    const placeholder = document.createElement('div');
-    placeholder.className = 'blocks-image-placeholder';
-    placeholder.setAttribute('aria-hidden', 'true');
-    const placeholderLabel = document.createElement('span');
-    placeholderLabel.className = 'blocks-image-placeholder-label';
-    placeholderLabel.textContent = text('image', 'Image');
-    placeholder.appendChild(placeholderLabel);
-    const resolved = resolveAssetSrc(block.data.src || '');
-    configureImagePreview(figure, img, resolved);
-    const caption = document.createElement('figcaption');
-    caption.className = 'blocks-image-caption';
-    caption.contentEditable = 'true';
-    caption.spellcheck = true;
-    caption.dataset.placeholder = text('imageAlt', 'Alt text');
-    caption.setAttribute('aria-label', text('imageAlt', 'Alt text'));
-    caption.textContent = block.data.alt || '';
-    caption.classList.toggle('is-empty', !block.data.alt);
-    const syncCaption = () => syncImageAltFromCaption(block, caption);
-    editableSession.registerEditable(caption, syncCaption);
-    caption.addEventListener('input', syncCaption);
-    caption.addEventListener('paste', (event) => {
-      const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
-      if (pasted == null) return;
-      event.preventDefault();
-      if (insertPlainTextIntoEditable(caption, pasted.replace(/[\r\n]+/g, ' '), selectionSession)) syncCaption();
-    });
-    caption.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && !event.isComposing) {
-        event.preventDefault();
-        return;
-      }
-      if (removeEmptyBlockWithBackspace(event, block, index, caption, syncCaption)) return;
-      handleCrossBlockArrowNavigation(event, index, caption);
-    });
-    caption.addEventListener('focus', () => {
-      setActive(index, caption, syncCaption);
-      updateInlineToolbarState();
-    });
-    figure.append(img, placeholder, caption);
-
-    body.append(figure);
-    hydrateImages(figure);
+    imageSession?.renderBlock(body, block, index);
   };
 
   const renderTableBlock = (body, block, index) => {
@@ -4404,7 +4273,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       head.appendChild(createMathEditButton(block, index));
     }
     if (block.type === 'image') {
-      head.appendChild(createImageMetadataControls(block, index));
+      const controls = imageSession?.createMetadataControls(block, index);
+      if (controls) head.appendChild(controls);
     }
     if (block.type === 'table') {
       const controls = tableSession?.createControls(block, index);
@@ -4458,10 +4328,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     requestStickyBlockHeadUpdate();
   }
 
-  const resolveImageBlockTarget = (target = state.activeIndex) => {
-    return blocksState.resolveBlockTarget(target, block => block && block.type === 'image');
-  };
-
   const api = {
     setMarkdown(markdown) {
       blocksState.setMarkdown(markdown);
@@ -4471,27 +4337,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return blocksState.serialize();
     },
     insertImageBlock(src, alt, index = state.activeIndex + 1) {
-      const block = insertBlock('image', { src, alt: alt || '', title: '' }, index);
-      return { index: state.blocks.indexOf(block) };
+      return imageSession ? imageSession.insertImageBlock(src, alt, index) : null;
     },
     replaceImageBlock(src, target = state.activeIndex) {
-      const resolved = resolveImageBlockTarget(target);
-      if (!resolved) return null;
-      const { block, index: safeIndex } = resolved;
-      updateFromControl(block, { src }, true);
-      setActive(safeIndex);
-      return { index: safeIndex };
+      return imageSession ? imageSession.replaceImageBlock(src, target) : null;
     },
     getImageBlockSource(target = state.activeIndex) {
-      const resolved = resolveImageBlockTarget(target);
-      return resolved ? String((resolved.block.data && resolved.block.data.src) || '') : '';
+      return imageSession ? imageSession.getImageBlockSource(target) : '';
     },
     deleteImageBlock(target = state.activeIndex) {
-      const resolved = resolveImageBlockTarget(target);
-      if (!resolved) return null;
-      const src = String((resolved.block.data && resolved.block.data.src) || '');
-      deleteBlockAt(resolved.index);
-      return { index: resolved.index, src };
+      return imageSession ? imageSession.deleteImageBlock(target) : null;
     },
     setCardEntries(entries) {
       if (cardPickerSession) cardPickerSession.setEntries(entries);

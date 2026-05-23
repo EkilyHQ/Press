@@ -82,6 +82,7 @@ const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-li
 const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-math-session.js');
 const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-table-session.js');
 const editorBlocksCardPickerSessionPath = resolve(here, '../assets/js/editor-blocks-card-picker-session.js');
+const editorBlocksImageSessionPath = resolve(here, '../assets/js/editor-blocks-image-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -162,6 +163,7 @@ const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 
 const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 'utf8');
 const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath, 'utf8');
 const editorBlocksCardPickerSessionSource = readFileSync(editorBlocksCardPickerSessionPath, 'utf8');
+const editorBlocksImageSessionSource = readFileSync(editorBlocksImageSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -347,6 +349,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-card-picker-session\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks card picker session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-image-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks image session boundary'
 );
 
 assert.match(
@@ -2159,13 +2167,19 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const img = document\.createElement\('img'\);[\s\S]*img\.className = 'blocks-image-preview'[\s\S]*const placeholder = document\.createElement\('div'\);[\s\S]*placeholder\.className = 'blocks-image-placeholder'[\s\S]*const caption = document\.createElement\('figcaption'\);[\s\S]*caption\.className = 'blocks-image-caption';[\s\S]*caption\.contentEditable = 'true';[\s\S]*caption\.dataset\.placeholder = text\('imageAlt', 'Alt text'\);[\s\S]*figure\.append\(img, placeholder, caption\);/,
+  /const imageSession = createEditorBlocksImageSession\(\{[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*selectionSession,[\s\S]*insertPlainTextIntoEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateInlineToolbarState,[\s\S]*updateFromControl,[\s\S]*insertBlock,[\s\S]*deleteBlockAt,[\s\S]*setActive,[\s\S]*resolveAssetSrc,[\s\S]*hydrateImages,[\s\S]*requestImageUpload: options\.requestImageUpload,[\s\S]*canDeleteImageResource: options\.canDeleteImageResource,[\s\S]*requestImageDelete: options\.requestImageDelete/,
+  'blocks editor root should compose image DOM/control behavior through the image session boundary'
+);
+
+assert.match(
+  editorBlocksImageSessionSource,
+  /const img = documentRef\.createElement\('img'\);[\s\S]*img\.className = 'blocks-image-preview'[\s\S]*const placeholder = documentRef\.createElement\('div'\);[\s\S]*placeholder\.className = 'blocks-image-placeholder'[\s\S]*const caption = documentRef\.createElement\('figcaption'\);[\s\S]*caption\.className = 'blocks-image-caption';[\s\S]*caption\.contentEditable = 'true';[\s\S]*caption\.dataset\.placeholder = text\('imageAlt', 'Alt text'\);[\s\S]*figure\.append\(img, placeholder, caption\);/,
   'image blocks should render a real image element with an editor-only empty-image placeholder and directly editable caption'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const configureImagePreview = \(figure, img, src\) => \{[\s\S]*img\.onload = \(\) => \{[\s\S]*setImagePlaceholderVisible\(figure, false\);[\s\S]*img\.onerror = \(\) => \{[\s\S]*setImagePlaceholderVisible\(figure, true\);[\s\S]*if \(!nextSrc\) \{[\s\S]*img\.removeAttribute\('src'\);[\s\S]*setImagePlaceholderVisible\(figure, true\);[\s\S]*if \(img\.getAttribute\('src'\) !== nextSrc\) img\.src = nextSrc;/,
+  editorBlocksImageSessionSource,
+  /const configurePreview = \(figure, img, src\) => \{[\s\S]*img\.onload = \(\) => \{[\s\S]*setPlaceholderVisible\(figure, false\);[\s\S]*img\.onerror = \(\) => \{[\s\S]*setPlaceholderVisible\(figure, true\);[\s\S]*if \(!nextSrc\) \{[\s\S]*img\.removeAttribute\('src'\);[\s\S]*setPlaceholderVisible\(figure, true\);[\s\S]*if \(img\.getAttribute\('src'\) !== nextSrc\) img\.src = nextSrc;/,
   'image preview loading should toggle the placeholder for empty, failed, and loaded sources'
 );
 
@@ -2182,8 +2196,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createImageMetadataControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-image-meta-controls';[\s\S]*const replace = button\(text\('replaceImage', 'Replace image'\), 'blocks-btn blocks-image-replace'\);[\s\S]*const deleteResource = button\(text\('deleteImageResource', 'Delete resource'\), 'blocks-btn blocks-image-delete-resource'\);[\s\S]*title\.className = 'blocks-image-title';[\s\S]*updateFromControl\(block, \{ title: inputValue\(title\) \}\);[\s\S]*options\.requestImageUpload\(\{ replaceIndex: index, replaceBlockId: block\.id \}\);[\s\S]*options\.canDeleteImageResource\(block\.data\.src \|\| '',[\s\S]*options\.requestImageDelete\(\{ index, blockId: block\.id, src: block\.data\.src \|\| '' \}\);[\s\S]*controls\.append\(title, replace, deleteResource\);/,
+  editorBlocksImageSessionSource,
+  /const createMetadataControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-image-meta-controls';[\s\S]*const replace = createButton\(documentRef, text\('replaceImage', 'Replace image'\), 'blocks-btn blocks-image-replace'\);[\s\S]*const deleteResource = createButton\(documentRef, text\('deleteImageResource', 'Delete resource'\), 'blocks-btn blocks-image-delete-resource'\);[\s\S]*title\.className = 'blocks-image-title';[\s\S]*updateFromControl\(block, \{ title: inputValue\(title\) \}\);[\s\S]*requestImageUpload\(\{ replaceIndex: index, replaceBlockId: block && block\.id \}\);[\s\S]*canDeleteImageResource\(block && block\.data \? block\.data\.src \|\| '' : '',[\s\S]*requestImageDelete\(\{ index, blockId: block && block\.id, src: block && block\.data \? block\.data\.src \|\| '' : '' \}\);[\s\S]*controls\.append\(title, replace, deleteResource\);/,
   'image metadata controls should keep title/replace controls and expose explicit local resource deletion'
 );
 
@@ -2194,14 +2208,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const syncImageAltFromCaption = \(block, caption\) => \{[\s\S]*const img = blockEl && blockEl\.querySelector\('\.blocks-image-preview'\);[\s\S]*const alt = plainEditableValue\(caption\);[\s\S]*if \(img\) img\.alt = alt;[\s\S]*caption\.classList\.toggle\('is-empty', !alt\);[\s\S]*updateFromControl\(block, \{ alt \}\);[\s\S]*caption\.addEventListener\('input', syncCaption\);/,
+  editorBlocksImageSessionSource,
+  /const updateCaptionAlt = \(block, caption\) => \{[\s\S]*const img = blockEl && blockEl\.querySelector \? blockEl\.querySelector\('\.blocks-image-preview'\) : null;[\s\S]*const alt = plainEditableValue\(caption\);[\s\S]*if \(img\) img\.alt = alt;[\s\S]*caption\.classList\.toggle\('is-empty', !alt\);[\s\S]*updateFromControl\(block, \{ alt \}\);[\s\S]*caption\.addEventListener\('input', syncCaption\);/,
   'editable image captions should update block alt text and keep the rendered img alt synchronized'
 );
 
 assert.match(
   editorBlocksSource,
-  /if \(block\.type === 'image'\) \{[\s\S]*head\.appendChild\(createImageMetadataControls\(block, index\)\);[\s\S]*\}/,
+  /if \(block\.type === 'image'\) \{[\s\S]*const controls = imageSession\?\.createMetadataControls\(block, index\);[\s\S]*if \(controls\) head\.appendChild\(controls\);[\s\S]*\}/,
   'image block controls should be appended to the floating block toolbar'
 );
 
@@ -2212,14 +2226,14 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const resolveImageBlockTarget = \(target = state\.activeIndex\) => \{[\s\S]*return blocksState\.resolveBlockTarget\(target, block => block && block\.type === 'image'\);[\s\S]*replaceImageBlock\(src, target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*updateFromControl\(block, \{ src \}, true\);[\s\S]*return \{ index: safeIndex \};/,
+  editorBlocksImageSessionSource,
+  /const resolveImageBlockTarget = \(target\) => \{[\s\S]*return blocksState\.resolveBlockTarget\(target, block => block && block\.type === 'image'\);[\s\S]*const replaceImageBlock = \(src, target\) => \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*updateFromControl\(block, \{ src \}, true\);[\s\S]*return \{ index: safeIndex \};/,
   'image replacement should validate the target image identity and re-render toolbar controls after updating an existing block'
 );
 
 assert.match(
-  editorBlocksSource,
-  /getImageBlockSource\(target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*deleteImageBlock\(target = state\.activeIndex\) \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*deleteBlockAt\(resolved\.index\);[\s\S]*return \{ index: resolved\.index, src \};/,
+  editorBlocksImageSessionSource,
+  /const getImageBlockSource = \(target\) => \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*const deleteImageBlock = \(target\) => \{[\s\S]*const resolved = resolveImageBlockTarget\(target\);[\s\S]*deleteBlockAt\(resolved\.index\);[\s\S]*return \{ index: resolved\.index, src \};/,
   'image resource deletion should validate identity before removing the image block'
 );
 

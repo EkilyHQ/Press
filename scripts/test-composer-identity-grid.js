@@ -80,6 +80,7 @@ const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
 const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-math-session.js');
+const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-table-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -158,6 +159,7 @@ const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPa
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
 const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 'utf8');
+const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -335,6 +337,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-table-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks table session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -367,6 +375,12 @@ assert.match(
   editorBlocksSource,
   /const mathSession = createEditorBlocksMathSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderPressMath,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\);[\s\S]*openMathEditorForSelection = \(\) => mathSession\.openForSelection\(\);[\s\S]*openMathEditorForNode = mathNode => mathSession\.openForNode\(mathNode\);[\s\S]*openMathEditorForBlock = \(block, blockEl = null\) => mathSession\.openForBlock\(block, blockEl\);/,
   'blocks editor should compose inline and display math overlay behavior through the math session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const tableSession = createEditorBlocksTableSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\(activeBlock, editable, state\.blocks\);/,
+  'blocks editor should compose table DOM, active-cell, and control behavior through the table session boundary'
 );
 
 assert.match(
@@ -2022,6 +2036,24 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksTableSessionSource,
+  /export function createEditorBlocksTableSession\([\s\S]*const createControls = \(block, index\) => \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/,
+  'table session should own table toolbar DOM creation and row, column, and alignment controls'
+);
+
+assert.match(
+  editorBlocksTableSessionSource,
+  /const renderBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}[\s\S]*editableSession\.registerEditable\(input, sync\)[\s\S]*input\.addEventListener\('paste', \(event\) => \{[\s\S]*sync\(\);/,
+  'table session should own table cell rendering, editable registration, and paste sanitization'
+);
+
+assert.match(
+  editorBlocksTableSessionSource,
+  /const syncActiveAlignmentFromEditable = \(activeBlock, editable, stateBlocks = \[\]\) => \{[\s\S]*positionFromCellInput\(cell\)[\s\S]*setActivePosition\(block, normalizePosition\(block, position\)\);/,
+  'table session should own focused-cell to active-table-position synchronization'
+);
+
+assert.match(
   editorBlocksStateSource,
   /suppressLinkEditorRefreshUntil: 0,/,
   'blocks state controller should own routed link-editor refresh suppression state'
@@ -2061,6 +2093,12 @@ assert.doesNotMatch(
   editorBlocksSource,
   /const mathEditor = document\.createElement\('div'\)|const handleMathEditorOutsidePointer|const applyMathEditor = \(\)|const syncMathNodePreview/,
   'blocks editor root should not own math editor overlay DOM, outside-pointer, or apply state'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /function createTableControls|const setTableAlignmentSelectValue|const syncTableAlignmentControlForPosition|const tablePositionFromCellInput|new Event\(/,
+  'blocks editor root should not own table toolbar helpers, active-cell DOM mapping, or synthetic DOM events'
 );
 
 assert.doesNotMatch(

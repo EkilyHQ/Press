@@ -13,6 +13,7 @@ import { createEditorBlocksActiveSession } from './editor-blocks-active-session.
 import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksMathSession } from './editor-blocks-math-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksTableSession } from './editor-blocks-table-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -3658,90 +3659,26 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return controls;
   };
 
-  const clampTableColumn = (table, col) => {
-    const count = tableColumnCount(table);
-    if (!count) return 0;
-    const numeric = Number.isFinite(col) ? col : 0;
-    return Math.max(0, Math.min(count - 1, numeric));
-  };
-
-  const normalizeTablePosition = (block, position) => {
-    const table = editableTableData(block.data);
-    const col = clampTableColumn(table, position?.col);
-    const bodyRowCount = table.rows.length;
-    const wantsBody = position?.section === 'body' && bodyRowCount > 0;
-    const row = wantsBody
-      ? Math.max(0, Math.min(bodyRowCount - 1, Number.isFinite(position?.row) ? position.row : 0))
-      : 0;
-    return {
-      section: wantsBody ? 'body' : 'header',
-      row,
-      col
-    };
-  };
-
-  const activeTablePositionForBlock = (block) => normalizeTablePosition(
-    block,
-    blocksState.getActiveTableCellForBlock(block.id) || { section: 'header', row: 0, col: 0 }
-  );
-
-  const tablePositionFromCellInput = (input) => {
-    if (!input || !(input.matches && input.matches('.blocks-table-cell-input'))) return null;
-    return {
-      section: input.dataset.tableSection === 'body' ? 'body' : 'header',
-      row: Math.max(0, Number(input.dataset.tableRow) || 0),
-      col: Math.max(0, Number(input.dataset.tableCol) || 0)
-    };
-  };
-
-  const setTableAlignmentSelectValue = (alignment, value) => {
-    if (!alignment) return;
-    const normalized = normalizeTableAlignment(value);
-    alignment.value = normalized;
-    Array.from(alignment.options || []).forEach((option) => {
-      option.selected = option.value === normalized;
-    });
-    if (alignment.value !== normalized) alignment.value = '';
-    alignment.dataset.activeAlignment = normalized;
-  };
-
-  const applyTableAlignmentControlForPosition = (block, position) => {
-    const blockEl = blockElements().find(el => el?.dataset?.blockId === block.id) || null;
-    const alignment = blockEl?.querySelector('.blocks-table-align-select');
-    if (!alignment) return;
-    const table = editableTableData(block.data);
-    const normalized = normalizeTablePosition(block, position);
-    setTableAlignmentSelectValue(alignment, table.alignments[normalized.col]);
-  };
-
-  const isActiveTablePosition = (block, position) => {
-    return blocksState.activeTableCellMatches(block.id, position);
-  };
-
-  const syncTableAlignmentControlForPosition = (block, position) => {
-    const normalized = normalizeTablePosition(block, position);
-    const applyIfCurrent = () => {
-      if (!isActiveTablePosition(block, normalized)) return;
-      applyTableAlignmentControlForPosition(block, normalized);
-    };
-    applyTableAlignmentControlForPosition(block, normalized);
-    queueMicrotask(applyIfCurrent);
-    runtime.requestFrame(applyIfCurrent);
-    runtime.setTimer(applyIfCurrent, 0);
-  };
+  const tableSession = createEditorBlocksTableSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    runtime,
+    blocksState,
+    editableSession,
+    blockElements,
+    text,
+    editableTableData,
+    tableColumnCount,
+    normalizeTableAlignment,
+    normalizeTableCellValue,
+    setActive,
+    activateEditableFromPointer,
+    handleCrossBlockArrowNavigation,
+    updateFromControl,
+    queueTask: task => queueMicrotask(task)
+  });
 
   const syncActiveTableAlignmentFromEditable = (activeBlock, editable) => {
-    const cell = (editable && editable.matches && editable.matches('.blocks-table-cell-input'))
-      ? editable
-      : activeBlock?.querySelector('.blocks-table-cell-input:focus');
-    const position = tablePositionFromCellInput(cell);
-    if (!activeBlock || !position) return;
-    const blockId = activeBlock.dataset.blockId || '';
-    const block = state.blocks.find(candidate => candidate && candidate.id === blockId);
-    if (!block || block.type !== 'table') return;
-    const normalized = normalizeTablePosition(block, position);
-    blocksState.setActiveTableCell(block.id, normalized);
-    syncTableAlignmentControlForPosition(block, normalized);
+    tableSession?.syncActiveAlignmentFromEditable(activeBlock, editable, state.blocks);
   };
 
   activeSession = createEditorBlocksActiveSession({
@@ -3757,153 +3694,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     requestStickyBlockHeadUpdate,
     clearNativeSelection
   });
-
-  const setActiveTablePosition = (block, position) => {
-    const normalized = normalizeTablePosition(block, position);
-    blocksState.setActiveTableCell(block.id, normalized);
-    syncTableAlignmentControlForPosition(block, normalized);
-    return normalized;
-  };
-
-  const focusTableCell = (block, position) => {
-    const normalized = setActiveTablePosition(block, position);
-    queueMicrotask(() => {
-      const blockEl = blockElements().find(el => el?.dataset?.blockId === block.id) || null;
-      const selector = `.blocks-table-cell-input[data-table-section="${normalized.section}"][data-table-row="${normalized.row}"][data-table-col="${normalized.col}"]`;
-      const target = blockEl?.querySelector(selector);
-      if (target) {
-        target.focus();
-        target.select?.();
-      }
-    });
-  };
-
-  const updateTableBlock = (block, nextData, position) => {
-    block.data = editableTableData(nextData);
-    const normalized = setActiveTablePosition(block, position);
-    updateFromControl(block, block.data, true);
-    focusTableCell(block, normalized);
-  };
-
-  function createTableControls(block, index) {
-    const controls = document.createElement('div');
-    controls.className = 'blocks-table-controls';
-
-    const alignment = document.createElement('select');
-    alignment.className = 'blocks-table-align-select';
-    alignment.title = text('tableAlignment', 'Column alignment');
-    alignment.setAttribute('aria-label', text('tableAlignment', 'Column alignment'));
-    [
-      ['', text('tableAlignDefault', 'Default')],
-      ['left', text('tableAlignLeft', 'Left')],
-      ['center', text('tableAlignCenter', 'Center')],
-      ['right', text('tableAlignRight', 'Right')]
-    ].forEach(([value, label]) => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = label;
-      alignment.appendChild(option);
-    });
-
-    const syncAlignmentSelect = () => {
-      const table = editableTableData(block.data);
-      const position = activeTablePositionForBlock(block);
-      setTableAlignmentSelectValue(alignment, table.alignments[position.col]);
-    };
-
-    alignment.addEventListener('pointerdown', (event) => {
-      event.stopPropagation();
-      setActive(index);
-      syncAlignmentSelect();
-    });
-    alignment.addEventListener('focus', () => {
-      setActive(index);
-      syncAlignmentSelect();
-    });
-    alignment.addEventListener('change', () => {
-      const table = editableTableData(block.data);
-      const position = activeTablePositionForBlock(block);
-      table.alignments[position.col] = normalizeTableAlignment(alignment.value);
-      updateTableBlock(block, table, position);
-    });
-
-    const makeButton = (className, label, handler) => {
-      const buttonEl = button(label, `blocks-icon-btn ${className}`);
-      buttonEl.title = label;
-      buttonEl.setAttribute('aria-label', label);
-      buttonEl.addEventListener('pointerdown', (event) => {
-        event.stopPropagation();
-      });
-      buttonEl.addEventListener('click', (event) => {
-        event.preventDefault();
-        if (buttonEl.disabled) return;
-        setActive(index);
-        handler(buttonEl);
-      });
-      return buttonEl;
-    };
-
-    const addRow = makeButton('blocks-table-add-row', text('tableAddRow', 'Add row'), () => {
-      const table = editableTableData(block.data);
-      const position = activeTablePositionForBlock(block);
-      const blankRow = Array(tableColumnCount(table)).fill('');
-      const insertAt = position.section === 'body' ? position.row + 1 : 0;
-      table.rows.splice(insertAt, 0, blankRow);
-      updateTableBlock(block, table, { section: 'body', row: insertAt, col: position.col });
-    });
-
-    const addColumn = makeButton('blocks-table-add-column', text('tableAddColumn', 'Add column'), () => {
-      const table = editableTableData(block.data);
-      const position = activeTablePositionForBlock(block);
-      const insertAt = position.col + 1;
-      table.headers.splice(insertAt, 0, '');
-      table.alignments.splice(insertAt, 0, '');
-      table.rows = table.rows.map((row) => {
-        const nextRow = row.slice();
-        nextRow.splice(insertAt, 0, '');
-        return nextRow;
-      });
-      updateTableBlock(block, table, { ...position, col: insertAt });
-    });
-
-    const deleteRow = makeButton('blocks-table-delete-row', text('tableDeleteRow', 'Delete row'), () => {
-      const table = editableTableData(block.data);
-      if (table.rows.length <= 1) return;
-      const position = activeTablePositionForBlock(block);
-      const removeAt = position.section === 'body' ? position.row : 0;
-      table.rows.splice(removeAt, 1);
-      const nextRow = Math.max(0, Math.min(table.rows.length - 1, removeAt));
-      updateTableBlock(block, table, { section: 'body', row: nextRow, col: position.col });
-    });
-
-    const deleteColumn = makeButton('blocks-table-delete-column', text('tableDeleteColumn', 'Delete column'), () => {
-      const table = editableTableData(block.data);
-      if (tableColumnCount(table) <= 1) return;
-      const position = activeTablePositionForBlock(block);
-      table.headers.splice(position.col, 1);
-      table.alignments.splice(position.col, 1);
-      table.rows = table.rows.map((row) => {
-        const nextRow = row.slice();
-        nextRow.splice(position.col, 1);
-        return nextRow;
-      });
-      const nextCol = Math.max(0, Math.min(tableColumnCount(table) - 1, position.col));
-      updateTableBlock(block, table, { ...position, col: nextCol });
-    });
-
-    const updateDisabled = () => {
-      const table = editableTableData(block.data);
-      deleteRow.disabled = table.rows.length <= 1;
-      deleteColumn.disabled = tableColumnCount(table) <= 1;
-      syncAlignmentSelect();
-    };
-
-    controls.addEventListener('pointerdown', updateDisabled);
-    controls.addEventListener('focusin', updateDisabled);
-    controls.append(alignment, addRow, addColumn, deleteRow, deleteColumn);
-    updateDisabled();
-    return controls;
-  }
 
   const renderHeadingBlock = (body, block, index) => {
     const level = Math.max(1, Math.min(6, Number(block.data.level) || 2));
@@ -3964,99 +3754,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const renderTableBlock = (body, block, index) => {
-    const data = editableTableData(block.data);
-    block.data = data;
-    const wrap = document.createElement('div');
-    wrap.className = 'blocks-table-wrap';
-    const table = document.createElement('table');
-    table.className = 'blocks-table';
-
-    const createCellInput = (section, rowIndex, colIndex, value, isHeader) => {
-      const align = normalizeTableAlignment(data.alignments[colIndex]);
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = [
-        'blocks-table-cell-input',
-        isHeader ? 'blocks-table-header-cell' : 'blocks-table-body-cell',
-        `blocks-table-align-${align || 'default'}`
-      ].join(' ');
-      input.value = String(value || '');
-      input.spellcheck = true;
-      input.dataset.tableSection = section;
-      input.dataset.tableRow = String(rowIndex);
-      input.dataset.tableCol = String(colIndex);
-      input.setAttribute('aria-label', isHeader
-        ? `${text('table', 'Table')} ${text('heading', 'Heading')} ${colIndex + 1}`
-        : `${text('table', 'Table')} ${rowIndex + 1}, ${colIndex + 1}`);
-
-      const sync = () => {
-        const next = editableTableData(block.data);
-        const cleanValue = normalizeTableCellValue(input.value);
-        if (section === 'header') {
-          next.headers[colIndex] = cleanValue;
-        } else if (next.rows[rowIndex]) {
-          next.rows[rowIndex][colIndex] = cleanValue;
-        }
-        setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
-        updateFromControl(block, next);
-      };
-      editableSession.registerEditable(input, sync);
-      input.addEventListener('input', sync);
-      input.addEventListener('paste', (event) => {
-        const pasted = event.clipboardData && event.clipboardData.getData('text/plain');
-        if (pasted == null) return;
-        event.preventDefault();
-        const clean = normalizeTableCellValue(pasted);
-        if (typeof input.setRangeText === 'function') {
-          input.setRangeText(clean, input.selectionStart, input.selectionEnd, 'end');
-        } else {
-          input.value += clean;
-        }
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-      input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !event.isComposing) {
-          event.preventDefault();
-          return;
-        }
-        handleCrossBlockArrowNavigation(event, index, input);
-      });
-      input.addEventListener('focus', () => {
-        setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
-        setActive(index, input, sync);
-      });
-      input.addEventListener('pointerdown', (event) => {
-        if (event && event.button === 0 && event.isPrimary !== false) {
-          setActiveTablePosition(block, { section, row: rowIndex, col: colIndex });
-          activateEditableFromPointer(index, input, sync);
-        }
-      });
-      return input;
-    };
-
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    data.headers.forEach((header, colIndex) => {
-      const th = document.createElement('th');
-      th.appendChild(createCellInput('header', 0, colIndex, header, true));
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-
-    const tbody = document.createElement('tbody');
-    data.rows.forEach((row, rowIndex) => {
-      const tr = document.createElement('tr');
-      data.headers.forEach((_, colIndex) => {
-        const td = document.createElement('td');
-        td.appendChild(createCellInput('body', rowIndex, colIndex, row[colIndex] || '', false));
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-
-    table.append(thead, tbody);
-    wrap.appendChild(table);
-    body.appendChild(wrap);
+    tableSession?.renderBlock(body, block, index);
   };
 
   const createListTypeSelect = (block, index) => {
@@ -4759,7 +4457,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       head.appendChild(createImageMetadataControls(block, index));
     }
     if (block.type === 'table') {
-      head.appendChild(createTableControls(block, index));
+      const controls = tableSession?.createControls(block, index);
+      if (controls) head.appendChild(controls);
     }
     if (block.type === 'paragraph' || block.type === 'quote' || block.type === 'list') {
       head.appendChild(createInlineControls(index));

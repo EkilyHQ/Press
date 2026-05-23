@@ -66,6 +66,7 @@ const mainPath = resolve(here, '../assets/main.js');
 const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
+const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -156,6 +157,7 @@ const mainSource = readFileSync(mainPath, 'utf8');
 const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
+const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -883,6 +885,24 @@ assert.match(
   editorMainSource,
   /from '\.\/editor-main-runtime\.js\?v=[\w.-]+'/,
   'editor main should cache-bust the editor main runtime boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /from '\.\/editor-main-metadata-panel\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor main metadata panel boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
+  'editor main should compose front matter and tabs metadata through the metadata panel session'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /const frontMatterManager = \(\(\) =>|const tabsMetadataManager = \(\(\) =>|function syncFrontMatterLabelWidth|FRONT_MATTER_SECTION_DESCRIPTIONS|buildMarkdownWithFrontMatter|parseMarkdownFrontMatter|resolveFrontMatterBindings/,
+  'editor main root should not own front matter or tabs metadata panel internals'
 );
 
 assert.doesNotMatch(
@@ -3778,55 +3798,55 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /head\.className = 'frontmatter-field-head';[\s\S]*labelWrap\.className = 'frontmatter-field-label-wrap';[\s\S]*labelSpan\.className = 'frontmatter-field-title';[\s\S]*controls\.className = 'frontmatter-field-controls';[\s\S]*controls\.appendChild\([\s\S]*entry\.container\.appendChild\(controls\);/,
   'front matter field DOM should include field head, label wrap, and controls wrapper'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /const clear = \(\) => \{[\s\S]*state = \{[\s\S]*data:\s*\{\}[\s\S]*hasFrontMatter:\s*false[\s\S]*rebuildBindings\(\);[\s\S]*\};[\s\S]*return \{[\s\S]*clear,/,
   'front matter manager should expose a clear helper to reset stale article metadata state'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /const setFrontMatterVisible = \(visible\) => \{[\s\S]*const nextVisible = !!visible;[\s\S]*const shouldClear = !nextVisible && frontMatterVisible;[\s\S]*frontMatterVisible = nextVisible;[\s\S]*if \(shouldClear && frontMatterManager && typeof frontMatterManager\.clear === 'function'\) frontMatterManager\.clear\(\);[\s\S]*updateMetadataPanelVisibility\(\);[\s\S]*\};/,
   'switching into page metadata mode should clear stale article front matter state only on visibility transitions'
 );
 
 assert.match(
-  editorMainSource,
-  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*editorMainRuntime\.requestFrame\(fn\)[\s\S]*ResizeObserver/,
+  editorMainMetadataPanelSource,
+  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
   'front matter labels should be measured after render and shared through a CSS variable'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*root\.style\.setProperty\('--frontmatter-single-label-width'/,
   'front matter label measurement should write the shared label width CSS variable'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /const measureLabelText = \(label\) => \{[\s\S]*label\.scrollWidth[\s\S]*probe\.textContent = label\.textContent \|\| '';[\s\S]*probe\.style\.whiteSpace = 'nowrap';/,
   'front matter label measurement should probe intrinsic text width when current layout is constrained'
 );
 
 assert.match(
-  editorMainSource,
-  /querySelector\('\.frontmatter-help-tooltip'\)[\s\S]*measureLabelText\(label\)[\s\S]*getComputedStyle\(target \|\| label\)[\s\S]*gap/,
+  editorMainMetadataPanelSource,
+  /querySelector\('\.frontmatter-help-tooltip'\)[\s\S]*measureLabelText\(label\)[\s\S]*getComputedStyleRef\(target \|\| label\)[\s\S]*gap/,
   'front matter label measurement should use intrinsic label width plus the visible help button and gap'
 );
 
 assert.match(
   editorMainSource,
-  /editorMainRuntime\.onDocument\('press-editor-language-applied'[\s\S]*frontMatterManager\.applySectionDescriptions\(\);[\s\S]*syncFrontMatterLabelWidth\(frontMatterManager\.panel\);/,
+  /editorMainRuntime\.onDocument\('press-editor-language-applied'[\s\S]*metadataPanel\.syncLanguage\(\);/,
   'front matter labels should resync after editor language changes update localized labels'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /const updateMetadataPanelVisibility = \(\) => \{[\s\S]*tabsMetadataManager\.setVisible\(tabsMetadataVisible\);[\s\S]*syncFrontMatterLabelWidth\(panel\);/,
   'front matter labels should resync after article/page metadata visibility changes'
 );
@@ -3862,7 +3882,7 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
-  `${editorSource}\n${editorMainSource}`,
+  `${editorSource}\n${editorMainSource}\n${editorMainMetadataPanelSource}`,
   /frontMatterToggle|frontMatterSummary|frontMatterHelp|frontmatter-toggle|class="frontmatter-help"|\.frontmatter-help\s*\{|data-collapsed/,
   'front matter editor should not render the old collapsible heading or helper copy'
 );
@@ -3874,13 +3894,13 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
+  editorMainMetadataPanelSource,
   /const syncBooleanControl = \(entry, value\) => \{[\s\S]*entry\.input\.setAttribute\('aria-checked', checked \? 'true' : 'false'\);[\s\S]*wrap\.className = 'frontmatter-switch';[\s\S]*checkbox\.setAttribute\('role', 'switch'\);[\s\S]*entry\.switchEl = wrap;/,
   'front matter boolean fields should sync switch state through the existing input binding'
 );
 
 assert.doesNotMatch(
-  `${editorSource}\n${editorMainSource}`,
+  `${editorSource}\n${editorMainSource}\n${editorMainMetadataPanelSource}`,
   /frontmatter-clear|frontmatter-actions|clearEntryValue|editor\.frontMatter\.booleanLabel/,
   'front matter boolean fields should not keep the old checkbox label or clear action'
 );
@@ -3892,27 +3912,39 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /let frontMatterVisible = true;[\s\S]*let tabsMetadataVisible = false;[\s\S]*const inferCurrentFileSource = \(path\) => \{[\s\S]*normalized\.startsWith\('tab\/'\) \? 'tabs' : '';[\s\S]*const setFrontMatterVisible = \(visible\) => \{[\s\S]*const nextVisible = !!visible;[\s\S]*const shouldClear = !nextVisible && frontMatterVisible;[\s\S]*frontMatterVisible = nextVisible;[\s\S]*if \(shouldClear && frontMatterManager && typeof frontMatterManager\.clear === 'function'\) frontMatterManager\.clear\(\);[\s\S]*updateMetadataPanelVisibility\(\);[\s\S]*const setTabsMetadataVisible = \(visible\) => \{[\s\S]*tabsMetadataVisible = !!visible;[\s\S]*updateMetadataPanelVisibility\(\);[\s\S]*assignCurrentFileLabel = \(input\) => \{[\s\S]*setFrontMatterVisible\(currentFileInfo\.source !== 'tabs'\);[\s\S]*setTabsMetadataVisible\(currentFileInfo\.source === 'tabs'\);/,
-  'markdown editor should swap between article front matter and tabs metadata visibility by file source'
+  editorMainMetadataPanelSource,
+  /let frontMatterVisible = true;[\s\S]*let tabsMetadataVisible = false;[\s\S]*const inferCurrentFileSource = \(path\) => \{[\s\S]*normalized\.startsWith\('tab\/'\) \? 'tabs' : '';[\s\S]*const setFrontMatterVisible = \(visible\) => \{[\s\S]*const nextVisible = !!visible;[\s\S]*const shouldClear = !nextVisible && frontMatterVisible;[\s\S]*frontMatterVisible = nextVisible;[\s\S]*frontMatterManager\.clear\(\);[\s\S]*const setTabsMetadataVisible = \(visible\) => \{[\s\S]*tabsMetadataVisible = !!visible;[\s\S]*applyCurrentFileSource: \(source\) => \{[\s\S]*setFrontMatterVisible\(actual !== 'tabs'\);[\s\S]*setTabsMetadataVisible\(actual === 'tabs'\);/,
+  'metadata panel session should swap between article front matter and tabs metadata visibility by file source'
 );
 
 assert.match(
   editorMainSource,
-  /const getValue = \(\) => \{[\s\S]*if \(frontMatterVisible && frontMatterManager\) return frontMatterManager\.buildMarkdown\(body\);[\s\S]*const setValue = \(value, opts = \{\}\) => \{[\s\S]*if \(frontMatterVisible && frontMatterManager\) \{/,
-  'page markdown should bypass front matter parsing and rebuilding while the panel is hidden'
+  /const assignCurrentFileLabel = \(input\) => \{[\s\S]*metadataPanel\.applyCurrentFileSource\(currentFileInfo\.source\);/,
+  'editor main should delegate file-source metadata mode changes to the metadata panel session'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /buildEditorValue: \(body\) => \([\s\S]*frontMatterVisible && frontMatterManager \? frontMatterManager\.buildMarkdown\(body\) : body[\s\S]*setEditorValue: \(value, opts = \{\}\) => \([\s\S]*frontMatterVisible && frontMatterManager[\s\S]*frontMatterManager\.setFromMarkdown\(value, opts\)[\s\S]*String\(value == null \? '' : value\)/,
+  'metadata panel session should bypass front matter parsing and rebuilding while the panel is hidden'
 );
 
 assert.match(
   editorMainSource,
-  /const tabsMetadataManager = \(\(\) => \{[\s\S]*className = 'frontmatter-section';[\s\S]*className = 'frontmatter-grid';[\s\S]*className = 'frontmatter-field frontmatter-field-text';[\s\S]*dataset\.fieldId = 'tabs-title';[\s\S]*setChangeHandler: \(fn\) => \{[\s\S]*setValue: \(value, opts = \{\}\) => \{[\s\S]*emitChange\(\);/,
-  'markdown editor should define a tabs metadata manager that reuses the frontmatter panel shell and field styling'
+  /const getValue = \(\) => \{[\s\S]*metadataPanel\.buildEditorValue\(body\);[\s\S]*const setValue = \(value, opts = \{\}\) => \{[\s\S]*metadataPanel\.setEditorValue\(text, \{ silent: true \}\);/,
+  'editor main should route markdown value front matter handling through the metadata panel session'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /const createTabsMetadataManager = \(\) => \{[\s\S]*section\.className = 'frontmatter-section';[\s\S]*grid\.className = 'frontmatter-grid';[\s\S]*field\.className = 'frontmatter-field frontmatter-field-text';[\s\S]*field\.dataset\.fieldId = 'tabs-title';[\s\S]*setChangeHandler: \(fn\) => \{[\s\S]*setValue: \(value, opts = \{\}\) => \{[\s\S]*emitChange\(\);/,
+  'metadata panel session should define a tabs metadata manager that reuses the frontmatter panel shell and field styling'
 );
 
 assert.match(
   editorMainSource,
-  /const primaryEditorApi = \{[\s\S]*setTabsMetadata: \(value, opts = \{\}\) => tabsMetadataManager && tabsMetadataManager\.setValue\(value, opts\),[\s\S]*onTabsMetadataChange: \(fn\) => \{[\s\S]*tabsMetadataChangeListeners\.add\(fn\);/,
-  'primary editor API should expose tabs metadata setters and change subscriptions'
+  /const primaryEditorApi = \{[\s\S]*setTabsMetadata: \(value, opts = \{\}\) => metadataPanel\.setTabsMetadata\(value, opts\),[\s\S]*onTabsMetadataChange: \(fn\) => \{[\s\S]*return metadataPanel\.onTabsMetadataChange\(fn\);/,
+  'primary editor API should expose tabs metadata setters and change subscriptions through the metadata panel session'
 );
 
 assert.match(

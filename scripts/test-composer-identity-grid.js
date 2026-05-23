@@ -67,6 +67,7 @@ const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
+const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
@@ -155,6 +156,7 @@ const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
+const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
@@ -273,6 +275,18 @@ assert.match(
   editorMainSource,
   /from '\.\/editor-blocks\.js\?v=[\w.-]+'/,
   'editor preview should cache-bust the Markdown blocks editor when math block handling changes'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-model\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,[\s\S]*\} from '\.\/editor-blocks-model\.js\?v=[\w.-]+'/,
+  'blocks editor should import table model helpers from the explicit blocks model boundary before composing the table session'
 );
 
 assert.match(
@@ -1553,9 +1567,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  `${editorBlocksModelSource}\n${editorBlocksSource}`,
   /export function parseMarkdownBlocks\(markdown\)[\s\S]*export function serializeMarkdownBlocks\(blocks\)[\s\S]*export function createMarkdownBlocksEditor\(root, options = \{\}\)/,
-  'blocks mode should provide parser, serializer, and DOM controller entrypoints'
+  'blocks mode should provide model parser/serializer and DOM controller entrypoints'
 );
 
 assert.doesNotMatch(
@@ -1625,7 +1639,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksModelSource,
   /export function isBlockEmptyForBackspace\(block\) \{[\s\S]*block\.type === 'blank'[\s\S]*block\.type === 'paragraph'[\s\S]*block\.type === 'heading'[\s\S]*block\.type === 'quote'[\s\S]*block\.type === 'code'[\s\S]*block\.type === 'source'[\s\S]*block\.type === 'image'[\s\S]*block\.type === 'card'[\s\S]*block\.type === 'list'[\s\S]*editableListItems\(data\.items\)\.every\(item => blank\(item && item\.text\) && !item\.checked\);/,
   'empty block backspace detection should cover blank, text, media, card, and list user-authored content'
 );
@@ -1736,13 +1750,13 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
+  `${editorBlocksModelSource}\n${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineRangeAnyMarked\(runs, start, end, mark\)[\s\S]*next > safeStart && cursor < safeEnd && !!run\[mark\][\s\S]*const shouldApply = command === 'code'[\s\S]*inlineRangeAnyMarked\(runs, start, end, command\)[\s\S]*inlineRangeAnyMarked\(runs, offsets\.start, offsets\.end, mark\)/,
   'B/I/S inline formatting should treat mixed selected ranges as active when any selected text has the mark'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksModelSource,
   /function inlineMarksAtOffset\(runs, offset\)[\s\S]*let previous = null;[\s\S]*target === cursor \|\| \(target > cursor && target < next\)[\s\S]*if \(target === next\) previous = run;[\s\S]*previous \|\| safeRuns\[safeRuns\.length - 1\]/,
   'collapsed caret inline formatting should prefer the right-hand run at mark boundaries and only fall back to the previous run at the end'
 );
@@ -2714,7 +2728,7 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
+  `${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
   /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
   'Backspace or Delete at the start of a non-first visual list item should merge only structurally safe same-level items'
 );

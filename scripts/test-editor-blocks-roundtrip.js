@@ -40,6 +40,7 @@ const run = (name, fn) => {
 };
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
+const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
 const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
@@ -647,12 +648,12 @@ run('blank blocks replace the inline virtual insertion state', () => {
     'blank blocks should not depend on persistent inline virtual block state'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksModelSource,
     /const BLOCK_TYPES = new Set\(\[[^\]]*'blank'[^\]]*\]\)/,
     'blank should be an internal block type'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksModelSource,
     /function makeBlankBlock\(after = '\\n', data = \{\}\)[\s\S]*makeBlock\('blank', '', \{ \.\.\.data, after: after \|\| '\\n' \}\)/,
     'blank blocks should serialize as newline whitespace only'
   );
@@ -707,7 +708,7 @@ run('typing or slash command on blank blocks replaces the blank block', () => {
 
 run('blank blocks use existing removable and cross-block navigation paths', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksModelSource,
     /if \(block\.type === 'blank'\) return true;/,
     'empty-block Backspace detection should treat blank blocks as removable'
   );

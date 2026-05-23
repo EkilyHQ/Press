@@ -36,6 +36,7 @@ const themeLayout = read('assets/js/theme-layout.js');
 const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
+const editorBlocksModel = read('assets/js/editor-blocks-model.js');
 const editorBlocksHeadSession = read('assets/js/editor-blocks-head-session.js');
 const editorBlocksActiveSession = read('assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSession = read('assets/js/editor-blocks-inline-toolbar-session.js');
@@ -119,7 +120,7 @@ assert.match(main, /import\('\.\/js\/syntax-highlight\.js\?v=[\w.-]+'\)/, 'main 
 assert.match(syntaxHighlight, /vendor\/highlightjs\/highlight\.min\.js/, 'syntax highlighter should load the vendored Highlight.js common bundle');
 assert.match(highlightJsBundle, /Highlight\.js v11\.11\.1/, 'vendored Highlight.js bundle should stay pinned to the reviewed common browser build');
 assert.match(editorBlocks, /from '\.\/math-render\.js\?v=[\w.-]+';/, 'block editor should reuse the vendored KaTeX math renderer');
-assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block editor should register a math block type');
+assert.match(editorBlocksModel, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block model should register a math block type');
 assert.match(editorBlocksInlineToolbarSession, /\['\\u2211', 'math', 'inlineMath', 'Math'\]/, 'block editor should expose an inline math command through the inline toolbar session');
 assert.match(indexEditorHtml, /blocks-math-editor[\s\S]*blocks-math-editor textarea/, 'block editor should include math source popover styling');
 assert.match(editorBlocksMathSession, /mathSource\.className = 'blocks-math-source'/, 'block editor math session should create a math source popover field');
@@ -264,8 +265,8 @@ assert.match(linkCards, /stripEncryptedBodyForPublicUse\(rawMarkdown\)/, 'intern
 assert.match(nativeCss, /press-search\.box,[\s\S]*press-theme-controls\.box,[\s\S]*press-toc\.box\s*\{\s*display: block;/, 'native component hosts should preserve block layout');
 assert.match(nativeCss, /\.protected-post-excerpt[\s\S]*color: var\(--text\);/, 'native locked article panel should style the public excerpt separately from the generic unlock copy');
 
-assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*\]\);/, 'block editor should register a visual table block type');
-assert.match(editorBlocks, /function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'block editor should parse supported pipe tables into structured table data');
+assert.match(editorBlocksModel, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*\]\);/, 'block model should register a visual table block type');
+assert.match(editorBlocksModel, /function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'block model should parse supported pipe tables into structured table data');
 assert.match(editorBlocksTableSession, /const renderBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'table session should render editable table cell inputs with alignment hooks');
 assert.match(editorBlocks, /const renderTableBlock = \(body, block, index\) => \{[\s\S]*tableSession\?\.renderBlock\(body, block, index\);[\s\S]*\};/, 'block editor root should delegate table rendering through the table session boundary');
 assert.match(editorBlocksTableSession, /const createControls = \(block, index\) => \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/, 'table session should expose table row, column, and alignment controls');

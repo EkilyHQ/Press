@@ -61,9 +61,7 @@ export function createEditorBlocksState() {
     cardPickerInsertIndex: null,
     commandMenuOpen: false,
     commandMenuInsertIndex: null,
-    reorderAnimating: false,
-    openActionMenu: null,
-    openInlineMenu: null
+    reorderAnimating: false
   };
 }
 

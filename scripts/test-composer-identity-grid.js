@@ -69,6 +69,7 @@ const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
+const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -136,6 +137,7 @@ const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
+const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -243,6 +245,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-state\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks state controller boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-menu-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks menu session boundary'
 );
 
 assert.doesNotMatch(
@@ -1413,6 +1421,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /const closeInlineMoreMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeInlineMenu\(restoreFocus\);[\s\S]*const createInlineMoreMenu = \(index\) => \{[\s\S]*menuSession\.openInlineMenu\(\{ wrap, trigger, menu \}\);[\s\S]*menuSession\.isInlineMenuOpen\(menu\)/,
+  'inline more menu DOM handles should be routed through the explicit menu session service'
+);
+
+assert.match(
+  editorBlocksSource,
   /const createListIndentControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-list-indent-controls'[\s\S]*\['←', -1, 'listOutdent'[\s\S]*\['→', 1, 'listIndent'[\s\S]*indentListItem\(block, index, delta\)[\s\S]*if \(block\.type === 'list'\) \{[\s\S]*head\.appendChild\(createListIndentControls\(block, index\)\);/,
   'list blocks should expose outdent and indent buttons in the floating toolbar'
 );
@@ -1615,6 +1629,24 @@ assert.match(
   'block reorder and delete actions should live behind a right-side overflow menu trigger'
 );
 
+assert.doesNotMatch(
+  editorBlocksStateSource,
+  /openActionMenu|openInlineMenu/,
+  'blocks model state should not store DOM-backed action or inline menu sessions'
+);
+
+assert.match(
+  editorBlocksMenuSessionSource,
+  /export function createEditorBlocksMenuSession[\s\S]*let actionMenu = null;[\s\S]*let inlineMenu = null;[\s\S]*function closeActionMenu\(restoreFocus = false\)[\s\S]*function closeInlineMenu\(restoreFocus = false\)/,
+  'blocks menu overlay lifecycle should live in an explicit DOM-side menu session service'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const menuSession = createEditorBlocksMenuSession\(\{[\s\S]*onDocument,[\s\S]*onWindow,[\s\S]*containsNode: nodeContains[\s\S]*\}\);[\s\S]*const closeBlockActionMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeActionMenu\(restoreFocus\);[\s\S]*menuSession\.openActionMenu\(\{[\s\S]*onReposition: \(\) => alignBlockActionMenu\(menu, trigger\)[\s\S]*menuSession\.isActionMenuOpen\(menu\)/,
+  'block action menu DOM handles should be routed through the explicit menu session service'
+);
+
 assert.match(
   editorBlocksSource,
   /const actionMenuBoundaryLeft = \(\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*return Math\.max\(8, Math\.floor\(rect\.left\)\);[\s\S]*const alignBlockActionMenu = \(menu, trigger = null\) => \{[\s\S]*menu\.classList\.remove\('is-open-right'\);[\s\S]*const boundaryLeft = actionMenuBoundaryLeft\(\);[\s\S]*const triggerRect = trigger && trigger\.getBoundingClientRect[\s\S]*const leftSpace = triggerRect \? triggerRect\.right - boundaryLeft : menuRect\.left - boundaryLeft;[\s\S]*if \(leftSpace < menuRect\.width \+ 8\) menu\.classList\.add\('is-open-right'\);/,
@@ -1628,8 +1660,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const closeBlockActionMenu = \(restoreFocus = false\) => \{[\s\S]*current\.menu\.classList\.remove\('is-open-right'\);[\s\S]*current\.detachDocDown\?\.\(\);[\s\S]*current\.detachKeyDown\?\.\(\);[\s\S]*current\.detachResize\?\.\(\);[\s\S]*current\.detachScroll\?\.\(\);[\s\S]*if \(restoreFocus\)[\s\S]*const onDocDown = \(event\) => \{[\s\S]*closeBlockActionMenu\(false\);[\s\S]*const onKeyDown = \(event\) => \{[\s\S]*event\.key === 'Escape'[\s\S]*closeBlockActionMenu\(true\);/,
+  editorBlocksMenuSessionSource,
+  /function closeActionMenu\(restoreFocus = false\)[\s\S]*clearRightAlignment: true[\s\S]*const closeFromPointer = \(event\) => \{[\s\S]*containsNode\(wrap, event && event\.target\)[\s\S]*closeActionMenu\(false\);[\s\S]*const closeFromKey = \(event\) => \{[\s\S]*event\.key !== 'Escape'[\s\S]*closeActionMenu\(true\);[\s\S]*onDocument\('mousedown', closeFromPointer, true\)[\s\S]*onWindow\('scroll', reposition, true\)/,
   'overflow menu should close on outside click and Escape while cleaning document and window listeners'
 );
 

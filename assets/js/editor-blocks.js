@@ -2,6 +2,7 @@ import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
+import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2800,6 +2801,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     splitBlankLineUnitsRef: splitBlankLineUnits
   });
   const state = blocksState.state;
+  const menuSession = createEditorBlocksMenuSession({
+    onDocument,
+    onWindow,
+    containsNode: nodeContains
+  });
 
   root.classList.add('markdown-blocks-shell');
   root.innerHTML = '';
@@ -3101,34 +3107,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const closeBlockActionMenu = (restoreFocus = false) => {
-    const current = state.openActionMenu;
-    if (!current) return;
-    state.openActionMenu = null;
-    try { current.menu.hidden = true; } catch (_) {}
-    try { current.trigger.setAttribute('aria-expanded', 'false'); } catch (_) {}
-    try { current.wrap.classList.remove('is-open'); } catch (_) {}
-    try { current.menu.classList.remove('is-open-right'); } catch (_) {}
-    try { current.detachDocDown?.(); } catch (_) {}
-    try { current.detachKeyDown?.(); } catch (_) {}
-    try { current.detachResize?.(); } catch (_) {}
-    try { current.detachScroll?.(); } catch (_) {}
-    if (restoreFocus) {
-      try { current.trigger.focus(); } catch (_) {}
-    }
+    menuSession.closeActionMenu(restoreFocus);
   };
 
   const closeInlineMoreMenu = (restoreFocus = false) => {
-    const current = state.openInlineMenu;
-    if (!current) return;
-    state.openInlineMenu = null;
-    try { current.menu.hidden = true; } catch (_) {}
-    try { current.trigger.setAttribute('aria-expanded', 'false'); } catch (_) {}
-    try { current.wrap.classList.remove('is-open'); } catch (_) {}
-    try { current.detachDocDown?.(); } catch (_) {}
-    try { current.detachKeyDown?.(); } catch (_) {}
-    if (restoreFocus) {
-      try { current.trigger.focus(); } catch (_) {}
-    }
+    menuSession.closeInlineMenu(restoreFocus);
   };
 
   const deleteBlockAt = (index) => {
@@ -3225,36 +3208,18 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     makeItem(text('delete', 'Delete'), 'blocks-action-menu-delete', false, () => deleteBlockAt(index));
 
     const openMenu = () => {
-      if (state.openActionMenu && state.openActionMenu.menu === menu) return;
-      closeBlockActionMenu(false);
-      const onDocDown = (event) => {
-        if (nodeContains(wrap, event.target)) return;
-        closeBlockActionMenu(false);
-      };
-      const onKeyDown = (event) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeBlockActionMenu(true);
-        }
-      };
-      const onReposition = () => alignBlockActionMenu(menu, trigger);
-      const detachDocDown = onDocument('mousedown', onDocDown, true);
-      const detachKeyDown = onDocument('keydown', onKeyDown, true);
-      const detachResize = onWindow('resize', onReposition);
-      const detachScroll = onWindow('scroll', onReposition, true);
-      state.openActionMenu = { wrap, trigger, menu, detachDocDown, detachKeyDown, detachResize, detachScroll };
-      menu.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      wrap.classList.add('is-open');
-      alignBlockActionMenu(menu, trigger);
-      const firstEnabled = menu.querySelector('.blocks-action-menu-item:not(:disabled)');
-      try { firstEnabled?.focus(); } catch (_) {}
+      menuSession.openActionMenu({
+        wrap,
+        trigger,
+        menu,
+        onReposition: () => alignBlockActionMenu(menu, trigger)
+      });
     };
 
     trigger.addEventListener('mousedown', (event) => event.preventDefault());
     trigger.addEventListener('click', () => {
       setActive(index);
-      if (state.openActionMenu && state.openActionMenu.menu === menu) {
+      if (menuSession.isActionMenuOpen(menu)) {
         closeBlockActionMenu(false);
       } else {
         openMenu();
@@ -4080,32 +4045,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     });
 
     const openMenu = () => {
-      if (state.openInlineMenu && state.openInlineMenu.menu === menu) return;
-      closeInlineMoreMenu(false);
-      const onDocDown = (event) => {
-        if (nodeContains(wrap, event.target)) return;
-        closeInlineMoreMenu(false);
-      };
-      const onKeyDown = (event) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeInlineMoreMenu(true);
-        }
-      };
-      const detachDocDown = onDocument('mousedown', onDocDown, true);
-      const detachKeyDown = onDocument('keydown', onKeyDown, true);
-      state.openInlineMenu = { wrap, trigger, menu, detachDocDown, detachKeyDown };
-      menu.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-      wrap.classList.add('is-open');
-      const firstEnabled = menu.querySelector('.blocks-inline-menu-item:not(:disabled)');
-      try { firstEnabled?.focus(); } catch (_) {}
+      menuSession.openInlineMenu({ wrap, trigger, menu });
     };
 
     trigger.addEventListener('mousedown', (event) => event.preventDefault());
     trigger.addEventListener('click', () => {
       setActive(index);
-      if (state.openInlineMenu && state.openInlineMenu.menu === menu) {
+      if (menuSession.isInlineMenuOpen(menu)) {
         closeInlineMoreMenu(false);
       } else {
         openMenu();

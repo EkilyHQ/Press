@@ -13,6 +13,14 @@ function defaultInlineCommandMark(command) {
   return command === 'strikeThrough' ? 'strike' : command;
 }
 
+function createButton(documentRef, label, className = 'blocks-inline-btn') {
+  const btn = documentRef.createElement('button');
+  btn.type = 'button';
+  btn.className = className;
+  btn.textContent = label;
+  return btn;
+}
+
 function clearButtonState(btn) {
   btn.classList.remove('is-active');
   btn.classList.remove('is-disabled');
@@ -36,13 +44,18 @@ function applyButtonState(btn, active, disabled) {
 }
 
 export function createEditorBlocksInlineToolbarSession({
+  documentRef = typeof document !== 'undefined' ? document : null,
   state = null,
   blocksState = null,
   editableSession = null,
   root = null,
   list = null,
+  menuSession = null,
   selectionSession = null,
   caretSession = null,
+  text = (_key, fallback) => fallback,
+  setActive = noop,
+  applyInlineCommand = noop,
   containsNode = defaultContainsNode,
   closestElement = () => null,
   selectionEditableInRoot = () => null,
@@ -70,6 +83,99 @@ export function createEditorBlocksInlineToolbarSession({
       : [];
   };
   const hasBlocksState = method => !!(blocksState && typeof blocksState[method] === 'function');
+
+  const directControls = [
+    ['B', 'bold', 'inlineBold', 'Bold'],
+    ['I', 'italic', 'inlineItalic', 'Italic'],
+    ['Link', 'link', 'inlineLink', 'Link'],
+    ['\u2211', 'math', 'inlineMath', 'Math']
+  ];
+  const moreControls = [
+    ['S', 'strikeThrough', 'inlineStrike', 'Strikethrough'],
+    ['`', 'code', 'inlineCode', 'Inline code']
+  ];
+
+  const closeMoreMenu = (restoreFocus = false) => {
+    if (menuSession && typeof menuSession.closeInlineMenu === 'function') {
+      menuSession.closeInlineMenu(restoreFocus);
+    }
+  };
+
+  const createCommandButton = (label, command, key, fallback, index, className = 'blocks-inline-btn') => {
+    if (!documentRef) return null;
+    const btn = createButton(documentRef, label, className);
+    btn.dataset.inlineCommand = command;
+    btn.title = text(key, fallback);
+    btn.setAttribute('aria-label', text(key, fallback));
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('mousedown', (event) => event.preventDefault());
+    btn.addEventListener('click', () => {
+      if (btn.getAttribute('aria-disabled') === 'true') return;
+      setActive(index);
+      applyInlineCommand(command);
+    });
+    return btn;
+  };
+
+  const createMoreMenu = (index) => {
+    if (!documentRef) return null;
+    const wrap = documentRef.createElement('div');
+    wrap.className = 'blocks-inline-more';
+    const trigger = createButton(documentRef, 'Aa', 'blocks-inline-btn blocks-inline-more-trigger');
+    const moreLabel = text('inlineMore', 'More formatting');
+    trigger.title = moreLabel;
+    trigger.setAttribute('aria-label', moreLabel);
+    trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const menu = documentRef.createElement('div');
+    menu.className = 'blocks-inline-more-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+
+    moreControls.forEach(([_label, command, key, fallback]) => {
+      const item = createCommandButton(text(key, fallback), command, key, fallback, index, 'blocks-inline-menu-item');
+      if (!item) return;
+      item.setAttribute('role', 'menuitem');
+      item.addEventListener('mousedown', (event) => event.preventDefault());
+      item.addEventListener('click', () => closeMoreMenu(false));
+      menu.appendChild(item);
+    });
+
+    const openMenu = () => {
+      if (menuSession && typeof menuSession.openInlineMenu === 'function') {
+        menuSession.openInlineMenu({ wrap, trigger, menu });
+      }
+    };
+
+    trigger.addEventListener('mousedown', (event) => event.preventDefault());
+    trigger.addEventListener('click', () => {
+      setActive(index);
+      if (menuSession && typeof menuSession.isInlineMenuOpen === 'function' && menuSession.isInlineMenuOpen(menu)) {
+        closeMoreMenu(false);
+      } else {
+        openMenu();
+      }
+    });
+
+    wrap.append(trigger, menu);
+    return wrap;
+  };
+
+  const createControls = (index) => {
+    if (!documentRef) return null;
+    const controls = documentRef.createElement('div');
+    controls.className = 'blocks-inline-controls';
+    controls.setAttribute('role', 'toolbar');
+    controls.setAttribute('aria-label', text('inlineToolbarAria', 'Inline formatting'));
+    directControls.forEach(([label, command, key, fallback]) => {
+      const btn = createCommandButton(label, command, key, fallback, index);
+      if (btn) controls.appendChild(btn);
+    });
+    const moreMenu = createMoreMenu(index);
+    if (moreMenu) controls.appendChild(moreMenu);
+    return controls;
+  };
 
   function recoverActiveFromSelection(nodes) {
     const selectionEditable = selectionEditableInRoot(root, selectionSession);
@@ -159,5 +265,9 @@ export function createEditorBlocksInlineToolbarSession({
     });
   }
 
-  return { update };
+  return {
+    closeMoreMenu,
+    createControls,
+    update
+  };
 }

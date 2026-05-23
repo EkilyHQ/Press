@@ -37,6 +37,7 @@ const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
 const editorBlocksActiveSession = read('assets/js/editor-blocks-active-session.js');
+const editorBlocksInlineToolbarSession = read('assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksMathSession = read('assets/js/editor-blocks-math-session.js');
 const editorBlocksTableSession = read('assets/js/editor-blocks-table-session.js');
 const syntaxHighlight = read('assets/js/syntax-highlight.js');
@@ -118,7 +119,7 @@ assert.match(syntaxHighlight, /vendor\/highlightjs\/highlight\.min\.js/, 'syntax
 assert.match(highlightJsBundle, /Highlight\.js v11\.11\.1/, 'vendored Highlight.js bundle should stay pinned to the reviewed common browser build');
 assert.match(editorBlocks, /from '\.\/math-render\.js\?v=[\w.-]+';/, 'block editor should reuse the vendored KaTeX math renderer');
 assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block editor should register a math block type');
-assert.match(editorBlocks, /\['∑', 'math', 'inlineMath', 'Math'\]/, 'block editor should expose an inline math command');
+assert.match(editorBlocksInlineToolbarSession, /\['\\u2211', 'math', 'inlineMath', 'Math'\]/, 'block editor should expose an inline math command through the inline toolbar session');
 assert.match(indexEditorHtml, /blocks-math-editor[\s\S]*blocks-math-editor textarea/, 'block editor should include math source popover styling');
 assert.match(editorBlocksMathSession, /mathSource\.className = 'blocks-math-source'/, 'block editor math session should create a math source popover field');
 assert.match(main, /from '\.\/js\/theme-layout\.js\?v=[\w.-]+';/, 'main should cache-bust theme layout when preview theme mount generation changes');

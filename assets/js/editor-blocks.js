@@ -3031,86 +3031,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     applyRunsToEditable(editable, nextRuns, offsets.end);
   };
 
-  const inlineControls = [
-    ['B', 'bold', 'inlineBold', 'Bold'],
-    ['I', 'italic', 'inlineItalic', 'Italic'],
-    ['Link', 'link', 'inlineLink', 'Link'],
-    ['∑', 'math', 'inlineMath', 'Math']
-  ];
-  const inlineMoreControls = [
-    ['S', 'strikeThrough', 'inlineStrike', 'Strikethrough'],
-    ['`', 'code', 'inlineCode', 'Inline code']
-  ];
-
-  const createInlineCommandButton = (label, command, key, fallback, index, className = 'blocks-inline-btn') => {
-    const btn = button(label, className);
-    btn.dataset.inlineCommand = command;
-    btn.title = text(key, fallback);
-    btn.setAttribute('aria-label', text(key, fallback));
-    btn.setAttribute('aria-pressed', 'false');
-    btn.addEventListener('mousedown', (event) => event.preventDefault());
-    btn.addEventListener('click', () => {
-      if (btn.getAttribute('aria-disabled') === 'true') return;
-      setActive(index);
-      applyInlineCommand(command);
-    });
-    return btn;
-  };
-
-  const createInlineMoreMenu = (index) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'blocks-inline-more';
-    const trigger = button('Aa', 'blocks-inline-btn blocks-inline-more-trigger');
-    const moreLabel = text('inlineMore', 'More formatting');
-    trigger.title = moreLabel;
-    trigger.setAttribute('aria-label', moreLabel);
-    trigger.setAttribute('aria-haspopup', 'menu');
-    trigger.setAttribute('aria-expanded', 'false');
-
-    const menu = document.createElement('div');
-    menu.className = 'blocks-inline-more-menu';
-    menu.setAttribute('role', 'menu');
-    menu.hidden = true;
-
-    inlineMoreControls.forEach(([_label, command, key, fallback]) => {
-      const item = createInlineCommandButton(text(key, fallback), command, key, fallback, index, 'blocks-inline-menu-item');
-      item.setAttribute('role', 'menuitem');
-      item.addEventListener('mousedown', (event) => event.preventDefault());
-      item.addEventListener('click', () => closeInlineMoreMenu(false));
-      menu.appendChild(item);
-    });
-
-    const openMenu = () => {
-      menuSession.openInlineMenu({ wrap, trigger, menu });
-    };
-
-    trigger.addEventListener('mousedown', (event) => event.preventDefault());
-    trigger.addEventListener('click', () => {
-      setActive(index);
-      if (menuSession.isInlineMenuOpen(menu)) {
-        closeInlineMoreMenu(false);
-      } else {
-        openMenu();
-      }
-    });
-
-    wrap.append(trigger, menu);
-    return wrap;
-  };
-
-  const createInlineControls = (index) => {
-    const controls = document.createElement('div');
-    controls.className = 'blocks-inline-controls';
-    controls.setAttribute('role', 'toolbar');
-    controls.setAttribute('aria-label', text('inlineToolbarAria', 'Inline formatting'));
-    inlineControls.forEach(([label, command, key, fallback]) => {
-      const btn = createInlineCommandButton(label, command, key, fallback, index);
-      controls.appendChild(btn);
-    });
-    controls.appendChild(createInlineMoreMenu(index));
-    return controls;
-  };
-
   const linkSession = createEditorBlocksLinkSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     root,
@@ -3177,13 +3097,18 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }
 
   const inlineToolbarSession = createEditorBlocksInlineToolbarSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
     state,
     blocksState,
     editableSession,
     root,
     list,
+    menuSession,
     selectionSession,
     caretSession,
+    text,
+    setActive,
+    applyInlineCommand,
     containsNode: nodeContains,
     closestElement,
     selectionEditableInRoot,
@@ -3762,7 +3687,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (controls) head.appendChild(controls);
     }
     if (block.type === 'paragraph' || block.type === 'quote' || block.type === 'list') {
-      head.appendChild(createInlineControls(index));
+      const inlineToolbarControls = inlineToolbarSession?.createControls(index);
+      if (inlineToolbarControls) head.appendChild(inlineToolbarControls);
     }
     head.appendChild(actions);
     item.append(head, renderBlockBody(block, index));

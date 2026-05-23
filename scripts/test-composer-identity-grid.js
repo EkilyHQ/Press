@@ -401,8 +401,8 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const inlineToolbarSession = createEditorBlocksInlineToolbarSession\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\);[\s\S]*updateInlineToolbarState = \(\) => inlineToolbarSession\.update\(\);/,
-  'blocks editor should compose inline toolbar state through the inline toolbar session boundary'
+  /const inlineToolbarSession = createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\);[\s\S]*updateInlineToolbarState = \(\) => inlineToolbarSession\.update\(\);/,
+  'blocks editor should compose inline toolbar DOM controls and state through the inline toolbar session boundary'
 );
 
 assert.match(
@@ -1644,27 +1644,33 @@ assert.match(
 });
 
 assert.match(
-  editorBlocksSource,
-  /const inlineControls = \[[\s\S]*\['B', 'bold', 'inlineBold', 'Bold'\],[\s\S]*\['I', 'italic', 'inlineItalic', 'Italic'\],[\s\S]*\['Link', 'link', 'inlineLink', 'Link'\][\s\S]*const inlineMoreControls = \[[\s\S]*\['S', 'strikeThrough', 'inlineStrike', 'Strikethrough'\],[\s\S]*\['`', 'code', 'inlineCode', 'Inline code'\]/,
-  'blocks mode should keep B/I/Link direct while moving strike and inline code into overflow formatting controls'
+  editorBlocksInlineToolbarSessionSource,
+  /const directControls = \[[\s\S]*\['B', 'bold', 'inlineBold', 'Bold'\],[\s\S]*\['I', 'italic', 'inlineItalic', 'Italic'\],[\s\S]*\['Link', 'link', 'inlineLink', 'Link'\][\s\S]*const moreControls = \[[\s\S]*\['S', 'strikeThrough', 'inlineStrike', 'Strikethrough'\],[\s\S]*\['`', 'code', 'inlineCode', 'Inline code'\]/,
+  'inline toolbar session should keep B/I/Link direct while moving strike and inline code into overflow formatting controls'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createInlineCommandButton = \(label, command, key, fallback, index, className = 'blocks-inline-btn'\) => \{[\s\S]*btn\.dataset\.inlineCommand = command[\s\S]*btn\.setAttribute\('aria-pressed', 'false'\)[\s\S]*event\.preventDefault\(\)[\s\S]*if \(btn\.getAttribute\('aria-disabled'\) === 'true'\) return;[\s\S]*applyInlineCommand\(command\)/,
-  'direct and overflow inline formatting commands should share the same command button path'
+  editorBlocksInlineToolbarSessionSource,
+  /const createCommandButton = \(label, command, key, fallback, index, className = 'blocks-inline-btn'\) => \{[\s\S]*btn\.dataset\.inlineCommand = command[\s\S]*btn\.setAttribute\('aria-pressed', 'false'\)[\s\S]*event\.preventDefault\(\)[\s\S]*if \(btn\.getAttribute\('aria-disabled'\) === 'true'\) return;[\s\S]*applyInlineCommand\(command\)/,
+  'inline toolbar session should route direct and overflow formatting commands through the same command button path'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createInlineMoreMenu = \(index\) => \{[\s\S]*wrap\.className = 'blocks-inline-more';[\s\S]*const trigger = button\('Aa', 'blocks-inline-btn blocks-inline-more-trigger'\);[\s\S]*trigger\.setAttribute\('aria-haspopup', 'menu'\);[\s\S]*menu\.className = 'blocks-inline-more-menu';[\s\S]*inlineMoreControls\.forEach\(\(\[_label, command, key, fallback\]\) => \{[\s\S]*createInlineCommandButton\(text\(key, fallback\), command, key, fallback, index, 'blocks-inline-menu-item'\);[\s\S]*item\.setAttribute\('role', 'menuitem'\);[\s\S]*controls\.appendChild\(createInlineMoreMenu\(index\)\);/,
-  'inline strike and code controls should show text labels in a menu immediately after the direct Link button'
+  editorBlocksInlineToolbarSessionSource,
+  /const createMoreMenu = \(index\) => \{[\s\S]*wrap\.className = 'blocks-inline-more';[\s\S]*const trigger = createButton\(documentRef, 'Aa', 'blocks-inline-btn blocks-inline-more-trigger'\);[\s\S]*trigger\.setAttribute\('aria-haspopup', 'menu'\);[\s\S]*menu\.className = 'blocks-inline-more-menu';[\s\S]*moreControls\.forEach\(\(\[_label, command, key, fallback\]\) => \{[\s\S]*createCommandButton\(text\(key, fallback\), command, key, fallback, index, 'blocks-inline-menu-item'\);[\s\S]*item\.setAttribute\('role', 'menuitem'\);[\s\S]*const createControls = \(index\) => \{[\s\S]*controls\.appendChild\(moreMenu\);/,
+  'inline toolbar session should render strike and code as text-label overflow menu items after the direct controls'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const closeInlineMoreMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeInlineMenu\(restoreFocus\);[\s\S]*const createInlineMoreMenu = \(index\) => \{[\s\S]*menuSession\.openInlineMenu\(\{ wrap, trigger, menu \}\);[\s\S]*menuSession\.isInlineMenuOpen\(menu\)/,
+  `${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
+  /const closeInlineMoreMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeInlineMenu\(restoreFocus\);[\s\S]*const closeMoreMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeInlineMenu\(restoreFocus\);[\s\S]*const createMoreMenu = \(index\) => \{[\s\S]*menuSession\.openInlineMenu\(\{ wrap, trigger, menu \}\);[\s\S]*menuSession\.isInlineMenuOpen\(menu\)/,
   'inline more menu DOM handles should be routed through the explicit menu session service'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const inlineControls|const inlineMoreControls|const createInlineCommandButton|const createInlineMoreMenu|const createInlineControls/,
+  'blocks editor root should not own inline toolbar control DOM construction'
 );
 
 assert.match(
@@ -2089,13 +2095,13 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /if \(block\.type === 'paragraph' \|\| block\.type === 'quote' \|\| block\.type === 'list'\) \{[\s\S]*head\.appendChild\(createInlineControls\(index\)\);[\s\S]*\}/,
-  'paragraph, quote, and list blocks should receive inline controls in the floating block toolbar'
+  /if \(block\.type === 'paragraph' \|\| block\.type === 'quote' \|\| block\.type === 'list'\) \{[\s\S]*const inlineToolbarControls = inlineToolbarSession\?\.createControls\(index\);[\s\S]*if \(inlineToolbarControls\) head\.appendChild\(inlineToolbarControls\);[\s\S]*\}/,
+  'paragraph, quote, and list blocks should receive inline controls in the floating block toolbar through the inline toolbar session'
 );
 
 assert.doesNotMatch(
   editorBlocksSource,
-  /block\.type === 'heading'[\s\S]{0,160}createInlineControls/,
+  /block\.type === 'heading'[\s\S]{0,160}createControls/,
   'heading block toolbar should not receive inline formatting controls'
 );
 

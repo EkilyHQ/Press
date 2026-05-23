@@ -2,10 +2,6 @@ import './cache-control.js';
 import { getManualMarkdownSaveState } from './composer-markdown-save.js';
 import {
   fetchConfigWithYamlFallback,
-  fetchSiteLocalOverride,
-  fetchTrackedSiteConfig,
-  mergeYamlConfig,
-  resolveSiteRepoConfig,
   parseYAML
 } from './yaml.js';
 import { escapeHtml } from './utils.js?v=press-system-v3.4.48';
@@ -89,6 +85,11 @@ import {
   slideToggle,
   syncSiteEditorSingleLabelWidth
 } from './composer-ui-motion.js?v=press-system-v3.4.48';
+import {
+  applyInferredRepoConfig,
+  createComposerSiteConfigController,
+  inferRepoConfigFromGitHubPagesUrl
+} from './composer-site-config.js?v=press-system-v3.4.48';
 import { createEditorContentTreeController } from './editor-content-tree-controller.js?v=press-system-v3.4.48';
 import { createComposerMarkdownLoader } from './composer-markdown-loader.js?v=press-system-v3.4.48';
 import { createComposerMarkdownActionsUi } from './composer-markdown-actions-ui.js?v=press-system-v3.4.48';
@@ -823,10 +824,18 @@ let gitHubCommitInFlight = false;
 
 let activeComposerState = null;
 let remoteBaseline = { index: null, tabs: null, site: null };
-let composerSiteLocalOverride = {};
 let composerDiffCache = { index: null, tabs: null, site: null };
 let activeComposerFile = 'index';
 let composerViewTransition = null;
+const composerSiteConfigController = createComposerSiteConfigController({
+  windowRef: window,
+  deepClone
+});
+const {
+  applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
+  fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
+  resolveActiveSiteRepoConfig
+} = composerSiteConfigController;
 
 const composerYamlDraftController = createComposerYamlDraftController({
   draftStore: composerDraftStore,
@@ -841,154 +850,6 @@ const composerYamlDraftController = createComposerYamlDraftController({
   setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
   clearTimeoutRef: (id) => window.clearTimeout(id)
 });
-
-function applyComposerEffectiveSiteConfig(siteConfig) {
-  const tracked = siteConfig && typeof siteConfig === 'object' ? siteConfig : {};
-  const effective = mergeYamlConfig(tracked, composerSiteLocalOverride);
-  const root = (effective && effective.contentRoot) ? String(effective.contentRoot) : 'wwwroot';
-  try {
-    window.__press_content_root = root;
-  } catch (_) {}
-  try {
-    const repo = (effective && effective.repo) || {};
-    window.__press_site_repo = {
-      owner: String(repo.owner || ''),
-      name: String(repo.name || ''),
-      branch: String(repo.branch || 'main')
-    };
-  } catch (_) {
-    try {
-      window.__press_site_repo = { owner: '', name: '', branch: 'main' };
-    } catch (_) {}
-  }
-  try {
-    window.dispatchEvent(new CustomEvent('press-editor-site-config-change', {
-      detail: { siteConfig: deepClone(effective) }
-    }));
-  } catch (_) {}
-  return effective;
-}
-
-function inferRepoConfigFromGitHubPagesUrl(locationLike) {
-  let protocol = '';
-  let hostname = '';
-  let pathname = '';
-
-  try {
-    if (typeof locationLike === 'string') {
-      const url = new URL(locationLike);
-      protocol = url.protocol;
-      hostname = url.hostname;
-      pathname = url.pathname;
-    } else if (locationLike && typeof locationLike === 'object') {
-      if (locationLike.href) {
-        const url = new URL(String(locationLike.href));
-        protocol = url.protocol;
-        hostname = url.hostname;
-        pathname = url.pathname;
-      } else {
-        protocol = String(locationLike.protocol || '');
-        hostname = String(locationLike.hostname || '');
-        pathname = String(locationLike.pathname || '');
-      }
-    }
-  } catch (_) {
-    return null;
-  }
-
-  if (protocol !== 'https:') return null;
-  const host = String(hostname || '').trim().toLowerCase();
-  const suffix = '.github.io';
-  if (!host.endsWith(suffix)) return null;
-  const owner = host.slice(0, -suffix.length);
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(owner)) return null;
-
-  const path = String(pathname || '');
-  const rawSegments = path.split('/').filter(Boolean);
-  const firstSegment = rawSegments[0] || '';
-  const isRootIndexFile = rawSegments.length === 1
-    && (firstSegment === 'index.html' || firstSegment === 'index_editor.html')
-    && !path.endsWith('/');
-  let name = '';
-  if (!firstSegment || isRootIndexFile) {
-    name = `${owner}.github.io`;
-  } else {
-    try {
-      name = decodeURIComponent(firstSegment);
-    } catch (_) {
-      return null;
-    }
-  }
-  if (!/^[A-Za-z0-9_.-]+$/.test(name)) return null;
-
-  return { owner, name, branch: 'main' };
-}
-
-function isPlaceholderRepoConfig(repo) {
-  const source = repo && typeof repo === 'object' ? repo : {};
-  const owner = String(source.owner || '').trim();
-  const name = String(source.name || '').trim();
-  const ownerIsPlaceholder = owner === '' || owner === 'OWNER';
-  const nameIsPlaceholder = name === '' || name === 'REPOSITORY';
-  return ownerIsPlaceholder && nameIsPlaceholder;
-}
-
-function isSameRepoConfig(repo, inferred) {
-  const source = repo && typeof repo === 'object' ? repo : {};
-  const inferredSource = inferred && typeof inferred === 'object' ? inferred : {};
-  const owner = String(source.owner || '').trim().toLowerCase();
-  const name = String(source.name || '').trim().toLowerCase();
-  const inferredOwner = String(inferredSource.owner || '').trim().toLowerCase();
-  const inferredName = String(inferredSource.name || '').trim().toLowerCase();
-  return !!owner && !!name && owner === inferredOwner && name === inferredName;
-}
-
-function shouldAutofillRepoFromPages(site) {
-  const extras = site && site.__extras && typeof site.__extras === 'object' ? site.__extras : {};
-  const value = extras.repoAutofillFromPages;
-  return value === true || String(value || '').trim().toLowerCase() === 'true';
-}
-
-function clearRepoAutofillFromPagesMarker(site) {
-  if (!site.__extras || typeof site.__extras !== 'object') return;
-  if (Object.prototype.hasOwnProperty.call(site.__extras, 'repoAutofillFromPages')) {
-    delete site.__extras.repoAutofillFromPages;
-  }
-}
-
-function applyInferredRepoConfig(site, inferred) {
-  if (!site || typeof site !== 'object') return false;
-  if (!inferred || typeof inferred !== 'object') return false;
-  const owner = String(inferred.owner || '').trim();
-  const name = String(inferred.name || '').trim();
-  const branch = String(inferred.branch || 'main').trim() || 'main';
-  if (!owner || !name) return false;
-
-  const repo = site.repo && typeof site.repo === 'object' ? site.repo : {};
-  const canAutofill = isPlaceholderRepoConfig(repo)
-    || (shouldAutofillRepoFromPages(site) && !isSameRepoConfig(repo, inferred));
-  if (!canAutofill) return false;
-
-  const previousOwner = String(repo.owner || '').trim();
-  const previousName = String(repo.name || '').trim();
-  const previousBranch = String(repo.branch || '').trim();
-  site.repo = repo;
-  repo.owner = owner;
-  repo.name = name;
-  if (!previousBranch) repo.branch = branch;
-  clearRepoAutofillFromPagesMarker(site);
-
-  return previousOwner !== String(repo.owner || '').trim()
-    || previousName !== String(repo.name || '').trim()
-    || previousBranch !== String(repo.branch || '').trim();
-}
-
-async function fetchComposerTrackedSiteConfig() {
-  const tracked = await fetchTrackedSiteConfig();
-  composerSiteLocalOverride = await fetchSiteLocalOverride();
-  applyComposerEffectiveSiteConfig(tracked || {});
-  return tracked || {};
-}
 
 const SITE_FIELD_LABEL_MAP = {
   siteTitle: { i18nKey: 'editor.composer.site.fields.siteTitle' },
@@ -1537,7 +1398,7 @@ function getActiveSiteRepoConfig() {
   const fallback = window.__press_site_repo && typeof window.__press_site_repo === 'object'
     ? window.__press_site_repo
     : {};
-  return resolveSiteRepoConfig(site, composerSiteLocalOverride, fallback);
+  return resolveActiveSiteRepoConfig(site, fallback);
 }
 
 const composerOrderDiffUi = createComposerOrderDiffUi({

@@ -5,6 +5,12 @@ import { dirname, resolve } from 'node:path';
 import { createPublishSettingsStore } from '../assets/js/publish/settings-store.js';
 import { createEditorSessionStateStore } from '../assets/js/editor-session-state.js';
 import { createStagingRegistry } from '../assets/js/composer-staging.js';
+import { resolveEditorStorageScope } from '../assets/js/editor-storage.js';
+import {
+  applyInferredRepoConfig,
+  inferRepoConfigFromGitHubPagesUrl,
+  isPlaceholderRepoConfig
+} from '../assets/js/composer-site-config.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
@@ -35,6 +41,7 @@ const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynce
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
+const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -93,6 +100,7 @@ const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
+const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -142,38 +150,12 @@ function extractFunctionBody(text, name) {
   assert.fail(`${name} body should be balanced`);
 }
 
-function extractFunctionDeclaration(text, name) {
-  const start = text.indexOf(`function ${name}(`);
-  assert.notEqual(start, -1, `${name} should exist`);
-  const open = text.indexOf('{', start);
-  assert.notEqual(open, -1, `${name} should have a body`);
-  let depth = 0;
-  for (let index = open; index < text.length; index += 1) {
-    const char = text[index];
-    if (char === '{') depth += 1;
-    if (char === '}') {
-      depth -= 1;
-      if (depth === 0) return text.slice(start, index + 1);
-    }
-  }
-  assert.fail(`${name} declaration should be balanced`);
-}
-
-function loadRepoInferenceHelpers() {
-  const helpers = [
-    extractFunctionDeclaration(editorStorageSource, 'normalizeStorageScopePart'),
-    extractFunctionDeclaration(editorStorageSource, 'resolveEditorStorageScope').replace('export ', ''),
-    extractFunctionDeclaration(source, 'inferRepoConfigFromGitHubPagesUrl'),
-    extractFunctionDeclaration(source, 'isPlaceholderRepoConfig'),
-    extractFunctionDeclaration(source, 'isSameRepoConfig'),
-    extractFunctionDeclaration(source, 'shouldAutofillRepoFromPages'),
-    extractFunctionDeclaration(source, 'clearRepoAutofillFromPagesMarker'),
-    extractFunctionDeclaration(source, 'applyInferredRepoConfig')
-  ].join('\n');
-  return Function(`${helpers}\nreturn { resolveEditorStorageScope, inferRepoConfigFromGitHubPagesUrl, isPlaceholderRepoConfig, applyInferredRepoConfig };`)();
-}
-
-const repoInference = loadRepoInferenceHelpers();
+const repoInference = {
+  resolveEditorStorageScope,
+  inferRepoConfigFromGitHubPagesUrl,
+  isPlaceholderRepoConfig,
+  applyInferredRepoConfig
+};
 
 assert.match(
   editorSource,
@@ -581,6 +563,24 @@ assert.match(
   composerUiMotionSource,
   /export function syncSiteEditorSingleLabelWidth\(root\)[\s\S]*export function animateComposerInlineVisibility\(element, show, options = \{\}\)[\s\S]*export function animateComposerListTransition\(list, previousRect, options = \{\}\)[\s\S]*export function animateComposerOrderMainReset\(host, previousRect, options = \{\}\)[\s\S]*export function slideToggle\(el, toOpen\)[\s\S]*export function getComposerSlideDurations\(\)/,
   'UI motion module should own composer label measurement, inline/list/order animations, slide toggles, and shared durations'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-site-config\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted site config boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function inferRepoConfigFromGitHubPagesUrl\(locationLike\)|function applyInferredRepoConfig\(site, inferred\)|let composerSiteLocalOverride|mergeYamlConfig|resolveSiteRepoConfig/,
+  'composer should not own GitHub Pages repo inference or site-local config merge helpers'
+);
+
+assert.match(
+  composerSiteConfigSource,
+  /export function inferRepoConfigFromGitHubPagesUrl\(locationLike\)[\s\S]*export function applyInferredRepoConfig\(site, inferred\)[\s\S]*export function createComposerSiteConfigController\(options = \{\}\)[\s\S]*fetchSiteLocalOverride[\s\S]*applyEffectiveSiteConfig/,
+  'site config module should own Pages repo inference, site-local override loading, and effective config broadcasting'
 );
 
 assert.match(

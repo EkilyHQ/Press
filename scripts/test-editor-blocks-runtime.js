@@ -32,8 +32,10 @@ function createTarget() {
   const windowRef = createTarget();
   windowRef.isSecureContext = true;
   windowRef.innerHeight = 768;
+  windowRef.innerWidth = 1024;
   windowRef.__press_t = key => `t:${key}`;
   windowRef.getComputedStyle = el => ({ el, overflowY: 'auto' });
+  windowRef.matchMedia = query => ({ matches: query === '(prefers-reduced-motion: reduce)' });
   windowRef.requestAnimationFrame = fn => {
     fn();
     return 17;
@@ -75,7 +77,9 @@ function createTarget() {
   assert.equal(runtime.getDocumentElement().id, 'doc');
   assert.equal(runtime.getScrollingElement().id, 'scroll');
   assert.equal(runtime.getViewportHeight(), 768);
+  assert.equal(runtime.getViewportWidth(), 1024);
   assert.equal(runtime.getComputedStyle({}).overflowY, 'auto');
+  assert.equal(runtime.prefersReducedMotion(), true);
   assert.equal(runtime.requestFrame(() => {}), 17);
   assert.equal(runtime.setTimer(() => {}, 1200), 23);
   runtime.clearTimer(23);

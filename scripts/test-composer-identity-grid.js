@@ -68,6 +68,7 @@ const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
+const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
 const editorBlocksMenuSessionPath = resolve(here, '../assets/js/editor-blocks-menu-session.js');
 const editorBlocksHeadSessionPath = resolve(here, '../assets/js/editor-blocks-head-session.js');
@@ -155,6 +156,7 @@ const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
+const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
 const editorBlocksMenuSessionSource = readFileSync(editorBlocksMenuSessionPath, 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(editorBlocksHeadSessionPath, 'utf8');
@@ -277,6 +279,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-runtime\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks runtime boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-layout-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks layout session boundary'
 );
 
 assert.match(
@@ -1890,8 +1898,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const editorViewportBottom = \(\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*const updateStickyBlockHead = \(\) => \{[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*editorStickyToolbarBottom\(\) \+ gap[\s\S]*const blockTopUnderStickyToolbar = blockRect\.top < stickyTop;[\s\S]*if \(blockTopUnderStickyToolbar\) \{[\s\S]*blockRect\.bottom \+ gap \+ headHeight <= stickyTop[\s\S]*head\.classList\.add\('is-bottom-docked'\);[\s\S]*head\.style\.top = `\$\{Math\.max\(0, blockRect\.height \+ gap\)\}px`;[\s\S]*return;[\s\S]*\}[\s\S]*head\.classList\.add\('is-stuck'\);[\s\S]*head\.style\.top = `\$\{top\}px`;/,
+  editorBlocksLayoutSessionSource,
+  /const editorViewportBottom = \(\) => \{[\s\S]*elementById\('editorContentPane'\)[\s\S]*const updateStickyBlockHead = \(\) => \{[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*editorStickyToolbarBottom\(\) \+ gap[\s\S]*const blockTopUnderStickyToolbar = blockRect\.top < stickyTop;[\s\S]*if \(blockTopUnderStickyToolbar\) \{[\s\S]*blockRect\.bottom \+ gap \+ headHeight <= stickyTop[\s\S]*head\.classList\.add\('is-bottom-docked'\);[\s\S]*head\.style\.top = `\$\{Math\.max\(0, blockRect\.height \+ gap\)\}px`;[\s\S]*return;[\s\S]*\}[\s\S]*head\.classList\.add\('is-stuck'\);[\s\S]*head\.style\.top = `\$\{top\}px`;/,
   'active block toolbar should become a non-sticky bottom-docked overlay once the block top is covered'
 );
 
@@ -1902,15 +1910,15 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /onWindow\('scroll', requestStickyBlockHeadUpdate, true\);[\s\S]*onWindow\('resize', requestStickyBlockHeadUpdate\);/,
+  editorBlocksLayoutSessionSource,
+  /disposers\.push\(addWindow\('scroll', requestStickyBlockHeadUpdate, true\)\);[\s\S]*disposers\.push\(addWindow\('resize', requestStickyBlockHeadUpdate\)\);/,
   'active block toolbar sticky position should refresh on editor pane scroll and viewport resize'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const findVerticalScrollParent = \(node\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*const forwardBlockHeadWheel = \(event\) => \{[\s\S]*absX > absY[\s\S]*scrollParent\.scrollTop = before \+ deltaY;[\s\S]*event\.preventDefault\(\);/,
-  'active block toolbar wheel forwarding should keep the editor content scroll-pane logic in the root runtime boundary'
+  editorBlocksLayoutSessionSource,
+  /const findVerticalScrollParent = \(node\) => \{[\s\S]*elementById\('editorContentPane'\)[\s\S]*const forwardBlockHeadWheel = \(event\) => \{[\s\S]*absX > absY[\s\S]*scrollParent\.scrollTop = before \+ deltaY;[\s\S]*safePrevent\(event\);/,
+  'active block toolbar wheel forwarding should keep editor content scroll-pane logic in the layout session boundary'
 );
 
 assert.match(
@@ -1932,33 +1940,45 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /function finishBlockReorder\(\) \{[\s\S]*state\.reorderAnimating = false;[\s\S]*requestStickyBlockHeadUpdate\(\);[\s\S]*\}/,
+  editorBlocksLayoutSessionSource,
+  /const finishBlockReorder = \(\) => \{[\s\S]*state\.reorderAnimating = false;[\s\S]*requestStickyBlockHeadUpdate\(\);[\s\S]*\};/,
   'block move animation should relayout the floating toolbar after the shared block transform finishes'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksLayoutSessionSource,
   /const updateStickyBlockHead = \(\) => \{[\s\S]*clearStickyBlockHeads\(head\);[\s\S]*if \(state\.reorderAnimating\) \{[\s\S]*clearStickyBlockHeads\(\);[\s\S]*return;[\s\S]*\}/,
   'active block toolbar should stay inside the moving block while reorder animation is active'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const captureBlockRects = \(indexes = null\) => \{[\s\S]*const allowed = Array\.isArray\(indexes\) \? new Set\(indexes\) : null;[\s\S]*if \(allowed && !allowed\.has\(index\)\) return;[\s\S]*const id = el\.dataset \? el\.dataset\.blockId : '';[\s\S]*rects\.set\(id, el\.getBoundingClientRect\(\)\);[\s\S]*return rects;/,
+  editorBlocksLayoutSessionSource,
+  /const captureBlockRects = \(indexes = null\) => \{[\s\S]*const allowed = Array\.isArray\(indexes\) \? new Set\(indexes\) : null;[\s\S]*if \(allowed && !allowed\.has\(index\)\) return;[\s\S]*const id = el\?\.dataset \? el\.dataset\.blockId : '';[\s\S]*rects\.set\(id, el\.getBoundingClientRect\(\)\);[\s\S]*return rects;/,
   'block move animation should key before-rect snapshots by stable block ids for only the affected indexes'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const animateBlockReorder = \(beforeRects\) => \{[\s\S]*const before = id \? beforeRects\.get\(id\) : null;[\s\S]*const after = el\.getBoundingClientRect\(\);[\s\S]*const dx = before\.left - after\.left;[\s\S]*const dy = before\.top - after\.top;[\s\S]*item\.el\.style\.transition = 'none';[\s\S]*item\.el\.style\.transform = `translate3d\(\$\{item\.dx\}px, \$\{item\.dy\}px, 0\)`;[\s\S]*runtime\.requestFrame\(\(\) => \{[\s\S]*item\.el\.style\.transition = '';[\s\S]*item\.el\.style\.transform = 'translate3d\(0, 0, 0\)';[\s\S]*runtime\.setTimer\(finish, 360\)/,
+  editorBlocksLayoutSessionSource,
+  /const animateBlockReorder = \(beforeRects\) => \{[\s\S]*const before = id \? beforeRects\.get\(id\) : null;[\s\S]*const after = el\.getBoundingClientRect\(\);[\s\S]*const dx = before\.left - after\.left;[\s\S]*const dy = before\.top - after\.top;[\s\S]*item\.el\.style\.transition = 'none';[\s\S]*item\.el\.style\.transform = `translate3d\(\$\{item\.dx\}px, \$\{item\.dy\}px, 0\)`;[\s\S]*requestFrame\(\(\) => \{[\s\S]*item\.el\.style\.transition = '';[\s\S]*item\.el\.style\.transform = 'translate3d\(0, 0, 0\)';[\s\S]*setTimer\(finish, 360\)/,
   'block move animation should FLIP the final rendered DOM from old coordinates back to zero transform'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksLayoutSessionSource,
   /const moveBlock = \(index, direction\) => \{[\s\S]*prefersReducedReorderMotion\(\)[\s\S]*const beforeRects = captureBlockRects\(\[index, targetIndex\]\);[\s\S]*state\.reorderAnimating = true;[\s\S]*const moved = moveBlockInState\(index, direction\);[\s\S]*replaceAdjacentBlockElements\(index, targetIndex\)[\s\S]*emit\(\);[\s\S]*animateBlockReorder\(beforeRects\);/,
   'block move should update state and replace only the adjacent affected DOM nodes before animating'
+);
+
+assert.match(
+  editorBlocksSource,
+  /layoutSession = createEditorBlocksLayoutSession\(\{[\s\S]*runtime,[\s\S]*state,[\s\S]*root,[\s\S]*list,[\s\S]*blockElements,[\s\S]*containsNode: nodeContains,[\s\S]*moveBlockInState: \(index, direction\) => blocksState\.moveBlock\(index, direction\),[\s\S]*replaceAdjacentBlockElements: \(index, targetIndex\) => replaceAdjacentBlockElements\(index, targetIndex\),[\s\S]*render: \(\) => render\(\),[\s\S]*emit,[\s\S]*onWindow[\s\S]*\}\);[\s\S]*layoutSession\.bind\(\);/,
+  'blocks editor should compose sticky/reorder layout through the explicit layout session service'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const animateBlockReorder =|const updateStickyBlockHead =|const findVerticalScrollParent =|const captureBlockRects =|function finishBlockReorder/,
+  'blocks root should not own sticky toolbar or block reorder geometry'
 );
 
 assert.doesNotMatch(

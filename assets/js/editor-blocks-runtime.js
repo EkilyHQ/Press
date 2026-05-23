@@ -86,11 +86,21 @@ export function createEditorBlocksRuntime({
         ? windowRef.innerHeight
         : ((documentRef && documentRef.documentElement && documentRef.documentElement.clientHeight) || 0)
     ), 0),
+    getViewportWidth: () => safeCall(() => (
+      windowRef && windowRef.innerWidth
+        ? windowRef.innerWidth
+        : ((documentRef && documentRef.documentElement && documentRef.documentElement.clientWidth) || 0)
+    ), 0),
     getComputedStyle: (el) => safeCall(() => (
       windowRef && typeof windowRef.getComputedStyle === 'function'
         ? windowRef.getComputedStyle(el)
         : null
     ), null),
+    prefersReducedMotion: () => safeCall(() => (
+      !!(windowRef
+        && typeof windowRef.matchMedia === 'function'
+        && windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    ), false),
     requestFrame,
     setTimer,
     clearTimer,

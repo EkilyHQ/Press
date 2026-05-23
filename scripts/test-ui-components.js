@@ -22,6 +22,7 @@ const composerContentStaging = read('assets/js/composer-content-staging.js');
 const composerSeoStaging = read('assets/js/composer-seo-staging.js');
 const composerSystemThemeBridge = read('assets/js/composer-system-theme-bridge.js');
 const editorMain = read('assets/js/editor-main.js');
+const editorMainRuntime = read('assets/js/editor-main-runtime.js');
 const editorPreviewRuntime = read('assets/js/editor-preview-runtime.js');
 const search = read('assets/js/search.js');
 const theme = read('assets/js/theme.js');
@@ -201,7 +202,8 @@ assert.match(editorMain, /previewThemeOverride[\s\S]*sanitizePreviewThemePack\(p
 assert.match(editorMain, /assets\/themes\/packs\.local\.json', true/, 'editor preview selector should allow ignored local theme-pack overlays for development');
 assert.match(indexEditorHtml, /class="view-toggle"[^>]*data-view="blocks"[\s\S]*class="vt-btn active" data-view="blocks"[\s\S]*class="vt-btn" data-view="edit"/, 'editor view toggle should put Blocks first and make it the initial default');
 assert.match(indexEditorHtml, /\.view-toggle\[data-view="edit"\] \.vt-slider/, 'editor view toggle slider should move right for source edit mode');
-assert.match(editorMain, /LS_VIEW_KEY = 'press_editor_markdown_view_v2'[\s\S]*function normalizeMarkdownEditorView\(mode\) \{[\s\S]*if \(mode === 'edit'\) return 'edit';[\s\S]*return 'blocks';/, 'editor should default markdown view selection to blocks and ignore the old edit-first storage key');
+assert.match(editorMainRuntime, /LS_VIEW_KEY = 'press_editor_markdown_view_v2'[\s\S]*function readMarkdownEditorView\(\) \{[\s\S]*normalizeMarkdownEditorView\(runtime\.storage\.getItem\(LS_VIEW_KEY\)\)/, 'editor runtime should default markdown view selection to blocks and ignore the old edit-first storage key');
+assert.match(editorMain, /function readPersistedMarkdownEditorView\(\) \{\s*return editorMainRuntime\.readMarkdownEditorView\(\);\s*\}/, 'editor main should read the persisted markdown view through the runtime boundary');
 assert.doesNotMatch(indexEditorHtml, /class="vt-btn" data-view="preview"/, 'editor preview should not be part of the persisted edit/blocks view toggle');
 assert.match(indexEditorHtml, /id="btnOpenPreview"[\s\S]*data-i18n-aria-label="editor\.toolbar\.viewPreview"/, 'editor preview should be exposed as a standalone toolbar button');
 assert.match(editorMain, /const previewOpenButton = document\.getElementById\('btnOpenPreview'\);[\s\S]*previewOpenButton\.addEventListener\('click'[\s\S]*openPreviewOverlay\(\);/, 'standalone editor preview button should open the temporary overlay');

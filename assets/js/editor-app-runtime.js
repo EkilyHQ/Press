@@ -106,11 +106,11 @@ function createRuntimeStorage(storage) {
 }
 
 function createRuntimeEvents({ documentRef, windowRef } = {}) {
-  function createRuntimeEvent(type, detail) {
+  function createRuntimeEvent(type, detail, eventOptions = {}) {
     const CustomEventCtor = windowRef && typeof windowRef.CustomEvent === 'function'
       ? windowRef.CustomEvent
       : (typeof CustomEvent === 'function' ? CustomEvent : null);
-    if (CustomEventCtor) return new CustomEventCtor(type, { detail });
+    if (CustomEventCtor) return new CustomEventCtor(type, { ...eventOptions, detail });
     return { type, detail };
   }
 
@@ -130,10 +130,10 @@ function createRuntimeEvents({ documentRef, windowRef } = {}) {
     }
   }
 
-  function emit(target, type, detail) {
+  function emit(target, type, detail, eventOptions) {
     try {
       if (!target || typeof target.dispatchEvent !== 'function') return false;
-      return target.dispatchEvent(createRuntimeEvent(type, detail));
+      return target.dispatchEvent(createRuntimeEvent(type, detail, eventOptions));
     } catch (_) {
       return false;
     }
@@ -142,8 +142,8 @@ function createRuntimeEvents({ documentRef, windowRef } = {}) {
   return {
     onDocument: (type, handler, options) => on(documentRef, type, handler, options),
     onWindow: (type, handler, options) => on(windowRef, type, handler, options),
-    emitDocument: (type, detail) => emit(documentRef, type, detail),
-    emitWindow: (type, detail) => emit(windowRef, type, detail)
+    emitDocument: (type, detail, options) => emit(documentRef, type, detail, options),
+    emitWindow: (type, detail, options) => emit(windowRef, type, detail, options)
   };
 }
 

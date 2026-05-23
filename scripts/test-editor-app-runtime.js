@@ -25,7 +25,7 @@ class FakeEventTarget {
     this.dispatched.push(event);
     const handlers = this.listeners.get(event.type) || [];
     handlers.forEach(handler => handler(event));
-    return true;
+    return !event.defaultPrevented;
   }
 }
 
@@ -33,6 +33,12 @@ class FakeCustomEvent {
   constructor(type, init = {}) {
     this.type = type;
     this.detail = init.detail;
+    this.cancelable = !!init.cancelable;
+    this.defaultPrevented = false;
+  }
+
+  preventDefault() {
+    if (this.cancelable) this.defaultPrevented = true;
   }
 }
 
@@ -95,6 +101,10 @@ class FakeCustomEvent {
   runtime.events.emitDocument('press:test', { value: 7 });
   assert.deepEqual(received, [42]);
   assert.equal(documentRef.dispatched[0].type, 'press:test');
+
+  runtime.events.onWindow('press:cancelable', event => event.preventDefault());
+  assert.equal(runtime.events.emitWindow('press:cancelable', { ok: true }, { cancelable: true }), false);
+  assert.equal(windowRef.dispatched[0].cancelable, true);
 
   assert.deepEqual(runtime.globals.getPressSiteRepo(), { owner: 'EkilyHQ', name: 'Press' });
   assert.equal(runtime.globals.getPrimaryEditorApi(), windowRef.__press_primary_editor);

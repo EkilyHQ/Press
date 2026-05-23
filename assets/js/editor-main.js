@@ -16,27 +16,20 @@ import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.50
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
 import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
 import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.50';
+import {
+  createEditorMainRuntime,
+  normalizeMarkdownEditorView
+} from './editor-main-runtime.js?v=press-system-v3.4.50';
 
-const LS_WRAP_KEY = 'press_editor_wrap_enabled';
-const LS_VIEW_KEY = 'press_editor_markdown_view_v2';
 const FORCE_MARKDOWN_WRAP = true;
-
-function normalizeMarkdownEditorView(mode) {
-  if (mode === 'edit') return 'edit';
-  return 'blocks';
-}
+const editorMainRuntime = createEditorMainRuntime();
 
 function readPersistedMarkdownEditorView() {
-  try {
-    return normalizeMarkdownEditorView(localStorage.getItem(LS_VIEW_KEY));
-  } catch (_) {
-    return 'blocks';
-  }
+  return editorMainRuntime.readMarkdownEditorView();
 }
 
 function persistMarkdownEditorView(mode) {
-  try { localStorage.setItem(LS_VIEW_KEY, normalizeMarkdownEditorView(mode)); }
-  catch (_) {}
+  editorMainRuntime.persistMarkdownEditorView(mode);
 }
 
 const FRONT_MATTER_SECTION_DESCRIPTIONS = [
@@ -777,8 +770,7 @@ function updatePreviewThemeSelect() {
 }
 
 function getPreviewPayload(mdText) {
-  const baseDir = (window.__press_editor_base_dir && String(window.__press_editor_base_dir))
-    || (`${getContentRoot()}/`);
+  const baseDir = editorMainRuntime.getEditorBaseDir(`${getContentRoot()}/`);
   return {
     type: PREVIEW_RENDER_MESSAGE,
     requestId: ++previewRenderRequestId,
@@ -864,21 +856,11 @@ document.addEventListener('DOMContentLoaded', () => {
   applyEditorEmptyState(true);
 
   const readWrapState = () => {
-    if (FORCE_MARKDOWN_WRAP) return true;
-    try {
-      const raw = localStorage.getItem(LS_WRAP_KEY);
-      if (!raw) return false;
-      if (raw === '1' || raw === 'true') return true;
-      if (raw === '0' || raw === 'false') return false;
-      return Boolean(JSON.parse(raw));
-    } catch (_) {
-      return false;
-    }
+    return editorMainRuntime.readWrapEnabled({ force: FORCE_MARKDOWN_WRAP });
   };
 
   const persistWrapState = (on) => {
-    try { localStorage.setItem(LS_WRAP_KEY, on ? '1' : '0'); }
-    catch (_) {}
+    editorMainRuntime.persistWrapEnabled(on);
   };
 
   const syncWrapToggle = (on) => {
@@ -1786,7 +1768,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   loadPreviewThemeOptions();
 
-  window.addEventListener('press-editor-site-config-change', (event) => {
+  editorMainRuntime.onSiteConfigChange((event) => {
     const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
     if (detail.siteConfig && typeof detail.siteConfig === 'object') {
       editorSiteConfig = detail.siteConfig;
@@ -1815,15 +1797,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const setBaseDir = (dir) => {
     const fallback = `${getContentRoot()}/`;
-    try {
-      const raw = (dir == null ? '' : String(dir)).trim();
-      const normalized = raw
-        ? raw.replace(/\\+/g, '/').replace(/\/?$/, '/')
-        : fallback;
-      window.__press_editor_base_dir = normalized;
-    } catch (_) {
-      try { window.__press_editor_base_dir = fallback; } catch (__) {}
-    }
+    editorMainRuntime.setEditorBaseDir(dir, fallback);
   };
 
   const blockLabelFallbacks = {
@@ -1961,7 +1935,7 @@ document.addEventListener('DOMContentLoaded', () => {
     markdownBlocksEditor = createMarkdownBlocksEditor(blocksWrap, {
       labels: blockLabels,
       onChange: setEditorBodyFromBlocks,
-      getBaseDir: () => (window.__press_editor_base_dir && String(window.__press_editor_base_dir)) || `${getContentRoot()}/`,
+      getBaseDir: () => editorMainRuntime.getEditorBaseDir(`${getContentRoot()}/`),
       resolveImageSrc,
       hydrateImages: (node) => {
         try { applyPreviewAssetOverrides(node, getCurrentMarkdownPath()); } catch (_) {}
@@ -2021,24 +1995,14 @@ document.addEventListener('DOMContentLoaded', () => {
           commitPath: resolved.commitPath,
           relativePath: resolved.relativePath
         };
-        let accepted = true;
-        try {
-          accepted = window.dispatchEvent(new CustomEvent('press-editor-asset-delete-requested', {
-            detail,
-            cancelable: true
-          }));
-        } catch (_) {
-          accepted = false;
-        }
+        const accepted = editorMainRuntime.requestAssetDelete(detail);
         if (!accepted || detail.rejected) {
           emitEditorToast('warn', detail.message || editorText('editor.toasts.assetDeleteRejected', 'This image resource cannot be deleted yet.'));
           return;
         }
         const result = markdownBlocksEditor.deleteImageBlock(target);
         if (!result) {
-          try {
-            window.dispatchEvent(new CustomEvent('press-editor-asset-delete-canceled', { detail }));
-          } catch (_) {}
+          editorMainRuntime.emitAssetDeleteCanceled(detail);
           emitEditorToast('warn', editorText('editor.toasts.imageDeleteTargetMissing', 'The image block no longer exists. Select an image block and try again.'));
         }
       }
@@ -2653,9 +2617,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const emitEditorToast = (kind, message) => {
     const text = message == null ? '' : String(message);
     if (!text) return;
-    try {
-      window.dispatchEvent(new CustomEvent('press-editor-toast', { detail: { kind: kind || 'info', message: text } }));
-    } catch (_) {}
+    editorMainRuntime.emitToast(kind, text);
   };
 
   const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
@@ -2849,21 +2811,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        window.dispatchEvent(new CustomEvent('press-editor-asset-added', {
-          detail: {
-            markdownPath,
-            fileName: meta.fileName,
-            commitPath: paths.commitPath,
-            relativePath: paths.relativePath,
-            base64,
-            mime: file.type || '',
-            size: file.size || 0,
-            originalName: file.name || '',
-            altText: meta.altText,
-            source: options.source || 'picker',
-            silent: true
-          }
-        }));
+        editorMainRuntime.emitAssetAdded({
+          markdownPath,
+          fileName: meta.fileName,
+          commitPath: paths.commitPath,
+          relativePath: paths.relativePath,
+          base64,
+          mime: file.type || '',
+          size: file.size || 0,
+          originalName: file.name || '',
+          altText: meta.altText,
+          source: options.source || 'picker',
+          silent: true
+        });
       } catch (err) {
         console.error('Failed to dispatch asset-added event', err);
       }
@@ -3093,14 +3053,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const nodeId = String(target.dataset.currentFileNodeId || '').trim();
       if (!nodeId) return;
       event.preventDefault();
-      try {
-        document.dispatchEvent(new CustomEvent('press-editor-current-file-breadcrumb-select', {
-          detail: {
-            nodeId,
-            path: target.dataset.currentFilePath || ''
-          }
-        }));
-      } catch (_) {}
+      editorMainRuntime.emitCurrentFileBreadcrumbSelect({
+        nodeId,
+        path: target.dataset.currentFilePath || ''
+      });
     });
   };
 
@@ -3354,7 +3310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isWrapEnabled: () => wrapEnabled
   };
 
-  try { window.__press_primary_editor = primaryEditorApi; } catch (_) {}
+  editorMainRuntime.registerPrimaryEditorApi(primaryEditorApi);
 
   // Clear draft action removed (no local storage drafts)
 
@@ -3392,8 +3348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentActive = null;
     let contentRoot = 'wwwroot';
     // Track current markdown base directory for resolving relative assets
-    // Expose to window so renderPreview can access outside this closure
-    try { if (!window.__press_editor_base_dir) window.__press_editor_base_dir = `${contentRoot}/`; } catch (_) {}
+    editorMainRuntime.ensureEditorBaseDir(`${contentRoot}/`);
     let activeGroup = 'index';
 
     const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg || ''; };
@@ -3792,9 +3747,9 @@ document.addEventListener('DOMContentLoaded', () => {
         editorSiteConfig = {};
         contentRoot = 'wwwroot';
       }
-      // Keep a global hint for content root, and default editor base dir
-      try { window.__press_content_root = contentRoot; } catch (_) {}
-      try { window.__press_editor_base_dir = `${contentRoot}/`; } catch (_) {}
+      // Keep runtime hints for content root and default editor base dir.
+      editorMainRuntime.setContentRoot(contentRoot);
+      editorMainRuntime.setEditorBaseDir(`${contentRoot}/`, `${contentRoot}/`);
 
       try {
         setStatus('Loading index…');

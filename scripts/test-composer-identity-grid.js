@@ -65,6 +65,7 @@ const propagationWatcherPath = resolve(here, '../assets/js/publish/propagation-w
 const mainPath = resolve(here, '../assets/main.js');
 const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
+const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
@@ -129,6 +130,7 @@ const propagationWatcherSource = readFileSync(propagationWatcherPath, 'utf8');
 const mainSource = readFileSync(mainPath, 'utf8');
 const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
+const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
@@ -537,6 +539,24 @@ assert.match(
   source,
   /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'/,
   'composer should cache-bust the explicit editor app runtime boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /from '\.\/editor-main-runtime\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor main runtime boundary'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /localStorage\.(?:getItem|setItem)|window\.__press_editor_base_dir|window\.__press_primary_editor|window\.dispatchEvent\(new CustomEvent\('press-editor-|document\.dispatchEvent\(new CustomEvent\('press-editor-current-file-breadcrumb-select'|window\.addEventListener\('press-editor-site-config-change'/,
+  'editor main should route editor storage, app events, and browser globals through its runtime boundary'
+);
+
+assert.match(
+  editorMainRuntimeSource,
+  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)/,
+  'editor main runtime should own storage, browser global, and cross-component event service adapters'
 );
 
 assert.match(
@@ -1169,9 +1189,15 @@ assert.match(
 );
 
 assert.match(
+  editorMainRuntimeSource,
+  /const LS_VIEW_KEY = 'press_editor_markdown_view_v2';[\s\S]*function readMarkdownEditorView\(\) \{[\s\S]*runtime\.storage\.getItem\(LS_VIEW_KEY\)[\s\S]*function persistMarkdownEditorView\(mode\) \{[\s\S]*runtime\.storage\.setItem\(LS_VIEW_KEY, normalizeMarkdownEditorView\(mode\)\);/,
+  'editor main runtime should persist the selected source/blocks view'
+);
+
+assert.match(
   editorMainSource,
-  /const LS_VIEW_KEY = 'press_editor_markdown_view_v2';[\s\S]*function readPersistedMarkdownEditorView\(\) \{[\s\S]*localStorage\.getItem\(LS_VIEW_KEY\)[\s\S]*function persistMarkdownEditorView\(mode\) \{[\s\S]*localStorage\.setItem\(LS_VIEW_KEY, normalizeMarkdownEditorView\(mode\)\);/,
-  'markdown editor should persist the selected source/blocks view'
+  /function readPersistedMarkdownEditorView\(\) \{\s*return editorMainRuntime\.readMarkdownEditorView\(\);\s*\}[\s\S]*function persistMarkdownEditorView\(mode\) \{\s*editorMainRuntime\.persistMarkdownEditorView\(mode\);/,
+  'editor main should route markdown view persistence through the runtime boundary'
 );
 
 assert.match(
@@ -1779,13 +1805,13 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*canDeleteImageResource: \(src\) => !!resolveCurrentImageResource\(src\),[\s\S]*requestImageDelete: \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*new CustomEvent\('press-editor-asset-delete-requested'[\s\S]*markdownBlocksEditor\.deleteImageBlock\(target\)[\s\S]*press-editor-asset-delete-canceled/,
+  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*canDeleteImageResource: \(src\) => !!resolveCurrentImageResource\(src\),[\s\S]*requestImageDelete: \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*editorMainRuntime\.requestAssetDelete\(detail\)[\s\S]*markdownBlocksEditor\.deleteImageBlock\(target\)[\s\S]*editorMainRuntime\.emitAssetDeleteCanceled\(detail\)/,
   'visual image blocks should request explicit repository asset deletion before removing the block'
 );
 
 assert.match(
   editorMainSource,
-  /let selection;[\s\S]*if \(customInsertMarkdown\) \{[\s\S]*selection = customInsertMarkdown\(paths\.relativePath, meta\.altText\);[\s\S]*if \(selection === false\) \{[\s\S]*if \(options\.insertAbortToast\) emitEditorToast\('warn', options\.insertAbortToast\);[\s\S]*continue;[\s\S]*window\.dispatchEvent\(new CustomEvent\('press-editor-asset-added'/,
+  /let selection;[\s\S]*if \(customInsertMarkdown\) \{[\s\S]*selection = customInsertMarkdown\(paths\.relativePath, meta\.altText\);[\s\S]*if \(selection === false\) \{[\s\S]*if \(options\.insertAbortToast\) emitEditorToast\('warn', options\.insertAbortToast\);[\s\S]*continue;[\s\S]*editorMainRuntime\.emitAssetAdded\(\{/,
   'image uploads should skip asset-added events and success toasts when replacement aborts'
 );
 

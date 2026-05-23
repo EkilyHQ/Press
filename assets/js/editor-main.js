@@ -9,6 +9,7 @@ import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
 import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
 import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.50';
 import { createEditorMainMetadataPanel } from './editor-main-metadata-panel.js?v=press-system-v3.4.50';
+import { createEditorMainPreviewSession } from './editor-main-preview-session.js?v=press-system-v3.4.50';
 import {
   createEditorMainRuntime,
   normalizeMarkdownEditorView
@@ -25,244 +26,8 @@ function persistMarkdownEditorView(mode) {
   editorMainRuntime.persistMarkdownEditorView(mode);
 }
 
-const previewAssetBuckets = new Map();
-let previewAssetCurrentPath = '';
 let markdownBlocksEditor = null;
 let syncMarkdownBlocksFromSource = null;
-
-const PREVIEW_RENDER_MESSAGE = 'press-editor-preview-render';
-const PREVIEW_READY_MESSAGE = 'press-editor-preview-ready';
-const PREVIEW_RENDERED_MESSAGE = 'press-editor-preview-rendered';
-const PREVIEW_ERROR_MESSAGE = 'press-editor-preview-error';
-
-const getContentRootPrefix = () => {
-  try {
-    const raw = String(getContentRoot() || '').trim();
-    if (!raw) return '';
-    return raw
-      .replace(/[\\]/g, '/')
-      .replace(/\/+$/, '');
-  } catch (_) {
-    return '';
-  }
-};
-
-const safePreviewMime = (mime) => {
-  try {
-    const raw = String(mime || '').trim().toLowerCase();
-    if (!raw) return 'image/png';
-    return raw.startsWith('image/') ? raw : 'image/png';
-  } catch (_) {
-    return 'image/png';
-  }
-};
-
-const makePreviewDataUrl = (base64, mime) => {
-  try {
-    const data = String(base64 || '').trim();
-    if (!data) return '';
-    const type = safePreviewMime(mime);
-    return `data:${type};base64,${data}`;
-  } catch (_) {
-    return '';
-  }
-};
-
-const normalizePreviewKey = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (/^(data:|blob:)/i.test(raw)) return raw;
-  let input = raw;
-  try {
-    if (/^[a-z][a-z0-9+.-]*:/i.test(input)) {
-      const url = new URL(input, window.location.href);
-      input = url.pathname || '';
-    }
-  } catch (_) {
-    /* ignore URL parse errors */
-  }
-  return input
-    .replace(/^[?#]+/, '')
-    .replace(/[\\]/g, '/')
-    .replace(/\/+/, '/')
-    .replace(/^\.\/+/, '')
-    .replace(/^\/+/, '');
-};
-
-const normalizePreviewPath = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  const cleaned = raw.replace(/[\\]/g, '/');
-  const parts = cleaned.split('/');
-  const stack = [];
-  for (const part of parts) {
-    if (!part || part === '.') continue;
-    if (part === '..') {
-      if (stack.length) stack.pop();
-      continue;
-    }
-    stack.push(part);
-  }
-  let normalized = stack.join('/');
-  const prefix = getContentRootPrefix();
-  if (prefix) {
-    if (normalized === prefix) return '';
-    if (normalized.startsWith(`${prefix}/`)) {
-      normalized = normalized.slice(prefix.length + 1);
-    }
-  }
-  return normalized;
-};
-
-const buildPreviewKeysForAsset = (asset) => {
-  const keys = new Set();
-  const commit = normalizePreviewKey(asset && (asset.path || asset.commitPath));
-  const rel = normalizePreviewKey(asset && asset.relativePath);
-  const prefix = getContentRootPrefix();
-  const join = (base, suffix) => {
-    if (!base) return suffix;
-    return `${base}/${suffix}`.replace(/\/+/, '/');
-  };
-  if (commit) {
-    keys.add(commit);
-    if (prefix) keys.add(join(prefix, commit));
-  }
-  if (rel) {
-    keys.add(rel);
-    if (prefix) keys.add(join(prefix, rel));
-  }
-  return Array.from(keys).filter(Boolean);
-};
-
-const updatePreviewAssetBucket = (path, assets) => {
-  const norm = normalizePreviewPath(path);
-  if (!norm) {
-    if (path) previewAssetBuckets.delete(norm);
-    return;
-  }
-  let bucket = previewAssetBuckets.get(norm);
-  if (!bucket) {
-    bucket = new Map();
-    previewAssetBuckets.set(norm, bucket);
-  }
-  const list = Array.isArray(assets) ? assets : [];
-  if (!list.length) {
-    bucket.clear();
-    previewAssetBuckets.delete(norm);
-    return;
-  }
-  const keep = new Set();
-  list.forEach((asset) => {
-    if (!asset) return;
-    const base64 = typeof asset.base64 === 'string' ? asset.base64.trim() : '';
-    if (!base64) return;
-    const url = makePreviewDataUrl(base64, asset.mime);
-    if (!url) return;
-    const keys = buildPreviewKeysForAsset(asset);
-    if (!keys.length) return;
-    keys.forEach((key) => {
-      if (!key) return;
-      bucket.set(key, { url, mime: safePreviewMime(asset.mime) });
-      keep.add(key);
-    });
-  });
-  Array.from(bucket.keys()).forEach((key) => {
-    if (!keep.has(key)) bucket.delete(key);
-  });
-  if (!bucket.size) previewAssetBuckets.delete(norm);
-};
-
-const lookupPreviewAsset = (bucket, key) => {
-  if (!bucket || !key) return null;
-  const direct = bucket.get(key);
-  if (direct) return direct;
-  const prefix = getContentRootPrefix();
-  if (prefix && key.startsWith(`${prefix}/`)) {
-    const trimmed = key.slice(prefix.length + 1);
-    return bucket.get(trimmed) || null;
-  }
-  return null;
-};
-
-const applyPreviewAssetOverrides = (container, markdownPath) => {
-  const normPath = normalizePreviewPath(markdownPath || previewAssetCurrentPath);
-  if (!normPath) return;
-  const bucket = previewAssetBuckets.get(normPath);
-  if (!bucket || !bucket.size) return;
-  const root = typeof container === 'string' ? document.querySelector(container) : container;
-  if (!root) return;
-
-  const rewriteAttr = (node, attr) => {
-    if (!node) return;
-    const raw = node.getAttribute(attr);
-    if (!raw) return;
-    const key = normalizePreviewKey(raw);
-    if (!key) return;
-    const asset = lookupPreviewAsset(bucket, key);
-    if (!asset || !asset.url) return;
-    if (node.getAttribute(attr) === asset.url) return;
-    node.setAttribute(attr, asset.url);
-  };
-
-  const rewriteSrcset = (node, attr) => {
-    if (!node) return;
-    const raw = node.getAttribute(attr);
-    if (!raw) return;
-    const parts = raw.split(',');
-    let changed = false;
-    const next = parts.map((part) => {
-      const seg = part.trim();
-      if (!seg) return '';
-      const bits = seg.split(/\s+/);
-      const url = bits.shift();
-      const asset = lookupPreviewAsset(bucket, normalizePreviewKey(url));
-      if (asset && asset.url) {
-        changed = true;
-        return [asset.url, ...bits].join(' ');
-      }
-      return seg;
-    });
-    if (changed) node.setAttribute(attr, next.filter(Boolean).join(', '));
-  };
-
-  root.querySelectorAll('img').forEach((img) => {
-    rewriteAttr(img, 'src');
-    rewriteAttr(img, 'data-src');
-    rewriteAttr(img, 'data-original');
-    rewriteSrcset(img, 'srcset');
-  });
-  root.querySelectorAll('source').forEach((source) => {
-    rewriteAttr(source, 'src');
-    rewriteSrcset(source, 'srcset');
-  });
-  root.querySelectorAll('video').forEach((video) => {
-    rewriteAttr(video, 'poster');
-    rewriteAttr(video, 'src');
-    rewriteSrcset(video, 'srcset');
-  });
-};
-
-const refreshPreviewAssetOverrides = () => {
-  ['blocks-wrap'].forEach((id) => {
-    const target = document.getElementById(id);
-    if (!target) return;
-    applyPreviewAssetOverrides(target, previewAssetCurrentPath);
-  });
-};
-
-const collectPreviewAssetOverrides = (markdownPath) => {
-  const normPath = normalizePreviewPath(markdownPath || previewAssetCurrentPath);
-  if (!normPath) return [];
-  const bucket = previewAssetBuckets.get(normPath);
-  if (!bucket || !bucket.size) return [];
-  return Array.from(bucket.entries())
-    .map(([key, value]) => ({
-      key,
-      url: value && value.url ? String(value.url) : '',
-      mime: value && value.mime ? String(value.mime) : ''
-    }))
-    .filter((item) => item.key && item.url);
-};
 
 const fetchMarkdownForLinkCard = (loc) => {
   try {
@@ -567,85 +332,6 @@ function switchView(mode) {
   viewButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === (mode === 'blocks' ? 'blocks' : 'edit')));
 }
 
-let previewFrameReady = false;
-let previewRenderRequestId = 0;
-let previewThemeOverride = '';
-let previewThemeOptions = [{ value: 'native', label: 'Native' }];
-
-function sanitizePreviewThemePack(value) {
-  const clean = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  return clean || 'native';
-}
-
-function getSitePreviewThemePack() {
-  return sanitizePreviewThemePack(editorSiteConfig && editorSiteConfig.themePack ? editorSiteConfig.themePack : 'native');
-}
-
-function getActivePreviewThemePack() {
-  return sanitizePreviewThemePack(previewThemeOverride || getSitePreviewThemePack());
-}
-
-function updatePreviewThemeSelect() {
-  try {
-    const select = document.getElementById('previewThemeSelect');
-    if (!select) return;
-    const active = getActivePreviewThemePack();
-    const options = Array.isArray(previewThemeOptions) && previewThemeOptions.length
-      ? previewThemeOptions
-      : [{ value: 'native', label: 'Native' }];
-    const seen = new Set();
-    select.innerHTML = '';
-    options.forEach((item) => {
-      const value = sanitizePreviewThemePack(item && item.value);
-      if (!value || seen.has(value)) return;
-      seen.add(value);
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = String((item && item.label) || value);
-      select.appendChild(option);
-    });
-    if (!seen.has(active)) {
-      const option = document.createElement('option');
-      option.value = active;
-      option.textContent = active;
-      select.appendChild(option);
-    }
-    select.value = active;
-  } catch (_) {}
-}
-
-function getPreviewPayload(mdText) {
-  const baseDir = editorMainRuntime.getEditorBaseDir(`${getContentRoot()}/`);
-  return {
-    type: PREVIEW_RENDER_MESSAGE,
-    requestId: ++previewRenderRequestId,
-    themePack: getActivePreviewThemePack(),
-    markdown: mdText == null ? '' : String(mdText),
-    baseDir,
-    currentPath: previewAssetCurrentPath || '',
-    siteConfig: editorSiteConfig || {},
-    metadata: { location: previewAssetCurrentPath || '' },
-    postsIndex: editorPostsIndexCache || {},
-    postsByLocationTitle: editorPostsByLocationTitle || {},
-    allowedLocations: linkCardReady && editorAllowedLocations ? Array.from(editorAllowedLocations) : [],
-    locationAliases: linkCardReady && editorLocationAliasMap ? Array.from(editorLocationAliasMap.entries()) : [],
-    assetOverrides: collectPreviewAssetOverrides(previewAssetCurrentPath)
-  };
-}
-
-function renderPreview(mdText) {
-  try {
-    updatePreviewThemeSelect();
-    const previewWrap = editorMainRuntime.getElementById('preview-wrap');
-    if (!previewWrap || previewWrap.hidden) return;
-    const frame = editorMainRuntime.getElementById('previewFrame');
-    if (!frame || !frame.contentWindow) return;
-    const payload = getPreviewPayload(mdText);
-    frame.__pressPendingPreviewPayload = payload;
-    editorMainRuntime.postMessage(frame.contentWindow, payload);
-  } catch (_) {}
-}
-
 // ---- Local draft storage removed (temporary) ----
 
 editorMainRuntime.onDocumentReady(() => {
@@ -655,13 +341,6 @@ editorMainRuntime.onDocumentReady(() => {
   const imageInput = editorMainRuntime.getElementById('editorImageInput');
   const editorToolbarEl = editorMainRuntime.getElementById('editorToolbar');
   const blocksWrap = editorMainRuntime.getElementById('blocks-wrap');
-  const previewWrap = editorMainRuntime.getElementById('preview-wrap');
-  const previewFrame = editorMainRuntime.getElementById('previewFrame');
-  const previewFrameSizer = editorMainRuntime.getElementById('previewFrameSizer');
-  const previewViewportShell = editorMainRuntime.getElementById('previewViewportShell');
-  const previewPathLabel = editorMainRuntime.getElementById('previewPathLabel');
-  const closePreviewButton = editorMainRuntime.getElementById('btnClosePreview');
-  const previewThemeSelect = editorMainRuntime.getElementById('previewThemeSelect');
   const cardButton = editorMainRuntime.getElementById('btnInsertCard');
   const cardPopover = editorMainRuntime.getElementById('editorCardPicker');
   const cardSearchInput = editorMainRuntime.getElementById('cardPickerSearch');
@@ -779,23 +458,8 @@ editorMainRuntime.onDocumentReady(() => {
 
   const inferCurrentFileSource = (path) => metadataPanel.inferCurrentFileSource(path);
 
-  const handleAssetPreviewEvent = (event) => {
-    if (!event || !event.detail) return;
-    const detail = event.detail;
-    const markdownPath = normalizePreviewPath(detail.markdownPath || detail.path || '');
-    updatePreviewAssetBucket(markdownPath, detail.assets || []);
-    if (!markdownPath) {
-      refreshPreviewAssetOverrides();
-      refreshPreview();
-      return;
-    }
-    if (markdownPath === normalizePreviewPath(previewAssetCurrentPath)) {
-      refreshPreviewAssetOverrides();
-      refreshPreview();
-    }
-  };
-
-  editorMainRuntime.onWindow('press-editor-asset-preview', handleAssetPreviewEvent);
+  let currentFileInfo = { path: '', source: '', breadcrumb: [], status: null, dirty: false, draft: null, draftState: '', loaded: false };
+  let currentFileElRef = null;
 
   const requestLayout = () => {
     try {
@@ -822,228 +486,33 @@ editorMainRuntime.onDocumentReady(() => {
     return metadataPanel.buildEditorValue(body);
   };
 
+  const previewSession = createEditorMainPreviewSession({
+    runtime: editorMainRuntime,
+    documentRef: document,
+    windowRef: window,
+    getContentRoot,
+    getEditorValue: () => getValue(),
+    getCurrentFileInfo: () => currentFileInfo,
+    getSiteConfig: () => editorSiteConfig || {},
+    getPostsIndex: () => editorPostsIndexCache || {},
+    getPostsByLocationTitle: () => editorPostsByLocationTitle || {},
+    isLinkCardReady: () => linkCardReady,
+    getAllowedLocations: () => editorAllowedLocations,
+    getLocationAliases: () => editorLocationAliasMap,
+    fetch
+  });
+  previewSession.bind();
+
   const refreshPreview = () => {
-    try { renderPreview(getValue()); } catch (_) {}
+    try { previewSession.render(getValue()); } catch (_) {}
   };
-
-  const getPreviewPathText = () => {
-    try {
-      const path = currentFileInfo && currentFileInfo.path ? String(currentFileInfo.path) : '';
-      const crumbs = currentFileInfo && Array.isArray(currentFileInfo.breadcrumb)
-        ? currentFileInfo.breadcrumb
-          .map((item) => (item && item.label ? String(item.label).trim() : ''))
-          .filter(Boolean)
-        : [];
-      return crumbs.length ? crumbs.join(' / ') : path;
-    } catch (_) {
-      return '';
-    }
-  };
-
-  const resetPreviewViewportWidth = () => {
-    if (!previewFrameSizer) return;
-    previewFrameSizer.style.width = '';
-    previewFrameSizer.classList.remove('is-resizing');
-    if (previewFrame) previewFrame.style.pointerEvents = '';
-  };
-
-  const setPreviewViewportWidth = (width) => {
-    if (!previewFrameSizer || !previewViewportShell) return;
-    const shellRect = previewViewportShell.getBoundingClientRect();
-    const handleSpace = 36;
-    const maxWidth = Math.max(0, (shellRect.width || 0) - handleSpace);
-    if (!maxWidth) return;
-    const minWidth = Math.min(360, maxWidth);
-    const clamped = Math.max(minWidth, Math.min(maxWidth, width));
-    previewFrameSizer.style.width = `${Math.round(clamped)}px`;
-  };
-
-  const PREVIEW_OVERLAY_CLOSE_MS = 260;
-  let previewOverlayFrame = 0;
-  let previewOverlayCloseTimer = 0;
-
-  const clearPreviewOverlayAnimation = () => {
-    if (previewOverlayFrame) {
-      editorMainRuntime.cancelFrame(previewOverlayFrame);
-      previewOverlayFrame = 0;
-    }
-    if (previewOverlayCloseTimer) {
-      editorMainRuntime.clearTimer(previewOverlayCloseTimer);
-      previewOverlayCloseTimer = 0;
-    }
-  };
-
-  const prefersReducedPreviewMotion = () => {
-    return editorMainRuntime.prefersReducedMotion();
-  };
-
-  const openPreviewOverlay = () => {
-    if (!previewWrap) return;
-    clearPreviewOverlayAnimation();
-    if (previewPathLabel) previewPathLabel.textContent = getPreviewPathText() || 'Preview';
-    resetPreviewViewportWidth();
-    previewWrap.hidden = false;
-    previewWrap.removeAttribute('aria-hidden');
-    previewWrap.classList.remove('is-closing');
-    previewWrap.classList.remove('is-open');
-    previewOverlayFrame = editorMainRuntime.requestFrame(() => {
-      previewOverlayFrame = 0;
-      previewWrap.classList.add('is-open');
-    });
-    updatePreviewThemeSelect();
-    refreshPreview();
-    try { previewWrap.focus && previewWrap.focus(); } catch (_) {}
-  };
-
-  const closePreviewOverlay = () => {
-    if (!previewWrap) return;
-    clearPreviewOverlayAnimation();
-    previewWrap.setAttribute('aria-hidden', 'true');
-    previewWrap.classList.remove('is-open');
-    if (prefersReducedPreviewMotion()) {
-      previewWrap.classList.remove('is-closing');
-      previewWrap.hidden = true;
-      resetPreviewViewportWidth();
-      return;
-    }
-    previewWrap.classList.add('is-closing');
-    previewOverlayCloseTimer = editorMainRuntime.setTimer(() => {
-      previewOverlayCloseTimer = 0;
-      previewWrap.hidden = true;
-      previewWrap.classList.remove('is-closing');
-      resetPreviewViewportWidth();
-    }, PREVIEW_OVERLAY_CLOSE_MS);
-  };
-
-  const startPreviewResize = (event, side) => {
-    if (!previewFrameSizer || !previewViewportShell) return;
-    if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    const startX = event && Number.isFinite(event.clientX) ? event.clientX : 0;
-    const startRect = previewFrameSizer.getBoundingClientRect();
-    const startWidth = startRect.width || 0;
-    const direction = side === 'left' ? -1 : 1;
-    previewFrameSizer.classList.add('is-resizing');
-    if (previewFrame) previewFrame.style.pointerEvents = 'none';
-
-    const handleMove = (moveEvent) => {
-      const currentX = moveEvent && Number.isFinite(moveEvent.clientX) ? moveEvent.clientX : startX;
-      const delta = currentX - startX;
-      setPreviewViewportWidth(startWidth + (delta * direction * 2));
-    };
-    let detachMove = () => {};
-    let detachUp = () => {};
-    let detachCancel = () => {};
-    const handleEnd = () => {
-      detachMove();
-      detachUp();
-      detachCancel();
-      previewFrameSizer.classList.remove('is-resizing');
-      if (previewFrame) previewFrame.style.pointerEvents = '';
-    };
-
-    detachMove = editorMainRuntime.onDocument('pointermove', handleMove);
-    detachUp = editorMainRuntime.onDocument('pointerup', handleEnd, { once: true });
-    detachCancel = editorMainRuntime.onDocument('pointercancel', handleEnd, { once: true });
-  };
-
-  const flushPendingPreview = () => {
-    try {
-      if (!previewFrame || !previewFrame.contentWindow || !previewFrame.__pressPendingPreviewPayload) return;
-      if (!previewFrameReady) return;
-      editorMainRuntime.postMessage(previewFrame.contentWindow, previewFrame.__pressPendingPreviewPayload);
-    } catch (_) {}
-  };
-
-  const loadPreviewThemeOptions = () => {
-    const normalizeThemeOptions = (lists) => {
-      const normalized = [];
-      const seen = new Set();
-      lists.forEach((list) => {
-        (Array.isArray(list) ? list : []).forEach((item) => {
-          const value = sanitizePreviewThemePack(item && item.value);
-          if (!value || seen.has(value)) return;
-          seen.add(value);
-          normalized.push({ value, label: String((item && item.label) || value) });
-        });
-      });
-      return normalized;
-    };
-    const fetchThemeList = (path, optional = false) => fetch(path, { cache: 'no-store' })
-      .then((response) => {
-        if (response && response.ok) return response.json();
-        if (optional) return [];
-        return Promise.reject(new Error(`Unable to load ${path}`));
-      })
-      .catch((err) => {
-        if (optional) return [];
-        throw err;
-      });
-    Promise.all([
-      fetchThemeList('assets/themes/packs.json'),
-      fetchThemeList('assets/themes/packs.local.json', true)
-    ])
-      .then((lists) => {
-        const normalized = normalizeThemeOptions(lists);
-        if (normalized.length) previewThemeOptions = normalized;
-        updatePreviewThemeSelect();
-      })
-      .catch(() => { updatePreviewThemeSelect(); });
-  };
-
-  if (previewFrame) {
-    previewFrame.addEventListener('load', () => {
-      previewFrameReady = false;
-      editorMainRuntime.setTimer(flushPendingPreview, 0);
-    });
-  }
-
-  editorMainRuntime.onWindow('message', (event) => {
-    if (event.origin !== editorMainRuntime.getLocationOrigin()) return;
-    if (!previewFrame || event.source !== previewFrame.contentWindow) return;
-    const detail = event.data && typeof event.data === 'object' ? event.data : {};
-    if (detail.type === PREVIEW_READY_MESSAGE) {
-      previewFrameReady = true;
-      flushPendingPreview();
-    } else if (detail.type === PREVIEW_RENDERED_MESSAGE) {
-      previewFrameReady = true;
-    } else if (detail.type === PREVIEW_ERROR_MESSAGE) {
-      previewFrameReady = true;
-      try { console.warn('Editor preview render failed', detail.message || detail); } catch (_) {}
-    }
-  });
-
-  if (previewThemeSelect) {
-    previewThemeSelect.addEventListener('change', () => {
-      previewThemeOverride = sanitizePreviewThemePack(previewThemeSelect.value || 'native');
-      updatePreviewThemeSelect();
-      refreshPreview();
-    });
-  }
-  if (closePreviewButton) {
-    closePreviewButton.addEventListener('click', () => {
-      closePreviewOverlay();
-    });
-  }
-  editorMainRuntime.querySelectorAll('[data-preview-resize]').forEach((handle) => {
-    handle.addEventListener('pointerdown', (event) => {
-      startPreviewResize(event, handle.getAttribute('data-preview-resize') || 'right');
-    });
-  });
-  editorMainRuntime.onDocument('keydown', (event) => {
-    if (!event || event.key !== 'Escape') return;
-    if (!previewWrap || previewWrap.hidden) return;
-    event.preventDefault();
-    closePreviewOverlay();
-  });
-  loadPreviewThemeOptions();
 
   editorMainRuntime.onSiteConfigChange((event) => {
     const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
     if (detail.siteConfig && typeof detail.siteConfig === 'object') {
       editorSiteConfig = detail.siteConfig;
       try { configureFetchCachePolicy(editorSiteConfig, { context: 'editor' }); } catch (_) {}
-      if (!previewThemeOverride) updatePreviewThemeSelect();
-      refreshPreview();
+      previewSession.handleSiteConfigChange();
     }
   });
 
@@ -1057,7 +526,7 @@ editorMainRuntime.onDocumentReady(() => {
     if (markdownBlocksEditor && blocksWrap && !blocksWrap.hidden && typeof markdownBlocksEditor.setMarkdown === 'function') {
       try { markdownBlocksEditor.setMarkdown(bodyText); } catch (_) {}
     }
-    if (preview) renderPreview(getValue());
+    if (preview) refreshPreview();
     if (notify) notifyChange();
   };
 
@@ -1179,7 +648,7 @@ editorMainRuntime.onDocumentReady(() => {
     if (editor) editor.setValue(text);
     else if (ta) ta.value = text;
     requestLayout();
-    renderPreview(getValue());
+    refreshPreview();
     notifyChange();
   };
 
@@ -1204,7 +673,7 @@ editorMainRuntime.onDocumentReady(() => {
       getBaseDir: () => editorMainRuntime.getEditorBaseDir(`${getContentRoot()}/`),
       resolveImageSrc,
       hydrateImages: (node) => {
-        try { applyPreviewAssetOverrides(node, getCurrentMarkdownPath()); } catch (_) {}
+        try { previewSession.applyAssetOverrides(node, getCurrentMarkdownPath()); } catch (_) {}
       },
       hydrateCard: (node) => {
         try {
@@ -1216,9 +685,9 @@ editorMainRuntime.onDocumentReady(() => {
             siteConfig: editorSiteConfig,
             translate: t,
             makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`),
-            fetchMarkdown: fetchMarkdownForLinkCard
-          });
-          applyPreviewAssetOverrides(node, getCurrentMarkdownPath());
+              fetchMarkdown: fetchMarkdownForLinkCard
+            });
+          previewSession.applyAssetOverrides(node, getCurrentMarkdownPath());
         } catch (_) {}
       },
       requestImageUpload: ({ index, replaceIndex, replaceBlockId } = {}) => {
@@ -1288,8 +757,6 @@ editorMainRuntime.onDocumentReady(() => {
   };
 
   const STATUS_STATES = new Set(['checking', 'existing', 'missing', 'error']);
-  let currentFileInfo = { path: '', source: '', breadcrumb: [], status: null, dirty: false, draft: null, draftState: '', loaded: false };
-  let currentFileElRef = null;
 
   const getEditorTextarea = () => {
     if (editor && editor.textarea) return editor.textarea;
@@ -2349,7 +1816,7 @@ editorMainRuntime.onDocumentReady(() => {
       el.removeAttribute('title');
       el.removeAttribute('data-dirty');
       el.removeAttribute('data-draft-state');
-      if (previewPathLabel) previewPathLabel.textContent = '';
+      previewSession.updatePathLabel();
       return;
     }
 
@@ -2402,9 +1869,7 @@ editorMainRuntime.onDocumentReady(() => {
     else el.removeAttribute('data-dirty');
     if (draftState) el.setAttribute('data-draft-state', draftState);
     else el.removeAttribute('data-draft-state');
-    if (previewPathLabel && previewWrap && !previewWrap.hidden) {
-      previewPathLabel.textContent = getPreviewPathText() || 'Preview';
-    }
+    previewSession.updatePathLabel();
   };
 
   const bindCurrentFileElement = (el) => {
@@ -2415,9 +1880,9 @@ editorMainRuntime.onDocumentReady(() => {
   const assignCurrentFileLabel = (input) => {
     currentFileInfo = normalizeCurrentFilePayload(input);
     metadataPanel.applyCurrentFileSource(currentFileInfo.source);
-    previewAssetCurrentPath = normalizePreviewPath(currentFileInfo.path || '');
+    previewSession.setCurrentFileInfo(currentFileInfo);
     renderCurrentFileIndicator();
-    refreshPreviewAssetOverrides();
+    previewSession.refreshAssetOverrides();
     refreshPreview();
   };
 
@@ -2425,7 +1890,7 @@ editorMainRuntime.onDocumentReady(() => {
 
   const handleInput = () => {
     const full = getValue();
-    renderPreview(full);
+    previewSession.render(full);
     notifyChange();
   };
 
@@ -2437,7 +1902,7 @@ editorMainRuntime.onDocumentReady(() => {
   if (!initial) {
     setValue(seed, { notify: false });
   } else {
-    renderPreview(initial);
+    previewSession.render(initial);
   }
 
   setBaseDir('');
@@ -2523,7 +1988,7 @@ editorMainRuntime.onDocumentReady(() => {
 
   const applyMarkdownEditorView = (mode, opts = {}) => {
     if (mode === 'preview') {
-      openPreviewOverlay();
+      previewSession.open();
       return;
     }
     const nextView = normalizeMarkdownEditorView(mode);
@@ -2547,7 +2012,7 @@ editorMainRuntime.onDocumentReady(() => {
   if (previewOpenButton) {
     previewOpenButton.addEventListener('click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      openPreviewOverlay();
+      previewSession.open();
     });
   }
 
@@ -2578,7 +2043,7 @@ editorMainRuntime.onDocumentReady(() => {
     onTabsMetadataChange: (fn) => {
       return metadataPanel.onTabsMetadataChange(fn);
     },
-    refreshPreview: () => { renderPreview(getValue()); },
+    refreshPreview: () => { refreshPreview(); },
     requestLayout: () => { requestLayout(); },
     setWrap: (value, opts = {}) => { applyWrapState(value, opts); },
     isWrapEnabled: () => wrapEnabled
@@ -3015,7 +2480,7 @@ editorMainRuntime.onDocumentReady(() => {
         const site = await fetchMergedSiteConfig();
         editorSiteConfig = site || {};
         try { configureFetchCachePolicy(editorSiteConfig, { context: 'editor' }); } catch (_) {}
-        updatePreviewThemeSelect();
+        previewSession.handleSiteConfigChange();
         contentRoot = (site && site.contentRoot) ? String(site.contentRoot) : 'wwwroot';
       } catch (_) {
         editorSiteConfig = {};

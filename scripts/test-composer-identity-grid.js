@@ -67,6 +67,7 @@ const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
+const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -158,6 +159,7 @@ const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
+const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -895,14 +897,32 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-preview-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor preview session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
+);
+
+assert.match(
+  editorMainSource,
+  /const previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileInfo,[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => editorPostsIndexCache \|\| \{\},[\s\S]*getPostsByLocationTitle: \(\) => editorPostsByLocationTitle \|\| \{\},[\s\S]*isLinkCardReady: \(\) => linkCardReady,[\s\S]*getAllowedLocations: \(\) => editorAllowedLocations,[\s\S]*getLocationAliases: \(\) => editorLocationAliasMap,[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
+  'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
 assert.doesNotMatch(
   editorMainSource,
   /const frontMatterManager = \(\(\) =>|const tabsMetadataManager = \(\(\) =>|function syncFrontMatterLabelWidth|FRONT_MATTER_SECTION_DESCRIPTIONS|buildMarkdownWithFrontMatter|parseMarkdownFrontMatter|resolveFrontMatterBindings/,
   'editor main root should not own front matter or tabs metadata panel internals'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /previewAssetBuckets|previewFrameReady|previewRenderRequestId|previewThemeOverride|PREVIEW_RENDER_MESSAGE|function sanitizePreviewThemePack|function updatePreviewThemeSelect|function renderPreview|const openPreviewOverlay|const startPreviewResize|const flushPendingPreview|const loadPreviewThemeOptions|applyPreviewAssetOverrides\(/,
+  'editor main root should not own preview overlay, iframe message, theme selector, or asset override internals'
 );
 
 assert.doesNotMatch(
@@ -919,8 +939,14 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*editorMainRuntime\.onWindow\('press-editor-asset-preview'[\s\S]*editorMainRuntime\.onWindow\('message'[\s\S]*editorMainRuntime\.onDocument\('keydown'/,
-  'editor main startup, preview messaging, keyboard escape, and asset-preview events should be wired through the runtime boundary'
+  /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const previewSession = createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
+  'editor main startup should wire the preview session through the editor runtime boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /onWindow\('press-editor-asset-preview'[\s\S]*onWindow\('message'[\s\S]*onDocument\('keydown'/,
+  'editor preview session should own asset-preview, iframe message, and Escape-key event bindings through the runtime boundary'
 );
 
 assert.match(
@@ -2498,9 +2524,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /const refreshPreviewAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*document\.getElementById\(id\)[\s\S]*applyPreviewAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*\};/,
-  'asset preview refresh should update WYSIWYG block images'
+  editorMainPreviewSessionSource,
+  /const refreshAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*const target = getElementById\(id\);[\s\S]*applyAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*\};/,
+  'asset preview refresh should update WYSIWYG block images through the preview session'
 );
 
 assert.doesNotMatch(

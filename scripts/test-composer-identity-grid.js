@@ -69,6 +69,7 @@ const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
+const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -162,6 +163,7 @@ const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
+const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -911,6 +913,12 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-sidebar-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor sidebar session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -925,6 +933,12 @@ assert.match(
   editorMainSource,
   /previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileSession\.getInfo\(\),[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => editorPostsIndexCache \|\| \{\},[\s\S]*getPostsByLocationTitle: \(\) => editorPostsByLocationTitle \|\| \{\},[\s\S]*isLinkCardReady: \(\) => linkCardReady,[\s\S]*getAllowedLocations: \(\) => editorAllowedLocations,[\s\S]*getLocationAliases: \(\) => editorLocationAliasMap,[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
+);
+
+assert.match(
+  editorMainSource,
+  /const sidebarSession = createEditorMainSidebarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*normalizeLangKey,[\s\S]*bindCurrentFileElement,[\s\S]*loadSiteConfig: \(\) => fetchMergedSiteConfig\(\),[\s\S]*loadIndexData: \(contentRoot\) => loadContentJsonWithRaw\(contentRoot, 'index'\),[\s\S]*loadTabsConfig: \(contentRoot\) => fetchConfigWithYamlFallback\(\[`\$\{contentRoot\}\/tabs\.yaml`, `\$\{contentRoot\}\/tabs\.yml`\]\),[\s\S]*onSiteConfigLoaded:[\s\S]*onIndexLoaded:[\s\S]*onOpenMarkdown:[\s\S]*\}\);[\s\S]*sidebarSession\.initialize\(\);/,
+  'editor main should compose file sidebar rendering and loading through the sidebar session'
 );
 
 assert.doesNotMatch(
@@ -943,6 +957,12 @@ assert.doesNotMatch(
   editorMainSource,
   /let currentFileInfo|let currentFileElRef|STATUS_LABEL_KEYS|STATUS_STATES|normalizeCurrentFileBreadcrumb|normalizeCurrentFilePayload|renderCurrentFileBreadcrumb|renderCurrentFileIndicator|formatRelativeTime|getPlainText/,
   'editor main root should not own current-file state normalization, breadcrumb rendering, draft labels, or header DOM internals'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /initArticleBrowser|renderGroupedIndex|renderGroupedTabs|makeGroupHeader|makeSubHeader|compareVersionDesc|let currentActive|let activeGroup|document\.getElementById\('listIndex'\)|document\.getElementById\('groupTabs'\)|document\.querySelectorAll\('\.sidebar-tab'\)/,
+  'editor main root should not own sidebar file tree rendering, filter state, group switching, or active row state'
 );
 
 assert.doesNotMatch(
@@ -967,6 +987,12 @@ assert.match(
   editorMainPreviewSessionSource,
   /onWindow\('press-editor-asset-preview'[\s\S]*onWindow\('message'[\s\S]*onDocument\('keydown'/,
   'editor preview session should own asset-preview, iframe message, and Escape-key event bindings through the runtime boundary'
+);
+
+assert.match(
+  editorMainSidebarSessionSource,
+  /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
+  'editor sidebar session should own file list active state, grouped rendering, filtering, group switching, and initialization'
 );
 
 assert.match(

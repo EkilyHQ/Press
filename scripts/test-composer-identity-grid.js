@@ -5,6 +5,12 @@ import { dirname, resolve } from 'node:path';
 import { createPublishSettingsStore } from '../assets/js/publish/settings-store.js';
 import { createEditorSessionStateStore } from '../assets/js/editor-session-state.js';
 import { createStagingRegistry } from '../assets/js/composer-staging.js';
+import { resolveEditorStorageScope } from '../assets/js/editor-storage.js';
+import {
+  applyInferredRepoConfig,
+  inferRepoConfigFromGitHubPagesUrl,
+  isPlaceholderRepoConfig
+} from '../assets/js/composer-site-config.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerPath = resolve(here, '../assets/js/composer.js');
@@ -17,6 +23,7 @@ const composerNotificationsPath = resolve(here, '../assets/js/composer-notificat
 const composerDialogsPath = resolve(here, '../assets/js/composer-dialogs.js');
 const composerRemoteSyncPath = resolve(here, '../assets/js/composer-remote-sync.js');
 const composerYamlDraftsPath = resolve(here, '../assets/js/composer-yaml-drafts.js');
+const composerYamlActionsPath = resolve(here, '../assets/js/composer-yaml-actions.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
@@ -34,6 +41,8 @@ const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-con
 const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
+const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
+const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
 const composerMarkdownLoaderPath = resolve(here, '../assets/js/composer-markdown-loader.js');
 const composerMarkdownActionsUiPath = resolve(here, '../assets/js/composer-markdown-actions-ui.js');
@@ -74,6 +83,7 @@ const composerNotificationsSource = readFileSync(composerNotificationsPath, 'utf
 const composerDialogsSource = readFileSync(composerDialogsPath, 'utf8');
 const composerRemoteSyncSource = readFileSync(composerRemoteSyncPath, 'utf8');
 const composerYamlDraftsSource = readFileSync(composerYamlDraftsPath, 'utf8');
+const composerYamlActionsSource = readFileSync(composerYamlActionsPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
@@ -91,6 +101,8 @@ const composerModeControllerSource = readFileSync(composerModeControllerPath, 'u
 const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
+const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
+const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
 const composerMarkdownLoaderSource = readFileSync(composerMarkdownLoaderPath, 'utf8');
 const composerMarkdownActionsUiSource = readFileSync(composerMarkdownActionsUiPath, 'utf8');
@@ -121,7 +133,7 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource].join('\n');
+const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -140,38 +152,12 @@ function extractFunctionBody(text, name) {
   assert.fail(`${name} body should be balanced`);
 }
 
-function extractFunctionDeclaration(text, name) {
-  const start = text.indexOf(`function ${name}(`);
-  assert.notEqual(start, -1, `${name} should exist`);
-  const open = text.indexOf('{', start);
-  assert.notEqual(open, -1, `${name} should have a body`);
-  let depth = 0;
-  for (let index = open; index < text.length; index += 1) {
-    const char = text[index];
-    if (char === '{') depth += 1;
-    if (char === '}') {
-      depth -= 1;
-      if (depth === 0) return text.slice(start, index + 1);
-    }
-  }
-  assert.fail(`${name} declaration should be balanced`);
-}
-
-function loadRepoInferenceHelpers() {
-  const helpers = [
-    extractFunctionDeclaration(editorStorageSource, 'normalizeStorageScopePart'),
-    extractFunctionDeclaration(editorStorageSource, 'resolveEditorStorageScope').replace('export ', ''),
-    extractFunctionDeclaration(source, 'inferRepoConfigFromGitHubPagesUrl'),
-    extractFunctionDeclaration(source, 'isPlaceholderRepoConfig'),
-    extractFunctionDeclaration(source, 'isSameRepoConfig'),
-    extractFunctionDeclaration(source, 'shouldAutofillRepoFromPages'),
-    extractFunctionDeclaration(source, 'clearRepoAutofillFromPagesMarker'),
-    extractFunctionDeclaration(source, 'applyInferredRepoConfig')
-  ].join('\n');
-  return Function(`${helpers}\nreturn { resolveEditorStorageScope, inferRepoConfigFromGitHubPagesUrl, isPlaceholderRepoConfig, applyInferredRepoConfig };`)();
-}
-
-const repoInference = loadRepoInferenceHelpers();
+const repoInference = {
+  resolveEditorStorageScope,
+  inferRepoConfigFromGitHubPagesUrl,
+  isPlaceholderRepoConfig,
+  applyInferredRepoConfig
+};
 
 assert.match(
   editorSource,
@@ -565,8 +551,62 @@ assert.match(
 
 assert.match(
   source,
+  /from '\.\/composer-ui-motion\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted UI motion boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function syncSiteEditorSingleLabelWidth\(root\)|function animateComposerInlineVisibility\(element, show|function slideToggle\(el, toOpen\)|const __activeAnims = new WeakMap\(\)|const composerListTransitions = new WeakMap\(\)/,
+  'composer should not own low-level UI motion and measurement helpers'
+);
+
+assert.match(
+  composerUiMotionSource,
+  /export function syncSiteEditorSingleLabelWidth\(root\)[\s\S]*export function animateComposerInlineVisibility\(element, show, options = \{\}\)[\s\S]*export function animateComposerListTransition\(list, previousRect, options = \{\}\)[\s\S]*export function animateComposerOrderMainReset\(host, previousRect, options = \{\}\)[\s\S]*export function slideToggle\(el, toOpen\)[\s\S]*export function getComposerSlideDurations\(\)/,
+  'UI motion module should own composer label measurement, inline/list/order animations, slide toggles, and shared durations'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-site-config\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted site config boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /function inferRepoConfigFromGitHubPagesUrl\(locationLike\)|function applyInferredRepoConfig\(site, inferred\)|let composerSiteLocalOverride|mergeYamlConfig|resolveSiteRepoConfig/,
+  'composer should not own GitHub Pages repo inference or site-local config merge helpers'
+);
+
+assert.match(
+  composerSiteConfigSource,
+  /export function inferRepoConfigFromGitHubPagesUrl\(locationLike\)[\s\S]*export function applyInferredRepoConfig\(site, inferred\)[\s\S]*export function createComposerSiteConfigController\(options = \{\}\)[\s\S]*fetchSiteLocalOverride[\s\S]*applyEffectiveSiteConfig/,
+  'site config module should own Pages repo inference, site-local override loading, and effective config broadcasting'
+);
+
+assert.match(
+  source,
   /from '\.\/editor-content-tree-controller\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted editor content tree controller boundary'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-yaml-actions\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted YAML action boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /async function handleComposerRefresh\(btn\)|async function handleComposerDiscard\(btn\)|Refresh failed|Discard failed/,
+  'composer should delegate YAML refresh/discard action flows to the extracted action module'
+);
+
+assert.match(
+  composerYamlActionsSource,
+  /export function createComposerYamlActions\(options = \{\}\)[\s\S]*async function handleRefresh\(button = null\)[\s\S]*async function handleDiscard\(button = null\)[\s\S]*return \{[\s\S]*handleDiscard,[\s\S]*handleRefresh/,
+  'YAML action module should own refresh and discard flows'
 );
 
 assert.doesNotMatch(
@@ -3879,8 +3919,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver[\s\S]*--cs-editor-single-label-width/,
+  composerUiMotionSource,
+  /export function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver/,
   'compact single-value labels should be measured once after render and shared through a CSS variable'
 );
 

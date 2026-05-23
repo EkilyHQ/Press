@@ -141,6 +141,16 @@ if ! grep -qx "press-system-${version}/assets/js/composer-system-theme-bridge.js
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-ui-motion.js" "${entries_file}"; then
+  echo "expected package to include composer UI motion helper code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-site-config.js" "${entries_file}"; then
+  echo "expected package to include composer site config helper code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-content-tree-controller.js" "${entries_file}"; then
   echo "expected package to include editor content tree controller code" >&2
   exit 1
@@ -193,6 +203,11 @@ fi
 
 if ! grep -qx "press-system-${version}/assets/js/composer-yaml-drafts.js" "${entries_file}"; then
   echo "expected package to include composer YAML draft controller code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-yaml-actions.js" "${entries_file}"; then
+  echo "expected package to include composer YAML action controller code" >&2
   exit 1
 fi
 

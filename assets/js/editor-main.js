@@ -13,6 +13,7 @@ import { createEditorMainWorkspaceSession } from './editor-main-workspace-sessio
 import { createEditorMainBlocksSession } from './editor-main-blocks-session.js?v=press-system-v3.4.50';
 import { createEditorMainDocumentSession } from './editor-main-document-session.js?v=press-system-v3.4.50';
 import { createEditorMainContentService } from './editor-main-content-service.js?v=press-system-v3.4.50';
+import { createEditorMainFileContextService } from './editor-main-file-context-service.js?v=press-system-v3.4.50';
 import { createEditorMainLanguageSession } from './editor-main-language-session.js?v=press-system-v3.4.50';
 import { createEditorMainScrollSession } from './editor-main-scroll-session.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
@@ -62,8 +63,6 @@ editorMainRuntime.onDocumentReady(() => {
     makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
   });
 
-  const inferCurrentFileSource = (path) => metadataPanel.inferCurrentFileSource(path);
-
   const requestLayout = () => {
     try {
       if (editor && typeof editor.refreshLayout === 'function') {
@@ -80,6 +79,7 @@ editorMainRuntime.onDocumentReady(() => {
 
   let previewSession = null;
   let blocksSession = null;
+  let currentFileSession = null;
   const workspaceSession = createEditorMainWorkspaceSession({
     runtime: editorMainRuntime,
     documentRef: document,
@@ -93,6 +93,13 @@ editorMainRuntime.onDocumentReady(() => {
   });
   workspaceSession.initialize();
 
+  const fileContextService = createEditorMainFileContextService({
+    getCurrentFileSession: () => currentFileSession,
+    getMetadataPanel: () => metadataPanel,
+    getPreviewSession: () => previewSession,
+    getDocumentSession: () => documentSession
+  });
+
   const contentService = createEditorMainContentService({
     runtime: editorMainRuntime,
     getContentRoot,
@@ -101,7 +108,7 @@ editorMainRuntime.onDocumentReady(() => {
     getPreviewSession: () => previewSession,
     getDocumentSession: () => documentSession,
     getWorkspaceSession: () => workspaceSession,
-    setCurrentFileLabel: (label) => assignCurrentFileLabel(label),
+    setCurrentFileLabel: fileContextService.setCurrentFileLabel,
     warn: (...args) => {
       try { console.warn(...args); } catch (_) {}
     },
@@ -120,20 +127,18 @@ editorMainRuntime.onDocumentReady(() => {
     getBlocksSession: () => blocksSession,
     requestLayout,
     setBaseDir: contentService.setBaseDir,
-    setCurrentFileLabel: (label) => assignCurrentFileLabel(label)
+    setCurrentFileLabel: fileContextService.setCurrentFileLabel
   });
 
-  const currentFileSession = createEditorMainCurrentFileSession({
+  currentFileSession = createEditorMainCurrentFileSession({
     runtime: editorMainRuntime,
     documentRef: document,
     translate: t,
     getCurrentLang,
     normalizeLangKey,
-    inferCurrentFileSource,
+    inferCurrentFileSource: fileContextService.inferCurrentFileSource,
     applyEditorEmptyState: workspaceSession.applyEditorEmptyState,
-    onRendered: () => {
-      if (previewSession) previewSession.updatePathLabel();
-    }
+    onRendered: fileContextService.handleCurrentFileRendered
   });
 
   previewSession = createEditorMainPreviewSession({
@@ -142,7 +147,7 @@ editorMainRuntime.onDocumentReady(() => {
     windowRef: window,
     getContentRoot,
     getEditorValue: () => documentSession.getValue(),
-    getCurrentFileInfo: () => currentFileSession.getInfo(),
+    getCurrentFileInfo: fileContextService.getCurrentFileInfo,
     getSiteConfig: () => contentService.getSiteConfig(),
     getPostsIndex: () => linkCardContext.getPostsIndex(),
     getPostsByLocationTitle: () => linkCardContext.getPostsByLocationTitle(),
@@ -153,10 +158,6 @@ editorMainRuntime.onDocumentReady(() => {
   });
   previewSession.bind();
   contentService.bind();
-
-  const getCurrentMarkdownPath = () => {
-    return currentFileSession.getPath();
-  };
 
   const emitEditorToast = (kind, message) => {
     const text = message == null ? '' : String(message);
@@ -170,7 +171,7 @@ editorMainRuntime.onDocumentReady(() => {
     translate: t,
     imageButton,
     imageInput,
-    getCurrentMarkdownPath,
+    getCurrentMarkdownPath: fileContextService.getCurrentMarkdownPath,
     getContentRoot,
     getEditorTextarea: documentSession.getEditorTextarea,
     getEditorBody: documentSession.getEditorBody,
@@ -187,7 +188,7 @@ editorMainRuntime.onDocumentReady(() => {
     getContentRoot,
     getEditorBody: documentSession.getEditorBody,
     onBodyChange: documentSession.setBodyFromBlocks,
-    getCurrentMarkdownPath,
+    getCurrentMarkdownPath: fileContextService.getCurrentMarkdownPath,
     getSiteConfig: () => contentService.getSiteConfig(),
     getPreviewSession: () => previewSession,
     getImageSession: () => imageSession,
@@ -224,19 +225,7 @@ editorMainRuntime.onDocumentReady(() => {
   linkCardContext.onCardEntriesChange((entries) => toolbarSession.setCardEntries(entries));
   toolbarSession.setCardEntries(linkCardContext.getCardEntries());
 
-  const bindCurrentFileElement = (el) => {
-    currentFileSession.bindElement(el);
-  };
-
-  const assignCurrentFileLabel = (input) => {
-    const info = currentFileSession.set(input);
-    metadataPanel.applyCurrentFileSource(info.source);
-    previewSession.setCurrentFileInfo(info);
-    previewSession.refreshAssetOverrides();
-    documentSession.refreshPreview();
-  };
-
-  currentFileSession.render();
+  fileContextService.renderCurrentFile();
   documentSession.bindInput();
 
   // If empty, seed default text; otherwise render current content once.
@@ -261,7 +250,7 @@ editorMainRuntime.onDocumentReady(() => {
     documentRef: document,
     windowRef: window,
     normalizeLangKey,
-    bindCurrentFileElement,
+    bindCurrentFileElement: fileContextService.bindCurrentFileElement,
     loadSiteConfig: contentService.loadSiteConfig,
     loadIndexData: contentService.loadIndexData,
     loadTabsConfig: contentService.loadTabsConfig,

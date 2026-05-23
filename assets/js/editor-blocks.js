@@ -1,5 +1,4 @@
 import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
-import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js?v=press-system-v3.4.50';
@@ -16,31 +15,9 @@ import { createEditorBlocksMathSession } from './editor-blocks-math-session.js?v
 import { createEditorBlocksTableSession } from './editor-blocks-table-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksImageSession } from './editor-blocks-image-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksCodeSession } from './editor-blocks-code-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
-const CODE_LANGUAGE_OPTIONS = [
-  '', 'plain', 'text', 'raw', 'none', 'nohighlight',
-  'bash', 'c', 'cpp', 'csharp', 'css', 'diff', 'go', 'graphql', 'ini', 'java',
-  'javascript', 'json', 'kotlin', 'less', 'lua', 'makefile', 'markdown',
-  'objectivec', 'perl', 'php', 'php-template', 'plaintext', 'python',
-  'python-repl', 'r', 'ruby', 'rust', 'scss', 'shell', 'sql', 'swift',
-  'typescript', 'vbnet', 'wasm', 'xml', 'yaml',
-  'html', 'yml', 'robots'
-];
-const CODE_PLAIN_LANGUAGES = new Set(['plain', 'text', 'none', 'raw', 'nohighlight', 'plaintext']);
-const CODE_LANGUAGE_ALIASES = new Map([
-  ['js', 'javascript'],
-  ['ts', 'typescript'],
-  ['sh', 'bash'],
-  ['zsh', 'bash'],
-  ['html', 'xml'],
-  ['htm', 'xml'],
-  ['yml', 'yaml'],
-  ['md', 'markdown']
-]);
-const CODE_HIGHLIGHT_LANGUAGES = new Set(CODE_LANGUAGE_OPTIONS
-  .map(value => CODE_LANGUAGE_ALIASES.get(value) || value)
-  .filter(value => value && !CODE_PLAIN_LANGUAGES.has(value)));
 const fallbackSelectionSession = createEditorBlocksSelectionSession();
 
 function normalizeSelectionSession(selectionSession) {
@@ -1510,26 +1487,6 @@ function insertPlainTextIntoEditable(editable, text, selectionSession = null) {
   } catch (_) {
     return false;
   }
-}
-
-function resolveCodeHighlightLanguage(language, codeText) {
-  const raw = String(language || '').trim();
-  const normalized = raw.toLowerCase();
-  const resolved = CODE_LANGUAGE_ALIASES.get(normalized) || normalized;
-  if (CODE_PLAIN_LANGUAGES.has(normalized)) {
-    return { language: 'plain', label: 'PLAIN', highlight: false };
-  }
-  if (CODE_HIGHLIGHT_LANGUAGES.has(resolved)) {
-    return { language: resolved, label: resolved.toUpperCase(), highlight: true };
-  }
-  if (!normalized) {
-    const detected = String(detectLanguage(String(codeText || '')) || '').toLowerCase();
-    const detectedResolved = CODE_LANGUAGE_ALIASES.get(detected) || detected;
-    if (CODE_HIGHLIGHT_LANGUAGES.has(detectedResolved)) {
-      return { language: detectedResolved, label: detectedResolved.toUpperCase(), highlight: true };
-    }
-  }
-  return { language: 'plain', label: 'PLAIN', highlight: false };
 }
 
 function normalizeEditableMarkdownText(value) {
@@ -3526,6 +3483,21 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     requestImageDelete: options.requestImageDelete
   });
 
+  const codeSession = createEditorBlocksCodeSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    runtime,
+    editableSession,
+    text,
+    selectionSession,
+    codeEditableText,
+    insertCodeEditableTextAtSelection,
+    removeEmptyBlockWithBackspace,
+    handleCrossBlockArrowNavigation,
+    updateFromControl,
+    setActive,
+    activateEditableFromPointer
+  });
+
   const tableSession = createEditorBlocksTableSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     runtime,
@@ -3613,39 +3585,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return controls;
   };
 
-  const createCodeLanguageInput = (block) => {
-    const lang = document.createElement('select');
-    lang.className = 'blocks-code-language';
-    lang.title = text('codeLanguage', 'Language');
-    lang.setAttribute('aria-label', text('codeLanguage', 'Language'));
-    const currentLang = String(block.data.lang || '').trim();
-    const normalizedLang = currentLang.toLowerCase();
-    const resolvedLang = CODE_LANGUAGE_ALIASES.get(normalizedLang) || normalizedLang;
-    const labels = new Map([
-      ['', 'Auto / blank'],
-      ['plain', 'plain']
-    ]);
-    const appendOption = (value, label, unsupported = false) => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = label || value || 'Auto / blank';
-      if (unsupported) {
-        option.disabled = true;
-        option.dataset.unsupported = 'true';
-      }
-      lang.appendChild(option);
-    };
-    CODE_LANGUAGE_OPTIONS.forEach((value) => appendOption(value, labels.get(value) || value));
-    if (currentLang && !CODE_LANGUAGE_OPTIONS.includes(normalizedLang) && !CODE_LANGUAGE_OPTIONS.includes(resolvedLang)) {
-      appendOption(currentLang, `Unsupported: ${currentLang}`, true);
-    }
-    lang.value = CODE_LANGUAGE_OPTIONS.includes(normalizedLang)
-      ? normalizedLang
-      : (CODE_LANGUAGE_OPTIONS.includes(resolvedLang) ? resolvedLang : currentLang);
-    lang.addEventListener('change', () => updateFromControl(block, { lang: lang.value }, true));
-    return lang;
-  };
-
   const createMathEditButton = (block, index) => {
     const edit = button(text('editMath', 'Edit math'), 'blocks-btn blocks-math-edit');
     edit.title = text('editMath', 'Edit math');
@@ -3663,83 +3602,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     if (!area) return;
     area.style.height = 'auto';
     area.style.height = `${area.scrollHeight}px`;
-  };
-
-  const renderCodeGutter = (gutter, value) => {
-    if (!gutter) return;
-    const lineCount = Math.max(1, String(value == null ? '' : value).split('\n').length);
-    if (gutter.childElementCount !== lineCount) {
-      const frag = document.createDocumentFragment();
-      for (let line = 1; line <= lineCount; line += 1) {
-        const span = document.createElement('span');
-        span.textContent = String(line);
-        frag.appendChild(span);
-      }
-      gutter.replaceChildren(frag);
-    } else {
-      Array.from(gutter.children).forEach((span, index) => {
-        const label = String(index + 1);
-        if (span.textContent !== label) span.textContent = label;
-      });
-    }
-  };
-
-  const codeLabelText = (key, fallback) => {
-    return runtime.translate(key, fallback);
-  };
-
-  const createCodeLanguageLabel = (getCodeText) => {
-    const label = document.createElement('div');
-    label.className = 'syntax-language-label blocks-code-language-label';
-    label.dataset.lang = 'PLAIN';
-    label.textContent = 'PLAIN';
-    label.setAttribute('role', 'button');
-    label.setAttribute('tabindex', '0');
-    label.setAttribute('aria-label', codeLabelText('code.copyAria', 'Copy code'));
-
-    const restoreLabel = () => {
-      label.textContent = label.dataset.lang || 'PLAIN';
-    };
-    const copyCode = async () => {
-      const rawText = typeof getCodeText === 'function' ? String(getCodeText() || '') : '';
-      const ok = await runtime.writeClipboardText(rawText);
-      const old = label.dataset.lang || 'PLAIN';
-      label.classList.add('is-copied');
-      label.textContent = ok ? codeLabelText('code.copied', 'Copied').toUpperCase() : codeLabelText('code.failed', 'Failed').toUpperCase();
-      runtime.setTimer(() => {
-        label.classList.remove('is-copied');
-        label.textContent = old;
-      }, 1200);
-    };
-
-    label.addEventListener('mouseenter', () => {
-      label.classList.add('is-hover');
-      label.textContent = codeLabelText('code.copy', 'Copy').toUpperCase();
-    });
-    label.addEventListener('mouseleave', () => {
-      label.classList.remove('is-hover');
-      restoreLabel();
-    });
-    label.addEventListener('click', copyCode);
-    label.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        copyCode();
-      }
-    });
-    return label;
-  };
-
-  const renderCodeHighlight = (highlight, label, value, language) => {
-    if (!highlight || !label) return;
-    const raw = String(value == null ? '' : value);
-    const meta = resolveCodeHighlightLanguage(language, raw);
-    highlight.className = `blocks-code-highlight language-${meta.language}`;
-    highlight.replaceChildren(createSafeHighlightFragment(raw, meta.highlight ? meta.language : 'plain'));
-    label.dataset.lang = meta.label || 'PLAIN';
-    if (!label.classList.contains('is-hover') && !label.classList.contains('is-copied')) {
-      label.textContent = label.dataset.lang;
-    }
   };
 
   const renderListBlock = (body, block, index) => {
@@ -3980,55 +3842,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const renderCodeBlock = (body, block, index) => {
-    const pre = document.createElement('pre');
-    pre.className = 'blocks-code-preview';
-    const scroll = document.createElement('div');
-    scroll.className = 'blocks-code-scroll';
-    const gutter = document.createElement('div');
-    gutter.className = 'blocks-code-gutter';
-    gutter.setAttribute('aria-hidden', 'true');
-    const surface = document.createElement('div');
-    surface.className = 'blocks-code-surface';
-    const highlight = document.createElement('code');
-    highlight.className = 'blocks-code-highlight language-plain';
-    highlight.setAttribute('aria-hidden', 'true');
-    const code = document.createElement('code');
-    code.className = 'blocks-code-editable';
-    code.contentEditable = 'true';
-    code.spellcheck = false;
-    code.textContent = block.data.text || '';
-    const languageLabel = createCodeLanguageLabel(() => codeEditableText(code));
-    renderCodeGutter(gutter, block.data.text || '');
-    renderCodeHighlight(highlight, languageLabel, block.data.text || '', block.data.lang || '');
-    const sync = () => {
-      const text = codeEditableText(code);
-      updateFromControl(block, { text });
-      renderCodeGutter(gutter, text);
-      renderCodeHighlight(highlight, languageLabel, text, block.data.lang || '');
-    };
-    editableSession.registerEditable(code, sync);
-    code.addEventListener('input', sync);
-    code.addEventListener('keydown', (event) => {
-      if (removeEmptyBlockWithBackspace(event, block, index, code, sync)) return;
-      if (handleCrossBlockArrowNavigation(event, index, code)) return;
-      if (event.key !== 'Enter' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
-      event.preventDefault();
-      const text = insertCodeEditableTextAtSelection(code, '\n', selectionSession);
-      updateFromControl(block, { text });
-      renderCodeGutter(gutter, text);
-      renderCodeHighlight(highlight, languageLabel, text, block.data.lang || '');
-    });
-    code.addEventListener('focus', () => setActive(index, code, sync));
-    code.addEventListener('pointerdown', (event) => {
-      if (event && event.button === 0 && event.isPrimary !== false) {
-        activateEditableFromPointer(index, code, sync);
-      }
-    });
-    surface.append(highlight, code);
-    scroll.append(gutter, surface);
-    pre.appendChild(scroll);
-    pre.appendChild(languageLabel);
-    body.appendChild(pre);
+    codeSession?.renderBlock(body, block, index);
   };
 
   const renderMathBlock = (body, block, index) => {
@@ -4267,7 +4081,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       head.appendChild(createListIndentControls(block, index));
     }
     if (block.type === 'code') {
-      head.appendChild(createCodeLanguageInput(block));
+      const control = codeSession?.createLanguageInput(block);
+      if (control) head.appendChild(control);
     }
     if (block.type === 'math') {
       head.appendChild(createMathEditButton(block, index));

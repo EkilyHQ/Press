@@ -83,6 +83,7 @@ const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-ma
 const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-table-session.js');
 const editorBlocksCardPickerSessionPath = resolve(here, '../assets/js/editor-blocks-card-picker-session.js');
 const editorBlocksImageSessionPath = resolve(here, '../assets/js/editor-blocks-image-session.js');
+const editorBlocksCodeSessionPath = resolve(here, '../assets/js/editor-blocks-code-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -164,6 +165,7 @@ const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 
 const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath, 'utf8');
 const editorBlocksCardPickerSessionSource = readFileSync(editorBlocksCardPickerSessionPath, 'utf8');
 const editorBlocksImageSessionSource = readFileSync(editorBlocksImageSessionPath, 'utf8');
+const editorBlocksCodeSessionSource = readFileSync(editorBlocksCodeSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -359,6 +361,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-code-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks code session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -397,6 +405,12 @@ assert.match(
   editorBlocksSource,
   /const tableSession = createEditorBlocksTableSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\(activeBlock, editable, state\.blocks\);/,
   'blocks editor should compose table DOM, active-cell, and control behavior through the table session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const codeSession = createEditorBlocksCodeSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer[\s\S]*\}\);/,
+  'blocks editor should compose code block DOM and control behavior through the code session boundary'
 );
 
 assert.match(
@@ -1570,8 +1584,14 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'[\s\S]*code\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, code, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*area\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, area, sync\)\) return;/,
-  'empty Backspace handling should run before rich Enter, list row, code Enter, and source textarea handling'
+  /createRichEditable[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*event\.key !== 'Enter'[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, span, sync\)[\s\S]*event\.key === 'Tab'[\s\S]*area\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, area, sync\)\) return;/,
+  'empty Backspace handling should run before rich Enter, list row, and source textarea handling'
+);
+
+assert.match(
+  editorBlocksCodeSessionSource,
+  /code\.addEventListener\('keydown', \(event\) => \{[\s\S]*removeEmptyBlockWithBackspace\(event, block, index, code, sync\)[\s\S]*event\.key !== 'Enter'/,
+  'code session should run empty Backspace handling before code Enter handling'
 );
 
 assert.match(
@@ -1741,8 +1761,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /editable\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, editable, sync\);[\s\S]*routeDirectQuoteCaretFromPointer\(editable, index, sync, event\);[\s\S]*span\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, span, sync\);[\s\S]*code\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, code, sync\);[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, area, sync\);/,
-  'editable block pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
+  /editable\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, editable, sync\);[\s\S]*routeDirectQuoteCaretFromPointer\(editable, index, sync, event\);[\s\S]*span\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, span, sync\);[\s\S]*area\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, area, sync\);/,
+  'root-owned editable block pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
+);
+
+assert.match(
+  editorBlocksCodeSessionSource,
+  /code\.addEventListener\('pointerdown', \(event\) => \{[\s\S]*activateEditableFromPointer\(index, code, sync\);/,
+  'code session pointerdowns should activate the target block before browser focus/click events can paint a stale toolbar'
 );
 
 assert.match(
@@ -2304,19 +2330,19 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const pre = document\.createElement\('pre'\);[\s\S]*const scroll = document\.createElement\('div'\);[\s\S]*scroll\.className = 'blocks-code-scroll';[\s\S]*const gutter = document\.createElement\('div'\);[\s\S]*gutter\.className = 'blocks-code-gutter';[\s\S]*const surface = document\.createElement\('div'\);[\s\S]*surface\.className = 'blocks-code-surface';[\s\S]*const highlight = document\.createElement\('code'\);[\s\S]*highlight\.className = 'blocks-code-highlight language-plain';[\s\S]*const code = document\.createElement\('code'\);[\s\S]*code\.className = 'blocks-code-editable';[\s\S]*code\.contentEditable = 'true'/,
-  'code blocks should render a pre/code editing surface with an owned non-editable scroll wrapper, gutter, and highlight mirror'
+  editorBlocksCodeSessionSource,
+  /const renderBlock = \(body, block, index\) => \{[\s\S]*const pre = documentRef\.createElement\('pre'\);[\s\S]*const scroll = documentRef\.createElement\('div'\);[\s\S]*scroll\.className = 'blocks-code-scroll';[\s\S]*const gutter = documentRef\.createElement\('div'\);[\s\S]*gutter\.className = 'blocks-code-gutter';[\s\S]*const surface = documentRef\.createElement\('div'\);[\s\S]*surface\.className = 'blocks-code-surface';[\s\S]*const highlight = documentRef\.createElement\('code'\);[\s\S]*highlight\.className = 'blocks-code-highlight language-plain';[\s\S]*const code = documentRef\.createElement\('code'\);[\s\S]*code\.className = 'blocks-code-editable';[\s\S]*code\.contentEditable = 'true'/,
+  'code session should render a pre/code editing surface with an owned non-editable scroll wrapper, gutter, and highlight mirror'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const renderCodeGutter = \(gutter, value\) => \{[\s\S]*String\(value == null \? '' : value\)\.split\('\\n'\)\.length[\s\S]*gutter\.replaceChildren\(frag\);[\s\S]*Array\.from\(gutter\.children\)\.forEach/,
+  editorBlocksCodeSessionSource,
+  /const renderGutter = \(gutter, value\) => \{[\s\S]*String\(value == null \? '' : value\)\.split\('\\n'\)\.length[\s\S]*gutter\.replaceChildren\(frag\);[\s\S]*Array\.from\(gutter\.children\)\.forEach/,
   'code block gutters should be rendered from plain line counts without touching code text'
 );
 
 assert.doesNotMatch(
-  editorBlocksSource,
+  editorBlocksCodeSessionSource,
   /gutter\.style\.width/,
   'code block gutters should not use a fixed inline width that can squeeze two-digit line numbers'
 );
@@ -2334,45 +2360,51 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /renderCodeGutter\(gutter, block\.data\.text \|\| ''\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, block\.data\.text \|\| '', block\.data\.lang \|\| ''\);[\s\S]*const sync = \(\) => \{[\s\S]*const text = codeEditableText\(code\);[\s\S]*updateFromControl\(block, \{ text \}\);[\s\S]*renderCodeGutter\(gutter, text\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, text, block\.data\.lang \|\| ''\);[\s\S]*editableSession\.registerEditable\(code, sync\);[\s\S]*code\.addEventListener\('input', sync\);[\s\S]*code\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*const text = insertCodeEditableTextAtSelection\(code, '\\n', selectionSession\);[\s\S]*updateFromControl\(block, \{ text \}\);[\s\S]*renderCodeGutter\(gutter, text\);[\s\S]*renderCodeHighlight\(highlight, languageLabel, text, block\.data\.lang \|\| ''\);[\s\S]*code\.addEventListener\('focus', \(\) => setActive\(index, code, sync\)\);[\s\S]*surface\.append\(highlight, code\);[\s\S]*scroll\.append\(gutter, surface\);[\s\S]*pre\.appendChild\(scroll\);[\s\S]*pre\.appendChild\(languageLabel\);/,
-  'code block editing surfaces should sync text, gutter, highlight, and badge without rewriting the editable code node'
+  editorBlocksCodeSessionSource,
+  /const refresh = \(value = codeEditableText\(code\)\) => \{[\s\S]*renderGutter\(gutter, value\);[\s\S]*renderHighlight\(highlight, languageLabel, value, blockData\(block\)\.lang \|\| ''\);[\s\S]*const sync = \(\) => \{[\s\S]*const value = codeEditableText\(code\);[\s\S]*updateFromControl\(block, \{ text: value \}\);[\s\S]*refresh\(value\);[\s\S]*editableSession\.registerEditable\(code, sync\);[\s\S]*code\.addEventListener\('input', sync\);[\s\S]*code\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key !== 'Enter'[\s\S]*const value = insertCodeEditableTextAtSelection\(code, '\\n', selectionSession\);[\s\S]*updateFromControl\(block, \{ text: value \}\);[\s\S]*refresh\(value\);[\s\S]*code\.addEventListener\('focus', \(\) => setActive\(index, code, sync\)\);[\s\S]*surface\.append\(highlight, code\);[\s\S]*scroll\.append\(gutter, surface\);[\s\S]*pre\.appendChild\(scroll\);[\s\S]*pre\.appendChild\(languageLabel\);/,
+  'code session should sync text, gutter, highlight, and badge without rewriting the editable code node'
 );
 
 assert.match(
   editorBlocksSource,
-  /const createCodeLanguageInput = \(block\) => \{[\s\S]*const lang = document\.createElement\('select'\);[\s\S]*lang\.className = 'blocks-code-language'[\s\S]*CODE_LANGUAGE_OPTIONS\.forEach\(\(value\) => appendOption\(value, labels\.get\(value\) \|\| value\)\);[\s\S]*lang\.addEventListener\('change', \(\) => updateFromControl\(block, \{ lang: lang\.value \}, true\)\);[\s\S]*if \(block\.type === 'code'\) \{[\s\S]*head\.appendChild\(createCodeLanguageInput\(block\)\);/,
-  'code block language control should live in the floating block toolbar'
+  /if \(block\.type === 'code'\) \{[\s\S]*const control = codeSession\?\.createLanguageInput\(block\);[\s\S]*if \(control\) head\.appendChild\(control\);[\s\S]*\}/,
+  'code block language control should be appended to the floating block toolbar through the code session'
 );
 
 assert.match(
-  editorBlocksSource,
-  /function resolveCodeHighlightLanguage\(language, codeText\) \{[\s\S]*const resolved = CODE_LANGUAGE_ALIASES\.get\(normalized\) \|\| normalized;[\s\S]*CODE_PLAIN_LANGUAGES\.has\(normalized\)[\s\S]*CODE_HIGHLIGHT_LANGUAGES\.has\(resolved\)[\s\S]*const detected = String\(detectLanguage\(String\(codeText \|\| ''\)\) \|\| ''\)\.toLowerCase\(\);[\s\S]*const detectedResolved = CODE_LANGUAGE_ALIASES\.get\(detected\) \|\| detected;[\s\S]*return \{ language: 'plain', label: 'PLAIN', highlight: false \};/,
+  editorBlocksCodeSessionSource,
+  /function resolveCodeHighlightLanguage\(language, codeText, detectLanguage = defaultDetectLanguage\) \{[\s\S]*const resolved = CODE_LANGUAGE_ALIASES\.get\(normalized\) \|\| normalized;[\s\S]*CODE_PLAIN_LANGUAGES\.has\(normalized\)[\s\S]*CODE_HIGHLIGHT_LANGUAGES\.has\(resolved\)[\s\S]*const detected = String\(detectLanguage\(String\(codeText \|\| ''\)\) \|\| ''\)\.toLowerCase\(\);[\s\S]*const detectedResolved = CODE_LANGUAGE_ALIASES\.get\(detected\) \|\| detected;[\s\S]*return \{ language: 'plain', label: 'PLAIN', highlight: false \};/,
   'blocks code highlight resolution should support plain flags, aliases, selected languages, and auto-detection'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createCodeLanguageLabel = \(getCodeText\) => \{[\s\S]*label\.className = 'syntax-language-label blocks-code-language-label';[\s\S]*label\.setAttribute\('role', 'button'\);[\s\S]*runtime\.writeClipboardText\(rawText\)[\s\S]*label\.addEventListener\('mouseenter'[\s\S]*label\.addEventListener\('click', copyCode\);/,
-  'blocks code should render the native-style copy language badge inside the code frame'
+  editorBlocksCodeSessionSource,
+  /const createLanguageLabel = \(getCodeText\) => \{[\s\S]*label\.className = 'syntax-language-label blocks-code-language-label';[\s\S]*label\.setAttribute\('role', 'button'\);[\s\S]*runtime\.writeClipboardText\(rawText\)[\s\S]*label\.addEventListener\('mouseenter'[\s\S]*label\.addEventListener\('click', copyCode\);/,
+  'code session should render the native-style copy language badge inside the code frame'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const renderCodeHighlight = \(highlight, label, value, language\) => \{[\s\S]*const meta = resolveCodeHighlightLanguage\(language, raw\);[\s\S]*highlight\.className = `blocks-code-highlight language-\$\{meta\.language\}`;[\s\S]*highlight\.replaceChildren\(createSafeHighlightFragment\(raw, meta\.highlight \? meta\.language : 'plain'\)\);[\s\S]*label\.dataset\.lang = meta\.label \|\| 'PLAIN';/,
-  'blocks code should render syntax spans only into the non-editable highlight mirror and update the badge label'
+  editorBlocksCodeSessionSource,
+  /const renderHighlight = \(highlight, label, value, language\) => \{[\s\S]*const meta = resolveCodeHighlightLanguage\(language, raw, detectHighlightLanguage\);[\s\S]*highlight\.className = `blocks-code-highlight language-\$\{meta\.language\}`;[\s\S]*highlight\.replaceChildren\(createHighlightFragment\(raw, meta\.highlight \? meta\.language : 'plain'\)\);[\s\S]*label\.dataset\.lang = meta\.label \|\| 'PLAIN';/,
+  'code session should render syntax spans only into the non-editable highlight mirror and update the badge label'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksCodeSessionSource,
   /const CODE_LANGUAGE_OPTIONS = \[[\s\S]*'bash', 'c', 'cpp', 'csharp', 'css', 'diff', 'go', 'graphql', 'ini', 'java',[\s\S]*'javascript', 'json', 'kotlin', 'less', 'lua', 'makefile', 'markdown',[\s\S]*'objectivec', 'perl', 'php', 'php-template', 'plaintext', 'python',[\s\S]*'python-repl', 'r', 'ruby', 'rust', 'scss', 'shell', 'sql', 'swift',[\s\S]*'typescript', 'vbnet', 'wasm', 'xml', 'yaml',[\s\S]*'html', 'yml', 'robots'[\s\S]*\];/,
   'code block language selector should expose all Highlight.js common languages plus aliases and plain flags'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const currentLang = String\(block\.data\.lang \|\| ''\)\.trim\(\);[\s\S]*const normalizedLang = currentLang\.toLowerCase\(\);[\s\S]*const resolvedLang = CODE_LANGUAGE_ALIASES\.get\(normalizedLang\) \|\| normalizedLang;[\s\S]*if \(currentLang && !CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\) && !CODE_LANGUAGE_OPTIONS\.includes\(resolvedLang\)\) \{[\s\S]*appendOption\(currentLang, `Unsupported: \$\{currentLang\}`, true\);[\s\S]*lang\.value = CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\)[\s\S]*\? normalizedLang[\s\S]*: \(CODE_LANGUAGE_OPTIONS\.includes\(resolvedLang\) \? resolvedLang : currentLang\);/,
+  editorBlocksCodeSessionSource,
+  /const currentLang = String\(data\.lang \|\| ''\)\.trim\(\);[\s\S]*const normalizedLang = currentLang\.toLowerCase\(\);[\s\S]*const resolvedLang = CODE_LANGUAGE_ALIASES\.get\(normalizedLang\) \|\| normalizedLang;[\s\S]*if \(currentLang && !CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\) && !CODE_LANGUAGE_OPTIONS\.includes\(resolvedLang\)\) \{[\s\S]*appendOption\(currentLang, `Unsupported: \$\{currentLang\}`, true\);[\s\S]*lang\.value = CODE_LANGUAGE_OPTIONS\.includes\(normalizedLang\)[\s\S]*\? normalizedLang[\s\S]*: \(CODE_LANGUAGE_OPTIONS\.includes\(resolvedLang\) \? resolvedLang : currentLang\);/,
   'code block language selector should normalize supported aliases and preserve unsupported legacy language values'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const createCodeLanguageInput =|const createLanguageInput =|const renderGutter =|const createCodeLanguageLabel =|const createLanguageLabel =|const renderHighlight =|function resolveCodeHighlightLanguage|const CODE_LANGUAGE_OPTIONS =/,
+  'blocks editor root should not own code block selector, gutter, badge, highlight, or language-resolution helpers'
 );
 
 assert.doesNotMatch(
@@ -2888,8 +2920,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /highlight\.replaceChildren\(createSafeHighlightFragment\(raw, meta\.highlight \? meta\.language : 'plain'\)\);/,
+  editorBlocksCodeSessionSource,
+  /highlight\.replaceChildren\(createHighlightFragment\(raw, meta\.highlight \? meta\.language : 'plain'\)\);/,
   'editor block syntax highlighting should render through the safe highlight fragment helper'
 );
 

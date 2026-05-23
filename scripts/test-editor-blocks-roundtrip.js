@@ -43,6 +43,7 @@ const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js',
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
+const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
 
 const functionSource = (name) => {
   const start = editorBlocksSource.indexOf(`function ${name}`);
@@ -610,7 +611,7 @@ run('cross-block arrows wire rich text, code, and source editables', () => {
     'rich text editables should run cross-block arrows before Enter handling'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksCodeSessionSource,
     /removeEmptyBlockWithBackspace\(event, block, index, code, sync\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, code\)[\s\S]*event\.key !== 'Enter'/,
     'code editables should run cross-block arrows before code Enter handling'
   );

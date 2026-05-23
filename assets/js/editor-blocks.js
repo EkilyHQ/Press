@@ -2786,59 +2786,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     stickyBlockHeadFrame = runtime.requestFrame(run) || 1;
   };
 
-  const activeListItemIndex = (block, index) => {
-    const activeBlock = state.blocks[index];
-    if (!block || activeBlock !== block) return 0;
-    const item = closestElement(blocksState.getActiveEditable(), '.blocks-list-item');
-    if (!item) return 0;
-    const itemIndex = Number(item.dataset.itemIndex);
-    return Number.isFinite(itemIndex) ? itemIndex : 0;
-  };
-
-  const listTypeControlValue = (block, index) => {
-    if (!block || block.type !== 'list') return 'ul';
-    const blockListType = block.data && block.data.listType;
-    const items = editableListItems(block.data && block.data.items);
-    const itemIndex = Math.max(0, Math.min(activeListItemIndex(block, index), items.length - 1));
-    return effectiveListItemType(items[itemIndex], blockListType);
-  };
-
+  let listSession = null;
   const syncActiveListTypeSelect = (blockNodes = null) => {
-    const block = state.blocks[state.activeIndex];
-    if (!block || block.type !== 'list') return;
-    const nodes = blockNodes || Array.from(list.querySelectorAll('.blocks-block'));
-    const activeBlock = nodes[state.activeIndex] || null;
-    const select = activeBlock ? activeBlock.querySelector('.blocks-list-type-select') : null;
-    if (select) select.value = listTypeControlValue(block, state.activeIndex);
-  };
-
-  const updateListType = (block, index, nextType) => {
-    if (!block || block.type !== 'list') return;
-    const normalizedType = normalizeListItemType(nextType);
-    const items = editableListItems(block.data && block.data.items).slice();
-    const itemIndex = Math.max(0, Math.min(activeListItemIndex(block, index), items.length - 1));
-    const nextPatch = patchListItemType(items, itemIndex, normalizedType, block.data && block.data.listType);
-    blocksState.setPendingListFocus({ blockId: block.id, itemIndex, atEnd: false });
-    updateFromControl(block, nextPatch, true);
-  };
-
-  const indentListItem = (block, index, delta) => {
-    if (!block || block.type !== 'list') return;
-    const items = Array.isArray(block.data.items) && block.data.items.length
-      ? block.data.items.slice()
-      : defaultListItems();
-    const itemIndex = Math.max(0, Math.min(activeListItemIndex(block, index), items.length - 1));
-    const current = items[itemIndex] || {};
-    const currentIndent = Math.max(0, Number(current.indent) || 0);
-    const nextIndent = Math.max(0, currentIndent + delta);
-    if (nextIndent === currentIndent) return;
-    items[itemIndex] = {
-      ...current,
-      indent: nextIndent,
-      indentText: '  '.repeat(nextIndent)
-    };
-    blocksState.setPendingListFocus({ blockId: block.id, itemIndex, atEnd: false });
-    updateFromControl(block, { items }, true);
+    listSession?.syncActiveTypeSelect(blockNodes);
   };
 
   let refreshLinkEditor = () => {};
@@ -3504,43 +3454,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     tableSession?.renderBlock(body, block, index);
   };
 
-  const createListTypeSelect = (block, index) => {
-    const select = document.createElement('select');
-    select.className = 'blocks-list-type-select';
-    select.title = text('listType', 'List type');
-    [['ul', text('unordered', 'Bulleted')], ['ol', text('ordered', 'Numbered')], ['task', text('task', 'Checklist')]].forEach(([value, label]) => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = label;
-      select.appendChild(option);
-    });
-    select.value = listTypeControlValue(block, index);
-    select.addEventListener('change', () => updateListType(block, index, select.value));
-    return select;
-  };
-
-  const createListIndentControls = (block, index) => {
-    const controls = document.createElement('div');
-    controls.className = 'blocks-list-indent-controls';
-    controls.setAttribute('role', 'group');
-    controls.setAttribute('aria-label', text('listIndentControls', 'List indentation'));
-    [
-      ['←', -1, 'listOutdent', 'Decrease list indent'],
-      ['→', 1, 'listIndent', 'Increase list indent']
-    ].forEach(([label, delta, key, fallback]) => {
-      const btn = button(label, 'blocks-icon-btn blocks-list-indent-btn');
-      btn.title = text(key, fallback);
-      btn.setAttribute('aria-label', text(key, fallback));
-      btn.addEventListener('mousedown', (event) => event.preventDefault());
-      btn.addEventListener('click', () => {
-        setActive(index);
-        indentListItem(block, index, delta);
-      });
-      controls.appendChild(btn);
-    });
-    return controls;
-  };
-
   const createMathEditButton = (block, index) => {
     const edit = button(text('editMath', 'Edit math'), 'blocks-btn blocks-math-edit');
     edit.title = text('editMath', 'Edit math');
@@ -3577,9 +3490,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     queueTask: task => queueMicrotask(task)
   });
 
-  const listSession = createEditorBlocksListSession({
+  listSession = createEditorBlocksListSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     root,
+    list,
     state,
     blocksState,
     editableSession,
@@ -3587,11 +3501,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     caretSession,
     inlineDomSession,
     containsNode: nodeContains,
+    closestElement,
+    text,
     editableListItems,
+    defaultListItems,
     summarizeListType,
     listVisualMarkerLabels,
     effectiveListItemType,
     itemIndentLevel,
+    normalizeListItemType,
+    patchListItemType,
     patchListItem,
     setPlainContentEditableValue,
     editableText,
@@ -3621,7 +3540,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     placeCaretAtTextOffset,
     placeCaretAtStart,
     placeCaretAtEnd,
-    indentListItem,
     setActive,
     activateEditableFromPointer,
     inlineMarksFromPointerEvent,
@@ -3823,8 +3741,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       head.appendChild(createHeadingLevelSelect(block));
     }
     if (block.type === 'list') {
-      head.appendChild(createListTypeSelect(block, index));
-      head.appendChild(createListIndentControls(block, index));
+      const typeSelect = listSession?.createTypeSelect(block, index);
+      if (typeSelect) head.appendChild(typeSelect);
+      const indentControls = listSession?.createIndentControls(block, index);
+      if (indentControls) head.appendChild(indentControls);
     }
     if (block.type === 'code') {
       const control = codeSession?.createLanguageInput(block);

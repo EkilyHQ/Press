@@ -1668,15 +1668,15 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createListIndentControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-list-indent-controls'[\s\S]*\['←', -1, 'listOutdent'[\s\S]*\['→', 1, 'listIndent'[\s\S]*indentListItem\(block, index, delta\)[\s\S]*if \(block\.type === 'list'\) \{[\s\S]*head\.appendChild\(createListIndentControls\(block, index\)\);/,
-  'list blocks should expose outdent and indent buttons in the floating toolbar'
+  editorBlocksListSessionSource,
+  /const createIndentControls = \(block, index\) => \{[\s\S]*controls\.className = 'blocks-list-indent-controls'[\s\S]*\['←', -1, 'listOutdent'[\s\S]*\['→', 1, 'listIndent'[\s\S]*indentItem\(block, index, delta\)[\s\S]*return controls;/,
+  'list session should own outdent and indent buttons for the floating toolbar'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
-  /const indentListItem = \(block, index, delta\) => \{[\s\S]*activeListItemIndex\(block, index\)[\s\S]*indent: nextIndent,[\s\S]*indentText: '  '\.repeat\(nextIndent\)[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex, atEnd: false \}\);[\s\S]*if \(event\.key === 'Tab'[\s\S]*indentListItem\(block, index, event\.shiftKey \? -1 : 1\);/,
-  'Tab and toolbar list indentation should share the same item indentation path'
+  editorBlocksListSessionSource,
+  /const indentItem = \(block, index, delta\) => \{[\s\S]*activeListItemIndex\(block, index\)[\s\S]*indent: nextIndent,[\s\S]*indentText: '  '\.repeat\(nextIndent\)[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex, atEnd: false \}\);[\s\S]*if \(event\.key === 'Tab'[\s\S]*indentItem\(block, index, event\.shiftKey \? -1 : 1\);/,
+  'Tab and toolbar list indentation should share the same list session item indentation path'
 );
 
 assert.match(
@@ -2479,8 +2479,8 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const listSession = createEditorBlocksListSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*editableListItems,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);/,
-  'blocks editor root should compose list item DOM and input behavior through the list session boundary'
+  /listSession = createEditorBlocksListSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);/,
+  'blocks editor root should compose list DOM, toolbar, and input behavior through the list session boundary'
 );
 
 assert.match(
@@ -2503,8 +2503,8 @@ assert.match(
 
 assert.doesNotMatch(
   editorBlocksSource,
-  /const listEl = document\.createElement\(isTaskList \? 'ul' : 'div'\)|span\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key === 'Tab'/,
-  'blocks editor root should not own visual list DOM or list item keydown wiring'
+  /const listEl = document\.createElement\(isTaskList \? 'ul' : 'div'\)|span\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key === 'Tab'|const createListTypeSelect|const createListIndentControls|const updateListType|const indentListItem|const activeListItemIndex|const listTypeControlValue/,
+  'blocks editor root should not own visual list DOM, list item keydown wiring, or list toolbar state'
 );
 
 assert.doesNotMatch(
@@ -3129,8 +3129,8 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /if \(block\.type === 'list'\) \{[\s\S]*head\.appendChild\(createListTypeSelect\(block, index\)\);[\s\S]*head\.appendChild\(createListIndentControls\(block, index\)\);[\s\S]*\}/,
-  'list type control should live in the floating block toolbar'
+  /if \(block\.type === 'list'\) \{[\s\S]*const typeSelect = listSession\?\.createTypeSelect\(block, index\);[\s\S]*if \(typeSelect\) head\.appendChild\(typeSelect\);[\s\S]*const indentControls = listSession\?\.createIndentControls\(block, index\);[\s\S]*if \(indentControls\) head\.appendChild\(indentControls\);[\s\S]*\}/,
+  'list type and indent controls should be mounted in the floating block toolbar through the list session'
 );
 
 assert.match(

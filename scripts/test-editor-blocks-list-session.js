@@ -17,6 +17,7 @@ function makeElement(tagName = 'div', className = '') {
     contentEditable: '',
     spellcheck: true,
     type: '',
+    value: '',
     checked: false,
     dataset: {},
     attrs,
@@ -152,7 +153,6 @@ const toolbarUpdates = [];
 const queued = [];
 const wired = [];
 const pending = [];
-const indents = [];
 const crossBlockArrows = [];
 const visualCaret = [];
 const textCarets = [];
@@ -163,6 +163,7 @@ const renders = [];
 const emitted = [];
 const marks = [];
 const links = [];
+let activeEditable = null;
 let removeEmpty = () => false;
 let atStart = () => false;
 let edgeLine = () => false;
@@ -187,6 +188,9 @@ const block = {
 state.blocks = [{ id: 'intro', type: 'paragraph', data: { text: 'Intro' } }, block];
 
 const blocksState = {
+  getActiveEditable() {
+    return activeEditable;
+  },
   setPendingListFocus(value) {
     pending.push(value);
     state.pendingListFocus = value;
@@ -208,6 +212,7 @@ const blocksState = {
 const session = createEditorBlocksListSession({
   documentRef,
   root,
+  list: root,
   state,
   blocksState,
   editableSession: {
@@ -224,6 +229,15 @@ const session = createEditorBlocksListSession({
   editableListItems(items) {
     return Array.isArray(items) && items.length ? items : [{ text: '', checked: false }];
   },
+  defaultListItems() {
+    return [{ text: 'List item', checked: false, listType: 'ul' }];
+  },
+  text(key, fallback) {
+    if (key === 'unordered') return 'Bulleted';
+    if (key === 'ordered') return 'Numbered';
+    if (key === 'task') return 'Checklist';
+    return fallback;
+  },
   summarizeListType() {
     return 'mixed';
   },
@@ -233,8 +247,17 @@ const session = createEditorBlocksListSession({
   effectiveListItemType(item, fallback) {
     return item && item.listType ? item.listType : fallback;
   },
+  normalizeListItemType(value) {
+    if (value === 'ol' || value === 'task') return value;
+    return 'ul';
+  },
   itemIndentLevel(item) {
     return Math.max(0, Number(item && item.indent) || 0);
+  },
+  patchListItemType(items, itemIndex, nextType) {
+    const next = Array.isArray(items) ? items.slice() : [];
+    next[itemIndex] = { ...(next[itemIndex] || {}), listType: nextType };
+    return { items: next };
   },
   patchListItem(items, itemIndex, patch) {
     const next = Array.isArray(items) ? items.slice() : [];
@@ -327,9 +350,6 @@ const session = createEditorBlocksListSession({
   placeCaretAtEnd(editable) {
     endCarets.push(editable);
   },
-  indentListItem(targetBlock, index, delta) {
-    indents.push({ targetBlock, index, delta });
-  },
   setActive(index, editable = null, sync = null) {
     active.push({ index, editable, sync });
   },
@@ -399,19 +419,53 @@ checkbox.dispatch('change');
 assert.equal(updates.at(-1).patch.items[1].checked, true);
 
 removeEmpty = () => true;
+const updateCountBeforeBackspace = updates.length;
 const consumedBackspace = spans[0].dispatch('keydown', { key: 'Backspace' });
 assert.equal(consumedBackspace.defaultPrevented, false);
-assert.equal(indents.length, 0);
+assert.equal(updates.length, updateCountBeforeBackspace);
 
 removeEmpty = () => false;
 const tab = spans[0].dispatch('keydown', { key: 'Tab' });
 assert.equal(tab.defaultPrevented, true);
-assert.deepEqual(indents.at(-1), { targetBlock: block, index: 1, delta: 1 });
+assert.deepEqual(pending.at(-1), { blockId: 'list-1', itemIndex: 0, atEnd: false });
+assert.equal(updates.at(-1).patch.items[0].indent, 1);
+assert.equal(updates.at(-1).patch.items[0].indentText, '  ');
 const shiftTab = spans[0].dispatch('keydown', { key: 'Tab', shiftKey: true });
 assert.equal(shiftTab.defaultPrevented, true);
-assert.equal(indents.at(-1).delta, -1);
+assert.equal(updates.at(-1).patch.items[0].indent, 0);
+
+activeEditable = spans[1];
+const typeSelect = session.createTypeSelect(block, 1);
+assert.equal(typeSelect.className, 'blocks-list-type-select');
+assert.equal(typeSelect.title, 'List type');
+assert.equal(typeSelect.value, 'task');
+typeSelect.value = 'ol';
+typeSelect.dispatch('change');
+assert.deepEqual(pending.at(-1), { blockId: 'list-1', itemIndex: 1, atEnd: false });
+assert.equal(updates.at(-1).patch.items[1].listType, 'ol');
+
+typeSelect.value = 'ul';
+const blockNode = documentRef.createElement('section');
+blockNode.className = 'blocks-block';
+blockNode.appendChild(typeSelect);
+state.activeIndex = 1;
+session.syncActiveTypeSelect([null, blockNode]);
+assert.equal(typeSelect.value, 'ol');
+
+const indentControls = session.createIndentControls(block, 1);
+assert.equal(indentControls.className, 'blocks-list-indent-controls');
+assert.equal(indentControls.getAttribute('role'), 'group');
+assert.equal(indentControls.getAttribute('aria-label'), 'List indentation');
+const indentButtons = indentControls.querySelectorAll('.blocks-list-indent-btn');
+assert.equal(indentButtons.length, 2);
+indentButtons[1].dispatch('mousedown');
+const indentClick = indentButtons[1].dispatch('click');
+assert.equal(indentClick.defaultPrevented, false);
+assert.equal(active.at(-1).index, 1);
+assert.equal(updates.at(-1).patch.items[1].indent, 2);
 
 outdentResult = [{ text: 'one outdented', indent: 0 }];
+activeEditable = spans[0];
 const outdentEnter = spans[0].dispatch('keydown', { key: 'Enter' });
 assert.equal(outdentEnter.defaultPrevented, true);
 assert.deepEqual(pending.at(-1), { blockId: 'list-1', itemIndex: 0, atEnd: false });

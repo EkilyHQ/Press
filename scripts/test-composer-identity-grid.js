@@ -47,6 +47,7 @@ const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-syste
 const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js');
 const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
 const composerServiceRegistryPath = resolve(here, '../assets/js/composer-service-registry.js');
+const composerFilePanelControllerPath = resolve(here, '../assets/js/composer-file-panel-controller.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
@@ -158,6 +159,7 @@ const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePa
 const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
 const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
 const composerServiceRegistrySource = readFileSync(composerServiceRegistryPath, 'utf8');
+const composerFilePanelControllerSource = readFileSync(composerFilePanelControllerPath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
 const composerSiteConfigSource = readFileSync(composerSiteConfigPath, 'utf8');
 const editorContentTreeControllerSource = readFileSync(editorContentTreeControllerPath, 'utf8');
@@ -883,6 +885,30 @@ assert.match(
   source,
   /from '\.\/composer-service-registry\.js\?v=[\w.-]+'/,
   'composer should cache-bust the explicit composer service registry boundary'
+);
+
+assert.match(
+  source,
+  /from '\.\/composer-file-panel-controller\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the extracted file panel controller boundary'
+);
+
+assert.match(
+  source,
+  /const composerFilePanelController = createComposerFilePanelController\(\{[\s\S]*storage: editorRuntime\.storage,[\s\S]*storageKey: scopedEditorStorageKey\(LS_KEYS\.cfile\),[\s\S]*prefersReducedMotion: composerPrefersReducedMotion,[\s\S]*onPanelStateApplied:/,
+  'composer should wire the file panel controller as an app-service boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /let\s+(?:activeComposerFile|composerViewTransition)\s*=|function cancelComposerViewTransition|document\.getElementById\('composerPanels'\)|document\.documentElement\.setAttribute\('data-init-cfile'/,
+  'composer should not own file panel state, panel transition state, or init-file DOM toggling directly'
+);
+
+assert.match(
+  composerFilePanelControllerSource,
+  /export function createComposerFilePanelController\(options = \{\}\)[\s\S]*function getInitialComposerFile\(\)[\s\S]*function applyComposerFile\(name, applyOptions = \{\}\)[\s\S]*function setComposerFile\(name, applyOptions = \{\}\)/,
+  'file panel controller should own initial file resolution, active file application, persistence, and transitions'
 );
 
 assert.match(

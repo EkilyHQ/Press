@@ -46,6 +46,7 @@ import {
   createComposerRuntime
 } from './composer-runtime.js?v=press-system-v3.4.50';
 import { createComposerServiceRegistry } from './composer-service-registry.js?v=press-system-v3.4.50';
+import { createComposerFilePanelController } from './composer-file-panel-controller.js?v=press-system-v3.4.50';
 import { createComposerPublishService } from './composer-publish-service.js?v=press-system-v3.4.50';
 import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.50';
 import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.50';
@@ -723,8 +724,25 @@ const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
 
 let gitHubCommitInFlight = false;
 
-let activeComposerFile = 'index';
-let composerViewTransition = null;
+const composerFilePanelController = createComposerFilePanelController({
+  documentRef: document,
+  windowRef: window,
+  storage: editorRuntime.storage,
+  storageKey: scopedEditorStorageKey(LS_KEYS.cfile),
+  t,
+  prefersReducedMotion: composerPrefersReducedMotion,
+  requestAnimationFrameRef: (callback) => requestAnimationFrame(callback),
+  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
+  clearTimeoutRef: (id) => window.clearTimeout(id),
+  onPanelStateApplied: (normalized) => {
+    try {
+      if (normalized === 'site') setComposerOrderPreviewActiveKind('index');
+      else setComposerOrderPreviewActiveKind(normalized);
+    } catch (_) {}
+    const summaryOptions = normalized === 'site' ? { immediate: true } : undefined;
+    try { updateUnsyncedSummary(summaryOptions); } catch (_) {}
+  }
+});
 const composerSiteConfigController = createComposerSiteConfigController({
   runtime: editorRuntime,
   windowRef: window,
@@ -827,9 +845,7 @@ composerServices.setUnsyncedSummaryController(createComposerUnsyncedSummaryContr
 }));
 
 function getActiveComposerFile() {
-  if (activeComposerFile === 'tabs') return 'tabs';
-  if (activeComposerFile === 'site') return 'site';
-  return 'index';
+  return composerFilePanelController.getActiveComposerFile();
 }
 
 function setButtonLabel(btn, label) {
@@ -1230,7 +1246,7 @@ const composerOrderDiffUi = createComposerOrderDiffUi({
   animateOrderMainReset: animateComposerOrderMainReset,
   animateInlineVisibility: animateComposerInlineVisibility,
   cssEscape,
-  getComposerViewTransition: () => composerViewTransition,
+  getComposerViewTransition: () => composerFilePanelController.getComposerViewTransition(),
   getSlideDurations: getComposerSlideDurations
 });
 const {
@@ -1565,191 +1581,11 @@ function applyMode(mode, options = {}) {
 }
 
 function getInitialComposerFile() {
-  try {
-    const v = (editorRuntime.storage.getItem(scopedEditorStorageKey(LS_KEYS.cfile)) || '').toLowerCase();
-    if (v === 'site') return v;
-  } catch (_) {}
-  return 'site';
-}
-
-function cancelComposerViewTransition() {
-  if (!composerViewTransition) return;
-  const { panels, cleanup } = composerViewTransition;
-  if (typeof cleanup === 'function') {
-    try { cleanup(); } catch (_) {}
-  }
-  if (panels) {
-    panels.classList.remove('is-hidden');
-    panels.classList.remove('is-transitioning');
-  }
-  composerViewTransition = null;
+  return composerFilePanelController.getInitialComposerFile();
 }
 
 function applyComposerFile(name, options = {}) {
-  const target = name === 'tabs' ? 'tabs' : (name === 'site' ? 'site' : 'index');
-  const force = !!options.force;
-  const immediate = !!options.immediate;
-  if (!force && activeComposerFile === target) {
-    if (immediate) cancelComposerViewTransition();
-    return;
-  }
-
-  const panels = document.getElementById('composerPanels');
-  const reduceMotion = immediate || composerPrefersReducedMotion();
-
-  activeComposerFile = target;
-
-  const updateToggleUi = () => {
-    const normalized = getActiveComposerFile();
-    try {
-      $$('a.vt-btn[data-cfile]').forEach(a => {
-        a.classList.toggle('active', a.dataset.cfile === normalized);
-      });
-    } catch (_) {}
-    try {
-      const btn = $('#btnAddItem');
-      if (btn) {
-        if (normalized === 'index') {
-          const key = 'editor.composer.addPost';
-          btn.hidden = false;
-          btn.style.display = '';
-          btn.setAttribute('data-i18n', key);
-          btn.textContent = t(key);
-        } else if (normalized === 'tabs') {
-          const key = 'editor.composer.addTab';
-          btn.hidden = false;
-          btn.style.display = '';
-          btn.setAttribute('data-i18n', key);
-          btn.textContent = t(key);
-        } else {
-          btn.hidden = true;
-          btn.style.display = 'none';
-        }
-      }
-    } catch (_) {}
-  };
-
-  updateToggleUi();
-
-  const applyState = () => {
-    const normalized = getActiveComposerFile();
-    const showIndex = normalized === 'index';
-    const showTabs = normalized === 'tabs';
-    const showSite = normalized === 'site';
-    try {
-      const hostIndex = document.getElementById('composerIndexHost');
-      if (hostIndex) hostIndex.style.display = showIndex ? '' : 'none';
-    } catch (_) {}
-    try {
-      const hostTabs = document.getElementById('composerTabsHost');
-      if (hostTabs) hostTabs.style.display = showTabs ? '' : 'none';
-    } catch (_) {}
-    try {
-      const hostSite = document.getElementById('composerSiteHost');
-      if (hostSite) hostSite.style.display = showSite ? '' : 'none';
-    } catch (_) {}
-    try { $('#composerIndex').style.display = showIndex ? 'block' : 'none'; } catch (_) {}
-    try { $('#composerTabs').style.display = showTabs ? 'block' : 'none'; } catch (_) {}
-    try { $('#composerSite').style.display = showSite ? 'block' : 'none'; } catch (_) {}
-    // Sync preload attribute to avoid CSS forcing the wrong sub-file
-    try {
-      if (normalized === 'tabs' || normalized === 'site') document.documentElement.setAttribute('data-init-cfile', normalized);
-      else document.documentElement.removeAttribute('data-init-cfile');
-    } catch (_) {}
-
-    try {
-      if (normalized === 'site') setComposerOrderPreviewActiveKind('index');
-      else setComposerOrderPreviewActiveKind(normalized);
-    } catch (_) {}
-    const summaryOptions = normalized === 'site' ? { immediate: true } : undefined;
-    try { updateUnsyncedSummary(summaryOptions); } catch (_) {}
-  };
-
-  if (!panels || reduceMotion) {
-    cancelComposerViewTransition();
-    applyState();
-    if (panels) {
-      panels.classList.remove('is-hidden');
-      panels.classList.remove('is-transitioning');
-    }
-    return;
-  }
-
-  cancelComposerViewTransition();
-
-  const duration = 200;
-  const state = { panels };
-  composerViewTransition = state;
-  let switched = false;
-  let finished = false;
-  let timerOut = null;
-  let timerIn = null;
-
-  const clearTimerOut = () => {
-    if (timerOut != null) {
-      clearTimeout(timerOut);
-      timerOut = null;
-    }
-  };
-
-  const clearTimerIn = () => {
-    if (timerIn != null) {
-      clearTimeout(timerIn);
-      timerIn = null;
-    }
-  };
-
-  const finish = () => {
-    if (finished) return;
-    finished = true;
-    clearTimerIn();
-    panels.classList.remove('is-transitioning');
-    panels.classList.remove('is-hidden');
-    panels.removeEventListener('transitionend', handleFadeOut);
-    panels.removeEventListener('transitionend', handleFadeIn);
-    composerViewTransition = null;
-  };
-
-  const handleFadeIn = (event) => {
-    if (event && (event.target !== panels || event.propertyName !== 'opacity')) return;
-    clearTimerIn();
-    finish();
-  };
-
-  const startFadeIn = () => {
-    if (switched) return;
-    switched = true;
-    panels.removeEventListener('transitionend', handleFadeOut);
-    clearTimerOut();
-    applyState();
-    requestAnimationFrame(() => {
-      if (finished) return;
-      panels.addEventListener('transitionend', handleFadeIn);
-      panels.classList.remove('is-hidden');
-      timerIn = window.setTimeout(() => handleFadeIn({ target: panels, propertyName: 'opacity' }), duration + 80);
-    });
-  };
-
-  const handleFadeOut = (event) => {
-    if (event && (event.target !== panels || event.propertyName !== 'opacity')) return;
-    startFadeIn();
-  };
-
-  state.cleanup = () => {
-    clearTimerOut();
-    clearTimerIn();
-    panels.removeEventListener('transitionend', handleFadeOut);
-    panels.removeEventListener('transitionend', handleFadeIn);
-  };
-
-  panels.addEventListener('transitionend', handleFadeOut);
-  panels.classList.add('is-transitioning');
-
-  requestAnimationFrame(() => {
-    if (finished) return;
-    panels.classList.add('is-hidden');
-    timerOut = window.setTimeout(() => startFadeIn(), duration + 80);
-  });
+  return composerFilePanelController.applyComposerFile(name, options);
 }
 
 // Apply initial state as early as possible to avoid flash on reload
@@ -2259,11 +2095,7 @@ initializeComposerApp({
       applyMode,
       initSystemThemeBridge: () => composerSystemThemeBridge.init(),
       setComposerFile: (name, options = {}) => {
-        applyComposerFile(name, options);
-        try {
-          const normalized = name === 'tabs' ? 'tabs' : (name === 'site' ? 'site' : 'index');
-          editorRuntime.storage.setItem(scopedEditorStorageKey(LS_KEYS.cfile), normalized);
-        } catch (_) {}
+        composerFilePanelController.setComposerFile(name, options);
       },
       getInitialComposerFile,
       getActiveComposerFile,

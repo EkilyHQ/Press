@@ -1,5 +1,6 @@
 import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createSafeHighlightFragment, detectLanguage } from './syntax-highlight.js?v=press-system-v3.4.50';
+import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2769,6 +2770,27 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   if (!root) return null;
   const labels = options.labels || {};
   const text = (key, fallback) => labels[key] || fallback;
+  const runtime = options.runtime && typeof options.runtime.onDocument === 'function'
+    ? options.runtime
+    : createEditorBlocksRuntime({
+        documentRef: options.documentRef || root.ownerDocument,
+        windowRef: options.windowRef || (root.ownerDocument && root.ownerDocument.defaultView),
+        navigatorRef: options.navigatorRef
+      });
+  const runtimeDisposables = new Set();
+  const trackRuntimeDisposer = (dispose) => {
+    if (typeof dispose !== 'function') return () => {};
+    let active = true;
+    runtimeDisposables.add(dispose);
+    return () => {
+      if (!active) return;
+      active = false;
+      runtimeDisposables.delete(dispose);
+      try { dispose(); } catch (_) {}
+    };
+  };
+  const onDocument = (type, handler, listenerOptions) => trackRuntimeDisposer(runtime.onDocument(type, handler, listenerOptions));
+  const onWindow = (type, handler, listenerOptions) => trackRuntimeDisposer(runtime.onWindow(type, handler, listenerOptions));
   const state = {
     blocks: [],
     activeIndex: -1,
@@ -3068,7 +3090,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const finish = () => {
         if (finished) return;
         finished = true;
-        if (fallbackTimer) window.clearTimeout(fallbackTimer);
+        runtime.clearTimer(fallbackTimer);
         moves.forEach((item) => {
           item.el.removeEventListener('transitionend', item.done);
           item.el.classList.remove('is-reordering');
@@ -3090,13 +3112,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         item.el.addEventListener('transitionend', item.done);
       });
       list.getBoundingClientRect();
-      requestAnimationFrame(() => {
+      runtime.requestFrame(() => {
         moves.forEach((item) => {
           item.el.style.transition = '';
           item.el.style.transform = 'translate3d(0, 0, 0)';
         });
       });
-      fallbackTimer = window.setTimeout ? window.setTimeout(finish, 360) : null;
+      fallbackTimer = runtime.setTimer(finish, 360);
     } catch (_) {
       finishBlockReorder();
     }
@@ -3159,10 +3181,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     try { current.trigger.setAttribute('aria-expanded', 'false'); } catch (_) {}
     try { current.wrap.classList.remove('is-open'); } catch (_) {}
     try { current.menu.classList.remove('is-open-right'); } catch (_) {}
-    try { document.removeEventListener('mousedown', current.onDocDown, true); } catch (_) {}
-    try { document.removeEventListener('keydown', current.onKeyDown, true); } catch (_) {}
-    try { window.removeEventListener('resize', current.onReposition); } catch (_) {}
-    try { window.removeEventListener('scroll', current.onReposition, true); } catch (_) {}
+    try { current.detachDocDown?.(); } catch (_) {}
+    try { current.detachKeyDown?.(); } catch (_) {}
+    try { current.detachResize?.(); } catch (_) {}
+    try { current.detachScroll?.(); } catch (_) {}
     if (restoreFocus) {
       try { current.trigger.focus(); } catch (_) {}
     }
@@ -3175,8 +3197,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     try { current.menu.hidden = true; } catch (_) {}
     try { current.trigger.setAttribute('aria-expanded', 'false'); } catch (_) {}
     try { current.wrap.classList.remove('is-open'); } catch (_) {}
-    try { document.removeEventListener('mousedown', current.onDocDown, true); } catch (_) {}
-    try { document.removeEventListener('keydown', current.onKeyDown, true); } catch (_) {}
+    try { current.detachDocDown?.(); } catch (_) {}
+    try { current.detachKeyDown?.(); } catch (_) {}
     if (restoreFocus) {
       try { current.trigger.focus(); } catch (_) {}
     }
@@ -3230,7 +3252,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const actionMenuBoundaryLeft = () => {
     try {
-      const pane = document.getElementById('editorContentPane');
+      const pane = runtime.getElementById('editorContentPane');
       const rect = (pane && pane.getBoundingClientRect && pane.getBoundingClientRect())
         || (root && root.getBoundingClientRect && root.getBoundingClientRect())
         || null;
@@ -3299,15 +3321,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         }
       };
       const onReposition = () => alignBlockActionMenu(menu, trigger);
-      state.openActionMenu = { wrap, trigger, menu, onDocDown, onKeyDown, onReposition };
+      const detachDocDown = onDocument('mousedown', onDocDown, true);
+      const detachKeyDown = onDocument('keydown', onKeyDown, true);
+      const detachResize = onWindow('resize', onReposition);
+      const detachScroll = onWindow('scroll', onReposition, true);
+      state.openActionMenu = { wrap, trigger, menu, detachDocDown, detachKeyDown, detachResize, detachScroll };
       menu.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
       wrap.classList.add('is-open');
       alignBlockActionMenu(menu, trigger);
-      document.addEventListener('mousedown', onDocDown, true);
-      document.addEventListener('keydown', onKeyDown, true);
-      window.addEventListener('resize', onReposition);
-      window.addEventListener('scroll', onReposition, true);
       const firstEnabled = menu.querySelector('.blocks-action-menu-item:not(:disabled)');
       try { firstEnabled?.focus(); } catch (_) {}
     };
@@ -3408,7 +3430,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       if (rect && rect.height > 0) return rect.bottom;
     } catch (_) {}
     try {
-      const styles = getComputedStyle(document.documentElement);
+      const styles = runtime.getComputedStyle(runtime.getDocumentElement());
       const offset = parseFloat(styles.getPropertyValue('--editor-toolbar-offset'));
       if (Number.isFinite(offset)) return offset;
     } catch (_) {}
@@ -3417,23 +3439,25 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   const editorViewportBottom = () => {
     try {
-      const pane = document.getElementById('editorContentPane');
+      const pane = runtime.getElementById('editorContentPane');
       const rect = pane && pane.getBoundingClientRect ? pane.getBoundingClientRect() : null;
       if (rect && rect.height > 0) return rect.bottom;
     } catch (_) {}
-    return window.innerHeight || document.documentElement.clientHeight || 0;
+    return runtime.getViewportHeight();
   };
 
   const findVerticalScrollParent = (node) => {
     let el = node && node.parentElement;
-    while (el && el !== document.body && el !== document.documentElement) {
+    const body = runtime.getBody();
+    const documentElement = runtime.getDocumentElement();
+    while (el && el !== body && el !== documentElement) {
       try {
-        const cs = window.getComputedStyle(el);
+        const cs = runtime.getComputedStyle(el);
         if (/(auto|scroll|overlay)/.test(cs.overflowY || '') && el.scrollHeight > el.clientHeight + 1) return el;
       } catch (_) {}
       el = el.parentElement;
     }
-    return document.getElementById('editorContentPane') || document.scrollingElement || document.documentElement;
+    return runtime.getElementById('editorContentPane') || runtime.getScrollingElement() || documentElement;
   };
 
   const wheelDeltaYForScroll = (event, scrollParent) => {
@@ -3518,10 +3542,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       stickyBlockHeadFrame = 0;
       updateStickyBlockHead();
     };
-    if (typeof requestAnimationFrame === 'function') stickyBlockHeadFrame = requestAnimationFrame(run);
-    else {
-      stickyBlockHeadFrame = setTimeout(run, 16);
-    }
+    stickyBlockHeadFrame = runtime.requestFrame(run) || 1;
   };
 
   const activeListItemIndex = (block, index) => {
@@ -3648,7 +3669,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const keepEditable = state.activeEditable && activeBlock && nodeContains(activeBlock, state.activeEditable);
       if (!keepEditable) {
         try {
-          const focused = document.activeElement;
+          const focused = runtime.getActiveElement();
           if (focused && state.activeEditable && nodeContains(state.activeEditable, focused) && typeof focused.blur === 'function') {
             focused.blur();
           }
@@ -3670,7 +3691,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     syncActiveListTypeSelect(blockNodes);
     refreshLinkEditor();
     updateInlineToolbarState();
-    syncActiveTableAlignmentFromEditable(activeBlock, editable || state.activeEditable || document.activeElement);
+    syncActiveTableAlignmentFromEditable(activeBlock, editable || state.activeEditable || runtime.getActiveElement());
     requestStickyBlockHeadUpdate();
   };
 
@@ -3964,8 +3985,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   list.addEventListener('pointerdown', routeBlocksCaretFromPointer);
-  window.addEventListener('scroll', requestStickyBlockHeadUpdate, true);
-  window.addEventListener('resize', requestStickyBlockHeadUpdate);
+  onWindow('scroll', requestStickyBlockHeadUpdate, true);
+  onWindow('resize', requestStickyBlockHeadUpdate);
 
   const getBaseDir = () => {
     try {
@@ -4203,12 +4224,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
           closeInlineMoreMenu(true);
         }
       };
-      state.openInlineMenu = { wrap, trigger, menu, onDocDown, onKeyDown };
+      const detachDocDown = onDocument('mousedown', onDocDown, true);
+      const detachKeyDown = onDocument('keydown', onKeyDown, true);
+      state.openInlineMenu = { wrap, trigger, menu, detachDocDown, detachKeyDown };
       menu.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
       wrap.classList.add('is-open');
-      document.addEventListener('mousedown', onDocDown, true);
-      document.addEventListener('keydown', onKeyDown, true);
       const firstEnabled = menu.querySelector('.blocks-inline-menu-item:not(:disabled)');
       try { firstEnabled?.focus(); } catch (_) {}
     };
@@ -4263,7 +4284,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   unlink.title = text('unlink', 'Unlink');
   unlink.setAttribute('aria-label', text('unlink', 'Unlink'));
   const linkEditorFocused = () => {
-    try { return linkEditor.contains(document.activeElement); } catch (_) { return false; }
+    try { return linkEditor.contains(runtime.getActiveElement()); } catch (_) { return false; }
   };
   const hideLinkEditor = () => {
     state.activeLink = null;
@@ -4408,7 +4429,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   removeMath.title = text('removeMath', 'Remove');
   removeMath.setAttribute('aria-label', text('removeMath', 'Remove'));
   const mathEditorFocused = () => {
-    try { return mathEditor.contains(document.activeElement); } catch (_) { return false; }
+    try { return mathEditor.contains(runtime.getActiveElement()); } catch (_) { return false; }
   };
   const hideMathEditor = () => {
     state.activeMath = null;
@@ -4708,13 +4729,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   root.addEventListener('keyup', refreshLinkEditor);
   root.addEventListener('mouseup', refreshLinkEditor);
   root.addEventListener('focusin', refreshLinkEditor);
-  document.addEventListener('pointerdown', handleLinkEditorOutsidePointer, true);
-  document.addEventListener('mousedown', handleLinkEditorOutsidePointer, true);
-  document.addEventListener('pointerdown', handleMathEditorOutsidePointer, true);
-  document.addEventListener('mousedown', handleMathEditorOutsidePointer, true);
-  window.addEventListener('resize', refreshLinkEditor);
-  window.addEventListener('scroll', refreshLinkEditor, true);
-  document.addEventListener('selectionchange', () => {
+  onDocument('pointerdown', handleLinkEditorOutsidePointer, true);
+  onDocument('mousedown', handleLinkEditorOutsidePointer, true);
+  onDocument('pointerdown', handleMathEditorOutsidePointer, true);
+  onDocument('mousedown', handleMathEditorOutsidePointer, true);
+  onWindow('resize', refreshLinkEditor);
+  onWindow('scroll', refreshLinkEditor, true);
+  onDocument('selectionchange', () => {
     if (!state.activeEditable || !nodeContains(root, state.activeEditable)) return;
     refreshLinkEditor();
   });
@@ -5104,12 +5125,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     };
     applyTableAlignmentControlForPosition(block, normalized);
     queueMicrotask(applyIfCurrent);
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(applyIfCurrent);
-    }
-    if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
-      window.setTimeout(applyIfCurrent, 0);
-    }
+    runtime.requestFrame(applyIfCurrent);
+    runtime.setTimer(applyIfCurrent, 0);
   };
 
   const syncActiveTableAlignmentFromEditable = (activeBlock, editable) => {
@@ -5542,11 +5559,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const codeLabelText = (key, fallback) => {
-    try {
-      return (window.__press_t && typeof window.__press_t === 'function') ? window.__press_t(key) : fallback;
-    } catch (_) {
-      return fallback;
-    }
+    return runtime.translate(key, fallback);
   };
 
   const createCodeLanguageLabel = (getCodeText) => {
@@ -5563,19 +5576,11 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     };
     const copyCode = async () => {
       const rawText = typeof getCodeText === 'function' ? String(getCodeText() || '') : '';
-      let ok = false;
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(rawText);
-          ok = true;
-        } catch (_) {
-          ok = false;
-        }
-      }
+      const ok = await runtime.writeClipboardText(rawText);
       const old = label.dataset.lang || 'PLAIN';
       label.classList.add('is-copied');
       label.textContent = ok ? codeLabelText('code.copied', 'Copied').toUpperCase() : codeLabelText('code.failed', 'Failed').toUpperCase();
-      window.setTimeout(() => {
+      runtime.setTimer(() => {
         label.classList.remove('is-copied');
         label.textContent = old;
       }, 1200);
@@ -6271,6 +6276,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     },
     requestLayout() {
       render();
+    },
+    dispose() {
+      closeBlockActionMenu(false);
+      closeInlineMoreMenu(false);
+      Array.from(runtimeDisposables).forEach((dispose) => {
+        try { dispose(); } catch (_) {}
+      });
+      runtimeDisposables.clear();
     }
   };
 

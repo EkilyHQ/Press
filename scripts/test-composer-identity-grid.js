@@ -67,6 +67,7 @@ const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
+const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -132,6 +133,7 @@ const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
+const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -227,6 +229,24 @@ assert.match(
   editorMainSource,
   /from '\.\/editor-blocks\.js\?v=[\w.-]+'/,
   'editor preview should cache-bust the Markdown blocks editor when math block handling changes'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-runtime\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks runtime boundary'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /document\.(?:addEventListener|removeEventListener)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame)|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById/,
+  'blocks editor should route global listeners, clipboard, timers, translation, and active-element access through its runtime boundary'
+);
+
+assert.match(
+  editorBlocksRuntimeSource,
+  /export function createEditorBlocksRuntime\([\s\S]*async function writeClipboardText\(text\)[\s\S]*function translate\(key, fallback\)[\s\S]*onDocument: \(type, handler, options\)[\s\S]*onWindow: \(type, handler, options\)[\s\S]*writeClipboardText,[\s\S]*translate/,
+  'blocks runtime should own global listener, clipboard, timer, viewport, and translation adapters'
 );
 
 assert.match(
@@ -1463,7 +1483,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const editorViewportBottom = \(\) => \{[\s\S]*document\.getElementById\('editorContentPane'\)[\s\S]*const updateStickyBlockHead = \(\) => \{[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*editorStickyToolbarBottom\(\) \+ gap[\s\S]*const blockTopUnderStickyToolbar = blockRect\.top < stickyTop;[\s\S]*if \(blockTopUnderStickyToolbar\) \{[\s\S]*blockRect\.bottom \+ gap \+ headHeight <= stickyTop[\s\S]*head\.classList\.add\('is-bottom-docked'\);[\s\S]*head\.style\.top = `\$\{Math\.max\(0, blockRect\.height \+ gap\)\}px`;[\s\S]*return;[\s\S]*\}[\s\S]*head\.classList\.add\('is-stuck'\);[\s\S]*head\.style\.top = `\$\{top\}px`;/,
+  /const editorViewportBottom = \(\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*const updateStickyBlockHead = \(\) => \{[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*editorStickyToolbarBottom\(\) \+ gap[\s\S]*const blockTopUnderStickyToolbar = blockRect\.top < stickyTop;[\s\S]*if \(blockTopUnderStickyToolbar\) \{[\s\S]*blockRect\.bottom \+ gap \+ headHeight <= stickyTop[\s\S]*head\.classList\.add\('is-bottom-docked'\);[\s\S]*head\.style\.top = `\$\{Math\.max\(0, blockRect\.height \+ gap\)\}px`;[\s\S]*return;[\s\S]*\}[\s\S]*head\.classList\.add\('is-stuck'\);[\s\S]*head\.style\.top = `\$\{top\}px`;/,
   'active block toolbar should become a non-sticky bottom-docked overlay once the block top is covered'
 );
 
@@ -1475,13 +1495,13 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /window\.addEventListener\('scroll', requestStickyBlockHeadUpdate, true\);[\s\S]*window\.addEventListener\('resize', requestStickyBlockHeadUpdate\);/,
+  /onWindow\('scroll', requestStickyBlockHeadUpdate, true\);[\s\S]*onWindow\('resize', requestStickyBlockHeadUpdate\);/,
   'active block toolbar sticky position should refresh on editor pane scroll and viewport resize'
 );
 
 assert.match(
   editorBlocksSource,
-  /const findVerticalScrollParent = \(node\) => \{[\s\S]*document\.getElementById\('editorContentPane'\)[\s\S]*const forwardBlockHeadWheel = \(event\) => \{[\s\S]*absX > absY[\s\S]*scrollParent\.scrollTop = before \+ deltaY;[\s\S]*event\.preventDefault\(\);[\s\S]*head\.addEventListener\('wheel', forwardBlockHeadWheel, \{ passive: false \}\);/,
+  /const findVerticalScrollParent = \(node\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*const forwardBlockHeadWheel = \(event\) => \{[\s\S]*absX > absY[\s\S]*scrollParent\.scrollTop = before \+ deltaY;[\s\S]*event\.preventDefault\(\);[\s\S]*head\.addEventListener\('wheel', forwardBlockHeadWheel, \{ passive: false \}\);/,
   'active block toolbar should forward vertical wheel gestures to the editor content scroll pane'
 );
 
@@ -1517,7 +1537,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const animateBlockReorder = \(beforeRects\) => \{[\s\S]*const before = id \? beforeRects\.get\(id\) : null;[\s\S]*const after = el\.getBoundingClientRect\(\);[\s\S]*const dx = before\.left - after\.left;[\s\S]*const dy = before\.top - after\.top;[\s\S]*item\.el\.style\.transition = 'none';[\s\S]*item\.el\.style\.transform = `translate3d\(\$\{item\.dx\}px, \$\{item\.dy\}px, 0\)`;[\s\S]*requestAnimationFrame\(\(\) => \{[\s\S]*item\.el\.style\.transition = '';[\s\S]*item\.el\.style\.transform = 'translate3d\(0, 0, 0\)';[\s\S]*window\.setTimeout\(finish, 360\)/,
+  /const animateBlockReorder = \(beforeRects\) => \{[\s\S]*const before = id \? beforeRects\.get\(id\) : null;[\s\S]*const after = el\.getBoundingClientRect\(\);[\s\S]*const dx = before\.left - after\.left;[\s\S]*const dy = before\.top - after\.top;[\s\S]*item\.el\.style\.transition = 'none';[\s\S]*item\.el\.style\.transform = `translate3d\(\$\{item\.dx\}px, \$\{item\.dy\}px, 0\)`;[\s\S]*runtime\.requestFrame\(\(\) => \{[\s\S]*item\.el\.style\.transition = '';[\s\S]*item\.el\.style\.transform = 'translate3d\(0, 0, 0\)';[\s\S]*runtime\.setTimer\(finish, 360\)/,
   'block move animation should FLIP the final rendered DOM from old coordinates back to zero transform'
 );
 
@@ -1553,7 +1573,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const actionMenuBoundaryLeft = \(\) => \{[\s\S]*document\.getElementById\('editorContentPane'\)[\s\S]*return Math\.max\(8, Math\.floor\(rect\.left\)\);[\s\S]*const alignBlockActionMenu = \(menu, trigger = null\) => \{[\s\S]*menu\.classList\.remove\('is-open-right'\);[\s\S]*const boundaryLeft = actionMenuBoundaryLeft\(\);[\s\S]*const triggerRect = trigger && trigger\.getBoundingClientRect[\s\S]*const leftSpace = triggerRect \? triggerRect\.right - boundaryLeft : menuRect\.left - boundaryLeft;[\s\S]*if \(leftSpace < menuRect\.width \+ 8\) menu\.classList\.add\('is-open-right'\);/,
+  /const actionMenuBoundaryLeft = \(\) => \{[\s\S]*runtime\.getElementById\('editorContentPane'\)[\s\S]*return Math\.max\(8, Math\.floor\(rect\.left\)\);[\s\S]*const alignBlockActionMenu = \(menu, trigger = null\) => \{[\s\S]*menu\.classList\.remove\('is-open-right'\);[\s\S]*const boundaryLeft = actionMenuBoundaryLeft\(\);[\s\S]*const triggerRect = trigger && trigger\.getBoundingClientRect[\s\S]*const leftSpace = triggerRect \? triggerRect\.right - boundaryLeft : menuRect\.left - boundaryLeft;[\s\S]*if \(leftSpace < menuRect\.width \+ 8\) menu\.classList\.add\('is-open-right'\);/,
   'block action overflow menu should flip right when the button has insufficient left-side room inside the editor content boundary'
 );
 
@@ -1565,7 +1585,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const closeBlockActionMenu = \(restoreFocus = false\) => \{[\s\S]*current\.menu\.classList\.remove\('is-open-right'\);[\s\S]*document\.removeEventListener\('mousedown', current\.onDocDown, true\);[\s\S]*document\.removeEventListener\('keydown', current\.onKeyDown, true\);[\s\S]*window\.removeEventListener\('resize', current\.onReposition\);[\s\S]*window\.removeEventListener\('scroll', current\.onReposition, true\);[\s\S]*if \(restoreFocus\)[\s\S]*const onDocDown = \(event\) => \{[\s\S]*closeBlockActionMenu\(false\);[\s\S]*const onKeyDown = \(event\) => \{[\s\S]*event\.key === 'Escape'[\s\S]*closeBlockActionMenu\(true\);/,
+  /const closeBlockActionMenu = \(restoreFocus = false\) => \{[\s\S]*current\.menu\.classList\.remove\('is-open-right'\);[\s\S]*current\.detachDocDown\?\.\(\);[\s\S]*current\.detachKeyDown\?\.\(\);[\s\S]*current\.detachResize\?\.\(\);[\s\S]*current\.detachScroll\?\.\(\);[\s\S]*if \(restoreFocus\)[\s\S]*const onDocDown = \(event\) => \{[\s\S]*closeBlockActionMenu\(false\);[\s\S]*const onKeyDown = \(event\) => \{[\s\S]*event\.key === 'Escape'[\s\S]*closeBlockActionMenu\(true\);/,
   'overflow menu should close on outside click and Escape while cleaning document and window listeners'
 );
 
@@ -1709,7 +1729,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const handleLinkEditorOutsidePointer = \(event\) => \{[\s\S]*if \(linkEditor\.hidden\) return;[\s\S]*isLinkEditorInternalTarget\(target\)[\s\S]*hideLinkEditor\(\);[\s\S]*document\.addEventListener\('pointerdown', handleLinkEditorOutsidePointer, true\);[\s\S]*document\.addEventListener\('mousedown', handleLinkEditorOutsidePointer, true\);/,
+  /const handleLinkEditorOutsidePointer = \(event\) => \{[\s\S]*if \(linkEditor\.hidden\) return;[\s\S]*isLinkEditorInternalTarget\(target\)[\s\S]*hideLinkEditor\(\);[\s\S]*onDocument\('pointerdown', handleLinkEditorOutsidePointer, true\);[\s\S]*onDocument\('mousedown', handleLinkEditorOutsidePointer, true\);/,
   'inline link editor should close from a capture-phase outside pointer or mouse press'
 );
 
@@ -1907,7 +1927,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const createCodeLanguageLabel = \(getCodeText\) => \{[\s\S]*label\.className = 'syntax-language-label blocks-code-language-label';[\s\S]*label\.setAttribute\('role', 'button'\);[\s\S]*navigator\.clipboard\.writeText\(rawText\)[\s\S]*label\.addEventListener\('mouseenter'[\s\S]*label\.addEventListener\('click', copyCode\);/,
+  /const createCodeLanguageLabel = \(getCodeText\) => \{[\s\S]*label\.className = 'syntax-language-label blocks-code-language-label';[\s\S]*label\.setAttribute\('role', 'button'\);[\s\S]*runtime\.writeClipboardText\(rawText\)[\s\S]*label\.addEventListener\('mouseenter'[\s\S]*label\.addEventListener\('click', copyCode\);/,
   'blocks code should render the native-style copy language badge inside the code frame'
 );
 

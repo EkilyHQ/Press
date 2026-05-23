@@ -13,6 +13,7 @@ import { createEditorMainImageSession } from './editor-main-image-session.js?v=p
 import { createEditorMainLinkCardContext } from './editor-main-link-card-context.js?v=press-system-v3.4.50';
 import { createEditorMainWorkspaceSession } from './editor-main-workspace-session.js?v=press-system-v3.4.50';
 import { createEditorMainBlocksSession } from './editor-main-blocks-session.js?v=press-system-v3.4.50';
+import { createEditorMainDocumentSession } from './editor-main-document-session.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
 const FORCE_MARKDOWN_WRAP = true;
@@ -37,12 +38,9 @@ editorMainRuntime.onDocumentReady(() => {
 
   const seed = `# 新文章标题\n\n> 在左侧编辑 Markdown，切换到 Preview 查看渲染效果。\n\n- 支持代码块、表格、待办列表\n- 图片与视频语法\n\n\`\`\`js\nconsole.log('Hello, Press!');\n\`\`\`\n`;
 
-  const changeListeners = new Set();
-  const notifyChange = () => {
-    const value = getValue();
-    changeListeners.forEach((fn) => {
-      try { fn(value); } catch (_) {}
-    });
+  let documentSession = null;
+  const notifyDocumentChange = () => {
+    if (documentSession) documentSession.notifyChange();
   };
 
   const metadataPanel = createEditorMainMetadataPanel({
@@ -53,7 +51,7 @@ editorMainRuntime.onDocumentReady(() => {
     getCurrentLang,
     normalizeLangKey,
     getContentRoot,
-    onChange: () => notifyChange()
+    onChange: notifyDocumentChange
   });
 
   const linkCardContext = createEditorMainLinkCardContext({
@@ -66,6 +64,11 @@ editorMainRuntime.onDocumentReady(() => {
   });
 
   const inferCurrentFileSource = (path) => metadataPanel.inferCurrentFileSource(path);
+
+  const setBaseDir = (dir) => {
+    const fallback = `${getContentRoot()}/`;
+    editorMainRuntime.setEditorBaseDir(dir, fallback);
+  };
 
   const requestLayout = () => {
     try {
@@ -96,16 +99,18 @@ editorMainRuntime.onDocumentReady(() => {
   });
   workspaceSession.initialize();
 
-  const getEditorBody = () => {
-    if (editor) return editor.getValue() || '';
-    if (ta) return ta.value || '';
-    return '';
-  };
-
-  const getValue = () => {
-    const body = getEditorBody();
-    return metadataPanel.buildEditorValue(body);
-  };
+  documentSession = createEditorMainDocumentSession({
+    runtime: editorMainRuntime,
+    editor,
+    textarea: ta,
+    metadataPanel,
+    workspaceSession,
+    getPreviewSession: () => previewSession,
+    getBlocksSession: () => blocksSession,
+    requestLayout,
+    setBaseDir,
+    setCurrentFileLabel: (label) => assignCurrentFileLabel(label)
+  });
 
   const currentFileSession = createEditorMainCurrentFileSession({
     runtime: editorMainRuntime,
@@ -125,7 +130,7 @@ editorMainRuntime.onDocumentReady(() => {
     documentRef: document,
     windowRef: window,
     getContentRoot,
-    getEditorValue: () => getValue(),
+    getEditorValue: () => documentSession.getValue(),
     getCurrentFileInfo: () => currentFileSession.getInfo(),
     getSiteConfig: () => editorSiteConfig || {},
     getPostsIndex: () => linkCardContext.getPostsIndex(),
@@ -137,10 +142,6 @@ editorMainRuntime.onDocumentReady(() => {
   });
   previewSession.bind();
 
-  const refreshPreview = () => {
-    try { previewSession.render(getValue()); } catch (_) {}
-  };
-
   editorMainRuntime.onSiteConfigChange((event) => {
     const detail = event && event.detail && typeof event.detail === 'object' ? event.detail : {};
     if (detail.siteConfig && typeof detail.siteConfig === 'object') {
@@ -149,37 +150,6 @@ editorMainRuntime.onDocumentReady(() => {
       previewSession.handleSiteConfigChange();
     }
   });
-
-  const setValue = (value, opts = {}) => {
-    const text = value == null ? '' : String(value);
-    const { preview = true, notify = true } = opts;
-    const bodyText = metadataPanel.setEditorValue(text, { silent: true });
-    if (editor) editor.setValue(bodyText);
-    else if (ta) ta.value = bodyText;
-    requestLayout();
-    if (blocksSession) blocksSession.syncIfVisible(bodyText);
-    if (preview) refreshPreview();
-    if (notify) notifyChange();
-  };
-
-  const setBaseDir = (dir) => {
-    const fallback = `${getContentRoot()}/`;
-    editorMainRuntime.setEditorBaseDir(dir, fallback);
-  };
-
-  const setEditorBodyFromBlocks = (body) => {
-    const text = body == null ? '' : String(body);
-    if (editor) editor.setValue(text);
-    else if (ta) ta.value = text;
-    requestLayout();
-    refreshPreview();
-    notifyChange();
-  };
-
-  const getEditorTextarea = () => {
-    if (editor && editor.textarea) return editor.textarea;
-    return ta;
-  };
 
   const getCurrentMarkdownPath = () => {
     return currentFileSession.getPath();
@@ -199,10 +169,10 @@ editorMainRuntime.onDocumentReady(() => {
     imageInput,
     getCurrentMarkdownPath,
     getContentRoot,
-    getEditorTextarea,
-    getEditorBody,
-    buildMarkdown: (body) => metadataPanel.buildMarkdown(body),
-    setValue,
+    getEditorTextarea: documentSession.getEditorTextarea,
+    getEditorBody: documentSession.getEditorBody,
+    buildMarkdown: documentSession.buildMarkdown,
+    setValue: documentSession.setValue,
     getBlocksEditor: () => blocksSession && blocksSession.getEditor(),
     emitToast: emitEditorToast
   });
@@ -212,8 +182,8 @@ editorMainRuntime.onDocumentReady(() => {
     root: blocksWrap,
     translate: t,
     getContentRoot,
-    getEditorBody,
-    onBodyChange: setEditorBodyFromBlocks,
+    getEditorBody: documentSession.getEditorBody,
+    onBodyChange: documentSession.setBodyFromBlocks,
     getCurrentMarkdownPath,
     getSiteConfig: () => editorSiteConfig || {},
     getPreviewSession: () => previewSession,
@@ -228,7 +198,7 @@ editorMainRuntime.onDocumentReady(() => {
     documentRef: document,
     windowRef: window,
     translate: t,
-    getEditorTextarea,
+    getEditorTextarea: documentSession.getEditorTextarea,
     editorToolbarEl,
     cardButton,
     cardPopover,
@@ -258,62 +228,18 @@ editorMainRuntime.onDocumentReady(() => {
     metadataPanel.applyCurrentFileSource(info.source);
     previewSession.setCurrentFileInfo(info);
     previewSession.refreshAssetOverrides();
-    refreshPreview();
+    documentSession.refreshPreview();
   };
 
   currentFileSession.render();
-
-  const handleInput = () => {
-    const full = getValue();
-    previewSession.render(full);
-    notifyChange();
-  };
-
-  if (editor && editor.textarea) editor.textarea.addEventListener('input', handleInput);
-  else if (ta) ta.addEventListener('input', handleInput);
+  documentSession.bindInput();
 
   // If empty, seed default text; otherwise render current content once.
-  const initial = (getValue() || '').trim();
-  if (!initial) {
-    setValue(seed, { notify: false });
-  } else {
-    previewSession.render(initial);
-  }
+  documentSession.renderInitial(seed);
 
   setBaseDir('');
   imageSession.bind();
-
-  const primaryEditorApi = {
-    getValue,
-    setValue: (value, opts = {}) => setValue(value, opts),
-    focus: () => {
-      try {
-        if (editor && typeof editor.focus === 'function') editor.focus();
-        else if (ta && typeof ta.focus === 'function') ta.focus();
-      } catch (_) {}
-    },
-    setView: (mode, opts = {}) => workspaceSession.setView(mode, opts),
-    restorePersistedView: (opts = {}) => workspaceSession.restorePersistedView(opts),
-    getView: () => workspaceSession.getView(),
-    setBaseDir: (dir) => setBaseDir(dir),
-    setCurrentFileLabel: (label) => assignCurrentFileLabel(label),
-    setFrontMatterVisible: (visible) => metadataPanel.setFrontMatterVisible(visible),
-    setTabsMetadata: (value, opts = {}) => metadataPanel.setTabsMetadata(value, opts),
-    onChange: (fn) => {
-      if (typeof fn !== 'function') return () => {};
-      changeListeners.add(fn);
-      return () => { changeListeners.delete(fn); };
-    },
-    onTabsMetadataChange: (fn) => {
-      return metadataPanel.onTabsMetadataChange(fn);
-    },
-    refreshPreview: () => { refreshPreview(); },
-    requestLayout: () => { requestLayout(); },
-    setWrap: (value, opts = {}) => { workspaceSession.setWrap(value, opts); },
-    isWrapEnabled: () => workspaceSession.isWrapEnabled()
-  };
-
-  editorMainRuntime.registerPrimaryEditorApi(primaryEditorApi);
+  documentSession.registerPrimaryEditorApi();
 
   // Clear draft action removed (no local storage drafts)
 
@@ -359,7 +285,7 @@ editorMainRuntime.onDocumentReady(() => {
     },
     onIndexLoaded: ({ posts, rawIndex }) => {
       linkCardContext.rebuild(posts, rawIndex);
-      if (linkCardContext.isReady()) refreshPreview();
+      if (linkCardContext.isReady()) documentSession.refreshPreview();
     },
     onOpenMarkdown: async ({ relPath, url, contentRoot }) => {
       const response = await fetch(url, { cache: 'no-store' });
@@ -373,7 +299,7 @@ editorMainRuntime.onDocumentReady(() => {
       } catch (_) {
         setBaseDir(`${contentRoot}/`);
       }
-      setValue(text);
+      documentSession.setValue(text);
       assignCurrentFileLabel(`${relPath}`);
       workspaceSession.setView('edit');
       editorMainRuntime.scrollToTop({ smooth: true });

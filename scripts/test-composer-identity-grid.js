@@ -75,6 +75,7 @@ const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image
 const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
 const editorMainWorkspaceSessionPath = resolve(here, '../assets/js/editor-main-workspace-session.js');
 const editorMainBlocksSessionPath = resolve(here, '../assets/js/editor-main-blocks-session.js');
+const editorMainDocumentSessionPath = resolve(here, '../assets/js/editor-main-document-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -174,6 +175,7 @@ const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'u
 const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
 const editorMainWorkspaceSessionSource = readFileSync(editorMainWorkspaceSessionPath, 'utf8');
 const editorMainBlocksSessionSource = readFileSync(editorMainBlocksSessionPath, 'utf8');
+const editorMainDocumentSessionSource = readFileSync(editorMainDocumentSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -959,7 +961,13 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
+  /from '\.\/editor-main-document-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor document session boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: notifyDocumentChange[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
 
@@ -977,13 +985,19 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /documentSession = createEditorMainDocumentSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*metadataPanel,[\s\S]*workspaceSession,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksSession: \(\) => blocksSession,[\s\S]*requestLayout,[\s\S]*setBaseDir,[\s\S]*setCurrentFileLabel: \(label\) => assignCurrentFileLabel\(label\)[\s\S]*\}\);/,
+  'editor main should compose document value, input, change listeners, and primary-editor API through the document session'
+);
+
+assert.match(
+  editorMainSource,
   /const currentFileSession = createEditorMainCurrentFileSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*inferCurrentFileSource,[\s\S]*applyEditorEmptyState: workspaceSession\.applyEditorEmptyState,[\s\S]*onRendered: \(\) => \{[\s\S]*if \(previewSession\) previewSession\.updatePathLabel\(\);[\s\S]*\}[\s\S]*\}\);/,
   'editor main should compose current file state and header rendering through the current-file session'
 );
 
 assert.match(
   editorMainSource,
-  /previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileSession\.getInfo\(\),[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
+  /previewSession = createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*getContentRoot,[\s\S]*getEditorValue: \(\) => documentSession\.getValue\(\),[\s\S]*getCurrentFileInfo: \(\) => currentFileSession\.getInfo\(\),[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*fetch[\s\S]*\}\);[\s\S]*previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
@@ -995,19 +1009,19 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const toolbarSession = createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => linkCardContext\.getCardEntries\(\)[\s\S]*\}\);[\s\S]*toolbarSession\.bind\(\);/,
+  /const toolbarSession = createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => linkCardContext\.getCardEntries\(\)[\s\S]*\}\);[\s\S]*toolbarSession\.bind\(\);/,
   'editor main should compose markdown toolbar and article-card picker through the toolbar session'
 );
 
 assert.match(
   editorMainSource,
-  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea,[\s\S]*getEditorBody,[\s\S]*buildMarkdown: \(body\) => metadataPanel\.buildMarkdown\(body\),[\s\S]*setValue,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*emitToast: emitEditorToast[\s\S]*\}\);/,
+  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: \(\) => blocksSession && blocksSession\.getEditor\(\),[\s\S]*emitToast: emitEditorToast[\s\S]*\}\);/,
   'editor main should compose image picker, upload, drop, and block image actions through the image session'
 );
 
 assert.match(
   editorMainSource,
-  /blocksSession = createEditorMainBlocksSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*root: blocksWrap,[\s\S]*translate: t,[\s\S]*getContentRoot,[\s\S]*getEditorBody,[\s\S]*onBodyChange: setEditorBodyFromBlocks,[\s\S]*getCurrentMarkdownPath,[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getImageSession: \(\) => imageSession,[\s\S]*linkCardContext,[\s\S]*resolveImageSrc[\s\S]*\}\);[\s\S]*blocksSession\.initialize\(\);/,
+  /blocksSession = createEditorMainBlocksSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*root: blocksWrap,[\s\S]*translate: t,[\s\S]*getContentRoot,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*onBodyChange: documentSession\.setBodyFromBlocks,[\s\S]*getCurrentMarkdownPath,[\s\S]*getSiteConfig: \(\) => editorSiteConfig \|\| \{\},[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getImageSession: \(\) => imageSession,[\s\S]*linkCardContext,[\s\S]*resolveImageSrc[\s\S]*\}\);[\s\S]*blocksSession\.initialize\(\);/,
   'editor main should compose the Blocks editor through an explicit blocks session service'
 );
 
@@ -1063,6 +1077,12 @@ assert.doesNotMatch(
   editorMainSource,
   /createMarkdownBlocksEditor|hydrateInternalLinkCards|let markdownBlocksEditor|syncMarkdownBlocksFromSource|blockLabelFallbacks|const blockLabels|handleBlocksCardContextUpdate|requestImageUpload: \(detail\) => imageSession\.requestBlocksImageUpload/,
   'editor main root should not own Blocks editor construction, block labels, card-entry fan-out, or block image callback plumbing'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /const changeListeners = new Set|const notifyChange = \(\)|const getEditorBody = \(\)|const getValue = \(\)|const setValue = \(value|const setEditorBodyFromBlocks = \(body\)|const getEditorTextarea = \(\)|const handleInput = \(\)|const primaryEditorApi = \{|registerPrimaryEditorApi\(primaryEditorApi\)/,
+  'editor main root should not own document value, input binding, change listeners, or primary-editor API assembly'
 );
 
 assert.doesNotMatch(
@@ -1159,6 +1179,18 @@ assert.match(
   editorMainBlocksSessionSource,
   /const syncFromSource = \(\) => \{[\s\S]*blocksEditor\.setMarkdown\(getEditorBody\(\)\);[\s\S]*const syncIfVisible = \(body\) => \{[\s\S]*if \(!root \|\| root\.hidden\) return false;[\s\S]*blocksEditor\.setMarkdown\(body == null \? '' : String\(body\)\);[\s\S]*const requestLayout = \(\) => \{[\s\S]*blocksEditor\.requestLayout\(\);[\s\S]*const focus = \(\) => \{[\s\S]*blocksEditor\.focus\(\);/,
   'editor blocks session should expose source sync, visible sync, layout, and focus as explicit session API'
+);
+
+assert.match(
+  editorMainDocumentSessionSource,
+  /export function createEditorMainDocumentSession\(options = \{\}\) \{[\s\S]*const changeListeners = new Set\(\);[\s\S]*const getEditorTextarea = \(\) => getTextArea\(editor, textarea\);[\s\S]*const getEditorBody = \(\) => \{[\s\S]*const buildMarkdown = \(body\) => \{[\s\S]*const getValue = \(\) => \{[\s\S]*const notifyChange = \(\) => \{[\s\S]*const setValue = \(value, opts = \{\}\) => \{[\s\S]*syncBlocksIfVisible\(bodyText\);[\s\S]*if \(preview\) refreshPreview\(\);[\s\S]*if \(notify\) notifyChange\(\);/,
+  'editor document session should own document body/value, change listeners, block sync, and preview refresh'
+);
+
+assert.match(
+  editorMainDocumentSessionSource,
+  /const bindInput = \(\) => \{[\s\S]*input\.addEventListener\('input', handleInput\);[\s\S]*const renderInitial = \(seed = ''\) => \{[\s\S]*setValue\(seed, \{ notify: false \}\);[\s\S]*const createPrimaryEditorApi = \(\) => \(\{[\s\S]*getValue,[\s\S]*setValue: \(value, opts = \{\}\) => setValue\(value, opts\),[\s\S]*setView: \(mode, opts = \{\}\)[\s\S]*setFrontMatterVisible:[\s\S]*onChange,[\s\S]*onTabsMetadataChange:[\s\S]*refreshPreview,[\s\S]*requestLayout:[\s\S]*setWrap:[\s\S]*isWrapEnabled:[\s\S]*const registerPrimaryEditorApi = \(\) => \{[\s\S]*runtime\.registerPrimaryEditorApi\(api\);/,
+  'editor document session should own input binding, initial render, and primary-editor API registration'
 );
 
 assert.match(
@@ -1809,8 +1841,8 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /setView: \(mode, opts = \{\}\) => workspaceSession\.setView\(mode, opts\),[\s\S]*restorePersistedView: \(opts = \{\}\) => workspaceSession\.restorePersistedView\(opts\),/,
+  editorMainDocumentSessionSource,
+  /setView: \(mode, opts = \{\}\) => \([\s\S]*workspaceSession\.setView\(mode, opts\)[\s\S]*restorePersistedView: \(opts = \{\}\) => \([\s\S]*workspaceSession\.restorePersistedView\(opts\)/,
   'primary editor API should accept blocks mode'
 );
 
@@ -4168,9 +4200,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /const getValue = \(\) => \{[\s\S]*metadataPanel\.buildEditorValue\(body\);[\s\S]*const setValue = \(value, opts = \{\}\) => \{[\s\S]*metadataPanel\.setEditorValue\(text, \{ silent: true \}\);/,
-  'editor main should route markdown value front matter handling through the metadata panel session'
+  editorMainDocumentSessionSource,
+  /const getValue = \(\) => \{[\s\S]*metadataPanel\.buildEditorValue\(body\);[\s\S]*const setValue = \(value, opts = \{\}\) => \{[\s\S]*metadataPanel\.setEditorValue\(text, \{ silent: true \}\)/,
+  'editor document session should route markdown value front matter handling through the metadata panel session'
 );
 
 assert.match(
@@ -4180,8 +4212,8 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /const primaryEditorApi = \{[\s\S]*setTabsMetadata: \(value, opts = \{\}\) => metadataPanel\.setTabsMetadata\(value, opts\),[\s\S]*onTabsMetadataChange: \(fn\) => \{[\s\S]*return metadataPanel\.onTabsMetadataChange\(fn\);/,
+  editorMainDocumentSessionSource,
+  /const createPrimaryEditorApi = \(\) => \(\{[\s\S]*setTabsMetadata: \(value, opts = \{\}\) => \([\s\S]*metadataPanel\.setTabsMetadata\(value, opts\)[\s\S]*onTabsMetadataChange: \(fn\) => \([\s\S]*metadataPanel\.onTabsMetadataChange\(fn\)/,
   'primary editor API should expose tabs metadata setters and change subscriptions through the metadata panel session'
 );
 

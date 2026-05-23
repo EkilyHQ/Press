@@ -2268,6 +2268,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
   const state = blocksState.state;
   const menuSession = createEditorBlocksMenuSession({
+    documentRef: runtime.documentRef || root.ownerDocument,
+    text,
     onDocument,
     onWindow,
     containsNode: nodeContains
@@ -2577,63 +2579,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const leftSpace = triggerRect ? triggerRect.right - boundaryLeft : menuRect.left - boundaryLeft;
       if (leftSpace < menuRect.width + 8) menu.classList.add('is-open-right');
     } catch (_) {}
-  };
-
-  const createBlockActionMenu = (index) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'blocks-block-actions';
-    const trigger = button('⋯', 'blocks-icon-btn blocks-action-trigger');
-    const actionsLabel = text('actions', 'More actions');
-    trigger.title = actionsLabel;
-    trigger.setAttribute('aria-label', actionsLabel);
-    trigger.setAttribute('aria-haspopup', 'menu');
-    trigger.setAttribute('aria-expanded', 'false');
-
-    const menu = document.createElement('div');
-    menu.className = 'blocks-action-menu';
-    menu.setAttribute('role', 'menu');
-    menu.hidden = true;
-
-    const makeItem = (label, className, disabled, handler) => {
-      const item = button(label, `blocks-action-menu-item${className ? ` ${className}` : ''}`);
-      item.setAttribute('role', 'menuitem');
-      item.disabled = !!disabled;
-      item.addEventListener('click', () => {
-        if (item.disabled) return;
-        closeBlockActionMenu(false);
-        handler();
-      });
-      menu.appendChild(item);
-      return item;
-    };
-
-    makeItem(text('moveUp', 'Move up'), '', index === 0, () => moveBlock(index, -1));
-    makeItem(text('moveDown', 'Move down'), '', index === state.blocks.length - 1, () => moveBlock(index, 1));
-    makeItem(text('addBefore', 'Add before'), '', false, () => insertBlankBlock(index));
-    makeItem(text('addAfter', 'Add after'), '', false, () => insertBlankBlock(index + 1));
-    makeItem(text('delete', 'Delete'), 'blocks-action-menu-delete', false, () => deleteBlockAt(index));
-
-    const openMenu = () => {
-      menuSession.openActionMenu({
-        wrap,
-        trigger,
-        menu,
-        onReposition: () => alignBlockActionMenu(menu, trigger)
-      });
-    };
-
-    trigger.addEventListener('mousedown', (event) => event.preventDefault());
-    trigger.addEventListener('click', () => {
-      setActive(index);
-      if (menuSession.isActionMenuOpen(menu)) {
-        closeBlockActionMenu(false);
-      } else {
-        openMenu();
-      }
-    });
-
-    wrap.append(trigger, menu);
-    return wrap;
   };
 
   const applySourceAutofix = (index) => {
@@ -3651,7 +3596,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     type.setAttribute('role', 'img');
     type.setAttribute('aria-label', typeLabel);
     type.appendChild(createBlockTypeIcon(block.type));
-    const actions = createBlockActionMenu(index);
+    const actions = menuSession.createActionControls({
+      index,
+      blockCount: state.blocks.length,
+      setActive,
+      moveBlock,
+      insertBlankBlock,
+      deleteBlockAt,
+      onReposition: (menu, trigger) => alignBlockActionMenu(menu, trigger)
+    });
     head.appendChild(type);
     head.addEventListener('wheel', forwardBlockHeadWheel, { passive: false });
     if (block.type === 'source') {
@@ -3690,7 +3643,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       const inlineToolbarControls = inlineToolbarSession?.createControls(index);
       if (inlineToolbarControls) head.appendChild(inlineToolbarControls);
     }
-    head.appendChild(actions);
+    if (actions) head.appendChild(actions);
     item.append(head, renderBlockBody(block, index));
     item.addEventListener('click', (event) => {
       if (shouldSuppressRoutedBlockContainerClick()) return;

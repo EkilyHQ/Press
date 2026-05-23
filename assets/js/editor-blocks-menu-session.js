@@ -36,6 +36,14 @@ function firstFocusable(menu, selector) {
   ), null);
 }
 
+function createButton(documentRef, label, className = 'blocks-btn') {
+  const btn = documentRef.createElement('button');
+  btn.type = 'button';
+  btn.className = className;
+  btn.textContent = label;
+  return btn;
+}
+
 function callDisposables(disposables = []) {
   disposables.forEach((dispose) => {
     safeCall(dispose);
@@ -43,6 +51,8 @@ function callDisposables(disposables = []) {
 }
 
 export function createEditorBlocksMenuSession({
+  documentRef = typeof document !== 'undefined' ? document : null,
+  text = (_key, fallback) => fallback,
   onDocument = () => noop,
   onWindow = () => noop,
   containsNode = (root, target) => !!(root && (root === target || (root.contains && root.contains(target))))
@@ -118,6 +128,72 @@ export function createEditorBlocksMenuSession({
     return true;
   }
 
+  function createActionControls({
+    index = 0,
+    blockCount = 0,
+    setActive = noop,
+    moveBlock = noop,
+    insertBlankBlock = noop,
+    deleteBlockAt = noop,
+    onReposition = noop
+  } = {}) {
+    if (!documentRef) return null;
+    const wrap = documentRef.createElement('div');
+    wrap.className = 'blocks-block-actions';
+    const trigger = createButton(documentRef, '\u22ef', 'blocks-icon-btn blocks-action-trigger');
+    const actionsLabel = text('actions', 'More actions');
+    trigger.title = actionsLabel;
+    trigger.setAttribute('aria-label', actionsLabel);
+    trigger.setAttribute('aria-haspopup', 'menu');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const menu = documentRef.createElement('div');
+    menu.className = 'blocks-action-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+
+    const makeItem = (label, className, disabled, handler) => {
+      const item = createButton(documentRef, label, `blocks-action-menu-item${className ? ` ${className}` : ''}`);
+      item.setAttribute('role', 'menuitem');
+      item.disabled = !!disabled;
+      item.addEventListener('click', () => {
+        if (item.disabled) return;
+        closeActionMenu(false);
+        handler();
+      });
+      menu.appendChild(item);
+      return item;
+    };
+
+    makeItem(text('moveUp', 'Move up'), '', index === 0, () => moveBlock(index, -1));
+    makeItem(text('moveDown', 'Move down'), '', index >= blockCount - 1, () => moveBlock(index, 1));
+    makeItem(text('addBefore', 'Add before'), '', false, () => insertBlankBlock(index));
+    makeItem(text('addAfter', 'Add after'), '', false, () => insertBlankBlock(index + 1));
+    makeItem(text('delete', 'Delete'), 'blocks-action-menu-delete', false, () => deleteBlockAt(index));
+
+    const openMenu = () => {
+      openActionMenu({
+        wrap,
+        trigger,
+        menu,
+        onReposition: () => onReposition(menu, trigger)
+      });
+    };
+
+    trigger.addEventListener('mousedown', (event) => event.preventDefault());
+    trigger.addEventListener('click', () => {
+      setActive(index);
+      if (isActionMenuOpen(menu)) {
+        closeActionMenu(false);
+      } else {
+        openMenu();
+      }
+    });
+
+    wrap.append(trigger, menu);
+    return wrap;
+  }
+
   function openInlineMenu({
     wrap,
     trigger,
@@ -158,6 +234,7 @@ export function createEditorBlocksMenuSession({
     closeActionMenu,
     closeInlineMenu,
     closeAll,
+    createActionControls,
     isActionMenuOpen,
     isInlineMenuOpen,
     openActionMenu,

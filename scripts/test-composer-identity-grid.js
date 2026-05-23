@@ -1932,9 +1932,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createBlockActionMenu = \(index\) => \{[\s\S]*wrap\.className = 'blocks-block-actions';[\s\S]*const trigger = button\('⋯', 'blocks-icon-btn blocks-action-trigger'\);[\s\S]*trigger\.setAttribute\('aria-haspopup', 'menu'\);[\s\S]*trigger\.setAttribute\('aria-expanded', 'false'\);[\s\S]*menu\.className = 'blocks-action-menu';[\s\S]*menu\.setAttribute\('role', 'menu'\);/,
-  'block reorder and delete actions should live behind a right-side overflow menu trigger'
+  editorBlocksMenuSessionSource,
+  /function createActionControls\(\{[\s\S]*wrap\.className = 'blocks-block-actions';[\s\S]*const trigger = createButton\(documentRef, '\\u22ef', 'blocks-icon-btn blocks-action-trigger'\);[\s\S]*trigger\.setAttribute\('aria-haspopup', 'menu'\);[\s\S]*trigger\.setAttribute\('aria-expanded', 'false'\);[\s\S]*menu\.className = 'blocks-action-menu';[\s\S]*menu\.setAttribute\('role', 'menu'\);/,
+  'block reorder and delete actions should live behind a session-owned right-side overflow menu trigger'
 );
 
 assert.doesNotMatch(
@@ -1951,8 +1951,8 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const menuSession = createEditorBlocksMenuSession\(\{[\s\S]*onDocument,[\s\S]*onWindow,[\s\S]*containsNode: nodeContains[\s\S]*\}\);[\s\S]*const closeBlockActionMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeActionMenu\(restoreFocus\);[\s\S]*menuSession\.openActionMenu\(\{[\s\S]*onReposition: \(\) => alignBlockActionMenu\(menu, trigger\)[\s\S]*menuSession\.isActionMenuOpen\(menu\)/,
-  'block action menu DOM handles should be routed through the explicit menu session service'
+  /const menuSession = createEditorBlocksMenuSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*text,[\s\S]*onDocument,[\s\S]*onWindow,[\s\S]*containsNode: nodeContains[\s\S]*\}\);[\s\S]*const closeBlockActionMenu = \(restoreFocus = false\) => \{[\s\S]*menuSession\.closeActionMenu\(restoreFocus\);/,
+  'blocks editor should compose action menu DOM and lifecycle through the explicit menu session service'
 );
 
 assert.match(
@@ -1962,9 +1962,21 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /makeItem\(text\('moveUp', 'Move up'\), '', index === 0, \(\) => moveBlock\(index, -1\)\);[\s\S]*makeItem\(text\('moveDown', 'Move down'\), '', index === state\.blocks\.length - 1, \(\) => moveBlock\(index, 1\)\);[\s\S]*makeItem\(text\('addBefore', 'Add before'\), '', false, \(\) => insertBlankBlock\(index\)\);[\s\S]*makeItem\(text\('addAfter', 'Add after'\), '', false, \(\) => insertBlankBlock\(index \+ 1\)\);[\s\S]*makeItem\(text\('delete', 'Delete'\), 'blocks-action-menu-delete', false, \(\) => deleteBlockAt\(index\)\);/,
+  editorBlocksMenuSessionSource,
+  /makeItem\(text\('moveUp', 'Move up'\), '', index === 0, \(\) => moveBlock\(index, -1\)\);[\s\S]*makeItem\(text\('moveDown', 'Move down'\), '', index >= blockCount - 1, \(\) => moveBlock\(index, 1\)\);[\s\S]*makeItem\(text\('addBefore', 'Add before'\), '', false, \(\) => insertBlankBlock\(index\)\);[\s\S]*makeItem\(text\('addAfter', 'Add after'\), '', false, \(\) => insertBlankBlock\(index \+ 1\)\);[\s\S]*makeItem\(text\('delete', 'Delete'\), 'blocks-action-menu-delete', false, \(\) => deleteBlockAt\(index\)\);/,
   'overflow menu items should preserve move/delete behavior and expose blank insertion before and after the block'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const actions = menuSession\.createActionControls\(\{[\s\S]*index,[\s\S]*blockCount: state\.blocks\.length,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt,[\s\S]*onReposition: \(menu, trigger\) => alignBlockActionMenu\(menu, trigger\)[\s\S]*\}\);[\s\S]*if \(actions\) head\.appendChild\(actions\);/,
+  'block head rendering should mount action controls produced by the menu session'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const createBlockActionMenu|blocks-action-trigger|blocks-action-menu|blocks-action-menu-item|blocks-action-menu-delete/,
+  'blocks editor root should not own block action menu DOM construction'
 );
 
 assert.match(

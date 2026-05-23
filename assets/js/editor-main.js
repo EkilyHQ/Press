@@ -13,6 +13,8 @@ import { createEditorMainWorkspaceSession } from './editor-main-workspace-sessio
 import { createEditorMainBlocksSession } from './editor-main-blocks-session.js?v=press-system-v3.4.50';
 import { createEditorMainDocumentSession } from './editor-main-document-session.js?v=press-system-v3.4.50';
 import { createEditorMainContentService } from './editor-main-content-service.js?v=press-system-v3.4.50';
+import { createEditorMainLanguageSession } from './editor-main-language-session.js?v=press-system-v3.4.50';
+import { createEditorMainScrollSession } from './editor-main-scroll-session.js?v=press-system-v3.4.50';
 import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
 const FORCE_MARKDOWN_WRAP = true;
@@ -210,12 +212,14 @@ editorMainRuntime.onDocumentReady(() => {
   });
   toolbarSession.bind();
 
-  editorMainRuntime.onDocument('press-editor-language-applied', () => {
-    toolbarSession.syncLanguage();
-    currentFileSession.render();
-    blocksSession.requestLayout();
-    metadataPanel.syncLanguage();
+  const languageSession = createEditorMainLanguageSession({
+    runtime: editorMainRuntime,
+    getToolbarSession: () => toolbarSession,
+    getCurrentFileSession: () => currentFileSession,
+    getBlocksSession: () => blocksSession,
+    getMetadataPanel: () => metadataPanel
   });
+  languageSession.bind();
 
   linkCardContext.onCardEntriesChange((entries) => toolbarSession.setCardEntries(entries));
   toolbarSession.setCardEntries(linkCardContext.getCardEntries());
@@ -249,24 +253,8 @@ editorMainRuntime.onDocumentReady(() => {
   // Default to blocks view
   workspaceSession.setView('blocks');
 
-  // Back-to-top button behavior
-  (function initBackToTop() {
-    const btn = editorMainRuntime.getElementById('backToTop');
-    if (!btn) return;
-    try { btn.hidden = false; } catch (_) {}
-    const threshold = 260;
-    const toggle = () => {
-      const documentElement = editorMainRuntime.getDocumentElement();
-      const y = editorMainRuntime.getPageYOffset() || (documentElement && documentElement.scrollTop) || 0;
-      if (y > threshold) btn.classList.add('show');
-      else btn.classList.remove('show');
-    };
-    editorMainRuntime.onWindow('scroll', toggle, { passive: true });
-    btn.addEventListener('click', () => {
-      editorMainRuntime.scrollToTop({ smooth: true });
-    });
-    toggle();
-  })();
+  const scrollSession = createEditorMainScrollSession({ runtime: editorMainRuntime });
+  scrollSession.bind();
 
   const sidebarSession = createEditorMainSidebarSession({
     runtime: editorMainRuntime,

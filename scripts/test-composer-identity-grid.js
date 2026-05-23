@@ -77,6 +77,8 @@ const editorMainWorkspaceSessionPath = resolve(here, '../assets/js/editor-main-w
 const editorMainBlocksSessionPath = resolve(here, '../assets/js/editor-main-blocks-session.js');
 const editorMainDocumentSessionPath = resolve(here, '../assets/js/editor-main-document-session.js');
 const editorMainContentServicePath = resolve(here, '../assets/js/editor-main-content-service.js');
+const editorMainLanguageSessionPath = resolve(here, '../assets/js/editor-main-language-session.js');
+const editorMainScrollSessionPath = resolve(here, '../assets/js/editor-main-scroll-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -178,6 +180,8 @@ const editorMainWorkspaceSessionSource = readFileSync(editorMainWorkspaceSession
 const editorMainBlocksSessionSource = readFileSync(editorMainBlocksSessionPath, 'utf8');
 const editorMainDocumentSessionSource = readFileSync(editorMainDocumentSessionPath, 'utf8');
 const editorMainContentServiceSource = readFileSync(editorMainContentServicePath, 'utf8');
+const editorMainLanguageSessionSource = readFileSync(editorMainLanguageSessionPath, 'utf8');
+const editorMainScrollSessionSource = readFileSync(editorMainScrollSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -975,6 +979,18 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-language-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor language session boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /from '\.\/editor-main-scroll-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor scroll session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: notifyDocumentChange[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -1001,6 +1017,18 @@ assert.match(
   editorMainSource,
   /const contentService = createEditorMainContentService\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*getContentRoot,[\s\S]*fetch,[\s\S]*linkCardContext,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getDocumentSession: \(\) => documentSession,[\s\S]*getWorkspaceSession: \(\) => workspaceSession,[\s\S]*setCurrentFileLabel: \(label\) => assignCurrentFileLabel\(label\)[\s\S]*\}\);/,
   'editor main should compose site config, content loading, and open-markdown orchestration through the content service'
+);
+
+assert.match(
+  editorMainSource,
+  /const languageSession = createEditorMainLanguageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*getToolbarSession: \(\) => toolbarSession,[\s\S]*getCurrentFileSession: \(\) => currentFileSession,[\s\S]*getBlocksSession: \(\) => blocksSession,[\s\S]*getMetadataPanel: \(\) => metadataPanel[\s\S]*\}\);[\s\S]*languageSession\.bind\(\);/,
+  'editor main should compose language-event fan-out through the language session'
+);
+
+assert.match(
+  editorMainSource,
+  /const scrollSession = createEditorMainScrollSession\(\{ runtime: editorMainRuntime \}\);[\s\S]*scrollSession\.bind\(\);/,
+  'editor main should compose back-to-top scroll UI through the scroll session'
 );
 
 assert.match(
@@ -1235,6 +1263,30 @@ assert.match(
   editorMainContentServiceSource,
   /const openMarkdown = async \(\{ relPath, url, contentRoot \} = \{\}\) => \{[\s\S]*fetchImpl\(url, \{ cache: 'no-store' \}\);[\s\S]*setBaseDir\(normalizeBaseDir\(contentRoot, relPath\)\);[\s\S]*documentSession\.setValue\(text\);[\s\S]*setCurrentFileLabel\(`\$\{relPath \|\| ''\}`\);[\s\S]*workspaceSession\.setView\('edit'\);[\s\S]*runtime\.scrollToTop\(\{ smooth: true \}\);/,
   'editor content service should own open-markdown fetch, base-dir, document value, current-file, view, and scroll orchestration'
+);
+
+assert.match(
+  editorMainLanguageSessionSource,
+  /export function createEditorMainLanguageSession\(options = \{\}\) \{[\s\S]*const syncLanguage = \(\) => \{[\s\S]*toolbarSession\.syncLanguage\(\);[\s\S]*currentFileSession\.render\(\);[\s\S]*blocksSession\.requestLayout\(\);[\s\S]*metadataPanel\.syncLanguage\(\);[\s\S]*const bind = \(\) => \{[\s\S]*runtime\.onDocument\('press-editor-language-applied', syncLanguage\)/,
+  'editor language session should own editor language event subscription and fan-out'
+);
+
+assert.match(
+  editorMainScrollSessionSource,
+  /export function createEditorMainScrollSession\(options = \{\}\) \{[\s\S]*const syncVisibility = \(\) => \{[\s\S]*getScrollY\(runtime\) > threshold[\s\S]*button\.classList\.add\('show'\);[\s\S]*button\.classList\.remove\('show'\);[\s\S]*runtime\.onWindow\('scroll', syncVisibility, \{ passive: true \}\)[\s\S]*button\.addEventListener\('click', clickHandler\);/,
+  'editor scroll session should own back-to-top visibility and DOM event binding'
+);
+
+assert.match(
+  editorMainScrollSessionSource,
+  /function getScrollY\(runtime\) \{[\s\S]*runtime\.getPageYOffset\(\)[\s\S]*runtime\.getDocumentElement\(\)[\s\S]*scrollTop[\s\S]*runtime\.scrollToTop\(\{ smooth: true \}\);/,
+  'editor scroll session should route page scroll reads and scroll-to-top through the runtime facade'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /editorMainRuntime\.onDocument\('press-editor-language-applied'|editorMainRuntime\.onWindow\('scroll'|getPageYOffset\(\)|getDocumentElement\(\)[\s\S]*scrollTop|initBackToTop/,
+  'editor main root should not own language-event fan-out or back-to-top scroll listeners'
 );
 
 assert.match(
@@ -4154,8 +4206,8 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /editorMainRuntime\.onDocument\('press-editor-language-applied'[\s\S]*metadataPanel\.syncLanguage\(\);/,
+  editorMainLanguageSessionSource,
+  /metadataPanel\.syncLanguage\(\);[\s\S]*runtime\.onDocument\('press-editor-language-applied', syncLanguage\)/,
   'front matter labels should resync after editor language changes update localized labels'
 );
 

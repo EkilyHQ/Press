@@ -1,5 +1,6 @@
 import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
+import { createEditorBlocksSessionRegistry } from './editor-blocks-session-registry.js?v=press-system-v3.4.50';
 import { createEditorBlocksLayoutSession } from './editor-blocks-layout-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksBodySession } from './editor-blocks-body-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksStateController } from './editor-blocks-state.js?v=press-system-v3.4.50';
@@ -634,14 +635,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const blockElements = () => Array.from(list.children).filter(el => el && el.classList && el.classList.contains('blocks-block'));
-  let commandSession = null;
+  const blockSessions = createEditorBlocksSessionRegistry();
 
   const insertBlankBlock = (index = state.blocks.length, options = {}) => {
     const { block, index: safeIndex } = blocksState.insertBlankBlock(index, options);
     render();
     if (options.command) {
       queueMicrotask(() => {
-        commandSession?.focusFirstCommandItem(block.id);
+        blockSessions.focusFirstCommandItem(block.id);
       });
     } else if (options.focus !== false) {
       focusBlockPrimaryEditable(block, 0);
@@ -650,21 +651,16 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return block;
   };
 
-  let focusSession = null;
-  let pointerSession = null;
-  let activeSession = null;
-  let bodySession = null;
-
   const focusBlockPrimaryEditable = (block, caretOffset = null) => {
-    focusSession?.focusBlockPrimaryEditable(block, caretOffset);
+    blockSessions.focusBlockPrimaryEditable(block, caretOffset);
   };
 
   const focusListItemEditable = (block, itemIndex, options = {}) => {
-    focusSession?.focusListItemEditable(block, itemIndex, options);
+    blockSessions.focusListItemEditable(block, itemIndex, options);
   };
 
   const focusPreviousBlockEnd = (index) => {
-    focusSession?.focusPreviousBlockEnd(index);
+    blockSessions.focusPreviousBlockEnd(index);
   };
 
   const insertBlankBlockAfter = (index, editable = null, sync = null) => {
@@ -719,19 +715,18 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     selectionSession.clearSelection(root);
   };
 
-  let layoutSession = null;
   const requestStickyBlockHeadUpdate = () => {
-    layoutSession?.requestStickyBlockHeadUpdate();
+    blockSessions.requestStickyBlockHeadUpdate();
   };
   const forwardBlockHeadWheel = (event) => {
-    layoutSession?.forwardBlockHeadWheel(event);
+    blockSessions.forwardBlockHeadWheel(event);
   };
   const moveBlock = (index, direction) => {
-    layoutSession?.moveBlock(index, direction);
+    blockSessions.moveBlock(index, direction);
   };
 
   const replaceAdjacentBlockElements = (index, targetIndex) => {
-    return bodySession?.replaceAdjacentBlockElements(index, targetIndex) || false;
+    return blockSessions.replaceAdjacentBlockElements(index, targetIndex);
   };
 
   const closeBlockActionMenu = (restoreFocus = false) => {
@@ -817,29 +812,39 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     } catch (_) {}
   };
 
-  let listSession = null;
   const syncActiveListTypeSelect = (blockNodes = null) => {
-    listSession?.syncActiveTypeSelect(blockNodes);
+    blockSessions.syncActiveTypeSelect(blockNodes);
   };
 
-  let refreshLinkEditor = () => {};
-  let openMathEditorForSelection = () => {};
-  let openMathEditorForNode = () => {};
-  let openMathEditorForBlock = () => {};
+  const refreshLinkEditor = (explicitLink = null) => {
+    blockSessions.refreshLinkEditor(explicitLink);
+  };
+
+  const openMathEditorForSelection = () => {
+    blockSessions.openMathEditorForSelection();
+  };
+
+  const openMathEditorForNode = (mathNode) => {
+    blockSessions.openMathEditorForNode(mathNode);
+  };
+
+  const openMathEditorForBlock = (block, blockEl = null) => {
+    blockSessions.openMathEditorForBlock(block, blockEl);
+  };
 
   const setActive = (index, editable = null, sync = null) => {
-    activeSession?.setActive(index, editable, sync);
+    blockSessions.setActive(index, editable, sync);
   };
 
   const activateEditableFromPointer = (index, editable, sync) => {
-    activeSession?.activateEditableFromPointer(index, editable, sync);
+    blockSessions.activateEditableFromPointer(index, editable, sync);
   };
 
   const activateNonTextBlockFromPointer = (index, blockEl = null) => {
-    activeSession?.activateNonTextBlockFromPointer(index, blockEl);
+    blockSessions.activateNonTextBlockFromPointer(index, blockEl);
   };
 
-  focusSession = createEditorBlocksFocusSession({
+  const focusSession = blockSessions.setFocusSession(createEditorBlocksFocusSession({
     state,
     caretSession,
     editableSession,
@@ -851,9 +856,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       try { updateInlineToolbarState(); } catch (_) {}
     },
     queueTask: task => queueMicrotask(task)
-  });
+  }));
 
-  pointerSession = createEditorBlocksPointerSession({
+  const pointerSession = blockSessions.setPointerSession(createEditorBlocksPointerSession({
     blocksState,
     caretSession,
     selectionSession,
@@ -869,46 +874,46 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     },
     autoSizeTextarea: area => autoSizeTextarea(area),
     measureLimit: CARET_POINT_MEASURE_LIMIT
-  });
+  }));
 
   const shouldSuppressRoutedBlockContainerClick = () => {
     return blocksState.consumeRoutedBlockContainerClickSuppression(Date.now());
   };
 
   const isBlocksCaretInteractiveTarget = (target) => {
-    return !!(pointerSession && pointerSession.isBlocksCaretInteractiveTarget(target));
+    return blockSessions.isBlocksCaretInteractiveTarget(target);
   };
 
   const blockNavigationTarget = (index, edge = 'first') => {
-    return focusSession ? focusSession.blockNavigationTarget(index, edge) : null;
+    return blockSessions.blockNavigationTarget(index, edge);
   };
 
   const focusBlockNavigationTarget = (target, direction, x, fallbackOffset = 0) => {
-    return !!(focusSession && focusSession.focusBlockNavigationTarget(target, direction, x, fallbackOffset));
+    return blockSessions.focusBlockNavigationTarget(target, direction, x, fallbackOffset);
   };
 
   const handleCrossBlockArrowNavigation = (event, index, editable = null) => {
-    return !!(focusSession && focusSession.handleCrossBlockArrowNavigation(event, index, editable));
+    return blockSessions.handleCrossBlockArrowNavigation(event, index, editable);
   };
 
   const setContentEditableCaretFromPoint = (editable, x, y, hitTarget = editable) => {
-    pointerSession?.setContentEditableCaretFromPoint(editable, x, y, hitTarget);
+    blockSessions.setContentEditableCaretFromPoint(editable, x, y, hitTarget);
   };
 
   const setTextareaCaretFromPoint = (area, x, y) => {
-    pointerSession?.setTextareaCaretFromPoint(area, x, y);
+    blockSessions.setTextareaCaretFromPoint(area, x, y);
   };
 
   const routeDirectQuoteCaretFromPointer = (editable, index, sync, event) => {
-    return !!(pointerSession && pointerSession.routeDirectQuoteCaretFromPointer(editable, index, sync, event));
+    return blockSessions.routeDirectQuoteCaretFromPointer(editable, index, sync, event);
   };
 
   const routeBlocksCaretFromPointer = (event) => {
-    pointerSession?.routeBlocksCaretFromPointer(event);
+    blockSessions.routeBlocksCaretFromPointer(event);
   };
 
   list.addEventListener('pointerdown', routeBlocksCaretFromPointer);
-  layoutSession = createEditorBlocksLayoutSession({
+  const layoutSession = blockSessions.setLayoutSession(createEditorBlocksLayoutSession({
     runtime,
     state,
     root,
@@ -920,7 +925,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     render: () => render(),
     emit,
     onWindow
-  });
+  }));
   layoutSession.bind();
 
   const getBaseDir = () => {
@@ -965,11 +970,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     return block;
   };
 
-  let updateInlineToolbarState = () => {};
-  let openLinkEditorForSelection = () => {};
-  let cardPickerSession = null;
+  const updateInlineToolbarState = () => {
+    blockSessions.updateInlineToolbarState();
+  };
 
-  commandSession = createEditorBlocksCommandSession({
+  const openLinkEditorForSelection = () => {
+    blockSessions.openLinkEditorForSelection();
+  };
+
+  const commandSession = blockSessions.setCommandSession(createEditorBlocksCommandSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     state,
     blocksState,
@@ -991,18 +1000,18 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     handleCrossBlockArrowNavigation,
     setActive,
     updateInlineToolbarState: () => updateInlineToolbarState(),
-    getCardPickerSession: () => cardPickerSession,
+    getCardPickerSession: () => blockSessions.getCardPickerSession(),
     queueTask: task => queueMicrotask(task)
-  });
+  }));
 
-  cardPickerSession = createEditorBlocksCardPickerSession({
+  const cardPickerSession = blockSessions.setCardPickerSession(createEditorBlocksCardPickerSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     runtime,
     blocksState,
     text,
-    insertCardBlock: (data, index) => commandSession?.insertCommandBlock('card', data, { index }),
+    insertCardBlock: (data, index) => blockSessions.insertCommandBlock('card', data, { index }),
     requestRender: () => render()
-  });
+  }));
   if (cardPickerSession) root.appendChild(cardPickerSession.element);
 
   const inlineCommandMark = (kind) => (kind === 'strikeThrough' ? 'strike' : kind);
@@ -1064,7 +1073,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     applyRunsToEditable(editable, nextRuns, offsets.end);
   };
 
-  const linkSession = createEditorBlocksLinkSession({
+  const linkSession = blockSessions.setLinkSession(createEditorBlocksLinkSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     root,
     runtime,
@@ -1091,13 +1100,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateInlineToolbarState: () => updateInlineToolbarState(),
     onDocument,
     onWindow
-  });
-  if (linkSession) {
-    refreshLinkEditor = (explicitLink = null) => linkSession.refresh(explicitLink);
-    openLinkEditorForSelection = () => linkSession.openForSelection();
-  }
+  }));
 
-  const mathSession = createEditorBlocksMathSession({
+  const mathSession = blockSessions.setMathSession(createEditorBlocksMathSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     root,
     list,
@@ -1122,14 +1127,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     updateInlineToolbarState: () => updateInlineToolbarState(),
     updateFromControl,
     onDocument
-  });
-  if (mathSession) {
-    openMathEditorForSelection = () => mathSession.openForSelection();
-    openMathEditorForNode = mathNode => mathSession.openForNode(mathNode);
-    openMathEditorForBlock = (block, blockEl = null) => mathSession.openForBlock(block, blockEl);
-  }
+  }));
 
-  const inlineToolbarSession = createEditorBlocksInlineToolbarSession({
+  const inlineToolbarSession = blockSessions.setInlineToolbarSession(createEditorBlocksInlineToolbarSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     state,
     blocksState,
@@ -1155,8 +1155,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     inlineMarksAtOffset,
     rangeHasInlineText,
     inlineCommandMark
-  });
-  updateInlineToolbarState = () => inlineToolbarSession.update();
+  }));
   if (linkSession) {
     root.appendChild(linkSession.element);
     linkSession.bind();
@@ -1274,7 +1273,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     tableSession?.syncActiveAlignmentFromEditable(activeBlock, editable, state.blocks);
   };
 
-  activeSession = createEditorBlocksActiveSession({
+  const activeSession = blockSessions.setActiveSession(createEditorBlocksActiveSession({
     state,
     blocksState,
     list,
@@ -1286,7 +1285,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     syncActiveTableAlignmentFromEditable,
     requestStickyBlockHeadUpdate,
     clearNativeSelection
-  });
+  }));
 
   const createMathEditButton = (block, index) => {
     const edit = button(text('editMath', 'Edit math'), 'blocks-btn blocks-math-edit');
@@ -1324,7 +1323,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     queueTask: task => queueMicrotask(task)
   });
 
-  listSession = createEditorBlocksListSession({
+  const listSession = blockSessions.setListSession(createEditorBlocksListSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     root,
     list,
@@ -1383,7 +1382,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     openMathEditorForNode,
     wireInlineEditable,
     queueTask: task => queueMicrotask(task)
-  });
+  }));
 
   const headSession = createEditorBlocksHeadSession({
     documentRef: runtime.documentRef || root.ownerDocument,
@@ -1406,7 +1405,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     deleteBlockAt
   });
 
-  bodySession = createEditorBlocksBodySession({
+  const bodySession = blockSessions.setBodySession(createEditorBlocksBodySession({
     documentRef: runtime.documentRef || root.ownerDocument,
     state,
     list,
@@ -1424,14 +1423,14 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     removeEmptyBlockWithBackspace,
     handleCrossBlockArrowNavigation,
     renderers: {
-      blank: (body, block, index) => commandSession?.renderBlankBlock(body, block, index),
+      blank: (body, block, index) => blockSessions.renderBlankBlock(body, block, index),
       image: (body, block, index) => imageSession?.renderBlock(body, block, index),
       table: (body, block, index) => tableSession?.renderBlock(body, block, index),
       list: (body, block, index) => listSession?.renderBlock(body, block, index),
       code: (body, block, index) => codeSession?.renderBlock(body, block, index),
       source: (body, block, index) => sourceSession?.renderBlock(body, block, index)
     }
-  });
+  }));
 
   const renderBlockElement = (block, index) => bodySession.renderBlockElement(block, index);
 
@@ -1442,7 +1441,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     state.blocks.forEach((block, index) => {
       list.appendChild(renderBlockElement(block, index));
     });
-    cardPickerSession?.render();
+    blockSessions.renderCardPicker();
     setActive(state.activeIndex);
     requestStickyBlockHeadUpdate();
   }
@@ -1468,8 +1467,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       return imageSession ? imageSession.deleteImageBlock(target) : null;
     },
     setCardEntries(entries) {
-      if (cardPickerSession) cardPickerSession.setEntries(entries);
-      else blocksState.setCardEntries(entries);
+      if (!blockSessions.setCardEntries(entries)) blocksState.setCardEntries(entries);
     },
     focus() {
       const active = list.querySelector('.blocks-block.is-active [contenteditable="true"], .blocks-block.is-active .blocks-image-caption, .blocks-block.is-active input, .blocks-block.is-active textarea');

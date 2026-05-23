@@ -236,6 +236,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-runtime.js" "${en
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-session-registry.js" "${entries_file}"; then
+  echo "expected package to include editor blocks session registry boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-layout-session.js" "${entries_file}"; then
   echo "expected package to include editor blocks layout session code" >&2
   exit 1

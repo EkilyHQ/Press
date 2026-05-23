@@ -85,6 +85,7 @@ const editorMainServiceRegistryPath = resolve(here, '../assets/js/editor-main-se
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
+const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
 const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
 const editorBlocksBodySessionPath = resolve(here, '../assets/js/editor-blocks-body-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
@@ -191,6 +192,7 @@ const editorMainServiceRegistrySource = readFileSync(editorMainServiceRegistryPa
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
+const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
 const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
 const editorBlocksBodySessionSource = readFileSync(editorBlocksBodySessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
@@ -327,6 +329,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-runtime\.js\?v=[\w.-]+'/,
   'blocks editor should cache-bust the explicit blocks runtime boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-session-registry\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks session registry boundary'
 );
 
 assert.match(
@@ -469,25 +477,49 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
+  /const blockSessions = createEditorBlocksSessionRegistry\(\);/,
+  'blocks editor should create an explicit late-bound session registry at the composition root'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /let\s+(?:commandSession|focusSession|pointerSession|activeSession|bodySession|layoutSession|listSession|cardPickerSession)\s*=|let\s+(?:refreshLinkEditor|openLinkEditorForSelection|openMathEditorForSelection|openMathEditorForNode|openMathEditorForBlock|updateInlineToolbarState)\s*=/,
+  'blocks editor should not reintroduce ad hoc late-bound session slots at the root'
+);
+
+assert.match(
+  editorBlocksSessionRegistrySource,
+  /const SERVICE_NAMES = \[[\s\S]*'activeSession'[\s\S]*'bodySession'[\s\S]*'cardPickerSession'[\s\S]*'commandSession'[\s\S]*'focusSession'[\s\S]*'inlineToolbarSession'[\s\S]*'layoutSession'[\s\S]*'linkSession'[\s\S]*'listSession'[\s\S]*'mathSession'[\s\S]*'pointerSession'[\s\S]*\];/,
+  'blocks session registry should name every allowed late-bound editor blocks dependency'
+);
+
+assert.match(
+  editorBlocksSessionRegistrySource,
+  /focusBlockPrimaryEditable: \(\.\.\.args\) => call\('focusSession', 'focusBlockPrimaryEditable', false, \.\.\.args\),[\s\S]*setCardEntries: \(\.\.\.args\) => handledCall\('cardPickerSession', 'setEntries', \.\.\.args\),[\s\S]*setFocusSession: \(service\) => set\('focusSession', service\),/,
+  'blocks session registry should expose explicit setters and behavior proxies instead of anonymous function slots'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const focusSession = blockSessions\.setFocusSession\(createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /pointerSession = createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,/,
+  /const pointerSession = blockSessions\.setPointerSession\(createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose blank-area pointer routing through the pointer session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /activeSession = createEditorBlocksActiveSession\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*list,[\s\S]*runtime,[\s\S]*containsNode: nodeContains,[\s\S]*syncActiveListTypeSelect,[\s\S]*refreshLinkEditor,[\s\S]*updateInlineToolbarState,[\s\S]*syncActiveTableAlignmentFromEditable,[\s\S]*requestStickyBlockHeadUpdate,[\s\S]*clearNativeSelection[\s\S]*\}\);/,
+  /const activeSession = blockSessions\.setActiveSession\(createEditorBlocksActiveSession\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*list,[\s\S]*runtime,[\s\S]*containsNode: nodeContains,[\s\S]*syncActiveListTypeSelect,[\s\S]*refreshLinkEditor,[\s\S]*updateInlineToolbarState,[\s\S]*syncActiveTableAlignmentFromEditable,[\s\S]*requestStickyBlockHeadUpdate,[\s\S]*clearNativeSelection[\s\S]*\}\)\);/,
   'blocks editor should compose active block state transitions through the active session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /const inlineToolbarSession = createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\);[\s\S]*updateInlineToolbarState = \(\) => inlineToolbarSession\.update\(\);/,
+  /const updateInlineToolbarState = \(\) => \{[\s\S]*blockSessions\.updateInlineToolbarState\(\);[\s\S]*\};[\s\S]*const inlineToolbarSession = blockSessions\.setInlineToolbarSession\(createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\)\);/,
   'blocks editor should compose inline toolbar DOM controls and state through the inline toolbar session boundary'
 );
 
@@ -505,13 +537,13 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const linkSession = createEditorBlocksLinkSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\);[\s\S]*refreshLinkEditor = \(explicitLink = null\) => linkSession\.refresh\(explicitLink\);[\s\S]*openLinkEditorForSelection = \(\) => linkSession\.openForSelection\(\);/,
+  /const refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*blockSessions\.refreshLinkEditor\(explicitLink\);[\s\S]*\};[\s\S]*const openLinkEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openLinkEditorForSelection\(\);[\s\S]*\};[\s\S]*const linkSession = blockSessions\.setLinkSession\(createEditorBlocksLinkSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\)\);/,
   'blocks editor should compose inline link overlay behavior through the link session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /const mathSession = createEditorBlocksMathSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderPressMath,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\);[\s\S]*openMathEditorForSelection = \(\) => mathSession\.openForSelection\(\);[\s\S]*openMathEditorForNode = mathNode => mathSession\.openForNode\(mathNode\);[\s\S]*openMathEditorForBlock = \(block, blockEl = null\) => mathSession\.openForBlock\(block, blockEl\);/,
+  /const openMathEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openMathEditorForSelection\(\);[\s\S]*\};[\s\S]*const openMathEditorForNode = \(mathNode\) => \{[\s\S]*blockSessions\.openMathEditorForNode\(mathNode\);[\s\S]*\};[\s\S]*const openMathEditorForBlock = \(block, blockEl = null\) => \{[\s\S]*blockSessions\.openMathEditorForBlock\(block, blockEl\);[\s\S]*\};[\s\S]*const mathSession = blockSessions\.setMathSession\(createEditorBlocksMathSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderPressMath,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
   'blocks editor should compose inline and display math overlay behavior through the math session boundary'
 );
 
@@ -529,19 +561,19 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /cardPickerSession = createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => commandSession\?\.insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
+  /const cardPickerSession = blockSessions\.setCardPickerSession\(createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => blockSessions\.insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\)\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
   'blocks editor should compose article-card picker DOM and result selection through the card picker session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*focusSession\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
+  /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*blockSessions\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
   'blocks editor should delegate cross-block arrow navigation to the focus session'
 );
 
 assert.match(
   editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*pointerSession\?\.routeBlocksCaretFromPointer\(event\)/,
+  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*blockSessions\.routeBlocksCaretFromPointer\(event\)/,
   'blocks editor should delegate blank-area pointer caret routing to the pointer session'
 );
 
@@ -2058,7 +2090,7 @@ assert.match(
 
 assert.match(
   `${editorBlocksSource}\n${editorBlocksCommandSessionSource}`,
-  /commandSession = createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => cardPickerSession,[\s\S]*insertCardBlock: \(data, index\) => commandSession\?\.insertCommandBlock\('card', data, \{ index \}\)[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
+  /const commandSession = blockSessions\.setCommandSession\(createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => blockSessions\.getCardPickerSession\(\),[\s\S]*insertCardBlock: \(data, index\) => blockSessions\.insertCommandBlock\('card', data, \{ index \}\)[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
   'blank block commands should live behind the command session, replace active blanks, and reuse the article-card picker at that position'
 );
 
@@ -2070,7 +2102,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /blank: \(body, block, index\) => commandSession\?\.renderBlankBlock\(body, block, index\)/,
+  /blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\)/,
   'blocks root should route blank body rendering through the command session renderer passed to the body session'
 );
 
@@ -2112,7 +2144,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /state\.blocks\.forEach\(\(block, index\) => \{[\s\S]*list\.appendChild\(renderBlockElement\(block, index\)\);[\s\S]*\}\);[\s\S]*cardPickerSession\?\.render\(\);/,
+  /state\.blocks\.forEach\(\(block, index\) => \{[\s\S]*list\.appendChild\(renderBlockElement\(block, index\)\);[\s\S]*\}\);[\s\S]*blockSessions\.renderCardPicker\(\);/,
   'rendering should use real blank blocks for persistent insertion points without appending a terminal virtual block'
 );
 
@@ -2307,7 +2339,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const activateNonTextBlockFromPointer = \(index, blockEl = null\) => \{[\s\S]*activeSession\?\.activateNonTextBlockFromPointer\(index, blockEl\);[\s\S]*\};/,
+  /const activateNonTextBlockFromPointer = \(index, blockEl = null\) => \{[\s\S]*blockSessions\.activateNonTextBlockFromPointer\(index, blockEl\);[\s\S]*\};/,
   'blocks editor should delegate non-text pointer activation to the active session'
 );
 
@@ -2463,7 +2495,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /layoutSession = createEditorBlocksLayoutSession\(\{[\s\S]*runtime,[\s\S]*state,[\s\S]*root,[\s\S]*list,[\s\S]*blockElements,[\s\S]*containsNode: nodeContains,[\s\S]*moveBlockInState: \(index, direction\) => blocksState\.moveBlock\(index, direction\),[\s\S]*replaceAdjacentBlockElements: \(index, targetIndex\) => replaceAdjacentBlockElements\(index, targetIndex\),[\s\S]*render: \(\) => render\(\),[\s\S]*emit,[\s\S]*onWindow[\s\S]*\}\);[\s\S]*layoutSession\.bind\(\);/,
+  /const layoutSession = blockSessions\.setLayoutSession\(createEditorBlocksLayoutSession\(\{[\s\S]*runtime,[\s\S]*state,[\s\S]*root,[\s\S]*list,[\s\S]*blockElements,[\s\S]*containsNode: nodeContains,[\s\S]*moveBlockInState: \(index, direction\) => blocksState\.moveBlock\(index, direction\),[\s\S]*replaceAdjacentBlockElements: \(index, targetIndex\) => replaceAdjacentBlockElements\(index, targetIndex\),[\s\S]*render: \(\) => render\(\),[\s\S]*emit,[\s\S]*onWindow[\s\S]*\}\)\);[\s\S]*layoutSession\.bind\(\);/,
   'blocks editor should compose sticky/reorder layout through the explicit layout session service'
 );
 
@@ -2553,7 +2585,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /bodySession = createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderPressMath,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => commandSession\?\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\);/,
+  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderPressMath,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\)\);/,
   'blocks editor root should compose block body rendering through the body session boundary'
 );
 
@@ -3093,7 +3125,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /listSession = createEditorBlocksListSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);/,
+  /const listSession = blockSessions\.setListSession\(createEditorBlocksListSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\)\);/,
   'blocks editor root should compose list DOM, toolbar, and input behavior through the list session boundary'
 );
 

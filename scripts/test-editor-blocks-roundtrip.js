@@ -315,12 +315,12 @@ run('text block split helper only supports editable text block types', () => {
 run('mid-enter split leaves end-of-block Enter on the blank block insertion path', () => {
   assert.match(
     editorBlocksSource,
-    /offsets\.start >= currentText\.length[\s\S]*return false;[\s\S]*splitEditableTextAtSelection\(editable\)/,
+    /offsets\.start >= currentText\.length[\s\S]*return false;[\s\S]*splitEditableTextAtSelection\(editable, selectionSession\)/,
     'split path should bail out before splitting when the caret is at the end'
   );
   assert.match(
     editorBlocksSource,
-    /splitTextBlockAfterCaret\(event, block, index, editable\)[\s\S]*shouldInsertBlankBlockOnEnter\(editable\)[\s\S]*insertBlankBlockAfter\(index, editable, sync\)/,
+    /splitTextBlockAfterCaret\(event, block, index, editable\)[\s\S]*shouldInsertBlankBlockOnEnter\(editable, selectionSession\)[\s\S]*insertBlankBlockAfter\(index, editable, sync\)/,
     'plain Enter should try mid-split before falling back to real blank block insertion'
   );
 });
@@ -538,7 +538,7 @@ run('cross-block arrows only handle plain vertical arrow keys', () => {
 run('cross-block arrows only leave text editables from edge lines', () => {
   assert.match(
     editorBlocksSource,
-    /isEditableCaretOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
+    /isEditableCaretOnEdgeLine\(editable, direction, selectionSession\)[\s\S]*if \(!onEdge\) return false;/,
     'contenteditable arrow navigation should only cross blocks on the first or last visual line'
   );
   assert.match(
@@ -552,12 +552,12 @@ run('cross-block arrows detect wrapped contenteditable visual lines from text ra
   const edgeLineSource = functionSource('isEditableCaretOnEdgeLine');
   assert.match(
     editorBlocksSource,
-    /function editableVisualLineRects\(el\)[\s\S]*createTreeWalker\(el, NodeFilter\.SHOW_TEXT\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
+    /function editableVisualLineRects\(el, selectionSession = null\)[\s\S]*selectionTools\.createTreeWalker\(el, NodeFilter\.SHOW_TEXT\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
     'visual line detection should be based on per-character text range rectangles'
   );
   assert.match(
     edgeLineSource,
-    /const lineRects = editableVisualLineRects\(el\);/,
+    /const lineRects = editableVisualLineRects\(el, selectionTools\);/,
     'edge-line detection should use grouped visual text lines'
   );
   assert.doesNotMatch(
@@ -570,7 +570,7 @@ run('cross-block arrows detect wrapped contenteditable visual lines from text ra
 run('cross-block arrows place target caret using grouped visual text lines', () => {
   assert.match(
     functionSource('placeCaretAtVisualLine'),
-    /const lineRects = editableVisualLineRects\(el\);/,
+    /const lineRects = editableVisualLineRects\(el, selectionTools\);/,
     'target caret placement should use the same visual line grouping as edge detection'
   );
 });
@@ -596,7 +596,7 @@ run('cross-block arrows keep list item navigation before block-level fallback', 
   );
   assert.match(
     editorBlocksSource,
-    /placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset\)/,
+    /placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, selectionSession\)/,
     'existing list item visual-line navigation should be preserved'
   );
 });
@@ -622,7 +622,7 @@ run('cross-block arrows wire rich text, code, and source editables', () => {
 run('empty list item Enter exits or splits the list before normal item splitting', () => {
   assert.match(
     editorBlocksSource,
-    /if \(event\.key === 'Enter'\) \{[\s\S]*const currentText = editableText\(span\);[\s\S]*const outdentedItems = outdentEmptyListItemForEnter\(currentItems, itemIndex\);[\s\S]*if \(outdentedItems\) \{[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\);[\s\S]*return;[\s\S]*const trailingParagraph = isEditableSelectionAtStart\(span\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\);[\s\S]*const emptySplit = splitListItemsAtEmptyItem\(currentItems, itemIndex\);[\s\S]*const splitAfter = normalizeSplitListStartItems\(emptySplit\.after\);[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*return;[\s\S]*const split = splitEditableTextAtSelection\(span\);[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
+    /if \(event\.key === 'Enter'\) \{[\s\S]*const currentText = editableText\(span\);[\s\S]*const outdentedItems = outdentEmptyListItemForEnter\(currentItems, itemIndex\);[\s\S]*if \(outdentedItems\) \{[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\);[\s\S]*return;[\s\S]*const trailingParagraph = isEditableSelectionAtStart\(span, selectionSession\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\);[\s\S]*const emptySplit = splitListItemsAtEmptyItem\(currentItems, itemIndex\);[\s\S]*const splitAfter = normalizeSplitListStartItems\(emptySplit\.after\);[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*return;[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
     'empty list item Enter should delete the empty item and choose list split, blank exit, or blank replacement before normal item splitting'
   );
   assert.match(

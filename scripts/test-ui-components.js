@@ -24,6 +24,7 @@ const composerSystemThemeBridge = read('assets/js/composer-system-theme-bridge.j
 const editorMain = read('assets/js/editor-main.js');
 const editorMainPreviewSession = read('assets/js/editor-main-preview-session.js');
 const editorMainRuntime = read('assets/js/editor-main-runtime.js');
+const editorMainWorkspaceSession = read('assets/js/editor-main-workspace-session.js');
 const editorPreviewRuntime = read('assets/js/editor-preview-runtime.js');
 const search = read('assets/js/search.js');
 const theme = read('assets/js/theme.js');
@@ -212,10 +213,10 @@ assert.match(editorMainPreviewSession, /assets\/themes\/packs\.local\.json', tru
 assert.match(indexEditorHtml, /class="view-toggle"[^>]*data-view="blocks"[\s\S]*class="vt-btn active" data-view="blocks"[\s\S]*class="vt-btn" data-view="edit"/, 'editor view toggle should put Blocks first and make it the initial default');
 assert.match(indexEditorHtml, /\.view-toggle\[data-view="edit"\] \.vt-slider/, 'editor view toggle slider should move right for source edit mode');
 assert.match(editorMainRuntime, /LS_VIEW_KEY = 'press_editor_markdown_view_v2'[\s\S]*function readMarkdownEditorView\(\) \{[\s\S]*normalizeMarkdownEditorView\(runtime\.storage\.getItem\(LS_VIEW_KEY\)\)/, 'editor runtime should default markdown view selection to blocks and ignore the old edit-first storage key');
-assert.match(editorMain, /function readPersistedMarkdownEditorView\(\) \{\s*return editorMainRuntime\.readMarkdownEditorView\(\);\s*\}/, 'editor main should read the persisted markdown view through the runtime boundary');
+assert.match(editorMainWorkspaceSession, /const readPersistedView = \(\) => \{[\s\S]*runtime\.readMarkdownEditorView\(\);/, 'workspace session should read the persisted markdown view through the runtime boundary');
 assert.doesNotMatch(indexEditorHtml, /class="vt-btn" data-view="preview"/, 'editor preview should not be part of the persisted edit/blocks view toggle');
 assert.match(indexEditorHtml, /id="btnOpenPreview"[\s\S]*data-i18n-aria-label="editor\.toolbar\.viewPreview"/, 'editor preview should be exposed as a standalone toolbar button');
-assert.match(editorMain, /const previewOpenButton = editorMainRuntime\.getElementById\('btnOpenPreview'\);[\s\S]*previewOpenButton\.addEventListener\('click'[\s\S]*previewSession\.open\(\);/, 'standalone editor preview button should open the temporary overlay through the preview session boundary');
+assert.match(editorMainWorkspaceSession, /const bindPreviewButton = \(\) => \{[\s\S]*getElementById\('btnOpenPreview'\)[\s\S]*previewOpenButton\.addEventListener\('click'[\s\S]*openPreview\(\);/, 'standalone editor preview button should open the temporary overlay through the workspace session boundary');
 assert.doesNotMatch(editorMain, /persistMarkdownEditorView\(.*preview/, 'editor preview overlay should not persist preview as the markdown editor view');
 assert.match(editorMainPreviewSession, /const handleSpace = 36;[\s\S]*Math\.max\(0, \(shellRect\.width \|\| 0\) - handleSpace\)[\s\S]*startPreviewResize[\s\S]*delta \* direction \* 2/, 'editor preview overlay should reserve handle space and symmetrically resize the iframe viewport so handles track the pointer');
 assert.match(editorMainPreviewSession, /PREVIEW_OVERLAY_CLOSE_MS = 260[\s\S]*requestFrame\(\(\) => \{[\s\S]*previewWrap\.classList\.add\('is-open'\)[\s\S]*previewWrap\.classList\.add\('is-closing'\)[\s\S]*setTimer\(\(\) => \{[\s\S]*previewWrap\.hidden = true;[\s\S]*resetPreviewViewportWidth\(\);[\s\S]*\}, PREVIEW_OVERLAY_CLOSE_MS\)/, 'preview overlay should add open and closing classes before hiding after the close animation through the editor runtime boundary');

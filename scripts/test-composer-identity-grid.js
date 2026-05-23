@@ -73,6 +73,7 @@ const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sid
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
 const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
 const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
+const editorMainWorkspaceSessionPath = resolve(here, '../assets/js/editor-main-workspace-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -170,6 +171,7 @@ const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
 const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
 const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
+const editorMainWorkspaceSessionSource = readFileSync(editorMainWorkspaceSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -943,6 +945,12 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-workspace-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor workspace session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -955,7 +963,13 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const currentFileSession = createEditorMainCurrentFileSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*inferCurrentFileSource,[\s\S]*applyEditorEmptyState,[\s\S]*onRendered: \(\) => \{[\s\S]*if \(previewSession\) previewSession\.updatePathLabel\(\);[\s\S]*\}[\s\S]*\}\);/,
+  /const workspaceSession = createEditorMainWorkspaceSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*getPreviewSession: \(\) => previewSession,[\s\S]*getBlocksEditor: \(\) => markdownBlocksEditor,[\s\S]*syncBlocksFromSource: \(\) => \{[\s\S]*syncMarkdownBlocksFromSource\(\);[\s\S]*\},[\s\S]*requestLayout[\s\S]*\}\);[\s\S]*workspaceSession\.initialize\(\);/,
+  'editor main should compose workspace view, wrap, preview button, and empty-state controls through the workspace session'
+);
+
+assert.match(
+  editorMainSource,
+  /const currentFileSession = createEditorMainCurrentFileSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*inferCurrentFileSource,[\s\S]*applyEditorEmptyState: workspaceSession\.applyEditorEmptyState,[\s\S]*onRendered: \(\) => \{[\s\S]*if \(previewSession\) previewSession\.updatePathLabel\(\);[\s\S]*\}[\s\S]*\}\);/,
   'editor main should compose current file state and header rendering through the current-file session'
 );
 
@@ -1027,6 +1041,12 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
   editorMainSource,
+  /function switchView|let wrapEnabled|const applyEditorEmptyState|const applyWrapState|const handleWrapSelection|wrapToggleButtons\.forEach|const previewOpenButton|document\.querySelectorAll\('\.vt-btn\[data-view\]'\)|document\.querySelector\('\.view-toggle'\)/,
+  'editor main root should not own workspace view switching, wrap toggle state, empty-state DOM, or preview button bindings'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
   /localStorage\.(?:getItem|setItem)|window\.__press_editor_base_dir|window\.__press_primary_editor|window\.dispatchEvent\(new CustomEvent\('press-editor-|document\.dispatchEvent\(new CustomEvent\('press-editor-current-file-breadcrumb-select'|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|cancelAnimationFrame|matchMedia|scrollTo)|document\.(?:addEventListener|removeEventListener)|requestAnimationFrame\(|cancelAnimationFrame\(|setTimeout\(|clearTimeout\(/,
   'editor main should route editor storage, app events, global listeners, timers, animation frames, and scroll controls through its runtime boundary'
 );
@@ -1089,6 +1109,18 @@ assert.match(
   editorMainLinkCardContextSource,
   /collectAllowedLocations\(posts, rawIndex\)[\s\S]*indexPostsByLocation\(posts\)[\s\S]*buildPickerState\(posts, rawIndex, options\)[\s\S]*fetchMarkdown = \(loc\) => \{[\s\S]*`\$\{getContentRoot\(\)\}\/\$\{loc\}`[\s\S]*makeHref/,
   'editor link-card context should centralize content-index normalization, markdown fetching, and link-card hydrate options'
+);
+
+assert.match(
+  editorMainWorkspaceSessionSource,
+  /export function createEditorMainWorkspaceSession\(options = \{\}\) \{[\s\S]*let wrapEnabled = false;[\s\S]*const applyEditorEmptyState = \(isEmpty\) => \{[\s\S]*const applyWrapState = \(value, opts = \{\}\) => \{[\s\S]*const switchView = \(mode\) => \{[\s\S]*const setView = \(mode, opts = \{\}\) => \{[\s\S]*const bind = \(\) => \{[\s\S]*bindWrapToggle\(\);[\s\S]*bindViewToggle\(\);[\s\S]*bindPreviewButton\(\);/,
+  'editor workspace session should own wrap state, empty-state DOM, view switching, preview button binding, and workspace event binding'
+);
+
+assert.match(
+  editorMainWorkspaceSessionSource,
+  /readWrapEnabled\(\{ force: forceMarkdownWrap \}\)[\s\S]*persistWrapEnabled\(on\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*getBlocksEditor\(\)[\s\S]*normalizeMarkdownEditorView\(mode\)[\s\S]*getPreviewSession\(\)/,
+  'editor workspace session should route storage and cross-session calls through explicit runtime and dependency accessors'
 );
 
 assert.match(
@@ -1715,9 +1747,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /function switchView\(mode\) \{[\s\S]*const blocksWrap = \$\('#blocks-wrap'\);[\s\S]*mode === 'blocks'[\s\S]*editorWrap\.style\.display = 'none';[\s\S]*blocksWrap\.hidden = false;[\s\S]*editorToolbar\.hidden = true;[\s\S]*viewToggle && \(viewToggle\.dataset\.view = 'blocks'\);/,
-  'markdown view switcher should show blocks mode while hiding source toolbar'
+  editorMainWorkspaceSessionSource,
+  /const switchView = \(mode\) => \{[\s\S]*const nextView = normalizeMarkdownEditorView\(mode\);[\s\S]*nextView === 'blocks'[\s\S]*editorWrap\.style\.display = 'none';[\s\S]*blocksWrap\.hidden = false;[\s\S]*editorToolbar\.hidden = true;[\s\S]*viewToggle\.dataset\.view = 'blocks';/,
+  'workspace session view switcher should show blocks mode while hiding source toolbar'
 );
 
 assert.match(
@@ -1727,20 +1759,20 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /function readPersistedMarkdownEditorView\(\) \{\s*return editorMainRuntime\.readMarkdownEditorView\(\);\s*\}[\s\S]*function persistMarkdownEditorView\(mode\) \{\s*editorMainRuntime\.persistMarkdownEditorView\(mode\);/,
-  'editor main should route markdown view persistence through the runtime boundary'
+  editorMainWorkspaceSessionSource,
+  /const readPersistedView = \(\) => \{[\s\S]*runtime\.readMarkdownEditorView\(\);[\s\S]*const persistView = \(mode\) => \{[\s\S]*runtime\.persistMarkdownEditorView\(mode\);/,
+  'workspace session should route markdown view persistence through the runtime boundary'
+);
+
+assert.match(
+  editorMainWorkspaceSessionSource,
+  /const setView = \(mode, opts = \{\}\) => \{[\s\S]*if \(mode === 'preview'\)[\s\S]*const nextView = switchView\(mode\);[\s\S]*if \(opts\.persist\) persistView\(nextView\);[\s\S]*setView\(button\.dataset\.view, \{ persist: true \}\);/,
+  'workspace session view switcher clicks should store the selected edit or blocks view'
 );
 
 assert.match(
   editorMainSource,
-  /const applyMarkdownEditorView = \(mode, opts = \{\}\) => \{[\s\S]*const nextView = normalizeMarkdownEditorView\(mode\);[\s\S]*switchView\(nextView\);[\s\S]*if \(opts\.persist\) persistMarkdownEditorView\(nextView\);[\s\S]*applyMarkdownEditorView\(a\.dataset\.view, \{ persist: true \}\);/,
-  'markdown view switcher clicks should store the selected view'
-);
-
-assert.match(
-  editorMainSource,
-  /setView: \(mode, opts = \{\}\) => applyMarkdownEditorView\(mode, opts\),[\s\S]*restorePersistedView: \(opts = \{\}\) => applyMarkdownEditorView\(readPersistedMarkdownEditorView\(\), opts\),/,
+  /setView: \(mode, opts = \{\}\) => workspaceSession\.setView\(mode, opts\),[\s\S]*restorePersistedView: \(opts = \{\}\) => workspaceSession\.restorePersistedView\(opts\),/,
   'primary editor API should accept blocks mode'
 );
 
@@ -3032,9 +3064,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainSource,
-  /if \(editorShell\) editorShell\.classList\.toggle\('is-blocks-mode', mode === 'blocks'\);/,
-  'view switching should mark the markdown shell as visual-free only in blocks mode'
+  editorMainWorkspaceSessionSource,
+  /if \(editorShell\) editorShell\.classList\.toggle\('is-blocks-mode', nextView === 'blocks'\);/,
+  'workspace view switching should mark the markdown shell as visual-free only in blocks mode'
 );
 
 assert.match(

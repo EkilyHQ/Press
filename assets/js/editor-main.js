@@ -13,69 +13,16 @@ import { createEditorMainSidebarSession } from './editor-main-sidebar-session.js
 import { createEditorMainToolbarSession } from './editor-main-toolbar-session.js?v=press-system-v3.4.50';
 import { createEditorMainImageSession } from './editor-main-image-session.js?v=press-system-v3.4.50';
 import { createEditorMainLinkCardContext } from './editor-main-link-card-context.js?v=press-system-v3.4.50';
-import {
-  createEditorMainRuntime,
-  normalizeMarkdownEditorView
-} from './editor-main-runtime.js?v=press-system-v3.4.50';
+import { createEditorMainWorkspaceSession } from './editor-main-workspace-session.js?v=press-system-v3.4.50';
+import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system-v3.4.50';
 
 const FORCE_MARKDOWN_WRAP = true;
 const editorMainRuntime = createEditorMainRuntime();
-
-function readPersistedMarkdownEditorView() {
-  return editorMainRuntime.readMarkdownEditorView();
-}
-
-function persistMarkdownEditorView(mode) {
-  editorMainRuntime.persistMarkdownEditorView(mode);
-}
 
 let markdownBlocksEditor = null;
 let syncMarkdownBlocksFromSource = null;
 
 let editorSiteConfig = {};
-
-function $(sel) { return document.querySelector(sel); }
-
-function switchView(mode) {
-  const editorWrap = $('#editor-wrap');
-  const blocksWrap = $('#blocks-wrap');
-  const editorShell = $('#markdownEditorShell');
-  const editorToolbar = $('#editorToolbar');
-  const viewToggle = document.querySelector('.view-toggle');
-  const viewButtons = Array.from(document.querySelectorAll('.vt-btn[data-view]'));
-  if (!editorWrap) return;
-  if (editorShell) editorShell.classList.toggle('is-blocks-mode', mode === 'blocks');
-  if (mode === 'blocks') {
-    if (typeof syncMarkdownBlocksFromSource === 'function') {
-      try { syncMarkdownBlocksFromSource(); } catch (_) {}
-    }
-    if (editorShell) editorShell.style.display = '';
-    editorWrap.style.display = 'none';
-    if (blocksWrap) {
-      blocksWrap.hidden = false;
-      blocksWrap.removeAttribute('aria-hidden');
-    }
-    if (editorToolbar) {
-      editorToolbar.hidden = true;
-      editorToolbar.setAttribute('aria-hidden', 'true');
-    }
-    viewToggle && (viewToggle.dataset.view = 'blocks');
-    try { if (markdownBlocksEditor && typeof markdownBlocksEditor.focus === 'function') markdownBlocksEditor.focus(); } catch (_) {}
-  } else {
-    if (editorShell) editorShell.style.display = '';
-    editorWrap.style.display = '';
-    if (blocksWrap) {
-      blocksWrap.hidden = true;
-      blocksWrap.setAttribute('aria-hidden', 'true');
-    }
-    if (editorToolbar) {
-      editorToolbar.hidden = false;
-      editorToolbar.removeAttribute('aria-hidden');
-    }
-    viewToggle && (viewToggle.dataset.view = 'edit');
-  }
-  viewButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === (mode === 'blocks' ? 'blocks' : 'edit')));
-}
 
 // ---- Local draft storage removed (temporary) ----
 
@@ -91,94 +38,6 @@ editorMainRuntime.onDocumentReady(() => {
   const cardSearchInput = editorMainRuntime.getElementById('cardPickerSearch');
   const cardListEl = editorMainRuntime.getElementById('cardPickerList');
   const cardEmptyEl = editorMainRuntime.getElementById('cardPickerEmpty');
-  const wrapToggle = editorMainRuntime.getElementById('wrapToggle');
-  const wrapToggleButtons = wrapToggle ? Array.from(wrapToggle.querySelectorAll('[data-wrap]')) : [];
-  const editorLayoutEl = editorMainRuntime.getElementById('mode-editor');
-  const editorMainEl = editorLayoutEl ? editorLayoutEl.querySelector('.editor-main') : null;
-  const editorEmptyStateEl = editorMainRuntime.getElementById('editorEmptyState');
-  const editorMarkdownPanelEl = editorMainRuntime.getElementById('editorMarkdownPanel');
-  let wrapEnabled = false;
-
-  const applyEditorEmptyState = (isEmpty) => {
-    const empty = !!isEmpty;
-    if (editorLayoutEl) {
-      editorLayoutEl.classList.remove('is-empty');
-      editorLayoutEl.toggleAttribute('data-current-file', !empty);
-    }
-    if (editorMainEl) {
-      editorMainEl.removeAttribute('hidden');
-    }
-    if (editorMarkdownPanelEl) {
-      if (empty) {
-        editorMarkdownPanelEl.setAttribute('hidden', '');
-        editorMarkdownPanelEl.setAttribute('aria-hidden', 'true');
-      } else {
-        editorMarkdownPanelEl.removeAttribute('hidden');
-        editorMarkdownPanelEl.removeAttribute('aria-hidden');
-      }
-    }
-    if (editorEmptyStateEl) {
-      editorEmptyStateEl.setAttribute('hidden', '');
-      editorEmptyStateEl.setAttribute('aria-hidden', 'true');
-    }
-  };
-  applyEditorEmptyState(true);
-
-  const readWrapState = () => {
-    return editorMainRuntime.readWrapEnabled({ force: FORCE_MARKDOWN_WRAP });
-  };
-
-  const persistWrapState = (on) => {
-    editorMainRuntime.persistWrapEnabled(on);
-  };
-
-  const syncWrapToggle = (on) => {
-    const enabled = !!on;
-    if (wrapToggle) {
-      wrapToggle.setAttribute('data-state', enabled ? 'on' : 'off');
-    }
-    wrapToggleButtons.forEach((btn) => {
-      const isOn = (btn.dataset.wrap || '').toLowerCase() === 'on';
-      const active = isOn === enabled;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-  };
-
-  const applyWrapState = (value, opts = {}) => {
-    const on = FORCE_MARKDOWN_WRAP ? true : !!value;
-    wrapEnabled = on;
-    if (editor && typeof editor.setWrap === 'function') {
-      editor.setWrap(on);
-    } else if (ta) {
-      try {
-        ta.setAttribute('wrap', on ? 'soft' : 'off');
-        ta.style.whiteSpace = on ? 'pre-wrap' : 'pre';
-      } catch (_) {}
-    }
-    syncWrapToggle(on);
-    if (opts.persist !== false) persistWrapState(on);
-  };
-
-  const handleWrapSelection = (state) => {
-    const next = String(state || '').toLowerCase() === 'on';
-    applyWrapState(next);
-  };
-
-  wrapToggleButtons.forEach((btn) => {
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      handleWrapSelection(btn.dataset.wrap);
-    });
-    btn.addEventListener('keydown', (event) => {
-      if (event.key === ' ') {
-        event.preventDefault();
-        handleWrapSelection(btn.dataset.wrap);
-      }
-    });
-  });
-
-  applyWrapState(readWrapState(), { persist: false });
 
   const seed = `# 新文章标题\n\n> 在左侧编辑 Markdown，切换到 Preview 查看渲染效果。\n\n- 支持代码块、表格、待办列表\n- 图片与视频语法\n\n\`\`\`js\nconsole.log('Hello, Press!');\n\`\`\`\n`;
 
@@ -226,6 +85,22 @@ editorMainRuntime.onDocumentReady(() => {
     } catch (_) {}
   };
 
+  let previewSession = null;
+  const workspaceSession = createEditorMainWorkspaceSession({
+    runtime: editorMainRuntime,
+    documentRef: document,
+    forceMarkdownWrap: FORCE_MARKDOWN_WRAP,
+    editor,
+    textarea: ta,
+    getPreviewSession: () => previewSession,
+    getBlocksEditor: () => markdownBlocksEditor,
+    syncBlocksFromSource: () => {
+      if (typeof syncMarkdownBlocksFromSource === 'function') syncMarkdownBlocksFromSource();
+    },
+    requestLayout
+  });
+  workspaceSession.initialize();
+
   const getEditorBody = () => {
     if (editor) return editor.getValue() || '';
     if (ta) return ta.value || '';
@@ -237,7 +112,6 @@ editorMainRuntime.onDocumentReady(() => {
     return metadataPanel.buildEditorValue(body);
   };
 
-  let previewSession = null;
   const currentFileSession = createEditorMainCurrentFileSession({
     runtime: editorMainRuntime,
     documentRef: document,
@@ -245,7 +119,7 @@ editorMainRuntime.onDocumentReady(() => {
     getCurrentLang,
     normalizeLangKey,
     inferCurrentFileSource,
-    applyEditorEmptyState,
+    applyEditorEmptyState: workspaceSession.applyEditorEmptyState,
     onRendered: () => {
       if (previewSession) previewSession.updatePathLabel();
     }
@@ -514,36 +388,6 @@ editorMainRuntime.onDocumentReady(() => {
   setBaseDir('');
   imageSession.bind();
 
-  const applyMarkdownEditorView = (mode, opts = {}) => {
-    if (mode === 'preview') {
-      previewSession.open();
-      return;
-    }
-    const nextView = normalizeMarkdownEditorView(mode);
-    switchView(nextView);
-    if (nextView === 'blocks' && markdownBlocksEditor && typeof markdownBlocksEditor.requestLayout === 'function') {
-      try { markdownBlocksEditor.requestLayout(); } catch (_) {}
-    } else {
-      requestLayout();
-    }
-    if (opts.persist) persistMarkdownEditorView(nextView);
-  };
-
-  // View toggle
-  document.querySelectorAll('.vt-btn[data-view]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      e.preventDefault();
-      applyMarkdownEditorView(a.dataset.view, { persist: true });
-    });
-  });
-  const previewOpenButton = editorMainRuntime.getElementById('btnOpenPreview');
-  if (previewOpenButton) {
-    previewOpenButton.addEventListener('click', (event) => {
-      if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      previewSession.open();
-    });
-  }
-
   const primaryEditorApi = {
     getValue,
     setValue: (value, opts = {}) => setValue(value, opts),
@@ -553,12 +397,9 @@ editorMainRuntime.onDocumentReady(() => {
         else if (ta && typeof ta.focus === 'function') ta.focus();
       } catch (_) {}
     },
-    setView: (mode, opts = {}) => applyMarkdownEditorView(mode, opts),
-    restorePersistedView: (opts = {}) => applyMarkdownEditorView(readPersistedMarkdownEditorView(), opts),
-    getView: () => {
-      const viewToggle = document.querySelector('.view-toggle');
-      return normalizeMarkdownEditorView(viewToggle && viewToggle.dataset ? viewToggle.dataset.view : 'blocks');
-    },
+    setView: (mode, opts = {}) => workspaceSession.setView(mode, opts),
+    restorePersistedView: (opts = {}) => workspaceSession.restorePersistedView(opts),
+    getView: () => workspaceSession.getView(),
     setBaseDir: (dir) => setBaseDir(dir),
     setCurrentFileLabel: (label) => assignCurrentFileLabel(label),
     setFrontMatterVisible: (visible) => metadataPanel.setFrontMatterVisible(visible),
@@ -573,8 +414,8 @@ editorMainRuntime.onDocumentReady(() => {
     },
     refreshPreview: () => { refreshPreview(); },
     requestLayout: () => { requestLayout(); },
-    setWrap: (value, opts = {}) => { applyWrapState(value, opts); },
-    isWrapEnabled: () => wrapEnabled
+    setWrap: (value, opts = {}) => { workspaceSession.setWrap(value, opts); },
+    isWrapEnabled: () => workspaceSession.isWrapEnabled()
   };
 
   editorMainRuntime.registerPrimaryEditorApi(primaryEditorApi);
@@ -584,7 +425,7 @@ editorMainRuntime.onDocumentReady(() => {
   // Draft persistence on unload removed
 
   // Default to blocks view
-  switchView('blocks');
+  workspaceSession.setView('blocks');
 
   // Back-to-top button behavior
   (function initBackToTop() {
@@ -639,7 +480,7 @@ editorMainRuntime.onDocumentReady(() => {
       }
       setValue(text);
       assignCurrentFileLabel(`${relPath}`);
-      switchView('edit');
+      workspaceSession.setView('edit');
       editorMainRuntime.scrollToTop({ smooth: true });
     },
     onWarn: (...args) => {

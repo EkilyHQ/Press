@@ -76,6 +76,7 @@ const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-bloc
 const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
+const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
 const syntaxHighlightPath = resolve(here, '../assets/js/syntax-highlight.js');
 const editorPath = resolve(here, '../index_editor.html');
 const nativeBasePath = resolve(here, '../assets/themes/native/base.css');
@@ -150,6 +151,7 @@ const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSes
 const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
+const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
 const syntaxHighlightSource = readFileSync(syntaxHighlightPath, 'utf8');
 const editorSource = readFileSync(editorPath, 'utf8');
 const nativeBaseSource = readFileSync(nativeBasePath, 'utf8');
@@ -303,6 +305,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-active-session\.js\?v=[\w.-]+'/,
+  'blocks editor should cache-bust the explicit blocks active session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /focusSession = createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
 );
@@ -311,6 +319,12 @@ assert.match(
   editorBlocksSource,
   /pointerSession = createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,/,
   'blocks editor should compose blank-area pointer routing through the pointer session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /activeSession = createEditorBlocksActiveSession\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*list,[\s\S]*runtime,[\s\S]*containsNode: nodeContains,[\s\S]*syncActiveListTypeSelect,[\s\S]*refreshLinkEditor,[\s\S]*updateInlineToolbarState,[\s\S]*syncActiveTableAlignmentFromEditable,[\s\S]*requestStickyBlockHeadUpdate,[\s\S]*clearNativeSelection[\s\S]*\}\);/,
+  'blocks editor should compose active block state transitions through the active session boundary'
 );
 
 assert.match(
@@ -1594,15 +1608,27 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*blocksState\.setSelectionActiveRecoverySuppression\(Date\.now\(\) \+ 180\);[\s\S]*setActive\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !blocksState\.selectionActiveRecoverySuppressed\(Date\.now\(\)\);[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
-  'pointerdown activation should briefly prevent stale browser selection from reselecting the previous block toolbar'
+  editorBlocksActiveSessionSource,
+  /function activateEditableFromPointer\(index, editable, sync\) \{[\s\S]*blocksState\.setSelectionActiveRecoverySuppression\(now\(\) \+ 180\);[\s\S]*setActive\(index, editable, sync\);/,
+  'active session should suppress stale browser selection before editable pointer activation'
 );
 
 assert.match(
   editorBlocksSource,
-  /const activateNonTextBlockFromPointer = \(index, blockEl = null\) => \{[\s\S]*blocksState\.setSelectionActiveRecoverySuppression\(Date\.now\(\) \+ 180\);[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(Date\.now\(\) \+ 500\);[\s\S]*clearNativeSelection\(\);[\s\S]*setActive\(index\);[\s\S]*\};/,
+  /const activateEditableFromPointer = \(index, editable, sync\) => \{[\s\S]*activeSession\?\.activateEditableFromPointer\(index, editable, sync\);[\s\S]*const canRecoverSelectionActive = !blocksState\.selectionActiveRecoverySuppressed\(Date\.now\(\)\);[\s\S]*if \(selectionEditable && canRecoverSelectionActive\) \{/,
+  'pointerdown activation should briefly prevent stale browser selection from reselecting the previous block toolbar'
+);
+
+assert.match(
+  editorBlocksActiveSessionSource,
+  /function activateNonTextBlockFromPointer\(index, blockEl = null\) \{[\s\S]*blocksState\.setSelectionActiveRecoverySuppression\(now\(\) \+ 180\);[\s\S]*blocksState\.setRoutedBlockContainerClickSuppression\(now\(\) \+ 500\);[\s\S]*clearNativeSelection\(\);[\s\S]*setActive\(index\);/,
   'non-text block pointer activation should clear stale browser selection before selecting the block'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const activateNonTextBlockFromPointer = \(index, blockEl = null\) => \{[\s\S]*activeSession\?\.activateNonTextBlockFromPointer\(index, blockEl\);[\s\S]*\};/,
+  'blocks editor should delegate non-text pointer activation to the active session'
 );
 
 assert.match(
@@ -1666,8 +1692,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const blockNodes = Array\.from\(list\.querySelectorAll\('\.blocks-block'\)\);[\s\S]*const activeBlock = blockNodes\[state\.activeIndex\] \|\| null;[\s\S]*const activeEditable = blocksState\.getActiveEditable\(\);[\s\S]*const keepEditable = activeEditable && activeBlock && nodeContains\(activeBlock, activeEditable\);[\s\S]*blocksState\.clearActiveEditing\(\);[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*blockNodes\.forEach\(\(el, idx\) => \{/,
+  editorBlocksActiveSessionSource,
+  /const nodes = blockNodes\(\);[\s\S]*const activeBlock = nodes\[activeIndex\] \|\| null;[\s\S]*const activeEditable = hasBlocksState\('getActiveEditable'\) \? blocksState\.getActiveEditable\(\) : null;[\s\S]*const keepEditable = activeEditable && activeBlock && containsNode\(activeBlock, activeEditable\);[\s\S]*blocksState\.clearActiveEditing\(\);[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*nodes\.forEach\(\(el, idx\) => \{/,
   'container-only block selection should clear stale editable state from another block'
 );
 

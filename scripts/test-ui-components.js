@@ -36,6 +36,7 @@ const themeLayout = read('assets/js/theme-layout.js');
 const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
+const editorBlocksActiveSession = read('assets/js/editor-blocks-active-session.js');
 const syntaxHighlight = read('assets/js/syntax-highlight.js');
 const highlightJsBundle = read('assets/js/vendor/highlightjs/highlight.min.js');
 const nativeCss = read('assets/themes/native/base.css');
@@ -263,7 +264,7 @@ assert.match(editorBlocks, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*
 assert.match(editorBlocks, /function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'block editor should parse supported pipe tables into structured table data');
 assert.match(editorBlocks, /const renderTableBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'block editor should render editable table cell inputs with alignment hooks');
 assert.match(editorBlocks, /function createTableControls\(block, index\) \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/, 'block editor should expose table row, column, and alignment controls');
-assert.match(editorBlocks, /syncActiveTableAlignmentFromEditable\(activeBlock, editable \|\| blocksState\.getActiveEditable\(\) \|\| runtime\.getActiveElement\(\)\);/, 'active block selection should sync table alignment from the focused table cell');
+assert.match(editorBlocksActiveSession, /syncActiveTableAlignmentFromEditable\(\s*activeBlock,\s*editable \|\| \(hasBlocksState\('getActiveEditable'\) \? blocksState\.getActiveEditable\(\) : null\) \|\| activeElementFrom\(runtime\)\s*\);/, 'active block selection should sync table alignment from the focused table cell');
 assert.match(editorBlocks, /const setTableAlignmentSelectValue = \(alignment, value\) => \{[\s\S]*alignment\.value = normalized;[\s\S]*option\.selected = option\.value === normalized;[\s\S]*const syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tablePositionFromCellInput\(cell\)[\s\S]*syncTableAlignmentControlForPosition\(block, normalized\);/, 'table alignment control should force the select value and selected option from active table cell DOM state');
 assert.match(editorBlocks, /const isActiveTablePosition = \(block, position\) => \{[\s\S]*blocksState\.activeTableCellMatches\(block\.id, position\);[\s\S]*const applyIfCurrent = \(\) => \{[\s\S]*isActiveTablePosition\(block, normalized\)[\s\S]*runtime\.requestFrame\(applyIfCurrent\)[\s\S]*runtime\.setTimer\(applyIfCurrent, 0\);/, 'deferred table alignment sync should not overwrite newer active table cells');
 assert.doesNotMatch(editorBlocks, /elements\.blocksList/, 'table alignment sync should use the editor list element available in this closure');

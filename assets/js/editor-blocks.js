@@ -9,6 +9,7 @@ import { createEditorBlocksInlineDomSession } from './editor-blocks-inline-dom-s
 import { CARET_POINT_MEASURE_LIMIT, createEditorBlocksCaretSession } from './editor-blocks-caret-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js?v=press-system-v3.4.50';
 import { createEditorBlocksPointerSession } from './editor-blocks-pointer-session.js?v=press-system-v3.4.50';
+import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js?v=press-system-v3.4.50';
 
 const BLOCK_TYPES = new Set(['paragraph', 'heading', 'image', 'list', 'quote', 'code', 'math', 'card', 'table', 'source', 'blank']);
 const CODE_LANGUAGE_OPTIONS = [
@@ -2373,6 +2374,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
 
   let focusSession = null;
   let pointerSession = null;
+  let activeSession = null;
 
   const focusBlockPrimaryEditable = (block, caretOffset = null) => {
     focusSession?.focusBlockPrimaryEditable(block, caretOffset);
@@ -2985,54 +2987,15 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   let openMathEditorForBlock = () => {};
 
   const setActive = (index, editable = null, sync = null) => {
-    blocksState.setActiveIndex(index);
-    const blockNodes = Array.from(list.querySelectorAll('.blocks-block'));
-    const activeBlock = blockNodes[state.activeIndex] || null;
-    if (editable) {
-      if (editable !== blocksState.getActiveEditable()) {
-        blocksState.clearInlineState();
-        blocksState.clearLinkEditorState({ clearActiveLink: false, clearHold: false });
-      }
-      blocksState.setActiveEditing(editable, sync);
-    } else {
-      const activeEditable = blocksState.getActiveEditable();
-      const keepEditable = activeEditable && activeBlock && nodeContains(activeBlock, activeEditable);
-      if (!keepEditable) {
-        try {
-          const focused = runtime.getActiveElement();
-          if (focused && activeEditable && nodeContains(activeEditable, focused) && typeof focused.blur === 'function') {
-            focused.blur();
-          }
-        } catch (_) {}
-        blocksState.clearActiveEditing();
-        blocksState.clearLinkEditorState();
-        blocksState.clearInlineState();
-      }
-    }
-    blockNodes.forEach((el, idx) => {
-      el.classList.toggle('is-active', idx === state.activeIndex);
-    });
-    syncActiveListTypeSelect(blockNodes);
-    refreshLinkEditor();
-    updateInlineToolbarState();
-    syncActiveTableAlignmentFromEditable(activeBlock, editable || blocksState.getActiveEditable() || runtime.getActiveElement());
-    requestStickyBlockHeadUpdate();
+    activeSession?.setActive(index, editable, sync);
   };
 
   const activateEditableFromPointer = (index, editable, sync) => {
-    blocksState.setSelectionActiveRecoverySuppression(Date.now() + 180);
-    setActive(index, editable, sync);
+    activeSession?.activateEditableFromPointer(index, editable, sync);
   };
 
   const activateNonTextBlockFromPointer = (index, blockEl = null) => {
-    blocksState.setSelectionActiveRecoverySuppression(Date.now() + 180);
-    blocksState.setRoutedBlockContainerClickSuppression(Date.now() + 500);
-    try { blockEl?.focus({ preventScroll: true }); }
-    catch (_) {
-      try { blockEl?.focus(); } catch (__) {}
-    }
-    clearNativeSelection();
-    setActive(index);
+    activeSession?.activateNonTextBlockFromPointer(index, blockEl);
   };
 
   focusSession = createEditorBlocksFocusSession({
@@ -4182,6 +4145,20 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     blocksState.setActiveTableCell(block.id, normalized);
     syncTableAlignmentControlForPosition(block, normalized);
   };
+
+  activeSession = createEditorBlocksActiveSession({
+    state,
+    blocksState,
+    list,
+    runtime,
+    containsNode: nodeContains,
+    syncActiveListTypeSelect,
+    refreshLinkEditor,
+    updateInlineToolbarState,
+    syncActiveTableAlignmentFromEditable,
+    requestStickyBlockHeadUpdate,
+    clearNativeSelection
+  });
 
   const setActiveTablePosition = (block, position) => {
     const normalized = normalizeTablePosition(block, position);

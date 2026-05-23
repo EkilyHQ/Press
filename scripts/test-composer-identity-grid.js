@@ -71,6 +71,7 @@ const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-pre
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
+const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
@@ -166,6 +167,7 @@ const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
+const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
@@ -927,6 +929,12 @@ assert.match(
 
 assert.match(
   editorMainSource,
+  /from '\.\/editor-main-image-session\.js\?v=[\w.-]+'/,
+  'editor main should cache-bust the editor image session boundary'
+);
+
+assert.match(
+  editorMainSource,
   /const metadataPanel = createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: \(\) => notifyChange\(\)[\s\S]*\}\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
@@ -953,6 +961,12 @@ assert.match(
   editorMainSource,
   /const toolbarSession = createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: document,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => editorPostPickerEntries[\s\S]*\}\);[\s\S]*toolbarSession\.bind\(\);/,
   'editor main should compose markdown toolbar and article-card picker through the toolbar session'
+);
+
+assert.match(
+  editorMainSource,
+  /const imageSession = createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*windowRef: window,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea,[\s\S]*getEditorBody,[\s\S]*buildMarkdown: \(body\) => metadataPanel\.buildMarkdown\(body\),[\s\S]*setValue,[\s\S]*getBlocksEditor: \(\) => markdownBlocksEditor,[\s\S]*emitToast: emitEditorToast[\s\S]*\}\);[\s\S]*requestImageUpload: \(detail\) => imageSession\.requestBlocksImageUpload\(detail\),[\s\S]*canDeleteImageResource: \(src\) => imageSession\.canDeleteImageResource\(src\),[\s\S]*requestImageDelete: \(detail\) => imageSession\.requestBlocksImageDelete\(detail\)[\s\S]*imageSession\.bind\(\);/,
+  'editor main should compose image picker, upload, drop, and block image actions through the image session'
 );
 
 assert.doesNotMatch(
@@ -983,6 +997,12 @@ assert.doesNotMatch(
   editorMainSource,
   /lastSelectionRange|suppressSelectionTracking|formattingButtons|cardPopoverOpen|renderCardPickerList|openCardPopover|closeCardPopover|applyInlineFormat|toggleLinePrefix|applyCodeBlockFormat|insertCardLink|BUTTON_DISABLED_HINT_KEYS|applyButtonTooltipState|registerButtonTooltip/,
   'editor main root should not own markdown toolbar selection state, formatting actions, or article-card popover internals'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /pendingBlocksImageInsert|pendingImagePickerToken|openImageInputPicker|readFileAsBase64|slugifyAssetBase|inferAssetExtension|buildAssetFileMeta|computeAssetPaths|insertImageMarkdown|isImageFile|containsImageFile|handleImageFiles|insertImageMarkdownAtSelection|resolveLocalMarkdownAssetReference|new FileReader|new MouseEvent|emitAssetAdded\(|requestAssetDelete\(|emitAssetDeleteCanceled\(/,
+  'editor main root should not own image picker, file reading, asset path derivation, markdown insertion, or asset event internals'
 );
 
 assert.doesNotMatch(
@@ -1025,6 +1045,18 @@ assert.match(
   editorMainToolbarSessionSource,
   /const onDocument = typeof runtime\.onDocument === 'function'[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*const clearTimer = typeof runtime\.clearTimer === 'function'[\s\S]*detachCardMouseDown = onDocument\('mousedown', handleCardOutsideClick, true\);[\s\S]*detachCardResize = onWindow\('resize', handleCardRelayout, true\);/,
   'editor toolbar session should route popover document/window/timer effects through the runtime boundary'
+);
+
+assert.match(
+  editorMainImageSessionSource,
+  /export function createEditorMainImageSession\(options = \{\}\) \{[\s\S]*let pendingBlocksImageInsert = null;[\s\S]*let pendingImagePickerToken = 0;[\s\S]*const readFileAsBase64 = \(file\) => new Promise[\s\S]*const buildAssetFileMeta = \(file\) => \{[\s\S]*const insertImageMarkdown = \(relativePath, altText\) => \{[\s\S]*const handleImageFiles = async \(fileList, opts = \{\}\) => \{[\s\S]*const openImageInputPicker = \(\) => \{[\s\S]*const requestBlocksImageUpload = \(\{ index, replaceIndex, replaceBlockId \} = \{\}\) => \{[\s\S]*const requestBlocksImageDelete = \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*const bind = \(\) => \{/,
+  'editor image session should own picker pending state, file reading, markdown insertion, block image actions, and binding'
+);
+
+assert.match(
+  editorMainImageSessionSource,
+  /import \{ insertImageMarkdownAtSelection \} from '\.\/editor-markdown-ops\.js';[\s\S]*import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*runtime\.emitAssetAdded\([\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
+  'editor image session should route markdown-image operations and asset events through explicit dependencies and runtime services'
 );
 
 assert.match(
@@ -2572,32 +2604,32 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorMainSource,
-  /requestImageUpload: \(\{ index, replaceIndex, replaceBlockId \} = \{\}\) => \{[\s\S]*replaceIndex: Number\.isFinite\(replaceIndex\) \? replaceIndex : null,[\s\S]*replaceBlockId: typeof replaceBlockId === 'string' && replaceBlockId \? replaceBlockId : null[\s\S]*const replaceIndex = blockInsert && Number\.isFinite\(blockInsert\.replaceIndex\)[\s\S]*const replaceBlockId = blockInsert && typeof blockInsert\.replaceBlockId === 'string'[\s\S]*const replaceMarkdown = \(replaceIndex != null \|\| replaceBlockId\)[\s\S]*const result = markdownBlocksEditor\.replaceImageBlock\(relativePath, \{ index: replaceIndex, blockId: replaceBlockId \}\);[\s\S]*if \(!result\) return false;[\s\S]*singleImage: !!replaceMarkdown[\s\S]*if \(replaceMarkdown\) imageFileOptions\.insertAbortToast = t\('editor\.toasts\.imageReplaceTargetMissing'\);/,
+  editorMainImageSessionSource,
+  /const requestBlocksImageUpload = \(\{ index, replaceIndex, replaceBlockId \} = \{\}\) => \{[\s\S]*replaceIndex: Number\.isFinite\(replaceIndex\) \? replaceIndex : null,[\s\S]*replaceBlockId: typeof replaceBlockId === 'string' && replaceBlockId \? replaceBlockId : null[\s\S]*const replaceIndex = blockInsert && Number\.isFinite\(blockInsert\.replaceIndex\)[\s\S]*const replaceBlockId = blockInsert && typeof blockInsert\.replaceBlockId === 'string'[\s\S]*const replaceMarkdown = \(replaceIndex != null \|\| replaceBlockId\)[\s\S]*const result = blocksEditor\.replaceImageBlock\(relativePath, \{ index: replaceIndex, blockId: replaceBlockId \}\);[\s\S]*if \(!result\) return false;[\s\S]*singleImage: !!replaceMarkdown[\s\S]*if \(replaceMarkdown\) imageFileOptions\.insertAbortToast = translate\('editor\.toasts\.imageReplaceTargetMissing'\);/,
   'image upload picker should support replacing one existing image block through an identity-checked target'
 );
 
 assert.match(
-  editorMainSource,
-  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*canDeleteImageResource: \(src\) => !!resolveCurrentImageResource\(src\),[\s\S]*requestImageDelete: \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*editorMainRuntime\.requestAssetDelete\(detail\)[\s\S]*markdownBlocksEditor\.deleteImageBlock\(target\)[\s\S]*editorMainRuntime\.emitAssetDeleteCanceled\(detail\)/,
+  editorMainImageSessionSource,
+  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const canDeleteImageResource = \(src\) => !!resolveCurrentImageResource\(src\);[\s\S]*const requestBlocksImageDelete = \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*blocksEditor\.deleteImageBlock\(target\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
   'visual image blocks should request explicit repository asset deletion before removing the block'
 );
 
 assert.match(
-  editorMainSource,
-  /let selection;[\s\S]*if \(customInsertMarkdown\) \{[\s\S]*selection = customInsertMarkdown\(paths\.relativePath, meta\.altText\);[\s\S]*if \(selection === false\) \{[\s\S]*if \(options\.insertAbortToast\) emitEditorToast\('warn', options\.insertAbortToast\);[\s\S]*continue;[\s\S]*editorMainRuntime\.emitAssetAdded\(\{/,
+  editorMainImageSessionSource,
+  /let selection;[\s\S]*if \(customInsertMarkdown\) \{[\s\S]*selection = customInsertMarkdown\(paths\.relativePath, meta\.altText\);[\s\S]*if \(selection === false\) \{[\s\S]*if \(opts\.insertAbortToast\) emitToast\('warn', opts\.insertAbortToast\);[\s\S]*continue;[\s\S]*runtime\.emitAssetAdded\(\{/,
   'image uploads should skip asset-added events and success toasts when replacement aborts'
 );
 
 assert.match(
-  editorMainSource,
+  editorMainImageSessionSource,
   /let pendingBlocksImageInsert = null;[\s\S]*let pendingImagePickerToken = 0;[\s\S]*const armImagePickerCancelReset = \(token\) => \{[\s\S]*if \(token !== pendingImagePickerToken\) return;[\s\S]*if \(!hasFiles\) pendingBlocksImageInsert = null;[\s\S]*imageInput\.addEventListener\('cancel', clearIfPickerStillPending, \{ once: true \}\);[\s\S]*imageInput\.addEventListener\('blur', clearIfPickerStillPending, \{ once: true \}\);[\s\S]*const openImageInputPicker = \(\) => \{[\s\S]*pendingImagePickerToken \+= 1;[\s\S]*imageInput\.value = '';[\s\S]*armImagePickerCancelReset\(pickerToken\);[\s\S]*imageInput\.click\(\);/,
   'image picker cancellation should clear stale pending replacement targets'
 );
 
 assert.match(
-  editorMainSource,
-  /imageInput\.addEventListener\('change', \(\) => \{[\s\S]*const blockInsert = pendingBlocksImageInsert;[\s\S]*pendingBlocksImageInsert = null;[\s\S]*pendingImagePickerToken \+= 1;[\s\S]*if \(files && files\.length\) \{/,
+  editorMainImageSessionSource,
+  /const handleImageInputChange = \(\) => \{[\s\S]*const blockInsert = pendingBlocksImageInsert;[\s\S]*pendingBlocksImageInsert = null;[\s\S]*pendingImagePickerToken \+= 1;[\s\S]*if \(files && files\.length\) \{[\s\S]*imageInput\.addEventListener\('change', handleImageInputChange\);/,
   'image picker changes should consume the pending replacement target before handling files'
 );
 

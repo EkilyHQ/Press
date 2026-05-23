@@ -1,18 +1,17 @@
 import { configureFetchCachePolicy } from './cache-control.js';
 import { createMarkdownBlocksEditor } from './editor-blocks.js?v=press-system-v3.4.50';
 import { createHiEditor } from './hieditor.js?v=press-system-v3.4.50';
-import { insertImageMarkdownAtSelection } from './editor-markdown-ops.js';
 import { normalizeLineEndings } from './frontmatter-document.js?v=press-system-v3.4.50';
 import { getContentRoot, resolveImageSrc } from './safe-html.js?v=press-system-v3.4.50';
 import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.50';
 import { fetchConfigWithYamlFallback, fetchMergedSiteConfig } from './yaml.js';
 import { t, withLangParam, loadContentJsonWithRaw, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
-import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.50';
 import { createEditorMainMetadataPanel } from './editor-main-metadata-panel.js?v=press-system-v3.4.50';
 import { createEditorMainPreviewSession } from './editor-main-preview-session.js?v=press-system-v3.4.50';
 import { createEditorMainCurrentFileSession } from './editor-main-current-file-session.js?v=press-system-v3.4.50';
 import { createEditorMainSidebarSession } from './editor-main-sidebar-session.js?v=press-system-v3.4.50';
 import { createEditorMainToolbarSession } from './editor-main-toolbar-session.js?v=press-system-v3.4.50';
+import { createEditorMainImageSession } from './editor-main-image-session.js?v=press-system-v3.4.50';
 import {
   createEditorMainRuntime,
   normalizeMarkdownEditorView
@@ -502,37 +501,6 @@ editorMainRuntime.onDocumentReady(() => {
       return translated != null && translated !== translationKey ? translated : (blockLabelFallbacks[name] || name);
     }
   });
-  let pendingBlocksImageInsert = null;
-  let pendingImagePickerToken = 0;
-  const armImagePickerCancelReset = (token) => {
-    const clearIfPickerStillPending = () => {
-      editorMainRuntime.setTimer(() => {
-        if (token !== pendingImagePickerToken) return;
-        const hasFiles = imageInput && imageInput.files && imageInput.files.length;
-        if (!hasFiles) pendingBlocksImageInsert = null;
-      }, 250);
-    };
-    editorMainRuntime.onWindow('focus', clearIfPickerStillPending, { once: true });
-    if (imageInput) {
-      imageInput.addEventListener('cancel', clearIfPickerStillPending, { once: true });
-      imageInput.addEventListener('blur', clearIfPickerStillPending, { once: true });
-    }
-  };
-  const openImageInputPicker = () => {
-    if (!imageInput) {
-      pendingBlocksImageInsert = null;
-      return;
-    }
-    pendingImagePickerToken += 1;
-    const pickerToken = pendingImagePickerToken;
-    try { imageInput.value = ''; } catch (_) {}
-    armImagePickerCancelReset(pickerToken);
-    try { imageInput.click(); }
-    catch (_) {
-      try { imageInput.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
-      catch (__) {}
-    }
-  };
   const setEditorBodyFromBlocks = (body) => {
     const text = body == null ? '' : String(body);
     if (editor) editor.setValue(text);
@@ -542,19 +510,36 @@ editorMainRuntime.onDocumentReady(() => {
     notifyChange();
   };
 
-  const editorText = (key, fallback, params) => {
-    try {
-      const translated = t(key, params);
-      if (translated && translated !== key) return translated;
-    } catch (_) {}
-    return fallback;
+  const getEditorTextarea = () => {
+    if (editor && editor.textarea) return editor.textarea;
+    return ta;
   };
 
-  const resolveCurrentImageResource = (src) => {
-    const markdownPath = getCurrentMarkdownPath();
-    if (!markdownPath) return null;
-    return resolveLocalMarkdownAssetReference(markdownPath, src, getContentRoot());
+  const getCurrentMarkdownPath = () => {
+    return currentFileSession.getPath();
   };
+
+  const emitEditorToast = (kind, message) => {
+    const text = message == null ? '' : String(message);
+    if (!text) return;
+    editorMainRuntime.emitToast(kind, text);
+  };
+
+  const imageSession = createEditorMainImageSession({
+    runtime: editorMainRuntime,
+    windowRef: window,
+    translate: t,
+    imageButton,
+    imageInput,
+    getCurrentMarkdownPath,
+    getContentRoot,
+    getEditorTextarea,
+    getEditorBody,
+    buildMarkdown: (body) => metadataPanel.buildMarkdown(body),
+    setValue,
+    getBlocksEditor: () => markdownBlocksEditor,
+    emitToast: emitEditorToast
+  });
 
   if (blocksWrap) {
     markdownBlocksEditor = createMarkdownBlocksEditor(blocksWrap, {
@@ -580,57 +565,9 @@ editorMainRuntime.onDocumentReady(() => {
           previewSession.applyAssetOverrides(node, getCurrentMarkdownPath());
         } catch (_) {}
       },
-      requestImageUpload: ({ index, replaceIndex, replaceBlockId } = {}) => {
-        pendingBlocksImageInsert = {
-          index: Number.isFinite(index) ? index : null,
-          replaceIndex: Number.isFinite(replaceIndex) ? replaceIndex : null,
-          replaceBlockId: typeof replaceBlockId === 'string' && replaceBlockId ? replaceBlockId : null
-        };
-        if (!getCurrentMarkdownPath()) {
-          emitEditorToast('warn', t('editor.toasts.markdownOpenBeforeInsert'));
-          pendingBlocksImageInsert = null;
-          return;
-        }
-        openImageInputPicker();
-      },
-      canDeleteImageResource: (src) => !!resolveCurrentImageResource(src),
-      requestImageDelete: ({ index, blockId, src } = {}) => {
-        if (!markdownBlocksEditor || typeof markdownBlocksEditor.deleteImageBlock !== 'function') return;
-        const target = {
-          index: Number.isFinite(index) ? index : null,
-          blockId: typeof blockId === 'string' && blockId ? blockId : null
-        };
-        const source = typeof markdownBlocksEditor.getImageBlockSource === 'function'
-          ? markdownBlocksEditor.getImageBlockSource(target)
-          : src;
-        const markdownPath = getCurrentMarkdownPath();
-        if (!markdownPath) {
-          emitEditorToast('warn', t('editor.toasts.markdownOpenBeforeInsert'));
-          return;
-        }
-        const resolved = resolveLocalMarkdownAssetReference(markdownPath, source || src, getContentRoot());
-        if (!resolved) {
-          emitEditorToast('warn', editorText('editor.toasts.assetDeleteUnsupported', 'Only local assets next to the current Markdown file can be deleted.'));
-          return;
-        }
-        const detail = {
-          markdownPath,
-          src: source || src || '',
-          assetPath: resolved.contentPath,
-          commitPath: resolved.commitPath,
-          relativePath: resolved.relativePath
-        };
-        const accepted = editorMainRuntime.requestAssetDelete(detail);
-        if (!accepted || detail.rejected) {
-          emitEditorToast('warn', detail.message || editorText('editor.toasts.assetDeleteRejected', 'This image resource cannot be deleted yet.'));
-          return;
-        }
-        const result = markdownBlocksEditor.deleteImageBlock(target);
-        if (!result) {
-          editorMainRuntime.emitAssetDeleteCanceled(detail);
-          emitEditorToast('warn', editorText('editor.toasts.imageDeleteTargetMissing', 'The image block no longer exists. Select an image block and try again.'));
-        }
-      }
+      requestImageUpload: (detail) => imageSession.requestBlocksImageUpload(detail),
+      canDeleteImageResource: (src) => imageSession.canDeleteImageResource(src),
+      requestImageDelete: (detail) => imageSession.requestBlocksImageDelete(detail)
     });
     syncMarkdownBlocksFromSource = () => {
       if (markdownBlocksEditor && typeof markdownBlocksEditor.setMarkdown === 'function') {
@@ -638,11 +575,6 @@ editorMainRuntime.onDocumentReady(() => {
       }
     };
   }
-
-  const getEditorTextarea = () => {
-    if (editor && editor.textarea) return editor.textarea;
-    return ta;
-  };
 
   const toolbarSession = createEditorMainToolbarSession({
     runtime: editorMainRuntime,
@@ -678,226 +610,6 @@ editorMainRuntime.onDocumentReady(() => {
   toolbarSession.setCardEntries(editorPostPickerEntries);
   handleBlocksCardContextUpdate(editorPostPickerEntries);
 
-  const getCurrentMarkdownPath = () => {
-    return currentFileSession.getPath();
-  };
-
-  const emitEditorToast = (kind, message) => {
-    const text = message == null ? '' : String(message);
-    if (!text) return;
-    editorMainRuntime.emitToast(kind, text);
-  };
-
-  const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
-    if (!file) {
-      reject(new Error('No file provided.'));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const result = reader.result;
-        if (typeof result !== 'string') {
-          reject(new Error('Unexpected file data.'));
-          return;
-        }
-        const comma = result.indexOf(',');
-        const base64 = comma >= 0 ? result.slice(comma + 1) : result;
-        if (!base64) {
-          reject(new Error('Image data is empty.'));
-          return;
-        }
-        resolve(base64);
-      } catch (err) {
-        reject(err);
-      }
-    };
-    reader.onerror = () => {
-      reject(reader.error || new Error('Failed to read image.'));
-    };
-    try {
-      reader.readAsDataURL(file);
-    } catch (err) {
-      reject(err);
-    }
-  });
-
-  const slugifyAssetBase = (value) => {
-    const input = String(value == null ? '' : value).toLowerCase();
-    const cleaned = input.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    return cleaned ? cleaned.slice(0, 48) : 'image';
-  };
-
-  const inferAssetExtension = (file) => {
-    if (!file) return '.png';
-    const name = typeof file.name === 'string' ? file.name : '';
-    const extMatch = name.match(/\.([a-zA-Z0-9]+)$/);
-    let ext = extMatch ? `.${extMatch[1].toLowerCase()}` : '';
-    const normalize = (value) => (value && value.startsWith('.') ? value : `.${value || ''}`);
-    const type = (file.type || '').toLowerCase();
-    const typeMap = {
-      'image/jpeg': '.jpg',
-      'image/jpg': '.jpg',
-      'image/png': '.png',
-      'image/gif': '.gif',
-      'image/webp': '.webp',
-      'image/svg+xml': '.svg',
-      'image/avif': '.avif',
-      'image/bmp': '.bmp',
-      'image/heic': '.heic',
-      'image/heif': '.heif'
-    };
-    if (!ext && typeMap[type]) ext = typeMap[type];
-    if (!ext && type.includes('jpeg')) ext = '.jpg';
-    if (!ext && type.includes('png')) ext = '.png';
-    if (!ext) ext = '.png';
-    ext = normalize(ext.toLowerCase());
-    return ext.replace(/[^.a-z0-9]/g, '') || '.png';
-  };
-
-  const buildAssetFileMeta = (file) => {
-    const original = file && typeof file.name === 'string' ? file.name : '';
-    const dot = original.lastIndexOf('.');
-    const baseRaw = dot > 0 ? original.slice(0, dot) : original;
-    const slug = slugifyAssetBase(baseRaw);
-    const ext = inferAssetExtension(file);
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).slice(2, 6);
-    const fileName = `${slug}-${timestamp}${random ? `-${random}` : ''}${ext}`;
-    const altText = baseRaw && baseRaw.trim() ? baseRaw.trim() : slug.replace(/-/g, ' ').trim();
-    return { fileName, altText: altText || slug };
-  };
-
-  const computeAssetPaths = (markdownPath, fileName) => {
-    const normalized = String(markdownPath || '').replace(/[\\]/g, '/').replace(/^\/+/, '');
-    const idx = normalized.lastIndexOf('/');
-    const dir = idx >= 0 ? normalized.slice(0, idx) : '';
-    const assetDir = dir ? `${dir}/assets` : 'assets';
-    const commitPath = `${assetDir}/${fileName}`.replace(/\/+/g, '/');
-    const relativePath = `assets/${fileName}`;
-    return { commitPath, relativePath };
-  };
-
-  const insertImageMarkdown = (relativePath, altText) => {
-    const target = getEditorTextarea();
-    const content = target ? (target.value || '') : getEditorBody();
-    const start = target && Number.isFinite(target.selectionStart) ? target.selectionStart : content.length;
-    const end = target && Number.isFinite(target.selectionEnd) ? target.selectionEnd : start;
-    const insertion = insertImageMarkdownAtSelection(content, start, end, relativePath, altText);
-    const next = metadataPanel.buildMarkdown(insertion.value);
-    setValue(next, { notify: true });
-    return {
-      altStart: insertion.altStart,
-      altEnd: insertion.altEnd,
-      afterIndex: insertion.afterIndex
-    };
-  };
-
-  const isImageFile = (file) => {
-    if (!file) return false;
-    if (file.type) return file.type.startsWith('image/');
-    const name = typeof file.name === 'string' ? file.name : '';
-    return /\.(?:png|jpe?g|gif|bmp|webp|svg|avif|heic|heif)$/i.test(name);
-  };
-
-  const containsImageFile = (dataTransfer) => {
-    if (!dataTransfer) return false;
-    const files = dataTransfer.files;
-    if (files && files.length) {
-      for (let i = 0; i < files.length; i += 1) {
-        if (isImageFile(files[i])) return true;
-      }
-    }
-    if (dataTransfer.items && dataTransfer.items.length) {
-      for (let i = 0; i < dataTransfer.items.length; i += 1) {
-        const item = dataTransfer.items[i];
-        if (item && item.kind === 'file') {
-          try {
-            const file = item.getAsFile();
-            if (isImageFile(file)) return true;
-          } catch (_) { /* ignore */ }
-        }
-      }
-    }
-    return false;
-  };
-
-  const handleImageFiles = async (fileList, options = {}) => {
-    const markdownPath = getCurrentMarkdownPath();
-    if (!markdownPath) {
-      emitEditorToast('warn', 'Open a markdown file before inserting images.');
-      return;
-    }
-    const files = Array.from(fileList || []).filter(isImageFile);
-    if (!files.length) {
-      if (fileList && fileList.length) emitEditorToast('warn', 'Only image files can be inserted.');
-      return;
-    }
-    if (options.singleImage && files.length > 1) files.splice(1);
-
-    const textarea = getEditorTextarea();
-    const customInsertMarkdown = typeof options.insertMarkdown === 'function' ? options.insertMarkdown : null;
-    let lastSelection = null;
-
-    for (let i = 0; i < files.length; i += 1) {
-      const file = files[i];
-      if (lastSelection && textarea) {
-        try { textarea.setSelectionRange(lastSelection.afterIndex, lastSelection.afterIndex); }
-        catch (_) {}
-      }
-      let base64;
-      try {
-        base64 = await readFileAsBase64(file);
-      } catch (err) {
-        console.error('Failed to read image for insertion', err);
-        emitEditorToast('error', err && err.message ? err.message : 'Failed to read image file.');
-        continue;
-      }
-
-      const meta = buildAssetFileMeta(file);
-      const paths = computeAssetPaths(markdownPath, meta.fileName);
-      let selection;
-      if (customInsertMarkdown) {
-        selection = customInsertMarkdown(paths.relativePath, meta.altText);
-        if (selection === false) {
-          if (options.insertAbortToast) emitEditorToast('warn', options.insertAbortToast);
-          continue;
-        }
-        selection = selection || {};
-      } else {
-        selection = insertImageMarkdown(paths.relativePath, meta.altText);
-      }
-      lastSelection = selection;
-
-      if (!customInsertMarkdown && textarea) {
-        try {
-          textarea.focus();
-          textarea.setSelectionRange(selection.altStart, selection.altEnd);
-        } catch (_) {}
-      }
-
-      try {
-        editorMainRuntime.emitAssetAdded({
-          markdownPath,
-          fileName: meta.fileName,
-          commitPath: paths.commitPath,
-          relativePath: paths.relativePath,
-          base64,
-          mime: file.type || '',
-          size: file.size || 0,
-          originalName: file.name || '',
-          altText: meta.altText,
-          source: options.source || 'picker',
-          silent: true
-        });
-      } catch (err) {
-        console.error('Failed to dispatch asset-added event', err);
-      }
-
-      emitEditorToast('success', t('editor.toasts.assetAttached', { label: paths.relativePath }));
-    }
-  };
-
   const bindCurrentFileElement = (el) => {
     currentFileSession.bindElement(el);
   };
@@ -930,85 +642,7 @@ editorMainRuntime.onDocumentReady(() => {
   }
 
   setBaseDir('');
-
-  if (imageButton) {
-    imageButton.addEventListener('click', (event) => {
-      if (event && typeof event.preventDefault === 'function') event.preventDefault();
-      pendingBlocksImageInsert = null;
-      if (!getCurrentMarkdownPath()) {
-        emitEditorToast('warn', 'Open a markdown file before inserting images.');
-        return;
-      }
-      openImageInputPicker();
-    });
-  }
-
-  if (imageInput) {
-    imageInput.addEventListener('change', () => {
-      const files = imageInput.files;
-      const blockInsert = pendingBlocksImageInsert;
-      pendingBlocksImageInsert = null;
-      pendingImagePickerToken += 1;
-      if (files && files.length) {
-        const replaceIndex = blockInsert && Number.isFinite(blockInsert.replaceIndex)
-          ? blockInsert.replaceIndex
-          : null;
-        const replaceBlockId = blockInsert && typeof blockInsert.replaceBlockId === 'string'
-          ? blockInsert.replaceBlockId
-          : null;
-        let insertIndex = blockInsert && Number.isFinite(blockInsert.index)
-          ? blockInsert.index
-          : null;
-        const replaceMarkdown = (replaceIndex != null || replaceBlockId)
-          && markdownBlocksEditor
-          && typeof markdownBlocksEditor.replaceImageBlock === 'function'
-          ? (relativePath) => {
-            const result = markdownBlocksEditor.replaceImageBlock(relativePath, { index: replaceIndex, blockId: replaceBlockId });
-            if (!result) return false;
-            return {};
-          }
-          : null;
-        const insertMarkdown = !replaceMarkdown && blockInsert && markdownBlocksEditor && typeof markdownBlocksEditor.insertImageBlock === 'function'
-          ? (relativePath, altText) => {
-            const result = markdownBlocksEditor.insertImageBlock(relativePath, altText, insertIndex);
-            if (result && Number.isFinite(result.index)) insertIndex = result.index + 1;
-            return {};
-          }
-          : null;
-        const markdownHandler = replaceMarkdown || insertMarkdown;
-        const imageFileOptions = markdownHandler
-          ? { source: 'picker', insertMarkdown: markdownHandler, singleImage: !!replaceMarkdown }
-          : { source: 'picker' };
-        if (replaceMarkdown) imageFileOptions.insertAbortToast = t('editor.toasts.imageReplaceTargetMissing');
-        handleImageFiles(files, imageFileOptions).catch((err) => {
-          console.error('Image insertion failed', err);
-        });
-      }
-      imageInput.value = '';
-    });
-  }
-
-  const markdownTextarea = getEditorTextarea();
-  if (markdownTextarea) {
-    markdownTextarea.addEventListener('dragover', (event) => {
-      if (!event || !event.dataTransfer) return;
-      if (!containsImageFile(event.dataTransfer)) return;
-      event.preventDefault();
-      try { event.dataTransfer.dropEffect = 'copy'; }
-      catch (_) {}
-    });
-    markdownTextarea.addEventListener('drop', (event) => {
-      if (!event || !event.dataTransfer) return;
-      if (!containsImageFile(event.dataTransfer)) return;
-      event.preventDefault();
-      const files = event.dataTransfer.files;
-      if (files && files.length) {
-        handleImageFiles(files, { source: 'drop' }).catch((err) => {
-          console.error('Image drop failed', err);
-        });
-      }
-    });
-  }
+  imageSession.bind();
 
   const applyMarkdownEditorView = (mode, opts = {}) => {
     if (mode === 'preview') {

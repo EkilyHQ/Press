@@ -49,11 +49,7 @@ import {
   COMPOSER_RUNTIME_EVENTS,
   createComposerRuntime
 } from './composer-runtime.js?v=press-system-v3.4.50';
-import { createComposerSyncCommitController } from './composer-sync-commit-controller.js?v=press-system-v3.4.50';
-import { createSyncOverlayController } from './composer-sync-overlay.js?v=press-system-v3.4.50';
-import { createPublishTransportSettingsUi } from './composer-publish-settings-ui.js?v=press-system-v3.4.50';
-import { createPublishSummaryRenderer } from './composer-publish-summary.js?v=press-system-v3.4.50';
-import { createComposerPublishFlow } from './composer-publish-flow.js?v=press-system-v3.4.50';
+import { createComposerPublishService } from './composer-publish-service.js?v=press-system-v3.4.50';
 import { createComposerNotificationController } from './composer-notifications.js?v=press-system-v3.4.50';
 import { createComposerDialogController } from './composer-dialogs.js?v=press-system-v3.4.50';
 import { createComposerRemoteSyncController } from './composer-remote-sync.js?v=press-system-v3.4.50';
@@ -119,8 +115,7 @@ import {
 import { createEditorFileTreeUi } from './editor-file-tree-ui.js?v=press-system-v3.4.50';
 import { createEditorStructurePanelUi } from './editor-structure-panel-ui.js?v=press-system-v3.4.50';
 import {
-  CONNECT_PUBLISH_PRESETS,
-  createPublishSettingsStore
+  CONNECT_PUBLISH_PRESETS
 } from './publish/settings-store.js?v=press-system-v3.4.50';
 
 // Utility helpers
@@ -227,87 +222,31 @@ const {
   requestMarkdownProtectionPassword
 } = composerDialogs;
 
-const publishSettingsStore = createPublishSettingsStore({
-  windowRef: window,
-  scopeKey: scopedEditorStorageKey
-});
-let syncCommitController = null;
-const syncOverlayController = createSyncOverlayController({
-  documentRef: document,
-  windowRef: window,
-  translate: t
-});
-const {
-  show: showSyncOverlay,
-  hide: hideSyncOverlay,
-  setMessage: setSyncOverlayMessage,
-  setStatus: setSyncOverlayStatus,
-  setCancelHandler: setSyncOverlayCancelHandler,
-  startRemoteWatcher: startRemoteSyncWatcher
-} = syncOverlayController;
-const publishTransportUi = createPublishTransportSettingsUi({
+const composerPublishService = createComposerPublishService({
   documentRef: document,
   windowRef: window,
   t,
-  publishSettingsStore,
-  getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
-  applyMode: (mode, options) => applyMode(mode, options),
-  showEditorSystemPanel: (mode) => showEditorSystemPanel(mode),
-  refreshSyncCommitPanel: (options) => refreshSyncCommitPanel(options),
-  scheduleSyncCommitPanelRefresh: () => scheduleSyncCommitPanelRefresh()
-});
-const {
-  setCachedFineGrainedToken,
-  clearCachedFineGrainedToken,
-  getFineGrainedTokenValue,
-  getCachedConnectPublishGrant,
-  setCachedConnectPublishGrant,
-  clearCachedConnectPublishGrant,
-  getMatchingConnectPublishGrant,
-  resolvePublishTransport,
-  getVisibleFineGrainedTokenInput,
-  renderFineGrainedTokenSettings,
-  renderPublishTransportSettings,
-  switchToPatFallbackAndFocusToken
-} = publishTransportUi;
-const publishSummaryRenderer = createPublishSummaryRenderer({
-  documentRef: document,
-  windowRef: window,
-  t
-});
-const {
-  describeSummaryEntry,
-  appendGithubCommitSummary
-} = publishSummaryRenderer;
-const publishFlow = createComposerPublishFlow({
-  windowRef: window,
-  documentRef: document,
-  t,
+  scopeKey: scopedEditorStorageKey,
   getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
   getTrackedPublishContentRoot: () => getTrackedPublishContentRoot(),
   gatherCommitPayload: (options) => gatherCommitPayload(options),
   applyLocalPostCommitState: (files) => postCommitStateApplier.apply(files),
-  getCachedConnectPublishGrant,
-  setCachedConnectPublishGrant,
-  clearCachedConnectPublishGrant,
-  clearCachedFineGrainedToken,
-  showSyncOverlay,
-  hideSyncOverlay,
-  setSyncOverlayStatus,
-  setSyncOverlayMessage,
-  setSyncOverlayCancelHandler,
+  getCurrentMode: () => getCurrentComposerMode(),
+  computeUnsyncedSummary,
+  applyMode: (mode, options) => applyMode(mode, options),
+  showEditorSystemPanel: (mode) => showEditorSystemPanel(mode),
   showToast,
-  describeSummaryEntry,
-  switchToPatFallbackAndFocusToken,
   setGitHubCommitInFlight: (value) => {
     gitHubCommitInFlight = !!value;
   }
 });
 const {
-  performDirectGithubCommit,
-  performConnectGithubCommit,
-  ensureConnectPublishGrant
-} = publishFlow;
+  setSyncOverlayStatus,
+  startRemoteSyncWatcher,
+  renderPublishTransportSettings,
+  refreshSyncCommitPanel,
+  scheduleSyncCommitPanelRefresh
+} = composerPublishService;
 
 const DRAFT_STORAGE_KEY = 'press_composer_drafts_v1';
 const MARKDOWN_DRAFT_STORAGE_KEY = 'press_markdown_editor_drafts_v1';
@@ -1323,41 +1262,6 @@ async function gatherCommitPayload(options = {}) {
   const seoFiles = files.filter(file => file && file.kind === 'seo');
   return { files, seoFiles, warnings: providerResult.warnings || [] };
 }
-
-function getSyncCommitController() {
-  if (!syncCommitController) throw new Error('Sync commit controller is not initialized');
-  return syncCommitController;
-}
-
-async function refreshSyncCommitPanel(options = {}) {
-  return getSyncCommitController().refresh(options);
-}
-
-function scheduleSyncCommitPanelRefresh() {
-  return getSyncCommitController().scheduleRefresh();
-}
-
-syncCommitController = createComposerSyncCommitController({
-  documentRef: document,
-  windowRef: window,
-  t,
-  getCurrentMode: () => getCurrentComposerMode(),
-  computeUnsyncedSummary,
-  gatherCommitPayload,
-  resolvePublishTransport,
-  getMatchingConnectPublishGrant,
-  renderFineGrainedTokenSettings,
-  appendGithubCommitSummary,
-  getVisibleFineGrainedTokenInput,
-  getFineGrainedTokenValue,
-  setCachedFineGrainedToken,
-  ensureConnectPublishGrant,
-  getActiveSiteRepoConfig,
-  showToast,
-  performConnectGithubCommit,
-  performDirectGithubCommit,
-  switchToPatFallbackAndFocusToken
-});
 
 function getActiveSiteRepoConfig() {
   const site = getStateSlice('site');

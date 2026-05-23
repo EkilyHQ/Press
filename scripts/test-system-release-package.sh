@@ -371,6 +371,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-sync-commit-controller
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-publish-service.js" "${entries_file}"; then
+  echo "expected package to include composer publish app-service code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-bootstrap.js" "${entries_file}"; then
   echo "expected package to include composer bootstrap and workspace assembly code" >&2
   exit 1

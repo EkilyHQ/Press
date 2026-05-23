@@ -17,6 +17,7 @@ const composerPath = resolve(here, '../assets/js/composer.js');
 const composerSyncPanelPath = resolve(here, '../assets/js/composer-sync-panel.js');
 const composerSyncCommitControllerPath = resolve(here, '../assets/js/composer-sync-commit-controller.js');
 const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
+const composerPublishServicePath = resolve(here, '../assets/js/composer-publish-service.js');
 const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
@@ -125,6 +126,7 @@ const source = readFileSync(composerPath, 'utf8');
 const composerSyncPanelSource = readFileSync(composerSyncPanelPath, 'utf8');
 const composerSyncCommitControllerSource = readFileSync(composerSyncCommitControllerPath, 'utf8');
 const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
+const composerPublishServiceSource = readFileSync(composerPublishServicePath, 'utf8');
 const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
@@ -3933,20 +3935,38 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-sync-commit-controller\.js\?v=[\w.-]+'/,
-  'composer should cache-bust the extracted Sync commit controller boundary'
+  /from '\.\/composer-publish-service\.js\?v=[\w.-]+'/,
+  'composer should cache-bust the explicit composer publish app-service boundary'
 );
 
 assert.doesNotMatch(
   source,
-  /let syncCommitPanelRenderSeq|let syncCommitPanelRefreshTimer|function appendPublishTransportStatus|function getSyncCommitPanelHost/,
-  'composer should not own Sync commit panel render sequencing, host creation, or transport status DOM'
+  /let syncCommitPanelRenderSeq|let syncCommitPanelRefreshTimer|function appendPublishTransportStatus|function getSyncCommitPanelHost|createComposerSyncCommitController|createSyncOverlayController|createPublishTransportSettingsUi|createPublishSummaryRenderer|createComposerPublishFlow|createPublishSettingsStore/,
+  'composer should not own Sync commit panel rendering or publish control-plane service assembly'
 );
 
 assert.match(
   source,
-  /syncCommitController = createComposerSyncCommitController\(\{[\s\S]*computeUnsyncedSummary,[\s\S]*gatherCommitPayload,[\s\S]*resolvePublishTransport,[\s\S]*ensureConnectPublishGrant,[\s\S]*performConnectGithubCommit,[\s\S]*performDirectGithubCommit/,
-  'composer should wire the Sync commit controller with app services instead of rendering the commit panel itself'
+  /const composerPublishService = createComposerPublishService\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => postCommitStateApplier\.apply\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*setGitHubCommitInFlight/,
+  'composer should pass app callbacks into the publish service instead of assembling the publish control plane itself'
+);
+
+assert.match(
+  composerPublishServiceSource,
+  /from '\.\/composer-sync-commit-controller\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-sync-overlay\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-settings-ui\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-summary\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-flow\.js\?v=[\w.-]+'[\s\S]*from '\.\/publish\/settings-store\.js\?v=[\w.-]+'/,
+  'composer publish service should cache-bust the publish control-plane modules it composes'
+);
+
+assert.match(
+  composerPublishServiceSource,
+  /export function createComposerPublishService\(options = \{\}\)[\s\S]*const publishSettingsStore = createPublishSettingsStoreRef\([\s\S]*const syncOverlayController = createSyncOverlayControllerRef\([\s\S]*const publishTransportUi = createPublishTransportSettingsUiRef\([\s\S]*const publishSummaryRenderer = createPublishSummaryRendererRef\([\s\S]*const publishFlow = createComposerPublishFlowRef\([\s\S]*syncCommitController = createComposerSyncCommitControllerRef\(/,
+  'composer publish service should own settings, overlay, transport UI, summary, publish flow, and Sync commit controller assembly'
+);
+
+assert.match(
+  composerPublishServiceSource,
+  /return \{[\s\S]*setSyncOverlayStatus,[\s\S]*startRemoteSyncWatcher,[\s\S]*renderPublishTransportSettings,[\s\S]*refreshSyncCommitPanel,[\s\S]*scheduleSyncCommitPanelRefresh[\s\S]*\};/,
+  'composer publish service should expose only app-level publish controls back to composer'
 );
 
 assert.match(

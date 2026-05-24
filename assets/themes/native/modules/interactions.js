@@ -16,7 +16,6 @@ const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
 
 let themeI18n = null;
-let activeRegions = null;
 let nativeLinkCardsModulePromise = null;
 
 function loadNativeLinkCardsModule() {
@@ -40,12 +39,17 @@ async function hydrateInternalLinkCardsFallback(container, options = {}) {
 
 function setThemeI18n(context = {}) {
   themeI18n = context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null;
-  activeRegions = context && context.regions && typeof context.regions === 'object' ? context.regions : null;
 }
 
-function getRegion(name, documentRef = defaultDocument) {
+function getRuntimeRegions(runtimeState = null) {
+  const regions = runtimeState && runtimeState.regions;
+  return regions && typeof regions === 'object' ? regions : null;
+}
+
+function getRegion(name, documentRef = defaultDocument, runtimeState = null) {
   const key = String(name || '').trim();
   if (!key) return null;
+  const activeRegions = getRuntimeRegions(runtimeState);
   try {
     if (activeRegions && typeof activeRegions.get === 'function') {
       const region = activeRegions.get(key);
@@ -63,13 +67,14 @@ function getRegion(name, documentRef = defaultDocument) {
   }
 }
 
-function getMainRegion(documentRef = defaultDocument) {
+function getMainRegion(documentRef = defaultDocument, runtimeState = null) {
+  const activeRegions = getRuntimeRegions(runtimeState);
   if (activeRegions && activeRegions.main && activeRegions.main.nodeType === 1) return activeRegions.main;
   if (documentRef && documentRef.querySelector) {
     const explicit = documentRef.querySelector('[data-theme-region="main"], .native-mainview');
     if (explicit) return explicit;
   }
-  const region = getRegion('main', documentRef);
+  const region = getRegion('main', documentRef, runtimeState);
   if (!region) return null;
   try {
     if (region.matches && region.matches('[data-theme-region="main"], .native-mainview')) return region;
@@ -77,24 +82,24 @@ function getMainRegion(documentRef = defaultDocument) {
   return null;
 }
 
-function getTocRegion(documentRef = defaultDocument) {
-  return getRegion('toc', documentRef) || (documentRef && documentRef.querySelector && documentRef.querySelector('.native-toc')) || null;
+function getTocRegion(documentRef = defaultDocument, runtimeState = null) {
+  return getRegion('toc', documentRef, runtimeState) || (documentRef && documentRef.querySelector && documentRef.querySelector('.native-toc')) || null;
 }
 
-function getNavRegion(documentRef = defaultDocument) {
-  return getRegion('nav', documentRef) || (documentRef && documentRef.querySelector && documentRef.querySelector('.native-tabs')) || null;
+function getNavRegion(documentRef = defaultDocument, runtimeState = null) {
+  return getRegion('nav', documentRef, runtimeState) || (documentRef && documentRef.querySelector && documentRef.querySelector('.native-tabs')) || null;
 }
 
-function getTagsRegion(documentRef = defaultDocument) {
-  return getRegion('tags', documentRef) || (documentRef && documentRef.querySelector && documentRef.querySelector('.native-tagbox')) || null;
+function getTagsRegion(documentRef = defaultDocument, runtimeState = null) {
+  return getRegion('tags', documentRef, runtimeState) || (documentRef && documentRef.querySelector && documentRef.querySelector('.native-tagbox')) || null;
 }
 
-function getSearchRegion(documentRef = defaultDocument) {
-  return getRegion('search', documentRef) || (documentRef && documentRef.querySelector && documentRef.querySelector('press-search.native-searchbox, press-search')) || null;
+function getSearchRegion(documentRef = defaultDocument, runtimeState = null) {
+  return getRegion('search', documentRef, runtimeState) || (documentRef && documentRef.querySelector && documentRef.querySelector('press-search.native-searchbox, press-search')) || null;
 }
 
-function getSearchInput(documentRef = defaultDocument) {
-  const search = getSearchRegion(documentRef);
+function getSearchInput(documentRef = defaultDocument, runtimeState = null) {
+  const search = getSearchRegion(documentRef, runtimeState);
   return (search && search.input) || (search && search.querySelector && search.querySelector('input[type="search"]')) || null;
 }
 
@@ -145,8 +150,9 @@ function withLangParam(urlStr) {
   }
 }
 
-function createNativeInteractionsRuntimeState() {
+function createNativeInteractionsRuntimeState(context = {}) {
   return {
+    regions: context && context.regions && typeof context.regions === 'object' ? context.regions : null,
     hasInitiallyRendered: false,
     pendingHighlightRaf: 0,
     tabsResizeTimer: 0,
@@ -265,28 +271,28 @@ function getFetcher(windowRef = defaultWindow) {
   return candidate || null;
 }
 
-function getContainerByRole(role, documentRef = defaultDocument) {
+function getContainerByRole(role, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return null;
   try {
     switch (role) {
       case 'main':
-        return getMainRegion(documentRef);
+        return getMainRegion(documentRef, runtimeState);
       case 'toc':
-        return getTocRegion(documentRef);
+        return getTocRegion(documentRef, runtimeState);
       case 'sidebar':
-        return getRegion('sidebar', documentRef) || documentRef.querySelector('.sidebar');
+        return getRegion('sidebar', documentRef, runtimeState) || documentRef.querySelector('.sidebar');
       case 'content':
-        return getRegion('content', documentRef) || documentRef.querySelector('.content');
+        return getRegion('content', documentRef, runtimeState) || documentRef.querySelector('.content');
       case 'container': {
-        const main = getContainerByRole('main', documentRef);
+        const main = getContainerByRole('main', documentRef, runtimeState);
         return main ? main.closest('.box') : null;
       }
       case 'search':
-        return getSearchRegion(documentRef);
+        return getSearchRegion(documentRef, runtimeState);
       case 'nav':
-        return getNavRegion(documentRef);
+        return getNavRegion(documentRef, runtimeState);
       case 'tags':
-        return getTagsRegion(documentRef);
+        return getTagsRegion(documentRef, runtimeState);
       default:
         return null;
     }
@@ -340,7 +346,7 @@ function restoreScrollStateNative(params = {}, documentRef = defaultDocument, wi
   }
 }
 
-function resolveViewContainersNative(params = {}, documentRef = defaultDocument) {
+function resolveViewContainersNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   const view = params.view;
   const base = params.containers && typeof params.containers === 'object' ? params.containers : {};
   const result = { view };
@@ -349,22 +355,22 @@ function resolveViewContainersNative(params = {}, documentRef = defaultDocument)
   if (base.sidebarElement) result.sidebarElement = base.sidebarElement;
   if (base.contentElement) result.contentElement = base.contentElement;
   if (base.containerElement) result.containerElement = base.containerElement;
-  if (!result.mainElement) result.mainElement = getContainerByRole('main', documentRef);
-  if (!result.tocElement) result.tocElement = getContainerByRole('toc', documentRef);
-  if (!result.sidebarElement) result.sidebarElement = getContainerByRole('sidebar', documentRef);
-  if (!result.contentElement) result.contentElement = getContainerByRole('content', documentRef);
-  if (!result.containerElement) result.containerElement = getContainerByRole('container', documentRef);
+  if (!result.mainElement) result.mainElement = getContainerByRole('main', documentRef, runtimeState);
+  if (!result.tocElement) result.tocElement = getContainerByRole('toc', documentRef, runtimeState);
+  if (!result.sidebarElement) result.sidebarElement = getContainerByRole('sidebar', documentRef, runtimeState);
+  if (!result.contentElement) result.contentElement = getContainerByRole('content', documentRef, runtimeState);
+  if (!result.containerElement) result.containerElement = getContainerByRole('container', documentRef, runtimeState);
   return result;
 }
 
-function updateSearchPlaceholderNative(params = {}, documentRef = defaultDocument) {
+function updateSearchPlaceholderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
   const search = documentRef.querySelector('press-search');
   if (search && typeof search.setPlaceholder === 'function') {
     search.setPlaceholder(params && params.placeholder != null ? String(params.placeholder) : '');
     return true;
   }
-  const input = getSearchInput(documentRef);
+  const input = getSearchInput(documentRef, runtimeState);
   if (!input) return false;
   const placeholder = params && params.placeholder != null ? String(params.placeholder) : '';
   input.setAttribute('placeholder', placeholder);
@@ -386,7 +392,7 @@ function setupThemeControlsNative(params = {}) {
 }
 
 function handleWindowResizeNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = createNativeInteractionsRuntimeState()) {
-  const nav = documentRef ? getNavRegion(documentRef) : null;
+  const nav = documentRef ? getNavRegion(documentRef, runtimeState) : null;
   if (!nav) return false;
   updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
   return true;
@@ -498,9 +504,9 @@ async function warnLargeImagesInNative(containerSelector, cfg = {}, documentRef 
   } catch (_) {}
 }
 
-function bindPostVersionSelectorsNative(documentRef = defaultDocument, windowRef = defaultWindow) {
+function bindPostVersionSelectorsNative(documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   try {
-    const root = documentRef ? getMainRegion(documentRef) : null;
+    const root = documentRef ? getMainRegion(documentRef, runtimeState) : null;
     if (!root) return;
     const selects = Array.from(root.querySelectorAll('select.post-version-select'));
     if (!selects.length) return;
@@ -703,11 +709,12 @@ function hideElementNative(params = {}, windowRef = defaultWindow) {
   }
 }
 
-function updateLayoutLoadingStateNative(params = {}, documentRef = defaultDocument) {
+function updateLayoutLoadingStateNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
   const content = scope.contentElement || params.contentElement || (documentRef && documentRef.querySelector('.content'));
   const sidebar = scope.sidebarElement || params.sidebarElement || (documentRef && documentRef.querySelector('.sidebar'));
-  const container = scope.containerElement || params.containerElement || (getMainRegion(documentRef) && getMainRegion(documentRef).closest('.box'));
+  const mainRegion = getMainRegion(documentRef, runtimeState);
+  const container = scope.containerElement || params.containerElement || (mainRegion && mainRegion.closest('.box'));
   const extra = Array.isArray(params.extraContentClasses) ? params.extraContentClasses : [];
   const toggle = (element, base = []) => {
     if (!element || !element.classList) return;
@@ -724,9 +731,9 @@ function updateLayoutLoadingStateNative(params = {}, documentRef = defaultDocume
   return !!(content || sidebar || container);
 }
 
-function resetTOCNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function resetTOCNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const toc = scope.tocElement || params.tocElement || (documentRef ? getTocRegion(documentRef) : null);
+  const toc = scope.tocElement || params.tocElement || (documentRef ? getTocRegion(documentRef, runtimeState) : null);
   if (!toc) return false;
   const clear = () => {
     try {
@@ -753,9 +760,9 @@ function resetTOCNative(params = {}, documentRef = defaultDocument, windowRef = 
   return true;
 }
 
-function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const toc = scope.tocElement || params.tocElement || (documentRef ? getTocRegion(documentRef) : null);
+  const toc = scope.tocElement || params.tocElement || (documentRef ? getTocRegion(documentRef, runtimeState) : null);
   if (!toc) return false;
   const translate = params.translate || params.translator || t;
   const title = params.articleTitle != null ? String(params.articleTitle) : '';
@@ -769,7 +776,7 @@ function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowR
       baseDir,
       topLabel: translate('ui.top'),
       topAria: translate('ui.backToTop') || translate('ui.top') || 'Back to top',
-      contentRoot: scope.mainElement || getMainRegion(documentRef)
+      contentRoot: scope.mainElement || getMainRegion(documentRef, runtimeState)
     });
     return true;
   }
@@ -797,9 +804,9 @@ function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowR
   return true;
 }
 
-function renderErrorStateNative(params = {}, documentRef = defaultDocument) {
+function renderErrorStateNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const target = scope.mainElement || params.targetElement || (documentRef ? getMainRegion(documentRef) : null);
+  const target = scope.mainElement || params.targetElement || (documentRef ? getMainRegion(documentRef, runtimeState) : null);
   if (!target) return false;
   const variant = String(params.variant || 'error').trim() || 'error';
   const title = params.title != null ? String(params.title) : '';
@@ -828,11 +835,11 @@ function renderErrorStateNative(params = {}, documentRef = defaultDocument) {
   return true;
 }
 
-function handleViewChangeNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function handleViewChangeNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   const context = params && params.context && typeof params.context === 'object' ? params.context : {};
-  const search = context.searchElement || params.searchElement || (documentRef ? getSearchRegion(documentRef) : null);
-  const tags = context.tagElement || params.tagElement || (documentRef ? getTagsRegion(documentRef) : null);
-  const input = params.searchInput || (search && search.input) || (documentRef ? getSearchInput(documentRef) : null);
+  const search = context.searchElement || params.searchElement || (documentRef ? getSearchRegion(documentRef, runtimeState) : null);
+  const tags = context.tagElement || params.tagElement || (documentRef ? getTagsRegion(documentRef, runtimeState) : null);
+  const input = params.searchInput || (search && search.input) || (documentRef ? getSearchInput(documentRef, runtimeState) : null);
   const showSearch = context.showSearch != null ? !!context.showSearch : !!params.showSearch;
   const showTags = context.showTags != null ? !!context.showTags : !!params.showTags;
   const queryValue = context.queryValue != null ? context.queryValue : params.queryValue;
@@ -870,7 +877,7 @@ function initializeSyntaxHighlightingNative(params = {}) {
 }
 
 function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = createNativeInteractionsRuntimeState()) {
-  const containerEl = params.containerElement || getContainerByRole('main', documentRef);
+  const containerEl = params.containerElement || getContainerByRole('main', documentRef, runtimeState);
   const indexEl = params.indexElement || (containerEl ? containerEl.querySelector('.index') : null);
   const indexSelector = params.indexSelector || '.native-mainview .index';
   if (typeof params.hydrateCardCovers === 'function') {
@@ -919,10 +926,10 @@ function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, wi
   return true;
 }
 
-function decoratePostViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function decoratePostViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return false;
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const container = scope.mainElement || params.container || getMainRegion(documentRef);
+  const container = scope.mainElement || params.container || getMainRegion(documentRef, runtimeState);
   if (!container) return false;
   const translate = params.translate || params.t || t;
   const articleTitle = params.articleTitle != null ? String(params.articleTitle) : '';
@@ -1140,11 +1147,11 @@ function renderFooterNavNative(params = {}, documentRef = defaultDocument, windo
   return true;
 }
 
-function renderPostLoadingStateNative(params = {}, documentRef = defaultDocument) {
+function renderPostLoadingStateNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const toc = scope.tocElement || params.tocElement || getTocRegion(documentRef);
-  const main = scope.mainElement || params.mainElement || getMainRegion(documentRef);
+  const toc = scope.tocElement || params.tocElement || getTocRegion(documentRef, runtimeState);
+  const main = scope.mainElement || params.mainElement || getMainRegion(documentRef, runtimeState);
   const translate = params.translator || params.t || t;
   const renderSkeleton = typeof params.renderSkeletonArticle === 'function' ? params.renderSkeletonArticle : renderSkeletonArticle;
   const ensureAutoHeight = typeof params.ensureAutoHeight === 'function' ? params.ensureAutoHeight : (() => {});
@@ -1166,19 +1173,19 @@ function renderPostLoadingStateNative(params = {}, documentRef = defaultDocument
   return true;
 }
 
-function renderStaticTabLoadingStateNative(params = {}, documentRef = defaultDocument) {
+function renderStaticTabLoadingStateNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const main = scope.mainElement || params.mainElement || getMainRegion(documentRef);
+  const main = scope.mainElement || params.mainElement || getMainRegion(documentRef, runtimeState);
   const renderSkeleton = typeof params.renderSkeletonArticle === 'function' ? params.renderSkeletonArticle : renderSkeletonArticle;
   if (main) main.innerHTML = renderSkeleton();
   return !!main;
 }
 
-function renderPostViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderPostViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return { handled: false, title: params && params.fallbackTitle ? String(params.fallbackTitle) : '' };
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const container = scope.mainElement || params.container || getMainRegion(documentRef);
+  const container = scope.mainElement || params.container || getMainRegion(documentRef, runtimeState);
   if (!container) return { handled: false, title: params && params.fallbackTitle ? String(params.fallbackTitle) : '' };
 
   const markdownHtml = params.markdownHtml || '';
@@ -1263,7 +1270,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
   });
 
   const tocHtml = params.tocHtml || '';
-  const tocElement = getTocRegion(documentRef);
+  const tocElement = getTocRegion(documentRef, runtimeState);
   const { headingEl: firstHeadingEl, headingText: firstHeadingText } = (() => {
     try {
       const el = container.querySelector('h1, h2, h3');
@@ -1291,7 +1298,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
   let tocHandled = false;
   if (tocElement) {
     if (tocHtml) {
-      renderPostTOCNative({ tocElement, articleTitle, tocHtml, translate }, documentRef, windowRef);
+      renderPostTOCNative({ tocElement, articleTitle, tocHtml, translate }, documentRef, windowRef, runtimeState);
       try { showElementNative({ element: tocElement }, windowRef); } catch (_) { try { tocElement.style.display = ''; } catch (_) {} }
       try { ensureHeight(tocElement); } catch (_) {}
       const setupAnchorsFn = getUtility(params, 'setupAnchors', null);
@@ -1312,18 +1319,18 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
       postMetadata: metadata,
       markdown,
       translate
-    }, documentRef, windowRef);
+    }, documentRef, windowRef, runtimeState);
   } catch (_) {}
 
-  try { bindPostVersionSelectorsNative(documentRef, windowRef); } catch (_) {}
+  try { bindPostVersionSelectorsNative(documentRef, windowRef, runtimeState); } catch (_) {}
 
   return { handled: true, tocHandled, decorated: true, title: articleTitle };
 }
 
-function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return { handled: false, title: params && params.tab && params.tab.title ? String(params.tab.title) : '' };
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const container = scope.mainElement || params.container || getMainRegion(documentRef);
+  const container = scope.mainElement || params.container || getMainRegion(documentRef, runtimeState);
   if (!container) return { handled: false, title: params && params.tab && params.tab.title ? String(params.tab.title) : '' };
 
   const markdownHtml = params.markdownHtml || '';
@@ -1362,7 +1369,7 @@ function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, w
     });
   } catch (_) {}
 
-  const tocElement = getTocRegion(documentRef);
+  const tocElement = getTocRegion(documentRef, runtimeState);
   if (tocElement) {
     try { hideElementNative({ element: tocElement }, windowRef); } catch (_) { try { tocElement.style.display = 'none'; } catch (_) {} }
     try {
@@ -1438,10 +1445,10 @@ function resolveCoverSource(value = {}, siteConfig = {}) {
   return { coverSrc, useFallbackCover };
 }
 
-function renderIndexViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderIndexViewNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return false;
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const container = scope.mainElement || params.container || getMainRegion(documentRef);
+  const container = scope.mainElement || params.container || getMainRegion(documentRef, runtimeState);
   if (!container) return false;
   const pageEntries = Array.isArray(params.pageEntries) ? params.pageEntries : [];
   const totalPages = Math.max(1, parseInt(params.totalPages || 1, 10));
@@ -1596,10 +1603,10 @@ function afterIndexRenderNative(params = {}, documentRef = defaultDocument) {
   return true;
 }
 
-function renderSearchResultsNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderSearchResultsNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return false;
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
-  const container = scope.mainElement || params.container || getMainRegion(documentRef);
+  const container = scope.mainElement || params.container || getMainRegion(documentRef, runtimeState);
   if (!container) return false;
   const entries = Array.isArray(params.entries) ? params.entries : [];
   const total = parseInt(params.total || entries.length, 10);
@@ -1855,7 +1862,7 @@ function setTrackHtml(nav, markup, documentRef = defaultDocument, windowRef = de
 function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRuntimeState()) {
   const windowRef = params.window || defaultWindow;
   const documentRef = params.document || defaultDocument;
-  const nav = params.nav || (documentRef ? getNavRegion(documentRef) : null);
+  const nav = params.nav || (documentRef ? getNavRegion(documentRef, runtimeState) : null);
   if (!nav) return;
   const tabs = params.tabsBySlug || {};
   const activeSlug = params.activeSlug;
@@ -2078,7 +2085,7 @@ function setupResponsiveTabsObserverNative(params = {}, runtimeState = createNat
   const getCurrentPostTitle = () => {
     if (!documentRef) return '';
     try {
-      const main = getMainRegion(documentRef);
+      const main = getMainRegion(documentRef, runtimeState);
       const el = main && main.querySelector('.post-meta-card .post-meta-title');
       const txt = (el && el.textContent) ? el.textContent.trim() : '';
       if (txt) return txt;
@@ -2120,20 +2127,20 @@ export function mount(context = {}) {
   setThemeI18n(context);
   const windowRef = context.window || defaultWindow;
   const documentRef = context.document || defaultDocument;
-  const runtimeState = createNativeInteractionsRuntimeState();
+  const runtimeState = createNativeInteractionsRuntimeState(context);
 
   try {
     installLightbox({
       rootRegion: ['main'],
       document: documentRef,
       window: windowRef,
-      getRegion: (names) => getRegion(names, documentRef)
+      getRegion: (names) => getRegion(names, documentRef, runtimeState)
     });
   } catch (_) {}
 
   const effects = {};
-  effects.getViewContainer = (params = {}) => getContainerByRole(params.role, documentRef);
-  effects.resolveViewContainers = (params = {}) => resolveViewContainersNative(params, documentRef);
+  effects.getViewContainer = (params = {}) => getContainerByRole(params.role, documentRef, runtimeState);
+  effects.resolveViewContainers = (params = {}) => resolveViewContainersNative(params, documentRef, runtimeState);
   effects.getScrollState = () => getScrollStateNative(documentRef, windowRef);
   effects.restoreScrollState = (params = {}) => restoreScrollStateNative(params, documentRef, windowRef);
   effects.showElement = (params = {}) => showElementNative(params, windowRef);
@@ -2147,25 +2154,25 @@ export function mount(context = {}) {
   effects.setupResponsiveTabsObserver = (params = {}) => setupResponsiveTabsObserverNative({ ...params, window: windowRef, document: documentRef }, runtimeState);
   effects.onTabClick = (tab) => addTabClickAnimation(tab, windowRef);
   effects.handleWindowResize = (params = {}) => handleWindowResizeNative(params, documentRef, windowRef, runtimeState);
-  effects.updateLayoutLoadingState = (params = {}) => updateLayoutLoadingStateNative(params, documentRef);
-  effects.renderPostTOC = (params = {}) => renderPostTOCNative(params, documentRef, windowRef);
-  effects.renderErrorState = (params = {}) => renderErrorStateNative(params, documentRef);
-  effects.handleViewChange = (params = {}) => handleViewChangeNative(params, documentRef, windowRef);
+  effects.updateLayoutLoadingState = (params = {}) => updateLayoutLoadingStateNative(params, documentRef, runtimeState);
+  effects.renderPostTOC = (params = {}) => renderPostTOCNative(params, documentRef, windowRef, runtimeState);
+  effects.renderErrorState = (params = {}) => renderErrorStateNative(params, documentRef, runtimeState);
+  effects.handleViewChange = (params = {}) => handleViewChangeNative(params, documentRef, windowRef, runtimeState);
   effects.renderTagSidebar = (params = {}) => renderTagSidebarNative(params, documentRef);
   effects.initializeSyntaxHighlighting = (params = {}) => initializeSyntaxHighlightingNative(params);
-  effects.updateSearchPlaceholder = (params = {}) => updateSearchPlaceholderNative(params, documentRef);
-  effects.renderPostLoadingState = (params = {}) => renderPostLoadingStateNative(params, documentRef);
-  effects.renderPostView = (params = {}) => renderPostViewNative(params, documentRef, windowRef);
-  effects.renderStaticTabLoadingState = (params = {}) => renderStaticTabLoadingStateNative(params, documentRef);
-  effects.renderStaticTabView = (params = {}) => renderStaticTabViewNative(params, documentRef, windowRef);
-  effects.renderIndexView = (params = {}) => renderIndexViewNative(params, documentRef);
+  effects.updateSearchPlaceholder = (params = {}) => updateSearchPlaceholderNative(params, documentRef, runtimeState);
+  effects.renderPostLoadingState = (params = {}) => renderPostLoadingStateNative(params, documentRef, runtimeState);
+  effects.renderPostView = (params = {}) => renderPostViewNative(params, documentRef, windowRef, runtimeState);
+  effects.renderStaticTabLoadingState = (params = {}) => renderStaticTabLoadingStateNative(params, documentRef, runtimeState);
+  effects.renderStaticTabView = (params = {}) => renderStaticTabViewNative(params, documentRef, windowRef, runtimeState);
+  effects.renderIndexView = (params = {}) => renderIndexViewNative(params, documentRef, windowRef, runtimeState);
   effects.afterIndexRender = (params = {}) => afterIndexRenderNative(params, documentRef);
-  effects.renderSearchResults = (params = {}) => renderSearchResultsNative(params, documentRef, windowRef);
+  effects.renderSearchResults = (params = {}) => renderSearchResultsNative(params, documentRef, windowRef, runtimeState);
   effects.afterSearchRender = (params = {}) => afterSearchRenderNative(params, documentRef);
   effects.enhanceIndexLayout = (params = {}) => enhanceIndexLayoutNative(params, documentRef, windowRef, runtimeState);
-  effects.decoratePostView = (params = {}) => decoratePostViewNative(params, documentRef, windowRef);
+  effects.decoratePostView = (params = {}) => decoratePostViewNative(params, documentRef, windowRef, runtimeState);
   effects.handleDocumentClick = (params = {}) => handleDocumentClickNative(params, documentRef, windowRef);
-  effects.resetTOC = (params = {}) => resetTOCNative(params, documentRef, windowRef);
+  effects.resetTOC = (params = {}) => resetTOCNative(params, documentRef, windowRef, runtimeState);
   effects.setupThemeControls = (params = {}) => setupThemeControlsNative(params);
   effects.resetThemeControls = (params = {}) => resetThemeControlsNative(params, documentRef);
   effects.reflectThemeConfig = (params = {}) => reflectThemeConfigNative(params, documentRef);

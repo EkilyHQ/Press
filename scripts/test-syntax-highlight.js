@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import hljs from '../assets/js/vendor/highlightjs/highlight.min.js';
-import { highlightCode } from '../assets/js/syntax-highlight.js';
+import { createSafeHighlightFragment, highlightCode } from '../assets/js/syntax-highlight.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(resolve(here, '..', path), 'utf8');
@@ -172,6 +172,78 @@ for (const selector of [
   '.hljs-char.escape_'
 ]) {
   assert.ok(nativeCss.includes(selector), `native CSS should cover ${selector}`);
+}
+
+function createFakeDocument() {
+  const created = [];
+  const createNode = (tagName) => ({
+    tagName: String(tagName || '').toUpperCase(),
+    childNodes: [],
+    attributes: new Map(),
+    appendChild(node) {
+      this.childNodes.push(node);
+      return node;
+    },
+    setAttribute(name, value) {
+      this.attributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return this.attributes.get(name) || '';
+    },
+    removeAttribute(name) {
+      this.attributes.delete(name);
+    }
+  });
+  return {
+    created,
+    createDocumentFragment() {
+      const fragment = createNode('#fragment');
+      fragment.nodeType = 11;
+      created.push(fragment);
+      return fragment;
+    },
+    createElement(tagName) {
+      const element = createNode(tagName);
+      element.nodeType = 1;
+      created.push(element);
+      return element;
+    },
+    createTextNode(text) {
+      const node = { nodeType: 3, textContent: String(text || '') };
+      created.push(node);
+      return node;
+    }
+  };
+}
+
+const previousDocument = globalThis.document;
+globalThis.document = {
+  createElement() {
+    throw new Error('ambient document should not be used');
+  },
+  createDocumentFragment() {
+    throw new Error('ambient document should not be used');
+  },
+  createTextNode() {
+    throw new Error('ambient document should not be used');
+  }
+};
+
+try {
+  const fakeDocument = createFakeDocument();
+  const fragment = createSafeHighlightFragment('const answer = true;', 'javascript', {
+    documentRef: fakeDocument,
+    windowRef: null,
+    allowAmbient: false
+  });
+  assert.equal(fragment.nodeType, 11, 'safe fragment helper should return a fragment from the injected document');
+  assert.ok(
+    fakeDocument.created.some(node => node.tagName === 'SPAN' && String(node.getAttribute('class')).includes('syntax-')),
+    'safe fragment helper should create mapped syntax span nodes through the injected document'
+  );
+} finally {
+  if (previousDocument === undefined) delete globalThis.document;
+  else globalThis.document = previousDocument;
 }
 
 console.log('ok - syntax highlight complete class preservation');

@@ -331,7 +331,16 @@ async function renderPreview(payload) {
         windowRef: previewRuntime.windowRef
       });
     } catch (_) {}
-    try { initSyntaxHighlighting(main); } catch (_) {}
+    try {
+      initSyntaxHighlighting(main, {
+        documentRef: previewRuntime.documentRef,
+        windowRef: previewRuntime.windowRef,
+        setTimer: previewRuntime.setTimer,
+        writeClipboardText: (text) => previewRuntime.writeClipboardText(text),
+        translate: t,
+        allowAmbient: false
+      });
+    } catch (_) {}
     if (!isCurrentPreviewRender(requestId)) return;
     restorePreviewThemeStyles(activePack, layout && layout.manifest);
     const status = previewRuntime.getPreviewStatusElement();

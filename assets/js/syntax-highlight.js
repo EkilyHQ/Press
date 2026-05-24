@@ -123,6 +123,118 @@ const TOKEN_CLASS_MAP = new Map([
   ['hljs-formula', 'syntax-formula']
 ]);
 
+function getAmbientDocument() {
+  try { return typeof document !== 'undefined' ? document : null; }
+  catch (_) { return null; }
+}
+
+function getAmbientWindow() {
+  try { return typeof window !== 'undefined' ? window : null; }
+  catch (_) { return null; }
+}
+
+function getAmbientNavigator() {
+  try { return typeof navigator !== 'undefined' ? navigator : null; }
+  catch (_) { return null; }
+}
+
+function createSyntaxHighlightRuntime(options = {}) {
+  const allowAmbient = options.allowAmbient !== false;
+  const documentRef = options.documentRef || options.document || (allowAmbient ? getAmbientDocument() : null);
+  const windowRef = options.windowRef || options.window || (allowAmbient ? getAmbientWindow() : null);
+  const navigatorRef = Object.prototype.hasOwnProperty.call(options, 'navigatorRef')
+    ? options.navigatorRef
+    : (allowAmbient ? getAmbientNavigator() : null);
+
+  const createElement = (tagName) => {
+    try { return documentRef && typeof documentRef.createElement === 'function' ? documentRef.createElement(tagName) : null; }
+    catch (_) { return null; }
+  };
+  const createTextNode = (text) => {
+    try { return documentRef && typeof documentRef.createTextNode === 'function' ? documentRef.createTextNode(text) : null; }
+    catch (_) { return null; }
+  };
+  const createDocumentFragment = () => {
+    try { return documentRef && typeof documentRef.createDocumentFragment === 'function' ? documentRef.createDocumentFragment() : null; }
+    catch (_) { return null; }
+  };
+  const setTimer = typeof options.setTimer === 'function'
+    ? options.setTimer
+    : ((handler, delay = 0) => {
+      try {
+        return windowRef && typeof windowRef.setTimeout === 'function'
+          ? windowRef.setTimeout(handler, delay)
+          : null;
+      } catch (_) {
+        return null;
+      }
+    });
+  const translate = typeof options.translate === 'function'
+    ? options.translate
+    : ((key, fallback) => {
+      try {
+        const t = windowRef && windowRef.__press_t;
+        return typeof t === 'function' ? t(key) : fallback;
+      } catch (_) {
+        return fallback;
+      }
+    });
+
+  async function writeClipboardText(text) {
+    if (typeof options.writeClipboardText === 'function') {
+      try { return !!(await options.writeClipboardText(text)); }
+      catch (_) { return false; }
+    }
+    const rawText = String(text || '');
+    try {
+      const clipboard = navigatorRef && navigatorRef.clipboard;
+      if (clipboard && typeof clipboard.writeText === 'function' && windowRef && windowRef.isSecureContext) {
+        await clipboard.writeText(rawText);
+        return true;
+      }
+    } catch (_) {}
+    let textarea = null;
+    try {
+      textarea = createElement('textarea');
+      if (!textarea || !documentRef || !documentRef.body || typeof documentRef.body.appendChild !== 'function') return false;
+      textarea.value = rawText;
+      if (textarea.style) {
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+      }
+      documentRef.body.appendChild(textarea);
+      if (typeof textarea.focus === 'function') textarea.focus();
+      if (typeof textarea.select === 'function') textarea.select();
+      return !!(typeof documentRef.execCommand === 'function' && documentRef.execCommand('copy'));
+    } catch (_) {
+      return false;
+    } finally {
+      try {
+        if (textarea && documentRef && documentRef.body && typeof documentRef.body.removeChild === 'function') {
+          documentRef.body.removeChild(textarea);
+        }
+      } catch (_) {}
+    }
+  }
+
+  return {
+    __syntaxHighlightRuntime: true,
+    documentRef,
+    windowRef,
+    navigatorRef,
+    createElement,
+    createTextNode,
+    createDocumentFragment,
+    setTimer,
+    translate,
+    writeClipboardText
+  };
+}
+
+function resolveSyntaxHighlightRuntime(options = {}) {
+  return options && options.__syntaxHighlightRuntime ? options : createSyntaxHighlightRuntime(options);
+}
+
 function escapeHtml(text) {
   if (!text) return '';
   return String(text).replace(/[&<>"']/g, (m) => ({
@@ -232,21 +344,26 @@ function simpleHighlight(code, language) {
   return highlightWithHighlightJs(code || '', language || '');
 }
 
-function toSafeFragment(html) {
+function toSafeFragment(html, options = {}) {
+  const runtime = resolveSyntaxHighlightRuntime(options);
+  const { windowRef } = runtime;
   const allowedTag = 'SPAN';
   const allowedAttr = 'class';
 
   try {
-    if (typeof window !== 'undefined' && 'Sanitizer' in window && typeof Element.prototype.setHTML === 'function') {
-      const s = new window.Sanitizer({
+    const ElementCtor = windowRef && windowRef.Element;
+    if (windowRef && 'Sanitizer' in windowRef && ElementCtor && ElementCtor.prototype && typeof ElementCtor.prototype.setHTML === 'function') {
+      const s = new windowRef.Sanitizer({
         allowElements: ['span'],
         allowAttributes: {'class': ['span']},
       });
-      const tmp = document.createElement('div');
+      const tmp = runtime.createElement('div');
+      if (!tmp) return runtime.createDocumentFragment();
       tmp.setHTML(String(html || ''), { sanitizer: s });
       tmp.querySelectorAll('*').forEach((el) => {
         if (el.tagName !== allowedTag) {
-          el.replaceWith(document.createTextNode(el.textContent || ''));
+          const text = runtime.createTextNode(el.textContent || '');
+          if (text) el.replaceWith(text);
           return;
         }
         const classes = (el.getAttribute('class') || '').split(/\s+/).filter(isAllowedHighlightClass);
@@ -255,7 +372,8 @@ function toSafeFragment(html) {
           if (attr.name !== allowedAttr) el.removeAttribute(attr.name);
         }
       });
-      const frag = document.createDocumentFragment();
+      const frag = runtime.createDocumentFragment();
+      if (!frag) return null;
       while (tmp.firstChild) frag.appendChild(tmp.firstChild);
       return frag;
     }
@@ -278,7 +396,8 @@ function toSafeFragment(html) {
       try { return String.fromCodePoint(num); } catch (_) { return _; }
     })
     .replace(/&amp;/g, '&');
-  const frag = document.createDocumentFragment();
+  const frag = runtime.createDocumentFragment();
+  if (!frag) return null;
   const stack = [frag];
   let i = 0;
   const len = (html || '').length;
@@ -286,7 +405,8 @@ function toSafeFragment(html) {
 
   const appendText = (text) => {
     if (!text) return;
-    stack[stack.length - 1].appendChild(document.createTextNode(decodeEntities(text)));
+    const node = runtime.createTextNode(decodeEntities(text));
+    if (node) stack[stack.length - 1].appendChild(node);
   };
 
   while (i < len) {
@@ -316,7 +436,12 @@ function toSafeFragment(html) {
         const raw = (clsMatch[2] || clsMatch[3] || clsMatch[4] || '').trim();
         classes = raw.split(/\s+/).filter(isAllowedHighlightClass);
       }
-      const el = document.createElement('span');
+      const el = runtime.createElement('span');
+      if (!el) {
+        appendText(open[0]);
+        i += open[0].length;
+        continue;
+      }
       if (classes.length) el.setAttribute('class', classes.join(' '));
       stack[stack.length - 1].appendChild(el);
       stack.push(el);
@@ -351,8 +476,11 @@ function getCodeLanguage(codeElement) {
   return '';
 }
 
-export function initSyntaxHighlighting(root = document) {
-  const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+export function initSyntaxHighlighting(root = getAmbientDocument(), options = {}) {
+  const runtime = createSyntaxHighlightRuntime(options);
+  const documentRef = runtime.documentRef;
+  const scope = root && typeof root.querySelectorAll === 'function' ? root : documentRef;
+  if (!scope || typeof scope.querySelectorAll !== 'function') return;
   const codeBlocks = scope.querySelectorAll('pre code');
 
   codeBlocks.forEach(codeElement => {
@@ -389,14 +517,16 @@ export function initSyntaxHighlighting(root = document) {
 
     if (shouldHighlight) {
       const highlightedCode = simpleHighlight(originalCode, detectedLanguage);
+      const fragment = toSafeFragment(highlightedCode, runtime);
       codeElement.textContent = '';
-      codeElement.appendChild(toSafeFragment(highlightedCode));
+      if (fragment) codeElement.appendChild(fragment);
     }
 
     if (!preElement.classList.contains('with-code-scroll')) {
       const currentParent = codeElement.parentElement;
       if (!currentParent || !currentParent.classList.contains('code-scroll')) {
-        const scrollWrap = document.createElement('div');
+        const scrollWrap = runtime.createElement('div');
+        if (!scrollWrap) return;
         scrollWrap.className = 'code-scroll';
         preElement.insertBefore(scrollWrap, codeElement);
         scrollWrap.appendChild(codeElement);
@@ -412,7 +542,8 @@ export function initSyntaxHighlighting(root = document) {
     if (scrollWrap) {
       let gutter = scrollWrap.querySelector('.code-gutter');
       if (!gutter) {
-        gutter = document.createElement('div');
+        gutter = runtime.createElement('div');
+        if (!gutter) return;
         gutter.className = 'code-gutter';
         gutter.setAttribute('aria-hidden', 'true');
         scrollWrap.insertBefore(gutter, codeElement);
@@ -422,9 +553,11 @@ export function initSyntaxHighlighting(root = document) {
       const lineCount = trimmed ? (trimmed.match(/\n/g) || []).length + 1 : 1;
       const currentCount = gutter.childElementCount;
       if (currentCount !== lineCount) {
-        const frag = document.createDocumentFragment();
+        const frag = runtime.createDocumentFragment();
+        if (!frag) return;
         for (let i = 1; i <= lineCount; i++) {
-          const s = document.createElement('span');
+          const s = runtime.createElement('span');
+          if (!s) continue;
           s.textContent = String(i);
           frag.appendChild(s);
         }
@@ -438,18 +571,16 @@ export function initSyntaxHighlighting(root = document) {
 
     let languageLabel = preElement.querySelector('.syntax-language-label');
     if (!languageLabel) {
-      languageLabel = document.createElement('div');
+      languageLabel = runtime.createElement('div');
+      if (!languageLabel) return;
       languageLabel.className = 'syntax-language-label';
       preElement.appendChild(languageLabel);
     }
 
-    const getT = (key, fallback) => {
-      try { return (window.__press_t && typeof window.__press_t === 'function') ? window.__press_t(key) : fallback; } catch (_) { return fallback; }
-    };
-    const TXT_COPY = getT('code.copy', 'Copy');
-    const TXT_COPIED = getT('code.copied', 'Copied');
-    const TXT_FAILED = getT('code.failed', 'Failed');
-    const TXT_ARIA = getT('code.copyAria', 'Copy code');
+    const TXT_COPY = runtime.translate('code.copy', 'Copy');
+    const TXT_COPIED = runtime.translate('code.copied', 'Copied');
+    const TXT_FAILED = runtime.translate('code.failed', 'Failed');
+    const TXT_ARIA = runtime.translate('code.copyAria', 'Copy code');
 
     const labelLanguage = shouldHighlight ? (detectedLanguage || explicitLanguage || '').toUpperCase() : 'PLAIN';
     languageLabel.dataset.lang = labelLanguage || 'PLAIN';
@@ -461,28 +592,12 @@ export function initSyntaxHighlighting(root = document) {
     if (!languageLabel.dataset.bound) {
       const copyCode = async () => {
         const rawText = codeElement.textContent || '';
-        let ok = false;
-        if (navigator.clipboard && window.isSecureContext) {
-          try { await navigator.clipboard.writeText(rawText); ok = true; } catch (_) { ok = false; }
-        }
-        if (!ok) {
-          try {
-            const ta = document.createElement('textarea');
-            ta.value = rawText;
-            ta.style.position = 'fixed';
-            ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            ok = document.execCommand('copy');
-            document.body.removeChild(ta);
-          } catch (_) { ok = false; }
-        }
+        const ok = await runtime.writeClipboardText(rawText);
 
         const old = languageLabel.dataset.lang || 'PLAIN';
         languageLabel.classList.add('is-copied');
         languageLabel.textContent = ok ? TXT_COPIED.toUpperCase() : TXT_FAILED.toUpperCase();
-        setTimeout(() => {
+        runtime.setTimer(() => {
           languageLabel.classList.remove('is-copied');
           languageLabel.textContent = old;
         }, 1200);
@@ -508,8 +623,8 @@ export function initSyntaxHighlighting(root = document) {
 
 export { simpleHighlight, detectLanguage };
 
-export function createSafeHighlightFragment(code, language) {
-  return toSafeFragment(simpleHighlight(code || '', language || 'plain'));
+export function createSafeHighlightFragment(code, language, options = {}) {
+  return toSafeFragment(simpleHighlight(code || '', language || 'plain'), options);
 }
 
 export function highlightCode(code, language) {

@@ -68,6 +68,8 @@ const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const editorAppRuntimePath = resolve(here, '../assets/js/editor-app-runtime.js');
 const editorBootPath = resolve(here, '../assets/js/editor-boot.js');
 const editorBootRuntimePath = resolve(here, '../assets/js/editor-boot-runtime.js');
+const editorPreviewRuntimePath = resolve(here, '../assets/js/editor-preview-runtime.js');
+const editorPreviewAppRuntimePath = resolve(here, '../assets/js/editor-preview-app-runtime.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
 const connectTransportPath = resolve(here, '../assets/js/publish/transports/connect-transport.js');
@@ -186,6 +188,8 @@ const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const editorAppRuntimeSource = readFileSync(editorAppRuntimePath, 'utf8');
 const editorBootSource = readFileSync(editorBootPath, 'utf8');
 const editorBootRuntimeSource = readFileSync(editorBootRuntimePath, 'utf8');
+const editorPreviewRuntimeSource = readFileSync(editorPreviewRuntimePath, 'utf8');
+const editorPreviewAppRuntimeSource = readFileSync(editorPreviewAppRuntimePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
 const connectTransportSource = readFileSync(connectTransportPath, 'utf8');
@@ -583,7 +587,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const codeSession = createEditorBlocksCodeSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer[\s\S]*\}\);/,
+  /const codeSession = createEditorBlocksCodeSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*createHighlightFragment: \(code, language\) => createRuntimeSafeHighlightFragment\(code, language, \{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow,[\s\S]*allowAmbient: false[\s\S]*\}\)[\s\S]*\}\);/,
   'blocks editor should compose code block DOM and control behavior through the code session boundary'
 );
 
@@ -4317,8 +4321,20 @@ assert.doesNotMatch(
 
 assert.match(
   syntaxHighlightSource,
-  /export function initSyntaxHighlighting\(root = document\) \{[\s\S]*const scope = root && typeof root\.querySelectorAll === 'function' \? root : document;[\s\S]*const codeBlocks = scope\.querySelectorAll\('pre code'\);[\s\S]*preElement\.classList\.contains\('blocks-code-preview'\)[\s\S]*preElement\.closest\('\.markdown-blocks-shell'\)[\s\S]*codeElement\.isContentEditable \|\| codeElement\.getAttribute\('contenteditable'\) === 'true'/,
+  /function createSyntaxHighlightRuntime\(options = \{\}\) \{[\s\S]*const allowAmbient = options\.allowAmbient !== false;[\s\S]*documentRef[\s\S]*windowRef[\s\S]*navigatorRef[\s\S]*async function writeClipboardText\(text\)[\s\S]*export function initSyntaxHighlighting\(root = getAmbientDocument\(\), options = \{\}\) \{[\s\S]*const runtime = createSyntaxHighlightRuntime\(options\);[\s\S]*const scope = root && typeof root\.querySelectorAll === 'function' \? root : documentRef;[\s\S]*const codeBlocks = scope\.querySelectorAll\('pre code'\);[\s\S]*preElement\.classList\.contains\('blocks-code-preview'\)[\s\S]*preElement\.closest\('\.markdown-blocks-shell'\)[\s\S]*codeElement\.isContentEditable \|\| codeElement\.getAttribute\('contenteditable'\) === 'true'/,
   'syntax highlighting should be scoped and skip editable blocks code surfaces'
+);
+
+assert.match(
+  editorPreviewRuntimeSource,
+  /initSyntaxHighlighting\(main, \{[\s\S]*documentRef: previewRuntime\.documentRef,[\s\S]*windowRef: previewRuntime\.windowRef,[\s\S]*setTimer: previewRuntime\.setTimer,[\s\S]*writeClipboardText: \(text\) => previewRuntime\.writeClipboardText\(text\),[\s\S]*translate: t,[\s\S]*allowAmbient: false[\s\S]*\}\);/,
+  'editor preview should call syntax highlighting through explicit preview runtime effects'
+);
+
+assert.match(
+  editorPreviewAppRuntimeSource,
+  /function writeClipboardText\(text\) \{[\s\S]*return runtime\.browser\.writeClipboardText\(text\);[\s\S]*return \{[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*writeClipboardText,/,
+  'editor preview app runtime should expose timer and clipboard effects for syntax highlighting'
 );
 
 assert.match(
@@ -4371,13 +4387,13 @@ assert.doesNotMatch(
 
 assert.match(
   syntaxHighlightSource,
-  /function mapHighlightHtml\(html\) \{[\s\S]*mapHighlightClasses[\s\S]*`<span class="\$\{mapped\.join\(' '\)\}">`[\s\S]*function toSafeFragment\(html\)/,
+  /function mapHighlightHtml\(html\) \{[\s\S]*mapHighlightClasses[\s\S]*`<span class="\$\{mapped\.join\(' '\)\}">`[\s\S]*function toSafeFragment\(html, options = \{\}\)/,
   'syntax highlighter should map Highlight.js spans before passing markup through the safe fragment path'
 );
 
 assert.match(
   syntaxHighlightSource,
-  /export function createSafeHighlightFragment\(code, language\) \{[\s\S]*return toSafeFragment\(simpleHighlight\(code \|\| '', language \|\| 'plain'\)\);[\s\S]*\}/,
+  /export function createSafeHighlightFragment\(code, language, options = \{\}\) \{[\s\S]*return toSafeFragment\(simpleHighlight\(code \|\| '', language \|\| 'plain'\), options\);[\s\S]*\}/,
   'syntax highlighter should expose a safe fragment helper for editor-owned highlight mirrors'
 );
 

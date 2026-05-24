@@ -113,9 +113,15 @@ export function createEditorPreviewAppRuntime(options = {}) {
     }
   }
 
+  async function writeClipboardText(text) {
+    return runtime.browser.writeClipboardText(text);
+  }
+
   return {
     documentRef: runtime.documentRef,
     windowRef: runtime.windowRef,
+    setTimer: runtime.browser.setTimer,
+    writeClipboardText,
     postToParent,
     onRenderMessage,
     isTrustedMessageEvent,

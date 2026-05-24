@@ -1,4 +1,5 @@
 import { createPressMathRenderer } from './math-render.js?v=press-system-v3.4.50';
+import { createSafeHighlightFragment as createRuntimeSafeHighlightFragment } from './syntax-highlight.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksSessionRegistry } from './editor-blocks-session-registry.js?v=press-system-v3.4.50';
 import { createEditorBlocksLayoutSession } from './editor-blocks-layout-session.js?v=press-system-v3.4.50';
@@ -1268,7 +1269,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     handleCrossBlockArrowNavigation,
     updateFromControl,
     setActive,
-    activateEditableFromPointer
+    activateEditableFromPointer,
+    createHighlightFragment: (code, language) => createRuntimeSafeHighlightFragment(code, language, {
+      documentRef: blocksDocument,
+      windowRef: blocksWindow,
+      allowAmbient: false
+    })
   });
 
   const tableSession = createEditorBlocksTableSession({

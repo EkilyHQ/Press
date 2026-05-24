@@ -1678,6 +1678,12 @@ assert.match(
   'editor content service should own open-markdown fetch, base-dir, document value, current-file, view, and scroll orchestration'
 );
 
+assert.doesNotMatch(
+  editorMainContentServiceSource,
+  /fetchImpl\s*=\s*fetch\b|typeof fetch\b|:\s*fetch\b/,
+  'editor content service should receive fetch through the explicit editor runtime instead of defaulting to ambient fetch'
+);
+
 assert.match(
   editorMainFileContextServiceSource,
   /export function createEditorMainFileContextService\(options = \{\}\) \{[\s\S]*const inferCurrentFileSource = \(path\) => \{[\s\S]*metadataPanel\.inferCurrentFileSource\(path\);[\s\S]*const getCurrentFileInfo = \(\) => \{[\s\S]*currentFileSession\.getInfo\(\)[\s\S]*const getCurrentMarkdownPath = \(\) => \{[\s\S]*currentFileSession\.getPath\(\)/,
@@ -1894,10 +1900,22 @@ assert.match(
   'publish state service should pass SEO staging browser effects through explicit app-service callbacks'
 );
 
+assert.match(
+  composerPublishStateServiceSource,
+  /createIndexPublishMetadataEnricherRef\(\{[\s\S]*fetchImpl: typeof options\.fetchContent === 'function' \? options\.fetchContent : null[\s\S]*\}\);[\s\S]*createContentCommitStagingProviderRef\(\{[\s\S]*fetchImpl: typeof options\.fetchContent === 'function' \? options\.fetchContent : null,[\s\S]*consoleRef: options\.consoleRef \|\| null[\s\S]*\}\);/,
+  'publish state service should pass content/index staging fetch and logging through explicit app-service callbacks'
+);
+
 assert.doesNotMatch(
   composerSeoStagingSource,
   /typeof (?:window|document|fetch)\b|fetchImpl\s*=\s*fetch\b|console\.error|window\.location|document\.documentElement/,
   'SEO staging should receive location, document language, fetch, and logging through explicit callbacks'
+);
+
+assert.doesNotMatch(
+  [composerIndexPublishMetadataSource, composerContentStagingSource].join('\n'),
+  /typeof fetch\b|fetchImpl\s*=\s*fetch\b|:\s*fetch\b|console\.warn/,
+  'content and index staging should receive fetch and logging through explicit publish state callbacks'
 );
 
 assert.match(

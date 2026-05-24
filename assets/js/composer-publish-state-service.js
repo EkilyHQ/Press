@@ -32,7 +32,8 @@ export function createComposerPublishStateService(options = {}) {
     findDynamicTabByPath: options.findDynamicTabByPath,
     getLockedEncryptedMarkdownDraft: options.getLockedEncryptedMarkdownDraft,
     getMarkdownProtectionState: options.getMarkdownProtectionState,
-    getContentRootSafe
+    getContentRootSafe,
+    fetchImpl: typeof options.fetchContent === 'function' ? options.fetchContent : null
   });
 
   const contentCommitStagingProvider = createContentCommitStagingProviderRef({
@@ -68,7 +69,9 @@ export function createComposerPublishStateService(options = {}) {
     listMarkdownAssetDeletions: options.listMarkdownAssetDeletions || (() => []),
     safeString,
     draftHasAssetDeletions: options.draftHasAssetDeletions || (() => false),
-    textWithFallback: options.textWithFallback || ((_key, fallback) => fallback)
+    textWithFallback: options.textWithFallback || ((_key, fallback) => fallback),
+    fetchImpl: typeof options.fetchContent === 'function' ? options.fetchContent : null,
+    consoleRef: options.consoleRef || null
   });
 
   const seoStagingProvider = createSeoStagingProviderRef({

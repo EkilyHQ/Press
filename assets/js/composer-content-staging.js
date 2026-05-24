@@ -38,8 +38,15 @@ export function createContentCommitStagingProvider({
   safeString = (value) => String(value == null ? '' : value),
   draftHasAssetDeletions = () => false,
   textWithFallback = (key, fallback) => fallback,
-  fetchImpl = fetch
+  fetchImpl = null,
+  consoleRef = null
 } = {}) {
+  function warn(...args) {
+    try {
+      if (consoleRef && typeof consoleRef.warn === 'function') consoleRef.warn(...args);
+    } catch (_) {}
+  }
+
   function collectDirtyMarkdownPathsForDeletion() {
     const paths = new Set();
     const dynamicEditorTabs = getDynamicEditorTabs();
@@ -90,6 +97,7 @@ export function createContentCommitStagingProvider({
   async function fetchMarkdownForRepositoryDeletion(file) {
     const path = file && file.path ? String(file.path).replace(/\\+/g, '/').replace(/^\/+/, '') : '';
     if (!path) return '';
+    if (typeof fetchImpl !== 'function') return '';
     try {
       const resp = await fetchImpl(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
       if (!resp.ok) return '';
@@ -141,7 +149,7 @@ export function createContentCommitStagingProvider({
         : [];
       const flushes = tabValues.map((tab) => (
         flushMarkdownDraft(tab).catch((err) => {
-          console.warn('Failed to flush markdown draft before commit', err);
+          warn('Failed to flush markdown draft before commit', err);
           return null;
         })
       ));
@@ -213,7 +221,7 @@ export function createContentCommitStagingProvider({
       });
       deletedMarkdownAssetFiles.forEach(addFile);
     } else {
-      console.warn('Skipping repository asset deletions because some current markdown files could not be checked.', assetReferenceScan.failures);
+      warn('Skipping repository asset deletions because some current markdown files could not be checked.', assetReferenceScan.failures);
     }
 
     const markdownEntries = collectUnsyncedMarkdownEntries();

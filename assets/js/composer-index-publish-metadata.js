@@ -60,7 +60,7 @@ export function createIndexPublishMetadataEnricher({
   getLockedEncryptedMarkdownDraft = () => '',
   getMarkdownProtectionState = () => ({}),
   getContentRootSafe = () => 'wwwroot',
-  fetchImpl = fetch
+  fetchImpl = null
 } = {}) {
   function isIndexVariantPublishComplete(value) {
     if (!isIndexMetadataObject(value)) return false;
@@ -221,6 +221,7 @@ export function createIndexPublishMetadataEnricher({
     }
     const root = safeString(contentRoot || getContentRootSafe() || 'wwwroot').replace(/\\+/g, '/').replace(/\/?$/, '');
     const url = `${root || 'wwwroot'}/${normalized}`;
+    if (typeof fetchImpl !== 'function') return null;
     try {
       const response = await fetchImpl(url, { cache: 'no-store' });
       if (!response || !response.ok) return null;

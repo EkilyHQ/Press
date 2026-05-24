@@ -22,6 +22,8 @@ const { createComposerPublishStateService } = await import('../assets/js/compose
 const calls = [];
 const registeredProviders = [];
 const statusMessages = [];
+const fetchContent = async () => ({ ok: false, text: async () => '' });
+const consoleRef = { error: (...args) => calls.push(['console:error', args.length]) };
 
 const registry = {
   registerStagingProvider(provider) {
@@ -94,10 +96,10 @@ const service = createComposerPublishStateService({
     return {};
   },
   getContentRootSafe: () => 'wwwroot',
-  fetchContent: async () => ({ ok: false, text: async () => '' }),
+  fetchContent,
   getLocationOrigin: () => 'https://example.test',
   getDocumentLang: () => 'ja',
-  consoleRef: { error: (...args) => calls.push(['console:error', args.length]) },
+  consoleRef,
   registerExternalStagingProviders(externalRegistry) {
     assert.equal(externalRegistry, registry);
     externalRegistry.registerStagingProvider({
@@ -125,6 +127,9 @@ assert.deepEqual(
 );
 assert.equal(registeredProviders[0].required, true, 'content staging should remain required');
 assert.equal(typeof received.contentOptions.enrichIndexStateForPublish, 'function');
+assert.equal(received.indexOptions.fetchImpl, fetchContent);
+assert.equal(received.contentOptions.fetchImpl, fetchContent);
+assert.equal(received.contentOptions.consoleRef, consoleRef);
 assert.equal(received.postCommitOptions.stagingRegistry, registry);
 assert.equal(received.seoOptions.getContentRootSafe(), 'wwwroot');
 assert.equal(typeof received.seoOptions.fetchImpl, 'function');

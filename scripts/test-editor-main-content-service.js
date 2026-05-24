@@ -3,6 +3,22 @@ import assert from 'node:assert/strict';
 globalThis.document = { title: 'Press' };
 const { createEditorMainContentService } = await import('../assets/js/editor-main-content-service.js');
 
+function installAmbientGlobal(name, value) {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value
+  });
+  return () => {
+    if (descriptor) {
+      Object.defineProperty(globalThis, name, descriptor);
+    } else {
+      delete globalThis[name];
+    }
+  };
+}
+
 function createFixture() {
   const calls = [];
   const fetches = [];
@@ -165,6 +181,27 @@ function createFixture() {
     () => fixture.service.openMarkdown({ relPath: 'missing.md', url: '/missing.md', contentRoot: 'wwwroot' }),
     /HTTP 404/
   );
+}
+
+{
+  const ambientCalls = [];
+  const restoreFetch = installAmbientGlobal('fetch', () => {
+    ambientCalls.push('fetch');
+    return { ok: true, status: 200, text: async () => 'ambient body' };
+  });
+  try {
+    const service = createEditorMainContentService({
+      getDocumentSession: () => ({ setValue() {} }),
+      getWorkspaceSession: () => ({ setView() {} })
+    });
+    await assert.rejects(
+      () => service.openMarkdown({ relPath: 'ambient.md', url: '/ambient.md', contentRoot: 'wwwroot' }),
+      /Fetch unavailable/
+    );
+    assert.deepEqual(ambientCalls, []);
+  } finally {
+    restoreFetch();
+  }
 }
 
 {

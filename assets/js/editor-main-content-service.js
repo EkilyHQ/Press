@@ -22,7 +22,7 @@ export function createEditorMainContentService(options = {}) {
   const getDocumentSession = typeof options.getDocumentSession === 'function' ? options.getDocumentSession : () => null;
   const getWorkspaceSession = typeof options.getWorkspaceSession === 'function' ? options.getWorkspaceSession : () => null;
   const linkCardContext = options.linkCardContext || null;
-  const fetchImpl = typeof options.fetch === 'function' ? options.fetch : fetch;
+  const fetchImpl = typeof options.fetch === 'function' ? options.fetch : null;
   const configureFetchCachePolicy = typeof options.configureFetchCachePolicy === 'function'
     ? options.configureFetchCachePolicy
     : configureFetchCachePolicyDefault;
@@ -114,6 +114,9 @@ export function createEditorMainContentService(options = {}) {
   };
 
   const openMarkdown = async ({ relPath, url, contentRoot } = {}) => {
+    if (!fetchImpl) {
+      throw new Error('Fetch unavailable');
+    }
     const response = await fetchImpl(url, { cache: 'no-store' });
     if (!response || !response.ok) {
       throw new Error(`HTTP ${response ? response.status : 0}`);

@@ -294,6 +294,8 @@ const markdownAssetManager = createComposerMarkdownAssetManager({
   t,
   normalizeRelPath,
   normalizeMarkdownContent,
+  emitMarkdownAssetPreview: (detail) => editorRuntime.events.emitWindow('press-editor-asset-preview', detail),
+  fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
   getContentRootSafe,
   getStateSlice,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
@@ -1448,7 +1450,6 @@ const composerYamlPanelsController = createComposerYamlPanelsController({
 const composerSetupVerifier = createComposerSetupVerifier({
   runtime: editorRuntime,
   documentRef: composerDocument,
-  windowRef: composerWindow,
   consoleRef: console,
   t,
   getState: () => composerStateStore.getActiveState(),
@@ -1472,7 +1473,10 @@ const composerSetupVerifier = createComposerSetupVerifier({
   updateUnsyncedSummary,
   startComposerSyncWatcher,
   getMarkdownPushLabel,
-  getContentRoot: () => editorRuntime.getContentRoot()
+  getContentRoot: () => editorRuntime.getContentRoot(),
+  fetchRef: (url, options) => editorRuntime.fetchContent(url, options),
+  matchesMedia: (query) => editorRuntime.matchesMedia(query),
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay)
 });
 const { bindVerifySetup } = composerSetupVerifier;
 

@@ -16,8 +16,8 @@ export function createComposerYamlDraftController(options = {}) {
   const prepareTabsState = typeof options.prepareTabsState === 'function' ? options.prepareTabsState : (value) => value;
   const cloneSiteState = typeof options.cloneSiteState === 'function' ? options.cloneSiteState : (value) => value;
   const updateUnsyncedSummary = typeof options.updateUnsyncedSummary === 'function' ? options.updateUnsyncedSummary : () => {};
-  const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : setTimeout;
-  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function' ? options.clearTimeoutRef : clearTimeout;
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : () => null;
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function' ? options.clearTimeoutRef : () => {};
   const now = typeof options.now === 'function' ? options.now : () => Date.now();
 
   const draftMeta = { index: null, tabs: null, site: null };

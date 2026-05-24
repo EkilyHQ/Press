@@ -2,9 +2,8 @@ export const TAB_STATE_VALUES = new Set(['checking', 'existing', 'missing', 'err
 
 const noop = () => {};
 
-function defaultFetchContent(url, options) {
-  if (typeof fetch !== 'function') throw new Error('fetch unavailable');
-  return fetch(url, options);
+async function unavailableFetchContent() {
+  throw new Error('Fetch is not available in this runtime.');
 }
 
 function normalizeStatusTimestamp(value) {
@@ -48,7 +47,9 @@ export function createComposerMarkdownLoader(options = {}) {
   const getCurrentMode = typeof opts.getCurrentMode === 'function' ? opts.getCurrentMode : () => null;
   const pushEditorCurrentFileInfo = typeof opts.pushEditorCurrentFileInfo === 'function' ? opts.pushEditorCurrentFileInfo : noop;
   const refreshEditorContentTree = typeof opts.refreshEditorContentTree === 'function' ? opts.refreshEditorContentTree : noop;
-  const fetchContent = typeof opts.fetchContent === 'function' ? opts.fetchContent : defaultFetchContent;
+  const fetchContent = typeof opts.fetchContent === 'function'
+    ? opts.fetchContent
+    : unavailableFetchContent;
   const getNow = typeof opts.now === 'function' ? opts.now : () => Date.now();
 
   function setDynamicTabStatus(tab, status) {

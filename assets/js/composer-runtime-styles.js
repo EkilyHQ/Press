@@ -1,5 +1,5 @@
 export function injectComposerRuntimeStyles(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   if (!documentRef || !documentRef.head || typeof documentRef.createElement !== 'function') return null;
   if (documentRef.getElementById && documentRef.getElementById('composer-runtime-styles')) {
     return documentRef.getElementById('composer-runtime-styles');

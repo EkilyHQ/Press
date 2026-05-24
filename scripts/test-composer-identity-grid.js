@@ -865,6 +865,18 @@ assert.match(
 
 assert.match(
   source,
+  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*windowRef: composerWindow,[\s\S]*emitMarkdownAssetPreview: \(detail\) => editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*\}\);/,
+  'composer should inject Markdown asset preview events and repository fetches through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerMarkdownAssetsSource,
+  /options\.windowRef\s*\|\|\s*\(typeof window|typeof (?:window|CustomEvent|fetch)\b|new CustomEvent|windowRef\.CustomEvent|windowRef\.fetch|(^|[^.])\bfetch\s*\(/m,
+  'Markdown asset manager should receive browser refs, asset preview events, and fetch through explicit runtime wiring'
+);
+
+assert.match(
+  source,
   /const \{[\s\S]*ensureMarkdownAssetBucket,[\s\S]*textWithFallback,[\s\S]*collectCurrentRepositoryMarkdownAssetReferences[\s\S]*\} = markdownAssetManager;/,
   'composer should import all remaining Markdown asset adapter helpers from the manager instead of stale local bindings'
 );
@@ -951,6 +963,18 @@ assert.match(
   composerSetupVerifierSource,
   /export function createComposerSetupVerifier\(options = \{\}\)[\s\S]*async function computeMissingFiles\(preferredKind\)[\s\S]*function openVerifyModal\(missing, targetKind\)[\s\S]*async function afterAllGood\(targetKind\)[\s\S]*function bindVerifySetup\(\)/,
   'setup verifier should own missing-file checks, verify modal rendering, YAML drift handling, and binding'
+);
+
+assert.match(
+  source,
+  /const composerSetupVerifier = createComposerSetupVerifier\(\{[\s\S]*runtime: editorRuntime,[\s\S]*documentRef: composerDocument,[\s\S]*getContentRoot: \(\) => editorRuntime\.getContentRoot\(\),[\s\S]*fetchRef: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  'composer should inject setup verifier DOM, network, media, and timer effects through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerSetupVerifierSource,
+  /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof (?:document|window)|\|\|\s*console\b|typeof (?:document|window|fetch|setTimeout)\b|windowRef\.(?:fetch|setTimeout|__press_content_root|matchMedia)|(^|[^.])\b(?:fetch|setTimeout)\s*\(/m,
+  'setup verifier should receive DOM, content-root, fetch, media, timer, and logging adapters explicitly'
 );
 
 assert.match(
@@ -1150,6 +1174,12 @@ assert.match(
   composerRuntimeStylesSource,
   /export function injectComposerRuntimeStyles\(options = \{\}\)[\s\S]*composer-runtime-styles[\s\S]*\.ci-item[\s\S]*\.cs-publish-transport-settings[\s\S]*@keyframes nsModalFadeIn/,
   'runtime style module should own composer list, site settings, publish transport, and modal animation styles'
+);
+
+assert.doesNotMatch(
+  composerRuntimeStylesSource,
+  /options\.documentRef\s*\|\|\s*\(typeof document|typeof document\b|(^|[^.])\bdocument\b/,
+  'runtime style injection should consume the explicit runtime document ref without rediscovering document'
 );
 
 assert.match(
@@ -1895,6 +1925,12 @@ assert.match(
   'Markdown loader boundary should own remote markdown fetch, encrypted draft merge, and file-status updates'
 );
 
+assert.doesNotMatch(
+  composerMarkdownLoaderSource,
+  /typeof fetch\b|(^|[^.])\bfetch\s*\(/m,
+  'Markdown loader should receive fetch through explicit runtime wiring'
+);
+
 assert.match(
   source,
   /from '\.\/composer-markdown-actions-ui\.js\?v=[\w.-]+'/,
@@ -1999,6 +2035,18 @@ assert.match(
   composerMarkdownDraftsSource,
   /export function createComposerMarkdownDraftController\(options = \{\}\)[\s\S]*function getDraftEntry\(path\)[\s\S]*function saveDraftEntry\(path, content, remoteSignature = '', assets = \[\], saveOptions = \{\}\)[\s\S]*function restoreDraftForTab\(tab\)[\s\S]*async function saveDraftForTab\(tab, saveOptions = \{\}\)[\s\S]*function updateDynamicTabDirtyState\(tab, dirtyOptions = \{\}\)/,
   'Markdown drafts boundary should own draft store entries, restore/save/clear, autosave, and dirty-state calculation'
+);
+
+assert.match(
+  source,
+  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef: console,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\)/,
+  'composer should inject Markdown draft logging and autosave timers explicitly'
+);
+
+assert.doesNotMatch(
+  composerMarkdownDraftsSource,
+  /\|\|\s*console\b|typeof (?:setTimeout|clearTimeout)\b|(^|[^.])\b(?:setTimeout|clearTimeout)\s*\(/m,
+  'Markdown drafts should receive logging and autosave timers through explicit runtime wiring'
 );
 
 assert.match(
@@ -4424,6 +4472,12 @@ assert.match(
   'remote sync controller should own Markdown and YAML remote snapshot fetch, apply, and watcher orchestration'
 );
 
+assert.doesNotMatch(
+  composerRemoteSyncSource,
+  /typeof fetch\b|(^|[^.])\bfetch\s*\(/m,
+  'remote sync controller should receive fetch through explicit runtime wiring'
+);
+
 assert.match(
   source,
   /from '\.\/composer-yaml-drafts\.js\?v=[\w.-]+'/,
@@ -4440,6 +4494,18 @@ assert.match(
   composerYamlDraftsSource,
   /export function createComposerYamlDraftController\(options = \{\}\)[\s\S]*const draftMeta = \{ index: null, tabs: null, site: null \};[\s\S]*const autoSaveTimers = \{ index: null, tabs: null, site: null \};[\s\S]*function saveDraftToStorage\(kind, opts = \{\}\)[\s\S]*function scheduleAutoDraft\(kind\)[\s\S]*function loadDraftSnapshotsIntoState\(state\)/,
   'YAML draft controller should own index/tabs/site draft metadata, autosave timers, persistence, and restore'
+);
+
+assert.match(
+  source,
+  /const composerYamlDraftController = createComposerYamlDraftController\(\{[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\);/,
+  'composer should inject YAML draft autosave timers through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerYamlDraftsSource,
+  /typeof (?:setTimeout|clearTimeout)\b|(^|[^.])\b(?:setTimeout|clearTimeout)\s*\(/m,
+  'YAML drafts should receive autosave timers through explicit runtime wiring'
 );
 
 assert.match(

@@ -6,10 +6,12 @@ import {
 } from './repository-deletions.js?v=press-system-v3.4.50';
 
 export function createComposerMarkdownAssetManager(options = {}) {
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const windowRef = options.windowRef || null;
   const translate = typeof options.t === 'function' ? options.t : ((key) => key);
   const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : ((value) => String(value || '').replace(/[\\]/g, '/'));
   const normalizeMarkdownContent = typeof options.normalizeMarkdownContent === 'function' ? options.normalizeMarkdownContent : ((value) => String(value || ''));
+  const emitMarkdownAssetPreview = typeof options.emitMarkdownAssetPreview === 'function' ? options.emitMarkdownAssetPreview : (() => false);
+  const fetchContent = typeof options.fetchContent === 'function' ? options.fetchContent : null;
   const getContentRootSafe = typeof options.getContentRootSafe === 'function' ? options.getContentRootSafe : (() => 'wwwroot');
   const getStateSlice = typeof options.getStateSlice === 'function' ? options.getStateSlice : (() => null);
   const getDynamicEditorTabs = typeof options.getDynamicEditorTabs === 'function' ? options.getDynamicEditorTabs : (() => new Map());
@@ -45,7 +47,7 @@ export function createComposerMarkdownAssetManager(options = {}) {
 
   function broadcastMarkdownAssetPreview(path) {
     const norm = normalizeRelPath(path);
-    if (!norm || !windowRef || typeof windowRef.dispatchEvent !== 'function') return;
+    if (!norm) return;
     const bucket = getMarkdownAssetBucket(norm);
     const assets = bucket && bucket.size
       ? Array.from(bucket.values()).map(asset => ({
@@ -56,11 +58,7 @@ export function createComposerMarkdownAssetManager(options = {}) {
       }))
       : [];
     try {
-      const EventCtor = windowRef.CustomEvent || (typeof CustomEvent === 'function' ? CustomEvent : null);
-      if (!EventCtor) return;
-      windowRef.dispatchEvent(new EventCtor('press-editor-asset-preview', {
-        detail: { markdownPath: norm, assets }
-      }));
+      emitMarkdownAssetPreview({ markdownPath: norm, assets });
     } catch (_) {
       /* ignore */
     }
@@ -471,12 +469,9 @@ export function createComposerMarkdownAssetManager(options = {}) {
     if (!rel) return { text: '', failed: true };
     const root = String(contentRoot || '').replace(/[\\]/g, '/').replace(/^\/+|\/+$/g, '') || 'wwwroot';
     const path = `${root}/${rel}`.replace(/\/+/g, '/');
-    const fetchFn = windowRef && typeof windowRef.fetch === 'function'
-      ? windowRef.fetch.bind(windowRef)
-      : (typeof fetch === 'function' ? fetch : null);
-    if (!fetchFn) return { text: '', failed: true };
+    if (!fetchContent) return { text: '', failed: true };
     try {
-      const resp = await fetchFn(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
+      const resp = await fetchContent(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
       if (!resp.ok) return { text: '', failed: true };
       return { text: normalizeMarkdownContent(await resp.text()), failed: false };
     } catch (_) {

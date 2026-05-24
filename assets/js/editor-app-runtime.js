@@ -673,8 +673,8 @@ function resolveWindowStorage(windowRef) {
 }
 
 export function createEditorAppRuntime({
-  windowRef = typeof window !== 'undefined' ? window : null,
-  documentRef = typeof document !== 'undefined' ? document : null,
+  windowRef = null,
+  documentRef = null,
   storage = undefined
 } = {}) {
   const runtimeStorage = storage === undefined ? resolveWindowStorage(windowRef) : storage;
@@ -687,4 +687,14 @@ export function createEditorAppRuntime({
     globals: createRuntimeGlobals(windowRef),
     createStateStore: createEditorStateStore
   };
+}
+
+export function createBrowserEditorAppRuntime(options = {}) {
+  const hasWindowRef = Object.prototype.hasOwnProperty.call(options, 'windowRef');
+  const hasDocumentRef = Object.prototype.hasOwnProperty.call(options, 'documentRef');
+  return createEditorAppRuntime({
+    ...options,
+    windowRef: hasWindowRef ? options.windowRef : (typeof window !== 'undefined' ? window : null),
+    documentRef: hasDocumentRef ? options.documentRef : (typeof document !== 'undefined' ? document : null)
+  });
 }

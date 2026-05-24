@@ -1,4 +1,4 @@
-import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
 
 const CONTENT_ROOT_GLOBAL = '__press_content_root';
 const SITE_REPO_GLOBAL = '__press_site_repo';
@@ -25,7 +25,7 @@ function normalizeSiteRepo(repo) {
 }
 
 export function createComposerRuntime(options = {}) {
-  const runtime = createEditorAppRuntime(options);
+  const runtime = createBrowserEditorAppRuntime(options);
   const clipboardNavigatorRef = options.navigatorRef || null;
 
   function onDocumentReady(handler) {

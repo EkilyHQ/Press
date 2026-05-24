@@ -1,4 +1,4 @@
-import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';
 const LS_VIEW_KEY = 'press_editor_markdown_view_v2';
@@ -39,7 +39,7 @@ function parseWrapState(raw) {
 }
 
 export function createEditorMainRuntime(options = {}) {
-  const runtime = createEditorAppRuntime(options);
+  const runtime = createBrowserEditorAppRuntime(options);
 
   function onDocumentReady(handler) {
     return runtime.browser.onDocumentReady(handler);

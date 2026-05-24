@@ -1840,6 +1840,12 @@ assert.match(
 
 assert.match(
   editorAppRuntimeSource,
+  /export function createEditorAppRuntime\(\{[\s\S]*windowRef = null,[\s\S]*documentRef = null,[\s\S]*storage = undefined[\s\S]*export function createBrowserEditorAppRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(\{/,
+  'editor app runtime should keep the core constructor explicit and isolate browser global capture behind a named runtime factory'
+);
+
+assert.match(
+  editorAppRuntimeSource,
   /function onDocumentReady\(handler\)[\s\S]*documentRef\.readyState[\s\S]*DOMContentLoaded[\s\S]*onDocumentReady,/,
   'editor app runtime should own DOM-ready state checks and DOMContentLoaded listener registration'
 );
@@ -1864,7 +1870,7 @@ assert.match(
 
 assert.match(
   editorBootRuntimeSource,
-  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*createEditorAppRuntime\(options\)[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied[\s\S]*setPopulateLanguageSelect[\s\S]*setSoftResetLanguage/,
+  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*createBrowserEditorAppRuntime\(options\)[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied[\s\S]*setPopulateLanguageSelect[\s\S]*setSoftResetLanguage/,
   'editor boot runtime should wrap language boot globals and events through the shared app runtime facade'
 );
 
@@ -1876,7 +1882,7 @@ assert.doesNotMatch(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getLocation\(\)[\s\S]*function getLocationOrigin\(\)[\s\S]*function getLocationHref\(\)[\s\S]*function getDocumentLang\(\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function openWindow\(href = '', target = '_blank', features\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createBrowserEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getLocation\(\)[\s\S]*function getLocationOrigin\(\)[\s\S]*function getLocationHref\(\)[\s\S]*function getDocumentLang\(\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function openWindow\(href = '', target = '_blank', features\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
   'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
 );
 

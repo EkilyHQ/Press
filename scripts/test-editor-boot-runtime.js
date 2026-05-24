@@ -155,7 +155,7 @@ class FakeCustomEvent {
   );
   assert.match(
     bootRuntimeSource,
-    /createEditorAppRuntime\(options\)[\s\S]*onDocumentReady[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied/,
+    /createBrowserEditorAppRuntime\(options\)[\s\S]*onDocumentReady[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied/,
     'editor boot runtime should wrap the shared app runtime for boot events and globals'
   );
 }

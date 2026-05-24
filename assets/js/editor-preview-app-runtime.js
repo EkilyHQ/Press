@@ -1,4 +1,4 @@
-import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
 
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 const THEME_PACK_HREF_GLOBAL = '__themePackHref';
@@ -15,7 +15,7 @@ function setDocumentTheme(documentElement, dark) {
 }
 
 export function createEditorPreviewAppRuntime(options = {}) {
-  const runtime = createEditorAppRuntime(options);
+  const runtime = createBrowserEditorAppRuntime(options);
 
   function getParentWindow() {
     return runtime.globals.get('parent') || null;

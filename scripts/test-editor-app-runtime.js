@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import {
+  createBrowserEditorAppRuntime,
   createEditorAppRuntime,
   createEditorStateStore
 } from '../assets/js/editor-app-runtime.js';
@@ -355,6 +356,42 @@ class FakeResizeObserver {}
   assert.equal(runtime.storage.setItem('x', '1'), false);
   assert.equal(runtime.storage.removeItem('x'), false);
   assert.equal(runtime.events.emitDocument('missing', {}), false);
+}
+
+{
+  const originals = new Map();
+  const hadOriginal = new Map();
+  ['window', 'document'].forEach((name) => {
+    hadOriginal.set(name, Object.prototype.hasOwnProperty.call(globalThis, name));
+    originals.set(name, globalThis[name]);
+  });
+  try {
+    const browserWindow = { localStorage: null };
+    const browserDocument = { readyState: 'complete' };
+    globalThis.window = browserWindow;
+    globalThis.document = browserDocument;
+
+    const explicitRuntime = createEditorAppRuntime({ storage: null });
+    assert.equal(explicitRuntime.windowRef, null);
+    assert.equal(explicitRuntime.documentRef, null);
+
+    const browserRuntime = createBrowserEditorAppRuntime({ storage: null });
+    assert.equal(browserRuntime.windowRef, browserWindow);
+    assert.equal(browserRuntime.documentRef, browserDocument);
+
+    const nullRuntime = createBrowserEditorAppRuntime({
+      windowRef: null,
+      documentRef: null,
+      storage: null
+    });
+    assert.equal(nullRuntime.windowRef, null);
+    assert.equal(nullRuntime.documentRef, null);
+  } finally {
+    ['window', 'document'].forEach((name) => {
+      if (hadOriginal.get(name)) globalThis[name] = originals.get(name);
+      else delete globalThis[name];
+    });
+  }
 }
 
 {

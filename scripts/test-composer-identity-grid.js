@@ -1433,8 +1433,14 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const editorMainRuntime = createEditorMainRuntime\(\);\s*const editorMainDocument = editorMainRuntime\.documentRef;[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const metadataPanel = appServices\.setMetadataPanel\(createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: appServices\.notifyDocumentChange[\s\S]*\}\)\);/,
+  /export function createEditorMainController\(editorMainRuntime = createEditorMainRuntime\(\)\) \{[\s\S]*const editorMainDocument = editorMainRuntime\.documentRef;[\s\S]*function start\(\) \{[\s\S]*editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const metadataPanel = appServices\.setMetadataPanel\(createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: appServices\.notifyDocumentChange[\s\S]*\}\)\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /const\s+editorMainRuntime\s*=\s*createEditorMainRuntime\(\)/,
+  'editor main should not create a module-level runtime singleton'
 );
 
 assert.match(
@@ -1648,7 +1654,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSource,
-  /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
+  /export function createEditorMainController\(editorMainRuntime = createEditorMainRuntime\(\)\) \{[\s\S]*function start\(\) \{[\s\S]*editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);[\s\S]*createEditorMainController\(\)\.start\(\);/,
   'editor main startup should wire the preview session through the editor runtime boundary'
 );
 

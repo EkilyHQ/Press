@@ -2072,6 +2072,12 @@ assert.doesNotMatch(
   'bootstrap module should not rediscover DOM ready, location, or timers outside injected runtime callbacks'
 );
 
+assert.doesNotMatch(
+  composerBootstrapSource,
+  /consoleRef\s*=\s*console|setTimeoutRef\s*=\s*\([^)]*handler/,
+  'bootstrap module should receive logging and timer effects through explicit composer runtime wiring'
+);
+
 assert.match(
   source,
   /applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\)/,

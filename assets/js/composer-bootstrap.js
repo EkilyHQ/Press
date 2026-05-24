@@ -117,7 +117,7 @@ export function bindComposerMarkdownToolbar({
 
 export function bindComposerWorkspaceUi({
   documentRef,
-  consoleRef = console,
+  consoleRef = null,
   mountEditorSystemPanels = noop,
   initEditorOverlay = noop,
   initEditorRailResize = noop,
@@ -204,7 +204,7 @@ export function bindComposerWorkspaceUi({
 }
 
 export async function loadInitialComposerState({
-  consoleRef = console,
+  consoleRef = null,
   t = (key) => key,
   ensureSiteRepo = noop,
   fetchTrackedSiteConfig,
@@ -282,11 +282,18 @@ export function assembleComposerWorkspace({
   applyMode,
   setAllowEditorStatePersist,
   persistDynamicEditorState,
-  setTimeoutRef = (handler) => {
-    handler();
-    return null;
-  }
+  setTimeoutRef = null
 } = {}) {
+  const scheduleTimer = (handler, delay) => {
+    if (typeof setTimeoutRef !== 'function') return false;
+    try {
+      setTimeoutRef(handler, delay);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
   const restoredDrafts = loadDraftSnapshotsIntoState(state);
   let inferredSiteRepoApplied = false;
   try {
@@ -305,7 +312,7 @@ export function assembleComposerWorkspace({
       .map(k => (k === 'tabs' ? 'tabs.yaml' : k === 'site' ? 'site.yaml' : 'index.yaml'))
       .join(' & ');
     showStatus(t('editor.composer.statusMessages.restoredDraft', { label }));
-    setTimeoutRef(() => { showStatus(''); }, 1800);
+    scheduleTimer(() => { showStatus(''); }, 1800);
   } else {
     showStatus('');
   }
@@ -324,11 +331,7 @@ export function assembleComposerWorkspace({
   if (!restoredEditorState) applyMode('editor');
   setAllowEditorStatePersist(true);
   if (restoredEditorState) {
-    try {
-      setTimeoutRef(() => persistDynamicEditorState(), 500);
-    } catch (_) {
-      persistDynamicEditorState();
-    }
+    if (!scheduleTimer(() => persistDynamicEditorState(), 500)) persistDynamicEditorState();
   } else {
     persistDynamicEditorState();
   }

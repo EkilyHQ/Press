@@ -147,6 +147,18 @@ function createDocumentRef() {
   detach();
   assert.equal(windowRef.listeners.get('message').length, 0);
 
+  assert.equal(runtime.beginRender('7'), 7);
+  assert.equal(runtime.isCurrentRender(7), true);
+  assert.equal(runtime.isCurrentRender(6), false);
+  assert.equal(runtime.beginRender('not-a-number'), 0);
+  assert.equal(runtime.isCurrentRender(0), true);
+  assert.equal(runtime.getActiveThemePack(), '');
+  assert.equal(runtime.shouldResetThemePack('native'), true);
+  assert.equal(runtime.setActiveThemePack('native'), 'native');
+  assert.equal(runtime.getActiveThemePack(), 'native');
+  assert.equal(runtime.shouldResetThemePack('native'), false);
+  assert.equal(runtime.shouldResetThemePack('arcus'), true);
+
   runtime.applyColorMode({ themeMode: 'dark' });
   assert.equal(documentRef.documentElement.getAttribute('data-theme'), 'dark');
   runtime.applyColorMode({ themeMode: 'light' });

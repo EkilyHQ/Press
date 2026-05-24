@@ -3,6 +3,11 @@ import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-s
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 const THEME_PACK_HREF_GLOBAL = '__themePackHref';
 
+function normalizeRequestId(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
 function setDocumentTheme(documentElement, dark) {
   try {
     if (!documentElement) return false;
@@ -16,6 +21,8 @@ function setDocumentTheme(documentElement, dark) {
 
 export function createEditorPreviewAppRuntime(options = {}) {
   const runtime = createBrowserEditorAppRuntime(options);
+  let activeThemePack = '';
+  let latestRenderRequestId = 0;
 
   function getParentWindow() {
     return runtime.globals.get('parent') || null;
@@ -35,6 +42,28 @@ export function createEditorPreviewAppRuntime(options = {}) {
 
   function isTrustedMessageEvent(event) {
     return !!event && event.origin === runtime.browser.getLocationOrigin();
+  }
+
+  function beginRender(requestId) {
+    latestRenderRequestId = normalizeRequestId(requestId);
+    return latestRenderRequestId;
+  }
+
+  function isCurrentRender(requestId) {
+    return normalizeRequestId(requestId) === latestRenderRequestId;
+  }
+
+  function shouldResetThemePack(pack) {
+    return activeThemePack !== String(pack || '');
+  }
+
+  function setActiveThemePack(pack) {
+    activeThemePack = String(pack || '');
+    return activeThemePack;
+  }
+
+  function getActiveThemePack() {
+    return activeThemePack;
   }
 
   function applyColorMode(siteConfig = {}) {
@@ -126,6 +155,11 @@ export function createEditorPreviewAppRuntime(options = {}) {
     postToParent,
     onRenderMessage,
     isTrustedMessageEvent,
+    beginRender,
+    isCurrentRender,
+    shouldResetThemePack,
+    setActiveThemePack,
+    getActiveThemePack,
     applyColorMode,
     applyThemeStyleLinks,
     querySelector,

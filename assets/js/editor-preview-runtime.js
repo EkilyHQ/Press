@@ -22,9 +22,6 @@ const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
 const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 
-let activePack = '';
-let latestRenderRequestId = 0;
-
 const previewRuntime = createEditorPreviewAppRuntime();
 
 function postToParent(payload) {
@@ -36,19 +33,12 @@ function sanitizePack(value) {
   return clean || 'native';
 }
 
-function normalizeRequestId(value) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : 0;
-}
-
 function beginPreviewRender(payload) {
-  const requestId = normalizeRequestId(payload && payload.requestId);
-  latestRenderRequestId = requestId;
-  return requestId;
+  return previewRuntime.beginRender(payload && payload.requestId);
 }
 
 function isCurrentPreviewRender(requestId) {
-  return normalizeRequestId(requestId) === latestRenderRequestId;
+  return previewRuntime.isCurrentRender(requestId);
 }
 
 function applyPreviewColorMode(siteConfig = {}) {
@@ -248,10 +238,10 @@ async function renderPreview(payload) {
   const requestedPack = sanitizePack(payload.themePack || (payload.siteConfig && payload.siteConfig.themePack) || 'native');
   applyPreviewColorMode(payload.siteConfig || {});
   try {
-    const reset = activePack !== requestedPack;
+    const reset = previewRuntime.shouldResetThemePack(requestedPack);
     const layout = await ensureThemeLayout({ pack: requestedPack, persist: false, reset });
     if (!isCurrentPreviewRender(requestId)) return;
-    activePack = (layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack;
+    const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);
     const markdown = String(payload.markdown || '');
     const baseDir = String(payload.baseDir || `${getContentRoot()}/`);
     const output = mdParse(markdown, baseDir);
@@ -388,12 +378,12 @@ previewRuntime.onRenderMessage((event) => {
   if (!previewRuntime.isTrustedMessageEvent(event)) return;
   const payload = event.data && typeof event.data === 'object' ? event.data : {};
   if (payload.type !== RENDER_MESSAGE) return;
-  latestRenderRequestId = normalizeRequestId(payload.requestId);
+  const requestId = beginPreviewRender(payload);
   renderPreview(payload).catch((err) => {
-    if (!isCurrentPreviewRender(payload.requestId)) return;
+    if (!isCurrentPreviewRender(requestId)) return;
     postToParent({
       type: ERROR_MESSAGE,
-      requestId: payload.requestId,
+      requestId,
       themePack: payload.themePack || '',
       message: err && err.message ? err.message : 'Preview failed.'
     });

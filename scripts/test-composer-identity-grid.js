@@ -4358,6 +4358,24 @@ assert.match(
 );
 
 assert.match(
+  editorPreviewAppRuntimeSource,
+  /let activeThemePack = '';[\s\S]*let latestRenderRequestId = 0;[\s\S]*function beginRender\(requestId\)[\s\S]*function isCurrentRender\(requestId\)[\s\S]*function shouldResetThemePack\(pack\)[\s\S]*function setActiveThemePack\(pack\)[\s\S]*return \{[\s\S]*beginRender,[\s\S]*isCurrentRender,[\s\S]*shouldResetThemePack,[\s\S]*setActiveThemePack,/,
+  'editor preview app runtime should own active theme and render request state'
+);
+
+assert.doesNotMatch(
+  editorPreviewRuntimeSource,
+  /let\s+(?:activePack|latestRenderRequestId)\s*=/,
+  'editor preview runtime should not keep active theme or render request state as module globals'
+);
+
+assert.match(
+  editorPreviewRuntimeSource,
+  /function beginPreviewRender\(payload\) \{[\s\S]*previewRuntime\.beginRender\(payload && payload\.requestId\)[\s\S]*function isCurrentPreviewRender\(requestId\) \{[\s\S]*previewRuntime\.isCurrentRender\(requestId\)[\s\S]*const reset = previewRuntime\.shouldResetThemePack\(requestedPack\);[\s\S]*const activePack = previewRuntime\.setActiveThemePack/,
+  'editor preview runtime should route active theme and render request state through the preview runtime'
+);
+
+assert.match(
   typographySource,
   /function createLangHintRuntime\(options = \{\}\) \{[\s\S]*const allowAmbient = options\.allowAmbient !== false;[\s\S]*documentRef[\s\S]*windowRef[\s\S]*nodeFilterRef[\s\S]*createTreeWalker\(root, whatToShow, filter\)[\s\S]*export function applyLangHints\(container, options = \{\}\) \{[\s\S]*const runtime = createLangHintRuntime\(options\);/,
   'typography lang hints should expose an injectable runtime boundary'

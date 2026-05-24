@@ -1,14 +1,18 @@
 const SLIDE_OPEN_DUR = 420;
 const SLIDE_CLOSE_DUR = 360;
 
-let composerReduceMotionQuery = null;
-const composerInlineVisibilityAnimations = new WeakMap();
-const composerInlineVisibilityFallbacks = new WeakMap();
-const composerListTransitions = new WeakMap();
-const composerOrderMainTransitions = new WeakMap();
-let composerSiteScrollAnimationId = null;
-let composerSiteScrollCleanup = null;
-const activeSlideAnimations = new WeakMap();
+function createComposerUiMotionState() {
+  return {
+    reduceMotionQuery: null,
+    inlineVisibilityAnimations: new WeakMap(),
+    inlineVisibilityFallbacks: new WeakMap(),
+    listTransitions: new WeakMap(),
+    orderMainTransitions: new WeakMap(),
+    siteScrollAnimationId: null,
+    siteScrollCleanup: null,
+    activeSlideAnimations: new WeakMap()
+  };
+}
 
 function createComposerUiMotionRuntime(options = {}) {
   return {
@@ -35,7 +39,8 @@ function createComposerUiMotionRuntime(options = {}) {
     performanceRef: options.performanceRef || null,
     ResizeObserverRef: typeof options.ResizeObserverRef === 'function'
       ? options.ResizeObserverRef
-      : null
+      : null,
+    state: createComposerUiMotionState()
   };
 }
 
@@ -44,8 +49,11 @@ let composerUiMotionRuntime = createComposerUiMotionRuntime();
 export function configureComposerUiMotionRuntime(options = {}) {
   cancelComposerSiteScrollAnimation();
   composerUiMotionRuntime = createComposerUiMotionRuntime(options);
-  composerReduceMotionQuery = null;
   return composerUiMotionRuntime;
+}
+
+function getMotionState() {
+  return composerUiMotionRuntime.state;
 }
 
 function getDocumentRef() {
@@ -197,29 +205,31 @@ export function syncSiteEditorSingleLabelWidth(root) {
 }
 
 export function composerPrefersReducedMotion() {
+  const state = getMotionState();
   try {
-    if (!composerReduceMotionQuery) {
+    if (!state.reduceMotionQuery) {
       const matchesMediaRef = composerUiMotionRuntime.matchesMediaRef;
       if (!matchesMediaRef) return false;
-      composerReduceMotionQuery = matchesMediaRef('(prefers-reduced-motion: reduce)');
+      state.reduceMotionQuery = matchesMediaRef('(prefers-reduced-motion: reduce)');
     }
-    if (typeof composerReduceMotionQuery === 'boolean') return composerReduceMotionQuery;
-    return !!composerReduceMotionQuery.matches;
+    if (typeof state.reduceMotionQuery === 'boolean') return state.reduceMotionQuery;
+    return !!state.reduceMotionQuery.matches;
   } catch (_) {
     return false;
   }
 }
 
 export function cancelComposerSiteScrollAnimation() {
+  const state = getMotionState();
   try {
-    cancelFrame(composerSiteScrollAnimationId);
+    cancelFrame(state.siteScrollAnimationId);
   } catch (_) {}
-  composerSiteScrollAnimationId = null;
-  if (typeof composerSiteScrollCleanup === 'function') {
-    try { composerSiteScrollCleanup(); }
+  state.siteScrollAnimationId = null;
+  if (typeof state.siteScrollCleanup === 'function') {
+    try { state.siteScrollCleanup(); }
     catch (_) {}
   }
-  composerSiteScrollCleanup = null;
+  state.siteScrollCleanup = null;
 }
 
 export function createCubicBezierEasing(mX1, mY1, mX2, mY2) {
@@ -321,6 +331,7 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
   const resolvedDuration = resolveComposerScrollDuration(duration);
 
   const startTime = getNow();
+  const state = getMotionState();
 
   cancelComposerSiteScrollAnimation();
 
@@ -341,7 +352,7 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
   }
 
   if (typeof restoreScrollBehavior === 'function') {
-    composerSiteScrollCleanup = () => {
+    state.siteScrollCleanup = () => {
       if (typeof restoreScrollBehavior === 'function') {
         try { restoreScrollBehavior(); }
         catch (_) {}
@@ -349,16 +360,16 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
       restoreScrollBehavior = null;
     };
   } else {
-    composerSiteScrollCleanup = null;
+    state.siteScrollCleanup = null;
   }
 
   const finalize = (shouldInvokeCallback) => {
-    composerSiteScrollAnimationId = null;
-    if (typeof composerSiteScrollCleanup === 'function') {
-      try { composerSiteScrollCleanup(); }
+    state.siteScrollAnimationId = null;
+    if (typeof state.siteScrollCleanup === 'function') {
+      try { state.siteScrollCleanup(); }
       catch (_) {}
     }
-    composerSiteScrollCleanup = null;
+    state.siteScrollCleanup = null;
     if (shouldInvokeCallback && typeof onComplete === 'function') {
       try { onComplete(); } catch (_) {}
     }
@@ -374,7 +385,7 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
 
     if (progress < 1) {
       try {
-        composerSiteScrollAnimationId = requestFrame(step);
+        state.siteScrollAnimationId = requestFrame(step);
         return;
       } catch (_) {}
     }
@@ -383,7 +394,7 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
   };
 
   try {
-    composerSiteScrollAnimationId = requestFrame(step);
+    state.siteScrollAnimationId = requestFrame(step);
     return true;
   } catch (_) {
     finalize(false);
@@ -421,21 +432,23 @@ function getComposerInlineAnimConfig() {
 
 function cancelInlineVisibilityAnimation(element) {
   if (!element) return;
-  const active = composerInlineVisibilityAnimations.get(element);
+  const state = getMotionState();
+  const active = state.inlineVisibilityAnimations.get(element);
   if (active && typeof active.cancel === 'function') {
     try { active.cancel(); } catch (_) {}
   }
-  if (active) composerInlineVisibilityAnimations.delete(element);
-  const fallback = composerInlineVisibilityFallbacks.get(element);
+  if (active) state.inlineVisibilityAnimations.delete(element);
+  const fallback = state.inlineVisibilityFallbacks.get(element);
   if (fallback != null) {
     clearTimer(fallback);
-    composerInlineVisibilityFallbacks.delete(element);
+    state.inlineVisibilityFallbacks.delete(element);
   }
   if (element.dataset && element.dataset.animState && !element.hidden) delete element.dataset.animState;
 }
 
 export function animateComposerInlineVisibility(element, show, options = {}) {
   if (!element) return;
+  const state = getMotionState();
   const reduceMotion = composerPrefersReducedMotion();
   const config = getComposerInlineAnimConfig();
   const duration = show ? config.durationIn : config.durationOut;
@@ -494,10 +507,10 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
         element.setAttribute('aria-hidden', 'false');
       }
       if (element.dataset && element.dataset.animState) delete element.dataset.animState;
-      composerInlineVisibilityFallbacks.delete(element);
+      state.inlineVisibilityFallbacks.delete(element);
       finish();
     }, duration);
-    composerInlineVisibilityFallbacks.set(element, timer);
+    state.inlineVisibilityFallbacks.set(element, timer);
   };
 
   if (typeof element.animate === 'function') {
@@ -507,11 +520,11 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
         element.setAttribute('aria-hidden', 'false');
         if (element.dataset) element.dataset.animState = 'enter';
         const animation = element.animate(keyframesIn, { duration, easing: config.easing, fill: 'both' });
-        composerInlineVisibilityAnimations.set(element, animation);
+        state.inlineVisibilityAnimations.set(element, animation);
         const finalize = () => {
-          const active = composerInlineVisibilityAnimations.get(element);
+          const active = state.inlineVisibilityAnimations.get(element);
           if (active !== animation) return;
-          composerInlineVisibilityAnimations.delete(element);
+          state.inlineVisibilityAnimations.delete(element);
           if (element.dataset && element.dataset.animState === 'enter') delete element.dataset.animState;
           finish();
         };
@@ -521,11 +534,11 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
       }
       if (element.dataset) element.dataset.animState = 'exit';
       const animation = element.animate(keyframesOut, { duration, easing: config.easing, fill: 'both' });
-      composerInlineVisibilityAnimations.set(element, animation);
+      state.inlineVisibilityAnimations.set(element, animation);
       const finalize = () => {
-        const active = composerInlineVisibilityAnimations.get(element);
+        const active = state.inlineVisibilityAnimations.get(element);
         if (active !== animation) return;
-        composerInlineVisibilityAnimations.delete(element);
+        state.inlineVisibilityAnimations.delete(element);
         element.hidden = true;
         element.setAttribute('aria-hidden', 'true');
         if (element.dataset && element.dataset.animState === 'exit') delete element.dataset.animState;
@@ -554,9 +567,10 @@ export function captureElementRect(element) {
 
 export function cancelListTransition(list) {
   if (!list) return;
-  const active = composerListTransitions.get(list);
+  const state = getMotionState();
+  const active = state.listTransitions.get(list);
   if (!active) return;
-  composerListTransitions.delete(list);
+  state.listTransitions.delete(list);
   if (active.animation && typeof active.animation.cancel === 'function') {
     try { active.animation.cancel(); } catch (_) {}
   }
@@ -570,6 +584,7 @@ export function cancelListTransition(list) {
 
 export function animateComposerListTransition(list, previousRect, options = {}) {
   if (!list || !previousRect || composerPrefersReducedMotion()) return;
+  const state = getMotionState();
   const immediate = !!options.immediate;
   const forceFallback = immediate || !!options.forceFallback;
   const onMeasured = typeof options.onMeasured === 'function' ? options.onMeasured : null;
@@ -608,11 +623,11 @@ export function animateComposerListTransition(list, previousRect, options = {}) 
         animation = null;
       }
       if (animation) {
-        composerListTransitions.set(list, { animation });
+        state.listTransitions.set(list, { animation });
         const finalize = () => {
-          const active = composerListTransitions.get(list);
+          const active = state.listTransitions.get(list);
           if (!active || active.animation !== animation) return;
-          composerListTransitions.delete(list);
+          state.listTransitions.delete(list);
           delete list.dataset.animating;
         };
         animation.finished.then(finalize).catch(finalize);
@@ -633,13 +648,13 @@ export function animateComposerListTransition(list, previousRect, options = {}) 
       list.style.opacity = '';
     });
     const timer = setTimer(() => {
-      const active = composerListTransitions.get(list);
+      const active = state.listTransitions.get(list);
       if (!active || active.timer !== timer) return;
       list.style.transition = previousTransition;
-      composerListTransitions.delete(list);
+      state.listTransitions.delete(list);
       delete list.dataset.animating;
     }, durationIn + 40);
-    composerListTransitions.set(list, { timer, restoreTransition: previousTransition });
+    state.listTransitions.set(list, { timer, restoreTransition: previousTransition });
   };
 
   if (immediate) run();
@@ -648,9 +663,10 @@ export function animateComposerListTransition(list, previousRect, options = {}) 
 
 export function cancelComposerOrderMainTransition(main) {
   if (!main) return;
-  const active = composerOrderMainTransitions.get(main);
+  const state = getMotionState();
+  const active = state.orderMainTransitions.get(main);
   if (!active) return;
-  composerOrderMainTransitions.delete(main);
+  state.orderMainTransitions.delete(main);
   if (active.animation && typeof active.animation.cancel === 'function') {
     try { active.animation.cancel(); } catch (_) {}
   }
@@ -664,6 +680,7 @@ export function cancelComposerOrderMainTransition(main) {
 
 export function animateComposerOrderMainReset(host, previousRect, options = {}) {
   if (!host || !previousRect) return;
+  const state = getMotionState();
   const main = host.querySelector('.composer-order-main');
   if (!main || !main.isConnected) return;
   cancelComposerOrderMainTransition(main);
@@ -704,11 +721,11 @@ export function animateComposerOrderMainReset(host, previousRect, options = {}) 
         animation = null;
       }
       if (animation) {
-        composerOrderMainTransitions.set(main, { animation });
+        state.orderMainTransitions.set(main, { animation });
         const finalize = () => {
-          const active = composerOrderMainTransitions.get(main);
+          const active = state.orderMainTransitions.get(main);
           if (!active || active.animation !== animation) return;
-          composerOrderMainTransitions.delete(main);
+          state.orderMainTransitions.delete(main);
           delete main.dataset.orderMainAnimating;
         };
         animation.finished.then(finalize).catch(finalize);
@@ -731,13 +748,13 @@ export function animateComposerOrderMainReset(host, previousRect, options = {}) 
       main.style.opacity = '';
     });
     const timer = setTimer(() => {
-      const active = composerOrderMainTransitions.get(main);
+      const active = state.orderMainTransitions.get(main);
       if (!active || active.timer !== timer) return;
       main.style.transition = previousTransition;
-      composerOrderMainTransitions.delete(main);
+      state.orderMainTransitions.delete(main);
       delete main.dataset.orderMainAnimating;
     }, duration + 40);
-    composerOrderMainTransitions.set(main, { timer, restoreTransition: previousTransition });
+    state.orderMainTransitions.set(main, { timer, restoreTransition: previousTransition });
   };
 
   requestFrame(run);
@@ -765,8 +782,9 @@ function getSlidePadding(el) {
 }
 
 function forgetActiveSlideAnimation(el, anim) {
-  const stored = activeSlideAnimations.get(el);
-  if (stored && stored.anim === anim) activeSlideAnimations.delete(el);
+  const state = getMotionState();
+  const stored = state.activeSlideAnimations.get(el);
+  if (stored && stored.anim === anim) state.activeSlideAnimations.delete(el);
 }
 
 function finalizeSlideAnimation(el, anim) {
@@ -780,6 +798,7 @@ function finalizeSlideAnimation(el, anim) {
 
 export function slideToggle(el, toOpen) {
   if (!el) return;
+  const state = getMotionState();
   const isReduced = matchesMediaQuery('(prefers-reduced-motion: reduce)');
   let computedDisplay = '';
   try {
@@ -788,7 +807,7 @@ export function slideToggle(el, toOpen) {
   } catch (_) {
     computedDisplay = el.style.display;
   }
-  const running = activeSlideAnimations.get(el);
+  const running = state.activeSlideAnimations.get(el);
   const runningTarget = running && typeof running.target === 'boolean' ? running.target : null;
   const currentState = (runningTarget !== null)
     ? runningTarget
@@ -798,7 +817,7 @@ export function slideToggle(el, toOpen) {
   if (runningTarget !== null) {
     if (open === runningTarget) return;
     try { running.anim?.cancel(); } catch (_) {}
-    activeSlideAnimations.delete(el);
+    state.activeSlideAnimations.delete(el);
   } else if (open === currentState) {
     return;
   }
@@ -827,7 +846,7 @@ export function slideToggle(el, toOpen) {
         { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px' },
         { height: `${contentTarget}px`, opacity: 1, paddingTop: `${pad.top}px`, paddingBottom: `${pad.bottom}px` }
       ], { duration: SLIDE_OPEN_DUR, easing: 'ease', fill: 'forwards' });
-      activeSlideAnimations.set(el, { target: true, anim });
+      state.activeSlideAnimations.set(el, { target: true, anim });
       anim.onfinish = () => {
         finalizeSlideAnimation(el, anim);
         el.dataset.open = '1';
@@ -858,7 +877,7 @@ export function slideToggle(el, toOpen) {
         { height: `${contentStart}px`, opacity: 1, paddingTop: `${pad.top}px`, paddingBottom: `${pad.bottom}px` },
         { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px' }
       ], { duration: SLIDE_CLOSE_DUR, easing: 'ease', fill: 'forwards' });
-      activeSlideAnimations.set(el, { target: false, anim });
+      state.activeSlideAnimations.set(el, { target: false, anim });
       anim.onfinish = () => {
         finalizeSlideAnimation(el, anim);
         el.style.display = 'none';

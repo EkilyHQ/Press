@@ -3,6 +3,7 @@ import {
   animateComposerViewportScroll,
   captureElementRect,
   clearInlineSlideStyles,
+  composerPrefersReducedMotion,
   configureComposerUiMotionRuntime,
   getComposerSlideDurations,
   resolveComposerScrollDuration,
@@ -237,6 +238,26 @@ try {
     [],
     'UI motion runtime should not derive frame, timer, media, style, performance, or observer adapters from windowRef'
   );
+
+  let reducedMotionCalls = 0;
+  configureComposerUiMotionRuntime({
+    matchesMedia() {
+      reducedMotionCalls += 1;
+      return { matches: true };
+    }
+  });
+  assert.equal(composerPrefersReducedMotion(), true, 'reduced-motion query should use configured media adapter');
+  assert.equal(composerPrefersReducedMotion(), true, 'reduced-motion query should be cached per configured runtime');
+  assert.equal(reducedMotionCalls, 1, 'reduced-motion media adapter should only run once for one runtime');
+
+  configureComposerUiMotionRuntime({
+    matchesMedia() {
+      reducedMotionCalls += 1;
+      return { matches: false };
+    }
+  });
+  assert.equal(composerPrefersReducedMotion(), false, 'reconfiguring UI motion should create fresh runtime state');
+  assert.equal(reducedMotionCalls, 2, 'reduced-motion cache should not leak across runtime reconfiguration');
 } finally {
   configureComposerUiMotionRuntime();
 }

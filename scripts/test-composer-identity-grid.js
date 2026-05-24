@@ -2151,6 +2151,18 @@ assert.match(
 );
 
 assert.match(
+  composerUiMotionSource,
+  /function createComposerUiMotionState\(\) \{[\s\S]*reduceMotionQuery: null,[\s\S]*inlineVisibilityAnimations: new WeakMap\(\),[\s\S]*inlineVisibilityFallbacks: new WeakMap\(\),[\s\S]*listTransitions: new WeakMap\(\),[\s\S]*orderMainTransitions: new WeakMap\(\),[\s\S]*siteScrollAnimationId: null,[\s\S]*siteScrollCleanup: null,[\s\S]*activeSlideAnimations: new WeakMap\(\)[\s\S]*state: createComposerUiMotionState\(\)/,
+  'UI motion runtime should own animation state registries instead of module-level singletons'
+);
+
+assert.doesNotMatch(
+  composerUiMotionSource,
+  /let composerReduceMotionQuery|const composerInlineVisibilityAnimations|const composerInlineVisibilityFallbacks|const composerListTransitions|const composerOrderMainTransitions|let composerSiteScrollAnimationId|let composerSiteScrollCleanup|const activeSlideAnimations/,
+  'UI motion state registries should stay inside the configured runtime state'
+);
+
+assert.match(
   source,
   /configureComposerUiMotionRuntime\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\)[\s\S]*\}\);/,
   'composer should configure UI motion browser effects through the explicit runtime boundary'

@@ -1872,8 +1872,14 @@ assert.doesNotMatch(
 
 assert.match(
   composerBootstrapSource,
-  /export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*ensureSiteRepo\(\)[\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*getLocation\(\)[\s\S]*restoreDynamicEditorState[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*options\.onDocumentReady\(handler\)/,
+  /export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*ensureSiteRepo\(\)[\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*getLocation\(\)[\s\S]*restoreDynamicEditorState[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*const onDocumentReady = typeof options\.onDocumentReady === 'function'[\s\S]*onDocumentReady\(handler\)/,
   'bootstrap module should own startup, Markdown toolbar binding, initial config loading, and workspace assembly through runtime callbacks'
+);
+
+assert.doesNotMatch(
+  composerBootstrapSource,
+  /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m,
+  'bootstrap module should not rediscover DOM ready, location, or timers outside injected runtime callbacks'
 );
 
 assert.match(

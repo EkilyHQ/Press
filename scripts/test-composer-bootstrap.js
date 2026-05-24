@@ -276,9 +276,16 @@ class FakeDocument {
 
 {
   const documentRef = new FakeDocument();
-  const handler = initializeComposerApp({ documentRef });
+  const readyHandlers = [];
+  const handler = initializeComposerApp({
+    documentRef,
+    onDocumentReady: (readyHandler) => {
+      readyHandlers.push(readyHandler);
+    }
+  });
   assert.equal(typeof handler, 'function');
-  assert.equal(documentRef.listeners.get('DOMContentLoaded').length, 1);
+  assert.deepEqual(readyHandlers, [handler]);
+  assert.equal(documentRef.listeners.has('DOMContentLoaded'), false);
 }
 
 {
@@ -288,7 +295,8 @@ class FakeDocument {
   assert.doesNotMatch(composerSource, /document\.addEventListener\('DOMContentLoaded'/);
   assert.doesNotMatch(composerSource, /function bindComposerUI\(/);
   assert.match(composerSource, /from '\.\/composer-bootstrap\.js\?v=[\w.-]+'/);
-  assert.match(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'/);
+  assert.match(bootstrapSource, /const onDocumentReady = typeof options\.onDocumentReady === 'function'/);
+  assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m);
 }
 
 console.log('composer bootstrap tests passed');

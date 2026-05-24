@@ -204,7 +204,6 @@ export function bindComposerWorkspaceUi({
 }
 
 export async function loadInitialComposerState({
-  windowRef,
   consoleRef = console,
   t = (key) => key,
   ensureSiteRepo = noop,
@@ -263,13 +262,12 @@ export async function loadInitialComposerState({
 
 export function assembleComposerWorkspace({
   documentRef,
-  windowRef,
   t = (key) => key,
   state,
   loadDraftSnapshotsIntoState,
   applyInferredRepoConfig,
   inferRepoConfigFromGitHubPagesUrl,
-  getLocation = () => (windowRef && windowRef.location),
+  getLocation = () => null,
   applyEffectiveSiteConfig,
   updateMarkdownPushButton = noop,
   getActiveDynamicTab = () => null,
@@ -284,7 +282,10 @@ export function assembleComposerWorkspace({
   applyMode,
   setAllowEditorStatePersist,
   persistDynamicEditorState,
-  setTimeoutRef = (handler, delay) => setTimeout(handler, delay)
+  setTimeoutRef = (handler) => {
+    handler();
+    return null;
+  }
 } = {}) {
   const restoredDrafts = loadDraftSnapshotsIntoState(state);
   let inferredSiteRepoApplied = false;
@@ -367,12 +368,10 @@ export async function initializeComposerOnDomReady(options = {}) {
 }
 
 export function initializeComposerApp(options = {}) {
-  const documentRef = options.documentRef;
   const handler = () => initializeComposerOnDomReady(options);
-  if (typeof options.onDocumentReady === 'function') {
-    options.onDocumentReady(handler);
-  } else {
-    documentRef.addEventListener('DOMContentLoaded', handler);
-  }
+  const onDocumentReady = typeof options.onDocumentReady === 'function'
+    ? options.onDocumentReady
+    : (readyHandler) => readyHandler();
+  onDocumentReady(handler);
   return handler;
 }

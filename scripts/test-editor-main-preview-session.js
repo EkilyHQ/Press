@@ -206,11 +206,15 @@ function createRuntime(documentRef, overrides = {}) {
   const previewFrame = documentRef.setElement('previewFrame', new FakeElement('iframe'));
   previewFrame.contentWindow = frameWindow;
   const harness = createRuntime(documentRef);
+  const warnings = [];
   const session = createEditorMainPreviewSession({
     runtime: harness.runtime,
     documentRef,
     getContentRoot: () => 'wwwroot',
-    getEditorValue: () => '# Hello'
+    getEditorValue: () => '# Hello',
+    consoleRef: {
+      warn: (...args) => warnings.push(args)
+    }
   });
 
   session.bind();
@@ -237,5 +241,14 @@ function createRuntime(documentRef, overrides = {}) {
   });
   assert.deepEqual(harness.messages, [
     { target: frameWindow, payload: { type: 'pending-preview' } }
+  ]);
+
+  handleMessage({
+    origin: 'https://press.test',
+    source: frameWindow,
+    data: { type: 'press-editor-preview-error', message: 'render failed' }
+  });
+  assert.deepEqual(warnings, [
+    ['Editor preview render failed', 'render failed']
   ]);
 }

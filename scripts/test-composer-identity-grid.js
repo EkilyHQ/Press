@@ -1405,7 +1405,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*getContentRoot,[\s\S]*getEditorValue: appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\)[\s\S]*\}\)\);[\s\S]*previewSession\.bind\(\);/,
+  /const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*getContentRoot,[\s\S]*getEditorValue: appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*consoleRef: console,[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\)[\s\S]*\}\)\);[\s\S]*previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
@@ -1542,14 +1542,14 @@ assert.match(
 
 assert.match(
   editorMainPreviewSessionSource,
-  /onWindow\('press-editor-asset-preview'[\s\S]*onWindow\('message'[\s\S]*onDocument\('keydown'/,
-  'editor preview session should own asset-preview, iframe message, and Escape-key event bindings through the runtime boundary'
+  /const consoleRef = options\.consoleRef \|\| null[\s\S]*function warn\(\.\.\.args\)[\s\S]*consoleRef\.warn\(\.\.\.args\)[\s\S]*onWindow\('press-editor-asset-preview'[\s\S]*onWindow\('message'[\s\S]*onDocument\('keydown'/,
+  'editor preview session should own preview logging, asset-preview, iframe message, and Escape-key event bindings through explicit dependencies and the runtime boundary'
 );
 
 assert.doesNotMatch(
   editorMainPreviewSessionSource,
-  /\bwindowRef\b|options\.windowRef|windowRef\.|windowRef &&|typeof window|requestAnimationFrame === 'function'|setTimeout === 'function'|windowRef\.location/,
-  'editor preview session should receive frame, timer, and location behavior through explicit runtime adapters'
+  /\bwindowRef\b|options\.windowRef|windowRef\.|windowRef &&|typeof window|requestAnimationFrame === 'function'|setTimeout === 'function'|windowRef\.location|console\.warn/,
+  'editor preview session should receive frame, timer, location, and warning behavior through explicit runtime adapters'
 );
 
 assert.match(

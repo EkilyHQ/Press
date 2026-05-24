@@ -139,6 +139,7 @@ editorMainRuntime.onDocumentReady(() => {
     isLinkCardReady: () => linkCardContext.isReady(),
     getAllowedLocations: () => linkCardContext.getAllowedLocations(),
     getLocationAliases: () => linkCardContext.getLocationAliases(),
+    consoleRef: console,
     fetch: (url, options) => editorMainRuntime.fetchContent(url, options)
   }));
   previewSession.bind();

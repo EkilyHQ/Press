@@ -25,6 +25,7 @@ export function createEditorMainPreviewSession(options = {}) {
   const isLinkCardReady = typeof options.isLinkCardReady === 'function' ? options.isLinkCardReady : () => false;
   const getAllowedLocations = typeof options.getAllowedLocations === 'function' ? options.getAllowedLocations : () => [];
   const getLocationAliases = typeof options.getLocationAliases === 'function' ? options.getLocationAliases : () => [];
+  const consoleRef = options.consoleRef || null;
   const fetchImpl = typeof options.fetch === 'function'
     ? options.fetch
     : null;
@@ -89,6 +90,12 @@ export function createEditorMainPreviewSession(options = {}) {
       ? runtime.getLocationHref()
       : ''
   );
+
+  function warn(...args) {
+    try {
+      if (consoleRef && typeof consoleRef.warn === 'function') consoleRef.warn(...args);
+    } catch (_) {}
+  }
   const getEditorBaseDir = () => (
     typeof runtime.getEditorBaseDir === 'function'
       ? runtime.getEditorBaseDir(`${getContentRoot()}/`)
@@ -619,7 +626,7 @@ export function createEditorMainPreviewSession(options = {}) {
       previewFrameReady = true;
     } else if (detail.type === PREVIEW_ERROR_MESSAGE) {
       previewFrameReady = true;
-      try { console.warn('Editor preview render failed', detail.message || detail); } catch (_) {}
+      warn('Editor preview render failed', detail.message || detail);
     }
   };
 

@@ -1,4 +1,4 @@
-import { renderPressMath } from './math-render.js?v=press-system-v3.4.50';
+import { createPressMathRenderer, renderPressMath } from './math-render.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksSessionRegistry } from './editor-blocks-session-registry.js?v=press-system-v3.4.50';
 import { createEditorBlocksLayoutSession } from './editor-blocks-layout-session.js?v=press-system-v3.4.50';
@@ -113,14 +113,14 @@ function normalizeSelectionSession(selectionSession) {
     : fallbackSelectionSession;
 }
 
-function createInlineDomSession(selectionSession = null, documentRef = null) {
+function createInlineDomSession(selectionSession = null, documentRef = null, renderMath = renderPressMath) {
   return createEditorBlocksInlineDomSession({
     documentRef,
     selectionSession: normalizeSelectionSession(selectionSession),
     mergeInlineRuns,
     sanitizeLinkHref: sanitizeEditorLinkHref,
     linkTitleForRun,
-    renderMath: renderPressMath,
+    renderMath,
     nodeContains
   });
 }
@@ -584,6 +584,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
       });
   const blocksDocument = runtime.documentRef || explicitDocumentRef || null;
   const blocksWindow = runtime.windowRef || explicitWindowRef || null;
+  const renderMathWithRuntime = createPressMathRenderer({
+    documentRef: blocksDocument,
+    windowRef: blocksWindow
+  });
   const runtimeDisposables = new Set();
   const trackRuntimeDisposer = (dispose) => {
     if (typeof dispose !== 'function') return () => {};
@@ -618,7 +622,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     documentRef: blocksDocument,
     windowRef: blocksWindow
   });
-  const inlineDomSession = createInlineDomSession(selectionSession, blocksDocument);
+  const inlineDomSession = createInlineDomSession(selectionSession, blocksDocument, renderMathWithRuntime);
   const caretSession = createCaretSession(selectionSession, blocksDocument);
   const createBlockTypeIconWithRuntime = (blockType) => createBlockTypeIcon(blockType, runtime);
 
@@ -1127,7 +1131,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     containsNode: nodeContains,
     closestElement,
     text,
-    renderMath: renderPressMath,
+    renderMath: renderMathWithRuntime,
     getMathBlockById: id => state.blocks.find(block => block && block.id === id && block.type === 'math') || null,
     getEditableSelectionOffsets,
     caretRectForEditable,
@@ -1430,7 +1434,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     blockElements,
     closestElement,
     createRichEditable,
-    renderMath: renderPressMath,
+    renderMath: renderMathWithRuntime,
     hydrateCard,
     setActive,
     activateNonTextBlockFromPointer,

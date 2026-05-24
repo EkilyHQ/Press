@@ -19,8 +19,8 @@ function ensureKatexStyle(documentRef) {
   documentRef.head.appendChild(link);
 }
 
-function loadKatexScript(documentRef) {
-  const win = documentRef && documentRef.defaultView ? documentRef.defaultView : (typeof window !== 'undefined' ? window : null);
+function loadKatexScript(documentRef, windowRef = null) {
+  const win = windowRef || null;
   if (win && win.katex && typeof win.katex.render === 'function') return Promise.resolve(win.katex);
   if (katexLoadPromise) return katexLoadPromise;
   if (!documentRef || !documentRef.head) return Promise.resolve(null);
@@ -43,15 +43,45 @@ function loadKatexScript(documentRef) {
   return katexLoadPromise;
 }
 
-export async function renderPressMath(root) {
+function fallbackDocumentRef(root) {
+  return root && root.ownerDocument
+    ? root.ownerDocument
+    : (typeof document !== 'undefined' ? document : null);
+}
+
+function fallbackWindowRef(documentRef) {
+  return documentRef && documentRef.defaultView
+    ? documentRef.defaultView
+    : (typeof window !== 'undefined' ? window : null);
+}
+
+function resolveMathRuntimeRefs(root, options = {}) {
+  const hasDocumentRef = Object.prototype.hasOwnProperty.call(options || {}, 'documentRef');
+  const hasWindowRef = Object.prototype.hasOwnProperty.call(options || {}, 'windowRef');
+  const documentRef = hasDocumentRef ? (options.documentRef || null) : fallbackDocumentRef(root);
+  const windowRef = hasWindowRef ? (options.windowRef || null) : fallbackWindowRef(documentRef);
+  return { documentRef, windowRef };
+}
+
+export function createPressMathRenderer(options = {}) {
+  const documentRef = Object.prototype.hasOwnProperty.call(options || {}, 'documentRef')
+    ? options.documentRef || null
+    : null;
+  const windowRef = Object.prototype.hasOwnProperty.call(options || {}, 'windowRef')
+    ? options.windowRef || null
+    : null;
+  return root => renderPressMath(root, { documentRef, windowRef });
+}
+
+export async function renderPressMath(root, options = {}) {
   if (!root || !root.querySelectorAll) return { rendered: 0, failed: 0 };
   const nodes = Array.from(root.querySelectorAll('.press-math[data-tex]'))
     .filter(node => node && node.dataset && node.dataset.pressMathRendered !== 'true');
   if (!nodes.length) return { rendered: 0, failed: 0 };
 
-  const documentRef = root.ownerDocument || (typeof document !== 'undefined' ? document : null);
+  const { documentRef, windowRef } = resolveMathRuntimeRefs(root, options);
   ensureKatexStyle(documentRef);
-  const katex = await loadKatexScript(documentRef);
+  const katex = await loadKatexScript(documentRef, windowRef);
   if (!katex || typeof katex.render !== 'function') return { rendered: 0, failed: nodes.length };
 
   let rendered = 0;

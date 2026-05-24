@@ -571,7 +571,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const openMathEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openMathEditorForSelection\(\);[\s\S]*\};[\s\S]*const openMathEditorForNode = \(mathNode\) => \{[\s\S]*blockSessions\.openMathEditorForNode\(mathNode\);[\s\S]*\};[\s\S]*const openMathEditorForBlock = \(block, blockEl = null\) => \{[\s\S]*blockSessions\.openMathEditorForBlock\(block, blockEl\);[\s\S]*\};[\s\S]*const mathSession = blockSessions\.setMathSession\(createEditorBlocksMathSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderPressMath,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
+  /const openMathEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openMathEditorForSelection\(\);[\s\S]*\};[\s\S]*const openMathEditorForNode = \(mathNode\) => \{[\s\S]*blockSessions\.openMathEditorForNode\(mathNode\);[\s\S]*\};[\s\S]*const openMathEditorForBlock = \(block, blockEl = null\) => \{[\s\S]*blockSessions\.openMathEditorForBlock\(block, blockEl\);[\s\S]*\};[\s\S]*const mathSession = blockSessions\.setMathSession\(createEditorBlocksMathSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
   'blocks editor should compose inline and display math overlay behavior through the math session boundary'
 );
 
@@ -613,7 +613,7 @@ assert.doesNotMatch(
 
 assert.match(
   `${editorBlocksSource}\n${editorBlocksMathSessionSource}`,
-  /const inlineDomSession = createInlineDomSession\(selectionSession, blocksDocument\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(editable, mathNode, inlineDomSession\)/,
+  /const inlineDomSession = createInlineDomSession\(selectionSession, blocksDocument, renderMathWithRuntime\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(editable, mathNode, inlineDomSession\)/,
   'blocks editor should route inline run rendering plus math DOM range mapping through explicit inline DOM session dependencies'
 );
 
@@ -718,6 +718,18 @@ assert.match(
   editorBlocksSource,
   /from '\.\/math-render\.js\?v=[\w.-]+'/,
   'editor blocks should cache-bust the math renderer when KaTeX support changes'
+);
+
+assert.match(
+  editorBlocksSource,
+  /createPressMathRenderer,[\s\S]*const renderMathWithRuntime = createPressMathRenderer\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow[\s\S]*\}\);/,
+  'editor blocks should bind math rendering to explicit runtime document/window refs'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /renderMath:\s*renderPressMath/,
+  'editor blocks should not pass the implicit math renderer into runtime-owned sessions'
 );
 
 assert.match(
@@ -3297,7 +3309,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderPressMath,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\)\);/,
+  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\)\);/,
   'blocks editor root should compose block body rendering through the body session boundary'
 );
 

@@ -325,7 +325,12 @@ async function renderPreview(payload) {
     try { hydratePostVideos(main); } catch (_) {}
     try { applyLazyLoadingIn(main); } catch (_) {}
     try { applyLangHints(main); } catch (_) {}
-    try { renderPressMath(main); } catch (_) {}
+    try {
+      renderPressMath(main, {
+        documentRef: previewRuntime.documentRef,
+        windowRef: previewRuntime.windowRef
+      });
+    } catch (_) {}
     try { initSyntaxHighlighting(main); } catch (_) {}
     if (!isCurrentPreviewRender(requestId)) return;
     restorePreviewThemeStyles(activePack, layout && layout.manifest);

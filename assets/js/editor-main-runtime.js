@@ -107,6 +107,10 @@ export function createEditorMainRuntime(options = {}) {
     return runtime.browser.error(...args);
   }
 
+  function writeClipboardText(text) {
+    return runtime.browser.writeClipboardText(text);
+  }
+
   function prefersReducedMotion() {
     return runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)');
   }
@@ -173,6 +177,7 @@ export function createEditorMainRuntime(options = {}) {
     showAlert,
     warn,
     error,
+    writeClipboardText,
     emitToast,
     requestAssetDelete,
     emitAssetDeleteCanceled,

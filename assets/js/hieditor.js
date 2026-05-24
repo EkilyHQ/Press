@@ -227,8 +227,141 @@ function cleanupMarkerArtifacts(html) {
 
 const editors = new Map();
 
-function createLangLabel(text, onCopy) {
-  const el = document.createElement('div');
+function getAmbientDocument() {
+  try { return typeof document !== 'undefined' ? document : null; }
+  catch (_) { return null; }
+}
+
+function getAmbientWindow() {
+  try { return typeof window !== 'undefined' ? window : null; }
+  catch (_) { return null; }
+}
+
+function getAmbientNavigator(windowRef) {
+  try {
+    if (windowRef && windowRef.navigator) return windowRef.navigator;
+    return typeof navigator !== 'undefined' ? navigator : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function createHiEditorRuntime(options = {}) {
+  const allowAmbient = options.allowAmbient !== false;
+  const documentRef = options.documentRef || (allowAmbient ? getAmbientDocument() : null);
+  const windowRef = options.windowRef || (allowAmbient ? getAmbientWindow() : null);
+  const navigatorRef = options.navigatorRef || (allowAmbient ? getAmbientNavigator(windowRef) : null);
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : (allowAmbient && windowRef && typeof windowRef.setTimeout === 'function'
+      ? windowRef.setTimeout.bind(windowRef)
+      : null);
+  const getComputedStyleRef = typeof options.getComputedStyle === 'function'
+    ? options.getComputedStyle
+    : (allowAmbient && windowRef && typeof windowRef.getComputedStyle === 'function'
+      ? windowRef.getComputedStyle.bind(windowRef)
+      : null);
+  const getResizeObserverRef = typeof options.getResizeObserver === 'function'
+    ? options.getResizeObserver
+    : (allowAmbient && windowRef && typeof windowRef.ResizeObserver === 'function'
+      ? () => windowRef.ResizeObserver
+      : () => null);
+  const addDocumentListener = typeof options.addDocumentListener === 'function'
+    ? options.addDocumentListener
+    : (allowAmbient && documentRef && typeof documentRef.addEventListener === 'function'
+      ? (type, handler, listenerOptions) => {
+        documentRef.addEventListener(type, handler, listenerOptions);
+        return () => documentRef.removeEventListener(type, handler, listenerOptions);
+      }
+      : null);
+  const addWindowListener = typeof options.addWindowListener === 'function'
+    ? options.addWindowListener
+    : (allowAmbient && windowRef && typeof windowRef.addEventListener === 'function'
+      ? (type, handler, listenerOptions) => {
+        windowRef.addEventListener(type, handler, listenerOptions);
+        return () => windowRef.removeEventListener(type, handler, listenerOptions);
+      }
+      : null);
+  const writeClipboardText = typeof options.writeClipboardText === 'function'
+    ? options.writeClipboardText
+    : null;
+
+  const createElement = (tag) => (
+    documentRef && typeof documentRef.createElement === 'function'
+      ? documentRef.createElement(tag)
+      : null
+  );
+  const createTextNode = (text) => (
+    documentRef && typeof documentRef.createTextNode === 'function'
+      ? documentRef.createTextNode(text)
+      : null
+  );
+  const createDocumentFragment = () => (
+    documentRef && typeof documentRef.createDocumentFragment === 'function'
+      ? documentRef.createDocumentFragment()
+      : null
+  );
+
+  return {
+    documentRef,
+    windowRef,
+    navigatorRef,
+    createElement,
+    createTextNode,
+    createDocumentFragment,
+    getElementById(id) {
+      return documentRef && typeof documentRef.getElementById === 'function'
+        ? documentRef.getElementById(id)
+        : null;
+    },
+    getBody() {
+      return documentRef ? documentRef.body || null : null;
+    },
+    getDocumentElement() {
+      return documentRef ? documentRef.documentElement || null : null;
+    },
+    getScrollingElement() {
+      return documentRef ? documentRef.scrollingElement || null : null;
+    },
+    getActiveElement() {
+      return documentRef ? documentRef.activeElement || null : null;
+    },
+    execCommand(command) {
+      if (!documentRef || typeof documentRef.execCommand !== 'function') return false;
+      return documentRef.execCommand(command);
+    },
+    getComputedStyle(node) {
+      return getComputedStyleRef ? getComputedStyleRef(node) : null;
+    },
+    getViewportHeight() {
+      const height = windowRef ? Number(windowRef.innerHeight) : 0;
+      return Number.isFinite(height) && height > 0 ? height : 600;
+    },
+    getResizeObserver() {
+      return getResizeObserverRef ? getResizeObserverRef() : null;
+    },
+    setTimer(handler, delay = 0) {
+      return setTimeoutRef ? setTimeoutRef(handler, delay) : null;
+    },
+    addDocumentListener(type, handler, listenerOptions) {
+      return addDocumentListener ? addDocumentListener(type, handler, listenerOptions) : null;
+    },
+    addWindowListener(type, handler, listenerOptions) {
+      return addWindowListener ? addWindowListener(type, handler, listenerOptions) : null;
+    },
+    async writeClipboardText(text) {
+      if (writeClipboardText) return !!(await writeClipboardText(text));
+      const clipboard = navigatorRef && navigatorRef.clipboard;
+      if (!clipboard || typeof clipboard.writeText !== 'function') return false;
+      await clipboard.writeText(text);
+      return true;
+    }
+  };
+}
+
+function createLangLabel(runtime, text, onCopy) {
+  const el = runtime.createElement('div');
+  if (!el) return null;
   el.className = 'syntax-language-label';
   el.dataset.lang = (text || 'PLAIN').toUpperCase();
   el.setAttribute('role', 'button');
@@ -237,21 +370,26 @@ function createLangLabel(text, onCopy) {
   el.textContent = el.dataset.lang;
   const copy = async () => {
     const ok = await (async () => {
-      try { const txt = onCopy ? onCopy() : ''; await navigator.clipboard.writeText(txt); return true; } catch (_) {}
       try {
-        const ta = document.createElement('textarea');
+        const txt = onCopy ? onCopy() : '';
+        if (await runtime.writeClipboardText(txt)) return true;
+      } catch (_) {}
+      try {
+        const ta = runtime.createElement('textarea');
+        const body = runtime.getBody();
+        if (!ta || !body) return false;
         ta.value = onCopy ? onCopy() : '';
         ta.style.position = 'fixed';
         ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.focus(); ta.select(); const ok2 = document.execCommand('copy');
-        document.body.removeChild(ta); return ok2;
+        body.appendChild(ta);
+        ta.focus(); ta.select(); const ok2 = runtime.execCommand('copy');
+        body.removeChild(ta); return ok2;
       } catch (_) { return false; }
     })();
     const old = el.dataset.lang || 'PLAIN';
     el.classList.add('is-copied');
     el.textContent = ok ? 'COPIED' : 'FAILED';
-    setTimeout(() => { el.classList.remove('is-copied'); el.textContent = old; }, 1000);
+    runtime.setTimer(() => { el.classList.remove('is-copied'); el.textContent = old; }, 1000);
   };
   el.addEventListener('mouseenter', () => { el.classList.add('is-hover'); el.textContent = 'COPY'; });
   el.addEventListener('mouseleave', () => { el.classList.remove('is-hover'); el.textContent = el.dataset.lang || 'PLAIN'; });
@@ -261,6 +399,7 @@ function createLangLabel(text, onCopy) {
 }
 
 function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
+  const runtime = options.runtime || createHiEditorRuntime(options);
   const raw = String(value || '');
   let html;
   if ((language || '').toLowerCase() === 'robots') {
@@ -306,7 +445,8 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
       })
       // Unescape ampersand last to avoid double-unescaping
       .replace(/&amp;/g, '&');
-    const root = document.createDocumentFragment();
+    const root = runtime.createDocumentFragment();
+    if (!root) return;
     const stack = [root];
     let i = 0;
     const closeTag = '</span>';
@@ -324,7 +464,13 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
             ? (clsMatch[2] || clsMatch[3] || clsMatch[4] || '').split(/\s+/).filter(isClassOk)
             : [];
           if (classes.length) {
-            const el = document.createElement('span');
+            const el = runtime.createElement('span');
+            if (!el) {
+              const textNode = runtime.createTextNode('<');
+              if (textNode) stack[stack.length - 1].appendChild(textNode);
+              i += 1;
+              continue;
+            }
             el.className = classes.join(' ');
             stack[stack.length - 1].appendChild(el);
             stack.push(el);
@@ -333,7 +479,8 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
           }
         }
         // Not a valid allowed opener; treat '<' as text and keep moving.
-        stack[stack.length - 1].appendChild(document.createTextNode('<'));
+        const textNode = runtime.createTextNode('<');
+        if (textNode) stack[stack.length - 1].appendChild(textNode);
         i += 1;
         continue;
       }
@@ -344,13 +491,17 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
       }
       const nextLt = markup.indexOf('<', i);
       if (nextLt === i) {
-        stack[stack.length - 1].appendChild(document.createTextNode('<'));
+        const textNode = runtime.createTextNode('<');
+        if (textNode) stack[stack.length - 1].appendChild(textNode);
         i += 1;
         continue;
       }
       const end = nextLt === -1 ? markup.length : nextLt;
       const chunk = markup.slice(i, end);
-      if (chunk) stack[stack.length - 1].appendChild(document.createTextNode(decode(chunk)));
+      if (chunk) {
+        const textNode = runtime.createTextNode(decode(chunk));
+        if (textNode) stack[stack.length - 1].appendChild(textNode);
+      }
       i = end;
     }
     // Replace children atomically
@@ -419,10 +570,12 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
 
   const existing = gutterEl.children;
   if (existing.length !== entries.length) {
-    const frag = document.createDocumentFragment();
+    const frag = runtime.createDocumentFragment();
+    if (!frag) return { entries, wrapMode };
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
-      const span = document.createElement('span');
+      const span = runtime.createElement('span');
+      if (!span) continue;
       span.textContent = entry.text;
       span.dataset.line = String(entry.line);
       if (entry.continuation) span.classList.add('is-wrap-continued');
@@ -444,36 +597,46 @@ function renderHighlight(codeEl, gutterEl, value, language, options = {}) {
   return { entries, wrapMode };
 }
 
-function makeEditor(targetTextarea, language, readOnly) {
+function makeEditor(targetTextarea, language, readOnly, options = {}) {
+  const runtime = options.runtime || createHiEditorRuntime(options);
   const hiddenTa = targetTextarea; // keep for compatibility; hide it
+  if (!runtime.documentRef || !hiddenTa || !hiddenTa.parentNode) return null;
   const id = hiddenTa.id;
   hiddenTa.style.display = 'none';
 
-  const container = document.createElement('div');
+  const container = runtime.createElement('div');
+  if (!container) return null;
   container.className = 'hi-editor with-code-scroll';
 
-  const scroll = document.createElement('div');
+  const scroll = runtime.createElement('div');
+  if (!scroll) return null;
   scroll.className = 'code-scroll code-with-gutter';
   scroll.style.position = 'relative';
 
-  const gutter = document.createElement('div');
+  const gutter = runtime.createElement('div');
+  if (!gutter) return null;
   gutter.className = 'code-gutter';
   gutter.setAttribute('aria-hidden', 'true');
 
-  const body = document.createElement('div');
+  const body = runtime.createElement('div');
+  if (!body) return null;
   body.className = 'hi-body';
 
-  const pre = document.createElement('pre');
+  const pre = runtime.createElement('pre');
+  if (!pre) return null;
   pre.className = 'hi-pre';
   // Background highlight layer for active/selected lines
-  const hlLayer = document.createElement('div');
+  const hlLayer = runtime.createElement('div');
+  if (!hlLayer) return null;
   hlLayer.className = 'hi-hl-layer';
-  const code = document.createElement('code');
+  const code = runtime.createElement('code');
+  if (!code) return null;
   code.className = `language-${(language || 'plain').toLowerCase()}`;
   pre.appendChild(hlLayer);
   pre.appendChild(code);
 
-  const ta = document.createElement('textarea');
+  const ta = runtime.createElement('textarea');
+  if (!ta) return null;
   ta.className = 'hi-ta';
   ta.spellcheck = false;
   ta.autocapitalize = 'off';
@@ -488,7 +651,8 @@ function makeEditor(targetTextarea, language, readOnly) {
   // Lazily create a hidden measuring block so we can count wrapped segments per line.
   const ensureWrapMeasure = () => {
     if (wrapMeasureEl) return wrapMeasureEl;
-    const el = document.createElement('div');
+    const el = runtime.createElement('div');
+    if (!el) return null;
     el.className = 'hi-wrap-measure';
     el.style.position = 'absolute';
     el.style.visibility = 'hidden';
@@ -513,7 +677,8 @@ function makeEditor(targetTextarea, language, readOnly) {
     try {
       const taRect = ta.getBoundingClientRect();
       if (taRect && isFinite(taRect.width) && taRect.width > 0) {
-        const taStyles = window.getComputedStyle(ta);
+        const taStyles = runtime.getComputedStyle(ta);
+        if (!taStyles) return taRect.width;
         const paddingLeft = parseFloat(taStyles.paddingLeft) || 0;
         const paddingRight = parseFloat(taStyles.paddingRight) || 0;
         const borderLeft = parseFloat(taStyles.borderLeftWidth) || 0;
@@ -532,7 +697,9 @@ function makeEditor(targetTextarea, language, readOnly) {
   const computeWrapSegments = (lines) => {
     if (!lines || !lines.length) return [1];
     const measure = ensureWrapMeasure();
-    const codeStyles = window.getComputedStyle(code);
+    if (!measure) return lines.map(() => 1);
+    const codeStyles = runtime.getComputedStyle(code);
+    if (!codeStyles) return lines.map(() => 1);
     const targetWidth = getContentWidth();
     if (!targetWidth || !isFinite(targetWidth)) {
       return lines.map(() => 1);
@@ -552,8 +719,8 @@ function makeEditor(targetTextarea, language, readOnly) {
     measure.style.overflowWrap = codeStyles.overflowWrap || 'break-word';
     let lineHeight = parseFloat(codeStyles.lineHeight);
     if (!Number.isFinite(lineHeight) || lineHeight <= 0) {
-      const taStyles = window.getComputedStyle(ta);
-      const alt = parseFloat(taStyles.lineHeight);
+      const taStyles = runtime.getComputedStyle(ta);
+      const alt = taStyles ? parseFloat(taStyles.lineHeight) : 0;
       if (Number.isFinite(alt) && alt > 0) lineHeight = alt;
     }
     if (!Number.isFinite(lineHeight) || lineHeight <= 0) lineHeight = DEFAULT_LINE_HEIGHT;
@@ -575,6 +742,7 @@ function makeEditor(targetTextarea, language, readOnly) {
 
   const renderEditor = () => {
     const meta = renderHighlight(code, gutter, ta.value, language, {
+      runtime,
       wrap: softWrap,
       wrapPlaceholder: '-',
       computeWrapSegments: softWrap ? computeWrapSegments : null
@@ -606,8 +774,8 @@ function makeEditor(targetTextarea, language, readOnly) {
   scroll.appendChild(gutter);
   scroll.appendChild(body);
   container.appendChild(scroll);
-  const label = createLangLabel(language || 'plain', () => ta.value || '');
-  container.appendChild(label);
+  const label = createLangLabel(runtime, language || 'plain', () => ta.value || '');
+  if (label) container.appendChild(label);
 
   applyWrapMode();
 
@@ -665,8 +833,9 @@ function makeEditor(targetTextarea, language, readOnly) {
     refreshLayout();
   };
 
-  if (typeof ResizeObserver === 'function') {
-    const ro = new ResizeObserver((entries) => {
+  const ResizeObserverCtor = runtime.getResizeObserver();
+  if (typeof ResizeObserverCtor === 'function') {
+    const ro = new ResizeObserverCtor((entries) => {
       for (const entry of entries) {
         if (!entry || entry.target !== body) continue;
         handleWrapResize();
@@ -675,7 +844,7 @@ function makeEditor(targetTextarea, language, readOnly) {
     try { ro.observe(body); }
     catch (_) {}
   } else {
-    window.addEventListener('resize', () => {
+    runtime.addWindowListener('resize', () => {
       handleWrapResize();
     });
   }
@@ -683,7 +852,8 @@ function makeEditor(targetTextarea, language, readOnly) {
   function getLineMetrics() {
     try {
       // Prefer code element metrics for exact alignment with rendered lines
-      const cs = window.getComputedStyle(code);
+      const cs = runtime.getComputedStyle(code);
+      if (!cs) return { lineH: lineMetricCache.lineH || DEFAULT_LINE_HEIGHT, padTop: lineMetricCache.padTop || 0 };
       let lineH = parseFloat(cs.lineHeight);
       if (!lineH || !isFinite(lineH) || lineH <= 0) {
         const fs = parseFloat(cs.fontSize);
@@ -692,8 +862,8 @@ function makeEditor(targetTextarea, language, readOnly) {
       if (!lineH || !isFinite(lineH) || lineH <= 0) {
         lineH = lineMetricCache.lineH || DEFAULT_LINE_HEIGHT;
       }
-      const csPre = window.getComputedStyle(pre);
-      let padTop = parseFloat(csPre.paddingTop);
+      const csPre = runtime.getComputedStyle(pre);
+      let padTop = csPre ? parseFloat(csPre.paddingTop) : 0;
       if (!isFinite(padTop) || padTop < 0) padTop = lineMetricCache.padTop || 0;
       lineMetricCache.lineH = lineH;
       lineMetricCache.padTop = padTop;
@@ -705,16 +875,18 @@ function makeEditor(targetTextarea, language, readOnly) {
 
   function findVerticalScrollParent(node) {
     let el = node && node.parentElement;
-    while (el && el !== document.body && el !== document.documentElement) {
+    const bodyNode = runtime.getBody();
+    const docEl = runtime.getDocumentElement();
+    while (el && el !== bodyNode && el !== docEl) {
       try {
-        const cs = window.getComputedStyle(el);
+        const cs = runtime.getComputedStyle(el);
         if (/(auto|scroll|overlay)/.test(cs.overflowY || '') && el.scrollHeight > el.clientHeight + 1) {
           return el;
         }
       } catch (_) { /* noop */ }
       el = el.parentElement;
     }
-    return document.getElementById('editorContentPane') || document.scrollingElement || document.documentElement;
+    return runtime.getElementById('editorContentPane') || runtime.getScrollingElement() || runtime.getDocumentElement();
   }
 
   function getWheelDeltaY(event, scrollParent) {
@@ -723,7 +895,7 @@ function makeEditor(targetTextarea, language, readOnly) {
     if (event.deltaMode === 1) {
       deltaY *= getLineMetrics().lineH || DEFAULT_LINE_HEIGHT;
     } else if (event.deltaMode === 2) {
-      deltaY *= (scrollParent && scrollParent.clientHeight) || window.innerHeight || 600;
+      deltaY *= (scrollParent && scrollParent.clientHeight) || runtime.getViewportHeight();
     }
     return deltaY;
   }
@@ -795,7 +967,8 @@ function makeEditor(targetTextarea, language, readOnly) {
       }
       const clampedStart = Math.max(0, Math.min(startRow, spans.length - 1));
       const clampedEnd = Math.max(clampedStart, Math.min(endRow, spans.length - 1));
-      const block = document.createElement('div');
+      const block = runtime.createElement('div');
+      if (!block) return;
       block.className = 'hi-hl-line';
       block.style.top = `${padTop + clampedStart * lh}px`;
       block.style.height = `${Math.max(1, (clampedEnd - clampedStart + 1)) * lh}px`;
@@ -820,12 +993,12 @@ function makeEditor(targetTextarea, language, readOnly) {
   ta.addEventListener('keyup', onSelChange);
   ta.addEventListener('click', onSelChange);
   ta.addEventListener('select', onSelChange);
-  document.addEventListener('selectionchange', () => {
-    if (document.activeElement === ta) updateActiveLines();
+  runtime.addDocumentListener('selectionchange', () => {
+    if (runtime.getActiveElement() === ta) updateActiveLines();
   });
   ta.addEventListener('keydown', (e) => {
     // defer until after key processes
-    setTimeout(updateActiveLines, 0);
+    runtime.setTimer(updateActiveLines, 0);
   });
 
   // Public API
@@ -856,7 +1029,8 @@ function makeEditor(targetTextarea, language, readOnly) {
   return api;
 }
 
-export function initSeoEditors() {
+export function initSeoEditors(options = {}) {
+  const runtime = createHiEditorRuntime(options);
   const targets = [
     { id: 'sitemapOutput', lang: 'xml', readOnly: false },
     { id: 'robotsOutput', lang: 'robots', readOnly: false },
@@ -864,16 +1038,18 @@ export function initSeoEditors() {
     { id: 'configOutput', lang: 'yaml', readOnly: true }
   ];
   targets.forEach(t => {
-    const ta = document.getElementById(t.id);
-    if (ta && !editors.has(t.id)) makeEditor(ta, t.lang, t.readOnly);
+    const ta = runtime.getElementById(t.id);
+    if (ta && !editors.has(t.id)) makeEditor(ta, t.lang, t.readOnly, { ...options, runtime });
   });
 }
 
 export function setEditorValue(id, text) {
-  const ed = editors.get(id); if (ed) ed.setValue(text); else { const ta = document.getElementById(id); if (ta) ta.value = text; }
+  const runtime = createHiEditorRuntime();
+  const ed = editors.get(id); if (ed) ed.setValue(text); else { const ta = runtime.getElementById(id); if (ta) ta.value = text; }
 }
 export function getEditorValue(id) {
-  const ed = editors.get(id); if (ed) return ed.getValue(); const ta = document.getElementById(id); return ta ? (ta.value || '') : '';
+  const runtime = createHiEditorRuntime();
+  const ed = editors.get(id); if (ed) return ed.getValue(); const ta = runtime.getElementById(id); return ta ? (ta.value || '') : '';
 }
 export function toggleEditorWrap(id, value) {
   const ed = editors.get(id);
@@ -887,18 +1063,22 @@ export function toggleEditorWrap(id, value) {
 
 // Expose to window for other modules
 try {
-  window.__seoInitEditors = initSeoEditors;
-  window.__seoEditorSet = setEditorValue;
-  window.__seoEditorGet = getEditorValue;
-  window.__seoEditorToggleWrap = toggleEditorWrap;
+  const ambientWindow = getAmbientWindow();
+  if (ambientWindow) {
+    ambientWindow.__seoInitEditors = initSeoEditors;
+    ambientWindow.__seoEditorSet = setEditorValue;
+    ambientWindow.__seoEditorGet = getEditorValue;
+    ambientWindow.__seoEditorToggleWrap = toggleEditorWrap;
+  }
 } catch (_) {}
 
 // Generic creator for external pages (e.g., Markdown editor)
 // Accepts a textarea element or its id; returns the editor API
-export function createHiEditor(target, lang = 'plain', readOnly = false) {
+export function createHiEditor(target, lang = 'plain', readOnly = false, options = {}) {
   try {
-    const el = (typeof target === 'string') ? document.getElementById(target) : target;
+    const runtime = createHiEditorRuntime(options);
+    const el = (typeof target === 'string') ? runtime.getElementById(target) : target;
     if (!el) return null;
-    return makeEditor(el, lang, readOnly);
+    return makeEditor(el, lang, readOnly, { ...options, runtime });
   } catch (_) { return null; }
 }

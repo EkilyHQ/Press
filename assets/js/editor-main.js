@@ -28,7 +28,17 @@ const editorMainDocument = editorMainRuntime.documentRef;
 
 editorMainRuntime.onDocumentReady(() => {
   const ta = editorMainRuntime.getElementById('mdInput');
-  const editor = createHiEditor(ta, 'markdown', false);
+  const editor = createHiEditor(ta, 'markdown', false, {
+    documentRef: editorMainDocument,
+    windowRef: editorMainRuntime.windowRef,
+    setTimeoutRef: (handler, delay) => editorMainRuntime.setTimer(handler, delay),
+    getComputedStyle: (node) => editorMainRuntime.getComputedStyle(node),
+    getResizeObserver: () => editorMainRuntime.getResizeObserver(),
+    addDocumentListener: (type, handler, options) => editorMainRuntime.onDocument(type, handler, options),
+    addWindowListener: (type, handler, options) => editorMainRuntime.onWindow(type, handler, options),
+    writeClipboardText: (text) => editorMainRuntime.writeClipboardText(text),
+    allowAmbient: false
+  });
   const imageButton = editorMainRuntime.getElementById('btnInsertImage');
   const imageInput = editorMainRuntime.getElementById('editorImageInput');
   const editorToolbarEl = editorMainRuntime.getElementById('editorToolbar');

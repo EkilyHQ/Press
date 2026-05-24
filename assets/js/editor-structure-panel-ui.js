@@ -1,7 +1,14 @@
 export function createEditorStructurePanelUi(options = {}) {
-  const document = options.documentRef || null;
-  const window = options.windowRef || null;
+  const documentRef = options.documentRef || null;
   const consoleRef = options.consoleRef || null;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
+  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : null;
+  const populateEditorLanguageSelect = typeof options.populateEditorLanguageSelect === 'function'
+    ? options.populateEditorLanguageSelect
+    : () => false;
+  const emitLanguageControlMounted = typeof options.emitLanguageControlMounted === 'function'
+    ? options.emitLanguageControlMounted
+    : () => false;
   const preferredLangOrder = Array.isArray(options.preferredLangOrder) ? options.preferredLangOrder.slice() : [];
   const treeText = typeof options.treeText === 'function' ? options.treeText : (key, fallback) => fallback || key;
   const welcomeText = typeof options.welcomeText === 'function' ? options.welcomeText : (key, fallback) => fallback || key;
@@ -34,8 +41,8 @@ export function createEditorStructurePanelUi(options = {}) {
   const restoreDeletedEditorTreeNode = typeof options.restoreDeletedEditorTreeNode === 'function' ? options.restoreDeletedEditorTreeNode : () => false;
 
   function requestFrame(callback) {
-    if (window && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(callback);
+    if (requestAnimationFrameRef) {
+      requestAnimationFrameRef(callback);
       return;
     }
     callback();
@@ -44,12 +51,12 @@ export function createEditorStructurePanelUi(options = {}) {
   function showMarkdownOpenAlert() {
     const message = tComposer('markdown.openBeforeEditor');
     try {
-      if (window && typeof window.alert === 'function') window.alert(message);
+      if (alertRef) alertRef(message);
     } catch (_) {}
   }
 
   function makeStructureButton(label, className = 'btn-secondary') {
-    const btn = document.createElement('button');
+    const btn = documentRef.createElement('button');
     btn.type = 'button';
     btn.className = className;
     btn.textContent = label;
@@ -57,21 +64,21 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderStructureItem(label, detail, onOpen) {
-    const item = document.createElement('div');
+    const item = documentRef.createElement('div');
     item.className = 'editor-structure-item';
-    const main = document.createElement('div');
+    const main = documentRef.createElement('div');
     main.className = 'editor-structure-item-main';
-    const title = document.createElement('span');
+    const title = documentRef.createElement('span');
     title.className = 'editor-structure-item-title';
     title.textContent = label || '';
-    const meta = document.createElement('span');
+    const meta = documentRef.createElement('span');
     meta.className = 'editor-structure-item-meta';
     meta.textContent = detail || '';
     main.appendChild(title);
     main.appendChild(meta);
     item.appendChild(main);
     if (typeof onOpen === 'function') {
-      const controls = document.createElement('div');
+      const controls = documentRef.createElement('div');
       controls.className = 'editor-structure-item-actions';
       const open = makeStructureButton(treeText('select', 'Select'));
       open.addEventListener('click', onOpen);
@@ -112,7 +119,7 @@ export function createEditorStructurePanelUi(options = {}) {
 
     const createPlaceholder = (item) => {
       const itemRect = item.getBoundingClientRect();
-      const placeholder = document.createElement('div');
+      const placeholder = documentRef.createElement('div');
       placeholder.className = 'editor-structure-drop-placeholder';
       placeholder.style.height = `${itemRect.height}px`;
       return placeholder;
@@ -157,9 +164,9 @@ export function createEditorStructurePanelUi(options = {}) {
     };
 
     const endDrag = () => {
-      document.removeEventListener('pointermove', handlePointerMove, true);
-      document.removeEventListener('pointerup', endDrag, true);
-      document.removeEventListener('pointercancel', endDrag, true);
+      documentRef.removeEventListener('pointermove', handlePointerMove, true);
+      documentRef.removeEventListener('pointerup', endDrag, true);
+      documentRef.removeEventListener('pointercancel', endDrag, true);
       if (dragState) {
         const { fromIndex, dragItem, placeholder } = dragState;
         const toIndex = getDropIndex();
@@ -179,7 +186,7 @@ export function createEditorStructurePanelUi(options = {}) {
 
     return {
       createHandle(index, ariaLabel) {
-        const handle = document.createElement('span');
+        const handle = documentRef.createElement('span');
         handle.setAttribute('role', 'button');
         handle.tabIndex = 0;
         handle.className = 'editor-structure-drag-handle';
@@ -207,9 +214,9 @@ export function createEditorStructurePanelUi(options = {}) {
           item.style.zIndex = '1000';
           item.style.transform = 'translate3d(0, 0, 0)';
           updateDragItemState();
-          document.addEventListener('pointermove', handlePointerMove, true);
-          document.addEventListener('pointerup', endDrag, true);
-          document.addEventListener('pointercancel', endDrag, true);
+          documentRef.addEventListener('pointermove', handlePointerMove, true);
+          documentRef.addEventListener('pointerup', endDrag, true);
+          documentRef.addEventListener('pointercancel', endDrag, true);
         });
         handle.addEventListener('keydown', (event) => {
           if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
@@ -235,30 +242,30 @@ export function createEditorStructurePanelUi(options = {}) {
 
   function appendEditorLanguageControl(body) {
     if (!body) return;
-    const item = document.createElement('div');
+    const item = documentRef.createElement('div');
     item.className = 'editor-structure-item editor-system-language-item';
 
-    const main = document.createElement('div');
+    const main = documentRef.createElement('div');
     main.className = 'editor-structure-item-main';
-    const title = document.createElement('span');
+    const title = documentRef.createElement('span');
     title.className = 'editor-structure-item-title';
     title.textContent = treeText('editorLanguage', translate('editor.languageLabel') || 'Language');
-    const meta = document.createElement('span');
+    const meta = documentRef.createElement('span');
     meta.className = 'editor-structure-item-meta';
     meta.textContent = treeText('editorLanguageMeta', 'Change the editor interface language.');
     main.appendChild(title);
     main.appendChild(meta);
 
-    const controls = document.createElement('div');
+    const controls = documentRef.createElement('div');
     controls.className = 'editor-structure-item-actions';
-    const switcher = document.createElement('div');
+    const switcher = documentRef.createElement('div');
     switcher.className = 'editor-lang-switcher editor-lang-switcher-inline';
     switcher.id = 'editorLangSwitcher';
-    const label = document.createElement('label');
+    const label = documentRef.createElement('label');
     label.setAttribute('for', 'editorLangSelect');
     label.setAttribute('data-i18n', 'editor.languageLabel');
     label.textContent = translate('editor.languageLabel') || 'Language';
-    const select = document.createElement('select');
+    const select = documentRef.createElement('select');
     select.id = 'editorLangSelect';
     select.setAttribute('data-i18n-aria-label', 'editor.languageLabel');
     select.setAttribute('aria-label', translate('editor.languageLabel') || 'Language');
@@ -271,8 +278,10 @@ export function createEditorStructurePanelUi(options = {}) {
     body.appendChild(item);
 
     try {
-      if (window && typeof window.__pressPopulateEditorLanguageSelect === 'function') window.__pressPopulateEditorLanguageSelect();
-      document.dispatchEvent(new CustomEvent('press-editor-language-control-mounted'));
+      populateEditorLanguageSelect();
+    } catch (_) {}
+    try {
+      emitLanguageControlMounted();
     } catch (_) {}
   }
 
@@ -283,10 +292,10 @@ export function createEditorStructurePanelUi(options = {}) {
   function appendLanguageSelector(actions, source, key, entry) {
     const available = availableLanguageCodes(entry);
     if (!available.length) return;
-    const select = document.createElement('select');
+    const select = documentRef.createElement('select');
     select.setAttribute('aria-label', treeText('language', 'Language'));
     available.forEach((code) => {
-      const opt = document.createElement('option');
+      const opt = documentRef.createElement('option');
       opt.value = code;
       opt.textContent = displayLangName(code);
       select.appendChild(opt);
@@ -329,7 +338,7 @@ export function createEditorStructurePanelUi(options = {}) {
     restore.addEventListener('click', () => restoreDeletedEditorTreeNode(node));
     refs.actions.appendChild(restore);
 
-    const list = document.createElement('div');
+    const list = documentRef.createElement('div');
     list.className = 'editor-structure-list';
     const restoreDetail = node && node.path
       ? node.path
@@ -358,26 +367,26 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderWelcomeStep(options) {
-    const step = document.createElement('article');
+    const step = documentRef.createElement('article');
     step.className = 'editor-welcome-step';
     if (options.featured) step.classList.add('is-featured');
 
-    const number = document.createElement('span');
+    const number = documentRef.createElement('span');
     number.className = 'editor-welcome-step-number';
     number.textContent = options.number || '';
 
-    const content = document.createElement('div');
+    const content = documentRef.createElement('div');
     content.className = 'editor-welcome-step-content';
 
-    const title = document.createElement('h4');
+    const title = documentRef.createElement('h4');
     title.className = 'editor-welcome-step-title';
     title.textContent = options.title || '';
 
-    const detail = document.createElement('p');
+    const detail = documentRef.createElement('p');
     detail.className = 'editor-welcome-step-detail';
     detail.textContent = options.detail || '';
 
-    const actions = document.createElement('div');
+    const actions = documentRef.createElement('div');
     actions.className = 'editor-welcome-step-actions';
     (options.actions || []).forEach((action) => {
       actions.appendChild(makeWelcomeButton(
@@ -393,15 +402,15 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderWelcomeSteps() {
-    const section = document.createElement('section');
+    const section = documentRef.createElement('section');
     section.className = 'editor-welcome-section editor-welcome-steps';
 
-    const title = document.createElement('h3');
+    const title = documentRef.createElement('h3');
     title.className = 'editor-welcome-heading';
     title.textContent = welcomeText('stepsTitle', 'Start here');
     section.appendChild(title);
 
-    const list = document.createElement('div');
+    const list = documentRef.createElement('div');
     list.className = 'editor-welcome-step-list';
     [
       {
@@ -436,17 +445,17 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderWelcomeSecondaryActions() {
-    const section = document.createElement('section');
+    const section = documentRef.createElement('section');
     section.className = 'editor-welcome-secondary';
 
-    const text = document.createElement('div');
+    const text = documentRef.createElement('div');
     text.className = 'editor-welcome-secondary-text';
 
-    const title = document.createElement('h3');
+    const title = documentRef.createElement('h3');
     title.className = 'editor-welcome-secondary-title';
     title.textContent = welcomeText('updatesTitle', 'Press Updates');
 
-    const detail = document.createElement('p');
+    const detail = documentRef.createElement('p');
     detail.className = 'editor-welcome-secondary-detail';
     detail.textContent = welcomeText('updatesBody', 'Check editor and runtime updates without changing your articles, pages, or site settings.');
 
@@ -459,15 +468,15 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderWelcomeFaqItem(questionText, answerText, open) {
-    const item = document.createElement('details');
+    const item = documentRef.createElement('details');
     item.className = 'editor-welcome-faq-item';
     if (open) item.open = true;
 
-    const summary = document.createElement('summary');
+    const summary = documentRef.createElement('summary');
     summary.className = 'editor-welcome-faq-question';
     summary.textContent = questionText || '';
 
-    const answer = document.createElement('p');
+    const answer = documentRef.createElement('p');
     answer.className = 'editor-welcome-faq-answer';
     answer.textContent = answerText || '';
 
@@ -476,18 +485,18 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderWelcomeFaq() {
-    const section = document.createElement('section');
+    const section = documentRef.createElement('section');
     section.className = 'editor-welcome-section editor-welcome-faq';
 
-    const title = document.createElement('h3');
+    const title = documentRef.createElement('h3');
     title.className = 'editor-welcome-heading';
     title.textContent = welcomeText('faqTitle', 'When a word looks unfamiliar');
 
-    const intro = document.createElement('p');
+    const intro = documentRef.createElement('p');
     intro.className = 'editor-welcome-faq-intro';
     intro.textContent = welcomeText('faqIntro', 'You do not need to read everything now. Open a question only when it helps.');
 
-    const list = document.createElement('div');
+    const list = documentRef.createElement('div');
     list.className = 'editor-welcome-faq-list';
     [
       ['faqPressQuestion', 'What is Press?', 'faqPressAnswer', 'Where knowledge becomes pages.', true],
@@ -518,13 +527,13 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderEditorStructurePanel(node) {
-    if (!document || typeof document.getElementById !== 'function') return;
-    const panel = document.getElementById('editorStructurePanel');
-    const title = document.getElementById('editorStructureTitle');
-    const kicker = document.getElementById('editorStructureKicker');
-    const meta = document.getElementById('editorStructureMeta');
-    const actions = document.getElementById('editorStructureActions');
-    const body = document.getElementById('editorStructureBody');
+    if (!documentRef || typeof documentRef.getElementById !== 'function') return;
+    const panel = documentRef.getElementById('editorStructurePanel');
+    const title = documentRef.getElementById('editorStructureTitle');
+    const kicker = documentRef.getElementById('editorStructureKicker');
+    const meta = documentRef.getElementById('editorStructureMeta');
+    const actions = documentRef.getElementById('editorStructureActions');
+    const body = documentRef.getElementById('editorStructureBody');
     if (!panel || !title || !kicker || !meta || !actions || !body) return;
     const animate = () => animateEditorStructurePanelContent(panel);
     actions.innerHTML = '';
@@ -557,7 +566,7 @@ export function createEditorStructurePanelUi(options = {}) {
         title.textContent = node.label || treeText('system', 'System');
         meta.textContent = treeText('rootMeta', `${node.children.length} items`, { count: node.children.length });
         appendEditorLanguageControl(body);
-        const list = document.createElement('div');
+        const list = documentRef.createElement('div');
         list.className = 'editor-structure-list';
         node.children.forEach((child) => {
           const detail = child.id === 'system:sync'
@@ -588,7 +597,7 @@ export function createEditorStructurePanelUi(options = {}) {
         });
       });
       actions.appendChild(add);
-      const list = document.createElement('div');
+      const list = documentRef.createElement('div');
       list.className = 'editor-structure-list';
       if (node.source === 'index' || node.source === 'tabs') {
         const dragController = createEditorStructureDragController(list, (fromIndex, toIndex) => moveStructureRootEntry(node.source, fromIndex, toIndex));
@@ -599,20 +608,20 @@ export function createEditorStructurePanelUi(options = {}) {
         };
 
         const renderStructureDraggableItem = (child, detail, index, source) => {
-          const item = document.createElement('div');
+          const item = documentRef.createElement('div');
           item.className = 'editor-structure-item editor-structure-item--draggable';
           item.dataset.index = String(index);
           const handle = createStructureDragHandle(index, source);
-          const main = document.createElement('div');
+          const main = documentRef.createElement('div');
           main.className = 'editor-structure-item-main';
-          const title = document.createElement('span');
+          const title = documentRef.createElement('span');
           title.className = 'editor-structure-item-title';
           title.textContent = child.label || '';
-          const metaText = document.createElement('span');
+          const metaText = documentRef.createElement('span');
           metaText.className = 'editor-structure-item-meta';
           metaText.textContent = detail || '';
           main.append(title, metaText);
-          const controls = document.createElement('div');
+          const controls = documentRef.createElement('div');
           controls.className = 'editor-structure-item-actions';
           const open = makeStructureButton(treeText('select', 'Select'));
           open.addEventListener('click', () => handleEditorTreeSelection(child.id));
@@ -665,7 +674,7 @@ export function createEditorStructurePanelUi(options = {}) {
     del.addEventListener('click', () => deleteEditorEntry(node.source, node.key));
     refs.actions.appendChild(del);
 
-    const list = document.createElement('div');
+    const list = documentRef.createElement('div');
     list.className = 'editor-structure-list';
     sortLangKeys(entry).forEach((lang) => {
       if (isPages) list.appendChild(renderPageLanguageStructure(node.key, lang, entry[lang]));
@@ -679,19 +688,19 @@ export function createEditorStructurePanelUi(options = {}) {
 
   function renderPageLanguageStructure(key, lang, value) {
     const entry = value && typeof value === 'object' ? value : { title: '', location: String(value || '') };
-    const item = document.createElement('div');
+    const item = documentRef.createElement('div');
     item.className = 'editor-structure-item';
-    const main = document.createElement('div');
+    const main = documentRef.createElement('div');
     main.className = 'editor-structure-item-main';
-    const label = document.createElement('span');
+    const label = documentRef.createElement('span');
     label.className = 'editor-structure-item-title';
     label.textContent = displayLangName(lang);
-    const meta = document.createElement('span');
+    const meta = documentRef.createElement('span');
     meta.className = 'editor-structure-item-meta';
     meta.textContent = entry.location || '';
     main.appendChild(label);
     main.appendChild(meta);
-    const controls = document.createElement('div');
+    const controls = documentRef.createElement('div');
     controls.className = 'editor-structure-item-actions';
     const open = makeStructureButton(treeText('open', 'Open'));
     open.addEventListener('click', () => {
@@ -730,22 +739,22 @@ export function createEditorStructurePanelUi(options = {}) {
     refs.actions.appendChild(add);
     refs.actions.appendChild(removeLang);
 
-    const list = document.createElement('div');
+    const list = documentRef.createElement('div');
     list.className = 'editor-structure-list';
     const dragController = createEditorStructureDragController(list, (fromIndex, toIndex) => moveEditorVersionTo(node.key, node.lang, fromIndex, toIndex));
     arr.forEach((variant, index) => {
       const path = getIndexVariantLocation(variant);
-      const item = document.createElement('div');
+      const item = documentRef.createElement('div');
       item.className = 'editor-structure-item editor-structure-item--draggable';
       item.dataset.index = String(index);
       const handle = dragController.createHandle(index, treeText('reorderVersion', 'Reorder version'));
-      const main = document.createElement('div');
+      const main = documentRef.createElement('div');
       main.className = 'editor-structure-item-main';
-      const label = document.createElement('span');
+      const label = documentRef.createElement('span');
       label.className = 'editor-structure-item-title';
       label.textContent = extractVersionFromPath(path) || `${treeText('version', 'Version')} ${index + 1}`;
       main.appendChild(label);
-      const controls = document.createElement('div');
+      const controls = documentRef.createElement('div');
       controls.className = 'editor-structure-item-actions';
       const open = makeStructureButton(treeText('open', 'Open'));
       open.addEventListener('click', () => {

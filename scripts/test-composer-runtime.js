@@ -10,6 +10,7 @@ const frames = [];
 const cancelledFrames = [];
 const alerts = [];
 const confirms = [];
+const populateCalls = [];
 const fetchCalls = [];
 const clipboardWrites = [];
 const appendedNodes = [];
@@ -57,6 +58,9 @@ const windowRef = {
     return element ? { marginTop: '4px', marginBottom: '8px' } : null;
   },
   ResizeObserver: TestResizeObserver,
+  __pressPopulateEditorLanguageSelect() {
+    populateCalls.push('populate');
+  },
   dispatchEvent(event) {
     events.push(['window', event.type, event.detail]);
     return true;
@@ -137,6 +141,14 @@ runtime.emitLanguagePoolChanged();
 assert.deepEqual(documentEvents.at(-1), [
   'document',
   COMPOSER_RUNTIME_EVENTS.languagePoolChanged,
+  undefined
+]);
+assert.equal(runtime.populateEditorLanguageSelect(), true);
+assert.deepEqual(populateCalls, ['populate']);
+assert.equal(runtime.emitEditorLanguageControlMounted(), true);
+assert.deepEqual(documentEvents.at(-1), [
+  'document',
+  COMPOSER_RUNTIME_EVENTS.editorLanguageControlMounted,
   undefined
 ]);
 

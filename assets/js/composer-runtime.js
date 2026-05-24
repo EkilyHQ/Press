@@ -2,10 +2,12 @@ import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v
 
 const CONTENT_ROOT_GLOBAL = '__press_content_root';
 const SITE_REPO_GLOBAL = '__press_site_repo';
+const POPULATE_EDITOR_LANGUAGE_SELECT_GLOBAL = '__pressPopulateEditorLanguageSelect';
 
 export const COMPOSER_RUNTIME_EVENTS = {
   languagePoolChanged: 'press-composer-language-pool-changed',
-  siteConfigChange: 'press-editor-site-config-change'
+  siteConfigChange: 'press-editor-site-config-change',
+  editorLanguageControlMounted: 'press-editor-language-control-mounted'
 };
 
 function normalizeContentRoot(value) {
@@ -78,8 +80,23 @@ export function createComposerRuntime(options = {}) {
     return runtime.events.emitDocument(COMPOSER_RUNTIME_EVENTS.languagePoolChanged);
   }
 
+  function emitEditorLanguageControlMounted() {
+    return runtime.events.emitDocument(COMPOSER_RUNTIME_EVENTS.editorLanguageControlMounted);
+  }
+
   function emitSiteConfigChange(siteConfig) {
     return runtime.events.emitWindow(COMPOSER_RUNTIME_EVENTS.siteConfigChange, { siteConfig });
+  }
+
+  function populateEditorLanguageSelect() {
+    try {
+      const populate = runtime.globals.get(POPULATE_EDITOR_LANGUAGE_SELECT_GLOBAL);
+      if (typeof populate !== 'function') return false;
+      populate.call(runtime.windowRef);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   function requestFrame(handler) {
@@ -236,7 +253,9 @@ export function createComposerRuntime(options = {}) {
     setSiteRepo,
     ensureSiteRepo,
     emitLanguagePoolChanged,
+    emitEditorLanguageControlMounted,
     emitSiteConfigChange,
+    populateEditorLanguageSelect,
     requestFrame,
     cancelFrame,
     setTimer,

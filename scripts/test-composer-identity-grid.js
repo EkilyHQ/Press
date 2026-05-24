@@ -1645,8 +1645,8 @@ assert.match(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
-  'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, and browser-global boundaries'
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
 );
 
 assert.doesNotMatch(
@@ -1665,6 +1665,18 @@ assert.match(
   source,
   /setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\)[\s\S]*requestAnimationFrameRef: \(fn\) => editorRuntime\.requestFrame\(fn\)[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\)[\s\S]*performanceRef: editorRuntime\.getPerformance\(\)[\s\S]*cssRef: editorRuntime\.getCss\(\)/,
   'composer app assembly should inject browser capabilities through the explicit runtime adapters'
+);
+
+assert.match(
+  source,
+  /const editorFileTreeUi = createEditorFileTreeUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  'composer should inject editor file tree scheduling through the runtime boundary'
+);
+
+assert.match(
+  source,
+  /const editorStructurePanelUi = createEditorStructurePanelUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: console,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*populateEditorLanguageSelect: \(\) => editorRuntime\.populateEditorLanguageSelect\(\),[\s\S]*emitLanguageControlMounted: \(\) => editorRuntime\.emitEditorLanguageControlMounted\(\)[\s\S]*\}\);/,
+  'composer should inject editor structure panel frames, alerts, and language-control events through the runtime boundary'
 );
 
 assert.match(
@@ -1987,6 +1999,12 @@ assert.match(
   editorStructurePanelUiSource,
   /export function createEditorStructurePanelUi\(options = \{\}\)[\s\S]*function createEditorStructureDragController\(list, onMove\)[\s\S]*function renderEditorDeletedPanel\(node, refs\)[\s\S]*function renderEditorWelcomePanel\(refs\)[\s\S]*function renderEditorStructurePanel\(node\)[\s\S]*function renderEditorEntryPanel\(node, refs\)[\s\S]*function renderEditorLanguagePanel\(node, refs\)/,
   'editor structure panel UI boundary should own structure rendering, welcome/deleted panels, and drag controls'
+);
+
+assert.doesNotMatch(
+  [editorFileTreeUiSource, editorStructurePanelUiSource].join('\n'),
+  /const\s+(?:document|window)\s*=|(?:^|[^.])\b(?:setTimeout|requestAnimationFrame|CustomEvent|alert)\s*\(|\bwindow\.__pressPopulateEditorLanguageSelect\b|document\.dispatchEvent/,
+  'editor tree and structure UI should use injected refs/adapters for scheduling, alerts, and language-control events'
 );
 
 assert.match(
@@ -4151,8 +4169,8 @@ assert.doesNotMatch(
 
 assert.match(
   editorStructurePanelUiSource,
-  /function appendEditorLanguageControl\(body\) \{[\s\S]*id = 'editorLangSwitcher'[\s\S]*id = 'editorLangSelect'[\s\S]*press-editor-language-control-mounted/,
-  'editor language controls should be rendered inside the System structure panel'
+  /function appendEditorLanguageControl\(body\) \{[\s\S]*id = 'editorLangSwitcher'[\s\S]*id = 'editorLangSelect'[\s\S]*populateEditorLanguageSelect\(\);[\s\S]*emitLanguageControlMounted\(\);/,
+  'editor language controls should be rendered inside the System structure panel through injected runtime callbacks'
 );
 
 assert.match(
@@ -4890,7 +4908,7 @@ assert.match(
 
 assert.match(
   editorFileTreeUiSource,
-  /let toggle = null;[\s\S]*if \(hasChildren\) \{[\s\S]*toggle = document\.createElement\('button'\);[\s\S]*if \(toggle\) row\.appendChild\(toggle\);/,
+  /let toggle = null;[\s\S]*if \(hasChildren\) \{[\s\S]*toggle = documentRef\.createElement\('button'\);[\s\S]*if \(toggle\) row\.appendChild\(toggle\);/,
   'file tree should only render expand controls for nodes with children'
 );
 

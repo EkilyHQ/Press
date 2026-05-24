@@ -90,13 +90,15 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   const fetchCalls = [];
   const alerts = [];
   const warnings = [];
+  const errors = [];
   windowRef.location = { origin: 'https://press.test', href: 'https://press.test/index_editor.html' };
   windowRef.fetch = (url, options) => {
     fetchCalls.push([url, options]);
     return Promise.resolve({ ok: true, url });
   };
   windowRef.console = {
-    warn: (...args) => warnings.push(args)
+    warn: (...args) => warnings.push(args),
+    error: (...args) => errors.push(args)
   };
   windowRef.alert = message => alerts.push(message);
   windowRef.requestAnimationFrame = (fn) => {
@@ -169,6 +171,8 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.deepEqual(alerts, ['Heads up']);
   assert.equal(runtime.warn('Runtime warning', { code: 'content' }), true);
   assert.deepEqual(warnings, [['Runtime warning', { code: 'content' }]]);
+  assert.equal(runtime.error('Runtime error', { code: 'image' }), true);
+  assert.deepEqual(errors, [['Runtime error', { code: 'image' }]]);
   const response = await runtime.fetchContent('/index.yaml', { cache: 'no-store' });
   assert.equal(response.ok, true);
   assert.deepEqual(fetchCalls, [['/index.yaml', { cache: 'no-store' }]]);

@@ -1381,8 +1381,8 @@ assert.match(
 
 assert.doesNotMatch(
   editorMainSource,
-  /console\.warn/,
-  'editor main should route warning behavior through the editor runtime instead of calling console.warn directly'
+  /consoleRef:\s*console|console\.(?:warn|error)/,
+  'editor main should route logger behavior through the editor runtime instead of passing or calling console directly'
 );
 
 assert.match(
@@ -1411,7 +1411,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*getContentRoot,[\s\S]*getEditorValue: appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*consoleRef: console,[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\)[\s\S]*\}\)\);[\s\S]*previewSession\.bind\(\);/,
+  /const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*getContentRoot,[\s\S]*getEditorValue: appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*consoleRef: \{[\s\S]*warn: \(\.\.\.args\) => editorMainRuntime\.warn\(\.\.\.args\)[\s\S]*\},[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\)[\s\S]*\}\)\);[\s\S]*previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
@@ -1429,7 +1429,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const imageSession = appServices\.setImageSession\(createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: appServices\.getBlocksEditor,[\s\S]*consoleRef: console,[\s\S]*emitToast: shellService\.emitToast[\s\S]*\}\)\);/,
+  /const imageSession = appServices\.setImageSession\(createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: appServices\.getBlocksEditor,[\s\S]*consoleRef: \{[\s\S]*error: \(\.\.\.args\) => editorMainRuntime\.error\(\.\.\.args\)[\s\S]*\},[\s\S]*emitToast: shellService\.emitToast[\s\S]*\}\)\);/,
   'editor main should compose image picker, upload, drop, and block image actions through the image session'
 );
 
@@ -1530,14 +1530,14 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainRuntimeSource,
-  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*clearTimer: runtime\.browser\.clearTimer,[\s\S]*createEvent: runtime\.browser\.createEvent,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*getComputedStyle: runtime\.browser\.getComputedStyle,[\s\S]*getResizeObserver: runtime\.browser\.getResizeObserver,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert,[\s\S]*warn/,
+  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*clearTimer: runtime\.browser\.clearTimer,[\s\S]*createEvent: runtime\.browser\.createEvent,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*getComputedStyle: runtime\.browser\.getComputedStyle,[\s\S]*getResizeObserver: runtime\.browser\.getResizeObserver,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert,[\s\S]*warn,[\s\S]*error/,
   'editor main runtime should own storage, browser global, and cross-component event service adapters'
 );
 
 assert.doesNotMatch(
   editorMainRuntimeSource,
   /typeof (?:fetch|alert|console)\b|runtime\.windowRef && runtime\.windowRef\.(?:fetch|alert|console)|windowRef\.(?:fetch|alert|console)/,
-  'editor main runtime should delegate fetch, alert, and warning lookup to the shared editor app runtime facade'
+  'editor main runtime should delegate fetch, alert, and logger lookup to the shared editor app runtime facade'
 );
 
 assert.match(

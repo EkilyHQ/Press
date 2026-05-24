@@ -112,6 +112,7 @@ class FakeResizeObserver {}
   const fetchCalls = [];
   const alerts = [];
   const warnings = [];
+  const errors = [];
   const confirms = [];
   const messages = [];
   const scrolls = [];
@@ -136,7 +137,8 @@ class FakeResizeObserver {}
     return Promise.resolve({ ok: true, url });
   };
   windowRef.console = {
-    warn: (...args) => warnings.push(args)
+    warn: (...args) => warnings.push(args),
+    error: (...args) => errors.push(args)
   };
   windowRef.alert = message => alerts.push(message);
   windowRef.confirm = message => {
@@ -212,6 +214,8 @@ class FakeResizeObserver {}
   assert.deepEqual(alerts, ['Heads up']);
   assert.equal(runtime.browser.warn('Careful', { id: 1 }), true);
   assert.deepEqual(warnings, [['Careful', { id: 1 }]]);
+  assert.equal(runtime.browser.error('Broken', { id: 2 }), true);
+  assert.deepEqual(errors, [['Broken', { id: 2 }]]);
   assert.equal(runtime.browser.confirmAction('continue'), true);
   assert.equal(runtime.browser.confirmAction('stop'), false);
   assert.deepEqual(confirms, ['continue', 'stop']);
@@ -285,7 +289,8 @@ class FakeResizeObserver {}
       return { display: 'ambient' };
     };
     globalThis.console = {
-      warn: (...args) => ambientCalls.push(['console.warn', args])
+      warn: (...args) => ambientCalls.push(['console.warn', args]),
+      error: (...args) => ambientCalls.push(['console.error', args])
     };
 
     const runtime = createEditorAppRuntime({ windowRef: {}, documentRef });
@@ -298,6 +303,7 @@ class FakeResizeObserver {}
     runtime.browser.clearTimer(1002);
     assert.equal(runtime.browser.getComputedStyle({ nodeType: 1 }), null);
     assert.equal(runtime.browser.warn('ambient'), false);
+    assert.equal(runtime.browser.error('ambient'), false);
     assert.deepEqual(
       ambientCalls,
       [],

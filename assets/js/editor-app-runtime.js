@@ -414,6 +414,21 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function error(...args) {
+    try {
+      const errorRef = windowRef
+        && windowRef.console
+        && typeof windowRef.console.error === 'function'
+        ? windowRef.console.error.bind(windowRef.console)
+        : null;
+      if (!errorRef) return false;
+      errorRef(...args);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function confirmAction(message) {
     try {
       const confirmRef = windowRef && typeof windowRef.confirm === 'function'
@@ -496,6 +511,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     fetchContent,
     showAlert,
     warn,
+    error,
     confirmAction,
     getPerformance,
     getCss,

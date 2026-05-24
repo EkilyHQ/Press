@@ -137,7 +137,9 @@ editorMainRuntime.onDocumentReady(() => {
     isLinkCardReady: () => linkCardContext.isReady(),
     getAllowedLocations: () => linkCardContext.getAllowedLocations(),
     getLocationAliases: () => linkCardContext.getLocationAliases(),
-    consoleRef: console,
+    consoleRef: {
+      warn: (...args) => editorMainRuntime.warn(...args)
+    },
     fetch: (url, options) => editorMainRuntime.fetchContent(url, options)
   }));
   previewSession.bind();
@@ -155,7 +157,9 @@ editorMainRuntime.onDocumentReady(() => {
     buildMarkdown: documentSession.buildMarkdown,
     setValue: documentSession.setValue,
     getBlocksEditor: appServices.getBlocksEditor,
-    consoleRef: console,
+    consoleRef: {
+      error: (...args) => editorMainRuntime.error(...args)
+    },
     emitToast: shellService.emitToast
   }));
 

@@ -106,6 +106,8 @@ class FakeCustomEvent {
   windowRef.clearTimeout = id => timers.push(`clear:${id}`);
   windowRef.matchMedia = query => ({ media: query, matches: query.includes('reduced-motion') });
   windowRef.pageYOffset = 321;
+  windowRef.scrollX = 12;
+  windowRef.scrollY = 345;
   windowRef.scrollTo = (...args) => scrolls.push(args);
   documentRef.getElementById = id => ({ id });
   documentRef.querySelector = selector => ({ selector });
@@ -149,6 +151,7 @@ class FakeCustomEvent {
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);
+  assert.deepEqual(runtime.browser.getWindowScroll(), { x: 12, y: 345 });
   assert.equal(runtime.browser.getViewportWidth(), 1200);
   assert.equal(runtime.browser.scrollToTop({ smooth: true }), true);
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);

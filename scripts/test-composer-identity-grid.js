@@ -807,14 +807,14 @@ assert.match(
 
 assert.match(
   source,
-  /const composerIndexTabsUi = createComposerIndexTabsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
-  'composer should inject index/tabs UI frame, timer, dialog, and style effects through the runtime boundary'
+  /const composerIndexTabsUi = createComposerIndexTabsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*getWindowScroll: \(\) => editorRuntime\.getWindowScroll\(\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
+  'composer should inject index/tabs UI frame, timer, event, scroll, dialog, and style effects through the runtime boundary'
 );
 
 assert.doesNotMatch(
   composerIndexTabsUiSource,
-  /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
-  'index/tabs UI should receive browser refs, frames, timers, dialogs, and style access through explicit runtime wiring'
+  /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|\bwindowRef\b|documentRef\.(?:addEventListener|removeEventListener)\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
+  'index/tabs UI should receive browser refs, frames, timers, events, scroll, dialogs, and style access through explicit runtime wiring'
 );
 
 assert.match(
@@ -1746,7 +1746,7 @@ assert.match(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
   'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
 );
 

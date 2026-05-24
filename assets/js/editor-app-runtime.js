@@ -258,6 +258,17 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function getWindowScroll() {
+    try {
+      return {
+        x: Number(windowRef && (windowRef.scrollX || windowRef.pageXOffset)) || 0,
+        y: Number(windowRef && (windowRef.scrollY || windowRef.pageYOffset)) || 0
+      };
+    } catch (_) {
+      return { x: 0, y: 0 };
+    }
+  }
+
   function getViewportWidth() {
     try {
       const width = Number(windowRef && windowRef.innerWidth);
@@ -313,6 +324,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     postMessage,
     matchesMedia,
     getPageYOffset,
+    getWindowScroll,
     getViewportWidth,
     scrollToTop
   };

@@ -1,10 +1,12 @@
 export function createComposerIndexTabsUi(options = {}) {
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
   const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : null;
   const alertRef = typeof options.alertRef === 'function' ? options.alertRef : null;
   const getComputedStyleRef = typeof options.getComputedStyleRef === 'function' ? options.getComputedStyleRef : null;
+  const addWindowListener = typeof options.addWindowListener === 'function' ? options.addWindowListener : () => () => {};
+  const addDocumentListener = typeof options.addDocumentListener === 'function' ? options.addDocumentListener : () => () => {};
+  const getWindowScroll = typeof options.getWindowScroll === 'function' ? options.getWindowScroll : () => ({ x: 0, y: 0 });
   const preferredLangOrder = Array.isArray(options.preferredLangOrder) ? options.preferredLangOrder.slice() : [];
   const query = typeof options.query === 'function'
     ? options.query
@@ -62,13 +64,7 @@ export function createComposerIndexTabsUi(options = {}) {
     try {
       if (getComputedStyleRef) return getComputedStyleRef(element);
     } catch (_) {}
-    try {
-      return windowRef && typeof windowRef.getComputedStyle === 'function'
-        ? windowRef.getComputedStyle(element)
-        : null;
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 
   function showMarkdownOpenAlert() {
@@ -89,6 +85,15 @@ export function createComposerIndexTabsUi(options = {}) {
     let offsetY = 0;
     let dragOriginParent = null;
     let dragOriginNext = null;
+    let disposePointerMove = null;
+    let disposePointerUp = null;
+
+    const clearDragListeners = () => {
+      if (typeof disposePointerMove === 'function') disposePointerMove();
+      if (typeof disposePointerUp === 'function') disposePointerUp();
+      disposePointerMove = null;
+      disposePointerUp = null;
+    };
 
     const snapshotRects = () => {
       const map = new Map();
@@ -199,7 +204,7 @@ export function createComposerIndexTabsUi(options = {}) {
 
       container.classList.remove('is-dragging-list');
       if (documentRef && documentRef.body) documentRef.body.classList.remove('press-noselect');
-      if (windowRef && typeof windowRef.removeEventListener === 'function') windowRef.removeEventListener('pointermove', onPointerMove);
+      clearDragListeners();
 
       const order = childItems().map(el => el.dataset.key);
       if (onReorder) onReorder(order);
@@ -241,8 +246,9 @@ export function createComposerIndexTabsUi(options = {}) {
       li.style.transform = 'none';
 
       const rect = li.getBoundingClientRect();
-      const scrollX = windowRef && Number.isFinite(windowRef.scrollX) ? windowRef.scrollX : 0;
-      const scrollY = windowRef && Number.isFinite(windowRef.scrollY) ? windowRef.scrollY : 0;
+      const scroll = getWindowScroll() || {};
+      const scrollX = Number.isFinite(Number(scroll.x)) ? Number(scroll.x) : 0;
+      const scrollY = Number.isFinite(Number(scroll.y)) ? Number(scroll.y) : 0;
       offsetX = event.pageX - (rect.left + scrollX);
       offsetY = event.pageY - (rect.top + scrollY);
 
@@ -262,10 +268,9 @@ export function createComposerIndexTabsUi(options = {}) {
       }
 
       try { handle.setPointerCapture(event.pointerId); } catch (_) {}
-      if (windowRef && typeof windowRef.addEventListener === 'function') {
-        windowRef.addEventListener('pointermove', onPointerMove);
-        windowRef.addEventListener('pointerup', onPointerUp, { once: true });
-      }
+      clearDragListeners();
+      disposePointerMove = addWindowListener('pointermove', onPointerMove);
+      disposePointerUp = addWindowListener('pointerup', onPointerUp, { once: true });
     };
 
     container.addEventListener('dragstart', (event) => event.preventDefault());
@@ -506,6 +511,8 @@ export function createComposerIndexTabsUi(options = {}) {
           `;
           const btn = query('.ci-add-lang-btn', addLangWrap);
           const menu = query('.ci-lang-menu', addLangWrap);
+          let disposeDocDown = null;
+          let disposeKeyDown = null;
           if (btn) {
             btn.setAttribute('title', addLangLabel);
             btn.setAttribute('aria-label', addLangLabel);
@@ -517,8 +524,10 @@ export function createComposerIndexTabsUi(options = {}) {
               btn.classList.remove('is-open');
               addLangWrap.classList.remove('is-open');
               btn.setAttribute('aria-expanded', 'false');
-              documentRef.removeEventListener('mousedown', onDocDown, true);
-              documentRef.removeEventListener('keydown', onKeyDown, true);
+              if (typeof disposeDocDown === 'function') disposeDocDown();
+              if (typeof disposeKeyDown === 'function') disposeKeyDown();
+              disposeDocDown = null;
+              disposeKeyDown = null;
               menu.classList.remove('is-closing');
             };
             try {
@@ -541,8 +550,10 @@ export function createComposerIndexTabsUi(options = {}) {
             addLangWrap.classList.add('is-open');
             btn.setAttribute('aria-expanded', 'true');
             try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-            documentRef.addEventListener('mousedown', onDocDown, true);
-            documentRef.addEventListener('keydown', onKeyDown, true);
+            if (typeof disposeDocDown === 'function') disposeDocDown();
+            if (typeof disposeKeyDown === 'function') disposeKeyDown();
+            disposeDocDown = addDocumentListener('mousedown', onDocDown, true);
+            disposeKeyDown = addDocumentListener('keydown', onKeyDown, true);
           }
           function onDocDown(event) {
             if (!addLangWrap.contains(event.target)) closeMenu();
@@ -728,6 +739,8 @@ export function createComposerIndexTabsUi(options = {}) {
           `;
           const btn = query('.ct-add-lang-btn', addLangWrap);
           const menu = query('.ct-lang-menu', addLangWrap);
+          let disposeDocDown = null;
+          let disposeKeyDown = null;
           if (btn) {
             btn.setAttribute('title', addLangLabel);
             btn.setAttribute('aria-label', addLangLabel);
@@ -739,8 +752,10 @@ export function createComposerIndexTabsUi(options = {}) {
               btn.classList.remove('is-open');
               addLangWrap.classList.remove('is-open');
               btn.setAttribute('aria-expanded', 'false');
-              documentRef.removeEventListener('mousedown', onDocDown, true);
-              documentRef.removeEventListener('keydown', onKeyDown, true);
+              if (typeof disposeDocDown === 'function') disposeDocDown();
+              if (typeof disposeKeyDown === 'function') disposeKeyDown();
+              disposeDocDown = null;
+              disposeKeyDown = null;
               menu.classList.remove('is-closing');
             };
             try {
@@ -763,8 +778,10 @@ export function createComposerIndexTabsUi(options = {}) {
             addLangWrap.classList.add('is-open');
             btn.setAttribute('aria-expanded', 'true');
             try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-            documentRef.addEventListener('mousedown', onDocDown, true);
-            documentRef.addEventListener('keydown', onKeyDown, true);
+            if (typeof disposeDocDown === 'function') disposeDocDown();
+            if (typeof disposeKeyDown === 'function') disposeKeyDown();
+            disposeDocDown = addDocumentListener('mousedown', onDocDown, true);
+            disposeKeyDown = addDocumentListener('keydown', onKeyDown, true);
           }
           function onDocDown(event) {
             if (!addLangWrap.contains(event.target)) closeMenu();

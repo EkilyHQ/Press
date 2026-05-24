@@ -25,6 +25,8 @@ const windowRef = {
   location: { href: 'https://example.test/index_editor.html' },
   localStorage: new Map(),
   innerWidth: 1180,
+  scrollX: 7,
+  scrollY: 19,
   performance: performanceRef,
   CSS: cssRef,
   isSecureContext: true,
@@ -188,6 +190,7 @@ assert.equal(runtime.getCss(), cssRef);
 assert.equal(runtime.matchesMedia('(prefers-reduced-motion: reduce)'), true);
 assert.equal(runtime.matchesMedia('(min-width: 1px)'), false);
 assert.equal(runtime.getViewportWidth(), 1180);
+assert.deepEqual(runtime.getWindowScroll(), { x: 7, y: 19 });
 assert.equal(runtime.scrollWindowToTop('smooth'), true);
 assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
 assert.equal(runtime.scrollWindowToTop('auto'), true);

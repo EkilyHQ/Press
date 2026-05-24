@@ -179,6 +179,10 @@ export function createComposerRuntime(options = {}) {
     return runtime.browser.getViewportWidth();
   }
 
+  function getWindowScroll() {
+    return runtime.browser.getWindowScroll();
+  }
+
   function scrollWindowToTop(behavior = 'smooth') {
     return runtime.browser.scrollToTop({
       smooth: behavior !== 'auto' && behavior !== 'instant'
@@ -277,6 +281,7 @@ export function createComposerRuntime(options = {}) {
     getCss,
     matchesMedia,
     getViewportWidth,
+    getWindowScroll,
     scrollWindowToTop,
     getComputedStyle,
     getResizeObserver,

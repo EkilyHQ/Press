@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   CARET_POINT_MEASURE_LIMIT,
   createEditorBlocksCaretSession
@@ -296,5 +299,20 @@ const textarea = {
 };
 assert.equal(caretSession.isTextareaOnEdgeLine(textarea, 'down'), true);
 assert.equal(caretSession.isTextareaOnEdgeLine(textarea, 'up'), false);
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const caretSessionSource = readFileSync(resolve(here, '../assets/js/editor-blocks-caret-session.js'), 'utf8');
+  assert.match(
+    caretSessionSource,
+    /function createFallbackSelectionSession\(\) \{[\s\S]*return createEditorBlocksSelectionSession\(\);[\s\S]*function normalizeSelectionSession\(selectionSession\) \{[\s\S]*: createFallbackSelectionSession\(\);/,
+    'caret session should create fallback selection tools at instance construction time'
+  );
+  assert.doesNotMatch(
+    caretSessionSource,
+    /const\s+fallbackSelectionSession\s*=/,
+    'caret session should not keep a module-level fallback selection singleton'
+  );
+}
 
 console.log('ok - editor blocks caret session');

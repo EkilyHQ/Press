@@ -528,6 +528,18 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksCaretSessionSource,
+  /function createFallbackSelectionSession\(\) \{[\s\S]*return createEditorBlocksSelectionSession\(\);[\s\S]*function normalizeSelectionSession\(selectionSession\) \{[\s\S]*: createFallbackSelectionSession\(\);/,
+  'blocks caret session should create fallback selection tools at caret-session construction time'
+);
+
+assert.doesNotMatch(
+  editorBlocksCaretSessionSource,
+  /const\s+fallbackSelectionSession\s*=/,
+  'blocks caret session should not keep a module-level fallback selection singleton'
+);
+
+assert.match(
   editorBlocksSessionRegistrySource,
   /const SERVICE_NAMES = \[[\s\S]*'activeSession'[\s\S]*'bodySession'[\s\S]*'cardPickerSession'[\s\S]*'commandSession'[\s\S]*'focusSession'[\s\S]*'inlineToolbarSession'[\s\S]*'layoutSession'[\s\S]*'linkSession'[\s\S]*'listSession'[\s\S]*'mathSession'[\s\S]*'pointerSession'[\s\S]*\];/,
   'blocks session registry should name every allowed late-bound editor blocks dependency'

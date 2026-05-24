@@ -3,12 +3,15 @@ import { createEditorBlocksSelectionSession } from './editor-blocks-selection-se
 export const CARET_POINT_MEASURE_LIMIT = 12000;
 
 const SHOW_TEXT = 4;
-const fallbackSelectionSession = createEditorBlocksSelectionSession();
+
+function createFallbackSelectionSession() {
+  return createEditorBlocksSelectionSession();
+}
 
 function normalizeSelectionSession(selectionSession) {
   return selectionSession && typeof selectionSession.getSelectionRange === 'function'
     ? selectionSession
-    : fallbackSelectionSession;
+    : createFallbackSelectionSession();
 }
 
 function defaultContains(root, node) {

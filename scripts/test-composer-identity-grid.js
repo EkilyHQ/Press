@@ -1061,8 +1061,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /injectComposerRuntimeStyles\(\{ documentRef: document \}\);/,
-  'composer should delegate runtime style injection to the extracted style module'
+  /injectComposerRuntimeStyles\(\{ documentRef: composerDocument \}\);/,
+  'composer should delegate runtime style injection through the runtime document ref'
 );
 
 assert.match(
@@ -1541,8 +1541,14 @@ assert.match(
 
 assert.match(
   source,
-  /const editorRuntime = createComposerRuntime\(\{[\s\S]*windowRef: window,[\s\S]*documentRef: document[\s\S]*\}\);[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
-  'composer should create an explicit runtime and state store instead of owning root mutable state directly'
+  /const editorRuntime = createComposerRuntime\(\);\s*const composerDocument = editorRuntime\.documentRef;\s*const composerWindow = editorRuntime\.windowRef;[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
+  'composer should create an explicit runtime and route root document/window refs through it'
+);
+
+assert.doesNotMatch(
+  source,
+  /documentRef: document|windowRef: window|r = document|r = window|injectComposerRuntimeStyles\(\{ documentRef: document \}\)/,
+  'composer should not pass direct document/window globals to downstream controllers after runtime creation'
 );
 
 assert.doesNotMatch(

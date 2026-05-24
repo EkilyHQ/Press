@@ -118,19 +118,35 @@ import {
   CONNECT_PUBLISH_PRESETS
 } from './publish/settings-store.js?v=press-system-v3.4.50';
 
-// Utility helpers
-const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-
 const PREFERRED_LANG_ORDER = ['en', 'chs', 'cht-tw', 'cht-hk', 'ja'];
 const LANG_CODE_PATTERN = /^[a-z]{2,3}(?:-[a-z0-9]+)*$/i;
 const LANGUAGE_POOL_CHANGED_EVENT = COMPOSER_RUNTIME_EVENTS.languagePoolChanged;
-const editorRuntime = createComposerRuntime({
-  windowRef: window,
-  documentRef: document
-});
+const editorRuntime = createComposerRuntime();
+const composerDocument = editorRuntime.documentRef;
+const composerWindow = editorRuntime.windowRef;
+
+// Utility helpers
+const $ = (selector, root = composerDocument) => {
+  try {
+    return root && typeof root.querySelector === 'function'
+      ? root.querySelector(selector)
+      : null;
+  } catch (_) {
+    return null;
+  }
+};
+const $$ = (selector, root = composerDocument) => {
+  try {
+    return root && typeof root.querySelectorAll === 'function'
+      ? Array.from(root.querySelectorAll(selector))
+      : [];
+  } catch (_) {
+    return [];
+  }
+};
+
 const composerPathTools = createComposerPathTools({
-  windowRef: window,
+  windowRef: composerWindow,
   getContentRoot: () => editorRuntime.getContentRoot(),
   preferredLangOrder: PREFERRED_LANG_ORDER,
   getIndexVariantLocation,
@@ -197,8 +213,8 @@ const composerStateStore = editorRuntime.createStateStore({
 });
 
 const composerNotifications = createComposerNotificationController({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   t,
   safeString,
   alertRef: (message) => editorRuntime.showAlert(message),
@@ -212,8 +228,8 @@ const {
   handlePopupBlocked
 } = composerNotifications;
 const composerDialogs = createComposerDialogController({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   t
 });
 const {
@@ -223,8 +239,8 @@ const {
 } = composerDialogs;
 
 const composerPublishService = createComposerPublishService({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   t,
   scopeKey: scopedEditorStorageKey,
   getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
@@ -261,7 +277,7 @@ const markdownDraftStore = createScopedDraftStore({
   scopeKey: scopedEditorStorageKey
 });
 const markdownAssetManager = createComposerMarkdownAssetManager({
-  windowRef: window,
+  windowRef: composerWindow,
   t,
   normalizeRelPath,
   normalizeMarkdownContent,
@@ -441,7 +457,7 @@ composerServices.setMarkdownLoader(createComposerMarkdownLoader({
   openProtectionMessage: () => t('editor.composer.markdown.protection.openMessage')
 }));
 composerServices.setMarkdownActionsUi(createComposerMarkdownActionsUi({
-  documentRef: document,
+  documentRef: composerDocument,
   translate: t,
   getCurrentMode: () => getCurrentComposerMode(),
   getActiveDynamicTab,
@@ -495,7 +511,7 @@ const {
   startComposerSyncWatcher
 } = remoteSyncController;
 const markdownActionsController = createComposerMarkdownActionsController({
-  windowRef: window,
+  windowRef: composerWindow,
   t,
   getCurrentMode: () => getCurrentComposerMode(),
   getActiveDynamicTab,
@@ -550,7 +566,7 @@ const {
   discardMarkdownLocalChanges
 } = markdownActionsController;
 const editorContentTreeController = createEditorContentTreeController({
-  documentRef: document,
+  documentRef: composerDocument,
   expandedNodeIds: expandedEditorTreeNodeIds,
   normalizePath: normalizeRelPath,
   flattenTree: flattenEditorContentTree,
@@ -571,8 +587,8 @@ const editorContentTreeController = createEditorContentTreeController({
   inferMarkdownSourceFallback: (path) => (String(path || '').toLowerCase().startsWith('tab/') ? 'tabs' : 'index')
 });
 const editorShell = createComposerEditorShell({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   editorSessionStateStore,
   expandedEditorTreeNodeIds,
   treeText,
@@ -608,8 +624,8 @@ const {
   getEditorContentScrollSnapshot
 } = editorShell;
 const editorDetailPanelController = createComposerEditorDetailPanelController({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   setSystemPanelVisible: (visible) => setEditorSystemPanelVisible(visible),
   showSystemPanel: (mode) => showEditorSystemPanel(mode)
 });
@@ -651,7 +667,7 @@ composerServices.setMarkdownSessionController(createComposerMarkdownSessionContr
   selectEditorTreeNodeByPath,
   showComposerDiscardConfirm,
   t,
-  windowRef: window,
+  windowRef: composerWindow,
   alertRef: (message) => editorRuntime.showAlert(message),
   consoleRef: console,
   updateDynamicTabsGroupState,
@@ -673,8 +689,8 @@ composerServices.setMarkdownWorkspaceController(createComposerMarkdownWorkspaceC
   buildCurrentFileBreadcrumb
 }));
 composerServices.setModeController(createComposerModeController({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   isDynamicMode,
   getFirstDynamicModeId,
@@ -726,8 +742,8 @@ const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
 let gitHubCommitInFlight = false;
 
 const composerFilePanelController = createComposerFilePanelController({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   storage: editorRuntime.storage,
   storageKey: scopedEditorStorageKey(LS_KEYS.cfile),
   t,
@@ -746,7 +762,7 @@ const composerFilePanelController = createComposerFilePanelController({
 });
 const composerSiteConfigController = createComposerSiteConfigController({
   runtime: editorRuntime,
-  windowRef: window,
+  windowRef: composerWindow,
   deepClone
 });
 const {
@@ -795,7 +811,7 @@ const SITE_FIELD_LABEL_MAP = {
 };
 
 const composerDiffUi = createComposerDiffUi({
-  documentRef: document,
+  documentRef: composerDocument,
   t,
   tComposer,
   tComposerDiff,
@@ -821,7 +837,7 @@ const {
   renderOrderStatsChips
 } = composerDiffUi;
 composerServices.setUnsyncedSummaryController(createComposerUnsyncedSummaryController({
-  documentRef: document,
+  documentRef: composerDocument,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   normalizeRelPath,
   normalizeMarkdownContent,
@@ -1229,8 +1245,8 @@ function getActiveSiteRepoConfig() {
 }
 
 const composerOrderDiffUi = createComposerOrderDiffUi({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   tComposer,
   tComposerDiff,
   truncateText,
@@ -1270,8 +1286,8 @@ const {
 } = composerOrderDiffUi;
 
 const composerContentMutations = createComposerContentMutationController({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   t,
   treeText,
   showToast,
@@ -1319,8 +1335,8 @@ const {
 } = composerContentMutations;
 
 const composerIndexTabsUi = createComposerIndexTabsUi({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   preferredLangOrder: PREFERRED_LANG_ORDER,
   query: $,
   escapeHtml,
@@ -1351,8 +1367,8 @@ const composerIndexTabsUi = createComposerIndexTabsUi({
 });
 
 const composerSiteSettingsUi = createComposerSiteSettingsUi({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   performanceRef: editorRuntime.getPerformance(),
   cssRef: editorRuntime.getCss(),
   preferredLangOrder: PREFERRED_LANG_ORDER,
@@ -1382,7 +1398,7 @@ const composerSiteSettingsUi = createComposerSiteSettingsUi({
 });
 
 const composerYamlPanelsController = createComposerYamlPanelsController({
-  documentRef: document,
+  documentRef: composerDocument,
   cssEscape,
   clearInlineSlideStyles,
   getActiveState: () => composerStateStore.getActiveState(),
@@ -1395,8 +1411,8 @@ const composerYamlPanelsController = createComposerYamlPanelsController({
 
 const composerSetupVerifier = createComposerSetupVerifier({
   runtime: editorRuntime,
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   consoleRef: console,
   t,
   getState: () => composerStateStore.getActiveState(),
@@ -1463,7 +1479,7 @@ function loadDraftSnapshotsIntoState(state) {
 }
 
 const composerYamlActions = createComposerYamlActions({
-  windowRef: window,
+  windowRef: composerWindow,
   consoleRef: console,
   t,
   fetchConfigWithYamlFallback,
@@ -1700,8 +1716,8 @@ function welcomeText(key, fallback, params) {
 }
 
 const editorFileTreeUi = createEditorFileTreeUi({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   treeText,
   getEditorContentTree: () => editorContentTreeController.getTree(),
   getActiveNodeId: () => editorContentTreeController.getActiveNodeId(),
@@ -1713,8 +1729,8 @@ const editorFileTreeUi = createEditorFileTreeUi({
 });
 
 const editorStructurePanelUi = createEditorStructurePanelUi({
-  documentRef: document,
-  windowRef: window,
+  documentRef: composerDocument,
+  windowRef: composerWindow,
   consoleRef: console,
   preferredLangOrder: PREFERRED_LANG_ORDER,
   treeText,
@@ -1907,7 +1923,7 @@ function rebuildSiteUI() {
 }
 
 initializeComposerApp({
-  documentRef: document,
+  documentRef: composerDocument,
   onDocumentReady: editorRuntime.onDocumentReady,
   setActiveComposerState: (state) => {
     composerStateStore.setActiveState(state);
@@ -1935,7 +1951,7 @@ initializeComposerApp({
   },
   initialState: {
     ensureSiteRepo: () => editorRuntime.ensureSiteRepo(),
-    windowRef: window,
+    windowRef: composerWindow,
     consoleRef: console,
     t,
     fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
@@ -1954,8 +1970,8 @@ initializeComposerApp({
     showStatus
   },
   workspace: {
-    documentRef: document,
-    windowRef: window,
+    documentRef: composerDocument,
+    windowRef: composerWindow,
     getLocation: () => editorRuntime.getLocation(),
     t,
     loadDraftSnapshotsIntoState,
@@ -1966,7 +1982,7 @@ initializeComposerApp({
     getActiveDynamicTab,
     showStatus,
     bindWorkspaceUi: () => bindComposerWorkspaceUi({
-      documentRef: document,
+      documentRef: composerDocument,
       consoleRef: console,
       mountEditorSystemPanels,
       initEditorOverlay,
@@ -2003,4 +2019,4 @@ initializeComposerApp({
   }
 });
 
-injectComposerRuntimeStyles({ documentRef: document });
+injectComposerRuntimeStyles({ documentRef: composerDocument });

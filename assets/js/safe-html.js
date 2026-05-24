@@ -63,6 +63,13 @@ function getDocumentBaseUri() {
   return 'https://example.test/';
 }
 
+function getLocationOrigin() {
+  try {
+    if (typeof location !== 'undefined' && location.origin) return String(location.origin);
+  } catch (_) {}
+  return 'https://example.test';
+}
+
 export function sanitizeUrl(url) {
   const s = String(url || '').trim();
   const p = getUrlSchemeForCheck(s);
@@ -108,7 +115,8 @@ export function sanitizeImageUrl(url) {
   }
 }
 
-export function resolveImageSrc(src, baseDir) {
+export function resolveImageSrc(src, baseDir, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
   const s = String(src || '').trim();
   if (!s) return '';
   if (getUrlSchemeForCheck(s)) return sanitizeUrl(s);
@@ -116,7 +124,10 @@ export function resolveImageSrc(src, baseDir) {
 
   const stripSlashes = (val) => String(val || '').replace(/^\/+|\/+$/g, '');
   const normalizedBase = stripSlashes(baseDir);
-  const normalizedRoot = stripSlashes(getContentRoot());
+  const root = Object.prototype.hasOwnProperty.call(opts, 'contentRoot')
+    ? opts.contentRoot
+    : getContentRoot();
+  const normalizedRoot = stripSlashes(root);
   const candidate = s.replace(/^\/+/, '');
 
   // Already normalized relative to either the active base directory or content root
@@ -125,7 +136,10 @@ export function resolveImageSrc(src, baseDir) {
 
   const base = (normalizedBase ? `${normalizedBase}/` : '');
   try {
-    const u = new URL(candidate, `${location.origin}/${base}`);
+    const origin = typeof opts.origin === 'string' && opts.origin
+      ? opts.origin
+      : getLocationOrigin();
+    const u = new URL(candidate, `${origin}/${base}`);
     return u.pathname.replace(/^\/+/, '');
   } catch (_) {
     return `${base}${candidate}`.replace(/\/+/, '/');

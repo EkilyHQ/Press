@@ -1616,6 +1616,12 @@ assert.match(
   'editor main runtime should own the primary HiEditor instance registry'
 );
 
+assert.match(
+  editorMainRuntimeSource,
+  /function normalizeContentRoot\(contentRoot\)[\s\S]*function setContentRoot\(contentRoot\) \{[\s\S]*normalizeContentRoot\(contentRoot\)[\s\S]*function getContentRoot\(\) \{[\s\S]*runtime\.globals\.getString\(CONTENT_ROOT_GLOBAL, 'wwwroot'\)[\s\S]*getContentRoot,/,
+  'editor main runtime should own editor content-root reads and writes'
+);
+
 assert.doesNotMatch(
   editorMainRuntimeSource,
   /typeof (?:fetch|alert|console)\b|runtime\.windowRef && runtime\.windowRef\.(?:fetch|alert|console)|windowRef\.(?:fetch|alert|console)/,
@@ -1632,6 +1638,18 @@ assert.match(
   editorMainSource,
   /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
   'editor main startup should wire the preview session through the editor runtime boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /import \{ resolveImageSrc \} from '\.\/safe-html\.js\?v=[\w.-]+';[\s\S]*const getContentRoot = \(\) => editorMainRuntime\.getContentRoot\(\);[\s\S]*const resolveEditorImageSrc = \(src, baseDir\) => resolveImageSrc\(src, baseDir, \{[\s\S]*contentRoot: editorMainRuntime\.getContentRoot\(\),[\s\S]*origin: editorMainRuntime\.getLocationOrigin\(\)[\s\S]*resolveImageSrc: resolveEditorImageSrc/,
+  'editor main should route content-root and image resolution through the explicit runtime boundary'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /import \{ getContentRoot, resolveImageSrc \} from '\.\/safe-html\.js\?v=[\w.-]+';|getContentRoot, resolveImageSrc/,
+  'editor main should not import ambient safe-html content-root reads into the editor app path'
 );
 
 assert.match(

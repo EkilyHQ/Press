@@ -183,7 +183,9 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
 
   assert.equal(runtime.setEditorBaseDir('wwwroot\\posts', 'wwwroot/'), 'wwwroot/posts/');
   assert.equal(runtime.getEditorBaseDir('fallback/'), 'wwwroot/posts/');
-  assert.equal(runtime.setContentRoot('content'), true);
+  assert.equal(runtime.getContentRoot(), 'wwwroot');
+  assert.equal(runtime.setContentRoot('/content/'), true);
+  assert.equal(runtime.getContentRoot(), 'content');
   assert.equal(windowRef.__press_content_root, 'content');
   assert.equal(runtime.registerPrimaryEditorApi({ id: 'api' }), true);
   assert.equal(windowRef.__press_primary_editor.id, 'api');
@@ -226,5 +228,6 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(runtime.readMarkdownEditorView(), 'blocks');
   assert.equal(runtime.readWrapEnabled(), false);
   assert.equal(runtime.ensureEditorBaseDir('wwwroot/'), 'wwwroot/');
+  assert.equal(runtime.getContentRoot(), 'wwwroot');
   assert.ok(runtime.getHiEditorRegistry() instanceof Map);
 }

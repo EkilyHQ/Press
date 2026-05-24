@@ -38,6 +38,11 @@ function parseWrapState(raw) {
   catch (_) { return false; }
 }
 
+function normalizeContentRoot(contentRoot) {
+  const raw = contentRoot == null ? '' : String(contentRoot).trim();
+  return raw.replace(/^\/+|\/+$/g, '') || 'wwwroot';
+}
+
 export function createEditorMainRuntime(options = {}) {
   const runtime = createBrowserEditorAppRuntime(options);
   const hiEditorRegistry = options.hiEditorRegistry instanceof Map
@@ -66,7 +71,11 @@ export function createEditorMainRuntime(options = {}) {
   }
 
   function setContentRoot(contentRoot) {
-    return runtime.globals.setString(CONTENT_ROOT_GLOBAL, contentRoot || 'wwwroot');
+    return runtime.globals.setString(CONTENT_ROOT_GLOBAL, normalizeContentRoot(contentRoot));
+  }
+
+  function getContentRoot() {
+    return normalizeContentRoot(runtime.globals.getString(CONTENT_ROOT_GLOBAL, 'wwwroot'));
   }
 
   function getEditorBaseDir(fallback = 'wwwroot/') {
@@ -175,6 +184,7 @@ export function createEditorMainRuntime(options = {}) {
     scrollToTop: runtime.browser.scrollToTop,
     prefersReducedMotion,
     setContentRoot,
+    getContentRoot,
     getEditorBaseDir,
     setEditorBaseDir,
     ensureEditorBaseDir,

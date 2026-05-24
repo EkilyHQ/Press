@@ -1,6 +1,6 @@
 import { createHiEditor } from './hieditor.js?v=press-system-v3.4.50';
 import { normalizeLineEndings } from './frontmatter-document.js?v=press-system-v3.4.50';
-import { getContentRoot, resolveImageSrc } from './safe-html.js?v=press-system-v3.4.50';
+import { resolveImageSrc } from './safe-html.js?v=press-system-v3.4.50';
 import { t, withLangParam, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.50';
 import { createEditorMainMetadataPanel } from './editor-main-metadata-panel.js?v=press-system-v3.4.50';
 import { createEditorMainPreviewSession } from './editor-main-preview-session.js?v=press-system-v3.4.50';
@@ -23,6 +23,11 @@ import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system
 const FORCE_MARKDOWN_WRAP = true;
 const editorMainRuntime = createEditorMainRuntime();
 const editorMainDocument = editorMainRuntime.documentRef;
+const getContentRoot = () => editorMainRuntime.getContentRoot();
+const resolveEditorImageSrc = (src, baseDir) => resolveImageSrc(src, baseDir, {
+  contentRoot: editorMainRuntime.getContentRoot(),
+  origin: editorMainRuntime.getLocationOrigin()
+});
 
 // ---- Local draft storage removed (temporary) ----
 
@@ -186,7 +191,7 @@ editorMainRuntime.onDocumentReady(() => {
     getPreviewSession: appServices.getPreviewSession,
     getImageSession: appServices.getImageSession,
     linkCardContext,
-    resolveImageSrc
+    resolveImageSrc: resolveEditorImageSrc
   }));
   blocksSession.initialize();
 

@@ -78,7 +78,16 @@ assert.equal(
 );
 
 const { mdParse } = await import('../assets/js/markdown.js?editor-preview-images');
-const { setSafeHtml } = await import('../assets/js/safe-html.js?editor-preview-images');
+const { resolveImageSrc, setSafeHtml } = await import('../assets/js/safe-html.js?editor-preview-images');
+
+assert.equal(
+  resolveImageSrc('content/page.jpeg', 'content/articles', {
+    contentRoot: 'content',
+    origin: 'http://runtime.test'
+  }),
+  'content/page.jpeg',
+  'image src resolution should honor explicit runtime content root before ambient window state'
+);
 
 function collectElements(node, tagName, out = []) {
   if (!node) return out;

@@ -144,6 +144,8 @@ const service = createComposerPublishService({
     assert.equal(options.publishSettingsStore, publishSettingsStore);
     assert.equal(typeof options.refreshSyncCommitPanel, 'function');
     assert.equal(typeof options.scheduleSyncCommitPanelRefresh, 'function');
+    assert.equal(options.requestAnimationFrameRef, requestAnimationFrameRef);
+    assert.equal(options.setTimeoutRef, setTimeoutRef);
     calls.push(['factory:transport-ui']);
     return publishTransportUi;
   },

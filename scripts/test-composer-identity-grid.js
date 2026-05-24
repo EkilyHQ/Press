@@ -4504,6 +4504,12 @@ assert.match(
 
 assert.match(
   composerPublishServiceSource,
+  /const publishTransportUi = createPublishTransportSettingsUiRef\(\{[\s\S]*documentRef,[\s\S]*t,[\s\S]*publishSettingsStore,[\s\S]*refreshSyncCommitPanel,[\s\S]*scheduleSyncCommitPanelRefresh,[\s\S]*requestAnimationFrameRef,[\s\S]*setTimeoutRef[\s\S]*\}\);/,
+  'publish service should inject explicit frame and timer adapters into the publish transport settings UI'
+);
+
+assert.match(
+  composerPublishServiceSource,
   /syncCommitController = createComposerSyncCommitControllerRef\(\{[\s\S]*documentRef,[\s\S]*t,[\s\S]*setTimeoutRef,[\s\S]*clearTimeoutRef[\s\S]*\}\);/,
   'publish service should inject explicit timer adapters into the Sync commit controller'
 );
@@ -4516,6 +4522,12 @@ assert.doesNotMatch(
   ].join('\n'),
   /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame)\s*\(/m,
   'publish/sync overlay, summary, and refresh panel should use injected runtime timer, frame, and media adapters'
+);
+
+assert.doesNotMatch(
+  composerPublishSettingsUiSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\b(?:setTimeout|requestAnimationFrame)\s*\(/m,
+  'publish transport settings UI should use injected runtime frame and timer adapters instead of deriving them from windowRef'
 );
 
 assert.doesNotMatch(

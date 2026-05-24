@@ -6,25 +6,18 @@ import {
 
 export function createPublishTransportSettingsUi({
   documentRef = null,
-  windowRef = null,
   t = (key) => key,
   publishSettingsStore,
   getActiveSiteRepoConfig = () => ({}),
   applyMode = () => {},
   showEditorSystemPanel = () => {},
   refreshSyncCommitPanel = () => {},
-  scheduleSyncCommitPanelRefresh = () => {}
+  scheduleSyncCommitPanelRefresh = () => {},
+  requestAnimationFrameRef = null,
+  setTimeoutRef = null
 } = {}) {
-  const requestFrame = (handler) => (
-    windowRef && typeof windowRef.requestAnimationFrame === 'function'
-      ? windowRef.requestAnimationFrame(handler)
-      : 0
-  );
-  const setTimer = (handler, delay) => (
-    windowRef && typeof windowRef.setTimeout === 'function'
-      ? windowRef.setTimeout(handler, delay)
-      : 0
-  );
+  const requestFrame = typeof requestAnimationFrameRef === 'function' ? requestAnimationFrameRef : null;
+  const setTimer = typeof setTimeoutRef === 'function' ? setTimeoutRef : null;
 
   function getCachedFineGrainedToken() {
     return publishSettingsStore.getCachedFineGrainedToken();
@@ -143,14 +136,14 @@ export function createPublishTransportSettingsUi({
       updatePublishTransportSettingsDomForPatFallback();
       focusFineGrainedTokenInput();
     };
-    if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
+    if (requestFrame) {
       requestFrame(() => requestFrame(focusLater));
-    } else if (windowRef && typeof windowRef.setTimeout === 'function') {
+    } else if (setTimer) {
       setTimer(focusLater, 0);
     } else {
       focusLater();
     }
-    setTimer(focusLater, 120);
+    if (setTimer) setTimer(focusLater, 120);
   }
 
   function getCachedConnectPublishGrant() {

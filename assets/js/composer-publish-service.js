@@ -60,14 +60,15 @@ export function createComposerPublishService(options = {}) {
 
   const publishTransportUi = createPublishTransportSettingsUiRef({
     documentRef,
-    windowRef,
     t,
     publishSettingsStore,
     getActiveSiteRepoConfig: options.getActiveSiteRepoConfig || (() => ({})),
     applyMode: options.applyMode || noop,
     showEditorSystemPanel: options.showEditorSystemPanel || noop,
     refreshSyncCommitPanel,
-    scheduleSyncCommitPanelRefresh
+    scheduleSyncCommitPanelRefresh,
+    requestAnimationFrameRef,
+    setTimeoutRef
   });
   const {
     setCachedFineGrainedToken,

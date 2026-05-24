@@ -4563,14 +4563,20 @@ assert.match(
 
 assert.match(
   source,
-  /const composerDialogs = createComposerDialogController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*getViewportSize: \(\) => \{[\s\S]*composerDocument\.documentElement[\s\S]*composerWindow\.innerWidth[\s\S]*composerWindow\.innerHeight[\s\S]*getWindowScroll: \(\) => \(\{[\s\S]*composerWindow\.scrollX[\s\S]*composerWindow\.pageYOffset[\s\S]*\}\)[\s\S]*\}\);/,
-  'composer should inject dialog timers, frames, window listeners, viewport size, and scroll state through the runtime composition root'
+  /const composerDialogs = createComposerDialogController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*getViewportSize: \(\) => editorRuntime\.getViewportSize\(\),[\s\S]*getWindowScroll: \(\) => editorRuntime\.getWindowScroll\(\)[\s\S]*\}\);/,
+  'composer should inject dialog timers, frames, document/window listeners, viewport size, and scroll state through the runtime composition root'
 );
 
 assert.doesNotMatch(
   composerDialogsSource,
   /windowRef\.|options\.windowRef|\bwindowRef\b/,
   'dialog boundary should not read window refs directly after receiving runtime adapters'
+);
+
+assert.doesNotMatch(
+  composerDialogsSource,
+  /documentRef\.(?:addEventListener|removeEventListener)\(/,
+  'dialog boundary should route document-level listeners through the runtime adapter'
 );
 
 assert.doesNotMatch(

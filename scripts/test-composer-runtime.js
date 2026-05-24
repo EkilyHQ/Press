@@ -24,6 +24,7 @@ const windowRef = {
   __press_content_root: 'docs',
   location: { href: 'https://example.test/index_editor.html' },
   localStorage: new Map(),
+  innerHeight: 740,
   innerWidth: 1180,
   scrollX: 7,
   scrollY: 19,
@@ -189,6 +190,7 @@ assert.equal(runtime.getPerformance(), performanceRef);
 assert.equal(runtime.getCss(), cssRef);
 assert.equal(runtime.matchesMedia('(prefers-reduced-motion: reduce)'), true);
 assert.equal(runtime.matchesMedia('(min-width: 1px)'), false);
+assert.deepEqual(runtime.getViewportSize(), { width: 1180, height: 740 });
 assert.equal(runtime.getViewportWidth(), 1180);
 assert.deepEqual(runtime.getWindowScroll(), { x: 7, y: 19 });
 assert.equal(runtime.scrollWindowToTop('smooth'), true);

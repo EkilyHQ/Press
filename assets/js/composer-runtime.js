@@ -179,6 +179,10 @@ export function createComposerRuntime(options = {}) {
     return runtime.browser.getViewportWidth();
   }
 
+  function getViewportSize() {
+    return runtime.browser.getViewportSize();
+  }
+
   function getWindowScroll() {
     return runtime.browser.getWindowScroll();
   }
@@ -280,6 +284,7 @@ export function createComposerRuntime(options = {}) {
     getPerformance,
     getCss,
     matchesMedia,
+    getViewportSize,
     getViewportWidth,
     getWindowScroll,
     scrollWindowToTop,

@@ -269,17 +269,33 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
-  function getViewportWidth() {
+  function getViewportSize() {
+    let width = 0;
+    let height = 0;
     try {
-      const width = Number(windowRef && windowRef.innerWidth);
-      if (Number.isFinite(width) && width > 0) return width;
+      const windowWidth = Number(windowRef && windowRef.innerWidth);
+      if (Number.isFinite(windowWidth) && windowWidth > 0) width = windowWidth;
     } catch (_) {}
     try {
-      const width = Number(documentRef && documentRef.documentElement && documentRef.documentElement.clientWidth);
-      return Number.isFinite(width) && width > 0 ? width : 0;
-    } catch (_) {
-      return 0;
-    }
+      const windowHeight = Number(windowRef && windowRef.innerHeight);
+      if (Number.isFinite(windowHeight) && windowHeight > 0) height = windowHeight;
+    } catch (_) {}
+    try {
+      const docEl = documentRef && documentRef.documentElement;
+      if (!width) {
+        const docWidth = Number(docEl && docEl.clientWidth);
+        if (Number.isFinite(docWidth) && docWidth > 0) width = docWidth;
+      }
+      if (!height) {
+        const docHeight = Number(docEl && docEl.clientHeight);
+        if (Number.isFinite(docHeight) && docHeight > 0) height = docHeight;
+      }
+    } catch (_) {}
+    return { width, height };
+  }
+
+  function getViewportWidth() {
+    return getViewportSize().width;
   }
 
   function scrollToTop({ smooth = true } = {}) {
@@ -325,6 +341,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     matchesMedia,
     getPageYOffset,
     getWindowScroll,
+    getViewportSize,
     getViewportWidth,
     scrollToTop
   };

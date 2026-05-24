@@ -112,7 +112,7 @@ class FakeCustomEvent {
   documentRef.getElementById = id => ({ id });
   documentRef.querySelector = selector => ({ selector });
   documentRef.querySelectorAll = selector => [{ selector }];
-  documentRef.documentElement = { scrollTop: 11 };
+  documentRef.documentElement = { scrollTop: 11, clientWidth: 960, clientHeight: 720 };
 
   const runtime = createEditorAppRuntime({ windowRef, documentRef });
   assert.equal(runtime.storage.setItem('mode', 'sync'), true);
@@ -152,6 +152,7 @@ class FakeCustomEvent {
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);
   assert.deepEqual(runtime.browser.getWindowScroll(), { x: 12, y: 345 });
+  assert.deepEqual(runtime.browser.getViewportSize(), { width: 1200, height: 900 });
   assert.equal(runtime.browser.getViewportWidth(), 1200);
   assert.equal(runtime.browser.scrollToTop({ smooth: true }), true);
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);

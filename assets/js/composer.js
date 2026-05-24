@@ -257,17 +257,9 @@ const composerDialogs = createComposerDialogController({
   clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
   requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
   addWindowListener: (type, handler, options) => editorRuntime.events.onWindow(type, handler, options),
-  getViewportSize: () => {
-    const docEl = composerDocument && composerDocument.documentElement;
-    return {
-      width: docEl && docEl.clientWidth ? docEl.clientWidth : (composerWindow && composerWindow.innerWidth ? composerWindow.innerWidth : 0),
-      height: docEl && docEl.clientHeight ? docEl.clientHeight : (composerWindow && composerWindow.innerHeight ? composerWindow.innerHeight : 0)
-    };
-  },
-  getWindowScroll: () => ({
-    x: composerWindow ? (composerWindow.scrollX || composerWindow.pageXOffset || 0) : 0,
-    y: composerWindow ? (composerWindow.scrollY || composerWindow.pageYOffset || 0) : 0
-  })
+  addDocumentListener: (type, handler, options) => editorRuntime.events.onDocument(type, handler, options),
+  getViewportSize: () => editorRuntime.getViewportSize(),
+  getWindowScroll: () => editorRuntime.getWindowScroll()
 });
 const {
   showAddEntryPrompt: showComposerAddEntryPrompt,

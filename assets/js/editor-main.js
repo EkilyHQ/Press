@@ -149,7 +149,6 @@ editorMainRuntime.onDocumentReady(() => {
 
   const imageSession = appServices.setImageSession(createEditorMainImageSession({
     runtime: editorMainRuntime,
-    windowRef: editorMainWindow,
     translate: t,
     imageButton,
     imageInput,

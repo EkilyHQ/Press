@@ -170,6 +170,8 @@ export function createEditorMainRuntime(options = {}) {
     setTimer: runtime.browser.setTimer,
     clearTimer: runtime.browser.clearTimer,
     createEvent: runtime.browser.createEvent,
+    createMouseEvent: runtime.browser.createMouseEvent,
+    getFileReader: runtime.browser.getFileReader,
     postMessage: runtime.browser.postMessage,
     getLocationOrigin: runtime.browser.getLocationOrigin,
     getPageYOffset: runtime.browser.getPageYOffset,

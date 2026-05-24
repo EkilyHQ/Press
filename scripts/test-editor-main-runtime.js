@@ -26,6 +26,10 @@ class FakeEvent {
   }
 }
 
+class FakeMouseEvent extends FakeEvent {}
+
+class FakeFileReader {}
+
 function createEventTarget() {
   const listeners = new Map();
   const events = [];
@@ -69,6 +73,8 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   const windowRef = createEventTarget();
   windowRef.CustomEvent = FakeCustomEvent;
   windowRef.Event = FakeEvent;
+  windowRef.MouseEvent = FakeMouseEvent;
+  windowRef.FileReader = FakeFileReader;
   const documentRef = createEventTarget();
   documentRef.readyState = 'complete';
   documentRef.getElementById = id => ({ id });
@@ -136,6 +142,11 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(inputEvent.type, 'input');
   assert.equal(inputEvent.bubbles, true);
   assert.equal(inputEvent.cancelable, true);
+  const mouseEvent = runtime.createMouseEvent('click', { bubbles: true });
+  assert.ok(mouseEvent instanceof FakeMouseEvent);
+  assert.equal(mouseEvent.type, 'click');
+  assert.equal(mouseEvent.bubbles, true);
+  assert.equal(runtime.getFileReader(), FakeFileReader);
   assert.equal(runtime.getLocationOrigin(), 'https://press.test');
   assert.equal(runtime.prefersReducedMotion(), true);
   assert.equal(runtime.getPageYOffset(), 320);

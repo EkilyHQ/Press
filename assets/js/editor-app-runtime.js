@@ -244,6 +244,27 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     return null;
   }
 
+  function createMouseEvent(type, options = {}) {
+    const eventType = String(type || '');
+    if (!eventType) return null;
+    const eventOptions = options && typeof options === 'object' ? options : {};
+    try {
+      const MouseEventCtor = windowRef && typeof windowRef.MouseEvent === 'function'
+        ? windowRef.MouseEvent
+        : null;
+      if (MouseEventCtor) return new MouseEventCtor(eventType, eventOptions);
+    } catch (_) {}
+    return createEvent(eventType, eventOptions);
+  }
+
+  function getFileReader() {
+    try {
+      return windowRef && typeof windowRef.FileReader === 'function' ? windowRef.FileReader : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function getLocationOrigin() {
     try {
       return (windowRef && windowRef.location && windowRef.location.origin) || '';
@@ -357,6 +378,8 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     setTimer,
     clearTimer,
     createEvent,
+    createMouseEvent,
+    getFileReader,
     getLocationOrigin,
     postMessage,
     matchesMedia,

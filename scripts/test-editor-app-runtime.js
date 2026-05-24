@@ -50,6 +50,10 @@ class FakeEvent {
   }
 }
 
+class FakeMouseEvent extends FakeEvent {}
+
+class FakeFileReader {}
+
 {
   const store = createEditorStateStore({
     kinds: ['index', 'tabs', 'site'],
@@ -82,6 +86,8 @@ class FakeEvent {
   const windowRef = new FakeEventTarget();
   windowRef.CustomEvent = FakeCustomEvent;
   windowRef.Event = FakeEvent;
+  windowRef.MouseEvent = FakeMouseEvent;
+  windowRef.FileReader = FakeFileReader;
   const writes = new Map();
   windowRef.localStorage = {
     getItem(key) {
@@ -162,6 +168,11 @@ class FakeEvent {
   assert.equal(inputEvent.type, 'input');
   assert.equal(inputEvent.bubbles, true);
   assert.equal(inputEvent.cancelable, true);
+  const mouseEvent = runtime.browser.createMouseEvent('click', { bubbles: true });
+  assert.ok(mouseEvent instanceof FakeMouseEvent);
+  assert.equal(mouseEvent.type, 'click');
+  assert.equal(mouseEvent.bubbles, true);
+  assert.equal(runtime.browser.getFileReader(), FakeFileReader);
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);

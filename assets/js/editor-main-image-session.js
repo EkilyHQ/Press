@@ -6,7 +6,6 @@ const fallbackTranslate = (key) => key;
 
 export function createEditorMainImageSession(options = {}) {
   const runtime = options.runtime || {};
-  const windowRef = options.windowRef || null;
   const translateImpl = typeof options.translate === 'function' ? options.translate : fallbackTranslate;
   const imageButton = options.imageButton || null;
   const imageInput = options.imageInput || null;
@@ -24,11 +23,18 @@ export function createEditorMainImageSession(options = {}) {
       };
   const onWindow = typeof runtime.onWindow === 'function' ? runtime.onWindow.bind(runtime) : () => noop;
   const setTimer = typeof runtime.setTimer === 'function' ? runtime.setTimer.bind(runtime) : (fn, ms) => {
-    if (windowRef && typeof windowRef.setTimeout === 'function') return windowRef.setTimeout(fn, ms);
-    return 0;
+    if (typeof fn === 'function') {
+      try { fn(); } catch (_) {}
+    }
+    return null;
   };
-  const FileReaderCtor = options.FileReader || (windowRef && windowRef.FileReader) || null;
-  const MouseEventCtor = options.MouseEvent || (windowRef && windowRef.MouseEvent) || null;
+  const FileReaderCtor = options.FileReader
+    || (typeof runtime.getFileReader === 'function' ? runtime.getFileReader() : null);
+  const createMouseEvent = typeof options.createMouseEvent === 'function'
+    ? options.createMouseEvent
+    : (type, eventOptions) => (typeof runtime.createMouseEvent === 'function'
+        ? runtime.createMouseEvent(type, eventOptions)
+        : null);
 
   let pendingBlocksImageInsert = null;
   let pendingImagePickerToken = 0;
@@ -295,8 +301,9 @@ export function createEditorMainImageSession(options = {}) {
     armImagePickerCancelReset(pickerToken);
     try { imageInput.click(); }
     catch (_) {
-      if (!MouseEventCtor) return;
-      try { imageInput.dispatchEvent(new MouseEventCtor('click', { bubbles: true })); }
+      const event = createMouseEvent('click', { bubbles: true });
+      if (!event) return;
+      try { imageInput.dispatchEvent(event); }
       catch (__) {}
     }
   };

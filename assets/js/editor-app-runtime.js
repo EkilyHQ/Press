@@ -306,6 +306,14 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function getNodeFilter() {
+    try {
+      return windowRef && windowRef.NodeFilter ? windowRef.NodeFilter : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function isSecureContext() {
     try {
       return !!(windowRef && windowRef.isSecureContext);
@@ -638,6 +646,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     createMouseEvent,
     getFileReader,
     getNavigator,
+    getNodeFilter,
     isSecureContext,
     getLocation,
     getLocationOrigin,

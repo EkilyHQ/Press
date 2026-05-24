@@ -188,6 +188,15 @@ function resolvePostMetadata(payload) {
   }
 }
 
+function applyPreviewLangHints(container) {
+  return applyLangHints(container, {
+    documentRef: previewRuntime.documentRef,
+    windowRef: previewRuntime.windowRef,
+    nodeFilterRef: previewRuntime.getNodeFilter(),
+    allowAmbient: false
+  });
+}
+
 function createRuntimeContext({ payload, containers, content }) {
   const layout = getThemeLayoutContext();
   return {
@@ -211,7 +220,7 @@ function createRuntimeContext({ payload, containers, content }) {
       hydratePostVideos,
       hydrateInternalLinkCards,
       applyLazyLoadingIn,
-      applyLangHints,
+      applyLangHints: applyPreviewLangHints,
       renderPostTOC: () => {},
       renderTagSidebar,
       setupAnchors,
@@ -293,7 +302,7 @@ async function renderPreview(payload) {
         hydratePostVideos,
         hydrateInternalLinkCards,
         applyLazyLoadingIn,
-        applyLangHints,
+        applyLangHints: applyPreviewLangHints,
         renderPostTOC: () => {},
         renderTagSidebar,
         getArticleTitleFromMain,
@@ -324,7 +333,7 @@ async function renderPreview(payload) {
     try { hydratePostImages(main); } catch (_) {}
     try { hydratePostVideos(main); } catch (_) {}
     try { applyLazyLoadingIn(main); } catch (_) {}
-    try { applyLangHints(main); } catch (_) {}
+    try { applyPreviewLangHints(main); } catch (_) {}
     try {
       renderPressMath(main, {
         documentRef: previewRuntime.documentRef,

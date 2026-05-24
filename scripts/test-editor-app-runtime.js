@@ -57,6 +57,13 @@ class FakeFileReader {}
 
 class FakeResizeObserver {}
 
+const FakeNodeFilter = {
+  SHOW_TEXT: 4,
+  FILTER_ACCEPT: 1,
+  FILTER_REJECT: 2,
+  FILTER_SKIP: 3
+};
+
 {
   const store = createEditorStateStore({
     kinds: ['index', 'tabs', 'site'],
@@ -93,6 +100,7 @@ class FakeResizeObserver {}
   windowRef.MouseEvent = FakeMouseEvent;
   windowRef.FileReader = FakeFileReader;
   windowRef.ResizeObserver = FakeResizeObserver;
+  windowRef.NodeFilter = FakeNodeFilter;
   windowRef.performance = { now: () => 42 };
   windowRef.CSS = { escape: value => `escaped:${value}` };
   const clipboardWrites = [];
@@ -265,6 +273,7 @@ class FakeResizeObserver {}
   assert.equal(mouseEvent.bubbles, true);
   assert.equal(runtime.browser.getFileReader(), FakeFileReader);
   assert.equal(runtime.browser.getNavigator(), windowRef.navigator);
+  assert.equal(runtime.browser.getNodeFilter(), FakeNodeFilter);
   assert.equal(runtime.browser.isSecureContext(), true);
   assert.deepEqual(runtime.browser.getLocation(), {
     href: 'https://example.test/editor.html?mode=sync#panel',
@@ -474,6 +483,7 @@ class FakeResizeObserver {}
     assert.equal(runtime.browser.setTimer(() => {}, 10), null);
     runtime.browser.clearTimer(1002);
     assert.equal(runtime.browser.getComputedStyle({ nodeType: 1 }), null);
+    assert.equal(runtime.browser.getNodeFilter(), null);
     assert.equal(runtime.browser.openWindow('/ambient', '_blank'), null);
     assert.equal(runtime.browser.isSecureContext(), false);
     assert.equal(runtime.browser.getLocation(), null);

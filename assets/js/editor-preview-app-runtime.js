@@ -122,6 +122,7 @@ export function createEditorPreviewAppRuntime(options = {}) {
     windowRef: runtime.windowRef,
     setTimer: runtime.browser.setTimer,
     writeClipboardText,
+    getNodeFilter: runtime.browser.getNodeFilter,
     postToParent,
     onRenderMessage,
     isTrustedMessageEvent,

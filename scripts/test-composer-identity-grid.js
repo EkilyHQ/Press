@@ -70,6 +70,7 @@ const editorBootPath = resolve(here, '../assets/js/editor-boot.js');
 const editorBootRuntimePath = resolve(here, '../assets/js/editor-boot-runtime.js');
 const editorPreviewRuntimePath = resolve(here, '../assets/js/editor-preview-runtime.js');
 const editorPreviewAppRuntimePath = resolve(here, '../assets/js/editor-preview-app-runtime.js');
+const typographyPath = resolve(here, '../assets/js/typography.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
 const connectTransportPath = resolve(here, '../assets/js/publish/transports/connect-transport.js');
@@ -190,6 +191,7 @@ const editorBootSource = readFileSync(editorBootPath, 'utf8');
 const editorBootRuntimeSource = readFileSync(editorBootRuntimePath, 'utf8');
 const editorPreviewRuntimeSource = readFileSync(editorPreviewRuntimePath, 'utf8');
 const editorPreviewAppRuntimeSource = readFileSync(editorPreviewAppRuntimePath, 'utf8');
+const typographySource = readFileSync(typographyPath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
 const connectTransportSource = readFileSync(connectTransportPath, 'utf8');
@@ -4332,9 +4334,27 @@ assert.match(
 );
 
 assert.match(
+  editorPreviewRuntimeSource,
+  /function applyPreviewLangHints\(container\) \{[\s\S]*return applyLangHints\(container, \{[\s\S]*documentRef: previewRuntime\.documentRef,[\s\S]*windowRef: previewRuntime\.windowRef,[\s\S]*nodeFilterRef: previewRuntime\.getNodeFilter\(\),[\s\S]*allowAmbient: false[\s\S]*\}\);[\s\S]*\}[\s\S]*applyLangHints: applyPreviewLangHints[\s\S]*try \{ applyPreviewLangHints\(main\); \}/,
+  'editor preview should call typography lang hints through explicit preview runtime effects'
+);
+
+assert.match(
   editorPreviewAppRuntimeSource,
-  /function writeClipboardText\(text\) \{[\s\S]*return runtime\.browser\.writeClipboardText\(text\);[\s\S]*return \{[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*writeClipboardText,/,
-  'editor preview app runtime should expose timer and clipboard effects for syntax highlighting'
+  /function writeClipboardText\(text\) \{[\s\S]*return runtime\.browser\.writeClipboardText\(text\);[\s\S]*return \{[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*writeClipboardText,[\s\S]*getNodeFilter: runtime\.browser\.getNodeFilter,/,
+  'editor preview app runtime should expose timer, clipboard, and NodeFilter effects for editor render utilities'
+);
+
+assert.match(
+  typographySource,
+  /function createLangHintRuntime\(options = \{\}\) \{[\s\S]*const allowAmbient = options\.allowAmbient !== false;[\s\S]*documentRef[\s\S]*windowRef[\s\S]*nodeFilterRef[\s\S]*createTreeWalker\(root, whatToShow, filter\)[\s\S]*export function applyLangHints\(container, options = \{\}\) \{[\s\S]*const runtime = createLangHintRuntime\(options\);/,
+  'typography lang hints should expose an injectable runtime boundary'
+);
+
+assert.doesNotMatch(
+  extractFunctionBody(typographySource, 'applyLangHints'),
+  /\bdocument\.|\bwindow\.|\bNodeFilter\b|typeof document|typeof window/,
+  'typography lang hints should use injected refs inside the editor-callable apply path'
 );
 
 assert.match(

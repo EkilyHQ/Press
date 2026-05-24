@@ -629,6 +629,12 @@ assert.match(
   'blocks inline DOM session should own inline node rendering and text-range mapping helpers'
 );
 
+assert.doesNotMatch(
+  editorBlocksInlineDomSessionSource,
+  /ownerDocument|defaultView|typeof window/,
+  'blocks inline DOM session should not derive document/window APIs from caller node ownerDocument/defaultView'
+);
+
 assert.match(
   `${editorBlocksSource}\n${editorBlocksPointerSessionSource}\n${editorBlocksFocusSessionSource}`,
   /const caretSession = createCaretSession\(selectionSession, blocksDocument\);[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*caretSession\.measuredTextOffsetDetailsFromPoint\(editable, x, y, measureLimit\)[\s\S]*caretSession\.placeAtTextOffset\(editable, measuredDetails\.offset\)[\s\S]*caretSession\.textareaTextOffsetFromPoint\(area, x, y, measureLimit\)[\s\S]*caretSession\.placeAtVisualLine\(editable, x, edge, fallbackOffset\)/,

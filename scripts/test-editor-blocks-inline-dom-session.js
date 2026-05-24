@@ -152,8 +152,29 @@ function createDocumentRef() {
   return documentRef;
 }
 
+function createTrackingOwnerDocument() {
+  const backingDocument = createDocumentRef();
+  const calls = [];
+  return {
+    calls,
+    createElement(tagName) {
+      calls.push(`createElement:${tagName}`);
+      return backingDocument.createElement(tagName);
+    },
+    createTextNode(value) {
+      calls.push('createTextNode');
+      return backingDocument.createTextNode(value);
+    },
+    createRange() {
+      calls.push('createRange');
+      return backingDocument.createRange();
+    }
+  };
+}
+
 {
   const documentRef = createDocumentRef();
+  const ownerDocument = createTrackingOwnerDocument();
   let renderedMathRoot = null;
   const session = createEditorBlocksInlineDomSession({
     documentRef,
@@ -165,6 +186,7 @@ function createDocumentRef() {
     }
   });
   const root = documentRef.createElement('p');
+  root.ownerDocument = ownerDocument;
 
   session.renderInlineRunsInto(root, [
     { text: 'Hello', bold: true },
@@ -180,12 +202,15 @@ function createDocumentRef() {
   assert.equal(root.childNodes[4].getAttribute('href'), 'safe:https://example.com');
   assert.equal(root.childNodes[4].getAttribute('title'), 'title:Press');
   assert.equal(renderedMathRoot, root);
+  assert.deepEqual(ownerDocument.calls, []);
 }
 
 {
   const documentRef = createDocumentRef();
+  const ownerDocument = createTrackingOwnerDocument();
   const session = createEditorBlocksInlineDomSession({ documentRef });
   const root = documentRef.createElement('p');
+  root.ownerDocument = ownerDocument;
   root.appendChild(documentRef.createTextNode('Hi '));
   const link = documentRef.createElement('a');
   link.setAttribute('href', 'https://example.com');
@@ -196,6 +221,7 @@ function createDocumentRef() {
   assert.deepEqual(session.textRangeForDomNode(root, link), { start: 3, end: 8 });
   assert.equal(session.linkForTextRange(root, 3, 8), link);
   assert.equal(session.linkForTextRange(root, 0, 2), null);
+  assert.deepEqual(ownerDocument.calls, []);
 }
 
 {
@@ -228,10 +254,13 @@ function createDocumentRef() {
 
 {
   const documentRef = createDocumentRef();
+  const ownerDocument = createTrackingOwnerDocument();
   const session = createEditorBlocksInlineDomSession();
   const root = documentRef.createElement('p');
+  root.ownerDocument = ownerDocument;
   session.renderInlineRunsInto(root, [{ text: 'owner doc' }]);
-  assert.equal(root.textContent, 'owner doc');
+  assert.equal(root.textContent, '');
+  assert.deepEqual(ownerDocument.calls, []);
 }
 
 {

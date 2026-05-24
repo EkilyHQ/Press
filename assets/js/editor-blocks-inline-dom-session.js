@@ -7,10 +7,6 @@ function fallbackMergeInlineRuns(runs) {
   return Array.isArray(runs) ? runs : [];
 }
 
-function ownerDocumentFor(node, fallbackDocument) {
-  return (node && node.ownerDocument) || fallbackDocument || null;
-}
-
 function closestElement(node, selector) {
   let current = node && node.nodeType === 1 ? node : node && node.parentElement;
   while (current) {
@@ -29,8 +25,12 @@ export function createEditorBlocksInlineDomSession({
   renderMath = null,
   nodeContains = fallbackNodeContains
 } = {}) {
+  function getDocumentRef() {
+    return documentRef || null;
+  }
+
   function createElement(root, tagName) {
-    const doc = ownerDocumentFor(root, documentRef);
+    const doc = getDocumentRef();
     try { return doc && typeof doc.createElement === 'function' ? doc.createElement(tagName) : null; }
     catch (_) { return null; }
   }
@@ -39,7 +39,7 @@ export function createEditorBlocksInlineDomSession({
     if (selectionSession && typeof selectionSession.createTextNode === 'function') {
       return selectionSession.createTextNode(root, value);
     }
-    const doc = ownerDocumentFor(root, documentRef);
+    const doc = getDocumentRef();
     try { return doc && typeof doc.createTextNode === 'function' ? doc.createTextNode(String(value == null ? '' : value)) : null; }
     catch (_) { return null; }
   }
@@ -48,7 +48,7 @@ export function createEditorBlocksInlineDomSession({
     if (selectionSession && typeof selectionSession.createRange === 'function') {
       return selectionSession.createRange(root);
     }
-    const doc = ownerDocumentFor(root, documentRef);
+    const doc = getDocumentRef();
     try { return doc && typeof doc.createRange === 'function' ? doc.createRange() : null; }
     catch (_) { return null; }
   }

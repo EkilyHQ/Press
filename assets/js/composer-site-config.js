@@ -120,35 +120,16 @@ export function applyInferredRepoConfig(site, inferred) {
 }
 
 export function createComposerSiteConfigController(options = {}) {
-  const windowRef = options.windowRef || null;
   const runtime = options.runtime || null;
   const setContentRoot = typeof options.setContentRoot === 'function'
     ? options.setContentRoot
-    : (runtime && typeof runtime.setContentRoot === 'function' ? runtime.setContentRoot : (root) => {
-        try { if (windowRef) windowRef.__press_content_root = root; } catch (_) {}
-        return root;
-      });
+    : (runtime && typeof runtime.setContentRoot === 'function' ? runtime.setContentRoot : (root) => root);
   const setSiteRepo = typeof options.setSiteRepo === 'function'
     ? options.setSiteRepo
-    : (runtime && typeof runtime.setSiteRepo === 'function' ? runtime.setSiteRepo : (repo) => {
-        try { if (windowRef) windowRef.__press_site_repo = repo; } catch (_) {}
-        return repo;
-      });
+    : (runtime && typeof runtime.setSiteRepo === 'function' ? runtime.setSiteRepo : (repo) => repo);
   const emitSiteConfigChange = typeof options.emitSiteConfigChange === 'function'
     ? options.emitSiteConfigChange
-    : (runtime && typeof runtime.emitSiteConfigChange === 'function' ? runtime.emitSiteConfigChange : (siteConfig) => {
-        try {
-          if (!windowRef || typeof windowRef.dispatchEvent !== 'function') return false;
-          const EventCtor = windowRef.CustomEvent || null;
-          if (!EventCtor) return false;
-          windowRef.dispatchEvent(new EventCtor('press-editor-site-config-change', {
-            detail: { siteConfig }
-          }));
-          return true;
-        } catch (_) {
-          return false;
-        }
-      });
+    : (runtime && typeof runtime.emitSiteConfigChange === 'function' ? runtime.emitSiteConfigChange : () => false);
   const cloneValue = typeof options.deepClone === 'function'
     ? options.deepClone
     : (value) => JSON.parse(JSON.stringify(value));

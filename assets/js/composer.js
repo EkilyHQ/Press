@@ -809,7 +809,6 @@ const composerFilePanelController = createComposerFilePanelController({
 });
 const composerSiteConfigController = createComposerSiteConfigController({
   runtime: editorRuntime,
-  windowRef: composerWindow,
   deepClone
 });
 const {

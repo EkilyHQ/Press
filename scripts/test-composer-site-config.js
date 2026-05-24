@@ -51,18 +51,6 @@ assert.equal(isPlaceholderRepoConfig({ owner: 'EkilyHQ', name: 'Press' }), false
 {
   const events = [];
   const globals = {};
-  class TestCustomEvent {
-    constructor(type, options = {}) {
-      this.type = type;
-      this.detail = options.detail;
-    }
-  }
-  const windowRef = {
-    CustomEvent: TestCustomEvent,
-    dispatchEvent(event) {
-      events.push(event);
-    }
-  };
   const controller = createComposerSiteConfigController({
     runtime: {
       setContentRoot(root) {
@@ -78,7 +66,6 @@ assert.equal(isPlaceholderRepoConfig({ owner: 'EkilyHQ', name: 'Press' }), false
         return true;
       }
     },
-    windowRef,
     deepClone(value) {
       return JSON.parse(JSON.stringify(value));
     }
@@ -99,5 +86,23 @@ assert.equal(isPlaceholderRepoConfig({ owner: 'EkilyHQ', name: 'Press' }), false
     controller.resolveActiveSiteRepoConfig({}, { owner: 'Fallback', name: 'Repo', branch: '' }),
     { owner: 'Fallback', name: 'Repo', branch: 'main' },
     'repo resolver should preserve fallback semantics when site config is empty'
+  );
+}
+
+{
+  const controller = createComposerSiteConfigController({
+    deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+  });
+  const effective = controller.applyEffectiveSiteConfig({
+    contentRoot: 'docs',
+    repo: { owner: 'EkilyHQ', name: 'YAP', branch: '' }
+  });
+
+  assert.deepEqual(
+    effective.repo,
+    { owner: 'EkilyHQ', name: 'YAP', branch: '' },
+    'site config controller should keep pure config behavior without runtime callbacks'
   );
 }

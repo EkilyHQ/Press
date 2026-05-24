@@ -2084,6 +2084,18 @@ assert.match(
   'site config module should own Pages repo inference and route effective config globals/events through injected runtime callbacks'
 );
 
+assert.doesNotMatch(
+  composerSiteConfigSource,
+  /\bwindowRef\b|CustomEvent|dispatchEvent|__press_content_root|__press_site_repo/,
+  'site config module should not retain window/global fallback paths for effective config updates'
+);
+
+assert.match(
+  source,
+  /createComposerSiteConfigController\(\{[\s\S]*runtime: editorRuntime,[\s\S]*deepClone[\s\S]*\}\);/,
+  'composer should provide site config runtime callbacks explicitly'
+);
+
 assert.match(
   source,
   /from '\.\/editor-content-tree-controller\.js\?v=[\w.-]+'/,

@@ -6,7 +6,7 @@ function appendIf(parent, node) {
 }
 
 export function createEditorBlocksHeadSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   text = (_key, fallback) => fallback,
   createBlockTypeIcon = () => null,
   menuSession = null,

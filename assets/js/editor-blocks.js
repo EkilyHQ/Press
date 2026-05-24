@@ -113,7 +113,7 @@ function normalizeSelectionSession(selectionSession) {
     : fallbackSelectionSession;
 }
 
-function createInlineDomSession(selectionSession = null, documentRef = typeof document !== 'undefined' ? document : null) {
+function createInlineDomSession(selectionSession = null, documentRef = null) {
   return createEditorBlocksInlineDomSession({
     documentRef,
     selectionSession: normalizeSelectionSession(selectionSession),
@@ -579,6 +579,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
         windowRef: options.windowRef || (root.ownerDocument && root.ownerDocument.defaultView),
         navigatorRef: options.navigatorRef
       });
+  const blocksDocument = runtime.documentRef || root.ownerDocument || null;
+  const blocksWindow = runtime.windowRef || (blocksDocument && blocksDocument.defaultView) || null;
   const runtimeDisposables = new Set();
   const trackRuntimeDisposer = (dispose) => {
     if (typeof dispose !== 'function') return () => {};
@@ -602,7 +604,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
   const state = blocksState.state;
   const menuSession = createEditorBlocksMenuSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     text,
     onDocument,
     onWindow,
@@ -610,10 +612,10 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
   const editableSession = createEditorBlocksEditableSession();
   const selectionSession = createEditorBlocksSelectionSession({
-    documentRef: runtime.documentRef,
-    windowRef: runtime.windowRef
+    documentRef: blocksDocument,
+    windowRef: blocksWindow
   });
-  const inlineDomSession = createInlineDomSession(selectionSession, runtime.documentRef);
+  const inlineDomSession = createInlineDomSession(selectionSession, blocksDocument);
   const caretSession = createCaretSession(selectionSession);
   const createBlockTypeIconWithRuntime = (blockType) => createBlockTypeIcon(blockType, runtime);
 
@@ -987,7 +989,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const commandSession = blockSessions.setCommandSession(createEditorBlocksCommandSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     state,
     blocksState,
     list,
@@ -1013,7 +1015,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
 
   const cardPickerSession = blockSessions.setCardPickerSession(createEditorBlocksCardPickerSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     runtime,
     blocksState,
     text,
@@ -1082,7 +1084,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const linkSession = blockSessions.setLinkSession(createEditorBlocksLinkSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     root,
     runtime,
     blocksState,
@@ -1111,7 +1113,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
 
   const mathSession = blockSessions.setMathSession(createEditorBlocksMathSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     root,
     list,
     runtime,
@@ -1138,7 +1140,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
 
   const inlineToolbarSession = blockSessions.setInlineToolbarSession(createEditorBlocksInlineToolbarSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     state,
     blocksState,
     editableSession,
@@ -1174,7 +1176,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }
 
   const richTextSession = createEditorBlocksRichTextSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     blocksState,
     editableSession,
     selectionSession,
@@ -1225,7 +1227,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const imageSession = createEditorBlocksImageSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     blocksState,
     editableSession,
     blockElements,
@@ -1247,7 +1249,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
 
   const codeSession = createEditorBlocksCodeSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     runtime,
     editableSession,
     text,
@@ -1262,7 +1264,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
 
   const tableSession = createEditorBlocksTableSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     runtime,
     blocksState,
     editableSession,
@@ -1318,7 +1320,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const sourceSession = createEditorBlocksSourceSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     editableSession,
     text,
     caretSession,
@@ -1335,7 +1337,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
 
   const listSession = blockSessions.setListSession(createEditorBlocksListSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     root,
     list,
     state,
@@ -1396,7 +1398,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
 
   const headSession = createEditorBlocksHeadSession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     text,
     createBlockTypeIcon: createBlockTypeIconWithRuntime,
     menuSession,
@@ -1417,7 +1419,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
 
   const bodySession = blockSessions.setBodySession(createEditorBlocksBodySession({
-    documentRef: runtime.documentRef || root.ownerDocument,
+    documentRef: blocksDocument,
     state,
     list,
     text,

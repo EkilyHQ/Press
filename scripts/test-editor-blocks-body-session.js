@@ -350,4 +350,6 @@ function makeHarness(options = {}) {
   assert.deepEqual(h.calls.slice(-1), [['setActive', 1]]);
 }
 
+assert.equal(createEditorBlocksBodySession({ documentRef: null }), null);
+
 console.log('ok - editor blocks body session boundary');

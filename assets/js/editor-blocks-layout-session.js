@@ -30,56 +30,55 @@ export function createEditorBlocksLayoutSession({
   const requestFrame = fn => (
     runtime && typeof runtime.requestFrame === 'function'
       ? runtime.requestFrame(fn)
-      : safeCall(() => requestAnimationFrame(fn), 0)
+      : 0
   );
   const setTimer = (fn, delay) => (
     runtime && typeof runtime.setTimer === 'function'
       ? runtime.setTimer(fn, delay)
-      : safeCall(() => setTimeout(fn, delay), null)
+      : null
   );
   const clearTimer = id => {
     if (runtime && typeof runtime.clearTimer === 'function') runtime.clearTimer(id);
-    else safeCall(() => clearTimeout(id), null);
   };
   const viewportWidth = () => (
     runtime && typeof runtime.getViewportWidth === 'function'
       ? runtime.getViewportWidth()
-      : safeCall(() => window.innerWidth, 0)
+      : 0
   );
   const viewportHeight = () => (
     runtime && typeof runtime.getViewportHeight === 'function'
       ? runtime.getViewportHeight()
-      : safeCall(() => window.innerHeight, 0)
+      : 0
   );
   const computedStyle = el => (
     runtime && typeof runtime.getComputedStyle === 'function'
       ? runtime.getComputedStyle(el)
-      : safeCall(() => getComputedStyle(el), null)
+      : null
   );
   const elementById = id => (
     runtime && typeof runtime.getElementById === 'function'
       ? runtime.getElementById(id)
-      : safeCall(() => document.getElementById(id), null)
+      : null
   );
   const documentElement = () => (
     runtime && typeof runtime.getDocumentElement === 'function'
       ? runtime.getDocumentElement()
-      : safeCall(() => document.documentElement, null)
+      : null
   );
   const bodyElement = () => (
     runtime && typeof runtime.getBody === 'function'
       ? runtime.getBody()
-      : safeCall(() => document.body, null)
+      : null
   );
   const scrollingElement = () => (
     runtime && typeof runtime.getScrollingElement === 'function'
       ? runtime.getScrollingElement()
-      : safeCall(() => document.scrollingElement, null)
+      : null
   );
   const prefersReducedReorderMotion = () => (
     runtime && typeof runtime.prefersReducedMotion === 'function'
       ? !!runtime.prefersReducedMotion()
-      : safeCall(() => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, false)
+      : false
   );
 
   const finishBlockReorder = () => {

@@ -24,7 +24,7 @@ function cellSelector(position) {
 }
 
 export function createEditorBlocksTableSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   runtime = null,
   blocksState = null,
   editableSession = null,

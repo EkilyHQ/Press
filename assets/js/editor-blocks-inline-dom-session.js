@@ -21,7 +21,7 @@ function closestElement(node, selector) {
 }
 
 export function createEditorBlocksInlineDomSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   selectionSession = null,
   mergeInlineRuns = fallbackMergeInlineRuns,
   sanitizeLinkHref = (value) => String(value == null ? '' : value),

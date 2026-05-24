@@ -9,8 +9,8 @@ function safeCall(fn, fallback = null) {
 }
 
 export function createEditorBlocksSelectionSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
-  windowRef = typeof window !== 'undefined' ? window : null
+  documentRef = null,
+  windowRef = null
 } = {}) {
   function ownerDocumentFor(node = null) {
     return (node && node.ownerDocument) || documentRef || null;

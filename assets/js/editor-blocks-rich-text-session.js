@@ -19,7 +19,7 @@ function prevent(event) {
 }
 
 export function createEditorBlocksRichTextSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   blocksState = null,
   editableSession = null,
   selectionSession = null,

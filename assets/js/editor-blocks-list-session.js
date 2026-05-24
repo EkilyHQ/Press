@@ -15,7 +15,7 @@ function createButton(documentRef, label, className = 'blocks-btn') {
 }
 
 export function createEditorBlocksListSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   root = null,
   list = null,
   state = null,

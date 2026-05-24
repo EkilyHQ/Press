@@ -227,6 +227,14 @@ function createDocumentRef() {
 }
 
 {
+  const documentRef = createDocumentRef();
+  const session = createEditorBlocksInlineDomSession();
+  const root = documentRef.createElement('p');
+  session.renderInlineRunsInto(root, [{ text: 'owner doc' }]);
+  assert.equal(root.textContent, 'owner doc');
+}
+
+{
   const session = createEditorBlocksInlineDomSession({ documentRef: null });
   assert.equal(session.textRangeForDomNode(null, null), null);
   assert.equal(session.linkForTextRange(null, 0, 1), null);

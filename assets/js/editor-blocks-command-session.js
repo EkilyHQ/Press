@@ -43,7 +43,7 @@ function blockIdSelector(blockId) {
 }
 
 export function createEditorBlocksCommandSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   state = { blocks: [] },
   blocksState = null,
   list = null,

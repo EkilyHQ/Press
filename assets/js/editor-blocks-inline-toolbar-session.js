@@ -44,7 +44,7 @@ function applyButtonState(btn, active, disabled) {
 }
 
 export function createEditorBlocksInlineToolbarSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   state = null,
   blocksState = null,
   editableSession = null,

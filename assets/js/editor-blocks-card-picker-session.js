@@ -32,7 +32,7 @@ function cardDataForEntry(entry, fallback) {
 }
 
 export function createEditorBlocksCardPickerSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   runtime = null,
   blocksState = null,
   text = (_key, fallback) => fallback,

@@ -57,7 +57,7 @@ function resolveCodeHighlightLanguage(language, codeText, detectLanguage = defau
 }
 
 export function createEditorBlocksCodeSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   runtime = null,
   editableSession = null,
   text = null,

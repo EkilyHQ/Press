@@ -27,7 +27,7 @@ function blockSelector(id) {
 }
 
 export function createEditorBlocksMathSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   root = null,
   list = null,
   runtime = null,

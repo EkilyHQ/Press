@@ -19,7 +19,7 @@ function createButton(documentRef, label, className = 'blocks-btn') {
 }
 
 export function createEditorBlocksSourceSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   editableSession = null,
   text = (_key, fallback) => fallback,
   caretSession = null,

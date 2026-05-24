@@ -51,7 +51,7 @@ function callDisposables(disposables = []) {
 }
 
 export function createEditorBlocksMenuSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   text = (_key, fallback) => fallback,
   onDocument = () => noop,
   onWindow = () => noop,

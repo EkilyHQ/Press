@@ -24,7 +24,7 @@ function plainEditableValue(editable) {
 }
 
 export function createEditorBlocksImageSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   blocksState = null,
   editableSession = null,
   blockElements = () => [],

@@ -23,7 +23,7 @@ function createButton(documentRef, label, className) {
 }
 
 export function createEditorBlocksLinkSession({
-  documentRef = typeof document !== 'undefined' ? document : null,
+  documentRef = null,
   root = null,
   runtime = null,
   blocksState = null,

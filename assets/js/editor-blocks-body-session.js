@@ -6,7 +6,7 @@ function createElement(documentRef, tagName) {
   if (documentRef && typeof documentRef.createElement === 'function') {
     return documentRef.createElement(tagName);
   }
-  return document.createElement(tagName);
+  return null;
 }
 
 function appendIf(parent, child) {
@@ -38,6 +38,8 @@ export function createEditorBlocksBodySession({
   removeEmptyBlockWithBackspace = () => false,
   handleCrossBlockArrowNavigation = () => false
 } = {}) {
+  if (!documentRef) return null;
+
   const doc = documentRef;
   const closest = (node, selector) => {
     if (typeof closestElement === 'function') return closestElement(node, selector);

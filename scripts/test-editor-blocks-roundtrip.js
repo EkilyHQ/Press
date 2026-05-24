@@ -127,6 +127,29 @@ run('inline math is mutually exclusive with code, link, and emphasis marks', () 
   assert.deepEqual(applyInlineMathToRuns(emphasized, 0, 3, 'x+y'), [{ text: 'x+y', bold: false, italic: false, strike: false, code: false, math: true, link: '', linkTitle: '' }]);
 });
 
+run('rich text and list initialization render through the runtime inline DOM session', () => {
+  assert.match(
+    editorBlocksSource,
+    /const setPlainContentEditableValueWithRuntime = \(el, value\) => setPlainContentEditableValue\(el, value, inlineDomSession\);/,
+    'the blocks editor should bind plain contenteditable rendering to the runtime inline-DOM session'
+  );
+  assert.match(
+    editorBlocksSource,
+    /createEditorBlocksRichTextSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    'rich text blocks should use the runtime-bound contenteditable renderer'
+  );
+  assert.match(
+    editorBlocksSource,
+    /createEditorBlocksListSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    'list items should use the runtime-bound contenteditable renderer'
+  );
+  assert.doesNotMatch(
+    editorBlocksSource,
+    /renderMath = renderPressMath|\brenderPressMath\b/,
+    'editor blocks should not rediscover the implicit math renderer through fallback inline-DOM sessions'
+  );
+});
+
 run('dirty supported blocks serialize edited markdown', () => {
   const blocks = parseMarkdownBlocks([
     '## Old heading',

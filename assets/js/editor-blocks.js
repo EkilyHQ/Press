@@ -1,4 +1,4 @@
-import { createPressMathRenderer, renderPressMath } from './math-render.js?v=press-system-v3.4.50';
+import { createPressMathRenderer } from './math-render.js?v=press-system-v3.4.50';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js?v=press-system-v3.4.50';
 import { createEditorBlocksSessionRegistry } from './editor-blocks-session-registry.js?v=press-system-v3.4.50';
 import { createEditorBlocksLayoutSession } from './editor-blocks-layout-session.js?v=press-system-v3.4.50';
@@ -113,7 +113,7 @@ function normalizeSelectionSession(selectionSession) {
     : fallbackSelectionSession;
 }
 
-function createInlineDomSession(selectionSession = null, documentRef = null, renderMath = renderPressMath) {
+function createInlineDomSession(selectionSession = null, documentRef = null, renderMath = null) {
   return createEditorBlocksInlineDomSession({
     documentRef,
     selectionSession: normalizeSelectionSession(selectionSession),
@@ -197,9 +197,9 @@ function serializeInlineDom(root) {
   return serializeInlineRuns(inlineRunsFromDom(root));
 }
 
-function setPlainContentEditableValue(el, value) {
+function setPlainContentEditableValue(el, value, inlineDomSession = null) {
   if (!el) return;
-  renderInlineRunsInto(el, parseInlineRuns(value));
+  renderInlineRunsInto(el, parseInlineRuns(value), inlineDomSession);
 }
 
 function button(label, className = 'blocks-btn', runtime = null) {
@@ -624,6 +624,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
   const inlineDomSession = createInlineDomSession(selectionSession, blocksDocument, renderMathWithRuntime);
   const caretSession = createCaretSession(selectionSession, blocksDocument);
+  const setPlainContentEditableValueWithRuntime = (el, value) => setPlainContentEditableValue(el, value, inlineDomSession);
   const createBlockTypeIconWithRuntime = (blockType) => createBlockTypeIcon(blockType, runtime);
 
   root.classList.add('markdown-blocks-shell');
@@ -1189,7 +1190,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     selectionSession,
     inlineDomSession,
     caretSession,
-    setPlainContentEditableValue,
+    setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,
     editableText,
     inlineRunsFromDom,
     inlineRun,
@@ -1365,7 +1366,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     normalizeListItemType,
     patchListItemType,
     patchListItem,
-    setPlainContentEditableValue,
+    setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,
     editableText,
     splitEditableTextAtSelection,
     outdentEmptyListItemForEnter,

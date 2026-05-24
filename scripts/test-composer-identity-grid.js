@@ -553,7 +553,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const richTextSession = createEditorBlocksRichTextSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\)[\s\S]*\}\);[\s\S]*const createRichEditable = \(\.\.\.args\) => richTextSession\?\.createRichEditable\(\.\.\.args\);[\s\S]*const wireInlineEditable = \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\(\.\.\.args\);/,
+  /const richTextSession = createEditorBlocksRichTextSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\)[\s\S]*\}\);[\s\S]*const createRichEditable = \(\.\.\.args\) => richTextSession\?\.createRichEditable\(\.\.\.args\);[\s\S]*const wireInlineEditable = \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\(\.\.\.args\);/,
   'blocks editor should compose rich text editable DOM and input events through the rich text session boundary'
 );
 
@@ -722,8 +722,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /createPressMathRenderer,[\s\S]*const renderMathWithRuntime = createPressMathRenderer\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow[\s\S]*\}\);/,
+  /\bcreatePressMathRenderer\b[\s\S]*const renderMathWithRuntime = createPressMathRenderer\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow[\s\S]*\}\);/,
   'editor blocks should bind math rendering to explicit runtime document/window refs'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /\brenderPressMath\b/,
+  'editor blocks should not import or call the implicit math renderer'
 );
 
 assert.doesNotMatch(

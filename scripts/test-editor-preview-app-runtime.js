@@ -51,7 +51,21 @@ function createWindowRef() {
 
 function createDocumentRef() {
   const attrs = new Map();
+  const themePackLink = {
+    attrs: new Map([['href', 'assets/themes/native/theme.css?v=old']]),
+    getAttribute(name) {
+      return this.attrs.has(name) ? this.attrs.get(name) : null;
+    },
+    setAttribute(name, value) {
+      this.attrs.set(name, String(value));
+    }
+  };
+  const removedExtraLinks = [];
+  const appendedHeadNodes = [];
   return {
+    themePackLink,
+    removedExtraLinks,
+    appendedHeadNodes,
     documentElement: {
       attrs,
       setAttribute(name, value) {
@@ -62,6 +76,35 @@ function createDocumentRef() {
       },
       getAttribute(name) {
         return attrs.has(name) ? attrs.get(name) : null;
+      }
+    },
+    getElementById(id) {
+      return id === 'theme-pack' ? themePackLink : null;
+    },
+    querySelectorAll(selector) {
+      if (selector !== 'link[data-theme-pack-extra-style]') return [];
+      return [
+        { remove: () => removedExtraLinks.push('old-extra-1') },
+        { remove: () => removedExtraLinks.push('old-extra-2') }
+      ];
+    },
+    createElement(tagName) {
+      return {
+        tagName: String(tagName || '').toUpperCase(),
+        attrs: new Map(),
+        rel: '',
+        href: '',
+        setAttribute(name, value) {
+          this.attrs.set(name, String(value));
+        },
+        getAttribute(name) {
+          return this.attrs.has(name) ? this.attrs.get(name) : null;
+        }
+      };
+    },
+    head: {
+      appendChild(node) {
+        appendedHeadNodes.push(node);
       }
     }
   };
@@ -105,6 +148,28 @@ function createDocumentRef() {
 
   assert.equal(await runtime.fetchText('wwwroot/post.md'), '# Post');
   assert.equal(await runtime.fetchText('wwwroot/missing.md'), '');
+
+  assert.equal(runtime.applyThemeStyleLinks({
+    primary: 'assets/themes/native/theme.css?v=press-system-v3.4.50',
+    extraHrefs: [
+      'assets/themes/native/extra.css?v=press-system-v3.4.50',
+      'assets/themes/native/print.css?v=press-system-v3.4.50'
+    ],
+    pack: 'native'
+  }), true);
+  assert.equal(
+    documentRef.themePackLink.getAttribute('href'),
+    'assets/themes/native/theme.css?v=press-system-v3.4.50'
+  );
+  assert.equal(windowRef.__themePackHref, 'assets/themes/native/theme.css?v=press-system-v3.4.50');
+  assert.deepEqual(documentRef.removedExtraLinks, ['old-extra-1', 'old-extra-2']);
+  assert.equal(documentRef.appendedHeadNodes.length, 2);
+  assert.equal(documentRef.appendedHeadNodes[0].tagName, 'LINK');
+  assert.equal(documentRef.appendedHeadNodes[0].rel, 'stylesheet');
+  assert.equal(documentRef.appendedHeadNodes[0].href, 'assets/themes/native/extra.css?v=press-system-v3.4.50');
+  assert.equal(documentRef.appendedHeadNodes[0].getAttribute('data-theme-pack-extra-style'), 'native:1');
+  assert.equal(documentRef.appendedHeadNodes[1].getAttribute('data-theme-pack-extra-style'), 'native:2');
+  assert.equal(runtime.applyThemeStyleLinks(), false);
 }
 
 {
@@ -149,6 +214,7 @@ function createDocumentRef() {
     const runtime = createEditorPreviewAppRuntime({ windowRef: {}, documentRef: {}, storage: null });
     assert.equal(runtime.postToParent({ type: 'ambient' }), false);
     assert.equal(runtime.applyColorMode({}), false);
+    assert.equal(runtime.applyThemeStyleLinks({ primary: 'ambient.css', extraHrefs: ['ambient-extra.css'] }), true);
     assert.equal(await runtime.fetchText('ambient.md'), '');
     assert.deepEqual(ambientCalls, []);
   } finally {

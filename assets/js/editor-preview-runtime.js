@@ -67,24 +67,13 @@ function restorePreviewThemeStyles(pack, manifest) {
       const base = `assets/themes/${encodeURIComponent(themePack)}/${entry}`;
       const version = themePack === 'native' ? NATIVE_STYLE_CACHE_KEY : String((manifest && manifest.version) || '').trim();
       return version ? `${base}?v=${encodeURIComponent(version)}` : base;
-    });
+  });
   if (!hrefs.length) return;
-  const primary = hrefs[0];
-  try {
-    const link = document.getElementById('theme-pack');
-    if (link && link.getAttribute('href') !== primary) link.setAttribute('href', primary);
-    window.__themePackHref = primary;
-  } catch (_) {}
-  try {
-    document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
-    hrefs.slice(1).forEach((href, index) => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.setAttribute('data-theme-pack-extra-style', `${themePack}:${index + 1}`);
-      document.head.appendChild(link);
-    });
-  } catch (_) {}
+  previewRuntime.applyThemeStyleLinks({
+    primary: hrefs[0],
+    extraHrefs: hrefs.slice(1),
+    pack: themePack
+  });
 }
 
 function regionValue(regions, key) {

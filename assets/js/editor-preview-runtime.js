@@ -87,14 +87,14 @@ function regionValue(regions, key) {
 function getPreviewContainers() {
   const layout = getThemeLayoutContext();
   const regions = layout && layout.regions;
-  const main = regionValue(regions, 'main') || document.querySelector('[data-theme-region="main"], .native-mainview');
-  const toc = regionValue(regions, 'toc') || document.querySelector('[data-theme-region="toc"]');
-  const tags = regionValue(regions, 'tags') || document.querySelector('[data-theme-region="tags"]');
-  const search = regionValue(regions, 'search') || document.querySelector('[data-theme-region="search"]');
-  const nav = regionValue(regions, 'nav') || document.querySelector('[data-theme-region="nav"]');
-  const content = regionValue(regions, 'content') || document.querySelector('.content');
-  const sidebar = regionValue(regions, 'sidebar') || document.querySelector('.sidebar');
-  const container = regionValue(regions, 'container') || document.querySelector('[data-theme-root="container"], .container');
+  const main = regionValue(regions, 'main') || previewRuntime.querySelector('[data-theme-region="main"], .native-mainview');
+  const toc = regionValue(regions, 'toc') || previewRuntime.querySelector('[data-theme-region="toc"]');
+  const tags = regionValue(regions, 'tags') || previewRuntime.querySelector('[data-theme-region="tags"]');
+  const search = regionValue(regions, 'search') || previewRuntime.querySelector('[data-theme-region="search"]');
+  const nav = regionValue(regions, 'nav') || previewRuntime.querySelector('[data-theme-region="nav"]');
+  const content = regionValue(regions, 'content') || previewRuntime.querySelector('.content');
+  const sidebar = regionValue(regions, 'sidebar') || previewRuntime.querySelector('.sidebar');
+  const container = regionValue(regions, 'container') || previewRuntime.querySelector('[data-theme-root="container"], .container');
   return {
     mainElement: main,
     tocElement: toc,
@@ -126,7 +126,7 @@ function normalizeAssetKey(value) {
 }
 
 function applyAssetOverrides(container, payload) {
-  const root = container || document;
+  const root = container || previewRuntime.documentRef;
   const overrides = new Map();
   const contentRoot = normalizeAssetKey(getContentRoot());
   (Array.isArray(payload.assetOverrides) ? payload.assetOverrides : []).forEach((item) => {
@@ -242,7 +242,7 @@ async function renderPreview(payload) {
     const reset = activePack !== requestedPack;
     const layout = await ensureThemeLayout({ pack: requestedPack, persist: false, reset });
     if (!isCurrentPreviewRender(requestId)) return;
-    activePack = (layout && layout.pack) || document.body.dataset.themeLayout || requestedPack;
+    activePack = (layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack;
     const markdown = String(payload.markdown || '');
     const baseDir = String(payload.baseDir || `${getContentRoot()}/`);
     const output = mdParse(markdown, baseDir);
@@ -262,7 +262,7 @@ async function renderPreview(payload) {
       title: fallbackTitle
     });
     const containers = getPreviewContainers();
-    const main = containers.mainElement || document.body;
+    const main = containers.mainElement || previewRuntime.getBody();
     const allowedLocations = new Set(Array.isArray(payload.allowedLocations) ? payload.allowedLocations : []);
     const locationAliasMap = new Map(Array.isArray(payload.locationAliases) ? payload.locationAliases : []);
     const ctx = createRuntimeContext({ payload, containers, content });
@@ -329,7 +329,7 @@ async function renderPreview(payload) {
     try { initSyntaxHighlighting(main); } catch (_) {}
     if (!isCurrentPreviewRender(requestId)) return;
     restorePreviewThemeStyles(activePack, layout && layout.manifest);
-    const status = document.getElementById('editorPreviewStatus');
+    const status = previewRuntime.getPreviewStatusElement();
     if (status) status.hidden = true;
     postToParent({ type: RENDERED_MESSAGE, requestId, themePack: activePack });
   } catch (err) {
@@ -346,14 +346,17 @@ async function renderPreview(payload) {
       });
       return;
     }
-    const status = document.getElementById('editorPreviewStatus') || document.body;
-    try { status.hidden = false; } catch (_) {}
-    status.textContent = err && err.message ? err.message : 'Preview failed.';
+    const status = previewRuntime.getPreviewStatusElement({ fallbackToBody: true });
+    const message = err && err.message ? err.message : 'Preview failed.';
+    if (status) {
+      try { status.hidden = false; } catch (_) {}
+      try { status.textContent = message; } catch (_) {}
+    }
     postToParent({
       type: ERROR_MESSAGE,
       requestId,
       themePack: requestedPack,
-      message: status.textContent
+      message: status && typeof status.textContent === 'string' ? status.textContent : message
     });
   }
 }

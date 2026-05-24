@@ -60,10 +60,24 @@ function createDocumentRef() {
       this.attrs.set(name, String(value));
     }
   };
+  const statusElement = { hidden: false, textContent: '' };
+  const body = { dataset: { themeLayout: 'glasswing' }, hidden: false, textContent: '' };
+  const elementsById = new Map([
+    ['theme-pack', themePackLink],
+    ['editorPreviewStatus', statusElement]
+  ]);
+  const selectorNodes = new Map([
+    ['[data-theme-region="main"], .native-mainview', { region: 'main' }],
+    ['.content', { region: 'content' }]
+  ]);
   const removedExtraLinks = [];
   const appendedHeadNodes = [];
   return {
     themePackLink,
+    statusElement,
+    body,
+    elementsById,
+    selectorNodes,
     removedExtraLinks,
     appendedHeadNodes,
     documentElement: {
@@ -79,7 +93,10 @@ function createDocumentRef() {
       }
     },
     getElementById(id) {
-      return id === 'theme-pack' ? themePackLink : null;
+      return elementsById.get(id) || null;
+    },
+    querySelector(selector) {
+      return selectorNodes.get(selector) || null;
     },
     querySelectorAll(selector) {
       if (selector !== 'link[data-theme-pack-extra-style]') return [];
@@ -143,6 +160,19 @@ function createDocumentRef() {
   runtime.applyColorMode({});
   assert.equal(documentRef.documentElement.getAttribute('data-theme'), 'dark');
 
+  assert.equal(
+    runtime.querySelector('[data-theme-region="main"], .native-mainview'),
+    documentRef.selectorNodes.get('[data-theme-region="main"], .native-mainview')
+  );
+  assert.equal(runtime.querySelector('[data-theme-region="missing"]'), null);
+  assert.equal(runtime.getBody(), documentRef.body);
+  assert.equal(runtime.getThemeLayoutPackFallback(), 'glasswing');
+  assert.equal(runtime.getPreviewStatusElement(), documentRef.statusElement);
+  assert.equal(runtime.getPreviewStatusElement({ fallbackToBody: true }), documentRef.statusElement);
+  documentRef.elementsById.delete('editorPreviewStatus');
+  assert.equal(runtime.getPreviewStatusElement(), null);
+  assert.equal(runtime.getPreviewStatusElement({ fallbackToBody: true }), documentRef.body);
+
   runtime.warn('theme failed');
   assert.deepEqual(windowRef.console.warnings, [['theme failed']]);
 
@@ -198,6 +228,15 @@ function createDocumentRef() {
         setAttribute() {
           ambientCalls.push('document.documentElement.setAttribute');
         }
+      },
+      body: {
+        dataset: { themeLayout: 'ambient' }
+      },
+      getElementById() {
+        ambientCalls.push('document.getElementById');
+      },
+      querySelector() {
+        ambientCalls.push('document.querySelector');
       }
     };
     globalThis.localStorage = {
@@ -215,6 +254,10 @@ function createDocumentRef() {
     assert.equal(runtime.postToParent({ type: 'ambient' }), false);
     assert.equal(runtime.applyColorMode({}), false);
     assert.equal(runtime.applyThemeStyleLinks({ primary: 'ambient.css', extraHrefs: ['ambient-extra.css'] }), true);
+    assert.equal(runtime.querySelector('.ambient'), null);
+    assert.equal(runtime.getBody(), null);
+    assert.equal(runtime.getThemeLayoutPackFallback(), '');
+    assert.equal(runtime.getPreviewStatusElement({ fallbackToBody: true }), null);
     assert.equal(await runtime.fetchText('ambient.md'), '');
     assert.deepEqual(ambientCalls, []);
   } finally {

@@ -81,6 +81,29 @@ export function createEditorPreviewAppRuntime(options = {}) {
     return true;
   }
 
+  function querySelector(selector) {
+    return runtime.browser.querySelector(selector);
+  }
+
+  function getBody() {
+    return runtime.browser.getBody();
+  }
+
+  function getThemeLayoutPackFallback() {
+    const body = getBody();
+    try {
+      return body && body.dataset ? String(body.dataset.themeLayout || '') : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function getPreviewStatusElement({ fallbackToBody = false } = {}) {
+    const status = runtime.browser.getElementById('editorPreviewStatus');
+    if (status || !fallbackToBody) return status;
+    return getBody();
+  }
+
   async function fetchText(filename) {
     try {
       const response = await runtime.browser.fetchContent(String(filename || ''), { cache: 'no-store' });
@@ -98,6 +121,10 @@ export function createEditorPreviewAppRuntime(options = {}) {
     isTrustedMessageEvent,
     applyColorMode,
     applyThemeStyleLinks,
+    querySelector,
+    getBody,
+    getThemeLayoutPackFallback,
+    getPreviewStatusElement,
     fetchText,
     warn: runtime.browser.warn
   };

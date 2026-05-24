@@ -312,11 +312,11 @@ const markdownDraftStore = createScopedDraftStore({
   scopeKey: scopedEditorStorageKey
 });
 const markdownAssetManager = createComposerMarkdownAssetManager({
-  windowRef: composerWindow,
   t,
   normalizeRelPath,
   normalizeMarkdownContent,
   emitMarkdownAssetPreview: (detail) => editorRuntime.events.emitWindow('press-editor-asset-preview', detail),
+  addWindowListener: (type, handler, options) => editorRuntime.events.onWindow(type, handler, options),
   fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
   getContentRootSafe,
   getStateSlice,

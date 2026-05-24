@@ -6,11 +6,11 @@ import {
 } from './repository-deletions.js?v=press-system-v3.4.50';
 
 export function createComposerMarkdownAssetManager(options = {}) {
-  const windowRef = options.windowRef || null;
   const translate = typeof options.t === 'function' ? options.t : ((key) => key);
   const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : ((value) => String(value || '').replace(/[\\]/g, '/'));
   const normalizeMarkdownContent = typeof options.normalizeMarkdownContent === 'function' ? options.normalizeMarkdownContent : ((value) => String(value || ''));
   const emitMarkdownAssetPreview = typeof options.emitMarkdownAssetPreview === 'function' ? options.emitMarkdownAssetPreview : (() => false);
+  const addWindowListener = typeof options.addWindowListener === 'function' ? options.addWindowListener : null;
   const fetchContent = typeof options.fetchContent === 'function' ? options.fetchContent : null;
   const getContentRootSafe = typeof options.getContentRootSafe === 'function' ? options.getContentRootSafe : (() => 'wwwroot');
   const getStateSlice = typeof options.getStateSlice === 'function' ? options.getStateSlice : (() => null);
@@ -608,7 +608,7 @@ export function createComposerMarkdownAssetManager(options = {}) {
   }
 
   function bindEditorAssetEvents() {
-    if (!windowRef || typeof windowRef.addEventListener !== 'function') {
+    if (!addWindowListener) {
       return () => {};
     }
     const listeners = [
@@ -617,15 +617,22 @@ export function createComposerMarkdownAssetManager(options = {}) {
       ['press-editor-asset-delete-requested', handleEditorAssetDeleteRequested],
       ['press-editor-asset-delete-canceled', handleEditorAssetDeleteCanceled]
     ];
+    const disposers = [];
     try {
-      listeners.forEach(([type, handler]) => windowRef.addEventListener(type, handler));
+      listeners.forEach(([type, handler]) => {
+        const disposeListener = addWindowListener(type, handler);
+        if (typeof disposeListener === 'function') disposers.push(disposeListener);
+      });
     } catch (_) {
+      disposers.forEach((disposeListener) => {
+        try { disposeListener(); }
+        catch (_) {}
+      });
       return () => {};
     }
     return () => {
-      if (typeof windowRef.removeEventListener !== 'function') return;
-      listeners.forEach(([type, handler]) => {
-        try { windowRef.removeEventListener(type, handler); }
+      disposers.forEach((disposeListener) => {
+        try { disposeListener(); }
         catch (_) {}
       });
     };

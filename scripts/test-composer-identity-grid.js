@@ -873,14 +873,14 @@ assert.match(
 
 assert.match(
   source,
-  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*windowRef: composerWindow,[\s\S]*emitMarkdownAssetPreview: \(detail\) => editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*\}\);/,
-  'composer should inject Markdown asset preview events and repository fetches through the runtime boundary'
+  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*emitMarkdownAssetPreview: \(detail\) => editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*\}\);/,
+  'composer should inject Markdown asset preview events, editor asset listeners, and repository fetches through the runtime boundary'
 );
 
 assert.doesNotMatch(
   composerMarkdownAssetsSource,
-  /options\.windowRef\s*\|\|\s*\(typeof window|typeof (?:window|CustomEvent|fetch)\b|new CustomEvent|windowRef\.CustomEvent|windowRef\.fetch|(^|[^.])\bfetch\s*\(/m,
-  'Markdown asset manager should receive browser refs, asset preview events, and fetch through explicit runtime wiring'
+  /options\.windowRef|windowRef\.|\bwindowRef\b|typeof (?:window|CustomEvent|fetch)\b|new CustomEvent|(^|[^.])\bfetch\s*\(/m,
+  'Markdown asset manager should receive browser refs, asset preview/events, and fetch through explicit runtime wiring'
 );
 
 assert.match(
@@ -4759,7 +4759,7 @@ assert.match(
 
 assert.match(
   composerMarkdownAssetsSource,
-  /const markdownDeletedAssetStore = new Map\(\);[\s\S]*function normalizeAssetDeletionDescriptor\(asset, markdownPath\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdown, relativePath, getContentRootSafe\(\)\)[\s\S]*if \(assetPath && assetPath !== resolved\.contentPath\) return null;[\s\S]*function stageMarkdownAssetDeletion\(path, resolved\) \{[\s\S]*bucket\.set\(assetPath, entry\);[\s\S]*updateMarkdownDraftStoreAssetDeletions\(norm, exportMarkdownAssetDeletionBucket\(norm\)\);[\s\S]*function handleEditorAssetDeleteRequested\(event\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source, getContentRootSafe\(\)\)[\s\S]*stageMarkdownAssetDeletion\(markdownPath, resolved\)[\s\S]*windowRef\.addEventListener\(type, handler\)/,
+  /const markdownDeletedAssetStore = new Map\(\);[\s\S]*function normalizeAssetDeletionDescriptor\(asset, markdownPath\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdown, relativePath, getContentRootSafe\(\)\)[\s\S]*if \(assetPath && assetPath !== resolved\.contentPath\) return null;[\s\S]*function stageMarkdownAssetDeletion\(path, resolved\) \{[\s\S]*bucket\.set\(assetPath, entry\);[\s\S]*updateMarkdownDraftStoreAssetDeletions\(norm, exportMarkdownAssetDeletionBucket\(norm\)\);[\s\S]*function handleEditorAssetDeleteRequested\(event\) \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source, getContentRootSafe\(\)\)[\s\S]*stageMarkdownAssetDeletion\(markdownPath, resolved\)[\s\S]*addWindowListener\(type, handler\)/,
   'Markdown asset manager should stage and persist explicit local markdown asset deletions from visual image blocks'
 );
 

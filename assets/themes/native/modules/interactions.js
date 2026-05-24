@@ -145,11 +145,15 @@ function withLangParam(urlStr) {
   }
 }
 
-let hasInitiallyRendered = false;
-let pendingHighlightRaf = 0;
-let tabsResizeTimer = 0;
-let responsiveObserverBound = false;
-let masonryHandlersBound = false;
+function createNativeInteractionsRuntimeState() {
+  return {
+    hasInitiallyRendered: false,
+    pendingHighlightRaf: 0,
+    tabsResizeTimer: 0,
+    responsiveObserverBound: false,
+    masonryHandlersBound: false
+  };
+}
 
 const NATIVE_CARD_CLASSES = {
   cardClass: 'press-post-card',
@@ -381,10 +385,10 @@ function setupThemeControlsNative(params = {}) {
   return true;
 }
 
-function handleWindowResizeNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function handleWindowResizeNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = createNativeInteractionsRuntimeState()) {
   const nav = documentRef ? getNavRegion(documentRef) : null;
   if (!nav) return false;
-  updateMovingHighlight(nav, windowRef, documentRef);
+  updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
   return true;
 }
 
@@ -865,7 +869,7 @@ function initializeSyntaxHighlightingNative(params = {}) {
   return true;
 }
 
-function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = createNativeInteractionsRuntimeState()) {
   const containerEl = params.containerElement || getContainerByRole('main', documentRef);
   const indexEl = params.indexElement || (containerEl ? containerEl.querySelector('.index') : null);
   const indexSelector = params.indexSelector || '.native-mainview .index';
@@ -899,8 +903,8 @@ function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, wi
     } else {
       runMasonry();
     }
-    if (!masonryHandlersBound) {
-      masonryHandlersBound = true;
+    if (!runtimeState.masonryHandlersBound) {
+      runtimeState.masonryHandlersBound = true;
       const handler = (typeof params.debounce === 'function')
         ? params.debounce(runMasonry, 150)
         : runMasonry;
@@ -1735,7 +1739,7 @@ function setupTabHoverEffects(nav) {
   });
 }
 
-function updateMovingHighlight(nav, windowRef = defaultWindow, documentRef = defaultDocument) {
+function updateMovingHighlight(nav, windowRef = defaultWindow, documentRef = defaultDocument, runtimeState = createNativeInteractionsRuntimeState()) {
   if (!nav) return;
   ensureHighlightOverlay(nav, documentRef);
 
@@ -1749,8 +1753,8 @@ function updateMovingHighlight(nav, windowRef = defaultWindow, documentRef = def
     ? windowRef.setTimeout.bind(windowRef)
     : setTimeout;
 
-  if (pendingHighlightRaf) cancel(pendingHighlightRaf);
-  pendingHighlightRaf = raf(() => {
+  if (runtimeState.pendingHighlightRaf) cancel(runtimeState.pendingHighlightRaf);
+  runtimeState.pendingHighlightRaf = raf(() => {
     raf(() => {
       const activeTab = nav.querySelector('.tab.active');
       nav.querySelectorAll('.tab').forEach(tab => tab.classList.remove('activating', 'deactivating'));
@@ -1774,7 +1778,7 @@ function updateMovingHighlight(nav, windowRef = defaultWindow, documentRef = def
       }
 
       setupTabHoverEffects(nav);
-      pendingHighlightRaf = 0;
+      runtimeState.pendingHighlightRaf = 0;
     });
   });
 }
@@ -1848,7 +1852,7 @@ function setTrackHtml(nav, markup, documentRef = defaultDocument, windowRef = de
   }
 }
 
-function renderTabsNative(params = {}) {
+function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRuntimeState()) {
   const windowRef = params.window || defaultWindow;
   const documentRef = params.document || defaultDocument;
   const nav = params.nav || (documentRef ? getNavRegion(documentRef) : null);
@@ -1973,11 +1977,11 @@ function renderTabsNative(params = {}) {
     }
   } catch (_) {}
 
-  if (!hasInitiallyRendered) {
+  if (!runtimeState.hasInitiallyRendered) {
     setTrackHtml(nav, html, documentRef, windowRef, searchQuery);
     ensureHighlightOverlay(nav, documentRef);
-    hasInitiallyRendered = true;
-    updateMovingHighlight(nav, windowRef, documentRef);
+    runtimeState.hasInitiallyRendered = true;
+    updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
     return;
   }
 
@@ -2006,7 +2010,7 @@ function renderTabsNative(params = {}) {
       setTrackHtml(nav, html, documentRef, windowRef, searchQuery);
       ensureHighlightOverlay(nav, documentRef);
       nav.style.width = `${newWidth}px`;
-      updateMovingHighlight(nav, windowRef, documentRef);
+      updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
       try {
         const newActive = nav.querySelector('.tab.active');
         const newSlug = (newActive && newActive.dataset && newActive.dataset.slug) || '';
@@ -2029,7 +2033,7 @@ function renderTabsNative(params = {}) {
       }, resetDelay);
     }, 180);
   } else {
-    updateMovingHighlight(nav, windowRef, documentRef);
+    updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
   }
 }
 
@@ -2058,11 +2062,11 @@ function addTabClickAnimation(tab, windowRef = defaultWindow) {
   }
 }
 
-function setupResponsiveTabsObserverNative(params = {}) {
+function setupResponsiveTabsObserverNative(params = {}, runtimeState = createNativeInteractionsRuntimeState()) {
   const windowRef = params.window || defaultWindow;
   const documentRef = params.document || defaultDocument;
-  if (!windowRef || responsiveObserverBound) return;
-  responsiveObserverBound = true;
+  if (!windowRef || runtimeState.responsiveObserverBound) return;
+  runtimeState.responsiveObserverBound = true;
 
   const getTabs = typeof params.getTabs === 'function'
     ? params.getTabs
@@ -2092,20 +2096,20 @@ function setupResponsiveTabsObserverNative(params = {}) {
       const base = { window: windowRef, document: documentRef, tabsBySlug: tabs };
       if (id) {
         const title = getCurrentPostTitle();
-        renderTabsNative({ ...base, activeSlug: 'post', searchQuery: title });
+        renderTabsNative({ ...base, activeSlug: 'post', searchQuery: title }, runtimeState);
       } else if (tab === 'search') {
-        renderTabsNative({ ...base, activeSlug: 'search', searchQuery: tag || q });
+        renderTabsNative({ ...base, activeSlug: 'search', searchQuery: tag || q }, runtimeState);
       } else if (tab && tab !== 'posts' && tabs[tab]) {
-        renderTabsNative({ ...base, activeSlug: tab });
+        renderTabsNative({ ...base, activeSlug: tab }, runtimeState);
       } else {
-        renderTabsNative({ ...base, activeSlug: 'posts' });
+        renderTabsNative({ ...base, activeSlug: 'posts' }, runtimeState);
       }
     } catch (_) {}
   };
 
   const handler = () => {
-    clearDelay(tabsResizeTimer);
-    tabsResizeTimer = delay(rerender, 140);
+    clearDelay(runtimeState.tabsResizeTimer);
+    runtimeState.tabsResizeTimer = delay(rerender, 140);
   };
 
   windowRef.addEventListener('resize', handler, { passive: true });
@@ -2116,12 +2120,7 @@ export function mount(context = {}) {
   setThemeI18n(context);
   const windowRef = context.window || defaultWindow;
   const documentRef = context.document || defaultDocument;
-
-  hasInitiallyRendered = false;
-  pendingHighlightRaf = 0;
-  tabsResizeTimer = 0;
-  responsiveObserverBound = false;
-  masonryHandlersBound = false;
+  const runtimeState = createNativeInteractionsRuntimeState();
 
   try {
     installLightbox({
@@ -2142,12 +2141,12 @@ export function mount(context = {}) {
   effects.renderSiteLinks = (params = {}) => renderSiteLinksNative(params, documentRef);
   effects.renderSiteIdentity = (params = {}) => renderSiteIdentityNative(params, documentRef, windowRef);
   effects.renderFooterNav = (params = {}) => renderFooterNavNative(params, documentRef, windowRef);
-  effects.renderTabs = (params = {}) => renderTabsNative({ ...params, window: windowRef, document: documentRef });
-  effects.updateTabHighlight = (nav) => updateMovingHighlight(nav, windowRef, documentRef);
+  effects.renderTabs = (params = {}) => renderTabsNative({ ...params, window: windowRef, document: documentRef }, runtimeState);
+  effects.updateTabHighlight = (nav) => updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
   effects.ensureTabOverlay = (nav) => ensureHighlightOverlay(nav, documentRef);
-  effects.setupResponsiveTabsObserver = (params = {}) => setupResponsiveTabsObserverNative({ ...params, window: windowRef, document: documentRef });
+  effects.setupResponsiveTabsObserver = (params = {}) => setupResponsiveTabsObserverNative({ ...params, window: windowRef, document: documentRef }, runtimeState);
   effects.onTabClick = (tab) => addTabClickAnimation(tab, windowRef);
-  effects.handleWindowResize = (params = {}) => handleWindowResizeNative(params, documentRef, windowRef);
+  effects.handleWindowResize = (params = {}) => handleWindowResizeNative(params, documentRef, windowRef, runtimeState);
   effects.updateLayoutLoadingState = (params = {}) => updateLayoutLoadingStateNative(params, documentRef);
   effects.renderPostTOC = (params = {}) => renderPostTOCNative(params, documentRef, windowRef);
   effects.renderErrorState = (params = {}) => renderErrorStateNative(params, documentRef);
@@ -2163,7 +2162,7 @@ export function mount(context = {}) {
   effects.afterIndexRender = (params = {}) => afterIndexRenderNative(params, documentRef);
   effects.renderSearchResults = (params = {}) => renderSearchResultsNative(params, documentRef, windowRef);
   effects.afterSearchRender = (params = {}) => afterSearchRenderNative(params, documentRef);
-  effects.enhanceIndexLayout = (params = {}) => enhanceIndexLayoutNative(params, documentRef, windowRef);
+  effects.enhanceIndexLayout = (params = {}) => enhanceIndexLayoutNative(params, documentRef, windowRef, runtimeState);
   effects.decoratePostView = (params = {}) => decoratePostViewNative(params, documentRef, windowRef);
   effects.handleDocumentClick = (params = {}) => handleDocumentClickNative(params, documentRef, windowRef);
   effects.resetTOC = (params = {}) => resetTOCNative(params, documentRef, windowRef);

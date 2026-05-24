@@ -265,6 +265,14 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function getNavigator() {
+    try {
+      return windowRef && windowRef.navigator ? windowRef.navigator : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function getLocationOrigin() {
     try {
       return (windowRef && windowRef.location && windowRef.location.origin) || '';
@@ -366,6 +374,58 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function fetchContent(url, options) {
+    try {
+      const fetchRef = windowRef && typeof windowRef.fetch === 'function'
+        ? windowRef.fetch.bind(windowRef)
+        : null;
+      if (!fetchRef) return Promise.reject(new Error('Fetch is not available in this runtime.'));
+      return fetchRef(url, options);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  function showAlert(message) {
+    try {
+      const alertRef = windowRef && typeof windowRef.alert === 'function'
+        ? windowRef.alert.bind(windowRef)
+        : null;
+      if (!alertRef) return false;
+      alertRef(message);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function confirmAction(message) {
+    try {
+      const confirmRef = windowRef && typeof windowRef.confirm === 'function'
+        ? windowRef.confirm.bind(windowRef)
+        : null;
+      return confirmRef ? !!confirmRef(message) : false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getPerformance() {
+    try {
+      return windowRef && windowRef.performance ? windowRef.performance : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getCss() {
+    try {
+      return windowRef && windowRef.CSS ? windowRef.CSS : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function scrollToTop({ smooth = true } = {}) {
     try {
       if (!windowRef || typeof windowRef.scrollTo !== 'function') return false;
@@ -407,6 +467,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     createEvent,
     createMouseEvent,
     getFileReader,
+    getNavigator,
     getLocationOrigin,
     getLocationHref,
     postMessage,
@@ -417,6 +478,11 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     getViewportWidth,
     getComputedStyle: getComputedStyleFor,
     getResizeObserver,
+    fetchContent,
+    showAlert,
+    confirmAction,
+    getPerformance,
+    getCss,
     scrollToTop
   };
 }

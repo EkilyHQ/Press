@@ -217,6 +217,50 @@ assert.equal(appendedNodes[0].focused, true);
 assert.equal(appendedNodes[0].selected, true);
 assert.deepEqual(legacyCopyCommands, ['copy']);
 
+const noBrowserEffectsRuntime = createComposerRuntime({
+  windowRef: {
+    ...windowRef,
+    fetch: undefined,
+    alert: undefined,
+    confirm: undefined,
+    performance: undefined,
+    CSS: undefined,
+    ResizeObserver: undefined
+  },
+  documentRef,
+  navigatorRef
+});
+assert.equal(
+  noBrowserEffectsRuntime.showAlert('missing alert'),
+  false,
+  'composer runtime should not fall back to ambient alert outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.confirmAction('missing confirm'),
+  false,
+  'composer runtime should not fall back to ambient confirm outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.getPerformance(),
+  null,
+  'composer runtime should not fall back to ambient performance outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.getCss(),
+  null,
+  'composer runtime should not fall back to ambient CSS outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.getResizeObserver(),
+  null,
+  'composer runtime should not fall back to ambient ResizeObserver outside the app runtime browser facade'
+);
+await assert.rejects(
+  noBrowserEffectsRuntime.fetchContent('/missing.yaml'),
+  /Fetch is not available/,
+  'composer runtime fetch should fail through the browser facade when no runtime fetch adapter exists'
+);
+
 const originalGlobalGetComputedStyle = globalThis.getComputedStyle;
 globalThis.getComputedStyle = (element) => (element ? { display: 'grid' } : null);
 try {

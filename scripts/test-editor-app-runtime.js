@@ -91,6 +91,9 @@ class FakeResizeObserver {}
   windowRef.MouseEvent = FakeMouseEvent;
   windowRef.FileReader = FakeFileReader;
   windowRef.ResizeObserver = FakeResizeObserver;
+  windowRef.performance = { now: () => 42 };
+  windowRef.CSS = { escape: value => `escaped:${value}` };
+  windowRef.navigator = { clipboard: { writeText() {} } };
   const writes = new Map();
   windowRef.localStorage = {
     getItem(key) {
@@ -106,6 +109,9 @@ class FakeResizeObserver {}
   windowRef.__press_site_repo = { owner: 'EkilyHQ', name: 'Press' };
   windowRef.__press_primary_editor = { setView() {} };
   const timers = [];
+  const fetchCalls = [];
+  const alerts = [];
+  const confirms = [];
   const messages = [];
   const scrolls = [];
   windowRef.location = { origin: 'https://example.test', href: 'https://example.test/editor.html' };
@@ -124,6 +130,15 @@ class FakeResizeObserver {}
   windowRef.clearTimeout = id => timers.push(`clear:${id}`);
   windowRef.matchMedia = query => ({ media: query, matches: query.includes('reduced-motion') });
   windowRef.getComputedStyle = element => ({ element, display: 'grid' });
+  windowRef.fetch = (url, options) => {
+    fetchCalls.push([url, options]);
+    return Promise.resolve({ ok: true, url });
+  };
+  windowRef.alert = message => alerts.push(message);
+  windowRef.confirm = message => {
+    confirms.push(message);
+    return message === 'continue';
+  };
   windowRef.pageYOffset = 321;
   windowRef.scrollX = 12;
   windowRef.scrollY = 345;
@@ -177,6 +192,7 @@ class FakeResizeObserver {}
   assert.equal(mouseEvent.type, 'click');
   assert.equal(mouseEvent.bubbles, true);
   assert.equal(runtime.browser.getFileReader(), FakeFileReader);
+  assert.equal(runtime.browser.getNavigator(), windowRef.navigator);
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
   assert.equal(runtime.browser.getLocationHref(), 'https://example.test/editor.html');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
@@ -186,6 +202,16 @@ class FakeResizeObserver {}
   assert.equal(runtime.browser.getViewportWidth(), 1200);
   assert.deepEqual(runtime.browser.getComputedStyle({ nodeType: 1 }).display, 'grid');
   assert.equal(runtime.browser.getResizeObserver(), FakeResizeObserver);
+  assert.equal(runtime.browser.getPerformance(), windowRef.performance);
+  assert.equal(runtime.browser.getCss(), windowRef.CSS);
+  assert.equal(runtime.browser.showAlert('Heads up'), true);
+  assert.deepEqual(alerts, ['Heads up']);
+  assert.equal(runtime.browser.confirmAction('continue'), true);
+  assert.equal(runtime.browser.confirmAction('stop'), false);
+  assert.deepEqual(confirms, ['continue', 'stop']);
+  const response = await runtime.browser.fetchContent('/site.yaml', { cache: 'no-store' });
+  assert.equal(response.ok, true);
+  assert.deepEqual(fetchCalls, [['/site.yaml', { cache: 'no-store' }]]);
   assert.equal(runtime.browser.scrollToTop({ smooth: true }), true);
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
   assert.equal(runtime.browser.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { ok: true }), true);

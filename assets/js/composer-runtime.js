@@ -27,8 +27,7 @@ function normalizeSiteRepo(repo) {
 export function createComposerRuntime(options = {}) {
   const runtime = createEditorAppRuntime(options);
   const navigatorRef = options.navigatorRef
-    || (runtime.windowRef && runtime.windowRef.navigator)
-    || (typeof navigator !== 'undefined' ? navigator : null);
+    || runtime.browser.getNavigator();
 
   function onDocumentReady(handler) {
     if (typeof handler !== 'function') return () => {};
@@ -116,59 +115,23 @@ export function createComposerRuntime(options = {}) {
   }
 
   function fetchContent(url, options) {
-    try {
-      const fetchRef = runtime.windowRef && typeof runtime.windowRef.fetch === 'function'
-        ? runtime.windowRef.fetch.bind(runtime.windowRef)
-        : (typeof fetch === 'function' ? fetch : null);
-      if (!fetchRef) return Promise.reject(new Error('Fetch is not available in this runtime.'));
-      return fetchRef(url, options);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    return runtime.browser.fetchContent(url, options);
   }
 
   function showAlert(message) {
-    try {
-      const alertRef = runtime.windowRef && typeof runtime.windowRef.alert === 'function'
-        ? runtime.windowRef.alert.bind(runtime.windowRef)
-        : (typeof alert === 'function' ? alert : null);
-      if (!alertRef) return false;
-      alertRef(message);
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return runtime.browser.showAlert(message);
   }
 
   function confirmAction(message) {
-    try {
-      const confirmRef = runtime.windowRef && typeof runtime.windowRef.confirm === 'function'
-        ? runtime.windowRef.confirm.bind(runtime.windowRef)
-        : (typeof confirm === 'function' ? confirm : null);
-      return confirmRef ? !!confirmRef(message) : false;
-    } catch (_) {
-      return false;
-    }
+    return runtime.browser.confirmAction(message);
   }
 
   function getPerformance() {
-    try {
-      return runtime.windowRef && runtime.windowRef.performance
-        ? runtime.windowRef.performance
-        : (typeof performance !== 'undefined' ? performance : null);
-    } catch (_) {
-      return null;
-    }
+    return runtime.browser.getPerformance();
   }
 
   function getCss() {
-    try {
-      return runtime.windowRef && runtime.windowRef.CSS
-        ? runtime.windowRef.CSS
-        : (typeof CSS !== 'undefined' ? CSS : null);
-    } catch (_) {
-      return null;
-    }
+    return runtime.browser.getCss();
   }
 
   function matchesMedia(query) {
@@ -194,26 +157,11 @@ export function createComposerRuntime(options = {}) {
   }
 
   function getComputedStyle(element) {
-    try {
-      const getStyleRef = runtime.windowRef && typeof runtime.windowRef.getComputedStyle === 'function'
-        ? runtime.windowRef.getComputedStyle.bind(runtime.windowRef)
-        : (typeof globalThis !== 'undefined' && typeof globalThis.getComputedStyle === 'function'
-          ? globalThis.getComputedStyle.bind(globalThis)
-          : null);
-      return getStyleRef && element ? getStyleRef(element) : null;
-    } catch (_) {
-      return null;
-    }
+    return runtime.browser.getComputedStyle(element);
   }
 
   function getResizeObserver() {
-    try {
-      return runtime.windowRef && typeof runtime.windowRef.ResizeObserver === 'function'
-        ? runtime.windowRef.ResizeObserver
-        : (typeof ResizeObserver === 'function' ? ResizeObserver : null);
-    } catch (_) {
-      return null;
-    }
+    return runtime.browser.getResizeObserver();
   }
 
   async function writeClipboardText(text) {

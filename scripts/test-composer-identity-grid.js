@@ -1522,6 +1522,12 @@ assert.match(
   'editor main runtime should own storage, browser global, and cross-component event service adapters'
 );
 
+assert.doesNotMatch(
+  editorMainRuntimeSource,
+  /typeof (?:fetch|alert)\b|runtime\.windowRef && runtime\.windowRef\.(?:fetch|alert)|windowRef\.(?:fetch|alert)/,
+  'editor main runtime should delegate fetch and alert lookup to the shared editor app runtime facade'
+);
+
 assert.match(
   editorMainSource,
   /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
@@ -1772,6 +1778,12 @@ assert.match(
   composerRuntimeSource,
   /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
   'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
+);
+
+assert.doesNotMatch(
+  composerRuntimeSource,
+  /typeof (?:navigator|fetch|alert|confirm|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef && runtime\.windowRef\.(?:navigator|fetch|alert|confirm|performance|CSS|getComputedStyle|ResizeObserver)|globalThis\.getComputedStyle|windowRef\.(?:fetch|alert|confirm|performance|CSS|getComputedStyle|ResizeObserver)/,
+  'composer runtime should delegate browser global lookup to the shared editor app runtime facade'
 );
 
 assert.doesNotMatch(

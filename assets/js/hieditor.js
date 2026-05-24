@@ -225,7 +225,7 @@ function cleanupMarkerArtifacts(html) {
   return out;
 }
 
-const editors = new Map();
+const legacyEditorRegistry = new Map();
 
 function getAmbientDocument() {
   try { return typeof document !== 'undefined' ? document : null; }
@@ -248,6 +248,9 @@ function getAmbientNavigator(windowRef) {
 
 function createHiEditorRuntime(options = {}) {
   const allowAmbient = options.allowAmbient !== false;
+  const editorRegistry = options.editorRegistry instanceof Map
+    ? options.editorRegistry
+    : legacyEditorRegistry;
   const documentRef = options.documentRef || (allowAmbient ? getAmbientDocument() : null);
   const windowRef = options.windowRef || (allowAmbient ? getAmbientWindow() : null);
   const navigatorRef = options.navigatorRef || (allowAmbient ? getAmbientNavigator(windowRef) : null);
@@ -348,6 +351,16 @@ function createHiEditorRuntime(options = {}) {
     },
     addWindowListener(type, handler, listenerOptions) {
       return addWindowListener ? addWindowListener(type, handler, listenerOptions) : null;
+    },
+    hasEditorApi(id) {
+      return editorRegistry.has(id);
+    },
+    getEditorApi(id) {
+      return editorRegistry.get(id) || null;
+    },
+    setEditorApi(id, api) {
+      editorRegistry.set(id, api);
+      return true;
     },
     async writeClipboardText(text) {
       if (writeClipboardText) return !!(await writeClipboardText(text));
@@ -1025,7 +1038,7 @@ function makeEditor(targetTextarea, language, readOnly, options = {}) {
     el: container,
     textarea: ta
   };
-  editors.set(id, api);
+  runtime.setEditorApi(id, api);
   return api;
 }
 
@@ -1039,20 +1052,21 @@ export function initSeoEditors(options = {}) {
   ];
   targets.forEach(t => {
     const ta = runtime.getElementById(t.id);
-    if (ta && !editors.has(t.id)) makeEditor(ta, t.lang, t.readOnly, { ...options, runtime });
+    if (ta && !runtime.hasEditorApi(t.id)) makeEditor(ta, t.lang, t.readOnly, { ...options, runtime });
   });
 }
 
 export function setEditorValue(id, text) {
   const runtime = createHiEditorRuntime();
-  const ed = editors.get(id); if (ed) ed.setValue(text); else { const ta = runtime.getElementById(id); if (ta) ta.value = text; }
+  const ed = runtime.getEditorApi(id); if (ed) ed.setValue(text); else { const ta = runtime.getElementById(id); if (ta) ta.value = text; }
 }
 export function getEditorValue(id) {
   const runtime = createHiEditorRuntime();
-  const ed = editors.get(id); if (ed) return ed.getValue(); const ta = runtime.getElementById(id); return ta ? (ta.value || '') : '';
+  const ed = runtime.getEditorApi(id); if (ed) return ed.getValue(); const ta = runtime.getElementById(id); return ta ? (ta.value || '') : '';
 }
 export function toggleEditorWrap(id, value) {
-  const ed = editors.get(id);
+  const runtime = createHiEditorRuntime();
+  const ed = runtime.getEditorApi(id);
   if (!ed) return;
   if (typeof value === 'boolean') {
     ed.setWrap(value);

@@ -40,6 +40,9 @@ function parseWrapState(raw) {
 
 export function createEditorMainRuntime(options = {}) {
   const runtime = createBrowserEditorAppRuntime(options);
+  const hiEditorRegistry = options.hiEditorRegistry instanceof Map
+    ? options.hiEditorRegistry
+    : new Map();
 
   function onDocumentReady(handler) {
     return runtime.browser.onDocumentReady(handler);
@@ -85,6 +88,10 @@ export function createEditorMainRuntime(options = {}) {
 
   function registerPrimaryEditorApi(api) {
     return runtime.globals.set(PRIMARY_EDITOR_GLOBAL, api);
+  }
+
+  function getHiEditorRegistry() {
+    return hiEditorRegistry;
   }
 
   function onSiteConfigChange(handler) {
@@ -172,6 +179,7 @@ export function createEditorMainRuntime(options = {}) {
     setEditorBaseDir,
     ensureEditorBaseDir,
     registerPrimaryEditorApi,
+    getHiEditorRegistry,
     onSiteConfigChange,
     fetchContent,
     showAlert,

@@ -37,6 +37,7 @@ editorMainRuntime.onDocumentReady(() => {
     addDocumentListener: (type, handler, options) => editorMainRuntime.onDocument(type, handler, options),
     addWindowListener: (type, handler, options) => editorMainRuntime.onWindow(type, handler, options),
     writeClipboardText: (text) => editorMainRuntime.writeClipboardText(text),
+    editorRegistry: editorMainRuntime.getHiEditorRegistry(),
     allowAmbient: false
   });
   const imageButton = editorMainRuntime.getElementById('btnInsertImage');

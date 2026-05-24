@@ -1610,6 +1610,12 @@ assert.match(
   'editor main runtime should own storage, browser global, and cross-component event service adapters'
 );
 
+assert.match(
+  editorMainRuntimeSource,
+  /const hiEditorRegistry = options\.hiEditorRegistry instanceof Map[\s\S]*function getHiEditorRegistry\(\) \{[\s\S]*return hiEditorRegistry;[\s\S]*getHiEditorRegistry,/,
+  'editor main runtime should own the primary HiEditor instance registry'
+);
+
 assert.doesNotMatch(
   editorMainRuntimeSource,
   /typeof (?:fetch|alert|console)\b|runtime\.windowRef && runtime\.windowRef\.(?:fetch|alert|console)|windowRef\.(?:fetch|alert|console)/,
@@ -1630,8 +1636,20 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const editor = createHiEditor\(ta, 'markdown', false, \{[\s\S]*documentRef: editorMainDocument,[\s\S]*windowRef: editorMainRuntime\.windowRef,[\s\S]*setTimeoutRef: \(handler, delay\) => editorMainRuntime\.setTimer\(handler, delay\),[\s\S]*getComputedStyle: \(node\) => editorMainRuntime\.getComputedStyle\(node\),[\s\S]*getResizeObserver: \(\) => editorMainRuntime\.getResizeObserver\(\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorMainRuntime\.onDocument\(type, handler, options\),[\s\S]*addWindowListener: \(type, handler, options\) => editorMainRuntime\.onWindow\(type, handler, options\),[\s\S]*writeClipboardText: \(text\) => editorMainRuntime\.writeClipboardText\(text\),[\s\S]*allowAmbient: false[\s\S]*\}\);/,
+  /const editor = createHiEditor\(ta, 'markdown', false, \{[\s\S]*documentRef: editorMainDocument,[\s\S]*windowRef: editorMainRuntime\.windowRef,[\s\S]*setTimeoutRef: \(handler, delay\) => editorMainRuntime\.setTimer\(handler, delay\),[\s\S]*getComputedStyle: \(node\) => editorMainRuntime\.getComputedStyle\(node\),[\s\S]*getResizeObserver: \(\) => editorMainRuntime\.getResizeObserver\(\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorMainRuntime\.onDocument\(type, handler, options\),[\s\S]*addWindowListener: \(type, handler, options\) => editorMainRuntime\.onWindow\(type, handler, options\),[\s\S]*writeClipboardText: \(text\) => editorMainRuntime\.writeClipboardText\(text\),[\s\S]*editorRegistry: editorMainRuntime\.getHiEditorRegistry\(\),[\s\S]*allowAmbient: false[\s\S]*\}\);/,
   'editor main should create the primary HiEditor through explicit runtime refs and browser-effect adapters'
+);
+
+assert.match(
+  hiEditorSource,
+  /const legacyEditorRegistry = new Map\(\);[\s\S]*function createHiEditorRuntime\(options = \{\}\) \{[\s\S]*const editorRegistry = options\.editorRegistry instanceof Map[\s\S]*\? options\.editorRegistry[\s\S]*: legacyEditorRegistry;[\s\S]*hasEditorApi\(id\)[\s\S]*getEditorApi\(id\)[\s\S]*setEditorApi\(id, api\)/,
+  'HiEditor runtime should accept an injected editor registry while preserving the legacy SEO registry path'
+);
+
+assert.doesNotMatch(
+  extractFunctionBody(hiEditorSource, 'makeEditor'),
+  /\blegacyEditorRegistry\b|\beditors\.(?:set|get|has)\(/,
+  'primary HiEditor makeEditor path should register instances through its configured runtime registry'
 );
 
 assert.doesNotMatch(

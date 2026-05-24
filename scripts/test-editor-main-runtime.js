@@ -120,10 +120,14 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
     press_editor_markdown_view_v2: 'edit',
     press_editor_wrap_enabled: 'true'
   });
-  const runtime = createEditorMainRuntime({ windowRef, documentRef, storage });
+  const hiEditorRegistry = new Map();
+  const runtime = createEditorMainRuntime({ windowRef, documentRef, storage, hiEditorRegistry });
 
   assert.equal(runtime.documentRef, documentRef);
   assert.equal(runtime.windowRef, windowRef);
+  assert.equal(runtime.getHiEditorRegistry(), hiEditorRegistry);
+  runtime.getHiEditorRegistry().set('mdInput', { id: 'primary' });
+  assert.equal(hiEditorRegistry.get('mdInput').id, 'primary');
   assert.equal(runtime.readMarkdownEditorView(), 'edit');
   assert.equal(runtime.persistMarkdownEditorView('source'), true);
   assert.equal(storage.snapshot().press_editor_markdown_view_v2, 'blocks');
@@ -222,4 +226,5 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(runtime.readMarkdownEditorView(), 'blocks');
   assert.equal(runtime.readWrapEnabled(), false);
   assert.equal(runtime.ensureEditorBaseDir('wwwroot/'), 'wwwroot/');
+  assert.ok(runtime.getHiEditorRegistry() instanceof Map);
 }

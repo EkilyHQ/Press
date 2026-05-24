@@ -20,6 +20,22 @@ function createTarget() {
   };
 }
 
+function installAmbientGlobal(name, value) {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value
+  });
+  return () => {
+    if (descriptor) {
+      Object.defineProperty(globalThis, name, descriptor);
+    } else {
+      delete globalThis[name];
+    }
+  };
+}
+
 {
   const documentRef = createTarget();
   documentRef.getElementById = id => ({ id });
@@ -109,4 +125,101 @@ function createTarget() {
   assert.equal(runtime.getElementById('x'), null);
   assert.equal(runtime.createElement('button'), null);
   assert.equal(runtime.createElementNS('urn:test', 'svg'), null);
+}
+
+{
+  const writes = [];
+  const windowRef = {
+    isSecureContext: true,
+    navigator: {
+      clipboard: {
+        writeText(value) {
+          writes.push(value);
+        }
+      }
+    }
+  };
+  const runtime = createEditorBlocksRuntime({ windowRef });
+  assert.equal(runtime.navigatorRef, windowRef.navigator);
+  assert.equal(await runtime.writeClipboardText('from window navigator'), true);
+  assert.deepEqual(writes, ['from window navigator']);
+}
+
+{
+  const ambientCalls = [];
+  const restores = [
+    installAmbientGlobal('document', {
+      getElementById() {
+        ambientCalls.push('document');
+        return { id: 'ambient' };
+      }
+    }),
+    installAmbientGlobal('window', {
+      requestAnimationFrame() {
+        ambientCalls.push('window.requestAnimationFrame');
+        return 91;
+      },
+      setTimeout() {
+        ambientCalls.push('window.setTimeout');
+        return 92;
+      },
+      clearTimeout() {
+        ambientCalls.push('window.clearTimeout');
+      },
+      getComputedStyle() {
+        ambientCalls.push('window.getComputedStyle');
+        return { display: 'block' };
+      },
+      navigator: {
+        clipboard: {
+          writeText() {
+            ambientCalls.push('window.navigator.clipboard.writeText');
+          }
+        }
+      },
+      __press_t() {
+        ambientCalls.push('window.__press_t');
+        return 'ambient';
+      }
+    }),
+    installAmbientGlobal('navigator', {
+      clipboard: {
+        writeText() {
+          ambientCalls.push('navigator.clipboard.writeText');
+        }
+      }
+    }),
+    installAmbientGlobal('requestAnimationFrame', () => {
+      ambientCalls.push('requestAnimationFrame');
+      return 93;
+    }),
+    installAmbientGlobal('setTimeout', () => {
+      ambientCalls.push('setTimeout');
+      return 94;
+    }),
+    installAmbientGlobal('clearTimeout', () => {
+      ambientCalls.push('clearTimeout');
+    }),
+    installAmbientGlobal('getComputedStyle', () => {
+      ambientCalls.push('getComputedStyle');
+      return { display: 'grid' };
+    })
+  ];
+
+  try {
+    const runtime = createEditorBlocksRuntime();
+    assert.equal(runtime.documentRef, null);
+    assert.equal(runtime.windowRef, null);
+    assert.equal(runtime.navigatorRef, null);
+    assert.equal(runtime.getElementById('ambient'), null);
+    assert.equal(runtime.getComputedStyle({}), null);
+    assert.equal(runtime.requestFrame(() => {}), null);
+    assert.equal(runtime.setTimer(() => {}, 5), null);
+    runtime.clearTimer(94);
+    assert.equal(await runtime.writeClipboardText('ambient'), false);
+    assert.equal(runtime.translate('blocks.copy', 'Copy'), 'Copy');
+    assert.deepEqual(ambientCalls, []);
+  } finally {
+    for (const restore of restores.reverse()) restore();
+  }
 }

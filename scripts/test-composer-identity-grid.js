@@ -650,6 +650,12 @@ assert.match(
 );
 
 assert.doesNotMatch(
+  editorBlocksRuntimeSource,
+  /documentRef\s*=\s*typeof document|windowRef\s*=\s*typeof window|navigatorRef\s*=\s*typeof navigator|typeof (?:document|window|navigator|requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
+  'blocks runtime should use injected refs instead of ambient browser global fallbacks'
+);
+
+assert.doesNotMatch(
   [
     editorBlocksSource,
     editorBlocksLayoutSessionSource,

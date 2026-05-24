@@ -6,9 +6,9 @@ function safeCall(fn, fallback = null) {
 }
 
 export function createEditorBlocksRuntime({
-  documentRef = typeof document !== 'undefined' ? document : null,
-  windowRef = typeof window !== 'undefined' ? window : null,
-  navigatorRef = typeof navigator !== 'undefined' ? navigator : null
+  documentRef = null,
+  windowRef = null,
+  navigatorRef = windowRef && windowRef.navigator ? windowRef.navigator : null
 } = {}) {
   function on(target, type, handler, options) {
     try {
@@ -29,15 +29,15 @@ export function createEditorBlocksRuntime({
   function requestFrame(fn) {
     const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
       ? windowRef.requestAnimationFrame.bind(windowRef)
-      : (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null);
+      : null;
     if (raf) return raf(fn);
-    return setTimeout(fn, 0);
+    return setTimer(fn, 0);
   }
 
   function setTimer(fn, delay = 0) {
     const timer = windowRef && typeof windowRef.setTimeout === 'function'
       ? windowRef.setTimeout.bind(windowRef)
-      : (typeof setTimeout === 'function' ? setTimeout : null);
+      : null;
     return timer ? timer(fn, delay) : null;
   }
 
@@ -45,7 +45,7 @@ export function createEditorBlocksRuntime({
     if (id == null) return;
     const clear = windowRef && typeof windowRef.clearTimeout === 'function'
       ? windowRef.clearTimeout.bind(windowRef)
-      : (typeof clearTimeout === 'function' ? clearTimeout : null);
+      : null;
     if (clear) {
       try { clear(id); } catch (_) {}
     }

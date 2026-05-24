@@ -1812,13 +1812,13 @@ assert.doesNotMatch(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function openWindow\(href = '', target = '_blank', features\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
   'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
 );
 
 assert.doesNotMatch(
   composerRuntimeSource,
-  /typeof (?:navigator|fetch|alert|confirm|console|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef && runtime\.windowRef\.(?:navigator|fetch|alert|confirm|console|performance|CSS|getComputedStyle|ResizeObserver)|globalThis\.getComputedStyle|windowRef\.(?:fetch|alert|confirm|console|performance|CSS|getComputedStyle|ResizeObserver)/,
+  /typeof (?:navigator|fetch|alert|confirm|console|open|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef && runtime\.windowRef\.(?:navigator|fetch|alert|confirm|console|open|performance|CSS|getComputedStyle|ResizeObserver)|globalThis\.getComputedStyle|windowRef\.(?:fetch|alert|confirm|console|open|performance|CSS|getComputedStyle|ResizeObserver)/,
   'composer runtime should delegate browser global lookup to the shared editor app runtime facade'
 );
 
@@ -4659,8 +4659,14 @@ assert.match(
 
 assert.match(
   source,
-  /const composerNotifications = createComposerNotificationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*openWindowRef: \(href, target\) => \{[\s\S]*composerWindow\.open\(href, target\)[\s\S]*\},[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
+  /const composerNotifications = createComposerNotificationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*openWindowRef: \(href, target, features\) => editorRuntime\.openWindow\(href, target, features\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
   'composer should inject notification alerts, timers, frames, and popup windows through the runtime composition root'
+);
+
+assert.doesNotMatch(
+  source,
+  /composerWindow\.open/,
+  'composer popup creation should route through the explicit runtime facade instead of calling composerWindow.open directly'
 );
 
 assert.doesNotMatch(

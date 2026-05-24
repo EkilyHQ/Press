@@ -122,6 +122,10 @@ export function createComposerRuntime(options = {}) {
     return runtime.browser.showAlert(message);
   }
 
+  function openWindow(href = '', target = '_blank', features) {
+    return runtime.browser.openWindow(href, target, features);
+  }
+
   function warn(...args) {
     return runtime.browser.warn(...args);
   }
@@ -236,6 +240,7 @@ export function createComposerRuntime(options = {}) {
     clearTimer,
     fetchContent,
     showAlert,
+    openWindow,
     warn,
     error,
     confirmAction,

@@ -236,15 +236,7 @@ const composerNotifications = createComposerNotificationController({
   alertRef: (message) => editorRuntime.showAlert(message),
   requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
   setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
-  openWindowRef: (href, target) => {
-    try {
-      return composerWindow && typeof composerWindow.open === 'function'
-        ? composerWindow.open(href, target)
-        : null;
-    } catch (_) {
-      return null;
-    }
-  },
+  openWindowRef: (href, target, features) => editorRuntime.openWindow(href, target, features),
   consoleRef: composerLogger
 });
 const {

@@ -15,6 +15,7 @@ const errors = [];
 const populateCalls = [];
 const fetchCalls = [];
 const scrolls = [];
+const openedWindows = [];
 const clipboardWrites = [];
 const appendedNodes = [];
 const removedNodes = [];
@@ -64,6 +65,10 @@ const windowRef = {
   },
   scrollTo(...args) {
     scrolls.push(args);
+  },
+  open(...args) {
+    openedWindows.push(args);
+    return { href: args[0], target: args[1], features: args[2] };
   },
   matchMedia(query) {
     return { matches: query === '(prefers-reduced-motion: reduce)' };
@@ -207,6 +212,11 @@ assert.equal(runtime.scrollWindowToTop('smooth'), true);
 assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
 assert.equal(runtime.scrollWindowToTop('auto'), true);
 assert.deepEqual(scrolls.at(-1), [0, 0]);
+assert.deepEqual(
+  runtime.openWindow('https://example.test/popup', '_blank'),
+  { href: 'https://example.test/popup', target: '_blank', features: undefined }
+);
+assert.deepEqual(openedWindows.at(-1), ['https://example.test/popup', '_blank']);
 assert.deepEqual(runtime.getComputedStyle({ nodeType: 1 }), { marginTop: '4px', marginBottom: '8px' });
 assert.equal(runtime.getResizeObserver(), TestResizeObserver);
 assert.equal(await runtime.writeClipboardText('copy me'), true);
@@ -234,6 +244,7 @@ const noBrowserEffectsRuntime = createComposerRuntime({
     alert: undefined,
     confirm: undefined,
     console: undefined,
+    open: undefined,
     performance: undefined,
     CSS: undefined,
     ResizeObserver: undefined
@@ -260,6 +271,11 @@ assert.equal(
   noBrowserEffectsRuntime.error('missing error'),
   false,
   'composer runtime should not fall back to ambient console.error outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.openWindow('/missing', '_blank'),
+  null,
+  'composer runtime should not fall back to ambient open outside the app runtime browser facade'
 );
 assert.equal(
   noBrowserEffectsRuntime.getPerformance(),

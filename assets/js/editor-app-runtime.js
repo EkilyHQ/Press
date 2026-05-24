@@ -299,6 +299,20 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function openWindow(href = '', target = '_blank', features) {
+    try {
+      const openRef = windowRef && typeof windowRef.open === 'function'
+        ? windowRef.open.bind(windowRef)
+        : null;
+      if (!openRef) return null;
+      return features === undefined
+        ? openRef(href, target)
+        : openRef(href, target, features);
+    } catch (_) {
+      return null;
+    }
+  }
+
   function matchesMedia(query) {
     try {
       return !!(windowRef && typeof windowRef.matchMedia === 'function' && windowRef.matchMedia(query).matches);
@@ -501,6 +515,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     getLocationOrigin,
     getLocationHref,
     postMessage,
+    openWindow,
     matchesMedia,
     getPageYOffset,
     getWindowScroll,

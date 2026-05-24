@@ -116,6 +116,7 @@ class FakeResizeObserver {}
   const confirms = [];
   const messages = [];
   const scrolls = [];
+  const openedWindows = [];
   windowRef.location = { origin: 'https://example.test', href: 'https://example.test/editor.html' };
   windowRef.innerHeight = 900;
   windowRef.innerWidth = 1200;
@@ -149,6 +150,10 @@ class FakeResizeObserver {}
   windowRef.scrollX = 12;
   windowRef.scrollY = 345;
   windowRef.scrollTo = (...args) => scrolls.push(args);
+  windowRef.open = (...args) => {
+    openedWindows.push(args);
+    return { args };
+  };
   documentRef.getElementById = id => ({ id });
   documentRef.querySelector = selector => ({ selector });
   documentRef.querySelectorAll = selector => [{ selector }];
@@ -226,6 +231,11 @@ class FakeResizeObserver {}
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
   assert.equal(runtime.browser.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { ok: true }), true);
   assert.deepEqual(messages.at(-1), { payload: { ok: true }, origin: 'https://example.test' });
+  assert.deepEqual(
+    runtime.browser.openWindow('https://example.test/popup', '_blank'),
+    { args: ['https://example.test/popup', '_blank'] }
+  );
+  assert.deepEqual(openedWindows.at(-1), ['https://example.test/popup', '_blank']);
 }
 
 {
@@ -259,6 +269,7 @@ class FakeResizeObserver {}
     'setTimeout',
     'clearTimeout',
     'getComputedStyle',
+    'open',
     'console'
   ];
   const originals = new Map();
@@ -288,6 +299,10 @@ class FakeResizeObserver {}
       ambientCalls.push(['getComputedStyle', element]);
       return { display: 'ambient' };
     };
+    globalThis.open = (...args) => {
+      ambientCalls.push(['open', args]);
+      return { ambient: true };
+    };
     globalThis.console = {
       warn: (...args) => ambientCalls.push(['console.warn', args]),
       error: (...args) => ambientCalls.push(['console.error', args])
@@ -302,6 +317,7 @@ class FakeResizeObserver {}
     assert.equal(runtime.browser.setTimer(() => {}, 10), null);
     runtime.browser.clearTimer(1002);
     assert.equal(runtime.browser.getComputedStyle({ nodeType: 1 }), null);
+    assert.equal(runtime.browser.openWindow('/ambient', '_blank'), null);
     assert.equal(runtime.browser.warn('ambient'), false);
     assert.equal(runtime.browser.error('ambient'), false);
     assert.deepEqual(

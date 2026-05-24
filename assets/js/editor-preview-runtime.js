@@ -2,7 +2,7 @@ import './components.js';
 import { mdParse } from './markdown.js?v=press-system-v3.4.50';
 import { createContentModel } from './content-model.js';
 import { parseFrontMatter } from './content.js';
-import { getContentRoot, setSafeHtml } from './safe-html.js?v=press-system-v3.4.50';
+import { setSafeHtml } from './safe-html.js?v=press-system-v3.4.50';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from './post-render.js';
 import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.50';
 import { applyLangHints } from './typography.js';
@@ -39,6 +39,37 @@ function beginPreviewRender(payload) {
 
 function isCurrentPreviewRender(requestId) {
   return previewRuntime.isCurrentRender(requestId);
+}
+
+function getContentRoot() {
+  return previewRuntime.getContentRoot();
+}
+
+function inferPayloadContentRoot(payload = {}) {
+  if (Object.prototype.hasOwnProperty.call(payload, 'contentRoot')) return payload.contentRoot;
+  const baseDir = String(payload.baseDir || '').trim().replace(/[\\]+/g, '/').replace(/^\/+/, '');
+  const first = baseDir.split('/').find(Boolean);
+  return first || 'wwwroot';
+}
+
+function applyPreviewContentRoot(payload = {}) {
+  previewRuntime.setContentRoot(inferPayloadContentRoot(payload));
+  return getContentRoot();
+}
+
+function getImageResolutionOptions() {
+  return {
+    contentRoot: getContentRoot(),
+    origin: previewRuntime.getLocationOrigin()
+  };
+}
+
+function setPreviewSafeHtml(target, html, baseDir, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const nextOptions = opts.imageResolution && typeof opts.imageResolution === 'object'
+    ? opts
+    : { ...opts, imageResolution: getImageResolutionOptions() };
+  return setSafeHtml(target, html, baseDir, nextOptions);
 }
 
 function applyPreviewColorMode(siteConfig = {}) {
@@ -225,7 +256,7 @@ function createRuntimeContext({ payload, containers, content }) {
       },
       getFile: (filename) => previewRuntime.fetchText(filename),
       getContentRoot,
-      setSafeHtml
+      setSafeHtml: setPreviewSafeHtml
     },
     themeConfig: payload.siteConfig || {},
     manifest: layout && layout.manifest,
@@ -233,8 +264,9 @@ function createRuntimeContext({ payload, containers, content }) {
   };
 }
 
-async function renderPreview(payload) {
+async function renderPreview(payload = {}) {
   const requestId = beginPreviewRender(payload);
+  const contentRoot = applyPreviewContentRoot(payload);
   const requestedPack = sanitizePack(payload.themePack || (payload.siteConfig && payload.siteConfig.themePack) || 'native');
   applyPreviewColorMode(payload.siteConfig || {});
   try {
@@ -243,8 +275,9 @@ async function renderPreview(payload) {
     if (!isCurrentPreviewRender(requestId)) return;
     const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);
     const markdown = String(payload.markdown || '');
-    const baseDir = String(payload.baseDir || `${getContentRoot()}/`);
-    const output = mdParse(markdown, baseDir);
+    const baseDir = String(payload.baseDir || `${contentRoot}/`);
+    const imageResolution = getImageResolutionOptions();
+    const output = mdParse(markdown, baseDir, { imageResolution });
     const postMetadata = resolvePostMetadata(payload);
     const fallbackTitle = postMetadata.title || payload.currentPath || 'Preview';
     const content = createContentModel({
@@ -308,7 +341,7 @@ async function renderPreview(payload) {
         },
         getFile: (filename) => previewRuntime.fetchText(filename),
         getContentRoot,
-        setSafeHtml,
+        setSafeHtml: setPreviewSafeHtml,
         withLangParam,
         fetchMarkdown: (loc) => previewRuntime.fetchText(`${getContentRoot()}/${loc}`),
         makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
@@ -316,7 +349,7 @@ async function renderPreview(payload) {
     }));
     if (!isCurrentPreviewRender(requestId)) return;
     if (!result && main) {
-      setSafeHtml(main, output.post || '', baseDir, { alreadySanitized: true });
+      setPreviewSafeHtml(main, output.post || '', baseDir, { alreadySanitized: true, imageResolution });
     }
     if (!isCurrentPreviewRender(requestId)) return;
     applyAssetOverrides(main, payload);

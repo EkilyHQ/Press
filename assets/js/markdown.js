@@ -23,11 +23,15 @@ function nonNegativeInt(value, fallback) {
 function normalizeParseOptions(options = {}) {
   const input = options && typeof options === 'object' ? options : {};
   const limits = input.limits && typeof input.limits === 'object' ? input.limits : {};
+  const imageResolution = input.imageResolution && typeof input.imageResolution === 'object'
+    ? input.imageResolution
+    : {};
   return {
     depth: Math.max(0, Math.floor(Number(input.depth) || 0)),
     maxDepth: nonNegativeInt(input.maxDepth ?? limits.maxDepth, DEFAULT_PARSE_LIMITS.maxDepth),
     maxInputLength: positiveInt(input.maxInputLength ?? limits.maxInputLength, DEFAULT_PARSE_LIMITS.maxInputLength),
-    maxLines: positiveInt(input.maxLines ?? limits.maxLines, DEFAULT_PARSE_LIMITS.maxLines)
+    maxLines: positiveInt(input.maxLines ?? limits.maxLines, DEFAULT_PARSE_LIMITS.maxLines),
+    imageResolution
   };
 }
 
@@ -73,7 +77,11 @@ function tableCellAlignAttr(alignments, cellIndex) {
   return align ? ` class="press-table-align-${align}" style="text-align: ${align}"` : '';
 }
 
-function replaceInline(text, baseDir) {
+function replaceInline(text, baseDir, options = {}) {
+  const imageResolution = options && options.imageResolution && typeof options.imageResolution === 'object'
+    ? options.imageResolution
+    : {};
+  const resolveInlineImageSrc = (src) => resolveImageSrc(src, baseDir, imageResolution);
   const parts = String(text || '').split('`');
   const mathTokens = [];
   const stashMath = (segment) => String(segment || '').replace(/&#040;([\s\S]+?)&#041;/g, (m, tex) => {
@@ -106,7 +114,7 @@ function replaceInline(text, baseDir) {
             alias = raw.slice(pipeIdx + 1).trim();
           }
           if (!src) return m;
-          const url = resolveImageSrc(src, baseDir);
+          const url = resolveInlineImageSrc(src);
           const isVideo = /\.(mp4|mov|webm|ogg)(\?.*)?$/i.test(src || '');
           if (isVideo) {
             const ext = String(src || '').split('?')[0].split('.').pop().toLowerCase();
@@ -120,7 +128,7 @@ function replaceInline(text, baseDir) {
         })
         // Images or Videos via image syntax: optional title
         .replace(/!\[(.*?)\]\(([^\s\)]*?)(?:\s*&quot;(.*?)&quot;)?\)/g, (m, alt, src, title) => {
-          const url = resolveImageSrc(src, baseDir);
+          const url = resolveInlineImageSrc(src);
           const isVideo = /\.(mp4|mov|webm|ogg)(\?.*)?$/i.test(src || '');
           if (isVideo) {
             const ext = String(src || '').split('?')[0].split('.').pop().toLowerCase();
@@ -137,7 +145,7 @@ function replaceInline(text, baseDir) {
                 if (m2) { poster = m2[1]; break; }
               }
             }
-            const posterAttr = poster ? ` poster="${resolveImageSrc(poster, baseDir)}"` : '';
+            const posterAttr = poster ? ` poster="${resolveInlineImageSrc(poster)}"` : '';
 
             // Alternate sources for better compatibility
             let extraSources = [];
@@ -149,7 +157,7 @@ function replaceInline(text, baseDir) {
                 m = p.match(/^sources\s*=\s*(.+)$/i);
                 if (m) {
                   const list = m[1].split(/\s*,\s*/).filter(Boolean);
-                  extraSources.push(...list.map(s => ({ src: resolveImageSrc(s, baseDir), type: s.split('?')[0].split('.').pop().toLowerCase() })));
+                  extraSources.push(...list.map(s => ({ src: resolveInlineImageSrc(s), type: s.split('?')[0].split('.').pop().toLowerCase() })));
                   continue;
                 }
                 // formats=mp4,webm (same basename as primary)
@@ -159,7 +167,7 @@ function replaceInline(text, baseDir) {
                     const baseNoQuery = String(src || '').split('?')[0];
                     const baseNoExt = baseNoQuery.replace(/\.[^.]+$/, '');
                     const fmts = m[1].split(/\s*,\s*/).filter(Boolean);
-                    fmts.forEach(f => { extraSources.push({ src: resolveImageSrc(`${baseNoExt}.${f}`, baseDir), type: String(f).toLowerCase() }); });
+                    fmts.forEach(f => { extraSources.push({ src: resolveInlineImageSrc(`${baseNoExt}.${f}`), type: String(f).toLowerCase() }); });
                   } catch (_) { /* noop */ }
                 }
               }
@@ -189,8 +197,8 @@ function replaceInline(text, baseDir) {
     .replace(/^\s*$/g, '<br>');
 }
 
-function renderInlineText(text, baseDir) {
-  return replaceInline(escapeHtml(String(text || '')), baseDir);
+function renderInlineText(text, baseDir, options = {}) {
+  return replaceInline(escapeHtml(String(text || '')), baseDir, options);
 }
 
 function tocParser(titleLevels, liTags) {
@@ -368,7 +376,7 @@ export function mdParse(markdown, baseDir, options = {}) {
           const role = (type === 'warning' || type === 'caution' || type === 'danger' || type === 'error') ? 'alert' : 'note';
           const body = qLines.slice(1).join('\n');
           const bodyHtml = parseNestedMarkdown(body, baseDir, parseOptions).post;
-          const titleHtml = replaceInline(escapeHtml(label), baseDir);
+          const titleHtml = replaceInline(escapeHtml(label), baseDir, parseOptions);
           html += `<div class="callout callout-${type}" data-callout="${type}" role="${role}"><div class="callout-title"><span class="callout-icon" aria-hidden="true">${escapeHtml(iconFor(type))}</span><span class="callout-label">${titleHtml}</span></div><div class="callout-body">${bodyHtml}</div></div>`;
         } else {
           html += `<blockquote>${parseNestedMarkdown(quote, baseDir, parseOptions).post}</blockquote>`;
@@ -399,7 +407,7 @@ export function mdParse(markdown, baseDir, options = {}) {
         } else {
           // Not a valid table header, treat as regular paragraph text
           if (!isInPara) { html += '<p>'; isInPara = true; }
-          html += `${renderInlineText(rawLine, baseDir)}`;
+          html += `${renderInlineText(rawLine, baseDir, parseOptions)}`;
           if (i + 1 < lines.length && escapeMarkdown(lines[i + 1]).trim() !== '') html += '<br>';
         }
       } else {
@@ -428,7 +436,7 @@ export function mdParse(markdown, baseDir, options = {}) {
       closeAllLists();
       closePara();
       if (!isInTodo) { isInTodo = true; html += '<ul class="todo">'; }
-      const taskText = renderInlineText(rawLine.slice(5).trim(), baseDir);
+      const taskText = renderInlineText(rawLine.slice(5).trim(), baseDir, parseOptions);
       html += match[1] === 'x'
         ? `<li><input type="checkbox" id="todo${i}" disabled checked><label for="todo${i}">${taskText}</label></li>`
         : `<li><input type="checkbox" id="todo${i}" disabled><label for="todo${i}">${taskText}</label></li>`;
@@ -477,7 +485,7 @@ export function mdParse(markdown, baseDir, options = {}) {
         }
       }
       // List item content
-      html += `<li>${renderInlineText(String(content).trim(), baseDir)}</li>`;
+      html += `<li>${renderInlineText(String(content).trim(), baseDir, parseOptions)}</li>`;
       // Continue to next line; we'll close lists when pattern breaks
       const next = (i + 1 < lines.length) ? escapeMarkdown(lines[i + 1]) : '';
       if (!next || (!next.match(/^(\s*)[-*+]\s+(.+)$/) && !next.match(/^(\s*)\d{1,9}[\.)]\s+(.+)$/))) {
@@ -495,7 +503,7 @@ export function mdParse(markdown, baseDir, options = {}) {
       closeAllLists();
       closePara();
       const level = rawLine.match(/^#+/)[0].length;
-      const text = renderInlineText(rawLine.slice(level).trim(), baseDir);
+      const text = renderInlineText(rawLine.slice(level).trim(), baseDir, parseOptions);
       html += `<h${level} id="${i}"><a class="anchor" href="#${i}" aria-label="Permalink">#</a>${text}</h${level}>`;
       if (level >= 2 && level <= 3) {
         tochtml.push(`<a href="#${i}">${text}</a>`);
@@ -509,7 +517,7 @@ export function mdParse(markdown, baseDir, options = {}) {
 
     // Regular paragraph text
     {
-      const lineHtmlRaw = renderInlineText(rawLine, baseDir);
+      const lineHtmlRaw = renderInlineText(rawLine, baseDir, parseOptions);
       const lineHtml = String(lineHtmlRaw || '').trim();
       // Skip lines that render to empty or a single <br>
       if (lineHtml && lineHtml !== '<br>') {

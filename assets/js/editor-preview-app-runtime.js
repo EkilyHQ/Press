@@ -2,10 +2,16 @@ import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-s
 
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 const THEME_PACK_HREF_GLOBAL = '__themePackHref';
+const CONTENT_ROOT_GLOBAL = '__press_content_root';
 
 function normalizeRequestId(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function normalizeContentRoot(contentRoot) {
+  const raw = contentRoot == null ? '' : String(contentRoot).trim();
+  return raw.replace(/[\\]+/g, '/').replace(/^\/+|\/+$/g, '') || 'wwwroot';
 }
 
 function setDocumentTheme(documentElement, dark) {
@@ -64,6 +70,14 @@ export function createEditorPreviewAppRuntime(options = {}) {
 
   function getActiveThemePack() {
     return activeThemePack;
+  }
+
+  function setContentRoot(contentRoot) {
+    return runtime.globals.setString(CONTENT_ROOT_GLOBAL, normalizeContentRoot(contentRoot));
+  }
+
+  function getContentRoot() {
+    return normalizeContentRoot(runtime.globals.getString(CONTENT_ROOT_GLOBAL, 'wwwroot'));
   }
 
   function applyColorMode(siteConfig = {}) {
@@ -152,6 +166,7 @@ export function createEditorPreviewAppRuntime(options = {}) {
     setTimer: runtime.browser.setTimer,
     writeClipboardText,
     getNodeFilter: runtime.browser.getNodeFilter,
+    getLocationOrigin: runtime.browser.getLocationOrigin,
     postToParent,
     onRenderMessage,
     isTrustedMessageEvent,
@@ -160,6 +175,8 @@ export function createEditorPreviewAppRuntime(options = {}) {
     shouldResetThemePack,
     setActiveThemePack,
     getActiveThemePack,
+    setContentRoot,
+    getContentRoot,
     applyColorMode,
     applyThemeStyleLinks,
     querySelector,

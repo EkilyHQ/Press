@@ -186,7 +186,16 @@ function __press_isAllowedAttr(tag, attr) {
   return !!(spec && spec.has(a));
 }
 
-function __press_rewriteHref(val, baseDir) {
+function normalizeImageResolutionOptions(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  if (opts.imageResolution && typeof opts.imageResolution === 'object') return opts.imageResolution;
+  const normalized = {};
+  if (Object.prototype.hasOwnProperty.call(opts, 'contentRoot')) normalized.contentRoot = opts.contentRoot;
+  if (typeof opts.origin === 'string' && opts.origin) normalized.origin = opts.origin;
+  return normalized;
+}
+
+function __press_rewriteHref(val, baseDir, options = {}) {
   const s = String(val || '').trim();
   if (!s) return s;
   if (s.startsWith('#') || s.startsWith('?')) return s;
@@ -195,16 +204,16 @@ function __press_rewriteHref(val, baseDir) {
   if (checked === '#') return '#';
   if (scheme) return checked;
   if (s.startsWith('/')) return s;
-  return resolveImageSrc(s, baseDir);
+  return resolveImageSrc(s, baseDir, options);
 }
 
-function __press_rewriteSrc(val, baseDir) {
+function __press_rewriteSrc(val, baseDir, options = {}) {
   const s = String(val || '').trim();
   if (!s) return s;
   const scheme = getUrlSchemeForCheck(s);
   if (scheme) return sanitizeImageUrl(s) || '#';
   if (s.startsWith('/') || s.startsWith('#')) return s;
-  return resolveImageSrc(s, baseDir);
+  return resolveImageSrc(s, baseDir, options);
 }
 
 function __press_sanitizeRenderedStyle(tag, value) {
@@ -226,6 +235,7 @@ export function setSafeHtml(target, html, baseDir, options = {}) {
   // elements/attributes programmatically.
   try {
     const safeHtml = input;
+    const imageResolution = normalizeImageResolutionOptions(opts);
 
     // Minimal HTML entity unescape for attribute values we set via setAttribute.
     const unescapeHtml = (s) => String(s || '')
@@ -331,8 +341,8 @@ export function setSafeHtml(target, html, baseDir, options = {}) {
         if (!__press_isAllowedAttr(tag, name)) continue;
         const rawVal = a[3] ?? a[4] ?? a[5] ?? '';
         let val = unescapeHtml(rawVal);
-        if (name === 'href') val = __press_rewriteHref(val, baseDir);
-        else if (name === 'src' || name === 'poster') val = __press_rewriteSrc(val, baseDir);
+        if (name === 'href') val = __press_rewriteHref(val, baseDir, imageResolution);
+        else if (name === 'src' || name === 'poster') val = __press_rewriteSrc(val, baseDir, imageResolution);
         else if (name === 'style') {
           val = __press_sanitizeRenderedStyle(tag, val);
           if (!val) continue;

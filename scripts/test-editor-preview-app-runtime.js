@@ -158,6 +158,11 @@ function createDocumentRef() {
   assert.equal(runtime.getActiveThemePack(), 'native');
   assert.equal(runtime.shouldResetThemePack('native'), false);
   assert.equal(runtime.shouldResetThemePack('arcus'), true);
+  assert.equal(runtime.getContentRoot(), 'wwwroot');
+  assert.equal(runtime.setContentRoot('/content/'), true);
+  assert.equal(runtime.getContentRoot(), 'content');
+  assert.equal(windowRef.__press_content_root, 'content');
+  assert.equal(runtime.getLocationOrigin(), 'https://preview.test');
 
   runtime.applyColorMode({ themeMode: 'dark' });
   assert.equal(documentRef.documentElement.getAttribute('data-theme'), 'dark');
@@ -231,6 +236,7 @@ function createDocumentRef() {
         }
       },
       location: { origin: 'https://ambient.test' },
+      __press_content_root: 'ambient',
       addEventListener() {
         ambientCalls.push('window.addEventListener');
       }
@@ -270,6 +276,7 @@ function createDocumentRef() {
     assert.equal(runtime.getBody(), null);
     assert.equal(runtime.getThemeLayoutPackFallback(), '');
     assert.equal(runtime.getPreviewStatusElement({ fallbackToBody: true }), null);
+    assert.equal(runtime.getContentRoot(), 'wwwroot');
     assert.equal(await runtime.fetchText('ambient.md'), '');
     assert.deepEqual(ambientCalls, []);
   } finally {

@@ -406,6 +406,7 @@ export function createEditorMainPreviewSession(options = {}) {
       requestId: ++previewRenderRequestId,
       themePack: getActivePreviewThemePack(),
       markdown: mdText == null ? '' : String(mdText),
+      contentRoot: getContentRoot(),
       baseDir: getEditorBaseDir(),
       currentPath: previewAssetCurrentPath || '',
       siteConfig: getSiteConfig() || {},

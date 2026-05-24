@@ -4425,6 +4425,30 @@ assert.match(
 
 assert.match(
   editorPreviewAppRuntimeSource,
+  /const CONTENT_ROOT_GLOBAL = '__press_content_root';[\s\S]*function normalizeContentRoot\(contentRoot\)[\s\S]*function setContentRoot\(contentRoot\) \{[\s\S]*runtime\.globals\.setString\(CONTENT_ROOT_GLOBAL, normalizeContentRoot\(contentRoot\)\)[\s\S]*function getContentRoot\(\) \{[\s\S]*runtime\.globals\.getString\(CONTENT_ROOT_GLOBAL, 'wwwroot'\)[\s\S]*setContentRoot,[\s\S]*getContentRoot,/,
+  'editor preview app runtime should own iframe content-root reads and writes'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /const getPreviewPayload = \(mdText\) => \{[\s\S]*contentRoot: getContentRoot\(\),[\s\S]*baseDir: getEditorBaseDir\(\)/,
+  'editor main preview session should carry the runtime content root into preview render payloads'
+);
+
+assert.doesNotMatch(
+  editorPreviewRuntimeSource,
+  /import \{ getContentRoot, setSafeHtml \} from '\.\/safe-html\.js\?v=[\w.-]+';/,
+  'editor preview runtime should not import ambient safe-html content-root reads'
+);
+
+assert.match(
+  editorPreviewRuntimeSource,
+  /import \{ setSafeHtml \} from '\.\/safe-html\.js\?v=[\w.-]+';[\s\S]*function getContentRoot\(\) \{[\s\S]*previewRuntime\.getContentRoot\(\)[\s\S]*function applyPreviewContentRoot\(payload = \{\}\) \{[\s\S]*previewRuntime\.setContentRoot\(inferPayloadContentRoot\(payload\)\)[\s\S]*function getImageResolutionOptions\(\) \{[\s\S]*contentRoot: getContentRoot\(\),[\s\S]*origin: previewRuntime\.getLocationOrigin\(\)[\s\S]*function setPreviewSafeHtml\(target, html, baseDir, options = \{\}\)[\s\S]*mdParse\(markdown, baseDir, \{ imageResolution \}\)[\s\S]*setPreviewSafeHtml\(main, output\.post \|\| '', baseDir, \{ alreadySanitized: true, imageResolution \}\)/,
+  'editor preview runtime should route content-root and rendered image resolution through its explicit app runtime'
+);
+
+assert.match(
+  editorPreviewAppRuntimeSource,
   /let activeThemePack = '';[\s\S]*let latestRenderRequestId = 0;[\s\S]*function beginRender\(requestId\)[\s\S]*function isCurrentRender\(requestId\)[\s\S]*function shouldResetThemePack\(pack\)[\s\S]*function setActiveThemePack\(pack\)[\s\S]*return \{[\s\S]*beginRender,[\s\S]*isCurrentRender,[\s\S]*shouldResetThemePack,[\s\S]*setActiveThemePack,/,
   'editor preview app runtime should own active theme and render request state'
 );

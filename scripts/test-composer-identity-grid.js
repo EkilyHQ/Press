@@ -1777,8 +1777,20 @@ assert.doesNotMatch(
 
 assert.match(
   composerUiMotionSource,
-  /export function syncSiteEditorSingleLabelWidth\(root\)[\s\S]*export function animateComposerInlineVisibility\(element, show, options = \{\}\)[\s\S]*export function animateComposerListTransition\(list, previousRect, options = \{\}\)[\s\S]*export function animateComposerOrderMainReset\(host, previousRect, options = \{\}\)[\s\S]*export function slideToggle\(el, toOpen\)[\s\S]*export function getComposerSlideDurations\(\)/,
+  /export function configureComposerUiMotionRuntime\(options = \{\}\)[\s\S]*export function syncSiteEditorSingleLabelWidth\(root\)[\s\S]*export function animateComposerInlineVisibility\(element, show, options = \{\}\)[\s\S]*export function animateComposerListTransition\(list, previousRect, options = \{\}\)[\s\S]*export function animateComposerOrderMainReset\(host, previousRect, options = \{\}\)[\s\S]*export function slideToggle\(el, toOpen\)[\s\S]*export function getComposerSlideDurations\(\)/,
   'UI motion module should own composer label measurement, inline/list/order animations, slide toggles, and shared durations'
+);
+
+assert.match(
+  source,
+  /configureComposerUiMotionRuntime\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\)[\s\S]*\}\);/,
+  'composer should configure UI motion browser effects through the explicit runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerUiMotionSource,
+  /typeof (?:window|document|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|performance|ResizeObserver)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
+  'UI motion module should consume browser effects through configured runtime adapters instead of ambient globals'
 );
 
 assert.match(
@@ -5661,13 +5673,13 @@ assert.match(
 
 assert.match(
   composerUiMotionSource,
-  /export function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestAnimationFrame[\s\S]*ResizeObserver/,
+  /export function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
   'compact single-value labels should be measured once after render and shared through a CSS variable'
 );
 
 assert.match(
   siteSettingsSource,
-  /label\.scrollWidth[\s\S]*getComputedStyle\(target\)[\s\S]*gap/,
+  /label\.scrollWidth[\s\S]*getComputedStyleFor\(target\)[\s\S]*gap/,
   'compact single-value label measurement should use intrinsic label width instead of the currently constrained grid cell'
 );
 

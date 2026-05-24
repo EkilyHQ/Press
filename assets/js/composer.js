@@ -81,6 +81,7 @@ import {
   captureElementRect,
   clearInlineSlideStyles,
   composerPrefersReducedMotion,
+  configureComposerUiMotionRuntime,
   getComposerSlideDurations,
   resolveComposerScrollDuration,
   slideToggle,
@@ -124,6 +125,18 @@ const LANGUAGE_POOL_CHANGED_EVENT = COMPOSER_RUNTIME_EVENTS.languagePoolChanged;
 const editorRuntime = createComposerRuntime();
 const composerDocument = editorRuntime.documentRef;
 const composerWindow = editorRuntime.windowRef;
+configureComposerUiMotionRuntime({
+  documentRef: composerDocument,
+  windowRef: composerWindow,
+  requestAnimationFrameRef: (handler) => editorRuntime.requestFrame(handler),
+  cancelAnimationFrameRef: (id) => editorRuntime.cancelFrame(id),
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
+  matchesMedia: (query) => editorRuntime.matchesMedia(query),
+  getComputedStyleRef: (element) => editorRuntime.getComputedStyle(element),
+  performanceRef: editorRuntime.getPerformance(),
+  ResizeObserverRef: editorRuntime.getResizeObserver()
+});
 
 // Utility helpers
 const $ = (selector, root = composerDocument) => {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   captureElementRect,
   clearInlineSlideStyles,
+  configureComposerUiMotionRuntime,
   getComposerSlideDurations,
   resolveComposerScrollDuration,
   slideToggle,
@@ -21,41 +22,43 @@ function createStyleRecorder() {
   };
 }
 
-const originalWindow = globalThis.window;
-const originalDocument = globalThis.document;
-const originalResizeObserver = globalThis.ResizeObserver;
-
 try {
-  globalThis.window = {
-    requestAnimationFrame(fn) {
+  configureComposerUiMotionRuntime({
+    documentRef: {
+      documentElement: { style: createStyleRecorder() },
+      fonts: {
+        ready: Promise.resolve()
+      }
+    },
+    requestAnimationFrameRef(fn) {
       fn(0);
       return 1;
     },
-    cancelAnimationFrame() {},
-    getComputedStyle(target) {
+    cancelAnimationFrameRef() {},
+    setTimeoutRef(fn) {
+      fn();
+      return 1;
+    },
+    clearTimeoutRef() {},
+    getComputedStyleRef(target) {
       return target.__computedStyle || target.style || {};
     },
-    matchMedia() {
-      return { matches: true };
+    matchesMedia() {
+      return true;
+    },
+    ResizeObserverRef: class {
+      constructor(callback) {
+        this.callback = callback;
+        this.targets = [];
+      }
+      observe(target) {
+        this.targets.push(target);
+      }
+      disconnect() {
+        this.targets = [];
+      }
     }
-  };
-  globalThis.document = {
-    fonts: {
-      ready: Promise.resolve()
-    }
-  };
-  globalThis.ResizeObserver = class {
-    constructor(callback) {
-      this.callback = callback;
-      this.targets = [];
-    }
-    observe(target) {
-      this.targets.push(target);
-    }
-    disconnect() {
-      this.targets = [];
-    }
-  };
+  });
 
   const rootStyle = createStyleRecorder();
   const tooltip = { scrollWidth: 14 };
@@ -154,7 +157,5 @@ try {
     'captureElementRect should keep only stable transition dimensions'
   );
 } finally {
-  globalThis.window = originalWindow;
-  globalThis.document = originalDocument;
-  globalThis.ResizeObserver = originalResizeObserver;
+  configureComposerUiMotionRuntime();
 }

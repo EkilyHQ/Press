@@ -93,7 +93,8 @@ class FakeResizeObserver {}
   windowRef.ResizeObserver = FakeResizeObserver;
   windowRef.performance = { now: () => 42 };
   windowRef.CSS = { escape: value => `escaped:${value}` };
-  windowRef.navigator = { clipboard: { writeText() {} } };
+  const clipboardWrites = [];
+  windowRef.navigator = { clipboard: { writeText(value) { clipboardWrites.push(value); } } };
   const writes = new Map();
   windowRef.localStorage = {
     getItem(key) {
@@ -120,6 +121,9 @@ class FakeResizeObserver {}
   const messages = [];
   const scrolls = [];
   const openedWindows = [];
+  const appendedNodes = [];
+  const removedNodes = [];
+  const legacyCopyCommands = [];
   windowRef.location = {
     origin: 'https://example.test',
     href: 'https://example.test/editor.html?mode=sync#panel',
@@ -171,6 +175,27 @@ class FakeResizeObserver {}
   documentRef.querySelector = selector => ({ selector });
   documentRef.querySelectorAll = selector => [{ selector }];
   documentRef.documentElement = { scrollTop: 11, clientWidth: 960, clientHeight: 720 };
+  documentRef.body = {
+    appendChild(node) {
+      appendedNodes.push(node);
+    },
+    removeChild(node) {
+      removedNodes.push(node);
+    }
+  };
+  documentRef.createElement = tagName => ({
+    tagName: String(tagName || '').toUpperCase(),
+    style: {},
+    value: '',
+    focused: false,
+    selected: false,
+    focus() { this.focused = true; },
+    select() { this.selected = true; }
+  });
+  documentRef.execCommand = command => {
+    legacyCopyCommands.push(command);
+    return command === 'copy';
+  };
 
   const runtime = createEditorAppRuntime({ windowRef, documentRef });
   assert.equal(runtime.storage.setItem('mode', 'sync'), true);
@@ -264,6 +289,18 @@ class FakeResizeObserver {}
     { args: ['https://example.test/popup', '_blank'] }
   );
   assert.deepEqual(openedWindows.at(-1), ['https://example.test/popup', '_blank']);
+  assert.equal(await runtime.browser.writeClipboardText('copy me'), true);
+  assert.deepEqual(clipboardWrites, ['copy me']);
+  assert.deepEqual(legacyCopyCommands, []);
+  windowRef.isSecureContext = false;
+  assert.equal(await runtime.browser.writeClipboardText('legacy copy'), true);
+  assert.equal(appendedNodes.length, 1);
+  assert.equal(removedNodes.length, 1);
+  assert.equal(appendedNodes[0], removedNodes[0]);
+  assert.equal(appendedNodes[0].value, 'legacy copy');
+  assert.equal(appendedNodes[0].focused, true);
+  assert.equal(appendedNodes[0].selected, true);
+  assert.deepEqual(legacyCopyCommands, ['copy']);
 }
 
 {
@@ -355,6 +392,7 @@ class FakeResizeObserver {}
     assert.equal(runtime.browser.getLocation(), null);
     assert.equal(runtime.browser.getLocationOrigin(), '');
     assert.equal(runtime.browser.getLocationHref(), '');
+    assert.equal(await runtime.browser.writeClipboardText('ambient copy'), false);
     assert.equal(runtime.browser.warn('ambient'), false);
     assert.equal(runtime.browser.error('ambient'), false);
     assert.deepEqual(

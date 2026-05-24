@@ -1818,7 +1818,7 @@ assert.match(
 
 assert.doesNotMatch(
   composerRuntimeSource,
-  /typeof (?:navigator|fetch|alert|confirm|console|open|location|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef\b|globalThis\.(?:getComputedStyle|location)|windowRef\.(?:fetch|alert|confirm|console|open|location|isSecureContext|performance|CSS|getComputedStyle|ResizeObserver)/,
+  /typeof (?:navigator|fetch|alert|confirm|console|open|location|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef\b|runtime\.browser\.isSecureContext\(|documentRef\.(?:body|createElement|execCommand)|globalThis\.(?:getComputedStyle|location)|windowRef\.(?:fetch|alert|confirm|console|open|location|isSecureContext|performance|CSS|getComputedStyle|ResizeObserver)/,
   'composer runtime should delegate browser global lookup to the shared editor app runtime facade'
 );
 

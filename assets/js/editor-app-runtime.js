@@ -519,6 +519,47 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  async function writeClipboardText(text, navigatorOverride = null) {
+    const value = String(text || '');
+    const navigatorRef = navigatorOverride || getNavigator();
+    try {
+      const clipboard = navigatorRef && navigatorRef.clipboard;
+      if (clipboard && typeof clipboard.writeText === 'function' && isSecureContext()) {
+        await clipboard.writeText(value);
+        return true;
+      }
+    } catch (_) {}
+
+    let textarea = null;
+    try {
+      if (!documentRef || typeof documentRef.createElement !== 'function') return false;
+      textarea = documentRef.createElement('textarea');
+      if (!textarea) return false;
+      textarea.value = value;
+      if (textarea.style) {
+        textarea.style.position = 'fixed';
+        textarea.style.top = '0';
+        textarea.style.left = '0';
+        textarea.style.width = '1px';
+        textarea.style.height = '1px';
+        textarea.style.opacity = '0';
+      }
+      if (!documentRef.body || typeof documentRef.body.appendChild !== 'function') return false;
+      documentRef.body.appendChild(textarea);
+      if (typeof textarea.focus === 'function') textarea.focus();
+      if (typeof textarea.select === 'function') textarea.select();
+      return !!(typeof documentRef.execCommand === 'function' && documentRef.execCommand('copy'));
+    } catch (_) {
+      return false;
+    } finally {
+      try {
+        if (textarea && documentRef && documentRef.body && typeof documentRef.body.removeChild === 'function') {
+          documentRef.body.removeChild(textarea);
+        }
+      } catch (_) {}
+    }
+  }
+
   return {
     getElementById: (id) => {
       try { return documentRef && typeof documentRef.getElementById === 'function' ? documentRef.getElementById(id) : null; }
@@ -564,7 +605,8 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     confirmAction,
     getPerformance,
     getCss,
-    scrollToTop
+    scrollToTop,
+    writeClipboardText
   };
 }
 

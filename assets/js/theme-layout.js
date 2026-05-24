@@ -15,19 +15,19 @@ import {
   getLanguageLabel
 } from './i18n.js?v=press-system-v3.4.50';
 import {
+  createThemeRegionController,
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
-  getThemeLayoutContext as readThemeLayoutContext,
-  getThemeRegion,
+  getDefaultThemeRegionController,
   mergeThemeRegions,
-  setThemeLayoutContext
 } from './theme-regions.js';
 
-function createThemeLayoutState() {
+function createThemeLayoutState(options = {}) {
   return {
     activePack: null,
     layoutPromise: null,
-    layoutMountGeneration: 0
+    layoutMountGeneration: 0,
+    regionController: options.regionController || getDefaultThemeRegionController()
   };
 }
 
@@ -197,7 +197,12 @@ function applyManifestStyles(pack, manifest) {
   } catch (_) {}
 }
 
-function clearFailedThemeArtifacts(pack) {
+function getThemeRegionController(options = {}) {
+  const state = getThemeLayoutState(options);
+  return state.regionController || getDefaultThemeRegionController();
+}
+
+function clearFailedThemeArtifacts(pack, options = {}) {
   try {
     document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
   } catch (_) {}
@@ -211,10 +216,10 @@ function clearFailedThemeArtifacts(pack) {
     document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
   } catch (_) {}
   try { delete document.body.dataset.themeLayout; } catch (_) {}
-  try { setThemeLayoutContext(null); } catch (_) {}
+  try { getThemeRegionController(options).setThemeLayoutContext(null); } catch (_) {}
 }
 
-function clearMountedThemeArtifacts() {
+function clearMountedThemeArtifacts(options = {}) {
   try {
     document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
   } catch (_) {}
@@ -222,7 +227,7 @@ function clearMountedThemeArtifacts() {
     document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
   } catch (_) {}
   try { delete document.body.dataset.themeLayout; } catch (_) {}
-  try { setThemeLayoutContext(null); } catch (_) {}
+  try { getThemeRegionController(options).setThemeLayoutContext(null); } catch (_) {}
 }
 
 function getThemeLayoutState(options = {}) {
@@ -426,6 +431,8 @@ async function mountLoadedModule(pack, entry, mod, context, manifest) {
 
 async function mountPack(pack, allowFallback = true, options = {}) {
   const persist = options.persist !== false;
+  const themeLayoutState = getThemeLayoutState(options);
+  const regionController = themeLayoutState.regionController || getDefaultThemeRegionController();
   const mountGeneration = getMountGeneration(options);
   let manifest;
   try {
@@ -439,7 +446,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
         suppressThemePack(pack);
         clearPendingThemePack(pack);
       }
-      clearFailedThemeArtifacts(pack);
+      clearFailedThemeArtifacts(pack, options);
       return mountPack(DEFAULT_PACK, false, options);
     }
     manifest = FALLBACK_MANIFEST;
@@ -462,7 +469,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
         suppressThemePack(pack);
         clearPendingThemePack(pack);
       }
-      clearFailedThemeArtifacts(pack);
+      clearFailedThemeArtifacts(pack, options);
       return mountPack(DEFAULT_PACK, false, options);
     }
     moduleResults = [];
@@ -478,7 +485,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
           suppressThemePack(pack);
           clearPendingThemePack(pack);
         }
-        clearFailedThemeArtifacts(pack);
+        clearFailedThemeArtifacts(pack, options);
         return mountPack(DEFAULT_PACK, false, options);
       }
       continue;
@@ -494,7 +501,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     manifest,
     theme: createThemeApi(pack, manifest),
     utilities: {
-      getRegion: getThemeRegion,
+      getRegion: (names) => regionController.getThemeRegion(names),
       warn: themeDevWarn
     }
   };
@@ -515,7 +522,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
           suppressThemePack(pack);
           clearPendingThemePack(pack);
         }
-        clearFailedThemeArtifacts(pack);
+        clearFailedThemeArtifacts(pack, options);
         return mountPack(DEFAULT_PACK, false, options);
       }
     }
@@ -524,7 +531,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
   if (!isCurrentMountGeneration(mountGeneration, options)) return null;
   document.body.dataset.themeLayout = pack;
   warnMissingRegions(pack, manifest, context);
-  setThemeLayoutContext(context);
+  regionController.setThemeLayoutContext(context);
   if (persist && pack !== DEFAULT_PACK) {
     commitThemePack(pack, { applyStyles: false });
   }
@@ -538,11 +545,11 @@ async function ensureThemeLayoutWithState(themeLayoutState, options = {}) {
   if (options && options.reset) {
     mountGeneration = themeLayoutState.layoutMountGeneration + 1;
     themeLayoutState.layoutMountGeneration = mountGeneration;
-    clearMountedThemeArtifacts();
+    clearMountedThemeArtifacts({ themeLayoutState });
     themeLayoutState.activePack = null;
     themeLayoutState.layoutPromise = null;
   }
-  const cachedContext = readThemeLayoutContext();
+  const cachedContext = themeLayoutState.regionController.getThemeLayoutContext();
   if (cachedContext && document.body.dataset.themeLayout === pack) {
     return cachedContext;
   }
@@ -564,13 +571,13 @@ export async function ensureThemeLayout(options = {}) {
 }
 
 export function getThemeLayoutContext() {
-  return readThemeLayoutContext();
+  return defaultThemeLayoutState.regionController.getThemeLayoutContext();
 }
 
-export function getThemeApiHandler(name) {
+function getThemeApiHandlerWithState(name, themeLayoutState) {
   const hookName = String(name || '').trim();
   if (!hookName) return null;
-  const context = readThemeLayoutContext();
+  const context = themeLayoutState.regionController.getThemeLayoutContext();
   const api = context && context.theme;
   if (api && typeof api === 'object') {
     const viewName = EFFECT_VIEW_NAMES[hookName];
@@ -584,13 +591,20 @@ export function getThemeApiHandler(name) {
   return null;
 }
 
-export function createThemeLayoutController() {
-  const themeLayoutState = createThemeLayoutState();
-  return {
-    ensureThemeLayout: (options = {}) => ensureThemeLayoutWithState(themeLayoutState, options),
-    getThemeLayoutContext,
-    getThemeApiHandler
-  };
+export function getThemeApiHandler(name) {
+  return getThemeApiHandlerWithState(name, defaultThemeLayoutState);
 }
 
-export { getThemeRegion };
+export function getThemeRegion(names) {
+  return defaultThemeLayoutState.regionController.getThemeRegion(names);
+}
+
+export function createThemeLayoutController() {
+  const themeLayoutState = createThemeLayoutState({ regionController: createThemeRegionController() });
+  return {
+    ensureThemeLayout: (options = {}) => ensureThemeLayoutWithState(themeLayoutState, options),
+    getThemeLayoutContext: () => themeLayoutState.regionController.getThemeLayoutContext(),
+    getThemeApiHandler: (name) => getThemeApiHandlerWithState(name, themeLayoutState),
+    getThemeRegion: (names) => themeLayoutState.regionController.getThemeRegion(names)
+  };
+}

@@ -1,9 +1,14 @@
 import { t } from './i18n.js?v=press-system-v3.4.50';
 import { getThemeRegion } from './theme-regions.js';
 
+function getRegionReader(options = {}) {
+  return options && typeof options.getRegion === 'function' ? options.getRegion : getThemeRegion;
+}
+
 // Anchors and Table of Contents enhancements
-export function setupAnchors() {
-  const container = getThemeRegion('main');
+export function setupAnchors(options = {}) {
+  const readThemeRegion = getRegionReader(options);
+  const container = readThemeRegion('main');
   if (!container) return;
   const headings = container.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
   headings.forEach(h => {
@@ -32,8 +37,9 @@ export function setupAnchors() {
   });
 }
 
-export function setupTOC() {
-  const tocRoot = getThemeRegion('toc');
+export function setupTOC(options = {}) {
+  const readThemeRegion = getRegionReader(options);
+  const tocRoot = readThemeRegion('toc');
   if (!tocRoot) return;
   if (typeof tocRoot.enhance === 'function') {
     try { tocRoot.enhance(); } catch (_) {}
@@ -83,7 +89,7 @@ export function setupTOC() {
   });
 
   // Track H2 and H3 headings
-  const mainRoot = getThemeRegion('main') || document;
+  const mainRoot = readThemeRegion('main') || document;
   const headings = Array.from(mainRoot.querySelectorAll('h2[id], h3[id]'));
   const trackable = new Set(headings.map(h => h.id));
   const onActive = (id) => {

@@ -303,6 +303,49 @@ await run('theme layout controllers keep in-flight layout state per instance', a
   assert.deepEqual(requested, ['modules/layout.js', 'modules/layout.js']);
 });
 
+await run('theme layout controllers keep region contexts per instance', async () => {
+  installGlobals({
+    savedPack: 'alpha',
+    manifests: {
+      alpha: makeManifest('alpha', ['modules/layout.js']),
+      beta: makeManifest('beta', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async (_path, moduleContext) => ({
+    mount(layoutContext) {
+      const root = document.createElement('main');
+      root.nodeType = 1;
+      root.id = `${moduleContext.pack}-main`;
+      root.setAttribute('data-theme-root', moduleContext.pack);
+      root.setAttribute('data-theme-region', 'main');
+      document.body.appendChild(root);
+      return {
+        regions: { main: root },
+        effects: {
+          renderPostView() {
+            return moduleContext.pack;
+          }
+        }
+      };
+    }
+  });
+  const { createThemeLayoutController, getThemeLayoutContext } = await freshThemeLayout();
+  const defaultContextBefore = getThemeLayoutContext();
+  const first = createThemeLayoutController();
+  const second = createThemeLayoutController();
+  await first.ensureThemeLayout({ pack: 'alpha', persist: false, reset: true });
+  const firstContext = first.getThemeLayoutContext();
+  const firstRegion = first.getThemeRegion('main');
+  await second.ensureThemeLayout({ pack: 'beta', persist: false, reset: true });
+  assert.equal(first.getThemeLayoutContext(), firstContext);
+  assert.equal(first.getThemeRegion('main'), firstRegion);
+  assert.equal(first.getThemeApiHandler('renderPostView')(), 'alpha');
+  assert.equal(second.getThemeRegion('main').id, 'beta-main');
+  assert.equal(second.getThemeApiHandler('renderPostView')(), 'beta');
+  assert.notEqual(first.getThemeLayoutContext(), second.getThemeLayoutContext());
+  assert.equal(getThemeLayoutContext(), defaultContextBefore);
+});
+
 await run('external theme module load failures fall back without waiting for slow modules', async () => {
   const requested = [];
   let slowResolved = false;

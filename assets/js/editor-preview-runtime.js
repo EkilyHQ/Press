@@ -13,7 +13,7 @@ import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.50';
 import { renderPostNav } from './post-nav.js?v=press-system-v3.4.50';
 import { renderTagSidebar } from './tags.js?v=press-system-v3.4.50';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { createThemeLayoutController, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.50';
+import { createThemeLayoutController, createThemeI18nContext } from './theme-layout.js?v=press-system-v3.4.50';
 import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js?v=press-system-v3.4.50';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
@@ -141,6 +141,22 @@ function callThemeEffect(name, params) {
   return undefined;
 }
 
+function getPreviewThemeRegion(names) {
+  return themeLayout.getThemeRegion(names);
+}
+
+function setupPreviewAnchors() {
+  return setupAnchors({ getRegion: getPreviewThemeRegion });
+}
+
+function setupPreviewTOC() {
+  return setupTOC({ getRegion: getPreviewThemeRegion });
+}
+
+function renderPreviewTagSidebar(indexMap) {
+  return renderTagSidebar(indexMap, { getRegion: getPreviewThemeRegion });
+}
+
 function normalizeAssetKey(value) {
   return String(value || '')
     .trim()
@@ -238,7 +254,7 @@ function createRuntimeContext({ payload, containers, content }) {
     regions: layout && layout.regions,
     containers,
     utilities: {
-      getRegion: getThemeRegion,
+      getRegion: getPreviewThemeRegion,
       renderPostNav,
       hydratePostImages,
       hydratePostVideos,
@@ -246,9 +262,9 @@ function createRuntimeContext({ payload, containers, content }) {
       applyLazyLoadingIn,
       applyLangHints: applyPreviewLangHints,
       renderPostTOC: () => {},
-      renderTagSidebar,
-      setupAnchors,
-      setupTOC,
+      renderTagSidebar: renderPreviewTagSidebar,
+      setupAnchors: setupPreviewAnchors,
+      setupTOC: setupPreviewTOC,
       ensureAutoHeight: (el) => {
         if (!el) return;
         try {
@@ -330,10 +346,10 @@ async function renderPreview(payload = {}) {
         applyLazyLoadingIn,
         applyLangHints: applyPreviewLangHints,
         renderPostTOC: () => {},
-        renderTagSidebar,
+        renderTagSidebar: renderPreviewTagSidebar,
         getArticleTitleFromMain,
-        setupAnchors,
-        setupTOC,
+        setupAnchors: setupPreviewAnchors,
+        setupTOC: setupPreviewTOC,
         ensureAutoHeight: (el) => {
           if (!el) return;
           try {

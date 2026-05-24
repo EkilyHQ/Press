@@ -14,6 +14,7 @@ import { renderPostNav } from './post-nav.js?v=press-system-v3.4.50';
 import { renderTagSidebar } from './tags.js?v=press-system-v3.4.50';
 import { getArticleTitleFromMain } from './dom-utils.js';
 import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.50';
+import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js?v=press-system-v3.4.50';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';
@@ -24,8 +25,10 @@ const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 let activePack = '';
 let latestRenderRequestId = 0;
 
+const previewRuntime = createEditorPreviewAppRuntime();
+
 function postToParent(payload) {
-  try { window.parent.postMessage(payload, window.location.origin); } catch (_) {}
+  previewRuntime.postToParent(payload);
 }
 
 function sanitizePack(value) {
@@ -49,28 +52,7 @@ function isCurrentPreviewRender(requestId) {
 }
 
 function applyPreviewColorMode(siteConfig = {}) {
-  const mode = String(siteConfig.themeMode || '').toLowerCase();
-  if (mode === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    return;
-  }
-  if (mode === 'light') {
-    document.documentElement.removeAttribute('data-theme');
-    return;
-  }
-  if (mode === 'auto') {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-    return;
-  }
-  try {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-    else document.documentElement.removeAttribute('data-theme');
-  } catch (_) {}
+  previewRuntime.applyColorMode(siteConfig);
 }
 
 function restorePreviewThemeStyles(pack, manifest) {
@@ -141,7 +123,7 @@ function callThemeEffect(name, params) {
     const handler = getThemeApiHandler(name);
     if (typeof handler === 'function') return handler(params);
   } catch (err) {
-    console.warn('[editor-preview] Theme handler failed', name, err);
+    previewRuntime.warn('[editor-preview] Theme handler failed', name, err);
   }
   return undefined;
 }
@@ -220,8 +202,8 @@ function resolvePostMetadata(payload) {
 function createRuntimeContext({ payload, containers, content }) {
   const layout = getThemeLayoutContext();
   return {
-    document,
-    window,
+    document: previewRuntime.documentRef,
+    window: previewRuntime.windowRef,
     view: 'post',
     route: { key: payload.currentPath ? `post:${payload.currentPath}` : 'editor-preview', id: payload.currentPath || '' },
     router: {
@@ -253,7 +235,7 @@ function createRuntimeContext({ payload, containers, content }) {
           el.style.overflow = '';
         } catch (_) {}
       },
-      getFile: (filename) => fetch(String(filename || ''), { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
+      getFile: (filename) => previewRuntime.fetchText(filename),
       getContentRoot,
       setSafeHtml
     },
@@ -314,8 +296,8 @@ async function renderPreview(payload) {
       allowedLocations,
       locationAliasMap,
       translate: t,
-      document,
-      window,
+      document: previewRuntime.documentRef,
+      window: previewRuntime.windowRef,
       utilities: {
         renderPostNav,
         hydratePostImages,
@@ -336,11 +318,11 @@ async function renderPreview(payload) {
             el.style.overflow = '';
           } catch (_) {}
         },
-        getFile: (filename) => fetch(String(filename || ''), { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
+        getFile: (filename) => previewRuntime.fetchText(filename),
         getContentRoot,
         setSafeHtml,
         withLangParam,
-        fetchMarkdown: (loc) => fetch(`${getContentRoot()}/${loc}`, { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
+        fetchMarkdown: (loc) => previewRuntime.fetchText(`${getContentRoot()}/${loc}`),
         makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
       }
     }));
@@ -387,8 +369,8 @@ async function renderPreview(payload) {
   }
 }
 
-window.addEventListener('message', (event) => {
-  if (event.origin !== window.location.origin) return;
+previewRuntime.onRenderMessage((event) => {
+  if (!previewRuntime.isTrustedMessageEvent(event)) return;
   const payload = event.data && typeof event.data === 'object' ? event.data : {};
   if (payload.type !== RENDER_MESSAGE) return;
   latestRenderRequestId = normalizeRequestId(payload.requestId);

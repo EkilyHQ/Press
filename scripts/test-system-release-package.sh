@@ -146,6 +146,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-app-runtime.js" "${entri
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-preview-app-runtime.js" "${entries_file}"; then
+  echo "expected package to include editor preview app runtime boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-main-runtime.js" "${entries_file}"; then
   echo "expected package to include editor main runtime boundary code" >&2
   exit 1

@@ -230,7 +230,6 @@ editorMainRuntime.onDocumentReady(() => {
   const sidebarSession = createEditorMainSidebarSession({
     runtime: editorMainRuntime,
     documentRef: editorMainDocument,
-    windowRef: editorMainWindow,
     normalizeLangKey,
     bindCurrentFileElement: fileContextService.bindCurrentFileElement,
     loadSiteConfig: contentService.loadSiteConfig,

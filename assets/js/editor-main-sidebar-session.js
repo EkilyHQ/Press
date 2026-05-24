@@ -11,18 +11,9 @@ function getElement(documentRef, runtime, id) {
     : null;
 }
 
-function defaultAlert(message, windowRef) {
-  try {
-    if (windowRef && typeof windowRef.alert === 'function') {
-      windowRef.alert(message);
-    }
-  } catch (_) {}
-}
-
 export function createEditorMainSidebarSession(options = {}) {
   const runtime = options.runtime || {};
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const normalizeLangKey = typeof options.normalizeLangKey === 'function'
     ? options.normalizeLangKey
     : fallbackNormalizeLangKey;
@@ -52,7 +43,7 @@ export function createEditorMainSidebarSession(options = {}) {
     : () => {};
   const showAlert = typeof options.alert === 'function'
     ? options.alert
-    : (message) => defaultAlert(message, windowRef);
+    : () => {};
 
   let listIndex = null;
   let listTabs = null;

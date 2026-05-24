@@ -1405,7 +1405,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const sidebarSession = createEditorMainSidebarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*windowRef: editorMainWindow,[\s\S]*normalizeLangKey,[\s\S]*bindCurrentFileElement: fileContextService\.bindCurrentFileElement,[\s\S]*loadSiteConfig: contentService\.loadSiteConfig,[\s\S]*loadIndexData: contentService\.loadIndexData,[\s\S]*loadTabsConfig: contentService\.loadTabsConfig,[\s\S]*onSiteConfigLoaded: contentService\.handleSiteConfigLoaded,[\s\S]*onIndexLoaded: contentService\.handleIndexLoaded,[\s\S]*onOpenMarkdown: contentService\.openMarkdown,[\s\S]*onWarn: contentService\.warn,[\s\S]*alert: contentService\.alert[\s\S]*\}\);[\s\S]*sidebarSession\.initialize\(\);/,
+  /const sidebarSession = createEditorMainSidebarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*normalizeLangKey,[\s\S]*bindCurrentFileElement: fileContextService\.bindCurrentFileElement,[\s\S]*loadSiteConfig: contentService\.loadSiteConfig,[\s\S]*loadIndexData: contentService\.loadIndexData,[\s\S]*loadTabsConfig: contentService\.loadTabsConfig,[\s\S]*onSiteConfigLoaded: contentService\.handleSiteConfigLoaded,[\s\S]*onIndexLoaded: contentService\.handleIndexLoaded,[\s\S]*onOpenMarkdown: contentService\.openMarkdown,[\s\S]*onWarn: contentService\.warn,[\s\S]*alert: contentService\.alert[\s\S]*\}\);[\s\S]*sidebarSession\.initialize\(\);/,
   'editor main should compose file sidebar rendering through the sidebar session and route loading/open actions through the content service'
 );
 
@@ -1538,6 +1538,12 @@ assert.match(
   editorMainSidebarSessionSource,
   /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
   'editor sidebar session should own file list active state, grouped rendering, filtering, group switching, and initialization'
+);
+
+assert.doesNotMatch(
+  editorMainSidebarSessionSource,
+  /\bwindowRef\b|options\.windowRef|defaultAlert/,
+  'editor sidebar session should receive alert behavior through explicit app-service injection instead of reading window refs'
 );
 
 assert.match(

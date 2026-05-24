@@ -49,6 +49,14 @@ function makeBaseOptions(overrides = {}) {
         return true;
       }
     },
+    consoleRef: {
+      error: (...args) => calls.push(['error', ...args]),
+      warn: (...args) => calls.push(['warn', ...args])
+    },
+    clearTimeoutRef: (id) => {
+      calls.push(['clear-timeout']);
+      clearTimeout(id);
+    },
     t: translate,
     getCurrentMode: () => 'markdown-1',
     getActiveDynamicTab: () => null,
@@ -227,18 +235,9 @@ function makeBaseOptions(overrides = {}) {
   });
   const controller = createComposerMarkdownActionsController(options);
 
-  const originalConsoleError = console.error;
-  const capturedErrors = [];
-  console.error = (...args) => {
-    capturedErrors.push(args);
-  };
-  try {
-    await controller.openMarkdownPushOnGitHub(tab);
-  } finally {
-    console.error = originalConsoleError;
-  }
+  await controller.openMarkdownPushOnGitHub(tab);
 
-  assert.equal(capturedErrors.length, 1);
+  assert(options.calls.some(call => call[0] === 'error' && call[1] === 'Failed to prepare protected markdown for GitHub edit'));
   assert(options.calls.some(call => call[0] === 'close-popup'));
   assert(options.calls.some(call => call[0] === 'toast' && call[1] === 'error' && call[2] === 'editor.composer.markdown.protection.prepareFailed'));
   assert(options.calls.some(call => call[0] === 'update-push' && call[1] === 'post/fail.md'));

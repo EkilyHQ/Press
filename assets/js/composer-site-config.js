@@ -120,7 +120,7 @@ export function applyInferredRepoConfig(site, inferred) {
 }
 
 export function createComposerSiteConfigController(options = {}) {
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const windowRef = options.windowRef || null;
   const runtime = options.runtime || null;
   const setContentRoot = typeof options.setContentRoot === 'function'
     ? options.setContentRoot
@@ -138,7 +138,9 @@ export function createComposerSiteConfigController(options = {}) {
     ? options.emitSiteConfigChange
     : (runtime && typeof runtime.emitSiteConfigChange === 'function' ? runtime.emitSiteConfigChange : (siteConfig) => {
         try {
-          const EventCtor = windowRef && windowRef.CustomEvent ? windowRef.CustomEvent : CustomEvent;
+          if (!windowRef || typeof windowRef.dispatchEvent !== 'function') return false;
+          const EventCtor = windowRef.CustomEvent || null;
+          if (!EventCtor) return false;
           windowRef.dispatchEvent(new EventCtor('press-editor-site-config-change', {
             detail: { siteConfig }
           }));

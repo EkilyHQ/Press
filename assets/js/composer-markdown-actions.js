@@ -22,7 +22,24 @@ function setButtonBusyState(button, busy, text, setButtonLabel) {
 }
 
 export function createComposerMarkdownActionsController(options = {}) {
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const windowRef = options.windowRef || null;
+  const consoleRef = options.consoleRef || { error: noop, warn: noop };
+  const confirmRef = typeof options.confirmRef === 'function'
+    ? options.confirmRef
+    : (message) => {
+      try {
+        if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(message);
+      } catch (_) {
+        return true;
+      }
+      return true;
+    };
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
+    ? options.clearTimeoutRef
+    : (id) => {
+      if (id == null) return;
+      if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
+    };
   const t = typeof options.t === 'function' ? options.t : identityTranslate;
   const showToast = typeof options.showToast === 'function' ? options.showToast : noop;
   const setButtonLabel = typeof options.setButtonLabel === 'function' ? options.setButtonLabel : noop;
@@ -47,7 +64,7 @@ export function createComposerMarkdownActionsController(options = {}) {
       else if (!tab.loaded && typeof options.loadDynamicTabContent === 'function') await options.loadDynamicTabContent(tab);
       return true;
     } catch (err) {
-      console.error(logMessage, err);
+      consoleRef.error(logMessage, err);
       showToast('error', t('editor.toasts.unableLoadLatestMarkdown'));
       if (typeof updateButton === 'function') updateButton(tab);
       return false;
@@ -75,7 +92,7 @@ export function createComposerMarkdownActionsController(options = {}) {
 
     try {
       if (active.markdownDraftTimer) {
-        try { clearTimeout(active.markdownDraftTimer); }
+        try { clearTimeoutRef(active.markdownDraftTimer); }
         catch (_) {}
         active.markdownDraftTimer = null;
       }
@@ -88,7 +105,7 @@ export function createComposerMarkdownActionsController(options = {}) {
         showToast('info', options.getMarkdownSaveTooltip('empty'));
       }
     } catch (err) {
-      console.error('Manual markdown save failed', err);
+      consoleRef.error('Manual markdown save failed', err);
       showToast('error', t('editor.composer.markdown.save.toastError'));
     } finally {
       setButtonBusyState(button, false, originalLabel || options.getMarkdownSaveLabel(), setButtonLabel);
@@ -206,7 +223,7 @@ export function createComposerMarkdownActionsController(options = {}) {
       }
     } catch (err) {
       options.closePopupWindow(popup);
-      console.error('Failed to prepare markdown before pushing to GitHub', err);
+      consoleRef.error('Failed to prepare markdown before pushing to GitHub', err);
       showToast('error', t('editor.toasts.unableLoadLatestMarkdown'));
       options.updateMarkdownPushButton(tab);
       return;
@@ -258,7 +275,7 @@ export function createComposerMarkdownActionsController(options = {}) {
       preparedContent = prepared.content;
     } catch (err) {
       options.closePopupWindow(popup);
-      console.error('Failed to prepare protected markdown for GitHub edit', err);
+      consoleRef.error('Failed to prepare protected markdown for GitHub edit', err);
       showToast('error', t('editor.composer.markdown.protection.prepareFailed'));
       options.updateMarkdownPushButton(tab);
       return;
@@ -334,14 +351,8 @@ export function createComposerMarkdownActionsController(options = {}) {
         cancelLabel: t('editor.composer.dialogs.cancel')
       });
     } catch (err) {
-      console.warn('Markdown discard prompt failed, falling back to native confirm', err);
-      try {
-        if (windowRef && typeof windowRef.confirm === 'function') {
-          proceed = windowRef.confirm(promptMessage);
-        }
-      } catch (_) {
-        proceed = true;
-      }
+      consoleRef.warn('Markdown discard prompt failed, falling back to native confirm', err);
+      proceed = confirmRef(promptMessage);
     }
     if (!proceed) return;
 
@@ -355,12 +366,12 @@ export function createComposerMarkdownActionsController(options = {}) {
         catch (_) {}
       } else if (!active.loaded) {
         try { await options.loadDynamicTabContent(active); }
-        catch (err) { console.warn('Discard: failed to refresh markdown before reset', err); }
+        catch (err) { consoleRef.warn('Discard: failed to refresh markdown before reset', err); }
       }
 
       try {
         if (active.markdownDraftTimer) {
-          clearTimeout(active.markdownDraftTimer);
+          clearTimeoutRef(active.markdownDraftTimer);
           active.markdownDraftTimer = null;
         }
       } catch (_) {}
@@ -383,7 +394,7 @@ export function createComposerMarkdownActionsController(options = {}) {
 
       showToast('success', t('editor.toasts.discardSuccess', { label }));
     } catch (err) {
-      console.error('Failed to discard markdown changes', err);
+      consoleRef.error('Failed to discard markdown changes', err);
       showToast('error', t('editor.toasts.discardFailed'));
     } finally {
       setButtonBusyState(button, false, originalLabel || options.getMarkdownDiscardLabel(), setButtonLabel);

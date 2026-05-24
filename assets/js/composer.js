@@ -512,6 +512,9 @@ const {
 } = remoteSyncController;
 const markdownActionsController = createComposerMarkdownActionsController({
   windowRef: composerWindow,
+  consoleRef: console,
+  confirmRef: (message) => editorRuntime.confirmAction(message),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
   t,
   getCurrentMode: () => getCurrentComposerMode(),
   getActiveDynamicTab,
@@ -677,6 +680,7 @@ composerServices.setMarkdownSessionController(createComposerMarkdownSessionContr
   t,
   windowRef: composerWindow,
   alertRef: (message) => editorRuntime.showAlert(message),
+  confirmRef: (message) => editorRuntime.confirmAction(message),
   consoleRef: console,
   updateDynamicTabsGroupState,
   detachPrimaryEditorListeners,
@@ -1490,6 +1494,7 @@ function loadDraftSnapshotsIntoState(state) {
 const composerYamlActions = createComposerYamlActions({
   windowRef: composerWindow,
   consoleRef: console,
+  confirmRef: (message) => editorRuntime.confirmAction(message),
   t,
   fetchConfigWithYamlFallback,
   fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,

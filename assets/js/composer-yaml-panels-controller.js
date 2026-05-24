@@ -38,7 +38,7 @@ function collectOpenKeys(root, selector) {
 }
 
 export function createComposerYamlPanelsController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   const cssEscape = typeof options.cssEscape === 'function'
     ? options.cssEscape
     : (value) => String(value || '').replace(/[^a-zA-Z0-9_-]/g, '\\$&');

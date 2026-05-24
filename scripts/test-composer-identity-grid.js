@@ -1025,6 +1025,19 @@ assert.match(
   'YAML panels controller should own dynamic tab group state and YAML panel rebuilds'
 );
 
+assert.doesNotMatch(
+  [
+    composerSiteConfigSource,
+    composerYamlActionsSource,
+    composerYamlPanelsControllerSource,
+    composerMarkdownActionsUiSource,
+    composerMarkdownActionsSource,
+    composerMarkdownSessionSource
+  ].join('\n'),
+  /(?:documentRef|windowRef)\s*=\s*(?:document|window)\b|(?:documentRef|windowRef)\s*=\s*(?:options|opts)\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof (?:document|window)|typeof (?:document|window|setTimeout|requestAnimationFrame|clearTimeout|CustomEvent)\b|\|\|\s*console\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(/m,
+  'YAML/Markdown composer controllers should receive browser refs, timers, dialogs, and logging through explicit runtime wiring instead of rediscovering globals'
+);
+
 assert.match(
   source,
   /const composerServices = createComposerServiceRegistry\(\);[\s\S]*composerServices\.setMarkdownDraftController\(createComposerMarkdownDraftController\(\{[\s\S]*composerServices\.setMarkdownLoader\(createComposerMarkdownLoader\(\{[\s\S]*composerServices\.setMarkdownActionsUi\(createComposerMarkdownActionsUi\(\{[\s\S]*composerServices\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServices\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*composerServices\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
@@ -1798,6 +1811,12 @@ assert.match(
   'YAML action module should own refresh and discard flows'
 );
 
+assert.match(
+  source,
+  /const composerYamlActions = createComposerYamlActions\(\{[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  'composer should inject YAML action dialogs, logging, and timers through the runtime boundary'
+);
+
 assert.doesNotMatch(
   source,
   /let editorContentTree|let activeEditorTreeNodeId|function buildCurrentFileBreadcrumb\(tab\) \{[\s\S]*const ids = \[\];|function handleEditorTreeSelection\(nodeId\) \{[\s\S]*openMarkdownInEditor\(node\.path, \{ node \}\)/,
@@ -1880,6 +1899,12 @@ assert.match(
   composerMarkdownActionsSource,
   /export function createComposerMarkdownActionsController\(options = \{\}\)[\s\S]*async function manualSaveActiveMarkdown\(triggerButton\)[\s\S]*async function handleMarkdownProtectionButton\(anchor\)[\s\S]*async function openMarkdownPushOnGitHub\(tab\)[\s\S]*async function discardMarkdownLocalChanges\(tab, anchor\)/,
   'Markdown actions controller should own save, protection, GitHub open, and discard command flows'
+);
+
+assert.match(
+  source,
+  /const markdownActionsController = createComposerMarkdownActionsController\(\{[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),/,
+  'composer should inject Markdown action dialogs, logging, and timer clearing through the runtime boundary'
 );
 
 assert.match(
@@ -5093,6 +5118,12 @@ assert.match(
   composerMarkdownSessionSource,
   /export function createComposerMarkdownSessionController\(options = \{\}\)[\s\S]*const tabs = new Map\(\);[\s\S]*const tabsByLookupKey = new Map\(\);[\s\S]*let activeDynamicMode = null;[\s\S]*let activeMarkdownDocument = null;[\s\S]*function deriveDynamicTabIdentity\(path, identityOptions = \{\}\)/,
   'Markdown session controller should own dynamic tabs, active document state, and stable identity derivation'
+);
+
+assert.match(
+  source,
+  /createComposerMarkdownSessionController\(\{[\s\S]*requestAnimationFrameRef: \(fn\) => editorRuntime\.requestFrame\(fn\),[\s\S]*windowRef: composerWindow,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: console,/,
+  'composer should inject Markdown session frames, dialogs, and logging through the runtime boundary'
 );
 
 assert.doesNotMatch(

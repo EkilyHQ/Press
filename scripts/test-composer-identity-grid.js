@@ -1886,10 +1886,28 @@ assert.doesNotMatch(
   'composer root state, remote baselines, and diff cache should live behind the runtime state store'
 );
 
+assert.doesNotMatch(
+  source,
+  /let allowEditorStatePersist|let hasEditorStateV3Snapshot|let gitHubCommitInFlight|const expandedEditorTreeNodeIds = new Set/,
+  'composer app runtime state should not live in module-level mutable variables'
+);
+
 assert.match(
   source,
   /function getStateSlice\(kind\) \{\s*return composerStateStore\.getStateSlice\(kind\);\s*\}[\s\S]*function setStateSlice\(kind, value\) \{\s*composerStateStore\.setStateSlice\(kind, value\);\s*\}/,
   'composer state access should be routed through the explicit runtime state store'
+);
+
+assert.match(
+  source,
+  /editorRuntime\.initializeEditorSessionState\(\{[\s\S]*editorSessionStateStore,[\s\S]*editorStateVersion: EDITOR_STATE_VERSION[\s\S]*\}\);\s*const expandedEditorTreeNodeIds = editorRuntime\.getExpandedEditorTreeNodeIds\(\);/,
+  'composer should initialize editor session state through the explicit composer runtime'
+);
+
+assert.match(
+  source,
+  /getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*setAllowEditorStatePersist: \(value\) => editorRuntime\.setAllowEditorStatePersist\(value\)/,
+  'composer should route editor-state persistence gates through the explicit composer runtime'
 );
 
 assert.match(
@@ -4751,7 +4769,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishService = createComposerPublishService\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*consoleRef: composerLogger,[\s\S]*setGitHubCommitInFlight/,
+  /const composerPublishService = createComposerPublishService\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*consoleRef: composerLogger,[\s\S]*setGitHubCommitInFlight: \(value\) => editorRuntime\.setGitHubCommitInFlight\(value\)/,
   'composer should pass app callbacks into the publish service instead of assembling the publish control plane itself'
 );
 

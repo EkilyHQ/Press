@@ -24,9 +24,17 @@ function normalizeSiteRepo(repo) {
   };
 }
 
+function createDefaultExpandedEditorTreeNodeIds() {
+  return new Set(['articles', 'pages']);
+}
+
 export function createComposerRuntime(options = {}) {
   const runtime = createBrowserEditorAppRuntime(options);
   const clipboardNavigatorRef = options.navigatorRef || null;
+  const expandedEditorTreeNodeIds = createDefaultExpandedEditorTreeNodeIds();
+  let allowEditorStatePersist = false;
+  let hasEditorStateV3Snapshot = false;
+  let gitHubCommitInFlight = false;
 
   function onDocumentReady(handler) {
     return runtime.browser.onDocumentReady(handler);
@@ -172,6 +180,62 @@ export function createComposerRuntime(options = {}) {
     return runtime.browser.writeClipboardText(text, clipboardNavigatorRef);
   }
 
+  function initializeEditorSessionState({
+    editorSessionStateStore = null,
+    editorStateVersion = null,
+    legacySystemTreeNodeId = 'system'
+  } = {}) {
+    hasEditorStateV3Snapshot = false;
+    try {
+      const parsedEditorState = editorSessionStateStore
+        && typeof editorSessionStateStore.readEditorState === 'function'
+        ? editorSessionStateStore.readEditorState()
+        : null;
+      hasEditorStateV3Snapshot = !!(parsedEditorState && parsedEditorState.v === editorStateVersion);
+    } catch (_) {
+      hasEditorStateV3Snapshot = false;
+    }
+    try {
+      if (!hasEditorStateV3Snapshot
+        && editorSessionStateStore
+        && typeof editorSessionStateStore.readLegacySystemTreeExpanded === 'function'
+        && editorSessionStateStore.readLegacySystemTreeExpanded()) {
+        expandedEditorTreeNodeIds.add(String(legacySystemTreeNodeId || 'system'));
+      }
+    } catch (_) {}
+    return hasEditorStateV3Snapshot;
+  }
+
+  function getExpandedEditorTreeNodeIds() {
+    return expandedEditorTreeNodeIds;
+  }
+
+  function getExpandedEditorTreeNodeIdsSnapshot() {
+    return Array.from(expandedEditorTreeNodeIds);
+  }
+
+  function hasEditorStateSnapshot() {
+    return hasEditorStateV3Snapshot;
+  }
+
+  function getAllowEditorStatePersist() {
+    return allowEditorStatePersist;
+  }
+
+  function setAllowEditorStatePersist(value) {
+    allowEditorStatePersist = !!value;
+    return allowEditorStatePersist;
+  }
+
+  function isGitHubCommitInFlight() {
+    return gitHubCommitInFlight;
+  }
+
+  function setGitHubCommitInFlight(value) {
+    gitHubCommitInFlight = !!value;
+    return gitHubCommitInFlight;
+  }
+
   return {
     ...runtime,
     onDocumentReady,
@@ -207,6 +271,14 @@ export function createComposerRuntime(options = {}) {
     scrollWindowToTop,
     getComputedStyle,
     getResizeObserver,
-    writeClipboardText
+    writeClipboardText,
+    initializeEditorSessionState,
+    getExpandedEditorTreeNodeIds,
+    getExpandedEditorTreeNodeIdsSnapshot,
+    hasEditorStateSnapshot,
+    getAllowEditorStatePersist,
+    setAllowEditorStatePersist,
+    isGitHubCommitInFlight,
+    setGitHubCommitInFlight
   };
 }

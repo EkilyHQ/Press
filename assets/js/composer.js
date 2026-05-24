@@ -282,9 +282,7 @@ const composerPublishService = createComposerPublishService({
   showEditorSystemPanel: (mode) => showEditorSystemPanel(mode),
   showToast,
   consoleRef: composerLogger,
-  setGitHubCommitInFlight: (value) => {
-    gitHubCommitInFlight = !!value;
-  }
+  setGitHubCommitInFlight: (value) => editorRuntime.setGitHubCommitInFlight(value)
 });
 const {
   setSyncOverlayStatus,
@@ -429,19 +427,11 @@ const editorSessionStateStore = createEditorSessionStateStore({
   scopeKey: scopedEditorStorageKey,
   keys: LS_KEYS
 });
-
-let allowEditorStatePersist = false;
-const expandedEditorTreeNodeIds = new Set(['articles', 'pages']);
-let hasEditorStateV3Snapshot = false;
-try {
-  const parsedEditorState = editorSessionStateStore.readEditorState();
-  hasEditorStateV3Snapshot = !!(parsedEditorState && parsedEditorState.v === EDITOR_STATE_VERSION);
-} catch (_) {}
-try {
-  if (!hasEditorStateV3Snapshot && editorSessionStateStore.readLegacySystemTreeExpanded()) {
-    expandedEditorTreeNodeIds.add('system');
-  }
-} catch (_) {}
+editorRuntime.initializeEditorSessionState({
+  editorSessionStateStore,
+  editorStateVersion: EDITOR_STATE_VERSION
+});
+const expandedEditorTreeNodeIds = editorRuntime.getExpandedEditorTreeNodeIds();
 composerServices.setMarkdownDraftController(createComposerMarkdownDraftController({
   markdownDraftStore,
   normalizeRelPath,
@@ -642,7 +632,7 @@ const editorShell = createComposerEditorShell({
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   isDynamicMode,
   normalizeRelPath,
-  getAllowEditorStatePersist: () => allowEditorStatePersist,
+  getAllowEditorStatePersist: () => editorRuntime.getAllowEditorStatePersist(),
   persistDynamicEditorState,
   getActiveComposerFile,
   applyComposerFile,
@@ -697,7 +687,7 @@ composerServices.setMarkdownSessionController(createComposerMarkdownSessionContr
   flushMarkdownDraft,
   clearMarkdownDraftForTab,
   hasMarkdownDraftContent,
-  getAllowEditorStatePersist: () => allowEditorStatePersist,
+  getAllowEditorStatePersist: () => editorRuntime.getAllowEditorStatePersist(),
   getCurrentMode: () => getCurrentComposerMode(),
   captureEditorContentScroll,
   getActiveNodeId: () => editorContentTreeController.getActiveNodeId(),
@@ -785,8 +775,6 @@ function updateDynamicTabsGroupState() {
 const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = [
   { value: 'General', label: 'General' }
 ];
-
-let gitHubCommitInFlight = false;
 
 const composerFilePanelController = createComposerFilePanelController({
   documentRef: composerDocument,
@@ -2075,9 +2063,7 @@ initializeComposerApp({
     refreshEditorContentTree,
     restoreDynamicEditorState,
     applyMode,
-    setAllowEditorStatePersist: (value) => {
-      allowEditorStatePersist = !!value;
-    },
+    setAllowEditorStatePersist: (value) => editorRuntime.setAllowEditorStatePersist(value),
     persistDynamicEditorState,
     setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay)
   }

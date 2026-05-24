@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composer = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
+const composerBootstrap = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
+const composerMarkdownSession = readFileSync(resolve(here, '../assets/js/composer-markdown-session.js'), 'utf8');
+const composerModeController = readFileSync(resolve(here, '../assets/js/composer-mode-controller.js'), 'utf8');
 const main = readFileSync(resolve(here, '../assets/main.js'), 'utf8');
 const nativeTheme = readFileSync(resolve(here, '../assets/themes/native/modules/interactions.js'), 'utf8');
 
@@ -15,27 +18,27 @@ assert.match(
 );
 
 assert.match(
-  composer,
-  /expandedNodeIds: editorContentTreeController\.getExpandedNodeIdsSnapshot\(\)[\s\S]*railScrollTop: getEditorRailScrollTop\(\)[\s\S]*contentScrollByKey: getEditorContentScrollSnapshot\(\)/,
+  composerMarkdownSession,
+  /expandedNodeIds: getExpandedNodeIdsSnapshot\(\)[\s\S]*railScrollTop: getEditorRailScrollTop\(\)[\s\S]*contentScrollByKey: getEditorContentScrollSnapshot\(\)/,
   'editor v3 state should include exact tree expansion plus rail and per-view content scroll positions'
 );
 
 assert.match(
-  composer,
-  /if \(isV3 && Array\.isArray\(data\.expandedNodeIds\)\) \{[\s\S]*editorContentTreeController\.restoreExpandedNodeIds\(data\.expandedNodeIds\);/,
+  composerMarkdownSession,
+  /if \(isV3 && Array\.isArray\(data\.expandedNodeIds\)\) \{[\s\S]*restoreExpandedNodeIds\(data\.expandedNodeIds\);/,
   'restoring v3 state should replace the default expansion set with the saved expansion set'
 );
 
 assert.match(
-  composer,
-  /selectEditorTreeNodeForTab\(tab, \{ expandAncestors: !options\.preserveTreeExpansion \}\)/,
+  composerModeController,
+  /selectEditorTreeNodeForTab\(tab, \{ expandAncestors: !optionsForMode\.preserveTreeExpansion \}\)/,
   'restore-mode markdown selection should be able to preserve the saved expansion set without auto-expanding ancestors'
 );
 
 assert.match(
-  composer,
-  /const restoredEditorState = restoreDynamicEditorState\(\);[\s\S]*allowEditorStatePersist = true;[\s\S]*window\.setTimeout\(\(\) => persistDynamicEditorState\(\), 500\)/,
-  'editor should delay the first post-restore save so restored scroll positions are not overwritten at boot'
+  `${composer}\n${composerBootstrap}`,
+  /setAllowEditorStatePersist: \(value\) => editorRuntime\.setAllowEditorStatePersist\(value\)[\s\S]*const restoredEditorState = restoreDynamicEditorState\(\);[\s\S]*setAllowEditorStatePersist\(true\);[\s\S]*scheduleTimer\(\(\) => persistDynamicEditorState\(\), 500\)/,
+  'editor should route persistence readiness through the app runtime and delay the first post-restore save'
 );
 
 assert.match(

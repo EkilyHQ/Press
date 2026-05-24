@@ -175,6 +175,38 @@ assert.deepEqual(
 );
 assert.deepEqual(runtime.getSiteRepo(), { owner: 'EkilyHQ', name: 'Press', branch: 'docs' });
 
+assert.deepEqual(runtime.getExpandedEditorTreeNodeIdsSnapshot(), ['articles', 'pages']);
+assert.equal(runtime.hasEditorStateSnapshot(), false);
+assert.equal(runtime.initializeEditorSessionState({
+  editorSessionStateStore: {
+    readEditorState: () => ({ v: 3 }),
+    readLegacySystemTreeExpanded: () => {
+      throw new Error('legacy tree state should not be read for v3 snapshots');
+    }
+  },
+  editorStateVersion: 3
+}), true);
+assert.equal(runtime.hasEditorStateSnapshot(), true);
+assert.deepEqual(runtime.getExpandedEditorTreeNodeIdsSnapshot(), ['articles', 'pages']);
+const legacyStateRuntime = createComposerRuntime({ windowRef, documentRef, navigatorRef });
+assert.equal(legacyStateRuntime.initializeEditorSessionState({
+  editorSessionStateStore: {
+    readEditorState: () => ({ v: 2 }),
+    readLegacySystemTreeExpanded: () => true
+  },
+  editorStateVersion: 3
+}), false);
+assert.equal(legacyStateRuntime.hasEditorStateSnapshot(), false);
+assert.deepEqual(legacyStateRuntime.getExpandedEditorTreeNodeIdsSnapshot(), ['articles', 'pages', 'system']);
+assert.equal(runtime.getAllowEditorStatePersist(), false);
+assert.equal(runtime.setAllowEditorStatePersist(true), true);
+assert.equal(runtime.getAllowEditorStatePersist(), true);
+assert.equal(runtime.isGitHubCommitInFlight(), false);
+assert.equal(runtime.setGitHubCommitInFlight(true), true);
+assert.equal(runtime.isGitHubCommitInFlight(), true);
+assert.equal(runtime.setGitHubCommitInFlight(false), false);
+assert.equal(runtime.isGitHubCommitInFlight(), false);
+
 runtime.emitSiteConfigChange({ contentRoot: 'wwwroot' });
 assert.deepEqual(events.at(-1), [
   'window',

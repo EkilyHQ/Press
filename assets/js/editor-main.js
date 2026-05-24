@@ -22,6 +22,8 @@ import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system
 
 const FORCE_MARKDOWN_WRAP = true;
 const editorMainRuntime = createEditorMainRuntime();
+const editorMainDocument = editorMainRuntime.documentRef;
+const editorMainWindow = editorMainRuntime.windowRef;
 
 // ---- Local draft storage removed (temporary) ----
 
@@ -44,8 +46,8 @@ editorMainRuntime.onDocumentReady(() => {
 
   const metadataPanel = appServices.setMetadataPanel(createEditorMainMetadataPanel({
     runtime: editorMainRuntime,
-    documentRef: document,
-    windowRef: window,
+    documentRef: editorMainDocument,
+    windowRef: editorMainWindow,
     translate: t,
     getCurrentLang,
     normalizeLangKey,
@@ -57,7 +59,7 @@ editorMainRuntime.onDocumentReady(() => {
     getCurrentLang,
     normalizeLangKey,
     getContentRoot,
-    fetch,
+    fetch: (url, options) => editorMainRuntime.fetchContent(url, options),
     translate: t,
     makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
   });
@@ -70,7 +72,7 @@ editorMainRuntime.onDocumentReady(() => {
 
   const workspaceSession = appServices.setWorkspaceSession(createEditorMainWorkspaceSession({
     runtime: editorMainRuntime,
-    documentRef: document,
+    documentRef: editorMainDocument,
     forceMarkdownWrap: FORCE_MARKDOWN_WRAP,
     editor,
     textarea: ta,
@@ -91,7 +93,7 @@ editorMainRuntime.onDocumentReady(() => {
   const contentService = appServices.setContentService(createEditorMainContentService({
     runtime: editorMainRuntime,
     getContentRoot,
-    fetch,
+    fetch: (url, options) => editorMainRuntime.fetchContent(url, options),
     linkCardContext,
     getPreviewSession: appServices.getPreviewSession,
     getDocumentSession: appServices.getDocumentSession,
@@ -100,9 +102,7 @@ editorMainRuntime.onDocumentReady(() => {
     warn: (...args) => {
       try { console.warn(...args); } catch (_) {}
     },
-    alert: (message) => {
-      try { window.alert(message); } catch (_) {}
-    }
+    alert: (message) => editorMainRuntime.showAlert(message)
   }));
 
   const documentSession = appServices.setDocumentSession(createEditorMainDocumentSession({
@@ -120,7 +120,7 @@ editorMainRuntime.onDocumentReady(() => {
 
   const currentFileSession = appServices.setCurrentFileSession(createEditorMainCurrentFileSession({
     runtime: editorMainRuntime,
-    documentRef: document,
+    documentRef: editorMainDocument,
     translate: t,
     getCurrentLang,
     normalizeLangKey,
@@ -131,8 +131,8 @@ editorMainRuntime.onDocumentReady(() => {
 
   const previewSession = appServices.setPreviewSession(createEditorMainPreviewSession({
     runtime: editorMainRuntime,
-    documentRef: document,
-    windowRef: window,
+    documentRef: editorMainDocument,
+    windowRef: editorMainWindow,
     getContentRoot,
     getEditorValue: appServices.getEditorValue,
     getCurrentFileInfo: fileContextService.getCurrentFileInfo,
@@ -142,14 +142,14 @@ editorMainRuntime.onDocumentReady(() => {
     isLinkCardReady: () => linkCardContext.isReady(),
     getAllowedLocations: () => linkCardContext.getAllowedLocations(),
     getLocationAliases: () => linkCardContext.getLocationAliases(),
-    fetch
+    fetch: (url, options) => editorMainRuntime.fetchContent(url, options)
   }));
   previewSession.bind();
   contentService.bind();
 
   const imageSession = appServices.setImageSession(createEditorMainImageSession({
     runtime: editorMainRuntime,
-    windowRef: window,
+    windowRef: editorMainWindow,
     translate: t,
     imageButton,
     imageInput,
@@ -181,8 +181,8 @@ editorMainRuntime.onDocumentReady(() => {
 
   const toolbarSession = appServices.setToolbarSession(createEditorMainToolbarSession({
     runtime: editorMainRuntime,
-    documentRef: document,
-    windowRef: window,
+    documentRef: editorMainDocument,
+    windowRef: editorMainWindow,
     translate: t,
     getEditorTextarea: documentSession.getEditorTextarea,
     editorToolbarEl,
@@ -229,8 +229,8 @@ editorMainRuntime.onDocumentReady(() => {
 
   const sidebarSession = createEditorMainSidebarSession({
     runtime: editorMainRuntime,
-    documentRef: document,
-    windowRef: window,
+    documentRef: editorMainDocument,
+    windowRef: editorMainWindow,
     normalizeLangKey,
     bindCurrentFileElement: fileContextService.bindCurrentFileElement,
     loadSiteConfig: contentService.loadSiteConfig,

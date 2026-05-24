@@ -69,7 +69,14 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   const timers = [];
   const messages = [];
   const scrolls = [];
+  const fetchCalls = [];
+  const alerts = [];
   windowRef.location = { origin: 'https://press.test' };
+  windowRef.fetch = (url, options) => {
+    fetchCalls.push([url, options]);
+    return Promise.resolve({ ok: true, url });
+  };
+  windowRef.alert = message => alerts.push(message);
   windowRef.requestAnimationFrame = (fn) => {
     fn();
     return 17;
@@ -90,6 +97,8 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   });
   const runtime = createEditorMainRuntime({ windowRef, documentRef, storage });
 
+  assert.equal(runtime.documentRef, documentRef);
+  assert.equal(runtime.windowRef, windowRef);
   assert.equal(runtime.readMarkdownEditorView(), 'edit');
   assert.equal(runtime.persistMarkdownEditorView('source'), true);
   assert.equal(storage.snapshot().press_editor_markdown_view_v2, 'blocks');
@@ -120,6 +129,11 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
   assert.equal(runtime.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { preview: true }), true);
   assert.deepEqual(messages.at(-1), { payload: { preview: true }, origin: 'https://press.test' });
+  assert.equal(runtime.showAlert('Heads up'), true);
+  assert.deepEqual(alerts, ['Heads up']);
+  const response = await runtime.fetchContent('/index.yaml', { cache: 'no-store' });
+  assert.equal(response.ok, true);
+  assert.deepEqual(fetchCalls, [['/index.yaml', { cache: 'no-store' }]]);
 
   assert.equal(runtime.setEditorBaseDir('wwwroot\\posts', 'wwwroot/'), 'wwwroot/posts/');
   assert.equal(runtime.getEditorBaseDir('fallback/'), 'wwwroot/posts/');

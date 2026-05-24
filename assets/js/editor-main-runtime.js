@@ -99,6 +99,31 @@ export function createEditorMainRuntime(options = {}) {
     return runtime.events.onWindow(EVENT_NAMES.siteConfigChange, handler);
   }
 
+  function fetchContent(url, options) {
+    try {
+      const fetchRef = runtime.windowRef && typeof runtime.windowRef.fetch === 'function'
+        ? runtime.windowRef.fetch.bind(runtime.windowRef)
+        : (typeof fetch === 'function' ? fetch : null);
+      if (!fetchRef) return Promise.reject(new Error('Fetch is not available in this runtime.'));
+      return fetchRef(url, options);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  function showAlert(message) {
+    try {
+      const alertRef = runtime.windowRef && typeof runtime.windowRef.alert === 'function'
+        ? runtime.windowRef.alert.bind(runtime.windowRef)
+        : (typeof alert === 'function' ? alert : null);
+      if (!alertRef) return false;
+      alertRef(message);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function prefersReducedMotion() {
     return runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)');
   }
@@ -126,6 +151,8 @@ export function createEditorMainRuntime(options = {}) {
   }
 
   return {
+    documentRef: runtime.documentRef,
+    windowRef: runtime.windowRef,
     events: EVENT_NAMES,
     readMarkdownEditorView,
     persistMarkdownEditorView,
@@ -153,6 +180,8 @@ export function createEditorMainRuntime(options = {}) {
     ensureEditorBaseDir,
     registerPrimaryEditorApi,
     onSiteConfigChange,
+    fetchContent,
+    showAlert,
     emitToast,
     requestAssetDelete,
     emitAssetDeleteCanceled,

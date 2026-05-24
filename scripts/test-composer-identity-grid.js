@@ -1912,8 +1912,14 @@ assert.match(
 
 assert.match(
   source,
-  /const editorRuntime = createComposerRuntime\(\);\s*const composerDocument = editorRuntime\.documentRef;\s*const composerWindow = editorRuntime\.windowRef;[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
+  /export function createComposerController\(editorRuntime = createComposerRuntime\(\)\) \{[\s\S]*const composerDocument = editorRuntime\.documentRef;\s*const composerWindow = editorRuntime\.windowRef;[\s\S]*const composerStateStore = editorRuntime\.createStateStore\(\{[\s\S]*kinds: \['index', 'tabs', 'site'\],[\s\S]*defaultKind: 'index'/,
   'composer should create an explicit runtime and route root document/window refs through it'
+);
+
+assert.doesNotMatch(
+  source,
+  /const\s+editorRuntime\s*=\s*createComposerRuntime\(\)/,
+  'composer should not create a module-level runtime singleton'
 );
 
 assert.match(
@@ -2826,7 +2832,7 @@ assert.equal(
 
 assert.match(
   source,
-  /initializeComposerApp\(\{[\s\S]*onDocumentReady: editorRuntime\.onDocumentReady,[\s\S]*ensureSiteRepo: \(\) => editorRuntime\.ensureSiteRepo\(\),[\s\S]*getLocation: \(\) => editorRuntime\.getLocation\(\),[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\)/,
+  /export function createComposerController\(editorRuntime = createComposerRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*initializeComposerApp\(\{[\s\S]*onDocumentReady: editorRuntime\.onDocumentReady,[\s\S]*ensureSiteRepo: \(\) => editorRuntime\.ensureSiteRepo\(\),[\s\S]*getLocation: \(\) => editorRuntime\.getLocation\(\),[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\)[\s\S]*createComposerController\(\)\.start\(\);/,
   'composer should wire inferred starter repository config into the extracted workspace assembly before rendering Site Settings'
 );
 

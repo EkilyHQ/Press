@@ -1339,7 +1339,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const editorMainRuntime = createEditorMainRuntime\(\);\s*const editorMainDocument = editorMainRuntime\.documentRef;\s*const editorMainWindow = editorMainRuntime\.windowRef;[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const metadataPanel = appServices\.setMetadataPanel\(createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*windowRef: editorMainWindow,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: appServices\.notifyDocumentChange[\s\S]*\}\)\);/,
+  /const editorMainRuntime = createEditorMainRuntime\(\);\s*const editorMainDocument = editorMainRuntime\.documentRef;[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const metadataPanel = appServices\.setMetadataPanel\(createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: appServices\.notifyDocumentChange[\s\S]*\}\)\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
 
@@ -1518,7 +1518,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainRuntimeSource,
-  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*clearTimer: runtime\.browser\.clearTimer,[\s\S]*createEvent: runtime\.browser\.createEvent,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert/,
+  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*clearTimer: runtime\.browser\.clearTimer,[\s\S]*createEvent: runtime\.browser\.createEvent,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*getComputedStyle: runtime\.browser\.getComputedStyle,[\s\S]*getResizeObserver: runtime\.browser\.getResizeObserver,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert/,
   'editor main runtime should own storage, browser global, and cross-component event service adapters'
 );
 
@@ -4913,6 +4913,12 @@ assert.match(
   editorMainMetadataPanelSource,
   /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
   'front matter labels should be measured after render and shared through a CSS variable'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|requestAnimationFrame === 'function'|cancelAnimationFrame === 'function'|getComputedStyle\.bind|windowRef\.ResizeObserver/,
+  'metadata panel should receive frame, computed-style, and observer behavior through explicit runtime adapters'
 );
 
 assert.match(

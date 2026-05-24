@@ -30,6 +30,8 @@ class FakeMouseEvent extends FakeEvent {}
 
 class FakeFileReader {}
 
+class FakeResizeObserver {}
+
 function createEventTarget() {
   const listeners = new Map();
   const events = [];
@@ -75,6 +77,7 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   windowRef.Event = FakeEvent;
   windowRef.MouseEvent = FakeMouseEvent;
   windowRef.FileReader = FakeFileReader;
+  windowRef.ResizeObserver = FakeResizeObserver;
   const documentRef = createEventTarget();
   documentRef.readyState = 'complete';
   documentRef.getElementById = id => ({ id });
@@ -104,6 +107,7 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   };
   windowRef.clearTimeout = id => timers.push(`clear:${id}`);
   windowRef.matchMedia = query => ({ media: query, matches: query.includes('reduced-motion') });
+  windowRef.getComputedStyle = element => ({ element, display: 'grid' });
   windowRef.pageYOffset = 320;
   windowRef.scrollTo = (...args) => scrolls.push(args);
   const storage = createStorage({
@@ -151,6 +155,8 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(runtime.getLocationHref(), 'https://press.test/index_editor.html');
   assert.equal(runtime.prefersReducedMotion(), true);
   assert.equal(runtime.getPageYOffset(), 320);
+  assert.deepEqual(runtime.getComputedStyle({ nodeType: 1 }).display, 'grid');
+  assert.equal(runtime.getResizeObserver(), FakeResizeObserver);
   assert.equal(runtime.scrollToTop({ smooth: true }), true);
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
   assert.equal(runtime.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { preview: true }), true);

@@ -23,7 +23,6 @@ import { createEditorMainRuntime } from './editor-main-runtime.js?v=press-system
 const FORCE_MARKDOWN_WRAP = true;
 const editorMainRuntime = createEditorMainRuntime();
 const editorMainDocument = editorMainRuntime.documentRef;
-const editorMainWindow = editorMainRuntime.windowRef;
 
 // ---- Local draft storage removed (temporary) ----
 
@@ -47,7 +46,6 @@ editorMainRuntime.onDocumentReady(() => {
   const metadataPanel = appServices.setMetadataPanel(createEditorMainMetadataPanel({
     runtime: editorMainRuntime,
     documentRef: editorMainDocument,
-    windowRef: editorMainWindow,
     translate: t,
     getCurrentLang,
     normalizeLangKey,

@@ -58,7 +58,6 @@ function createElement(documentRef, tagName) {
 export function createEditorMainMetadataPanel(options = {}) {
   const runtime = options.runtime || {};
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const getElementById = (id) => (
     typeof runtime.getElementById === 'function'
       ? runtime.getElementById(id)
@@ -72,9 +71,7 @@ export function createEditorMainMetadataPanel(options = {}) {
   const requestFrame = (fn) => (
     typeof runtime.requestFrame === 'function'
       ? runtime.requestFrame(fn)
-      : (windowRef && typeof windowRef.requestAnimationFrame === 'function'
-        ? windowRef.requestAnimationFrame(fn)
-        : 0)
+      : 0
   );
   const cancelFrame = (id) => {
     if (!id) return;
@@ -82,7 +79,6 @@ export function createEditorMainMetadataPanel(options = {}) {
       runtime.cancelFrame(id);
       return;
     }
-    if (windowRef && typeof windowRef.cancelAnimationFrame === 'function') windowRef.cancelAnimationFrame(id);
   };
   const translateImpl = typeof options.translate === 'function' ? options.translate : fallbackTranslate;
   const getCurrentLang = typeof options.getCurrentLang === 'function' ? options.getCurrentLang : fallbackGetCurrentLang;
@@ -91,8 +87,10 @@ export function createEditorMainMetadataPanel(options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
   const getComputedStyleRef = typeof options.getComputedStyle === 'function'
     ? options.getComputedStyle
-    : (windowRef && typeof windowRef.getComputedStyle === 'function' ? windowRef.getComputedStyle.bind(windowRef) : null);
-  const ResizeObserverRef = options.ResizeObserver || (windowRef && windowRef.ResizeObserver);
+    : (typeof runtime.getComputedStyle === 'function' ? runtime.getComputedStyle : null);
+  const ResizeObserverRef = options.ResizeObserver || (
+    typeof runtime.getResizeObserver === 'function' ? runtime.getResizeObserver() : null
+  );
 
   const translate = (key, fallback) => {
     if (!key) return fallback;

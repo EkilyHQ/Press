@@ -347,6 +347,25 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     return getViewportSize().width;
   }
 
+  function getComputedStyleFor(element) {
+    try {
+      const getStyle = windowRef && typeof windowRef.getComputedStyle === 'function'
+        ? windowRef.getComputedStyle.bind(windowRef)
+        : (typeof getComputedStyle === 'function' ? getComputedStyle : null);
+      return getStyle && element ? getStyle(element) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getResizeObserver() {
+    try {
+      return windowRef && typeof windowRef.ResizeObserver === 'function' ? windowRef.ResizeObserver : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function scrollToTop({ smooth = true } = {}) {
     try {
       if (!windowRef || typeof windowRef.scrollTo !== 'function') return false;
@@ -396,6 +415,8 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     getWindowScroll,
     getViewportSize,
     getViewportWidth,
+    getComputedStyle: getComputedStyleFor,
+    getResizeObserver,
     scrollToTop
   };
 }

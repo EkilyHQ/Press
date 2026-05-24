@@ -176,6 +176,8 @@ export function createEditorMainRuntime(options = {}) {
     getLocationOrigin: runtime.browser.getLocationOrigin,
     getLocationHref: runtime.browser.getLocationHref,
     getPageYOffset: runtime.browser.getPageYOffset,
+    getComputedStyle: runtime.browser.getComputedStyle,
+    getResizeObserver: runtime.browser.getResizeObserver,
     scrollToTop: runtime.browser.scrollToTop,
     prefersReducedMotion,
     setContentRoot,

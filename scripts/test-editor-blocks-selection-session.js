@@ -133,4 +133,22 @@ function makeRange() {
   assert.equal(session.nodeFromPoint(null, null, 'fallback'), 'fallback');
 }
 
+{
+  const leakedWindow = {
+    getSelection() {
+      return { leaked: true };
+    },
+    getComputedStyle() {
+      return { leaked: true };
+    }
+  };
+  const documentRef = {
+    defaultView: leakedWindow
+  };
+  const root = { ownerDocument: documentRef };
+  const session = createEditorBlocksSelectionSession({ documentRef, windowRef: null });
+  assert.equal(session.getSelection(root), null);
+  assert.equal(session.getComputedStyle(root), null);
+}
+
 console.log('ok - editor blocks selection session');

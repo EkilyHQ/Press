@@ -17,8 +17,7 @@ export function createEditorBlocksSelectionSession({
   }
 
   function ownerWindowFor(node = null) {
-    const doc = ownerDocumentFor(node);
-    return windowRef || (doc && doc.defaultView) || null;
+    return windowRef;
   }
 
   function getSelection(node = null) {

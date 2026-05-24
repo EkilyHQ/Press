@@ -2862,6 +2862,12 @@ assert.match(
   'browser selection, range, and point-caret APIs should live behind an explicit blocks selection session'
 );
 
+assert.doesNotMatch(
+  editorBlocksSelectionSessionSource,
+  /defaultView|typeof window/,
+  'blocks selection session should not derive window APIs from ownerDocument/defaultView'
+);
+
 assert.match(
   editorBlocksStateSource,
   /suppressSelectionActiveRecoveryUntil: 0,/,

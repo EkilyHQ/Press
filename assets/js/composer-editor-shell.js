@@ -4,8 +4,8 @@ import {
 } from './composer-system-panel.js?v=press-system-v3.4.50';
 
 export function createComposerEditorShell(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const editorSessionStateStore = options.editorSessionStateStore;
   const expandedEditorTreeNodeIds = options.expandedEditorTreeNodeIds || new Set();
   const treeText = typeof options.treeText === 'function' ? options.treeText : ((key, fallback) => fallback || key);
@@ -19,6 +19,58 @@ export function createComposerEditorShell(options = {}) {
   const applyComposerFile = typeof options.applyComposerFile === 'function' ? options.applyComposerFile : (() => {});
   const refreshSyncCommitPanel = typeof options.refreshSyncCommitPanel === 'function' ? options.refreshSyncCommitPanel : (() => {});
   const applyMode = typeof options.applyMode === 'function' ? options.applyMode : (() => {});
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : (handler) => {
+      if (windowRef && typeof windowRef.requestAnimationFrame === 'function') return windowRef.requestAnimationFrame(handler);
+      if (typeof handler === 'function') handler();
+      return 0;
+    };
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
+      ? windowRef.setTimeout(handler, delay)
+      : null);
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
+    ? options.clearTimeoutRef
+    : (id) => {
+      if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
+    };
+  const addWindowListener = typeof options.addWindowListener === 'function'
+    ? options.addWindowListener
+    : (type, handler, listenerOptions) => {
+      try {
+        if (!windowRef || typeof windowRef.addEventListener !== 'function') return () => {};
+        windowRef.addEventListener(type, handler, listenerOptions);
+        return () => {
+          try { windowRef.removeEventListener(type, handler, listenerOptions); } catch (_) {}
+        };
+      } catch (_) {
+        return () => {};
+      }
+    };
+  const addDocumentListener = typeof options.addDocumentListener === 'function'
+    ? options.addDocumentListener
+    : (type, handler, listenerOptions) => {
+      try {
+        if (!documentRef || typeof documentRef.addEventListener !== 'function') return () => {};
+        documentRef.addEventListener(type, handler, listenerOptions);
+        return () => {
+          try { documentRef.removeEventListener(type, handler, listenerOptions); } catch (_) {}
+        };
+      } catch (_) {
+        return () => {};
+      }
+    };
+  const matchesMedia = typeof options.matchesMedia === 'function'
+    ? options.matchesMedia
+    : (query) => {
+      try {
+        return !!(windowRef && typeof windowRef.matchMedia === 'function' && windowRef.matchMedia(query).matches);
+      } catch (_) {
+        return false;
+      }
+    };
 
   let editorRailResizeBound = false;
   let editorMobileRailBound = false;
@@ -136,12 +188,9 @@ export function createComposerEditorShell(options = {}) {
     const top = editorContentScrollByKey[key];
     const apply = () => setEditorContentScrollTopForMode(mode, top);
     try {
-      const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
-        ? windowRef.requestAnimationFrame.bind(windowRef)
-        : requestAnimationFrame;
-      raf(() => raf(apply));
+      requestAnimationFrameRef(() => requestAnimationFrameRef(apply));
     } catch (_) {
-      setTimeout(apply, 0);
+      setTimeoutRef(apply, 0);
     }
   }
 
@@ -175,13 +224,8 @@ export function createComposerEditorShell(options = {}) {
   function scheduleEditorStatePersist() {
     if (!getAllowEditorStatePersist()) return;
     try {
-      if (editorStatePersistTimer && windowRef) windowRef.clearTimeout(editorStatePersistTimer);
-      editorStatePersistTimer = windowRef
-        ? windowRef.setTimeout(() => {
-          editorStatePersistTimer = 0;
-          persistDynamicEditorState();
-        }, EDITOR_SCROLL_SAVE_DELAY)
-        : setTimeout(() => {
+      if (editorStatePersistTimer) clearTimeoutRef(editorStatePersistTimer);
+      editorStatePersistTimer = setTimeoutRef(() => {
           editorStatePersistTimer = 0;
           persistDynamicEditorState();
         }, EDITOR_SCROLL_SAVE_DELAY);
@@ -207,15 +251,11 @@ export function createComposerEditorShell(options = {}) {
         }
       } catch (_) {}
     };
-    try { documentRef.addEventListener('scroll', onScroll, true); } catch (_) {}
-    try {
-      if (windowRef) windowRef.addEventListener('pagehide', () => persistDynamicEditorState());
-    } catch (_) {}
-    try {
-      documentRef.addEventListener('visibilitychange', () => {
-        if (documentRef.visibilityState === 'hidden') persistDynamicEditorState();
-      });
-    } catch (_) {}
+    addDocumentListener('scroll', onScroll, true);
+    addWindowListener('pagehide', () => persistDynamicEditorState());
+    addDocumentListener('visibilitychange', () => {
+      if (documentRef.visibilityState === 'hidden') persistDynamicEditorState();
+    });
   }
 
   function mountEditorSystemPanels() {
@@ -255,7 +295,12 @@ export function createComposerEditorShell(options = {}) {
   }
 
   function animateEditorSystemPanelContent() {
-    animateSystemPanelContent({ windowRef, documentRef });
+    animateSystemPanelContent({
+      windowRef,
+      documentRef,
+      setTimeoutRef,
+      clearTimeoutRef
+    });
   }
 
   function resetSiteSettingsNavOnOpen() {
@@ -290,10 +335,7 @@ export function createComposerEditorShell(options = {}) {
     };
     activateFirst();
     try {
-      const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
-        ? windowRef.requestAnimationFrame.bind(windowRef)
-        : requestAnimationFrame;
-      raf(() => raf(activateFirst));
+      requestAnimationFrameRef(() => requestAnimationFrameRef(activateFirst));
     } catch (_) {
       activateFirst();
     }
@@ -395,7 +437,7 @@ export function createComposerEditorShell(options = {}) {
 
     const isMobile = () => {
       try {
-        return !!(windowRef && windowRef.matchMedia && windowRef.matchMedia('(max-width: 820px)').matches);
+        return matchesMedia('(max-width: 820px)');
       } catch (_) {
         return false;
       }
@@ -453,7 +495,7 @@ export function createComposerEditorShell(options = {}) {
     });
 
     if (windowRef) {
-      windowRef.addEventListener('resize', () => {
+      addWindowListener('resize', () => {
         const current = Number(resizer.getAttribute('aria-valuenow')) || EDITOR_RAIL_DEFAULT_WIDTH;
         setEditorRailWidth(current, { persist: false });
       });
@@ -462,7 +504,7 @@ export function createComposerEditorShell(options = {}) {
 
   function isEditorMobileRailLayout() {
     try {
-      return !!(windowRef && windowRef.matchMedia && windowRef.matchMedia('(max-width: 820px)').matches);
+      return matchesMedia('(max-width: 820px)');
     } catch (_) {
       return false;
     }
@@ -512,7 +554,7 @@ export function createComposerEditorShell(options = {}) {
       if (event.key === 'Escape') closeEditorRailDrawer();
     });
     if (windowRef) {
-      windowRef.addEventListener('resize', () => {
+      addWindowListener('resize', () => {
         if (!isEditorMobileRailLayout()) closeEditorRailDrawer();
       });
     }

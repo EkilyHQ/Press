@@ -589,6 +589,12 @@ const editorContentTreeController = createEditorContentTreeController({
 const editorShell = createComposerEditorShell({
   documentRef: composerDocument,
   windowRef: composerWindow,
+  requestAnimationFrameRef: (handler) => editorRuntime.requestFrame(handler),
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
+  addWindowListener: (type, handler, options) => editorRuntime.events.onWindow(type, handler, options),
+  addDocumentListener: (type, handler, options) => editorRuntime.events.onDocument(type, handler, options),
+  matchesMedia: (query) => editorRuntime.matchesMedia(query),
   editorSessionStateStore,
   expandedEditorTreeNodeIds,
   treeText,

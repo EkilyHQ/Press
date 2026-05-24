@@ -1,6 +1,6 @@
 export async function refreshSyncCommitPanelView(options = {}, deps = {}) {
   const {
-    documentRef = document,
+    documentRef = null,
     t = (key) => key,
     getSyncCommitPanelHost,
     nextRenderId,
@@ -22,6 +22,9 @@ export async function refreshSyncCommitPanelView(options = {}, deps = {}) {
     switchToPatFallbackAndFocusToken,
     refreshSyncCommitPanel
   } = deps;
+  if (!documentRef || typeof documentRef.getElementById !== 'function' || typeof documentRef.createElement !== 'function') {
+    return null;
+  }
   const panel = getSyncCommitPanelHost();
   if (!panel) return null;
   const headerSubmit = documentRef.getElementById('btnSyncSubmit');
@@ -173,22 +176,25 @@ export async function refreshSyncCommitPanelView(options = {}, deps = {}) {
 
 export function scheduleSyncCommitPanelRefreshView({
   currentMode,
-  windowRef = window,
+  windowRef = null,
   timer,
-  setTimer,
-  refreshSyncCommitPanel
+  setTimer = () => {},
+  refreshSyncCommitPanel = () => {}
 } = {}) {
   if (currentMode !== 'sync') return timer || 0;
   try {
-    if (timer) windowRef.clearTimeout(timer);
-    const nextTimer = windowRef.setTimeout(() => {
-      setTimer(0);
-      refreshSyncCommitPanel();
-    }, 120);
-    setTimer(nextTimer);
-    return nextTimer;
+    if (timer && windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(timer);
+    if (windowRef && typeof windowRef.setTimeout === 'function') {
+      const nextTimer = windowRef.setTimeout(() => {
+        setTimer(0);
+        refreshSyncCommitPanel();
+      }, 120);
+      setTimer(nextTimer);
+      return nextTimer;
+    }
   } catch (_) {
-    refreshSyncCommitPanel();
-    return 0;
   }
+  refreshSyncCommitPanel();
+  setTimer(0);
+  return 0;
 }

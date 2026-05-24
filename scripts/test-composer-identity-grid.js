@@ -774,6 +774,17 @@ assert.match(
   'composer should inject order diff timers, frames, events, media, style, and observers through the runtime boundary'
 );
 
+assert.doesNotMatch(
+  [
+    composerOrderDiffUiSource,
+    composerEditorShellSource,
+    composerSystemPanelSource,
+    composerSyncPanelSource
+  ].join('\n'),
+  /(?:documentRef|windowRef)\s*=\s*(?:document|window)\b|(?:document|window)\s*=\s*options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|cancelAnimationFrame)\s*\(/m,
+  'composer order/shell panel modules should receive browser refs and scheduling through explicit runtime wiring instead of rediscovering globals'
+);
+
 assert.match(
   source,
   /from '\.\/composer-index-tabs-ui\.js\?v=[\w.-]+'/,
@@ -856,6 +867,12 @@ assert.match(
   composerEditorShellSource,
   /export function createComposerEditorShell\(options = \{\}\)[\s\S]*let editorContentScrollByKey = \{\};[\s\S]*function bindEditorStatePersistenceListeners\(\)[\s\S]*function mountEditorSystemPanels\(\)[\s\S]*function initEditorRailResize\(\)[\s\S]*function initMobileEditorRail\(\)/,
   'editor shell boundary should own system panel mounting, scroll persistence, rail resize, and mobile rail state'
+);
+
+assert.match(
+  source,
+  /const editorShell = createComposerEditorShell\(\{[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*\}\);/,
+  'composer should inject editor shell timers, frames, events, and media through the runtime boundary'
 );
 
 assert.match(

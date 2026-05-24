@@ -163,7 +163,6 @@ const $$ = (selector, root = composerDocument) => {
 };
 
 const composerPathTools = createComposerPathTools({
-  windowRef: composerWindow,
   getContentRoot: () => editorRuntime.getContentRoot(),
   preferredLangOrder: PREFERRED_LANG_ORDER,
   getIndexVariantLocation,

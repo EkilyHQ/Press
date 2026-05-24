@@ -962,6 +962,18 @@ assert.match(
   'composer path tools boundary should own path normalization, article version paths, and default markdown templates'
 );
 
+assert.doesNotMatch(
+  composerPathToolsSource,
+  /\bwindowRef\b|options\.windowRef|__press_content_root/,
+  'composer path tools should receive content root through callbacks instead of window globals'
+);
+
+assert.match(
+  source,
+  /createComposerPathTools\(\{[\s\S]*getContentRoot: \(\) => editorRuntime\.getContentRoot\(\),[\s\S]*preferredLangOrder: PREFERRED_LANG_ORDER/,
+  'composer should inject path-tool content root through the runtime boundary'
+);
+
 assert.match(
   source,
   /from '\.\/composer-content-mutations\.js\?v=[\w.-]+'/,

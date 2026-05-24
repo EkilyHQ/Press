@@ -2,7 +2,6 @@ export function createComposerPathTools(options = {}) {
   const preferredLangOrder = Array.isArray(options.preferredLangOrder)
     ? options.preferredLangOrder
     : [];
-  const windowRef = options.windowRef || null;
   const getIndexVariantLocation = typeof options.getIndexVariantLocation === 'function'
     ? options.getIndexVariantLocation
     : ((value) => (typeof value === 'string' ? value : ''));
@@ -14,14 +13,7 @@ export function createComposerPathTools(options = {}) {
     : (() => ({}));
   const getContentRoot = typeof options.getContentRoot === 'function'
     ? options.getContentRoot
-    : () => {
-        try {
-          const root = windowRef && windowRef.__press_content_root;
-          return root && typeof root === 'string' && root.trim() ? root : 'wwwroot';
-        } catch (_) {
-          return 'wwwroot';
-        }
-      };
+    : () => 'wwwroot';
 
   function normalizeRelPath(path) {
     const raw = String(path || '').trim();

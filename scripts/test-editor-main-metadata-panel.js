@@ -246,6 +246,18 @@ function createFixture() {
   return { documentRef, panel, runtime, computedTargets, canceledFrames, FakeResizeObserver };
 }
 
+function createTrackingOwnerDocument() {
+  const calls = [];
+  return {
+    calls,
+    body: new FakeElement('body'),
+    createElement(tagName) {
+      calls.push(`createElement:${tagName}`);
+      return new FakeElement(tagName, this);
+    }
+  };
+}
+
 {
   const fixture = createFixture();
   const session = createEditorMainMetadataPanel({
@@ -266,4 +278,22 @@ function createFixture() {
   assert.ok(fixture.canceledFrames.length > 0);
   assert.equal(fixture.canceledFrames.every((id) => id === 'frame:metadata'), true);
   assert.equal(fixture.FakeResizeObserver.instances.at(-1).disconnected, true);
+}
+
+{
+  const fixture = createFixture();
+  const session = createEditorMainMetadataPanel({
+    runtime: fixture.runtime,
+    documentRef: fixture.documentRef,
+    translate: key => key
+  });
+  const ownerDocument = createTrackingOwnerDocument();
+  fixture.panel.querySelectorAll('.frontmatter-field-title').forEach((label) => {
+    label.ownerDocument = ownerDocument;
+  });
+
+  session.frontMatterManager.syncLabelWidth();
+
+  assert.deepEqual(ownerDocument.calls, []);
+  assert.match(fixture.panel.style.props.get('--frontmatter-single-label-width'), /^\d+px$/);
 }

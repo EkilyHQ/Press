@@ -5204,6 +5204,12 @@ assert.doesNotMatch(
   'metadata panel should receive frame, computed-style, and observer behavior through explicit runtime adapters'
 );
 
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /ownerDocument|defaultView|typeof document\b/,
+  'metadata panel should use its injected documentRef instead of deriving document APIs from DOM nodes'
+);
+
 assert.match(
   editorMainMetadataPanelSource,
   /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*root\.style\.setProperty\('--frontmatter-single-label-width'/,

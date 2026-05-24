@@ -134,7 +134,7 @@ export function createEditorMainMetadataPanel(options = {}) {
     const measureLabelText = (label) => {
       let width = label.scrollWidth || 0;
       try {
-        const doc = label.ownerDocument || documentRef;
+        const doc = documentRef;
         if (!doc || !doc.body) return width;
         const probe = doc.createElement('span');
         probe.textContent = label.textContent || '';

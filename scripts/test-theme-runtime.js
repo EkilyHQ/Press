@@ -274,6 +274,35 @@ await run('theme modules load in parallel and mount in manifest order', async ()
   assert.deepEqual(mounted, modules);
 });
 
+await run('theme layout controllers keep in-flight layout state per instance', async () => {
+  const requested = [];
+  let releaseModule = () => {};
+  const moduleReady = new Promise((resolve) => { releaseModule = resolve; });
+  installGlobals({
+    savedPack: 'isolated',
+    manifests: {
+      isolated: makeManifest('isolated', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async (path, context) => {
+    requested.push(context && context.entry ? context.entry : String(path || ''));
+    await moduleReady;
+    return { mount() {} };
+  };
+  const { createThemeLayoutController } = await freshThemeLayout();
+  const first = createThemeLayoutController();
+  const second = createThemeLayoutController();
+  const firstLayout = first.ensureThemeLayout({ pack: 'isolated', persist: false });
+  const secondLayout = second.ensureThemeLayout({ pack: 'isolated', persist: false });
+  await waitFor(
+    () => requested.length === 2,
+    'separate theme layout controllers should not share the same in-flight layout promise'
+  );
+  releaseModule();
+  await Promise.all([firstLayout, secondLayout]);
+  assert.deepEqual(requested, ['modules/layout.js', 'modules/layout.js']);
+});
+
 await run('external theme module load failures fall back without waiting for slow modules', async () => {
   const requested = [];
   let slowResolved = false;

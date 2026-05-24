@@ -13,7 +13,7 @@ import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.50';
 import { renderPostNav } from './post-nav.js?v=press-system-v3.4.50';
 import { renderTagSidebar } from './tags.js?v=press-system-v3.4.50';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.50';
+import { createThemeLayoutController, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.50';
 import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js?v=press-system-v3.4.50';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
@@ -22,7 +22,10 @@ const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
 const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 
-export function createEditorPreviewRuntimeController(previewRuntime = createEditorPreviewAppRuntime()) {
+export function createEditorPreviewRuntimeController(
+  previewRuntime = createEditorPreviewAppRuntime(),
+  themeLayout = createThemeLayoutController()
+) {
 
 function postToParent(payload) {
   previewRuntime.postToParent(payload);
@@ -106,7 +109,7 @@ function regionValue(regions, key) {
 }
 
 function getPreviewContainers() {
-  const layout = getThemeLayoutContext();
+  const layout = themeLayout.getThemeLayoutContext();
   const regions = layout && layout.regions;
   const main = regionValue(regions, 'main') || previewRuntime.querySelector('[data-theme-region="main"], .native-mainview');
   const toc = regionValue(regions, 'toc') || previewRuntime.querySelector('[data-theme-region="toc"]');
@@ -130,7 +133,7 @@ function getPreviewContainers() {
 
 function callThemeEffect(name, params) {
   try {
-    const handler = getThemeApiHandler(name);
+    const handler = themeLayout.getThemeApiHandler(name);
     if (typeof handler === 'function') return handler(params);
   } catch (err) {
     previewRuntime.warn('[editor-preview] Theme handler failed', name, err);
@@ -219,7 +222,7 @@ function applyPreviewLangHints(container) {
 }
 
 function createRuntimeContext({ payload, containers, content }) {
-  const layout = getThemeLayoutContext();
+  const layout = themeLayout.getThemeLayoutContext();
   return {
     document: previewRuntime.documentRef,
     window: previewRuntime.windowRef,
@@ -271,7 +274,7 @@ async function renderPreview(payload = {}) {
   applyPreviewColorMode(payload.siteConfig || {});
   try {
     const reset = previewRuntime.shouldResetThemePack(requestedPack);
-    const layout = await ensureThemeLayout({ pack: requestedPack, persist: false, reset });
+    const layout = await themeLayout.ensureThemeLayout({ pack: requestedPack, persist: false, reset });
     if (!isCurrentPreviewRender(requestId)) return;
     const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);
     const markdown = String(payload.markdown || '');

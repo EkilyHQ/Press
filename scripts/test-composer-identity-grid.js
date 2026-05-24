@@ -70,6 +70,7 @@ const editorBootPath = resolve(here, '../assets/js/editor-boot.js');
 const editorBootRuntimePath = resolve(here, '../assets/js/editor-boot-runtime.js');
 const editorPreviewRuntimePath = resolve(here, '../assets/js/editor-preview-runtime.js');
 const editorPreviewAppRuntimePath = resolve(here, '../assets/js/editor-preview-app-runtime.js');
+const themeLayoutPath = resolve(here, '../assets/js/theme-layout.js');
 const typographyPath = resolve(here, '../assets/js/typography.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
@@ -191,6 +192,7 @@ const editorBootSource = readFileSync(editorBootPath, 'utf8');
 const editorBootRuntimeSource = readFileSync(editorBootRuntimePath, 'utf8');
 const editorPreviewRuntimeSource = readFileSync(editorPreviewRuntimePath, 'utf8');
 const editorPreviewAppRuntimeSource = readFileSync(editorPreviewAppRuntimePath, 'utf8');
+const themeLayoutSource = readFileSync(themeLayoutPath, 'utf8');
 const typographySource = readFileSync(typographyPath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
@@ -4485,14 +4487,26 @@ assert.match(
 
 assert.match(
   editorPreviewRuntimeSource,
-  /export function createEditorPreviewRuntimeController\(previewRuntime = createEditorPreviewAppRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
-  'editor preview runtime should expose an explicit controller boundary before browser startup'
+  /import \{ createThemeLayoutController, createThemeI18nContext, getThemeRegion \} from '\.\/theme-layout\.js\?v=[\w.-]+';[\s\S]*export function createEditorPreviewRuntimeController\(\s*previewRuntime = createEditorPreviewAppRuntime\(\),\s*themeLayout = createThemeLayoutController\(\)\s*\)[\s\S]*themeLayout\.getThemeLayoutContext\(\)[\s\S]*themeLayout\.getThemeApiHandler\(name\)[\s\S]*themeLayout\.ensureThemeLayout\(\{ pack: requestedPack, persist: false, reset \}\)[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
+  'editor preview runtime should expose explicit preview and theme-layout controller boundaries before browser startup'
 );
 
 assert.doesNotMatch(
   editorPreviewRuntimeSource,
   /const previewRuntime = createEditorPreviewAppRuntime\(\)/,
   'editor preview runtime should not create a module-level preview runtime singleton'
+);
+
+assert.match(
+  themeLayoutSource,
+  /function createThemeLayoutState\(\) \{[\s\S]*activePack: null,[\s\S]*layoutPromise: null,[\s\S]*layoutMountGeneration: 0[\s\S]*export function createThemeLayoutController\(\) \{[\s\S]*const themeLayoutState = createThemeLayoutState\(\);[\s\S]*ensureThemeLayout: \(options = \{\}\) => ensureThemeLayoutWithState\(themeLayoutState, options\),[\s\S]*getThemeLayoutContext,[\s\S]*getThemeApiHandler/,
+  'theme layout should expose an explicit controller with private mount state'
+);
+
+assert.doesNotMatch(
+  themeLayoutSource,
+  /^let\s+(?:activePack|layoutPromise|layoutMountGeneration)\b/m,
+  'theme layout should not keep active pack, in-flight layout promise, or mount generation as module-level mutable variables'
 );
 
 assert.match(

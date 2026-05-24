@@ -4754,6 +4754,30 @@ assert.match(
   'publish commit service should lazy-load the PAT transport only for PAT publishing'
 );
 
+assert.doesNotMatch(
+  publishCommitServiceSource,
+  /windowRef\s*=\s*window|documentRef\s*=\s*document|fetchImpl\s*=\s*fetch/,
+  'publish commit service should not default to ambient browser refs or fetch'
+);
+
+assert.match(
+  composerPublishFlowSource,
+  /publishStagedCommit\(\{[\s\S]*transport,[\s\S]*repo: \{ owner, name, branch \},[\s\S]*fetchImpl: fetchRef,[\s\S]*onStatus: setSyncOverlayStatus[\s\S]*\}\);[\s\S]*publishStagedCommit\(\{[\s\S]*transport,[\s\S]*repo: \{ owner, name, branch \},[\s\S]*fetchImpl: fetchRef,[\s\S]*onStatus: setSyncOverlayStatus/,
+  'composer publish flow should pass runtime fetch into both Connect and PAT commit transports'
+);
+
+assert.doesNotMatch(
+  connectTransportSource,
+  /fetchImpl\s*=\s*fetch|windowRef\s*=\s*window|documentRef\s*=\s*document/,
+  'Connect publish transport should require injected fetch and browser refs'
+);
+
+assert.doesNotMatch(
+  patTransportSource,
+  /typeof window|\bbtoa\b|fetchImpl\s*=\s*fetch/,
+  'PAT publish transport should avoid browser base64 helpers and ambient fetch defaults'
+);
+
 assert.match(
   propagationWatcherSource,
   /export async function waitForRemotePropagation[\s\S]*setCancelHandler\(cancelHandler, true\)[\s\S]*setStatus\('All files confirmed on site\.'\)/,

@@ -82,6 +82,7 @@ export function createComposerPublishFlow({
           setCachedGrant: setCachedConnectPublishGrant,
           windowRef,
           documentRef,
+          fetchImpl: fetchRef,
           translate: t,
           onStatus: setSyncOverlayStatus
         });
@@ -92,6 +93,7 @@ export function createComposerPublishFlow({
           repo: { owner, name, branch },
           headline,
           files,
+          fetchImpl: fetchRef,
           translate: t,
           onStatus: setSyncOverlayStatus
         });

@@ -26,7 +26,7 @@ export async function createConnectPublishCommit({
   files,
   contentRoot,
   grant,
-  fetchImpl = fetch,
+  fetchImpl = null,
   translate = (key) => key
 } = {}) {
   const message = (key, fallback) => {
@@ -83,8 +83,8 @@ export async function ensureConnectPublishGrant({
   repo,
   getCachedGrant,
   setCachedGrant,
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
   translate = (key) => key,
   messageType = CONNECT_PUBLISH_MESSAGE_TYPE
 } = {}) {
@@ -111,8 +111,8 @@ export function requestConnectPublishGrant({
   connect,
   repo,
   setCachedGrant,
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
   translate = (key) => key,
   messageType = CONNECT_PUBLISH_MESSAGE_TYPE
 } = {}) {

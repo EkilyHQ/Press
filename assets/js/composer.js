@@ -125,6 +125,10 @@ const LANGUAGE_POOL_CHANGED_EVENT = COMPOSER_RUNTIME_EVENTS.languagePoolChanged;
 const editorRuntime = createComposerRuntime();
 const composerDocument = editorRuntime.documentRef;
 const composerWindow = editorRuntime.windowRef;
+const composerLogger = {
+  warn: (...args) => editorRuntime.warn(...args),
+  error: (...args) => editorRuntime.error(...args)
+};
 configureComposerUiMotionRuntime({
   documentRef: composerDocument,
   windowRef: composerWindow,
@@ -241,7 +245,7 @@ const composerNotifications = createComposerNotificationController({
       return null;
     }
   },
-  consoleRef: console
+  consoleRef: composerLogger
 });
 const {
   showToast,
@@ -286,7 +290,7 @@ const composerPublishService = createComposerPublishService({
   applyMode: (mode, options) => applyMode(mode, options),
   showEditorSystemPanel: (mode) => showEditorSystemPanel(mode),
   showToast,
-  consoleRef: console,
+  consoleRef: composerLogger,
   setGitHubCommitInFlight: (value) => {
     gitHubCommitInFlight = !!value;
   }
@@ -352,7 +356,7 @@ const {
   collectCurrentRepositoryMarkdownAssetReferences
 } = markdownAssetManager;
 const composerSystemThemeBridge = createComposerSystemThemeBridge({
-  consoleRef: console,
+  consoleRef: composerLogger,
   getStateSlice,
   setStateSlice,
   notifyComposerChange,
@@ -415,7 +419,7 @@ const composerPublishStateService = createComposerPublishStateService({
       return '';
     }
   },
-  consoleRef: console,
+  consoleRef: composerLogger,
   setRemoteBaselineSlice: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
   notifyComposerChange,
   clearDraftStorage,
@@ -480,7 +484,7 @@ composerServices.setMarkdownDraftController(createComposerMarkdownDraftControlle
   updateUnsyncedSummary,
   showToast,
   t,
-  consoleRef: console,
+  consoleRef: composerLogger,
   setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
   clearTimeoutRef: (id) => editorRuntime.clearTimer(id)
 }));
@@ -561,7 +565,7 @@ const {
   startComposerSyncWatcher
 } = remoteSyncController;
 const markdownActionsController = createComposerMarkdownActionsController({
-  consoleRef: console,
+  consoleRef: composerLogger,
   confirmRef: (message) => editorRuntime.confirmAction(message),
   clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
   t,
@@ -730,7 +734,7 @@ composerServices.setMarkdownSessionController(createComposerMarkdownSessionContr
   t,
   alertRef: (message) => editorRuntime.showAlert(message),
   confirmRef: (message) => editorRuntime.confirmAction(message),
-  consoleRef: console,
+  consoleRef: composerLogger,
   updateDynamicTabsGroupState,
   detachPrimaryEditorListeners,
   updateMarkdownActionsForTab,
@@ -781,7 +785,7 @@ composerServices.setModeController(createComposerModeController({
   loadDynamicTabContent,
   requestAnimationFrameRef: (handler) => editorRuntime.requestFrame(handler),
   alertRef: (message) => editorRuntime.showAlert(message),
-  consoleRef: console
+  consoleRef: composerLogger
 }));
 
 function getCurrentComposerMode() {
@@ -1334,7 +1338,7 @@ const composerOrderDiffUi = createComposerOrderDiffUi({
   matchesMedia: (query) => editorRuntime.matchesMedia(query),
   getComputedStyleRef: (element) => editorRuntime.getComputedStyle(element),
   ResizeObserverRef: editorRuntime.getResizeObserver(),
-  consoleRef: console
+  consoleRef: composerLogger
 });
 const {
   openComposerDiffModal,
@@ -1379,7 +1383,7 @@ const composerContentMutations = createComposerContentMutationController({
   clearInlineSlideStyles,
   requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
   confirmRef: (message) => editorRuntime.confirmAction(message),
-  consoleRef: console
+  consoleRef: composerLogger
 });
 const {
   addComposerEntry,
@@ -1483,7 +1487,7 @@ const composerYamlPanelsController = createComposerYamlPanelsController({
 const composerSetupVerifier = createComposerSetupVerifier({
   runtime: editorRuntime,
   documentRef: composerDocument,
-  consoleRef: console,
+  consoleRef: composerLogger,
   t,
   getState: () => composerStateStore.getActiveState(),
   getActiveComposerFile,
@@ -1552,7 +1556,7 @@ function loadDraftSnapshotsIntoState(state) {
 }
 
 const composerYamlActions = createComposerYamlActions({
-  consoleRef: console,
+  consoleRef: composerLogger,
   confirmRef: (message) => editorRuntime.confirmAction(message),
   t,
   fetchConfigWithYamlFallback,
@@ -1806,7 +1810,7 @@ const editorFileTreeUi = createEditorFileTreeUi({
 const editorStructurePanelUi = createEditorStructurePanelUi({
   documentRef: composerDocument,
   windowRef: composerWindow,
-  consoleRef: console,
+  consoleRef: composerLogger,
   requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
   alertRef: (message) => editorRuntime.showAlert(message),
   populateEditorLanguageSelect: () => editorRuntime.populateEditorLanguageSelect(),
@@ -2031,7 +2035,7 @@ initializeComposerApp({
   initialState: {
     ensureSiteRepo: () => editorRuntime.ensureSiteRepo(),
     windowRef: composerWindow,
-    consoleRef: console,
+    consoleRef: composerLogger,
     t,
     fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
     applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
@@ -2062,7 +2066,7 @@ initializeComposerApp({
     showStatus,
     bindWorkspaceUi: () => bindComposerWorkspaceUi({
       documentRef: composerDocument,
-      consoleRef: console,
+      consoleRef: composerLogger,
       mountEditorSystemPanels,
       initEditorOverlay,
       initEditorRailResize,

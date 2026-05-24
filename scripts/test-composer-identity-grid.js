@@ -778,7 +778,7 @@ assert.match(
 
 assert.match(
   source,
-  /const composerOrderDiffUi = createComposerOrderDiffUi\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\),[\s\S]*consoleRef: console[\s\S]*\}\);/,
+  /const composerOrderDiffUi = createComposerOrderDiffUi\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
   'composer should inject order diff timers, frames, events, media, style, and observers through the runtime boundary'
 );
 
@@ -966,7 +966,7 @@ assert.match(
 
 assert.match(
   source,
-  /const composerContentMutations = createComposerContentMutationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: console[\s\S]*\}\);/,
+  /const composerContentMutations = createComposerContentMutationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
   'composer should inject content-mutation frame scheduling, confirmation, and logging through the runtime boundary'
 );
 
@@ -1171,7 +1171,7 @@ assert.match(
 
 assert.match(
   source,
-  /composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: console[\s\S]*\}\)\);/,
+  /composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\)\);/,
   'composer should inject mode-controller frame scheduling, alerts, and logging through the runtime boundary'
 );
 
@@ -1768,6 +1768,18 @@ assert.match(
   'composer should create an explicit runtime and route root document/window refs through it'
 );
 
+assert.match(
+  source,
+  /const composerLogger = \{[\s\S]*warn: \(\.\.\.args\) => editorRuntime\.warn\(\.\.\.args\),[\s\S]*error: \(\.\.\.args\) => editorRuntime\.error\(\.\.\.args\)[\s\S]*\};/,
+  'composer should expose a narrow runtime-backed logger object instead of passing raw console to app services'
+);
+
+assert.doesNotMatch(
+  source,
+  /consoleRef:\s*console|console\.(?:warn|error)/,
+  'composer should route logger behavior through the runtime-backed composer logger instead of passing or calling console directly'
+);
+
 assert.doesNotMatch(
   source,
   /documentRef: document|windowRef: window|r = document|r = window|injectComposerRuntimeStyles\(\{ documentRef: document \}\)/,
@@ -1800,13 +1812,13 @@ assert.doesNotMatch(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
   'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
 );
 
 assert.doesNotMatch(
   composerRuntimeSource,
-  /typeof (?:navigator|fetch|alert|confirm|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef && runtime\.windowRef\.(?:navigator|fetch|alert|confirm|performance|CSS|getComputedStyle|ResizeObserver)|globalThis\.getComputedStyle|windowRef\.(?:fetch|alert|confirm|performance|CSS|getComputedStyle|ResizeObserver)/,
+  /typeof (?:navigator|fetch|alert|confirm|console|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef && runtime\.windowRef\.(?:navigator|fetch|alert|confirm|console|performance|CSS|getComputedStyle|ResizeObserver)|globalThis\.getComputedStyle|windowRef\.(?:fetch|alert|confirm|console|performance|CSS|getComputedStyle|ResizeObserver)/,
   'composer runtime should delegate browser global lookup to the shared editor app runtime facade'
 );
 
@@ -1836,7 +1848,7 @@ assert.match(
 
 assert.match(
   source,
-  /const editorStructurePanelUi = createEditorStructurePanelUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: console,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*populateEditorLanguageSelect: \(\) => editorRuntime\.populateEditorLanguageSelect\(\),[\s\S]*emitLanguageControlMounted: \(\) => editorRuntime\.emitEditorLanguageControlMounted\(\)[\s\S]*\}\);/,
+  /const editorStructurePanelUi = createEditorStructurePanelUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: composerLogger,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*populateEditorLanguageSelect: \(\) => editorRuntime\.populateEditorLanguageSelect\(\),[\s\S]*emitLanguageControlMounted: \(\) => editorRuntime\.emitEditorLanguageControlMounted\(\)[\s\S]*\}\);/,
   'composer should inject editor structure panel frames, alerts, and language-control events through the runtime boundary'
 );
 
@@ -1854,7 +1866,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: console,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
   'composer should delegate system/theme staging, status, and initialization through app-service callbacks'
 );
 
@@ -1884,7 +1896,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => \{[\s\S]*editorRuntime\.getLocation\(\)[\s\S]*getDocumentLang: \(\) => \{[\s\S]*composerDocument\.documentElement[\s\S]*consoleRef: console,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => \{[\s\S]*editorRuntime\.getLocation\(\)[\s\S]*getDocumentLang: \(\) => \{[\s\S]*composerDocument\.documentElement[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
   'composer should reduce publish persistence to explicit app-service callbacks'
 );
 
@@ -2040,7 +2052,7 @@ assert.match(
 
 assert.match(
   source,
-  /const composerYamlActions = createComposerYamlActions\(\{[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  /const composerYamlActions = createComposerYamlActions\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
   'composer should inject YAML action dialogs, logging, and timers through the runtime boundary'
 );
 
@@ -2142,7 +2154,7 @@ assert.match(
 
 assert.match(
   source,
-  /const markdownActionsController = createComposerMarkdownActionsController\(\{[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),/,
+  /const markdownActionsController = createComposerMarkdownActionsController\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),/,
   'composer should inject Markdown action dialogs, logging, and timer clearing through the runtime boundary'
 );
 
@@ -2200,7 +2212,7 @@ assert.match(
 
 assert.match(
   source,
-  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef: console,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\)/,
+  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\)/,
   'composer should inject Markdown draft logging and autosave timers explicitly'
 );
 
@@ -4492,7 +4504,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishService = createComposerPublishService\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*consoleRef: console,[\s\S]*setGitHubCommitInFlight/,
+  /const composerPublishService = createComposerPublishService\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*consoleRef: composerLogger,[\s\S]*setGitHubCommitInFlight/,
   'composer should pass app callbacks into the publish service instead of assembling the publish control plane itself'
 );
 
@@ -4647,7 +4659,7 @@ assert.match(
 
 assert.match(
   source,
-  /const composerNotifications = createComposerNotificationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*openWindowRef: \(href, target\) => \{[\s\S]*composerWindow\.open\(href, target\)[\s\S]*\},[\s\S]*consoleRef: console[\s\S]*\}\);/,
+  /const composerNotifications = createComposerNotificationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*openWindowRef: \(href, target\) => \{[\s\S]*composerWindow\.open\(href, target\)[\s\S]*\},[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
   'composer should inject notification alerts, timers, frames, and popup windows through the runtime composition root'
 );
 
@@ -5503,7 +5515,7 @@ assert.match(
 
 assert.match(
   source,
-  /createComposerMarkdownSessionController\(\{[\s\S]*requestAnimationFrameRef: \(fn\) => editorRuntime\.requestFrame\(fn\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: console,/,
+  /createComposerMarkdownSessionController\(\{[\s\S]*requestAnimationFrameRef: \(fn\) => editorRuntime\.requestFrame\(fn\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: composerLogger,/,
   'composer should inject Markdown session frames, dialogs, and logging through the runtime boundary'
 );
 

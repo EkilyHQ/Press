@@ -122,6 +122,14 @@ export function createComposerRuntime(options = {}) {
     return runtime.browser.showAlert(message);
   }
 
+  function warn(...args) {
+    return runtime.browser.warn(...args);
+  }
+
+  function error(...args) {
+    return runtime.browser.error(...args);
+  }
+
   function confirmAction(message) {
     return runtime.browser.confirmAction(message);
   }
@@ -228,6 +236,8 @@ export function createComposerRuntime(options = {}) {
     clearTimer,
     fetchContent,
     showAlert,
+    warn,
+    error,
     confirmAction,
     getPerformance,
     getCss,

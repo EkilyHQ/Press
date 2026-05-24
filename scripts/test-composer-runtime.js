@@ -10,6 +10,8 @@ const frames = [];
 const cancelledFrames = [];
 const alerts = [];
 const confirms = [];
+const warnings = [];
+const errors = [];
 const populateCalls = [];
 const fetchCalls = [];
 const scrolls = [];
@@ -55,6 +57,10 @@ const windowRef = {
   confirm(message) {
     confirms.push(message);
     return message === 'continue';
+  },
+  console: {
+    warn: (...args) => warnings.push(args),
+    error: (...args) => errors.push(args)
   },
   scrollTo(...args) {
     scrolls.push(args);
@@ -183,6 +189,10 @@ assert.equal(timers[1].cleared, true);
 
 assert.equal(runtime.showAlert('hello'), true);
 assert.deepEqual(alerts, ['hello']);
+assert.equal(runtime.warn('warning', { code: 'composer' }), true);
+assert.deepEqual(warnings, [['warning', { code: 'composer' }]]);
+assert.equal(runtime.error('error', { code: 'composer' }), true);
+assert.deepEqual(errors, [['error', { code: 'composer' }]]);
 assert.equal(runtime.confirmAction('continue'), true);
 assert.equal(runtime.confirmAction('stop'), false);
 assert.deepEqual(confirms, ['continue', 'stop']);
@@ -223,6 +233,7 @@ const noBrowserEffectsRuntime = createComposerRuntime({
     fetch: undefined,
     alert: undefined,
     confirm: undefined,
+    console: undefined,
     performance: undefined,
     CSS: undefined,
     ResizeObserver: undefined
@@ -239,6 +250,16 @@ assert.equal(
   noBrowserEffectsRuntime.confirmAction('missing confirm'),
   false,
   'composer runtime should not fall back to ambient confirm outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.warn('missing warn'),
+  false,
+  'composer runtime should not fall back to ambient console.warn outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.error('missing error'),
+  false,
+  'composer runtime should not fall back to ambient console.error outside the app runtime browser facade'
 );
 assert.equal(
   noBrowserEffectsRuntime.getPerformance(),

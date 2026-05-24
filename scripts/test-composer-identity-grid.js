@@ -4442,6 +4442,18 @@ assert.match(
 
 assert.match(
   source,
+  /const composerNotifications = createComposerNotificationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*openWindowRef: \(href, target\) => \{[\s\S]*composerWindow\.open\(href, target\)[\s\S]*\},[\s\S]*consoleRef: console[\s\S]*\}\);/,
+  'composer should inject notification alerts, timers, frames, and popup windows through the runtime composition root'
+);
+
+assert.doesNotMatch(
+  composerNotificationsSource,
+  /windowRef\.(?:alert|requestAnimationFrame|setTimeout|open)|options\.windowRef|alertRef\s*=\s*[\s\S]*windowRef/m,
+  'notification boundary should not fall back to ambient window APIs for alerts, timers, frames, or popups'
+);
+
+assert.match(
+  source,
   /from '\.\/composer-dialogs\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted dialog boundary'
 );
@@ -4456,6 +4468,18 @@ assert.match(
   composerDialogsSource,
   /export function createComposerDialogController\(options = \{\}\)[\s\S]*function ensureAddEntryPromptElements\(\)[\s\S]*function showAddEntryPrompt\(anchor, options = \{\}\)[\s\S]*function requestMarkdownProtectionPassword\(options = \{\}\)[\s\S]*function ensureDiscardConfirmElements\(\)[\s\S]*function showDiscardConfirm\(anchor, messageText, options = \{\}\)/,
   'dialog boundary should own add-entry prompts, discard confirmations, and protection password overlays'
+);
+
+assert.match(
+  source,
+  /const composerDialogs = createComposerDialogController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*getViewportSize: \(\) => \{[\s\S]*composerDocument\.documentElement[\s\S]*composerWindow\.innerWidth[\s\S]*composerWindow\.innerHeight[\s\S]*getWindowScroll: \(\) => \(\{[\s\S]*composerWindow\.scrollX[\s\S]*composerWindow\.pageYOffset[\s\S]*\}\)[\s\S]*\}\);/,
+  'composer should inject dialog timers, frames, window listeners, viewport size, and scroll state through the runtime composition root'
+);
+
+assert.doesNotMatch(
+  composerDialogsSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b/,
+  'dialog boundary should not read window refs directly after receiving runtime adapters'
 );
 
 assert.doesNotMatch(

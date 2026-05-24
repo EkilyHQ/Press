@@ -156,26 +156,20 @@ function findByClass(root, className) {
 
 function createController() {
   const documentRef = createFakeDocument();
-  const windowRef = {
-    innerWidth: 960,
-    innerHeight: 640,
-    scrollX: 0,
-    scrollY: 0,
-    requestAnimationFrame(fn) {
-      fn();
-      return 1;
-    },
-    setTimeout(fn) {
-      fn();
-      return 1;
-    },
-    clearTimeout() {},
-    addEventListener() {},
-    removeEventListener() {}
-  };
   const controller = createComposerDialogController({
     documentRef,
-    windowRef,
+    setTimeoutRef: (fn) => {
+      fn();
+      return 1;
+    },
+    clearTimeoutRef: () => {},
+    requestAnimationFrameRef: (fn) => {
+      fn();
+      return 1;
+    },
+    addWindowListener: () => () => {},
+    getViewportSize: () => ({ width: 960, height: 640 }),
+    getWindowScroll: () => ({ x: 0, y: 0 }),
     t: (key, params = {}) => {
       if (key === 'editor.composer.addEntryPrompt.message') return `Add ${params.label}`;
       return key;

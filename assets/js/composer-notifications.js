@@ -1,13 +1,23 @@
 export function createComposerNotificationController(options = {}) {
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const translate = typeof options.t === 'function' ? options.t : ((key) => String(key || ''));
   const safeString = typeof options.safeString === 'function'
     ? options.safeString
     : ((value) => String(value == null ? '' : value));
-  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : (message) => {
-    if (windowRef && typeof windowRef.alert === 'function') windowRef.alert(message);
-  };
+  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : () => false;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : (callback) => {
+        callback();
+        return null;
+      };
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : (callback) => {
+        callback();
+        return null;
+      };
+  const openWindowRef = typeof options.openWindowRef === 'function' ? options.openWindowRef : () => null;
   const consoleRef = options.consoleRef || null;
 
   function ensureToastRoot() {
@@ -36,7 +46,7 @@ export function createComposerNotificationController(options = {}) {
   }
 
   function prepareToastStackAnimation(container, excluded) {
-    if (!container || !windowRef) return null;
+    if (!container) return null;
     const items = Array.from(container.children || [])
       .filter((child) => child !== excluded && child.dataset && child.dataset.dismissed !== 'true');
     if (!items.length) return null;
@@ -52,7 +62,7 @@ export function createComposerNotificationController(options = {}) {
 
     return () => {
       if (!items.length) return;
-      windowRef.requestAnimationFrame(() => {
+      requestAnimationFrameRef(() => {
         for (const item of items) {
           const first = initialRects.get(item);
           if (!first) continue;
@@ -90,10 +100,10 @@ export function createComposerNotificationController(options = {}) {
               const previousTransition = item.style.transition;
               item.style.transition = 'none';
               item.style.transform = `translateY(${deltaY}px)`;
-              windowRef.requestAnimationFrame(() => {
+              requestAnimationFrameRef(() => {
                 item.style.transition = `transform ${baseDuration}ms cubic-bezier(0.22, 1, 0.36, 1)`;
                 item.style.transform = 'translateY(0)';
-                windowRef.setTimeout(() => {
+                setTimeoutRef(() => {
                   item.style.transition = previousTransition;
                   item.style.transform = '';
                   item.style.willChange = '';
@@ -113,7 +123,7 @@ export function createComposerNotificationController(options = {}) {
       const message = safeString(text);
       if (!message) return;
       const root = ensureToastRoot();
-      if (!root || !documentRef || !windowRef) return;
+      if (!root || !documentRef) return;
       const el = documentRef.createElement('div');
       el.className = `toast ${kind || ''}`;
       el.style.pointerEvents = 'auto';
@@ -177,7 +187,7 @@ export function createComposerNotificationController(options = {}) {
         }
         el.style.opacity = '0';
         el.style.transform = 'translateY(12px)';
-        windowRef.setTimeout(() => {
+        setTimeoutRef(() => {
           try { el.remove(); } catch (_) {}
         }, 320);
       };
@@ -259,13 +269,13 @@ export function createComposerNotificationController(options = {}) {
         el.style.borderColor = 'color-mix(in srgb, #f59e0b 45%, transparent)';
       }
       root.appendChild(el);
-      windowRef.requestAnimationFrame(() => {
+      requestAnimationFrameRef(() => {
         el.style.opacity = '1';
         el.style.transform = 'translateY(0)';
       });
       if (shouldAutoDismiss) {
         const ttl = typeof toastOptions.duration === 'number' ? Math.max(1200, toastOptions.duration) : 2300;
-        windowRef.setTimeout(dismiss, ttl);
+        setTimeoutRef(dismiss, ttl);
       }
     } catch (_) {
       try { alertRef(text); } catch (__) {}
@@ -274,7 +284,7 @@ export function createComposerNotificationController(options = {}) {
 
   function preparePopupWindow() {
     try {
-      const win = windowRef && typeof windowRef.open === 'function' ? windowRef.open('', '_blank') : null;
+      const win = openWindowRef('', '_blank');
       if (win) {
         try { win.opener = null; } catch (_) {}
       }
@@ -307,9 +317,7 @@ export function createComposerNotificationController(options = {}) {
     }
     let opened = null;
     try {
-      opened = windowRef && typeof windowRef.open === 'function'
-        ? windowRef.open(href, '_blank')
-        : null;
+      opened = openWindowRef(href, '_blank');
     } catch (_) {
       opened = null;
     }
@@ -343,7 +351,7 @@ export function createComposerNotificationController(options = {}) {
             rel: safeString(popupOptions.actionRel) || 'noopener',
             onClick: (event) => {
               if (onRetry) {
-                windowRef.setTimeout(() => {
+                setTimeoutRef(() => {
                   try { onRetry(event); } catch (_) {}
                 }, 60);
               }

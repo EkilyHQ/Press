@@ -38,7 +38,11 @@ function createFixture() {
   const previewCalls = [];
   const imageCalls = [];
   const linkCardContext = createLinkCardContext();
+  const documentRef = { id: 'document' };
+  const windowRef = { id: 'window' };
   const runtime = {
+    documentRef,
+    windowRef,
     getEditorBaseDir(fallback) {
       return `base:${fallback}`;
     }
@@ -106,6 +110,7 @@ function createFixture() {
     previewCalls,
     imageCalls,
     linkCardContext,
+    runtime,
     hydrateCalls,
     bodyChanges,
     setEditorBody(value) {
@@ -120,6 +125,8 @@ function createFixture() {
   assert.equal(editor, fixture.session.getEditor());
   assert.equal(fixture.created.length, 1);
   const options = fixture.created[0].options;
+  assert.equal(options.documentRef, fixture.runtime.documentRef);
+  assert.equal(options.windowRef, fixture.runtime.windowRef);
   assert.equal(options.labels.heading, 'Translated heading');
   assert.equal(options.labels.linkTitle, 'Link title');
   assert.equal(options.labels.replaceImage, 'Replace image');

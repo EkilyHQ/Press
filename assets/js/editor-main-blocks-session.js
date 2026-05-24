@@ -194,6 +194,8 @@ export function createEditorMainBlocksSession(options = {}) {
       return blocksEditor;
     }
     blocksEditor = createBlocksEditor(root, {
+      documentRef: runtime.documentRef || null,
+      windowRef: runtime.windowRef || null,
       labels: createBlockLabels(translate),
       onChange: onBodyChange,
       getBaseDir,

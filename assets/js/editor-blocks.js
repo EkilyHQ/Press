@@ -572,15 +572,17 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   if (!root) return null;
   const labels = options.labels || {};
   const text = (key, fallback) => labels[key] || fallback;
+  const explicitDocumentRef = options.documentRef || null;
+  const explicitWindowRef = options.windowRef || null;
   const runtime = options.runtime && typeof options.runtime.onDocument === 'function'
     ? options.runtime
     : createEditorBlocksRuntime({
-        documentRef: options.documentRef || root.ownerDocument,
-        windowRef: options.windowRef || (root.ownerDocument && root.ownerDocument.defaultView),
+        documentRef: explicitDocumentRef,
+        windowRef: explicitWindowRef,
         navigatorRef: options.navigatorRef
       });
-  const blocksDocument = runtime.documentRef || root.ownerDocument || null;
-  const blocksWindow = runtime.windowRef || (blocksDocument && blocksDocument.defaultView) || null;
+  const blocksDocument = runtime.documentRef || explicitDocumentRef || null;
+  const blocksWindow = runtime.windowRef || explicitWindowRef || null;
   const runtimeDisposables = new Set();
   const trackRuntimeDisposer = (dispose) => {
     if (typeof dispose !== 'function') return () => {};

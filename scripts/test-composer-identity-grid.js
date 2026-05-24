@@ -2834,8 +2834,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const blocksDocument = runtime\.documentRef \|\| root\.ownerDocument \|\| null;[\s\S]*const blocksWindow = runtime\.windowRef \|\| \(blocksDocument && blocksDocument\.defaultView\) \|\| null;[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow[\s\S]*\}\);[\s\S]*selectionSession\.clearSelection\(root\)/,
+  /const explicitDocumentRef = options\.documentRef \|\| null;[\s\S]*const explicitWindowRef = options\.windowRef \|\| null;[\s\S]*documentRef: explicitDocumentRef,[\s\S]*windowRef: explicitWindowRef,[\s\S]*const blocksDocument = runtime\.documentRef \|\| explicitDocumentRef \|\| null;[\s\S]*const blocksWindow = runtime\.windowRef \|\| explicitWindowRef \|\| null;[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow[\s\S]*\}\);[\s\S]*selectionSession\.clearSelection\(root\)/,
   'blocks editor should route native selection clearing through the selection session service'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /root\.ownerDocument|ownerDocument\.defaultView|documentRef\.defaultView/,
+  'blocks editor should not derive browser document/window refs from the root element'
+);
+
+assert.match(
+  editorMainBlocksSessionSource,
+  /blocksEditor = createBlocksEditor\(root, \{[\s\S]*documentRef: runtime\.documentRef \|\| null,[\s\S]*windowRef: runtime\.windowRef \|\| null,[\s\S]*labels: createBlockLabels\(translate\),/,
+  'editor-main blocks session should pass explicit runtime document/window refs into the Blocks editor'
 );
 
 assert.match(

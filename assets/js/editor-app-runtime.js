@@ -424,6 +424,15 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     return getViewportSize().width;
   }
 
+  function getDocumentLang() {
+    try {
+      const docEl = documentRef && documentRef.documentElement;
+      return docEl && docEl.lang ? String(docEl.lang) : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   function getComputedStyleFor(element) {
     try {
       const getStyle = windowRef && typeof windowRef.getComputedStyle === 'function'
@@ -620,6 +629,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     getWindowScroll,
     getViewportSize,
     getViewportWidth,
+    getDocumentLang,
     getComputedStyle: getComputedStyleFor,
     getResizeObserver,
     fetchContent,

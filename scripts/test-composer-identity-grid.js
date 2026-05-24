@@ -1816,6 +1816,12 @@ assert.match(
   'editor app runtime should own DOM-ready state checks and DOMContentLoaded listener registration'
 );
 
+assert.match(
+  editorAppRuntimeSource,
+  /function getDocumentLang\(\)[\s\S]*documentRef && documentRef\.documentElement[\s\S]*getDocumentLang,/,
+  'editor app runtime should own document language reads for browser-facing editor services'
+);
+
 assert.doesNotMatch(
   editorAppRuntimeSource,
   /typeof (?:CustomEvent|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
@@ -1824,7 +1830,7 @@ assert.doesNotMatch(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getLocation\(\)[\s\S]*function getLocationOrigin\(\)[\s\S]*function getLocationHref\(\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function openWindow\(href = '', target = '_blank', features\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getLocation\(\)[\s\S]*function getLocationOrigin\(\)[\s\S]*function getLocationHref\(\)[\s\S]*function getDocumentLang\(\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function openWindow\(href = '', target = '_blank', features\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*function error\(\.\.\.args\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
   'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, language-control, and browser-global boundaries'
 );
 
@@ -1842,8 +1848,8 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
   source,
-  /window\.__press_site_repo|window\.__press_primary_editor|document\.dispatchEvent\(new CustomEvent\(LANGUAGE_POOL_CHANGED_EVENT\)|localStorage\.getItem\(scopedEditorStorageKey|localStorage\.setItem\(scopedEditorStorageKey|window\.setTimeout|window\.clearTimeout|fetch\(url, options\)|alert\(message\)|window\.confirm\(message\)|navigator\.clipboard|window\.isSecureContext|document\.execCommand\('copy'\)|typeof performance !== 'undefined'|typeof CSS !== 'undefined'/,
-  'composer should route browser globals, app events, scoped persisted UI state, timers, fetch, dialogs, clipboard, and browser global objects through the runtime boundary'
+  /window\.__press_site_repo|window\.__press_primary_editor|document\.dispatchEvent\(new CustomEvent\(LANGUAGE_POOL_CHANGED_EVENT\)|localStorage\.getItem\(scopedEditorStorageKey|localStorage\.setItem\(scopedEditorStorageKey|window\.setTimeout|window\.clearTimeout|fetch\(url, options\)|alert\(message\)|window\.confirm\(message\)|navigator\.clipboard|window\.isSecureContext|document\.execCommand\('copy'\)|composerDocument\.documentElement|documentElement\.lang|typeof performance !== 'undefined'|typeof CSS !== 'undefined'/,
+  'composer should route browser globals, app events, scoped persisted UI state, timers, fetch, dialogs, clipboard, document language, and browser global objects through the runtime boundary'
 );
 
 assert.match(
@@ -1914,7 +1920,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => \{[\s\S]*composerDocument\.documentElement[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
   'composer should reduce publish persistence to explicit app-service callbacks'
 );
 

@@ -175,7 +175,7 @@ class FakeResizeObserver {}
   documentRef.getElementById = id => ({ id });
   documentRef.querySelector = selector => ({ selector });
   documentRef.querySelectorAll = selector => [{ selector }];
-  documentRef.documentElement = { scrollTop: 11, clientWidth: 960, clientHeight: 720 };
+  documentRef.documentElement = { lang: 'ja', scrollTop: 11, clientWidth: 960, clientHeight: 720 };
   documentRef.body = {
     appendChild(node) {
       appendedNodes.push(node);
@@ -270,6 +270,7 @@ class FakeResizeObserver {}
   assert.deepEqual(runtime.browser.getWindowScroll(), { x: 12, y: 345 });
   assert.deepEqual(runtime.browser.getViewportSize(), { width: 1200, height: 900 });
   assert.equal(runtime.browser.getViewportWidth(), 1200);
+  assert.equal(runtime.browser.getDocumentLang(), 'ja');
   assert.deepEqual(runtime.browser.getComputedStyle({ nodeType: 1 }).display, 'grid');
   assert.equal(runtime.browser.getResizeObserver(), FakeResizeObserver);
   assert.equal(runtime.browser.getPerformance(), windowRef.performance);
@@ -411,6 +412,7 @@ class FakeResizeObserver {}
     assert.equal(runtime.browser.getLocation(), null);
     assert.equal(runtime.browser.getLocationOrigin(), '');
     assert.equal(runtime.browser.getLocationHref(), '');
+    assert.equal(runtime.browser.getDocumentLang(), '');
     assert.equal(await runtime.browser.writeClipboardText('ambient copy'), false);
     assert.equal(runtime.browser.warn('ambient'), false);
     assert.equal(runtime.browser.error('ambient'), false);

@@ -44,6 +44,10 @@ export function createComposerRuntime(options = {}) {
     return runtime.browser.getLocationHref();
   }
 
+  function getDocumentLang() {
+    return runtime.browser.getDocumentLang();
+  }
+
   function getContentRoot() {
     return normalizeContentRoot(runtime.globals.getString(CONTENT_ROOT_GLOBAL, 'wwwroot'));
   }
@@ -174,6 +178,7 @@ export function createComposerRuntime(options = {}) {
     getLocation,
     getLocationOrigin,
     getLocationHref,
+    getDocumentLang,
     getContentRoot,
     setContentRoot,
     getSiteRepo,

@@ -115,6 +115,9 @@ const navigatorRef = {
 const documentEvents = [];
 const documentRef = {
   readyState: 'complete',
+  documentElement: {
+    lang: 'ja'
+  },
   body: {
     appendChild(node) {
       appendedNodes.push(node);
@@ -160,6 +163,7 @@ assert.deepEqual(runtime.getLocation(), {
 assert.notEqual(runtime.getLocation(), windowRef.location);
 assert.equal(runtime.getLocationOrigin(), 'https://example.test');
 assert.equal(runtime.getLocationHref(), 'https://example.test/index_editor.html?mode=sync#site');
+assert.equal(runtime.getDocumentLang(), 'ja');
 assert.equal(runtime.setContentRoot('/wwwroot/'), 'wwwroot');
 assert.equal(windowRef.__press_content_root, 'wwwroot');
 

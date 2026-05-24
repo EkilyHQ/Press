@@ -401,13 +401,7 @@ const composerPublishStateService = createComposerPublishStateService({
   cloneSiteState,
   fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
   getLocationOrigin: () => editorRuntime.getLocationOrigin(),
-  getDocumentLang: () => {
-    try {
-      return composerDocument && composerDocument.documentElement ? composerDocument.documentElement.lang || '' : '';
-    } catch (_) {
-      return '';
-    }
-  },
+  getDocumentLang: () => editorRuntime.getDocumentLang(),
   consoleRef: composerLogger,
   setRemoteBaselineSlice: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
   notifyComposerChange,

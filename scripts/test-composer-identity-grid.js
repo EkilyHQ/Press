@@ -2092,8 +2092,8 @@ assert.match(
 
 assert.match(
   composerSystemThemeBridgeSource,
-  /from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*id: 'themes'[\s\S]*function init\(\)[\s\S]*initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
-  'system/theme bridge should own manager imports, staging providers, and module initialization'
+  /import \{ createSystemUpdatesController \} from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*import \{ createThemeManagerController \} from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*const systemUpdates = options\.systemUpdatesController \|\| createSystemUpdatesController\(\);[\s\S]*const themeManager = options\.themeManagerController \|\| createThemeManagerController\(\);[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*systemUpdates\.clear\(\{ keepStatus: false \}\)[\s\S]*id: 'themes'[\s\S]*themeManager\.clear\(\{ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true \}\)[\s\S]*function init\(\)[\s\S]*systemUpdates\.init\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*themeManager\.init\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
+  'system/theme bridge should own explicit manager controllers, staging providers, and module initialization'
 );
 
 assert.doesNotMatch(

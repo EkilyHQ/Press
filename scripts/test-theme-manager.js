@@ -29,6 +29,7 @@ const {
   analyzeThemeArchive,
   clearThemeManagerState,
   collectThemeArchiveEntries,
+  createThemeManagerController,
   getOfficialThemeCatalogStatus,
   getThemeManagerCommitFiles,
   handleImportFile,
@@ -159,6 +160,20 @@ function mockFetchRegistry(registry, options = {}) {
     };
   };
 }
+
+await run('exposes theme manager through an explicit controller facade', async () => {
+  const controller = createThemeManagerController();
+  assert.equal(typeof controller.init, 'function');
+  assert.equal(typeof controller.getSummaryEntries, 'function');
+  assert.equal(typeof controller.getCommitFiles, 'function');
+  assert.equal(typeof controller.clear, 'function');
+  assert.equal(typeof controller.analyzeArchive, 'function');
+  assert.equal(typeof controller.handleImportFile, 'function');
+  assert.equal(typeof controller.loadOfficialCatalog, 'function');
+  assert.equal(typeof controller.getOfficialCatalogStatus, 'function');
+  assert.equal(typeof controller.stageCatalogTheme, 'function');
+  assert.equal(typeof controller.stageUninstall, 'function');
+});
 
 function themeTextFiles(slug, files) {
   const out = {};

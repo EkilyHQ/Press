@@ -45,31 +45,43 @@ assert.match(
 
 assert.match(
   bridgeSource,
-  /import \{ initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState \} from '\.\/system-updates\.js\?v=[\w.-]+';/,
-  'bridge should own system updates imports'
+  /import \{ createSystemUpdatesController \} from '\.\/system-updates\.js\?v=[\w.-]+';/,
+  'bridge should own the system updates controller factory import'
 );
 
 assert.match(
   bridgeSource,
-  /import \{ initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState \} from '\.\/theme-manager\.js\?v=[\w.-]+';/,
-  'bridge should own theme manager imports'
+  /import \{ createThemeManagerController \} from '\.\/theme-manager\.js\?v=[\w.-]+';/,
+  'bridge should own the theme manager controller factory import'
+);
+
+assert.doesNotMatch(
+  bridgeSource,
+  /import \{[^}]*initSystemUpdates|import \{[^}]*getSystemUpdateSummaryEntries|import \{[^}]*clearSystemUpdateState|import \{[^}]*initThemeManager|import \{[^}]*getThemeManagerSummaryEntries|import \{[^}]*clearThemeManagerState/,
+  'bridge should not import singleton panel methods directly'
 );
 
 assert.match(
   bridgeSource,
-  /id: 'system-updates'[\s\S]*getSummaryEntries: getSystemSummaryEntries[\s\S]*getCommitFiles: getSystemCommitFiles[\s\S]*clearSystemUpdateState\(\{ keepStatus: false \}\)/,
+  /const systemUpdates = options\.systemUpdatesController \|\| createSystemUpdatesController\(\);[\s\S]*const themeManager = options\.themeManagerController \|\| createThemeManagerController\(\);/,
+  'bridge should bind explicit system and theme manager controller instances'
+);
+
+assert.match(
+  bridgeSource,
+  /id: 'system-updates'[\s\S]*getSummaryEntries: getSystemSummaryEntries[\s\S]*getCommitFiles: getSystemCommitFiles[\s\S]*systemUpdates\.clear\(\{ keepStatus: false \}\)/,
   'bridge should register the system update staging provider'
 );
 
 assert.match(
   bridgeSource,
-  /id: 'themes'[\s\S]*getSummaryEntries: getThemeSummaryEntries[\s\S]*getCommitFiles: getThemeCommitFiles[\s\S]*clearThemeManagerState\(\{ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true \}\)/,
+  /id: 'themes'[\s\S]*getSummaryEntries: getThemeSummaryEntries[\s\S]*getCommitFiles: getThemeCommitFiles[\s\S]*themeManager\.clear\(\{ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true \}\)/,
   'bridge should register the theme staging provider with the existing clear options'
 );
 
 assert.match(
   bridgeSource,
-  /initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*onStateChange: refreshThemeState,[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack[\s\S]*\}\)/,
+  /systemUpdates\.init\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*themeManager\.init\(\{[\s\S]*onStateChange: refreshThemeState,[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack[\s\S]*\}\)/,
   'bridge should initialize system updates and theme manager with the existing callbacks'
 );
 
@@ -78,3 +90,97 @@ assert.doesNotMatch(
   /\|\|\s*console\b/,
   'system/theme bridge should receive logging through explicit composer wiring'
 );
+
+globalThis.document = {
+  title: 'Press',
+  baseURI: 'https://example.test/',
+  documentElement: { setAttribute() {} },
+  getElementById: () => null,
+  querySelectorAll: () => []
+};
+globalThis.window = {
+  location: { href: 'https://example.test/', protocol: 'https:' },
+  dispatchEvent() {}
+};
+globalThis.CustomEvent = class CustomEvent {
+  constructor(type, init = {}) {
+    this.type = type;
+    this.detail = init.detail;
+  }
+};
+
+const { createComposerSystemThemeBridge } = await import('../assets/js/composer-system-theme-bridge.js?bridge-test');
+
+let systemInitOptions = null;
+let themeInitOptions = null;
+const calls = [];
+const state = { site: { themePack: 'arcus' } };
+const bridge = createComposerSystemThemeBridge({
+  systemUpdatesController: {
+    init(options) {
+      systemInitOptions = options;
+      calls.push(['system-init']);
+    },
+    getSummaryEntries: () => [{ label: 'System runtime', path: 'assets/main.js' }],
+    getCommitFiles: () => [{ path: 'assets/main.js', content: 'export {};' }],
+    clear: (options) => calls.push(['system-clear', options])
+  },
+  themeManagerController: {
+    init(options) {
+      themeInitOptions = options;
+      calls.push(['theme-init']);
+    },
+    getSummaryEntries: () => [{ label: 'Theme CSS', path: 'assets/themes/arcus/theme.css' }],
+    getCommitFiles: () => [{ path: 'assets/themes/arcus/theme.css', content: ':root{}' }],
+    clear: (options) => calls.push(['theme-clear', options])
+  },
+  getStateSlice: (key) => state[key],
+  setStateSlice: (key, value) => { state[key] = value; },
+  notifyComposerChange: (key) => calls.push(['notify', key]),
+  updateUnsyncedSummary: () => calls.push(['unsynced']),
+  refreshEditorContentTree: (options) => calls.push(['tree', options])
+});
+
+assert.deepEqual(bridge.getSystemSummaryEntries(), [
+  { label: 'System runtime', path: 'assets/main.js', kind: 'system' }
+]);
+assert.deepEqual(bridge.getThemeSummaryEntries(), [
+  { label: 'Theme CSS', path: 'assets/themes/arcus/theme.css', kind: 'system', category: 'theme' }
+]);
+assert.deepEqual(bridge.getSystemCommitFiles(), [
+  { path: 'assets/main.js', content: 'export {};', kind: 'system' }
+]);
+assert.deepEqual(bridge.getThemeCommitFiles(), [
+  { path: 'assets/themes/arcus/theme.css', content: ':root{}', kind: 'system', category: 'theme' }
+]);
+
+const registeredProviders = [];
+bridge.registerStagingProviders({
+  registerStagingProvider(provider) {
+    registeredProviders.push(provider);
+  }
+});
+assert.equal(registeredProviders.length, 2);
+registeredProviders[0].clear();
+registeredProviders[1].clear();
+assert.deepEqual(calls.slice(0, 2), [
+  ['system-clear', { keepStatus: false }],
+  ['theme-clear', { keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true }]
+]);
+
+bridge.init();
+assert.equal(typeof systemInitOptions.onStateChange, 'function');
+assert.equal(typeof themeInitOptions.onStateChange, 'function');
+assert.equal(themeInitOptions.getCurrentThemePack(), 'arcus');
+themeInitOptions.setSiteThemePack('solstice');
+assert.equal(state.site.themePack, 'solstice');
+systemInitOptions.onStateChange();
+themeInitOptions.onStateChange();
+assert.deepEqual(calls.slice(2), [
+  ['system-init'],
+  ['theme-init'],
+  ['notify', 'site'],
+  ['unsynced'],
+  ['unsynced'],
+  ['tree', { preserveStructure: true }]
+]);

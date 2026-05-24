@@ -31,6 +31,7 @@ const {
   analyzeArchive,
   collectSystemUpdateArchiveEntries,
   clearSystemUpdateState,
+  createSystemUpdatesController,
   getDisplayReleaseNotes,
   getSystemUpdateCommitFiles,
   normalizeSystemReleaseManifest,
@@ -126,6 +127,16 @@ await run('selects the dedicated Press system release asset', async () => {
   assert.equal(selectSystemUpdateAsset({
     assets: [{ name: 'Press-v3.3.5-source.zip', browser_download_url: 'https://example.test/source.zip' }]
   }), null);
+});
+
+await run('exposes system updates through an explicit controller facade', async () => {
+  const controller = createSystemUpdatesController();
+  assert.equal(typeof controller.init, 'function');
+  assert.equal(typeof controller.getSummaryEntries, 'function');
+  assert.equal(typeof controller.getCommitFiles, 'function');
+  assert.equal(typeof controller.clear, 'function');
+  assert.equal(typeof controller.analyzeArchive, 'function');
+  assert.equal(typeof controller.stageLatest, 'function');
 });
 
 await run('matches Press SemVer ranges', async () => {

@@ -1,5 +1,5 @@
-import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommitFiles, clearSystemUpdateState } from './system-updates.js?v=press-system-v3.4.50';
-import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.50';
+import { createSystemUpdatesController } from './system-updates.js?v=press-system-v3.4.50';
+import { createThemeManagerController } from './theme-manager.js?v=press-system-v3.4.50';
 
 export function createComposerSystemThemeBridge(options = {}) {
   const consoleRef = options.consoleRef || null;
@@ -8,21 +8,23 @@ export function createComposerSystemThemeBridge(options = {}) {
   const notifyComposerChange = typeof options.notifyComposerChange === 'function' ? options.notifyComposerChange : (() => {});
   const updateUnsyncedSummary = typeof options.updateUnsyncedSummary === 'function' ? options.updateUnsyncedSummary : (() => {});
   const refreshEditorContentTree = typeof options.refreshEditorContentTree === 'function' ? options.refreshEditorContentTree : (() => {});
+  const systemUpdates = options.systemUpdatesController || createSystemUpdatesController();
+  const themeManager = options.themeManagerController || createThemeManagerController();
 
   function getSystemSummaryEntries() {
-    return getSystemUpdateSummaryEntries().map(entry => ({ ...entry, kind: 'system' }));
+    return systemUpdates.getSummaryEntries().map(entry => ({ ...entry, kind: 'system' }));
   }
 
   function getThemeSummaryEntries() {
-    return getThemeManagerSummaryEntries().map(entry => ({ ...entry, kind: 'system', category: 'theme' }));
+    return themeManager.getSummaryEntries().map(entry => ({ ...entry, kind: 'system', category: 'theme' }));
   }
 
   function getSystemCommitFiles() {
-    return getSystemUpdateCommitFiles().map(entry => ({ ...entry, kind: 'system' }));
+    return systemUpdates.getCommitFiles().map(entry => ({ ...entry, kind: 'system' }));
   }
 
   function getThemeCommitFiles() {
-    return getThemeManagerCommitFiles().map(entry => ({ ...entry, kind: 'system', category: 'theme' }));
+    return themeManager.getCommitFiles().map(entry => ({ ...entry, kind: 'system', category: 'theme' }));
   }
 
   function registerStagingProviders(stagingRegistry) {
@@ -31,13 +33,13 @@ export function createComposerSystemThemeBridge(options = {}) {
       id: 'system-updates',
       getSummaryEntries: getSystemSummaryEntries,
       getCommitFiles: getSystemCommitFiles,
-      clear: () => clearSystemUpdateState({ keepStatus: false })
+      clear: () => systemUpdates.clear({ keepStatus: false })
     });
     stagingRegistry.registerStagingProvider({
       id: 'themes',
       getSummaryEntries: getThemeSummaryEntries,
       getCommitFiles: getThemeCommitFiles,
-      clear: () => clearThemeManagerState({ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true })
+      clear: () => themeManager.clear({ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true })
     });
   }
 
@@ -64,14 +66,14 @@ export function createComposerSystemThemeBridge(options = {}) {
 
   function init() {
     try {
-      initSystemUpdates({ onStateChange: refreshUnsyncedSummary });
+      systemUpdates.init({ onStateChange: refreshUnsyncedSummary });
     } catch (err) {
       if (consoleRef && typeof consoleRef.error === 'function') {
         consoleRef.error('Failed to initialize system updates module', err);
       }
     }
     try {
-      initThemeManager({
+      themeManager.init({
         onStateChange: refreshThemeState,
         getCurrentThemePack,
         setSiteThemePack
@@ -84,11 +86,11 @@ export function createComposerSystemThemeBridge(options = {}) {
   }
 
   function hasSystemUpdateEntries() {
-    return getSystemUpdateSummaryEntries().length > 0;
+    return systemUpdates.getSummaryEntries().length > 0;
   }
 
   function hasThemeEntries() {
-    return getThemeManagerSummaryEntries().length > 0;
+    return themeManager.getSummaryEntries().length > 0;
   }
 
   return {

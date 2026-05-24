@@ -869,3 +869,14 @@ export function clearSystemUpdateState(options = {}) {
   }
   renderReleaseMeta();
 }
+
+export function createSystemUpdatesController() {
+  return {
+    init: initSystemUpdates,
+    getSummaryEntries: getSystemUpdateSummaryEntries,
+    getCommitFiles: getSystemUpdateCommitFiles,
+    clear: clearSystemUpdateState,
+    analyzeArchive,
+    stageLatest: stageLatestSystemUpdate
+  };
+}

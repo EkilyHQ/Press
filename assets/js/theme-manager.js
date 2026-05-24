@@ -1281,3 +1281,18 @@ export function clearThemeManagerState(options = {}) {
 export async function analyzeThemeArchive(buffer, fileName = '', options = {}) {
   return stageThemeArchive(buffer, fileName, options);
 }
+
+export function createThemeManagerController() {
+  return {
+    init: initThemeManager,
+    getSummaryEntries: getThemeManagerSummaryEntries,
+    getCommitFiles: getThemeManagerCommitFiles,
+    clear: clearThemeManagerState,
+    analyzeArchive: analyzeThemeArchive,
+    handleImportFile,
+    loadOfficialCatalog: loadOfficialThemeCatalog,
+    getOfficialCatalogStatus: getOfficialThemeCatalogStatus,
+    stageCatalogTheme,
+    stageUninstall: stageThemeUninstall
+  };
+}

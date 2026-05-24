@@ -201,7 +201,7 @@ const composerNotifications = createComposerNotificationController({
   windowRef: window,
   t,
   safeString,
-  alertRef: (message) => alert(message),
+  alertRef: (message) => editorRuntime.showAlert(message),
   consoleRef: console
 });
 const {
@@ -415,8 +415,8 @@ composerServices.setMarkdownDraftController(createComposerMarkdownDraftControlle
   showToast,
   t,
   consoleRef: console,
-  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
-  clearTimeoutRef: (id) => window.clearTimeout(id)
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id)
 }));
 composerServices.setMarkdownLoader(createComposerMarkdownLoader({
   getContentRootSafe,
@@ -434,7 +434,7 @@ composerServices.setMarkdownLoader(createComposerMarkdownLoader({
   getCurrentMode: () => getCurrentComposerMode(),
   pushEditorCurrentFileInfo,
   refreshEditorContentTree,
-  fetchContent: (url, options) => fetch(url, options),
+  fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
   draftProtectionTitle: () => t('editor.composer.markdown.protection.draftTitle'),
   draftProtectionMessage: () => t('editor.composer.markdown.protection.draftMessage'),
   openProtectionTitle: () => t('editor.composer.markdown.protection.openTitle'),
@@ -453,7 +453,7 @@ composerServices.setMarkdownActionsUi(createComposerMarkdownActionsUi({
 }));
 const remoteSyncController = createComposerRemoteSyncController({
   t,
-  fetchContent: (url, options) => fetch(url, options),
+  fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
   getContentRootSafe,
   normalizeRelPath,
   normalizeMarkdownContent,
@@ -646,13 +646,13 @@ composerServices.setMarkdownSessionController(createComposerMarkdownSessionContr
   setActiveNodeIdIfExists: (nodeId) => editorContentTreeController.setActiveNodeIdIfExists(nodeId),
   setEditorRailScrollTop,
   restoreEditorContentScrollForMode,
-  requestAnimationFrameRef: (fn) => requestAnimationFrame(fn),
+  requestAnimationFrameRef: (fn) => editorRuntime.requestFrame(fn),
   applyMode: (mode, options) => applyMode(mode, options),
   selectEditorTreeNodeByPath,
   showComposerDiscardConfirm,
   t,
   windowRef: window,
-  alertRef: (message) => alert(message),
+  alertRef: (message) => editorRuntime.showAlert(message),
   consoleRef: console,
   updateDynamicTabsGroupState,
   detachPrimaryEditorListeners,
@@ -703,7 +703,7 @@ composerServices.setModeController(createComposerModeController({
   updateDynamicTabDirtyState,
   setTabLoadingState,
   loadDynamicTabContent,
-  alertRef: (message) => alert(message),
+  alertRef: (message) => editorRuntime.showAlert(message),
   consoleRef: console
 }));
 
@@ -732,9 +732,9 @@ const composerFilePanelController = createComposerFilePanelController({
   storageKey: scopedEditorStorageKey(LS_KEYS.cfile),
   t,
   prefersReducedMotion: composerPrefersReducedMotion,
-  requestAnimationFrameRef: (callback) => requestAnimationFrame(callback),
-  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
-  clearTimeoutRef: (id) => window.clearTimeout(id),
+  requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
   onPanelStateApplied: (normalized) => {
     try {
       if (normalized === 'site') setComposerOrderPreviewActiveKind('index');
@@ -765,8 +765,8 @@ const composerYamlDraftController = createComposerYamlDraftController({
   prepareTabsState,
   cloneSiteState,
   updateUnsyncedSummary,
-  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay),
-  clearTimeoutRef: (id) => window.clearTimeout(id)
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id)
 });
 
 const SITE_FIELD_LABEL_MAP = {
@@ -1028,7 +1028,8 @@ editorRuntime.events.onWindow('beforeunload', handleBeforeUnload);
 
 function cssEscape(value) {
   try {
-    if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(value);
+    const cssRef = editorRuntime.getCss();
+    if (cssRef && typeof cssRef.escape === 'function') return cssRef.escape(value);
   } catch (_) {}
   return safeString(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
 }
@@ -1292,8 +1293,8 @@ const composerContentMutations = createComposerContentMutationController({
   displayLangName,
   cssEscape,
   clearInlineSlideStyles,
-  requestAnimationFrameRef: (callback) => requestAnimationFrame(callback),
-  confirmRef: (message) => window.confirm(message),
+  requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
+  confirmRef: (message) => editorRuntime.confirmAction(message),
   consoleRef: console
 });
 const {
@@ -1343,8 +1344,8 @@ const composerIndexTabsUi = createComposerIndexTabsUi({
 const composerSiteSettingsUi = createComposerSiteSettingsUi({
   documentRef: document,
   windowRef: window,
-  performanceRef: typeof performance !== 'undefined' ? performance : null,
-  cssRef: typeof CSS !== 'undefined' ? CSS : null,
+  performanceRef: editorRuntime.getPerformance(),
+  cssRef: editorRuntime.getCss(),
   preferredLangOrder: PREFERRED_LANG_ORDER,
   langCodePattern: LANG_CODE_PATTERN,
   languagePoolChangedEvent: LANGUAGE_POOL_CHANGED_EVENT,
@@ -1480,7 +1481,7 @@ const composerYamlActions = createComposerYamlActions({
   clearAutoDraftTimer: (kind) => composerYamlDraftController.clearAutoDraftTimer(kind),
   clearDraftStorage,
   showDiscardConfirm: showComposerDiscardConfirm,
-  setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay)
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay)
 });
 const {
   handleDiscard: handleComposerDiscard,
@@ -2015,7 +2016,7 @@ initializeComposerApp({
       allowEditorStatePersist = !!value;
     },
     persistDynamicEditorState,
-    setTimeoutRef: (handler, delay) => window.setTimeout(handler, delay)
+    setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay)
   }
 });
 

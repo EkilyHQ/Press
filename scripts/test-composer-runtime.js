@@ -6,16 +6,43 @@ import {
 
 const events = [];
 const timers = [];
+const frames = [];
+const cancelledFrames = [];
+const alerts = [];
+const confirms = [];
+const fetchCalls = [];
+const performanceRef = { now: () => 42 };
+const cssRef = { escape: (value) => `escaped:${value}` };
 const windowRef = {
   __press_content_root: 'docs',
   location: { href: 'https://example.test/index_editor.html' },
   localStorage: new Map(),
+  performance: performanceRef,
+  CSS: cssRef,
   setTimeout(handler, delay) {
     timers.push({ handler, delay });
     return timers.length;
   },
   clearTimeout(id) {
     timers[id - 1].cleared = true;
+  },
+  requestAnimationFrame(handler) {
+    frames.push(handler);
+    return frames.length;
+  },
+  cancelAnimationFrame(id) {
+    cancelledFrames.push(id);
+  },
+  fetch(url, options) {
+    fetchCalls.push([url, options]);
+    return Promise.resolve({ ok: true, url });
+  },
+  alert(message) {
+    alerts.push(message);
+  },
+  confirm(message) {
+    confirms.push(message);
+    return message === 'continue';
   },
   dispatchEvent(event) {
     events.push(['window', event.type, event.detail]);
@@ -78,3 +105,26 @@ timers[0].handler();
 assert.equal(ready, true);
 disposeReady();
 assert.equal(timers[0].cleared, true);
+
+const frameId = runtime.requestFrame(() => {});
+assert.equal(frameId, 1);
+assert.equal(frames.length, 1);
+runtime.cancelFrame(frameId);
+assert.deepEqual(cancelledFrames, [1]);
+
+const timerId = runtime.setTimer(() => {}, 50);
+assert.equal(timerId, 2);
+runtime.clearTimer(timerId);
+assert.equal(timers[1].cleared, true);
+
+assert.equal(runtime.showAlert('hello'), true);
+assert.deepEqual(alerts, ['hello']);
+assert.equal(runtime.confirmAction('continue'), true);
+assert.equal(runtime.confirmAction('stop'), false);
+assert.deepEqual(confirms, ['continue', 'stop']);
+assert.equal(runtime.getPerformance(), performanceRef);
+assert.equal(runtime.getCss(), cssRef);
+
+const response = await runtime.fetchContent('/site.yaml', { cache: 'no-store' });
+assert.equal(response.ok, true);
+assert.deepEqual(fetchCalls, [['/site.yaml', { cache: 'no-store' }]]);

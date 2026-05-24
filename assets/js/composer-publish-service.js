@@ -105,6 +105,7 @@ export function createComposerPublishService(options = {}) {
     getTrackedPublishContentRoot: options.getTrackedPublishContentRoot || (() => 'wwwroot'),
     gatherCommitPayload: options.gatherCommitPayload || (async () => ({ files: [] })),
     applyLocalPostCommitState: options.applyLocalPostCommitState || noop,
+    setTimeoutRef,
     getCachedConnectPublishGrant,
     setCachedConnectPublishGrant,
     clearCachedConnectPublishGrant,

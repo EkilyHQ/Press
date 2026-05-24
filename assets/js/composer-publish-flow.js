@@ -10,6 +10,7 @@ export function createComposerPublishFlow({
   getTrackedPublishContentRoot = () => 'wwwroot',
   gatherCommitPayload = async () => ({ files: [] }),
   applyLocalPostCommitState = () => {},
+  setTimeoutRef = null,
   getCachedConnectPublishGrant = () => null,
   setCachedConnectPublishGrant = () => {},
   clearCachedConnectPublishGrant = () => {},
@@ -28,11 +29,17 @@ export function createComposerPublishFlow({
   const fetchRef = typeof fetchImpl === 'function'
     ? fetchImpl
     : null;
+  const sleepMs = (ms) => new Promise((resolve) => {
+    const timeout = Math.max(0, Number(ms) || 0);
+    if (typeof setTimeoutRef === 'function') setTimeoutRef(resolve, timeout);
+    else resolve();
+  });
 
   async function waitForRemotePropagation(files = []) {
     return waitForPublishedFiles(files, {
-      windowRef,
       fetchImpl: fetchRef,
+      contentRoot: getTrackedPublishContentRoot(),
+      sleepMs,
       setStatus: setSyncOverlayStatus,
       setCancelHandler: setSyncOverlayCancelHandler
     });

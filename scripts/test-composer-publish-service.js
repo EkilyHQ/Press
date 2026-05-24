@@ -163,6 +163,7 @@ const service = createComposerPublishService({
     assert.equal(options.showSyncOverlay, overlayController.show);
     assert.equal(options.describeSummaryEntry, publishSummaryRenderer.describeSummaryEntry);
     assert.equal(options.switchToPatFallbackAndFocusToken, publishTransportUi.switchToPatFallbackAndFocusToken);
+    assert.equal(options.setTimeoutRef, setTimeoutRef);
     assert.equal(typeof options.consoleRef.error, 'function');
     calls.push(['factory:flow']);
     return publishFlow;

@@ -4761,6 +4761,18 @@ assert.match(
 );
 
 assert.match(
+  composerPublishFlowSource,
+  /function waitForRemotePropagation\(files = \[\]\) \{[\s\S]*waitForPublishedFiles\(files, \{[\s\S]*fetchImpl: fetchRef,[\s\S]*contentRoot: getTrackedPublishContentRoot\(\),[\s\S]*sleepMs,[\s\S]*setStatus: setSyncOverlayStatus,[\s\S]*setCancelHandler: setSyncOverlayCancelHandler/,
+  'composer publish flow should inject fetch, content root, and runtime sleep into the propagation watcher'
+);
+
+assert.doesNotMatch(
+  propagationWatcherSource,
+  /\bwindowRef\b|options\.windowRef|typeof window|__press_content_root|fetchImpl\s*\|\|\s*fetch|(^|[^.])\bfetch\s*\(|(^|[^.])\bsetTimeout\s*\(|\bbtoa\b|console\.error/m,
+  'remote propagation watcher should not rediscover window, fetch, content-root globals, timers, or browser base64 helpers'
+);
+
+assert.match(
   source,
   /from '\.\/composer-notifications\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted notification and popup boundary'

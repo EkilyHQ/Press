@@ -1774,6 +1774,12 @@ assert.match(
   'editor app runtime should expose explicit state, baseline, diff, storage, event, and global-access boundaries'
 );
 
+assert.doesNotMatch(
+  editorAppRuntimeSource,
+  /typeof (?:CustomEvent|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
+  'editor app runtime browser facade should use captured refs instead of ambient browser global fallbacks'
+);
+
 assert.match(
   composerRuntimeSource,
   /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitEditorLanguageControlMounted\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function populateEditorLanguageSelect\(\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getViewportWidth\(\)[\s\S]*function getWindowScroll\(\)[\s\S]*function scrollWindowToTop\(behavior = 'smooth'\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,

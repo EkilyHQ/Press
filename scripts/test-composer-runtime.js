@@ -262,13 +262,22 @@ await assert.rejects(
 );
 
 const originalGlobalGetComputedStyle = globalThis.getComputedStyle;
-globalThis.getComputedStyle = (element) => (element ? { display: 'grid' } : null);
+const ambientStyleCalls = [];
+globalThis.getComputedStyle = (element) => {
+  ambientStyleCalls.push(element);
+  return element ? { display: 'grid' } : null;
+};
 try {
   const fallbackStyleRuntime = createComposerRuntime({
     windowRef: { ...windowRef, getComputedStyle: undefined },
     documentRef
   });
-  assert.deepEqual(fallbackStyleRuntime.getComputedStyle({ nodeType: 1 }), { display: 'grid' });
+  assert.equal(fallbackStyleRuntime.getComputedStyle({ nodeType: 1 }), null);
+  assert.deepEqual(
+    ambientStyleCalls,
+    [],
+    'composer runtime computed-style lookup should not fall back to ambient globalThis'
+  );
 } finally {
   if (typeof originalGlobalGetComputedStyle === 'function') {
     globalThis.getComputedStyle = originalGlobalGetComputedStyle;

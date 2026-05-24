@@ -109,7 +109,7 @@ function createRuntimeEvents({ documentRef, windowRef } = {}) {
   function createRuntimeEvent(type, detail, eventOptions = {}) {
     const CustomEventCtor = windowRef && typeof windowRef.CustomEvent === 'function'
       ? windowRef.CustomEvent
-      : (typeof CustomEvent === 'function' ? CustomEvent : null);
+      : null;
     if (CustomEventCtor) return new CustomEventCtor(type, { ...eventOptions, detail });
     return { type, detail };
   }
@@ -191,26 +191,26 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
   function requestFrame(fn) {
     const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
       ? windowRef.requestAnimationFrame.bind(windowRef)
-      : (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null);
+      : null;
     if (raf) return raf(fn);
-    return setTimeout(fn, 0);
+    return setTimer(fn, 0);
   }
 
   function cancelFrame(id) {
     if (id == null) return;
     const caf = windowRef && typeof windowRef.cancelAnimationFrame === 'function'
       ? windowRef.cancelAnimationFrame.bind(windowRef)
-      : (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : null);
+      : null;
     try {
       if (caf) caf(id);
-      else clearTimeout(id);
+      else clearTimer(id);
     } catch (_) {}
   }
 
   function setTimer(fn, delay = 0) {
     const timer = windowRef && typeof windowRef.setTimeout === 'function'
       ? windowRef.setTimeout.bind(windowRef)
-      : (typeof setTimeout === 'function' ? setTimeout : null);
+      : null;
     return timer ? timer(fn, delay) : null;
   }
 
@@ -218,7 +218,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     if (id == null) return;
     const clear = windowRef && typeof windowRef.clearTimeout === 'function'
       ? windowRef.clearTimeout.bind(windowRef)
-      : (typeof clearTimeout === 'function' ? clearTimeout : null);
+      : null;
     if (clear) {
       try { clear(id); } catch (_) {}
     }
@@ -359,7 +359,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     try {
       const getStyle = windowRef && typeof windowRef.getComputedStyle === 'function'
         ? windowRef.getComputedStyle.bind(windowRef)
-        : (typeof getComputedStyle === 'function' ? getComputedStyle : null);
+        : null;
       return getStyle && element ? getStyle(element) : null;
     } catch (_) {
       return null;

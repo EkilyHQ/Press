@@ -240,6 +240,67 @@ class FakeResizeObserver {}
 }
 
 {
+  const documentRef = new FakeEventTarget();
+  const ambientCalls = [];
+  const ambientNames = [
+    'CustomEvent',
+    'requestAnimationFrame',
+    'cancelAnimationFrame',
+    'setTimeout',
+    'clearTimeout',
+    'getComputedStyle'
+  ];
+  const originals = new Map();
+  const hadOriginal = new Map();
+  ambientNames.forEach((name) => {
+    hadOriginal.set(name, Object.prototype.hasOwnProperty.call(globalThis, name));
+    originals.set(name, globalThis[name]);
+  });
+  try {
+    globalThis.CustomEvent = class AmbientCustomEvent {
+      constructor(type) {
+        ambientCalls.push(['CustomEvent', type]);
+        this.type = type;
+      }
+    };
+    globalThis.requestAnimationFrame = () => {
+      ambientCalls.push(['requestAnimationFrame']);
+      return 1001;
+    };
+    globalThis.cancelAnimationFrame = id => ambientCalls.push(['cancelAnimationFrame', id]);
+    globalThis.setTimeout = () => {
+      ambientCalls.push(['setTimeout']);
+      return 1002;
+    };
+    globalThis.clearTimeout = id => ambientCalls.push(['clearTimeout', id]);
+    globalThis.getComputedStyle = element => {
+      ambientCalls.push(['getComputedStyle', element]);
+      return { display: 'ambient' };
+    };
+
+    const runtime = createEditorAppRuntime({ windowRef: {}, documentRef });
+    assert.equal(runtime.events.emitDocument('press:no-ambient', { ok: true }), true);
+    assert.equal(documentRef.dispatched.at(-1).type, 'press:no-ambient');
+    assert.equal(documentRef.dispatched.at(-1).detail.ok, true);
+    assert.equal(runtime.browser.requestFrame(() => {}), null);
+    runtime.browser.cancelFrame(1001);
+    assert.equal(runtime.browser.setTimer(() => {}, 10), null);
+    runtime.browser.clearTimer(1002);
+    assert.equal(runtime.browser.getComputedStyle({ nodeType: 1 }), null);
+    assert.deepEqual(
+      ambientCalls,
+      [],
+      'editor app runtime facade should not fall back to ambient browser globals after refs are captured'
+    );
+  } finally {
+    ambientNames.forEach((name) => {
+      if (hadOriginal.get(name)) globalThis[name] = originals.get(name);
+      else delete globalThis[name];
+    });
+  }
+}
+
+{
   const runtime = createEditorAppRuntime({
     windowRef: {
       get localStorage() {

@@ -1363,6 +1363,10 @@ const {
 const composerIndexTabsUi = createComposerIndexTabsUi({
   documentRef: composerDocument,
   windowRef: composerWindow,
+  requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  alertRef: (message) => editorRuntime.showAlert(message),
+  getComputedStyleRef: (element) => editorRuntime.getComputedStyle(element),
   preferredLangOrder: PREFERRED_LANG_ORDER,
   query: $,
   escapeHtml,

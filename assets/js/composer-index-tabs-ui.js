@@ -1,6 +1,10 @@
 export function createComposerIndexTabsUi(options = {}) {
-  const documentRef = options.documentRef || (typeof globalThis !== 'undefined' ? globalThis.document : null);
-  const windowRef = options.windowRef || (typeof globalThis !== 'undefined' ? globalThis.window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : null;
+  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : null;
+  const getComputedStyleRef = typeof options.getComputedStyleRef === 'function' ? options.getComputedStyleRef : null;
   const preferredLangOrder = Array.isArray(options.preferredLangOrder) ? options.preferredLangOrder.slice() : [];
   const query = typeof options.query === 'function'
     ? options.query
@@ -36,22 +40,41 @@ export function createComposerIndexTabsUi(options = {}) {
   };
 
   function requestFrame(callback) {
-    if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
-      windowRef.requestAnimationFrame(callback);
-      return;
+    if (typeof callback !== 'function') return null;
+    if (requestAnimationFrameRef) {
+      try { return requestAnimationFrameRef(callback); } catch (_) {}
     }
     callback();
+    return null;
   }
 
   function scheduleTimer(callback, delay) {
-    if (windowRef && typeof windowRef.setTimeout === 'function') return windowRef.setTimeout(callback, delay);
-    return setTimeout(callback, delay);
+    if (typeof callback !== 'function') return null;
+    if (setTimeoutRef) {
+      try { return setTimeoutRef(callback, delay); } catch (_) {}
+    }
+    if ((Number(delay) || 0) <= 0) callback();
+    return null;
+  }
+
+  function getComputedStyleFor(element) {
+    if (!element) return null;
+    try {
+      if (getComputedStyleRef) return getComputedStyleRef(element);
+    } catch (_) {}
+    try {
+      return windowRef && typeof windowRef.getComputedStyle === 'function'
+        ? windowRef.getComputedStyle(element)
+        : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   function showMarkdownOpenAlert() {
     const message = tComposer('markdown.openBeforeEditor');
     try {
-      if (windowRef && typeof windowRef.alert === 'function') windowRef.alert(message);
+      if (alertRef) alertRef(message);
     } catch (_) {}
   }
 
@@ -201,9 +224,7 @@ export function createComposerIndexTabsUi(options = {}) {
       if (container.style.opacity && container.style.opacity !== '1') container.style.opacity = '';
 
       const initialRect = li.getBoundingClientRect();
-      const styles = windowRef && typeof windowRef.getComputedStyle === 'function'
-        ? windowRef.getComputedStyle(li)
-        : { margin: '' };
+      const styles = getComputedStyleFor(li) || { margin: '' };
 
       dragOriginParent = li.parentNode;
       dragOriginNext = li.nextSibling;
@@ -252,6 +273,7 @@ export function createComposerIndexTabsUi(options = {}) {
   }
 
   function buildIndexUI(root, state) {
+    if (!root || !documentRef || typeof documentRef.createElement !== 'function') return;
     root.innerHTML = '';
     const list = documentRef.createElement('div');
     list.id = 'ciList';
@@ -583,6 +605,7 @@ export function createComposerIndexTabsUi(options = {}) {
   }
 
   function buildTabsUI(root, state) {
+    if (!root || !documentRef || typeof documentRef.createElement !== 'function') return;
     root.innerHTML = '';
     const list = documentRef.createElement('div');
     list.id = 'ctList';

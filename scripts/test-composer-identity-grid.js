@@ -805,6 +805,18 @@ assert.match(
 
 assert.match(
   source,
+  /const composerIndexTabsUi = createComposerIndexTabsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
+  'composer should inject index/tabs UI frame, timer, dialog, and style effects through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
+  'index/tabs UI should receive browser refs, frames, timers, dialogs, and style access through explicit runtime wiring'
+);
+
+assert.match(
+  source,
   /from '\.\/composer-site-settings-ui\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted Site Settings UI boundary'
 );

@@ -20,8 +20,8 @@ function fallbackElementById(documentRef, id) {
 
 export function createEditorMainToolbarSession(options = {}) {
   const runtime = options.runtime || {};
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (documentRef && documentRef.defaultView) || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || (documentRef && documentRef.defaultView) || null;
   const translateImpl = typeof options.translate === 'function' ? options.translate : fallbackTranslate;
   const getEditorTextarea = typeof options.getEditorTextarea === 'function' ? options.getEditorTextarea : () => null;
   const getCardEntries = typeof options.getCardEntries === 'function' ? options.getCardEntries : null;
@@ -81,7 +81,7 @@ export function createEditorMainToolbarSession(options = {}) {
 
   const dispatchInputEvent = (textarea) => {
     if (!textarea || typeof textarea.dispatchEvent !== 'function') return;
-    const EventCtor = (windowRef && windowRef.Event) || (typeof Event !== 'undefined' ? Event : null);
+    const EventCtor = (windowRef && windowRef.Event) || null;
     if (EventCtor) {
       textarea.dispatchEvent(new EventCtor('input', { bubbles: true }));
       return;

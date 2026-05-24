@@ -57,8 +57,8 @@ function createElement(documentRef, tagName) {
 
 export function createEditorMainMetadataPanel(options = {}) {
   const runtime = options.runtime || {};
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const getElementById = (id) => (
     typeof runtime.getElementById === 'function'
       ? runtime.getElementById(id)

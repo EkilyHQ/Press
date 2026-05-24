@@ -15,8 +15,8 @@ function fallbackElementById(documentRef, id) {
 
 export function createEditorMainPreviewSession(options = {}) {
   const runtime = options.runtime || {};
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const getContentRoot = typeof options.getContentRoot === 'function' ? options.getContentRoot : fallbackGetContentRoot;
   const getEditorValue = typeof options.getEditorValue === 'function' ? options.getEditorValue : () => '';
   const getCurrentFileInfo = typeof options.getCurrentFileInfo === 'function' ? options.getCurrentFileInfo : () => ({});
@@ -28,7 +28,7 @@ export function createEditorMainPreviewSession(options = {}) {
   const getLocationAliases = typeof options.getLocationAliases === 'function' ? options.getLocationAliases : () => [];
   const fetchImpl = typeof options.fetch === 'function'
     ? options.fetch
-    : (typeof fetch === 'function' ? fetch : null);
+    : null;
   const getElementById = (id) => (
     typeof runtime.getElementById === 'function'
       ? runtime.getElementById(id)

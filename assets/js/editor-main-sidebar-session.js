@@ -21,8 +21,8 @@ function defaultAlert(message, windowRef) {
 
 export function createEditorMainSidebarSession(options = {}) {
   const runtime = options.runtime || {};
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const normalizeLangKey = typeof options.normalizeLangKey === 'function'
     ? options.normalizeLangKey
     : fallbackNormalizeLangKey;

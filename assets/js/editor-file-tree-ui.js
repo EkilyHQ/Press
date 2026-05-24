@@ -1,6 +1,6 @@
 export function createEditorFileTreeUi(options = {}) {
-  const document = options.documentRef || (typeof globalThis !== 'undefined' ? globalThis.document : null);
-  const window = options.windowRef || (typeof globalThis !== 'undefined' ? globalThis.window : null);
+  const document = options.documentRef || null;
+  const window = options.windowRef || null;
   const treeText = typeof options.treeText === 'function' ? options.treeText : (key, fallback) => fallback || key;
   const getEditorContentTree = typeof options.getEditorContentTree === 'function' ? options.getEditorContentTree : () => [];
   const getActiveNodeId = typeof options.getActiveNodeId === 'function' ? options.getActiveNodeId : () => '';
@@ -231,6 +231,7 @@ export function createEditorFileTreeUi(options = {}) {
   }
 
   function renderEditorFileTree(root) {
+    if (!root || !document || typeof document.createElement !== 'function') return;
     root.innerHTML = '';
     const selectedId = getActiveNodeId();
     const expandingNodeId = expandingEditorTreeNodeId;

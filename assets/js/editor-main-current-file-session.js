@@ -149,7 +149,7 @@ function fallbackElementById(documentRef, id) {
 
 export function createEditorMainCurrentFileSession(options = {}) {
   const runtime = options.runtime || {};
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   const translateImpl = typeof options.translate === 'function' ? options.translate : fallbackTranslate;
   const getCurrentLang = typeof options.getCurrentLang === 'function' ? options.getCurrentLang : fallbackGetCurrentLang;
   const normalizeLangKey = typeof options.normalizeLangKey === 'function' ? options.normalizeLangKey : fallbackNormalizeLangKey;

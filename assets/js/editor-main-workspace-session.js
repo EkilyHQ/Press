@@ -28,7 +28,7 @@ function preventDefault(event) {
 
 export function createEditorMainWorkspaceSession(options = {}) {
   const runtime = options.runtime || {};
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   const forceMarkdownWrap = !!options.forceMarkdownWrap;
   const editor = options.editor || null;
   const textarea = options.textarea || null;

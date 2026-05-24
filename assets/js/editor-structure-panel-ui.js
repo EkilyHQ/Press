@@ -1,7 +1,7 @@
 export function createEditorStructurePanelUi(options = {}) {
-  const document = options.documentRef || (typeof globalThis !== 'undefined' ? globalThis.document : null);
-  const window = options.windowRef || (typeof globalThis !== 'undefined' ? globalThis.window : null);
-  const consoleRef = options.consoleRef || (typeof globalThis !== 'undefined' ? globalThis.console : null);
+  const document = options.documentRef || null;
+  const window = options.windowRef || null;
+  const consoleRef = options.consoleRef || null;
   const preferredLangOrder = Array.isArray(options.preferredLangOrder) ? options.preferredLangOrder.slice() : [];
   const treeText = typeof options.treeText === 'function' ? options.treeText : (key, fallback) => fallback || key;
   const welcomeText = typeof options.welcomeText === 'function' ? options.welcomeText : (key, fallback) => fallback || key;
@@ -518,6 +518,7 @@ export function createEditorStructurePanelUi(options = {}) {
   }
 
   function renderEditorStructurePanel(node) {
+    if (!document || typeof document.getElementById !== 'function') return;
     const panel = document.getElementById('editorStructurePanel');
     const title = document.getElementById('editorStructureTitle');
     const kicker = document.getElementById('editorStructureKicker');

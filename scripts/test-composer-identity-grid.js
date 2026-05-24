@@ -1366,6 +1366,23 @@ assert.doesNotMatch(
   'editor main should route document/window refs, editor storage, app events, global listeners, timers, animation frames, dialogs, and scroll controls through its runtime boundary'
 );
 
+assert.doesNotMatch(
+  [
+    editorMainMetadataPanelSource,
+    editorMainPreviewSessionSource,
+    editorMainCurrentFileSessionSource,
+    editorMainSidebarSessionSource,
+    editorMainToolbarSessionSource,
+    editorMainImageSessionSource,
+    editorMainWorkspaceSessionSource,
+    editorContentTreeControllerSource,
+    editorFileTreeUiSource,
+    editorStructurePanelUiSource
+  ].join('\n'),
+  /typeof (?:document|window|globalThis|fetch|FileReader|MouseEvent|Event)\s|options\.(?:documentRef|windowRef) \|\| \(typeof|= document,|= window,/,
+  'editor app sessions should receive browser refs from the explicit runtime instead of discovering globals themselves'
+);
+
 assert.match(
   editorMainRuntimeSource,
   /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert/,

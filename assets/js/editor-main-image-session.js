@@ -6,7 +6,7 @@ const fallbackTranslate = (key) => key;
 
 export function createEditorMainImageSession(options = {}) {
   const runtime = options.runtime || {};
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const windowRef = options.windowRef || null;
   const translateImpl = typeof options.translate === 'function' ? options.translate : fallbackTranslate;
   const imageButton = options.imageButton || null;
   const imageInput = options.imageInput || null;
@@ -27,8 +27,8 @@ export function createEditorMainImageSession(options = {}) {
     if (windowRef && typeof windowRef.setTimeout === 'function') return windowRef.setTimeout(fn, ms);
     return 0;
   };
-  const FileReaderCtor = options.FileReader || (windowRef && windowRef.FileReader) || (typeof FileReader !== 'undefined' ? FileReader : null);
-  const MouseEventCtor = options.MouseEvent || (windowRef && windowRef.MouseEvent) || (typeof MouseEvent !== 'undefined' ? MouseEvent : null);
+  const FileReaderCtor = options.FileReader || (windowRef && windowRef.FileReader) || null;
+  const MouseEventCtor = options.MouseEvent || (windowRef && windowRef.MouseEvent) || null;
 
   let pendingBlocksImageInsert = null;
   let pendingImagePickerToken = 0;

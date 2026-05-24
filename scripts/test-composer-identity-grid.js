@@ -2458,6 +2458,12 @@ assert.match(
   'publish settings store should keep the PAT fallback token site-scoped'
 );
 
+assert.doesNotMatch(
+  publishSettingsSource,
+  /typeof window|globalThis/,
+  'publish settings store should receive browser storage through explicit window refs instead of ambient globals'
+);
+
 function createMemoryStorage(seed = {}) {
   const data = new Map(Object.entries(seed));
   return {
@@ -2499,6 +2505,39 @@ function createMemoryStorage(seed = {}) {
   assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'editing the Connect URL should not silently leave PAT fallback mode');
   store.setStoredConnectPublishSettings({ enabled: true });
   assert.equal(store.getStoredConnectPublishSettings().mode, 'connect', 'enabling Connect should persist Connect as the default publish mode');
+}
+
+{
+  const ambientCalls = [];
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem() {
+          ambientCalls.push('window.localStorage.getItem');
+          return null;
+        }
+      },
+      sessionStorage: {
+        getItem() {
+          ambientCalls.push('window.sessionStorage.getItem');
+          return null;
+        }
+      }
+    }
+  });
+  try {
+    const store = createPublishSettingsStore({ scopeKey: (key) => `${key}:scope` });
+    assert.equal(store.getCachedFineGrainedToken(), '');
+    store.setCachedFineGrainedToken('memory-token');
+    assert.equal(store.getCachedFineGrainedToken(), 'memory-token');
+    assert.equal(store.getStoredConnectPublishSettings().mode, 'connect');
+    assert.deepEqual(ambientCalls, [], 'publish settings store should not read ambient window storage');
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'window', previous);
+    else delete globalThis.window;
+  }
 }
 
 assert.deepEqual(

@@ -37,7 +37,7 @@ export function isUsableConnectPublishGrant(grant) {
 }
 
 export function createPublishSettingsStore(options = {}) {
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const windowRef = options.windowRef || null;
   const scopeKey = typeof options.scopeKey === 'function' ? options.scopeKey : (key) => key;
   let cachedFineGrainedTokenMemory = '';
   let cachedConnectPublishGrantMemory = null;

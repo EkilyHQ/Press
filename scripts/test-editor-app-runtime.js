@@ -173,10 +173,16 @@ class FakeResizeObserver {}
     return { args };
   };
   documentRef.getElementById = id => ({ id });
+  documentRef.createElementNS = (namespace, tagName) => ({
+    namespace,
+    tagName: String(tagName || '').toLowerCase()
+  });
   documentRef.querySelector = selector => ({ selector });
   documentRef.querySelectorAll = selector => [{ selector }];
   documentRef.documentElement = { lang: 'ja', scrollTop: 11, clientWidth: 960, clientHeight: 720 };
+  documentRef.activeElement = { id: 'active-editor-control' };
   documentRef.body = {
+    id: 'editor-body',
     appendChild(node) {
       appendedNodes.push(node);
     },
@@ -184,6 +190,7 @@ class FakeResizeObserver {}
       removedNodes.push(node);
     }
   };
+  documentRef.scrollingElement = { id: 'scrolling-root' };
   documentRef.createElement = tagName => ({
     tagName: String(tagName || '').toUpperCase(),
     style: {},
@@ -225,8 +232,14 @@ class FakeResizeObserver {}
   assert.equal(runtime.globals.call('__press_missing_call_target'), false);
 
   assert.equal(runtime.browser.getElementById('previewFrame').id, 'previewFrame');
+  assert.equal(runtime.browser.createElement('button').tagName, 'BUTTON');
+  assert.deepEqual(runtime.browser.createElementNS('urn:test', 'svg'), { namespace: 'urn:test', tagName: 'svg' });
   assert.equal(runtime.browser.querySelector('.view-toggle').selector, '.view-toggle');
   assert.deepEqual(runtime.browser.querySelectorAll('[data-preview-resize]').map(item => item.selector), ['[data-preview-resize]']);
+  assert.equal(runtime.browser.getDocumentElement(), documentRef.documentElement);
+  assert.equal(runtime.browser.getActiveElement().id, 'active-editor-control');
+  assert.equal(runtime.browser.getBody().id, 'editor-body');
+  assert.equal(runtime.browser.getScrollingElement().id, 'scrolling-root');
   let readyCalls = 0;
   const detachReady = runtime.browser.onDocumentReady(() => { readyCalls += 1; });
   assert.equal(readyCalls, 1);
@@ -349,6 +362,7 @@ class FakeResizeObserver {}
   const ambientCalls = [];
   const ambientNames = [
     'CustomEvent',
+    'document',
     'requestAnimationFrame',
     'cancelAnimationFrame',
     'setTimeout',
@@ -369,6 +383,16 @@ class FakeResizeObserver {}
       constructor(type) {
         ambientCalls.push(['CustomEvent', type]);
         this.type = type;
+      }
+    };
+    globalThis.document = {
+      createElement(tagName) {
+        ambientCalls.push(['document.createElement', tagName]);
+        return { tagName };
+      },
+      getElementById(id) {
+        ambientCalls.push(['document.getElementById', id]);
+        return { id };
       }
     };
     globalThis.requestAnimationFrame = () => {
@@ -402,6 +426,12 @@ class FakeResizeObserver {}
     assert.equal(runtime.events.emitDocument('press:no-ambient', { ok: true }), true);
     assert.equal(documentRef.dispatched.at(-1).type, 'press:no-ambient');
     assert.equal(documentRef.dispatched.at(-1).detail.ok, true);
+    assert.equal(runtime.browser.getElementById('ambient'), null);
+    assert.equal(runtime.browser.createElement('button'), null);
+    assert.equal(runtime.browser.createElementNS('urn:test', 'svg'), null);
+    assert.equal(runtime.browser.getActiveElement(), null);
+    assert.equal(runtime.browser.getBody(), null);
+    assert.equal(runtime.browser.getScrollingElement(), null);
     assert.equal(runtime.browser.requestFrame(() => {}), null);
     runtime.browser.cancelFrame(1001);
     assert.equal(runtime.browser.setTimer(() => {}, 10), null);

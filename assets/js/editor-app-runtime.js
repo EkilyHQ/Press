@@ -597,6 +597,14 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
       try { return documentRef && typeof documentRef.getElementById === 'function' ? documentRef.getElementById(id) : null; }
       catch (_) { return null; }
     },
+    createElement: (tagName) => {
+      try { return documentRef && typeof documentRef.createElement === 'function' ? documentRef.createElement(tagName) : null; }
+      catch (_) { return null; }
+    },
+    createElementNS: (namespace, tagName) => {
+      try { return documentRef && typeof documentRef.createElementNS === 'function' ? documentRef.createElementNS(namespace, tagName) : null; }
+      catch (_) { return null; }
+    },
     querySelector: (selector) => {
       try { return documentRef && typeof documentRef.querySelector === 'function' ? documentRef.querySelector(selector) : null; }
       catch (_) { return null; }
@@ -607,6 +615,18 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     },
     getDocumentElement: () => {
       try { return documentRef && documentRef.documentElement ? documentRef.documentElement : null; }
+      catch (_) { return null; }
+    },
+    getActiveElement: () => {
+      try { return documentRef && documentRef.activeElement ? documentRef.activeElement : null; }
+      catch (_) { return null; }
+    },
+    getBody: () => {
+      try { return documentRef && documentRef.body ? documentRef.body : null; }
+      catch (_) { return null; }
+    },
+    getScrollingElement: () => {
+      try { return documentRef && documentRef.scrollingElement ? documentRef.scrollingElement : null; }
       catch (_) { return null; }
     },
     onDocumentReady,

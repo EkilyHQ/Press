@@ -645,26 +645,26 @@ assert.match(
 
 assert.match(
   editorBlocksRuntimeSource,
-  /export function createEditorBlocksRuntime\([\s\S]*async function writeClipboardText\(text\)[\s\S]*function translate\(key, fallback\)[\s\S]*onDocument: \(type, handler, options\)[\s\S]*onWindow: \(type, handler, options\)[\s\S]*createElement: \(tagName\)[\s\S]*createElementNS: \(namespace, tagName\)[\s\S]*writeClipboardText,[\s\S]*translate/,
-  'blocks runtime should own global listener, DOM factory, clipboard, timer, viewport, and translation adapters'
+  /export function createEditorBlocksRuntime\([\s\S]*async function writeClipboardText\(text\)[\s\S]*function translate\(key, fallback\)[\s\S]*onDocument: appRuntime\.events\.onDocument,[\s\S]*onWindow: appRuntime\.events\.onWindow,[\s\S]*createElement: appRuntime\.browser\.createElement,[\s\S]*createElementNS: appRuntime\.browser\.createElementNS,[\s\S]*requestFrame: appRuntime\.browser\.requestFrame,[\s\S]*setTimer: appRuntime\.browser\.setTimer,[\s\S]*clearTimer: appRuntime\.browser\.clearTimer,[\s\S]*writeClipboardText,[\s\S]*translate/,
+  'blocks runtime should expose listener, DOM factory, clipboard, timer, viewport, and translation adapters through the shared app runtime facade'
 );
 
 assert.match(
   editorBlocksRuntimeSource,
-  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*const appRuntime = createEditorAppRuntime\(\{ documentRef, windowRef, storage: null \}\)[\s\S]*appRuntime\.browser\.writeClipboardText\(text, navigatorRef\)/,
-  'blocks runtime should delegate clipboard browser details to the shared editor app runtime facade'
+  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*const appRuntime = createEditorAppRuntime\(\{ documentRef, windowRef, storage: null \}\)[\s\S]*appRuntime\.browser\.getNavigator\(\)[\s\S]*appRuntime\.browser\.writeClipboardText\(text, blocksNavigatorRef\)[\s\S]*appRuntime\.globals\.get\(TRANSLATE_GLOBAL\)/,
+  'blocks runtime should delegate browser globals and clipboard details to the shared editor app runtime facade'
 );
 
 assert.doesNotMatch(
   editorBlocksRuntimeSource,
-  /documentRef\s*=\s*typeof document|windowRef\s*=\s*typeof window|navigatorRef\s*=\s*typeof navigator|typeof (?:document|window|navigator|requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
+  /documentRef\s*=\s*typeof document|windowRef\s*=\s*typeof window|navigatorRef\s*=\s*typeof navigator|typeof (?:document|window|navigator|requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(|(?:documentRef|windowRef)\.|(?:documentRef|windowRef)\s*&&/m,
   'blocks runtime should use injected refs instead of ambient browser global fallbacks'
 );
 
 assert.doesNotMatch(
   editorBlocksRuntimeSource,
-  /navigatorRef && navigatorRef\.clipboard|windowRef && windowRef\.isSecureContext|runtime\.browser\.isSecureContext\(/,
-  'blocks runtime should not reimplement clipboard or secure-context browser checks outside the shared app runtime'
+  /navigatorRef && navigatorRef\.clipboard|windowRef && windowRef\.isSecureContext|runtime\.browser\.isSecureContext\(|windowRef\.__press_t|windowRef\.requestAnimationFrame|windowRef\.setTimeout|windowRef\.clearTimeout|windowRef\.getComputedStyle|windowRef\.matchMedia/,
+  'blocks runtime should not reimplement clipboard, translation, timer, style, media, or secure-context browser checks outside the shared app runtime'
 );
 
 assert.doesNotMatch(

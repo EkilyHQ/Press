@@ -44,13 +44,6 @@ export function createEditorMainToolbarSession(options = {}) {
       if (typeof runtime.createEvent === 'function') {
         return runtime.createEvent('input', { bubbles: true, cancelable: true });
       }
-      if (documentRef && typeof documentRef.createEvent === 'function') {
-        try {
-          const event = documentRef.createEvent('Event');
-          event.initEvent('input', true, true);
-          return event;
-        } catch (_) {}
-      }
       return null;
     };
 

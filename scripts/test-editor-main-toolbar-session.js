@@ -268,6 +268,32 @@ function createRuntime(elements) {
 }
 
 {
+  const bold = new FakeElement('button');
+  bold.textContent = 'Bold';
+  const textarea = new FakeTextarea('hello world');
+  textarea.setSelectionRange(0, 5);
+  const elements = new Map([['btnFmtBold', bold]]);
+  const runtime = createRuntime(elements);
+  delete runtime.createEvent;
+  const documentRef = new FakeDocument(Object.fromEntries(elements));
+  documentRef.createEvent = () => {
+    throw new Error('document.createEvent fallback should not be used');
+  };
+  const session = createEditorMainToolbarSession({
+    runtime,
+    documentRef,
+    getEditorTextarea: () => textarea,
+    translate: (key) => key
+  });
+
+  session.bind();
+  bold.click();
+
+  assert.equal(textarea.value, '**hello** world');
+  assert.equal(textarea.dispatchedEvents, undefined);
+}
+
+{
   const toolbar = new FakeElement('div');
   const cardButton = new FakeElement('button');
   const popover = new FakeElement('div');

@@ -13,6 +13,7 @@ const confirms = [];
 const fetchCalls = [];
 const performanceRef = { now: () => 42 };
 const cssRef = { escape: (value) => `escaped:${value}` };
+class TestResizeObserver {}
 const windowRef = {
   __press_content_root: 'docs',
   location: { href: 'https://example.test/index_editor.html' },
@@ -44,6 +45,13 @@ const windowRef = {
     confirms.push(message);
     return message === 'continue';
   },
+  matchMedia(query) {
+    return { matches: query === '(prefers-reduced-motion: reduce)' };
+  },
+  getComputedStyle(element) {
+    return element ? { marginTop: '4px', marginBottom: '8px' } : null;
+  },
+  ResizeObserver: TestResizeObserver,
   dispatchEvent(event) {
     events.push(['window', event.type, event.detail]);
     return true;
@@ -124,6 +132,26 @@ assert.equal(runtime.confirmAction('stop'), false);
 assert.deepEqual(confirms, ['continue', 'stop']);
 assert.equal(runtime.getPerformance(), performanceRef);
 assert.equal(runtime.getCss(), cssRef);
+assert.equal(runtime.matchesMedia('(prefers-reduced-motion: reduce)'), true);
+assert.equal(runtime.matchesMedia('(min-width: 1px)'), false);
+assert.deepEqual(runtime.getComputedStyle({ nodeType: 1 }), { marginTop: '4px', marginBottom: '8px' });
+assert.equal(runtime.getResizeObserver(), TestResizeObserver);
+
+const originalGlobalGetComputedStyle = globalThis.getComputedStyle;
+globalThis.getComputedStyle = (element) => (element ? { display: 'grid' } : null);
+try {
+  const fallbackRuntime = createComposerRuntime({
+    windowRef: { ...windowRef, getComputedStyle: undefined },
+    documentRef
+  });
+  assert.deepEqual(fallbackRuntime.getComputedStyle({ nodeType: 1 }), { display: 'grid' });
+} finally {
+  if (typeof originalGlobalGetComputedStyle === 'function') {
+    globalThis.getComputedStyle = originalGlobalGetComputedStyle;
+  } else {
+    delete globalThis.getComputedStyle;
+  }
+}
 
 const response = await runtime.fetchContent('/site.yaml', { cache: 'no-store' });
 assert.equal(response.ok, true);

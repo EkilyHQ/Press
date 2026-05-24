@@ -1,5 +1,7 @@
 const ORDER_LINE_COLORS = ['#2563eb', '#ec4899', '#f97316', '#10b981', '#8b5cf6', '#f59e0b', '#22d3ee'];
 
+function noop() {}
+
 function normalizeOrderKind(kind) {
   return kind === 'tabs' ? 'tabs' : 'index';
 }
@@ -28,14 +30,89 @@ export function createComposerOrderDiffUi(options = {}) {
     : (value) => String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const getComposerViewTransition = typeof options.getComposerViewTransition === 'function' ? options.getComposerViewTransition : () => null;
   const getSlideDurations = typeof options.getSlideDurations === 'function' ? options.getSlideDurations : () => ({ open: 420, close: 360 });
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : (handler, delay) => (window && typeof window.setTimeout === 'function'
+      ? window.setTimeout(handler, delay)
+      : setTimeout(handler, delay));
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
+    ? options.clearTimeoutRef
+    : (id) => {
+      if (id == null) return;
+      if (window && typeof window.clearTimeout === 'function') window.clearTimeout(id);
+      else clearTimeout(id);
+    };
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : (handler) => (window && typeof window.requestAnimationFrame === 'function'
+      ? window.requestAnimationFrame(handler)
+      : setTimeoutRef(handler, 0));
+  const cancelAnimationFrameRef = typeof options.cancelAnimationFrameRef === 'function'
+    ? options.cancelAnimationFrameRef
+    : (id) => {
+      if (id == null) return;
+      if (window && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(id);
+      else clearTimeoutRef(id);
+    };
+  const addWindowListener = typeof options.addWindowListener === 'function'
+    ? options.addWindowListener
+    : (type, handler, listenerOptions) => {
+      try {
+        if (!window || typeof window.addEventListener !== 'function') return noop;
+        window.addEventListener(type, handler, listenerOptions);
+        return () => {
+          try { window.removeEventListener(type, handler, listenerOptions); } catch (_) {}
+        };
+      } catch (_) {
+        return noop;
+      }
+    };
+  const addDocumentListener = typeof options.addDocumentListener === 'function'
+    ? options.addDocumentListener
+    : (type, handler, listenerOptions) => {
+      try {
+        if (!document || typeof document.addEventListener !== 'function') return noop;
+        document.addEventListener(type, handler, listenerOptions);
+        return () => {
+          try { document.removeEventListener(type, handler, listenerOptions); } catch (_) {}
+        };
+      } catch (_) {
+        return noop;
+      }
+    };
+  const matchesMedia = typeof options.matchesMedia === 'function'
+    ? options.matchesMedia
+    : (query) => {
+      try {
+        return !!(window && typeof window.matchMedia === 'function' && window.matchMedia(query).matches);
+      } catch (_) {
+        return false;
+      }
+    };
+  const getComputedStyleRef = typeof options.getComputedStyleRef === 'function'
+    ? options.getComputedStyleRef
+    : (element) => {
+      try {
+        return window && typeof window.getComputedStyle === 'function' && element
+          ? window.getComputedStyle(element)
+          : null;
+      } catch (_) {
+        return null;
+      }
+    };
+  const ResizeObserverRef = typeof options.ResizeObserverRef === 'function'
+    ? options.ResizeObserverRef
+    : (window && typeof window.ResizeObserver === 'function' ? window.ResizeObserver : null);
 
   let composerDiffModal = null;
   let composerOrderState = null;
   let composerDiffResizeHandler = null;
+  let composerDiffResizeDispose = null;
   let composerOrderPreviewElements = { index: null, tabs: null };
   let composerOrderPreviewState = { index: null, tabs: null };
   let composerOrderPreviewActiveKind = 'index';
   let composerOrderPreviewResizeHandler = null;
+  let composerOrderPreviewResizeDispose = null;
   const composerOrderPreviewRelayoutTimers = { index: null, tabs: null };
 
   function openComposerDiffModal(kind, initialTab = 'overview') {
@@ -353,17 +430,14 @@ export function createComposerOrderDiffUi(options = {}) {
     };
 
     function prefersReducedMotion() {
-      try {
-        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-      } catch (_) {
-        return false;
-      }
+      return matchesMedia('(prefers-reduced-motion: reduce)');
     }
 
     function closeModal() {
       if (composerDiffResizeHandler) {
-        window.removeEventListener('resize', composerDiffResizeHandler);
+        try { composerDiffResizeDispose && composerDiffResizeDispose(); } catch (_) {}
         composerDiffResizeHandler = null;
+        composerDiffResizeDispose = null;
       }
       composerOrderState = null;
       activeDiff = null;
@@ -387,7 +461,7 @@ export function createComposerOrderDiffUi(options = {}) {
       try {
         const onEnd = () => { dialog.removeEventListener('animationend', onEnd); finish(); };
         dialog.addEventListener('animationend', onEnd, { once: true });
-        setTimeout(finish, 220);
+        setTimeoutRef(finish, 220);
       } catch (_) {
         finish();
       }
@@ -419,13 +493,14 @@ export function createComposerOrderDiffUi(options = {}) {
         renderOrder(activeKind);
         if (!composerDiffResizeHandler) {
           composerDiffResizeHandler = () => drawOrderDiffLines();
-          window.addEventListener('resize', composerDiffResizeHandler);
+          composerDiffResizeDispose = addWindowListener('resize', composerDiffResizeHandler);
         }
-        requestAnimationFrame(() => drawOrderDiffLines());
-        setTimeout(drawOrderDiffLines, 140);
+        requestAnimationFrameRef(() => drawOrderDiffLines());
+        setTimeoutRef(drawOrderDiffLines, 140);
       } else if (composerDiffResizeHandler) {
-        window.removeEventListener('resize', composerDiffResizeHandler);
+        try { composerDiffResizeDispose && composerDiffResizeDispose(); } catch (_) {}
         composerDiffResizeHandler = null;
+        composerDiffResizeDispose = null;
         composerOrderState = null;
       }
     }
@@ -745,8 +820,8 @@ export function createComposerOrderDiffUi(options = {}) {
       }
       if (activeTab === 'order') {
         drawOrderDiffLines();
-        requestAnimationFrame(drawOrderDiffLines);
-        setTimeout(drawOrderDiffLines, 120);
+        requestAnimationFrameRef(drawOrderDiffLines);
+        setTimeoutRef(drawOrderDiffLines, 120);
       }
     }
 
@@ -774,7 +849,7 @@ export function createComposerOrderDiffUi(options = {}) {
       renderOrder(safeKind);
       const targetTab = tabButtons.has(initialTab) ? initialTab : 'overview';
       setActiveTab(targetTab);
-      setTimeout(() => {
+      setTimeoutRef(() => {
         try { closeBtn.focus(); } catch (_) {}
       }, 0);
     }
@@ -829,7 +904,7 @@ export function createComposerOrderDiffUi(options = {}) {
     };
     if (!modal.__pressLangBound) {
       modal.__pressLangBound = true;
-      document.addEventListener('press-editor-language-applied', refreshLocale);
+      modal.__pressLangDispose = addDocumentListener('press-editor-language-applied', refreshLocale);
     }
 
     return composerDiffModal;
@@ -894,9 +969,7 @@ export function createComposerOrderDiffUi(options = {}) {
       const anchorRect = anchor && typeof anchor.getBoundingClientRect === 'function'
         ? anchor.getBoundingClientRect()
         : rowRect;
-      const cs = (typeof window !== 'undefined' && window.getComputedStyle && rightRow)
-        ? window.getComputedStyle(rightRow)
-        : null;
+      const cs = rightRow ? getComputedStyleRef(rightRow) : null;
 
       if (leftEl.style) {
         const anchorHeight = anchorRect && typeof anchorRect.height === 'number' ? anchorRect.height : 0;
@@ -1049,11 +1122,11 @@ export function createComposerOrderDiffUi(options = {}) {
     const normalized = kind === 'tabs' ? 'tabs' : 'index';
     const timers = composerOrderPreviewRelayoutTimers[normalized];
     if (timers) {
-      if (typeof cancelAnimationFrame === 'function' && typeof timers.raf === 'number') {
-        try { cancelAnimationFrame(timers.raf); } catch (_) {}
+      if (timers.raf != null) {
+        cancelAnimationFrameRef(timers.raf);
       }
       if (timers.timeout != null) {
-        clearTimeout(timers.timeout);
+        clearTimeoutRef(timers.timeout);
       }
     }
 
@@ -1068,7 +1141,7 @@ export function createComposerOrderDiffUi(options = {}) {
     const delayBase = Math.max(durations.open, durations.close, 260) + 80;
 
     const scheduleTrailing = () => {
-      pending.timeout = setTimeout(() => {
+      pending.timeout = setTimeoutRef(() => {
         pending.timeout = null;
         run();
         finalize();
@@ -1081,16 +1154,11 @@ export function createComposerOrderDiffUi(options = {}) {
       return;
     }
 
-    if (typeof requestAnimationFrame === 'function') {
-      pending.raf = requestAnimationFrame(() => {
-        pending.raf = null;
-        run();
-        scheduleTrailing();
-      });
-    } else {
+    pending.raf = requestAnimationFrameRef(() => {
+      pending.raf = null;
       run();
       scheduleTrailing();
-    }
+    });
 
     composerOrderPreviewRelayoutTimers[normalized] = pending;
   }
@@ -1129,9 +1197,9 @@ export function createComposerOrderDiffUi(options = {}) {
       });
     }
 
-    if (typeof ResizeObserver === 'function' && !host.__pressOrderResizeObserver) {
+    if (ResizeObserverRef && !host.__pressOrderResizeObserver) {
       try {
-        const ro = new ResizeObserver(() => {
+        const ro = new ResizeObserverRef(() => {
           const state = composerOrderPreviewState && composerOrderPreviewState[normalized];
           if (state) drawOrderDiffLines(state);
         });
@@ -1148,7 +1216,7 @@ export function createComposerOrderDiffUi(options = {}) {
           if (state) drawOrderDiffLines(state);
         });
       };
-      try { window.addEventListener('resize', composerOrderPreviewResizeHandler); } catch (_) {}
+      composerOrderPreviewResizeDispose = addWindowListener('resize', composerOrderPreviewResizeHandler);
     }
 
     const preview = { host, root, list, statsWrap, emptyNotice, svg, kindLabel, openBtn, title, meta };
@@ -1373,13 +1441,13 @@ export function createComposerOrderDiffUi(options = {}) {
         applyComposerOrderHover(host, host.__pressOrderHoverState.currentKey);
       }
       drawOrderDiffLines(state);
-      requestAnimationFrame(() => drawOrderDiffLines(state));
-      setTimeout(() => drawOrderDiffLines(state), 120);
+      requestAnimationFrameRef(() => drawOrderDiffLines(state));
+      setTimeoutRef(() => drawOrderDiffLines(state), 120);
     }
   }
 
   function observeComposerOrderRow(row, kind) {
-    if (!row || typeof ResizeObserver !== 'function') return;
+    if (!row || !ResizeObserverRef) return;
     const normalized = kind === 'tabs' ? 'tabs' : 'index';
     const existing = row.__pressOrderResize;
     if (existing && existing.kind === normalized) return;
@@ -1389,7 +1457,7 @@ export function createComposerOrderDiffUi(options = {}) {
       }
     } catch (_) {}
     try {
-      const observer = new ResizeObserver(() => {
+      const observer = new ResizeObserverRef(() => {
         scheduleComposerOrderPreviewRelayout(normalized);
       });
       observer.observe(row);

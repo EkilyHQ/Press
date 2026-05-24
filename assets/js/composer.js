@@ -1249,7 +1249,16 @@ const composerOrderDiffUi = createComposerOrderDiffUi({
   animateInlineVisibility: animateComposerInlineVisibility,
   cssEscape,
   getComposerViewTransition: () => composerFilePanelController.getComposerViewTransition(),
-  getSlideDurations: getComposerSlideDurations
+  getSlideDurations: getComposerSlideDurations,
+  requestAnimationFrameRef: (callback) => editorRuntime.requestFrame(callback),
+  cancelAnimationFrameRef: (id) => editorRuntime.cancelFrame(id),
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
+  addWindowListener: (type, handler, options) => editorRuntime.events.onWindow(type, handler, options),
+  addDocumentListener: (type, handler, options) => editorRuntime.events.onDocument(type, handler, options),
+  matchesMedia: (query) => editorRuntime.matchesMedia(query),
+  getComputedStyleRef: (element) => editorRuntime.getComputedStyle(element),
+  ResizeObserverRef: editorRuntime.getResizeObserver()
 });
 const {
   openComposerDiffModal,

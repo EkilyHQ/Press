@@ -151,6 +151,33 @@ export function createComposerRuntime(options = {}) {
     }
   }
 
+  function matchesMedia(query) {
+    return runtime.browser.matchesMedia(query);
+  }
+
+  function getComputedStyle(element) {
+    try {
+      const getStyleRef = runtime.windowRef && typeof runtime.windowRef.getComputedStyle === 'function'
+        ? runtime.windowRef.getComputedStyle.bind(runtime.windowRef)
+        : (typeof globalThis !== 'undefined' && typeof globalThis.getComputedStyle === 'function'
+          ? globalThis.getComputedStyle.bind(globalThis)
+          : null);
+      return getStyleRef && element ? getStyleRef(element) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function getResizeObserver() {
+    try {
+      return runtime.windowRef && typeof runtime.windowRef.ResizeObserver === 'function'
+        ? runtime.windowRef.ResizeObserver
+        : (typeof ResizeObserver === 'function' ? ResizeObserver : null);
+    } catch (_) {
+      return null;
+    }
+  }
+
   return {
     ...runtime,
     onDocumentReady,
@@ -170,6 +197,9 @@ export function createComposerRuntime(options = {}) {
     showAlert,
     confirmAction,
     getPerformance,
-    getCss
+    getCss,
+    matchesMedia,
+    getComputedStyle,
+    getResizeObserver
   };
 }

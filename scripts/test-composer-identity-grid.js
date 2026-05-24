@@ -1565,14 +1565,20 @@ assert.match(
 
 assert.match(
   composerRuntimeSource,
-  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)/,
-  'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, and browser-global boundaries'
+  /export function createComposerRuntime\(options = \{\}\)[\s\S]*createEditorAppRuntime\(options\)[\s\S]*function onDocumentReady\(handler\)[\s\S]*function getContentRoot\(\)[\s\S]*function setContentRoot\(root\)[\s\S]*function getSiteRepo\(\)[\s\S]*function setSiteRepo\(repo\)[\s\S]*function emitLanguagePoolChanged\(\)[\s\S]*function emitSiteConfigChange\(siteConfig\)[\s\S]*function requestFrame\(handler\)[\s\S]*function setTimer\(handler, delay = 0\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function confirmAction\(message\)[\s\S]*function getPerformance\(\)[\s\S]*function getCss\(\)[\s\S]*function matchesMedia\(query\)[\s\S]*function getComputedStyle\(element\)[\s\S]*function getResizeObserver\(\)[\s\S]*async function writeClipboardText\(text\)/,
+  'composer runtime should own composer-specific DOM ready, content-root, site-repo, app-event, browser scheduling, network, dialog, clipboard, and browser-global boundaries'
 );
 
 assert.doesNotMatch(
   source,
-  /window\.__press_site_repo|window\.__press_primary_editor|document\.dispatchEvent\(new CustomEvent\(LANGUAGE_POOL_CHANGED_EVENT\)|localStorage\.getItem\(scopedEditorStorageKey|localStorage\.setItem\(scopedEditorStorageKey|window\.setTimeout|window\.clearTimeout|fetch\(url, options\)|alert\(message\)|window\.confirm\(message\)|typeof performance !== 'undefined'|typeof CSS !== 'undefined'/,
-  'composer should route browser globals, app events, scoped persisted UI state, timers, fetch, dialogs, and browser global objects through the runtime boundary'
+  /window\.__press_site_repo|window\.__press_primary_editor|document\.dispatchEvent\(new CustomEvent\(LANGUAGE_POOL_CHANGED_EVENT\)|localStorage\.getItem\(scopedEditorStorageKey|localStorage\.setItem\(scopedEditorStorageKey|window\.setTimeout|window\.clearTimeout|fetch\(url, options\)|alert\(message\)|window\.confirm\(message\)|navigator\.clipboard|window\.isSecureContext|document\.execCommand\('copy'\)|typeof performance !== 'undefined'|typeof CSS !== 'undefined'/,
+  'composer should route browser globals, app events, scoped persisted UI state, timers, fetch, dialogs, clipboard, and browser global objects through the runtime boundary'
+);
+
+assert.match(
+  source,
+  /async function nsCopyToClipboard\(text\) \{\s*return editorRuntime\.writeClipboardText\(text\);\s*\}/,
+  'composer clipboard helper should delegate browser clipboard access to the explicit runtime'
 );
 
 assert.match(

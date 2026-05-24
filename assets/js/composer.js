@@ -1578,33 +1578,7 @@ function applyComposerFile(name, options = {}) {
 
 // Robust clipboard helper available to all composer flows
 async function nsCopyToClipboard(text) {
-  const val = String(text || '');
-  // Prefer async Clipboard API when in a secure context
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      // Intentionally do not await in callers to better preserve user-activation
-      await navigator.clipboard.writeText(val);
-      return true;
-    }
-  } catch (_) { /* fall through to legacy */ }
-  // Legacy fallback: temporary textarea + execCommand('copy')
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = val;
-    ta.style.position = 'fixed';
-    ta.style.top = '0';
-    ta.style.left = '0';
-    ta.style.width = '1px';
-    ta.style.height = '1px';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    let ok = false;
-    try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
-    try { document.body.removeChild(ta); } catch (_) {}
-    return ok;
-  } catch (_) { return false; }
+  return editorRuntime.writeClipboardText(text);
 }
 
 function sortLangKeys(obj) {

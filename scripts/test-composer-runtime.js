@@ -11,6 +11,10 @@ const cancelledFrames = [];
 const alerts = [];
 const confirms = [];
 const fetchCalls = [];
+const clipboardWrites = [];
+const appendedNodes = [];
+const removedNodes = [];
+const legacyCopyCommands = [];
 const performanceRef = { now: () => 42 };
 const cssRef = { escape: (value) => `escaped:${value}` };
 class TestResizeObserver {}
@@ -20,6 +24,7 @@ const windowRef = {
   localStorage: new Map(),
   performance: performanceRef,
   CSS: cssRef,
+  isSecureContext: true,
   setTimeout(handler, delay) {
     timers.push({ handler, delay });
     return timers.length;
@@ -67,16 +72,47 @@ windowRef.localStorage.getItem = (key) => windowRef.localStorage.get(key) || nul
 windowRef.localStorage.setItem = (key, value) => windowRef.localStorage.set(key, String(value));
 windowRef.localStorage.removeItem = (key) => windowRef.localStorage.delete(key);
 
+const navigatorRef = {
+  clipboard: {
+    writeText(value) {
+      clipboardWrites.push(value);
+      return Promise.resolve();
+    }
+  }
+};
 const documentEvents = [];
 const documentRef = {
   readyState: 'complete',
+  body: {
+    appendChild(node) {
+      appendedNodes.push(node);
+    },
+    removeChild(node) {
+      removedNodes.push(node);
+    }
+  },
+  createElement(tagName) {
+    return {
+      tagName: String(tagName || '').toUpperCase(),
+      style: {},
+      value: '',
+      focused: false,
+      selected: false,
+      focus() { this.focused = true; },
+      select() { this.selected = true; }
+    };
+  },
+  execCommand(command) {
+    legacyCopyCommands.push(command);
+    return command === 'copy';
+  },
   dispatchEvent(event) {
     documentEvents.push(['document', event.type, event.detail]);
     return true;
   }
 };
 
-const runtime = createComposerRuntime({ windowRef, documentRef });
+const runtime = createComposerRuntime({ windowRef, documentRef, navigatorRef });
 
 assert.equal(runtime.getContentRoot(), 'docs');
 assert.equal(runtime.setContentRoot('/wwwroot/'), 'wwwroot');
@@ -136,15 +172,32 @@ assert.equal(runtime.matchesMedia('(prefers-reduced-motion: reduce)'), true);
 assert.equal(runtime.matchesMedia('(min-width: 1px)'), false);
 assert.deepEqual(runtime.getComputedStyle({ nodeType: 1 }), { marginTop: '4px', marginBottom: '8px' });
 assert.equal(runtime.getResizeObserver(), TestResizeObserver);
+assert.equal(await runtime.writeClipboardText('copy me'), true);
+assert.deepEqual(clipboardWrites, ['copy me']);
+assert.deepEqual(legacyCopyCommands, []);
+
+const fallbackRuntime = createComposerRuntime({
+  windowRef: { ...windowRef, isSecureContext: false },
+  documentRef,
+  navigatorRef
+});
+assert.equal(await fallbackRuntime.writeClipboardText('legacy copy'), true);
+assert.equal(appendedNodes.length, 1);
+assert.equal(removedNodes.length, 1);
+assert.equal(appendedNodes[0], removedNodes[0]);
+assert.equal(appendedNodes[0].value, 'legacy copy');
+assert.equal(appendedNodes[0].focused, true);
+assert.equal(appendedNodes[0].selected, true);
+assert.deepEqual(legacyCopyCommands, ['copy']);
 
 const originalGlobalGetComputedStyle = globalThis.getComputedStyle;
 globalThis.getComputedStyle = (element) => (element ? { display: 'grid' } : null);
 try {
-  const fallbackRuntime = createComposerRuntime({
+  const fallbackStyleRuntime = createComposerRuntime({
     windowRef: { ...windowRef, getComputedStyle: undefined },
     documentRef
   });
-  assert.deepEqual(fallbackRuntime.getComputedStyle({ nodeType: 1 }), { display: 'grid' });
+  assert.deepEqual(fallbackStyleRuntime.getComputedStyle({ nodeType: 1 }), { display: 'grid' });
 } finally {
   if (typeof originalGlobalGetComputedStyle === 'function') {
     globalThis.getComputedStyle = originalGlobalGetComputedStyle;

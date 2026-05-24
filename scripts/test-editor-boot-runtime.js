@@ -145,8 +145,13 @@ class FakeCustomEvent {
 
   assert.match(
     bootSource,
-    /from '\.\/editor-boot-runtime\.js\?v=[\w.-]+'/,
-    'editor boot should import the explicit boot runtime boundary'
+    /from '\.\/editor-boot-runtime\.js\?v=[\w.-]+'[\s\S]*export function createEditorBootController\(bootRuntime = createEditorBootRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*bootRuntime\.setPopulateLanguageSelect\(populateLanguageSelect\)[\s\S]*bootRuntime\.onLanguageControlMounted\(populateLanguageSelect\)[\s\S]*bootRuntime\.onI18nBundleLoaded\(handleI18nBundleLoaded\)[\s\S]*bootRuntime\.onDocumentReady\(\(\) => \{ bootstrap\(\)\.catch\(\(\) => \{\}\); \}\)[\s\S]*createEditorBootController\(\)\.start\(\);/,
+    'editor boot should initialize through an explicit boot controller boundary'
+  );
+  assert.doesNotMatch(
+    bootSource,
+    /const\s+bootRuntime\s*=\s*createEditorBootRuntime\(\)/,
+    'editor boot should not create a module-level boot runtime singleton'
   );
   assert.doesNotMatch(
     bootSource,

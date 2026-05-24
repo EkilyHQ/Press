@@ -1990,8 +1990,14 @@ assert.doesNotMatch(
 
 assert.match(
   editorBootSource,
-  /from '\.\/editor-boot-runtime\.js\?v=[\w.-]+'[\s\S]*const bootRuntime = createEditorBootRuntime\(\)[\s\S]*bootRuntime\.onDocumentReady\(\(\) => \{ bootstrap\(\)\.catch\(\(\) => \{\}\); \}\)/,
-  'editor boot should initialize through the explicit editor boot runtime boundary'
+  /from '\.\/editor-boot-runtime\.js\?v=[\w.-]+'[\s\S]*export function createEditorBootController\(bootRuntime = createEditorBootRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*bootRuntime\.setPopulateLanguageSelect\(populateLanguageSelect\)[\s\S]*bootRuntime\.onLanguageControlMounted\(populateLanguageSelect\)[\s\S]*bootRuntime\.onI18nBundleLoaded\(handleI18nBundleLoaded\)[\s\S]*bootRuntime\.onDocumentReady\(\(\) => \{ bootstrap\(\)\.catch\(\(\) => \{\}\); \}\)[\s\S]*createEditorBootController\(\)\.start\(\);/,
+  'editor boot should initialize through an explicit editor boot controller boundary'
+);
+
+assert.doesNotMatch(
+  editorBootSource,
+  /const\s+bootRuntime\s*=\s*createEditorBootRuntime\(\)/,
+  'editor boot should not create a module-level boot runtime singleton'
 );
 
 assert.match(

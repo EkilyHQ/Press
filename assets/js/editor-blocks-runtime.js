@@ -77,6 +77,16 @@ export function createEditorBlocksRuntime({
     onDocument: (type, handler, options) => on(documentRef, type, handler, options),
     onWindow: (type, handler, options) => on(windowRef, type, handler, options),
     getElementById: (id) => safeCall(() => documentRef && documentRef.getElementById(id), null),
+    createElement: (tagName) => safeCall(() => (
+      documentRef && typeof documentRef.createElement === 'function'
+        ? documentRef.createElement(tagName)
+        : null
+    ), null),
+    createElementNS: (namespace, tagName) => safeCall(() => (
+      documentRef && typeof documentRef.createElementNS === 'function'
+        ? documentRef.createElementNS(namespace, tagName)
+        : null
+    ), null),
     getActiveElement: () => safeCall(() => documentRef && documentRef.activeElement, null),
     getBody: () => safeCall(() => documentRef && documentRef.body, null),
     getDocumentElement: () => safeCall(() => documentRef && documentRef.documentElement, null),

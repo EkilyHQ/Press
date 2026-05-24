@@ -23,6 +23,11 @@ function createTarget() {
 {
   const documentRef = createTarget();
   documentRef.getElementById = id => ({ id });
+  documentRef.createElement = tagName => ({ tagName: String(tagName || '').toUpperCase() });
+  documentRef.createElementNS = (namespace, tagName) => ({
+    namespace,
+    tagName: String(tagName || '').toLowerCase()
+  });
   documentRef.activeElement = { id: 'active' };
   documentRef.body = { id: 'body' };
   documentRef.documentElement = { id: 'doc' };
@@ -72,6 +77,8 @@ function createTarget() {
   assert.equal(resized, false);
 
   assert.equal(runtime.getElementById('editorContentPane').id, 'editorContentPane');
+  assert.equal(runtime.createElement('button').tagName, 'BUTTON');
+  assert.deepEqual(runtime.createElementNS('urn:test', 'svg'), { namespace: 'urn:test', tagName: 'svg' });
   assert.equal(runtime.getActiveElement().id, 'active');
   assert.equal(runtime.getBody().id, 'body');
   assert.equal(runtime.getDocumentElement().id, 'doc');
@@ -100,4 +107,6 @@ function createTarget() {
   assert.equal(await runtime.writeClipboardText('x'), false);
   assert.equal(runtime.translate('missing', 'Fallback'), 'Fallback');
   assert.equal(runtime.getElementById('x'), null);
+  assert.equal(runtime.createElement('button'), null);
+  assert.equal(runtime.createElementNS('urn:test', 'svg'), null);
 }

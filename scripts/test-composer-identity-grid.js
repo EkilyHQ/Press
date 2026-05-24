@@ -593,8 +593,8 @@ assert.match(
 
 assert.doesNotMatch(
   editorBlocksSource,
-  /document\.(?:addEventListener|removeEventListener|createRange|createTextNode|caretPositionFromPoint|caretRangeFromPoint)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|getSelection)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById|\bNodeFilter\b/,
-  'blocks editor should route global listeners, clipboard, timers, translation, active-element access, and browser selection/range/caret APIs through explicit runtime boundaries'
+  /document\.(?:addEventListener|removeEventListener|createElement|createElementNS|createRange|createTextNode|caretPositionFromPoint|caretRangeFromPoint)|window\.(?:addEventListener|removeEventListener|setTimeout|clearTimeout|requestAnimationFrame|getSelection)|(?<!\.)setTimeout\(|navigator\.clipboard|window\.__press_t|window\.isSecureContext|document\.activeElement|document\.getElementById|\bNodeFilter\b/,
+  'blocks editor should route global listeners, DOM factories, clipboard, timers, translation, active-element access, and browser selection/range/caret APIs through explicit runtime boundaries'
 );
 
 assert.match(
@@ -641,8 +641,8 @@ assert.match(
 
 assert.match(
   editorBlocksRuntimeSource,
-  /export function createEditorBlocksRuntime\([\s\S]*async function writeClipboardText\(text\)[\s\S]*function translate\(key, fallback\)[\s\S]*onDocument: \(type, handler, options\)[\s\S]*onWindow: \(type, handler, options\)[\s\S]*writeClipboardText,[\s\S]*translate/,
-  'blocks runtime should own global listener, clipboard, timer, viewport, and translation adapters'
+  /export function createEditorBlocksRuntime\([\s\S]*async function writeClipboardText\(text\)[\s\S]*function translate\(key, fallback\)[\s\S]*onDocument: \(type, handler, options\)[\s\S]*onWindow: \(type, handler, options\)[\s\S]*createElement: \(tagName\)[\s\S]*createElementNS: \(namespace, tagName\)[\s\S]*writeClipboardText,[\s\S]*translate/,
+  'blocks runtime should own global listener, DOM factory, clipboard, timer, viewport, and translation adapters'
 );
 
 assert.match(
@@ -2737,7 +2737,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
+  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: runtime\.documentRef \|\| root\.ownerDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon: createBlockTypeIconWithRuntime,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
   'blocks editor should compose block-head controls through an explicit head session service'
 );
 
@@ -3655,8 +3655,8 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /function createBlockTypeIcon\(blockType\) \{[\s\S]*document\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*svg\.setAttribute\('viewBox', '0 0 24 24'\)[\s\S]*svg\.setAttribute\('aria-hidden', 'true'\)[\s\S]*svg\.setAttribute\('focusable', 'false'\)[\s\S]*svg\.innerHTML = BLOCK_TYPE_ICON_PATHS\[blockType\] \|\| BLOCK_TYPE_ICON_PATHS\.paragraph;/,
-  'block type icon helper should create non-focusable inline SVG icons with a paragraph fallback'
+  /function createBlockTypeIcon\(blockType, runtime = null\) \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*svg\.setAttribute\('viewBox', '0 0 24 24'\)[\s\S]*svg\.setAttribute\('aria-hidden', 'true'\)[\s\S]*svg\.setAttribute\('focusable', 'false'\)[\s\S]*svg\.innerHTML = BLOCK_TYPE_ICON_PATHS\[blockType\] \|\| BLOCK_TYPE_ICON_PATHS\.paragraph;/,
+  'block type icon helper should create non-focusable inline SVG icons through the runtime with a paragraph fallback'
 );
 
 assert.match(
@@ -3969,7 +3969,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
+  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*const select = runtime\.createElement\('select'\);[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*const option = runtime\.createElement\('option'\);[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
   'heading level select control should preserve its data update behavior'
 );
 

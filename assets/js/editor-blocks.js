@@ -201,8 +201,11 @@ function setPlainContentEditableValue(el, value) {
   renderInlineRunsInto(el, parseInlineRuns(value));
 }
 
-function button(label, className = 'blocks-btn') {
-  const el = document.createElement('button');
+function button(label, className = 'blocks-btn', runtime = null) {
+  const el = runtime && typeof runtime.createElement === 'function'
+    ? runtime.createElement('button')
+    : null;
+  if (!el) return null;
   el.type = 'button';
   el.className = className;
   el.textContent = label;
@@ -224,8 +227,11 @@ const BLOCK_TYPE_ICON_PATHS = {
   blank: '<path d="M5 6h14" /><path d="M5 18h14" /><path d="M12 10v4" /><path d="M10 12h4" />'
 };
 
-function createBlockTypeIcon(blockType) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+function createBlockTypeIcon(blockType, runtime = null) {
+  const svg = runtime && typeof runtime.createElementNS === 'function'
+    ? runtime.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    : null;
+  if (!svg) return null;
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
@@ -609,11 +615,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   });
   const inlineDomSession = createInlineDomSession(selectionSession, runtime.documentRef);
   const caretSession = createCaretSession(selectionSession);
+  const createBlockTypeIconWithRuntime = (blockType) => createBlockTypeIcon(blockType, runtime);
 
   root.classList.add('markdown-blocks-shell');
   root.innerHTML = '';
 
-  const list = document.createElement('div');
+  const list = runtime.createElement('div');
+  if (!list) return null;
   list.className = 'blocks-list';
   list.setAttribute('aria-label', text('listAria', 'Markdown blocks'));
 
@@ -985,7 +993,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     list,
     editableSession,
     text,
-    createBlockTypeIcon,
+    createBlockTypeIcon: createBlockTypeIconWithRuntime,
     defaultListItems,
     normalizeEditableMarkdownText,
     editableText,
@@ -1200,11 +1208,13 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const wireInlineEditable = (...args) => richTextSession?.wireInlineEditable(...args);
 
   const createHeadingLevelSelect = (block) => {
-    const select = document.createElement('select');
+    const select = runtime.createElement('select');
+    if (!select) return null;
     select.className = 'blocks-heading-level';
     select.title = text('headingLevel', 'Heading level');
     [1, 2, 3, 4, 5, 6].forEach(level => {
-      const option = document.createElement('option');
+      const option = runtime.createElement('option');
+      if (!option) return;
       option.value = String(level);
       option.textContent = `H${level}`;
       select.appendChild(option);
@@ -1288,7 +1298,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
 
   const createMathEditButton = (block, index) => {
-    const edit = button(text('editMath', 'Edit math'), 'blocks-btn blocks-math-edit');
+    const edit = button(text('editMath', 'Edit math'), 'blocks-btn blocks-math-edit', runtime);
+    if (!edit) return null;
     edit.title = text('editMath', 'Edit math');
     edit.setAttribute('aria-label', text('editMath', 'Edit math'));
     edit.addEventListener('mousedown', (event) => event.preventDefault());
@@ -1387,7 +1398,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   const headSession = createEditorBlocksHeadSession({
     documentRef: runtime.documentRef || root.ownerDocument,
     text,
-    createBlockTypeIcon,
+    createBlockTypeIcon: createBlockTypeIconWithRuntime,
     menuSession,
     sourceSession,
     listSession,

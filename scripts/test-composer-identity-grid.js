@@ -66,6 +66,8 @@ const editorFileTreeUiPath = resolve(here, '../assets/js/editor-file-tree-ui.js'
 const editorStructurePanelUiPath = resolve(here, '../assets/js/editor-structure-panel-ui.js');
 const editorStoragePath = resolve(here, '../assets/js/editor-storage.js');
 const editorAppRuntimePath = resolve(here, '../assets/js/editor-app-runtime.js');
+const editorBootPath = resolve(here, '../assets/js/editor-boot.js');
+const editorBootRuntimePath = resolve(here, '../assets/js/editor-boot-runtime.js');
 const publishCommitServicePath = resolve(here, '../assets/js/publish/commit-service.js');
 const publishSettingsPath = resolve(here, '../assets/js/publish/settings-store.js');
 const connectTransportPath = resolve(here, '../assets/js/publish/transports/connect-transport.js');
@@ -182,6 +184,8 @@ const editorFileTreeUiSource = readFileSync(editorFileTreeUiPath, 'utf8');
 const editorStructurePanelUiSource = readFileSync(editorStructurePanelUiPath, 'utf8');
 const editorStorageSource = readFileSync(editorStoragePath, 'utf8');
 const editorAppRuntimeSource = readFileSync(editorAppRuntimePath, 'utf8');
+const editorBootSource = readFileSync(editorBootPath, 'utf8');
+const editorBootRuntimeSource = readFileSync(editorBootRuntimePath, 'utf8');
 const publishCommitServiceSource = readFileSync(publishCommitServicePath, 'utf8');
 const publishSettingsSource = readFileSync(publishSettingsPath, 'utf8');
 const connectTransportSource = readFileSync(connectTransportPath, 'utf8');
@@ -1838,6 +1842,24 @@ assert.doesNotMatch(
   editorAppRuntimeSource,
   /typeof (?:CustomEvent|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
   'editor app runtime browser facade should use captured refs instead of ambient browser global fallbacks'
+);
+
+assert.match(
+  editorBootSource,
+  /from '\.\/editor-boot-runtime\.js\?v=[\w.-]+'[\s\S]*const bootRuntime = createEditorBootRuntime\(\)[\s\S]*bootRuntime\.onDocumentReady\(\(\) => \{ bootstrap\(\)\.catch\(\(\) => \{\}\); \}\)/,
+  'editor boot should initialize through the explicit editor boot runtime boundary'
+);
+
+assert.match(
+  editorBootRuntimeSource,
+  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*createEditorAppRuntime\(options\)[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied[\s\S]*setPopulateLanguageSelect[\s\S]*setSoftResetLanguage/,
+  'editor boot runtime should wrap language boot globals and events through the shared app runtime facade'
+);
+
+assert.doesNotMatch(
+  editorBootSource,
+  /\b(?:window|document|CustomEvent)\b|DOMContentLoaded|(?:window|document)\.addEventListener\(/,
+  'editor boot should route document/window globals, custom events, and DOM-ready behavior through the boot runtime'
 );
 
 assert.match(

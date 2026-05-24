@@ -1,5 +1,8 @@
 import './cache-control.js';
 import { initI18n, t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js?v=press-system-v3.4.50';
+import { createEditorBootRuntime } from './editor-boot-runtime.js?v=press-system-v3.4.50';
+
+const bootRuntime = createEditorBootRuntime();
 
 function applyAttributeTranslation(el, target, value) {
   if (value == null) return;
@@ -31,9 +34,9 @@ function applyAttributeTranslation(el, target, value) {
   }
 }
 
-function applyElementTranslations(root = document) {
-  document.title = t('editor.pageTitle');
-  const elements = root.querySelectorAll('*');
+function applyElementTranslations(root = null) {
+  bootRuntime.setDocumentTitle(t('editor.pageTitle'));
+  const elements = bootRuntime.getTranslationElements(root);
   elements.forEach((el) => {
     const key = el.getAttribute('data-i18n');
     if (key) {
@@ -51,7 +54,7 @@ function applyElementTranslations(root = document) {
 }
 
 function populateLanguageSelect() {
-  const select = document.getElementById('editorLangSelect');
+  const select = bootRuntime.getLanguageSelect();
   if (!select) return;
   const current = getCurrentLang();
   try { ensureLanguageBundle(current).catch(() => {}); } catch (_) {}
@@ -59,7 +62,8 @@ function populateLanguageSelect() {
   const prev = select.value;
   select.innerHTML = '';
   langs.forEach((code) => {
-    const opt = document.createElement('option');
+    const opt = bootRuntime.createOption();
+    if (!opt) return;
     opt.value = code;
     opt.textContent = getLanguageLabel(code);
     select.appendChild(opt);
@@ -77,40 +81,32 @@ function populateLanguageSelect() {
   }
 }
 
-try {
-  window.__pressPopulateEditorLanguageSelect = populateLanguageSelect;
-  document.addEventListener('press-editor-language-control-mounted', populateLanguageSelect);
-} catch (_) {}
+bootRuntime.setPopulateLanguageSelect(populateLanguageSelect);
+bootRuntime.onLanguageControlMounted(populateLanguageSelect);
 
 function applyEditorLanguage() {
   applyElementTranslations();
   populateLanguageSelect();
-  document.dispatchEvent(new CustomEvent('press-editor-language-applied'));
+  bootRuntime.emitLanguageApplied();
 }
 
 async function bootstrap() {
   await initI18n();
   applyEditorLanguage();
-  window.__press_softResetLang = async () => {
+  bootRuntime.setSoftResetLanguage(async () => {
     await initI18n({ persist: false });
     applyEditorLanguage();
-  };
-}
-
-try {
-  window.addEventListener('ns:i18n-bundle-loaded', (event) => {
-    const detail = event && event.detail ? event.detail : {};
-    const lang = (detail.lang || '').toLowerCase();
-    if (!lang) return;
-    const current = (getCurrentLang && getCurrentLang()) || '';
-    if (lang && current && current.toLowerCase() === lang) {
-      try { populateLanguageSelect(); } catch (_) {}
-    }
   });
-} catch (_) {}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => { bootstrap().catch(() => {}); });
-} else {
-  bootstrap().catch(() => {});
 }
+
+bootRuntime.onI18nBundleLoaded((event) => {
+  const detail = event && event.detail ? event.detail : {};
+  const lang = (detail.lang || '').toLowerCase();
+  if (!lang) return;
+  const current = (getCurrentLang && getCurrentLang()) || '';
+  if (lang && current && current.toLowerCase() === lang) {
+    try { populateLanguageSelect(); } catch (_) {}
+  }
+});
+
+bootRuntime.onDocumentReady(() => { bootstrap().catch(() => {}); });

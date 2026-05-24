@@ -42,6 +42,14 @@ class FakeCustomEvent {
   }
 }
 
+class FakeEvent {
+  constructor(type, init = {}) {
+    this.type = type;
+    this.bubbles = !!init.bubbles;
+    this.cancelable = !!init.cancelable;
+  }
+}
+
 {
   const store = createEditorStateStore({
     kinds: ['index', 'tabs', 'site'],
@@ -73,6 +81,7 @@ class FakeCustomEvent {
   const documentRef = new FakeEventTarget();
   const windowRef = new FakeEventTarget();
   windowRef.CustomEvent = FakeCustomEvent;
+  windowRef.Event = FakeEvent;
   const writes = new Map();
   windowRef.localStorage = {
     getItem(key) {
@@ -148,6 +157,11 @@ class FakeCustomEvent {
   assert.equal(timers.includes('clear:23'), true);
   runtime.browser.clearTimer(0);
   assert.equal(timers.includes('clear:0'), true);
+  const inputEvent = runtime.browser.createEvent('input', { bubbles: true, cancelable: true });
+  assert.ok(inputEvent instanceof FakeEvent);
+  assert.equal(inputEvent.type, 'input');
+  assert.equal(inputEvent.bubbles, true);
+  assert.equal(inputEvent.cancelable, true);
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);

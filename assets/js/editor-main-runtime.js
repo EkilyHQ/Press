@@ -169,6 +169,7 @@ export function createEditorMainRuntime(options = {}) {
     cancelFrame: runtime.browser.cancelFrame,
     setTimer: runtime.browser.setTimer,
     clearTimer: runtime.browser.clearTimer,
+    createEvent: runtime.browser.createEvent,
     postMessage: runtime.browser.postMessage,
     getLocationOrigin: runtime.browser.getLocationOrigin,
     getPageYOffset: runtime.browser.getPageYOffset,

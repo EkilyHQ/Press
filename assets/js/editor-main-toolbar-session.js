@@ -21,7 +21,6 @@ function fallbackElementById(documentRef, id) {
 export function createEditorMainToolbarSession(options = {}) {
   const runtime = options.runtime || {};
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || (documentRef && documentRef.defaultView) || null;
   const translateImpl = typeof options.translate === 'function' ? options.translate : fallbackTranslate;
   const getEditorTextarea = typeof options.getEditorTextarea === 'function' ? options.getEditorTextarea : () => null;
   const getCardEntries = typeof options.getCardEntries === 'function' ? options.getCardEntries : null;
@@ -32,13 +31,28 @@ export function createEditorMainToolbarSession(options = {}) {
   );
   const onDocument = typeof runtime.onDocument === 'function' ? runtime.onDocument.bind(runtime) : () => noop;
   const onWindow = typeof runtime.onWindow === 'function' ? runtime.onWindow.bind(runtime) : () => noop;
-  const setTimer = typeof runtime.setTimer === 'function' ? runtime.setTimer.bind(runtime) : (fn, ms) => {
-    if (windowRef && typeof windowRef.setTimeout === 'function') return windowRef.setTimeout(fn, ms);
-    return 0;
+  const setTimer = typeof runtime.setTimer === 'function' ? runtime.setTimer.bind(runtime) : (fn) => {
+    if (typeof fn === 'function') {
+      try { fn(); } catch (_) {}
+    }
+    return null;
   };
-  const clearTimer = typeof runtime.clearTimer === 'function' ? runtime.clearTimer.bind(runtime) : (id) => {
-    if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
-  };
+  const clearTimer = typeof runtime.clearTimer === 'function' ? runtime.clearTimer.bind(runtime) : noop;
+  const createInputEvent = typeof options.createInputEvent === 'function'
+    ? options.createInputEvent
+    : () => {
+      if (typeof runtime.createEvent === 'function') {
+        return runtime.createEvent('input', { bubbles: true, cancelable: true });
+      }
+      if (documentRef && typeof documentRef.createEvent === 'function') {
+        try {
+          const event = documentRef.createEvent('Event');
+          event.initEvent('input', true, true);
+          return event;
+        } catch (_) {}
+      }
+      return null;
+    };
 
   const editorToolbarEl = options.editorToolbarEl || getElementById('editorToolbar');
   const cardButton = options.cardButton || getElementById('btnInsertCard');
@@ -81,16 +95,8 @@ export function createEditorMainToolbarSession(options = {}) {
 
   const dispatchInputEvent = (textarea) => {
     if (!textarea || typeof textarea.dispatchEvent !== 'function') return;
-    const EventCtor = (windowRef && windowRef.Event) || null;
-    if (EventCtor) {
-      textarea.dispatchEvent(new EventCtor('input', { bubbles: true }));
-      return;
-    }
-    if (documentRef && typeof documentRef.createEvent === 'function') {
-      const event = documentRef.createEvent('Event');
-      event.initEvent('input', true, true);
-      textarea.dispatchEvent(event);
-    }
+    const event = createInputEvent();
+    if (event) textarea.dispatchEvent(event);
   };
 
   function applyButtonTooltipState(button, disabled) {

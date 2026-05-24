@@ -18,6 +18,14 @@ class FakeCustomEvent {
   }
 }
 
+class FakeEvent {
+  constructor(type, init = {}) {
+    this.type = type;
+    this.bubbles = !!init.bubbles;
+    this.cancelable = !!init.cancelable;
+  }
+}
+
 function createEventTarget() {
   const listeners = new Map();
   const events = [];
@@ -60,6 +68,7 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
 {
   const windowRef = createEventTarget();
   windowRef.CustomEvent = FakeCustomEvent;
+  windowRef.Event = FakeEvent;
   const documentRef = createEventTarget();
   documentRef.readyState = 'complete';
   documentRef.getElementById = id => ({ id });
@@ -122,6 +131,11 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(runtime.setTimer(() => {}, 1200), 23);
   runtime.clearTimer(23);
   assert.equal(timers.includes('clear:23'), true);
+  const inputEvent = runtime.createEvent('input', { bubbles: true, cancelable: true });
+  assert.ok(inputEvent instanceof FakeEvent);
+  assert.equal(inputEvent.type, 'input');
+  assert.equal(inputEvent.bubbles, true);
+  assert.equal(inputEvent.cancelable, true);
   assert.equal(runtime.getLocationOrigin(), 'https://press.test');
   assert.equal(runtime.prefersReducedMotion(), true);
   assert.equal(runtime.getPageYOffset(), 320);

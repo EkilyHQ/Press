@@ -182,7 +182,6 @@ editorMainRuntime.onDocumentReady(() => {
   const toolbarSession = appServices.setToolbarSession(createEditorMainToolbarSession({
     runtime: editorMainRuntime,
     documentRef: editorMainDocument,
-    windowRef: editorMainWindow,
     translate: t,
     getEditorTextarea: documentSession.getEditorTextarea,
     editorToolbarEl,

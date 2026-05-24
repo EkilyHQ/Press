@@ -1375,8 +1375,14 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const contentService = appServices\.setContentService\(createEditorMainContentService\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*getContentRoot,[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\),[\s\S]*linkCardContext,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getDocumentSession: appServices\.getDocumentSession,[\s\S]*getWorkspaceSession: appServices\.getWorkspaceSession,[\s\S]*setCurrentFileLabel: fileContextService\.setCurrentFileLabel[\s\S]*alert: \(message\) => editorMainRuntime\.showAlert\(message\)[\s\S]*\}\)\);/,
+  /const contentService = appServices\.setContentService\(createEditorMainContentService\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*getContentRoot,[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\),[\s\S]*linkCardContext,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getDocumentSession: appServices\.getDocumentSession,[\s\S]*getWorkspaceSession: appServices\.getWorkspaceSession,[\s\S]*setCurrentFileLabel: fileContextService\.setCurrentFileLabel,[\s\S]*warn: \(\.\.\.args\) => editorMainRuntime\.warn\(\.\.\.args\),[\s\S]*alert: \(message\) => editorMainRuntime\.showAlert\(message\)[\s\S]*\}\)\);/,
   'editor main should compose site config, content loading, and open-markdown orchestration through the content service'
+);
+
+assert.doesNotMatch(
+  editorMainSource,
+  /console\.warn/,
+  'editor main should route warning behavior through the editor runtime instead of calling console.warn directly'
 );
 
 assert.match(
@@ -1524,14 +1530,14 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainRuntimeSource,
-  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*clearTimer: runtime\.browser\.clearTimer,[\s\S]*createEvent: runtime\.browser\.createEvent,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*getComputedStyle: runtime\.browser\.getComputedStyle,[\s\S]*getResizeObserver: runtime\.browser\.getResizeObserver,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert/,
+  /export function createEditorMainRuntime\(options = \{\}\) \{[\s\S]*function onDocumentReady\(handler\)[\s\S]*readMarkdownEditorView\(\)[\s\S]*persistMarkdownEditorView\(mode\)[\s\S]*readWrapEnabled\(\{ force = false \} = \{\}\)[\s\S]*setEditorBaseDir\(dir, fallback = 'wwwroot\/'\)[\s\S]*registerPrimaryEditorApi\(api\)[\s\S]*function fetchContent\(url, options\)[\s\S]*function showAlert\(message\)[\s\S]*function warn\(\.\.\.args\)[\s\S]*prefersReducedMotion\(\)[\s\S]*requestAssetDelete\(detail\)[\s\S]*emitCurrentFileBreadcrumbSelect\(detail\)[\s\S]*documentRef: runtime\.documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*onDocumentReady,[\s\S]*onDocument: runtime\.events\.onDocument,[\s\S]*onWindow: runtime\.events\.onWindow,[\s\S]*requestFrame: runtime\.browser\.requestFrame,[\s\S]*setTimer: runtime\.browser\.setTimer,[\s\S]*clearTimer: runtime\.browser\.clearTimer,[\s\S]*createEvent: runtime\.browser\.createEvent,[\s\S]*postMessage: runtime\.browser\.postMessage,[\s\S]*getComputedStyle: runtime\.browser\.getComputedStyle,[\s\S]*getResizeObserver: runtime\.browser\.getResizeObserver,[\s\S]*scrollToTop: runtime\.browser\.scrollToTop[\s\S]*fetchContent,[\s\S]*showAlert,[\s\S]*warn/,
   'editor main runtime should own storage, browser global, and cross-component event service adapters'
 );
 
 assert.doesNotMatch(
   editorMainRuntimeSource,
-  /typeof (?:fetch|alert)\b|runtime\.windowRef && runtime\.windowRef\.(?:fetch|alert)|windowRef\.(?:fetch|alert)/,
-  'editor main runtime should delegate fetch and alert lookup to the shared editor app runtime facade'
+  /typeof (?:fetch|alert|console)\b|runtime\.windowRef && runtime\.windowRef\.(?:fetch|alert|console)|windowRef\.(?:fetch|alert|console)/,
+  'editor main runtime should delegate fetch, alert, and warning lookup to the shared editor app runtime facade'
 );
 
 assert.match(

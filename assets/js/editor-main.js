@@ -97,9 +97,7 @@ editorMainRuntime.onDocumentReady(() => {
     getDocumentSession: appServices.getDocumentSession,
     getWorkspaceSession: appServices.getWorkspaceSession,
     setCurrentFileLabel: fileContextService.setCurrentFileLabel,
-    warn: (...args) => {
-      try { console.warn(...args); } catch (_) {}
-    },
+    warn: (...args) => editorMainRuntime.warn(...args),
     alert: (message) => editorMainRuntime.showAlert(message)
   }));
 

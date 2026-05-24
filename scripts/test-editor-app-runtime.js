@@ -111,6 +111,7 @@ class FakeResizeObserver {}
   const timers = [];
   const fetchCalls = [];
   const alerts = [];
+  const warnings = [];
   const confirms = [];
   const messages = [];
   const scrolls = [];
@@ -133,6 +134,9 @@ class FakeResizeObserver {}
   windowRef.fetch = (url, options) => {
     fetchCalls.push([url, options]);
     return Promise.resolve({ ok: true, url });
+  };
+  windowRef.console = {
+    warn: (...args) => warnings.push(args)
   };
   windowRef.alert = message => alerts.push(message);
   windowRef.confirm = message => {
@@ -206,6 +210,8 @@ class FakeResizeObserver {}
   assert.equal(runtime.browser.getCss(), windowRef.CSS);
   assert.equal(runtime.browser.showAlert('Heads up'), true);
   assert.deepEqual(alerts, ['Heads up']);
+  assert.equal(runtime.browser.warn('Careful', { id: 1 }), true);
+  assert.deepEqual(warnings, [['Careful', { id: 1 }]]);
   assert.equal(runtime.browser.confirmAction('continue'), true);
   assert.equal(runtime.browser.confirmAction('stop'), false);
   assert.deepEqual(confirms, ['continue', 'stop']);
@@ -248,7 +254,8 @@ class FakeResizeObserver {}
     'cancelAnimationFrame',
     'setTimeout',
     'clearTimeout',
-    'getComputedStyle'
+    'getComputedStyle',
+    'console'
   ];
   const originals = new Map();
   const hadOriginal = new Map();
@@ -277,6 +284,9 @@ class FakeResizeObserver {}
       ambientCalls.push(['getComputedStyle', element]);
       return { display: 'ambient' };
     };
+    globalThis.console = {
+      warn: (...args) => ambientCalls.push(['console.warn', args])
+    };
 
     const runtime = createEditorAppRuntime({ windowRef: {}, documentRef });
     assert.equal(runtime.events.emitDocument('press:no-ambient', { ok: true }), true);
@@ -287,6 +297,7 @@ class FakeResizeObserver {}
     assert.equal(runtime.browser.setTimer(() => {}, 10), null);
     runtime.browser.clearTimer(1002);
     assert.equal(runtime.browser.getComputedStyle({ nodeType: 1 }), null);
+    assert.equal(runtime.browser.warn('ambient'), false);
     assert.deepEqual(
       ambientCalls,
       [],

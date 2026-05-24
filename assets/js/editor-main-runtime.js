@@ -107,6 +107,10 @@ export function createEditorMainRuntime(options = {}) {
     return runtime.browser.showAlert(message);
   }
 
+  function warn(...args) {
+    return runtime.browser.warn(...args);
+  }
+
   function prefersReducedMotion() {
     return runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)');
   }
@@ -171,6 +175,7 @@ export function createEditorMainRuntime(options = {}) {
     onSiteConfigChange,
     fetchContent,
     showAlert,
+    warn,
     emitToast,
     requestAssetDelete,
     emitAssetDeleteCanceled,

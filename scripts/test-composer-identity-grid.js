@@ -2182,8 +2182,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerUiMotionSource,
-  /export function configureComposerUiMotionRuntime\(options = \{\}\)[\s\S]*export function syncSiteEditorSingleLabelWidth\(root\)[\s\S]*export function animateComposerInlineVisibility\(element, show, options = \{\}\)[\s\S]*export function animateComposerListTransition\(list, previousRect, options = \{\}\)[\s\S]*export function animateComposerOrderMainReset\(host, previousRect, options = \{\}\)[\s\S]*export function slideToggle\(el, toOpen\)[\s\S]*export function getComposerSlideDurations\(\)/,
-  'UI motion module should own composer label measurement, inline/list/order animations, slide toggles, and shared durations'
+  /export function createComposerUiMotionController\(options = \{\}\)[\s\S]*syncSiteEditorSingleLabelWidth: \(root\) => syncSiteEditorSingleLabelWidth\(runtime, root\),[\s\S]*animateComposerInlineVisibility: \(element, show, methodOptions = \{\}\) => animateComposerInlineVisibility\(runtime, element, show, methodOptions\),[\s\S]*animateComposerListTransition: \(list, previousRect, methodOptions = \{\}\) => animateComposerListTransition\(runtime, list, previousRect, methodOptions\),[\s\S]*animateComposerOrderMainReset: \(host, previousRect, methodOptions = \{\}\) => animateComposerOrderMainReset\(runtime, host, previousRect, methodOptions\),[\s\S]*slideToggle: \(el, toOpen\) => slideToggle\(runtime, el, toOpen\),[\s\S]*function getComposerSlideDurations\(\)/,
+  'UI motion module should expose an explicit runtime-bound controller for label measurement, animations, slide toggles, and shared durations'
 );
 
 assert.match(
@@ -2194,14 +2194,20 @@ assert.match(
 
 assert.doesNotMatch(
   composerUiMotionSource,
-  /let composerReduceMotionQuery|const composerInlineVisibilityAnimations|const composerInlineVisibilityFallbacks|const composerListTransitions|const composerOrderMainTransitions|let composerSiteScrollAnimationId|let composerSiteScrollCleanup|const activeSlideAnimations/,
+  /let composerUiMotionRuntime|configureComposerUiMotionRuntime|let composerReduceMotionQuery|const composerInlineVisibilityAnimations|const composerInlineVisibilityFallbacks|const composerListTransitions|const composerOrderMainTransitions|let composerSiteScrollAnimationId|let composerSiteScrollCleanup|const activeSlideAnimations/,
   'UI motion state registries should stay inside the configured runtime state'
 );
 
 assert.match(
   source,
-  /configureComposerUiMotionRuntime\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\)[\s\S]*\}\);/,
-  'composer should configure UI motion browser effects through the explicit runtime boundary'
+  /const composerUiMotion = createComposerUiMotionController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\)[\s\S]*\}\);/,
+  'composer should create an explicit UI motion controller through the app runtime boundary'
+);
+
+assert.doesNotMatch(
+  source,
+  /configureComposerUiMotionRuntime/,
+  'composer should not configure UI motion through a module-level singleton'
 );
 
 assert.doesNotMatch(
@@ -6427,31 +6433,31 @@ assert.match(
 
 assert.match(
   composerUiMotionSource,
-  /export function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
+  /function syncSiteEditorSingleLabelWidth\(runtime, root\) \{[\s\S]*querySelectorAll\('\.cs-single-grid-title'\)[\s\S]*requestFrame\(runtime, measure\)[\s\S]*ResizeObserverRef/,
   'compact single-value labels should be measured once after render and shared through a CSS variable'
 );
 
 assert.match(
-  siteSettingsSource,
-  /label\.scrollWidth[\s\S]*getComputedStyleFor\(target\)[\s\S]*gap/,
+  composerUiMotionSource,
+  /label\.scrollWidth[\s\S]*getComputedStyleFor\(runtime, target\)[\s\S]*gap/,
   'compact single-value label measurement should use intrinsic label width instead of the currently constrained grid cell'
 );
 
 assert.match(
-  siteSettingsSource,
+  composerUiMotionSource,
   /target\.querySelector \? target\.querySelector\('\.cs-help-tooltip'\) : null[\s\S]*const tooltipWidth = tooltip \? tooltip\.scrollWidth \|\| 0 : 0;/,
   'compact single-value label measurement should measure only the help icon, not the tooltip wrapper'
 );
 
 assert.doesNotMatch(
-  siteSettingsSource,
+  composerUiMotionSource,
   /querySelector\('\.cs-help-tooltip-wrap'\)[\s\S]*const tooltipWidth = tooltip \? tooltip\.scrollWidth \|\| 0 : 0;/,
   'compact single-value label measurement should not include hidden tooltip bubble width'
 );
 
 assert.doesNotMatch(
-  siteSettingsSource,
-  /function syncSiteEditorSingleLabelWidth\(root\) \{[\s\S]*getBoundingClientRect[\s\S]*root\.style\.setProperty\('--cs-editor-single-label-width'/,
+  composerUiMotionSource,
+  /function syncSiteEditorSingleLabelWidth\(runtime, root\) \{[\s\S]*getBoundingClientRect[\s\S]*root\.style\.setProperty\('--cs-editor-single-label-width'/,
   'compact single-value label measurement should not seed width from constrained layout rects'
 );
 

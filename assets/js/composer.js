@@ -71,21 +71,7 @@ import {
   initializeComposerApp
 } from './composer-bootstrap.js?v=press-system-v3.4.50';
 import {
-  animateComposerInlineVisibility,
-  animateComposerListTransition,
-  animateComposerOrderMainReset,
-  animateComposerViewportScroll,
-  cancelComposerOrderMainTransition,
-  cancelComposerSiteScrollAnimation,
-  cancelListTransition,
-  captureElementRect,
-  clearInlineSlideStyles,
-  composerPrefersReducedMotion,
-  configureComposerUiMotionRuntime,
-  getComposerSlideDurations,
-  resolveComposerScrollDuration,
-  slideToggle,
-  syncSiteEditorSingleLabelWidth
+  createComposerUiMotionController
 } from './composer-ui-motion.js?v=press-system-v3.4.50';
 import {
   applyInferredRepoConfig,
@@ -129,7 +115,7 @@ const composerLogger = {
   warn: (...args) => editorRuntime.warn(...args),
   error: (...args) => editorRuntime.error(...args)
 };
-configureComposerUiMotionRuntime({
+const composerUiMotion = createComposerUiMotionController({
   documentRef: composerDocument,
   windowRef: composerWindow,
   requestAnimationFrameRef: (handler) => editorRuntime.requestFrame(handler),
@@ -141,6 +127,22 @@ configureComposerUiMotionRuntime({
   performanceRef: editorRuntime.getPerformance(),
   ResizeObserverRef: editorRuntime.getResizeObserver()
 });
+const {
+  animateComposerInlineVisibility,
+  animateComposerListTransition,
+  animateComposerOrderMainReset,
+  animateComposerViewportScroll,
+  cancelComposerOrderMainTransition,
+  cancelComposerSiteScrollAnimation,
+  cancelListTransition,
+  captureElementRect,
+  clearInlineSlideStyles,
+  composerPrefersReducedMotion,
+  getComposerSlideDurations,
+  resolveComposerScrollDuration,
+  slideToggle,
+  syncSiteEditorSingleLabelWidth
+} = composerUiMotion;
 
 // Utility helpers
 const $ = (selector, root = composerDocument) => {

@@ -105,7 +105,7 @@ class FakeFileReader {}
   const timers = [];
   const messages = [];
   const scrolls = [];
-  windowRef.location = { origin: 'https://example.test' };
+  windowRef.location = { origin: 'https://example.test', href: 'https://example.test/editor.html' };
   windowRef.innerHeight = 900;
   windowRef.innerWidth = 1200;
   windowRef.requestAnimationFrame = (fn) => {
@@ -174,6 +174,7 @@ class FakeFileReader {}
   assert.equal(mouseEvent.bubbles, true);
   assert.equal(runtime.browser.getFileReader(), FakeFileReader);
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
+  assert.equal(runtime.browser.getLocationHref(), 'https://example.test/editor.html');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);
   assert.deepEqual(runtime.browser.getWindowScroll(), { x: 12, y: 345 });

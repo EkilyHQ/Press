@@ -174,6 +174,7 @@ export function createEditorMainRuntime(options = {}) {
     getFileReader: runtime.browser.getFileReader,
     postMessage: runtime.browser.postMessage,
     getLocationOrigin: runtime.browser.getLocationOrigin,
+    getLocationHref: runtime.browser.getLocationHref,
     getPageYOffset: runtime.browser.getPageYOffset,
     scrollToTop: runtime.browser.scrollToTop,
     prefersReducedMotion,

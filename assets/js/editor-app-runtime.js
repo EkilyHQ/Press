@@ -273,6 +273,14 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function getLocationHref() {
+    try {
+      return (windowRef && windowRef.location && windowRef.location.href) || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   function postMessage(targetWindow, payload, targetOrigin = getLocationOrigin()) {
     try {
       if (!targetWindow || typeof targetWindow.postMessage !== 'function') return false;
@@ -381,6 +389,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     createMouseEvent,
     getFileReader,
     getLocationOrigin,
+    getLocationHref,
     postMessage,
     matchesMedia,
     getPageYOffset,

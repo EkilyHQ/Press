@@ -132,7 +132,6 @@ editorMainRuntime.onDocumentReady(() => {
   const previewSession = appServices.setPreviewSession(createEditorMainPreviewSession({
     runtime: editorMainRuntime,
     documentRef: editorMainDocument,
-    windowRef: editorMainWindow,
     getContentRoot,
     getEditorValue: appServices.getEditorValue,
     getCurrentFileInfo: fileContextService.getCurrentFileInfo,

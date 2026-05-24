@@ -16,7 +16,6 @@ function fallbackElementById(documentRef, id) {
 export function createEditorMainPreviewSession(options = {}) {
   const runtime = options.runtime || {};
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const getContentRoot = typeof options.getContentRoot === 'function' ? options.getContentRoot : fallbackGetContentRoot;
   const getEditorValue = typeof options.getEditorValue === 'function' ? options.getEditorValue : () => '';
   const getCurrentFileInfo = typeof options.getCurrentFileInfo === 'function' ? options.getCurrentFileInfo : () => ({});
@@ -49,7 +48,7 @@ export function createEditorMainPreviewSession(options = {}) {
   const requestFrame = (fn) => (
     typeof runtime.requestFrame === 'function'
       ? runtime.requestFrame(fn)
-      : (windowRef && typeof windowRef.requestAnimationFrame === 'function' ? windowRef.requestAnimationFrame(fn) : 0)
+      : 0
   );
   const cancelFrame = (id) => {
     if (!id) return;
@@ -57,12 +56,11 @@ export function createEditorMainPreviewSession(options = {}) {
       runtime.cancelFrame(id);
       return;
     }
-    try { if (windowRef && typeof windowRef.cancelAnimationFrame === 'function') windowRef.cancelAnimationFrame(id); } catch (_) {}
   };
   const setTimer = (fn, delay) => (
     typeof runtime.setTimer === 'function'
       ? runtime.setTimer(fn, delay)
-      : (windowRef && typeof windowRef.setTimeout === 'function' ? windowRef.setTimeout(fn, delay) : 0)
+      : null
   );
   const clearTimer = (id) => {
     if (!id) return;
@@ -70,7 +68,6 @@ export function createEditorMainPreviewSession(options = {}) {
       runtime.clearTimer(id);
       return;
     }
-    try { if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id); } catch (_) {}
   };
   const onWindow = (type, handler, opts) => (
     typeof runtime.onWindow === 'function'
@@ -85,7 +82,12 @@ export function createEditorMainPreviewSession(options = {}) {
   const getLocationOrigin = () => (
     typeof runtime.getLocationOrigin === 'function'
       ? runtime.getLocationOrigin()
-      : (windowRef && windowRef.location ? windowRef.location.origin : '')
+      : ''
+  );
+  const getLocationHref = () => (
+    typeof runtime.getLocationHref === 'function'
+      ? runtime.getLocationHref()
+      : ''
   );
   const getEditorBaseDir = () => (
     typeof runtime.getEditorBaseDir === 'function'
@@ -145,7 +147,7 @@ export function createEditorMainPreviewSession(options = {}) {
     let input = raw;
     try {
       if (/^[a-z][a-z0-9+.-]*:/i.test(input)) {
-        const href = windowRef && windowRef.location ? windowRef.location.href : 'http://localhost/';
+        const href = getLocationHref() || 'http://localhost/';
         const url = new URL(input, href);
         input = url.pathname || '';
       }

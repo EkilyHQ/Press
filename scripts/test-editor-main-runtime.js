@@ -86,7 +86,7 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   const scrolls = [];
   const fetchCalls = [];
   const alerts = [];
-  windowRef.location = { origin: 'https://press.test' };
+  windowRef.location = { origin: 'https://press.test', href: 'https://press.test/index_editor.html' };
   windowRef.fetch = (url, options) => {
     fetchCalls.push([url, options]);
     return Promise.resolve({ ok: true, url });
@@ -148,6 +148,7 @@ assert.equal(normalizeMarkdownEditorView('source'), 'blocks');
   assert.equal(mouseEvent.bubbles, true);
   assert.equal(runtime.getFileReader(), FakeFileReader);
   assert.equal(runtime.getLocationOrigin(), 'https://press.test');
+  assert.equal(runtime.getLocationHref(), 'https://press.test/index_editor.html');
   assert.equal(runtime.prefersReducedMotion(), true);
   assert.equal(runtime.getPageYOffset(), 320);
   assert.equal(runtime.scrollToTop({ smooth: true }), true);

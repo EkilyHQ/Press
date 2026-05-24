@@ -15,7 +15,6 @@ function normalizeSystemMode(mode) {
 
 export function createComposerMarkdownSessionController(options = {}) {
   const editorStateVersion = Number(options.editorStateVersion) || 1;
-  const windowRef = options.windowRef || null;
   const editorSessionStateStore = options.editorSessionStateStore || null;
   const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : (value) => String(value || '').replace(/[\\]/g, '/').replace(/^\/+/, '');
   const normalizeLangCode = typeof options.normalizeLangCode === 'function' ? options.normalizeLangCode : (value) => String(value || '').trim().toLowerCase();
@@ -44,7 +43,6 @@ export function createComposerMarkdownSessionController(options = {}) {
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
     ? options.requestAnimationFrameRef
     : (fn) => {
-      if (windowRef && typeof windowRef.requestAnimationFrame === 'function') return windowRef.requestAnimationFrame(fn);
       if (typeof fn === 'function') fn();
       return 0;
     };
@@ -55,19 +53,10 @@ export function createComposerMarkdownSessionController(options = {}) {
     if (params && params.label) return `${key}: ${params.label}`;
     return String(key || '');
   };
-  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : (message) => {
-    if (windowRef && typeof windowRef.alert === 'function') windowRef.alert(message);
-  };
+  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : noop;
   const confirmRef = typeof options.confirmRef === 'function'
     ? options.confirmRef
-    : (message) => {
-      try {
-        if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(message);
-      } catch (_) {
-        return true;
-      }
-      return true;
-    };
+    : () => true;
   const consoleRef = options.consoleRef || { warn: noop, error: noop };
   const updateDynamicTabsGroupState = typeof options.updateDynamicTabsGroupState === 'function' ? options.updateDynamicTabsGroupState : noop;
   const detachPrimaryEditorListeners = typeof options.detachPrimaryEditorListeners === 'function' ? options.detachPrimaryEditorListeners : noop;

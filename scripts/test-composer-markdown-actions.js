@@ -43,11 +43,9 @@ function makeBaseOptions(overrides = {}) {
   const discardButton = makeButton('Discard');
   return {
     calls,
-    windowRef: {
-      confirm() {
-        calls.push(['confirm']);
-        return true;
-      }
+    confirmRef: () => {
+      calls.push(['confirm']);
+      return true;
     },
     consoleRef: {
       error: (...args) => calls.push(['error', ...args]),

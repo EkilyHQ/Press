@@ -104,15 +104,10 @@ function createHarness(options = {}) {
   };
   const controller = createComposerModeController({
     documentRef,
-    windowRef: {
-      requestAnimationFrame(handler) {
-        calls.push(['raf']);
-        handler();
-      },
-      setTimeout(handler) {
-        handler();
-        return 1;
-      }
+    requestAnimationFrameRef: (handler) => {
+      calls.push(['raf']);
+      handler();
+      return 1;
     },
     getDynamicEditorTabs: () => dynamicTabs,
     isDynamicMode: (mode) => dynamicTabs.has(mode),

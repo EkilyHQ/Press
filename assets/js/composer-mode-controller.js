@@ -11,7 +11,6 @@ export function getComposerSystemModeNodeId(value) {
 
 export function createComposerModeController(options = {}) {
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const getDynamicEditorTabs = typeof options.getDynamicEditorTabs === 'function' ? options.getDynamicEditorTabs : (() => new Map());
   const isDynamicMode = typeof options.isDynamicMode === 'function' ? options.isDynamicMode : (() => false);
   const getFirstDynamicModeId = typeof options.getFirstDynamicModeId === 'function' ? options.getFirstDynamicModeId : (() => '');
@@ -45,9 +44,6 @@ export function createComposerModeController(options = {}) {
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
     ? options.requestAnimationFrameRef
     : (handler) => {
-      if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
-        return windowRef.requestAnimationFrame(handler);
-      }
       if (typeof handler === 'function') handler();
       return 0;
     };

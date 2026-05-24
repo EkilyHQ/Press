@@ -103,9 +103,7 @@ function createHarness(overrides = {}) {
     },
     showComposerDiscardConfirm: async () => confirmResult,
     t: (key, params) => params && params.label ? `${key}:${params.label}` : key,
-    windowRef: {
-      confirm: () => confirmResult
-    },
+    confirmRef: () => confirmResult,
     consoleRef: {
       warn: () => {},
       error: () => {}

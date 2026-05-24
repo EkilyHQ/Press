@@ -565,7 +565,6 @@ const {
   startComposerSyncWatcher
 } = remoteSyncController;
 const markdownActionsController = createComposerMarkdownActionsController({
-  windowRef: composerWindow,
   consoleRef: console,
   confirmRef: (message) => editorRuntime.confirmAction(message),
   clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
@@ -731,7 +730,6 @@ composerServices.setMarkdownSessionController(createComposerMarkdownSessionContr
   selectEditorTreeNodeByPath,
   showComposerDiscardConfirm,
   t,
-  windowRef: composerWindow,
   alertRef: (message) => editorRuntime.showAlert(message),
   confirmRef: (message) => editorRuntime.confirmAction(message),
   consoleRef: console,
@@ -755,7 +753,6 @@ composerServices.setMarkdownWorkspaceController(createComposerMarkdownWorkspaceC
 }));
 composerServices.setModeController(createComposerModeController({
   documentRef: composerDocument,
-  windowRef: composerWindow,
   getDynamicEditorTabs: () => getDynamicEditorTabs(),
   isDynamicMode,
   getFirstDynamicModeId,
@@ -1555,7 +1552,6 @@ function loadDraftSnapshotsIntoState(state) {
 }
 
 const composerYamlActions = createComposerYamlActions({
-  windowRef: composerWindow,
   consoleRef: console,
   confirmRef: (message) => editorRuntime.confirmAction(message),
   t,

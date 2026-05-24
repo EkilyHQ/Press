@@ -22,24 +22,13 @@ function setButtonBusyState(button, busy, text, setButtonLabel) {
 }
 
 export function createComposerMarkdownActionsController(options = {}) {
-  const windowRef = options.windowRef || null;
   const consoleRef = options.consoleRef || { error: noop, warn: noop };
   const confirmRef = typeof options.confirmRef === 'function'
     ? options.confirmRef
-    : (message) => {
-      try {
-        if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(message);
-      } catch (_) {
-        return true;
-      }
-      return true;
-    };
+    : () => true;
   const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
     ? options.clearTimeoutRef
-    : (id) => {
-      if (id == null) return;
-      if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
-    };
+    : () => {};
   const t = typeof options.t === 'function' ? options.t : identityTranslate;
   const showToast = typeof options.showToast === 'function' ? options.showToast : noop;
   const setButtonLabel = typeof options.setButtonLabel === 'function' ? options.setButtonLabel : noop;

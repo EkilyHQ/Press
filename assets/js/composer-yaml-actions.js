@@ -18,18 +18,10 @@ function getTargetLabel(target) {
 function noop() {}
 
 export function createComposerYamlActions(options = {}) {
-  const windowRef = options.windowRef || null;
   const consoleRef = options.consoleRef || { error: noop, warn: noop };
   const confirmRef = typeof options.confirmRef === 'function'
     ? options.confirmRef
-    : (message) => {
-      try {
-        if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(message);
-      } catch (_) {
-        return true;
-      }
-      return true;
-    };
+    : () => true;
   const t = typeof options.t === 'function' ? options.t : (key, params = {}) => {
     if (params && params.label) return `${key}:${params.label}`;
     if (params && params.name) return `${key}:${params.name}`;
@@ -71,9 +63,7 @@ export function createComposerYamlActions(options = {}) {
   const showDiscardConfirm = typeof options.showDiscardConfirm === 'function' ? options.showDiscardConfirm : async () => true;
   const setTimeoutRef = typeof options.setTimeoutRef === 'function'
     ? options.setTimeoutRef
-    : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
-      ? windowRef.setTimeout(handler, delay)
-      : null);
+    : () => null;
 
   function prepareRemoteSnapshot(target, remote) {
     const safeTarget = normalizeTarget(target);

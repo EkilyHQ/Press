@@ -1156,6 +1156,18 @@ assert.match(
 
 assert.match(
   source,
+  /composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: console[\s\S]*\}\)\);/,
+  'composer should inject mode-controller frame scheduling, alerts, and logging through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerModeControllerSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\brequestAnimationFrame\s*\(/m,
+  'mode controller should use injected frame scheduling instead of window fallback access'
+);
+
+assert.match(
+  source,
   /from '\.\/composer-unsynced-summary\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted unsynced summary controller boundary'
 );
@@ -1935,8 +1947,14 @@ assert.match(
 
 assert.match(
   source,
-  /const composerYamlActions = createComposerYamlActions\(\{[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  /const composerYamlActions = createComposerYamlActions\(\{[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
   'composer should inject YAML action dialogs, logging, and timers through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerYamlActionsSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m,
+  'YAML action controller should use injected confirmation and timer adapters'
 );
 
 assert.doesNotMatch(
@@ -2031,8 +2049,14 @@ assert.match(
 
 assert.match(
   source,
-  /const markdownActionsController = createComposerMarkdownActionsController\(\{[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),/,
+  /const markdownActionsController = createComposerMarkdownActionsController\(\{[\s\S]*consoleRef: console,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),/,
   'composer should inject Markdown action dialogs, logging, and timer clearing through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerMarkdownActionsSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\bclearTimeout\s*\(/m,
+  'Markdown actions controller should use injected confirmation and timer-clearing adapters'
 );
 
 assert.match(
@@ -5310,8 +5334,14 @@ assert.match(
 
 assert.match(
   source,
-  /createComposerMarkdownSessionController\(\{[\s\S]*requestAnimationFrameRef: \(fn\) => editorRuntime\.requestFrame\(fn\),[\s\S]*windowRef: composerWindow,[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: console,/,
+  /createComposerMarkdownSessionController\(\{[\s\S]*requestAnimationFrameRef: \(fn\) => editorRuntime\.requestFrame\(fn\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: console,/,
   'composer should inject Markdown session frames, dialogs, and logging through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerMarkdownSessionSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\brequestAnimationFrame\s*\(/m,
+  'Markdown session controller should use injected frame and dialog adapters'
 );
 
 assert.doesNotMatch(

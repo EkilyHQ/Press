@@ -13,7 +13,6 @@ function createHarness(overrides = {}) {
 
   const controller = createComposerContentMutationController({
     documentRef: null,
-    windowRef: { confirm: () => true },
     t: (key, params = {}) => {
       if (key.endsWith('.errorDuplicate')) return `duplicate ${params.version}`;
       return key;

@@ -951,6 +951,18 @@ assert.match(
 
 assert.match(
   source,
+  /const composerContentMutations = createComposerContentMutationController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*consoleRef: console[\s\S]*\}\);/,
+  'composer should inject content-mutation frame scheduling, confirmation, and logging through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerContentMutationsSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\brequestAnimationFrame\s*\(/m,
+  'content mutation controller should not retain window fallback access for frames or confirmation'
+);
+
+assert.match(
+  source,
   /from '\.\/composer-setup-verifier\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted setup verifier boundary'
 );
@@ -999,8 +1011,8 @@ assert.match(
 
 assert.match(
   source,
-  /const composerFilePanelController = createComposerFilePanelController\(\{[\s\S]*storage: editorRuntime\.storage,[\s\S]*storageKey: scopedEditorStorageKey\(LS_KEYS\.cfile\),[\s\S]*prefersReducedMotion: composerPrefersReducedMotion,[\s\S]*onPanelStateApplied:/,
-  'composer should wire the file panel controller as an app-service boundary'
+  /const composerFilePanelController = createComposerFilePanelController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*storage: editorRuntime\.storage,[\s\S]*storageKey: scopedEditorStorageKey\(LS_KEYS\.cfile\),[\s\S]*prefersReducedMotion: composerPrefersReducedMotion,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*onPanelStateApplied:/,
+  'composer should wire the file panel controller with runtime storage, frame, and timer adapters'
 );
 
 assert.doesNotMatch(
@@ -1015,6 +1027,12 @@ assert.match(
   'file panel controller should own initial file resolution, active file application, persistence, and transitions'
 );
 
+assert.doesNotMatch(
+  composerFilePanelControllerSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame)\s*\(/m,
+  'file panel controller should use only injected frame and timer adapters'
+);
+
 assert.match(
   source,
   /from '\.\/composer-editor-detail-panel-controller\.js\?v=[\w.-]+'/,
@@ -1023,8 +1041,8 @@ assert.match(
 
 assert.match(
   source,
-  /const editorDetailPanelController = createComposerEditorDetailPanelController\(\{[\s\S]*setSystemPanelVisible: \(visible\) => setEditorSystemPanelVisible\(visible\),[\s\S]*showSystemPanel: \(mode\) => showEditorSystemPanel\(mode\)[\s\S]*\}\);[\s\S]*animateEditorMarkdownPanelContent,[\s\S]*animateEditorStructurePanelContent,[\s\S]*setEditorDetailPanelMode,[\s\S]*setEditorStructurePanelVisible/,
-  'composer should wire editor detail panels through a focused controller'
+  /const editorDetailPanelController = createComposerEditorDetailPanelController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*setSystemPanelVisible: \(visible\) => setEditorSystemPanelVisible\(visible\),[\s\S]*showSystemPanel: \(mode\) => showEditorSystemPanel\(mode\)[\s\S]*\}\);[\s\S]*animateEditorMarkdownPanelContent,[\s\S]*animateEditorStructurePanelContent,[\s\S]*setEditorDetailPanelMode,[\s\S]*setEditorStructurePanelVisible/,
+  'composer should wire editor detail panels through a focused controller with runtime timers'
 );
 
 assert.doesNotMatch(
@@ -1037,6 +1055,12 @@ assert.match(
   composerEditorDetailPanelControllerSource,
   /export function createComposerEditorDetailPanelController\(options = \{\}\)[\s\S]*function setEditorDetailPanelMode\(mode\)[\s\S]*function animateEditorStructurePanelContent\(panel = getStructurePanel\(\)\)[\s\S]*function animateEditorMarkdownPanelContent\(panel = getMarkdownPanel\(\)\)/,
   'editor detail panel controller should own panel mode routing and panel content animations'
+);
+
+assert.doesNotMatch(
+  composerEditorDetailPanelControllerSource,
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\b(?:setTimeout|clearTimeout)\s*\(/m,
+  'editor detail panel controller should use only injected timer adapters'
 );
 
 assert.match(

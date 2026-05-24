@@ -33,7 +33,6 @@ function setDisplay(element, visible, visibleDisplay = '') {
 
 export function createComposerFilePanelController(options = {}) {
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const storage = options.storage || null;
   const storageKey = String(options.storageKey || 'press_composer_file');
   const t = typeof options.t === 'function' ? options.t : (key) => key;
@@ -43,25 +42,15 @@ export function createComposerFilePanelController(options = {}) {
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
     ? options.requestAnimationFrameRef
     : (callback) => {
-      if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
-        return windowRef.requestAnimationFrame(callback);
-      }
-      if (windowRef && typeof windowRef.setTimeout === 'function') {
-        return windowRef.setTimeout(callback, 0);
-      }
       if (typeof callback === 'function') callback();
       return 0;
     };
   const setTimeoutRef = typeof options.setTimeoutRef === 'function'
     ? options.setTimeoutRef
-    : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
-      ? windowRef.setTimeout(handler, delay)
-      : null);
+    : () => null;
   const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
     ? options.clearTimeoutRef
-    : (id) => {
-      if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
-    };
+    : () => {};
   const onPanelStateApplied = typeof options.onPanelStateApplied === 'function'
     ? options.onPanelStateApplied
     : noop;

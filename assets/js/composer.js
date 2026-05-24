@@ -688,7 +688,6 @@ const {
 } = editorShell;
 const editorDetailPanelController = createComposerEditorDetailPanelController({
   documentRef: composerDocument,
-  windowRef: composerWindow,
   setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
   clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
   setSystemPanelVisible: (visible) => setEditorSystemPanelVisible(visible),
@@ -810,7 +809,6 @@ let gitHubCommitInFlight = false;
 
 const composerFilePanelController = createComposerFilePanelController({
   documentRef: composerDocument,
-  windowRef: composerWindow,
   storage: editorRuntime.storage,
   storageKey: scopedEditorStorageKey(LS_KEYS.cfile),
   t,
@@ -1354,7 +1352,6 @@ const {
 
 const composerContentMutations = createComposerContentMutationController({
   documentRef: composerDocument,
-  windowRef: composerWindow,
   t,
   treeText,
   showToast,

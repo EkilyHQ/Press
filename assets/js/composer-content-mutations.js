@@ -1,6 +1,5 @@
 export function createComposerContentMutationController(options = {}) {
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
   const treeText = typeof options.treeText === 'function' ? options.treeText : (_key, fallback) => fallback;
   const showToast = typeof options.showToast === 'function' ? options.showToast : () => {};
@@ -46,16 +45,12 @@ export function createComposerContentMutationController(options = {}) {
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
     ? options.requestAnimationFrameRef
     : (callback) => {
-        if (windowRef && typeof windowRef.requestAnimationFrame === 'function') return windowRef.requestAnimationFrame(callback);
         if (typeof callback === 'function') callback();
         return 0;
       };
   const confirmRef = typeof options.confirmRef === 'function'
     ? options.confirmRef
-    : (message) => {
-        if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(message);
-        return true;
-      };
+    : () => true;
 
   function setActiveNodeId(nodeId) {
     if (editorContentTreeController && typeof editorContentTreeController.setActiveNodeId === 'function') {

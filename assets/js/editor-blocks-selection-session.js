@@ -12,16 +12,16 @@ export function createEditorBlocksSelectionSession({
   documentRef = null,
   windowRef = null
 } = {}) {
-  function ownerDocumentFor(node = null) {
-    return (node && node.ownerDocument) || documentRef || null;
+  function getDocumentRef() {
+    return documentRef || null;
   }
 
-  function ownerWindowFor(node = null) {
+  function getWindowRef() {
     return windowRef;
   }
 
   function getSelection(node = null) {
-    const win = ownerWindowFor(node);
+    const win = getWindowRef();
     return safeCall(() => win && typeof win.getSelection === 'function' ? win.getSelection() : null, null);
   }
 
@@ -32,26 +32,26 @@ export function createEditorBlocksSelectionSession({
   }
 
   function createRange(node = null) {
-    const doc = ownerDocumentFor(node);
+    const doc = getDocumentRef();
     return safeCall(() => doc && typeof doc.createRange === 'function' ? doc.createRange() : null, null);
   }
 
   function createTextNode(node, value) {
-    const doc = ownerDocumentFor(node);
+    const doc = getDocumentRef();
     return safeCall(() => doc && typeof doc.createTextNode === 'function'
       ? doc.createTextNode(String(value == null ? '' : value))
       : null, null);
   }
 
   function createTreeWalker(root, whatToShow) {
-    const doc = ownerDocumentFor(root);
+    const doc = getDocumentRef();
     return safeCall(() => doc && typeof doc.createTreeWalker === 'function'
       ? doc.createTreeWalker(root, whatToShow)
       : null, null);
   }
 
   function getComputedStyle(el) {
-    const win = ownerWindowFor(el);
+    const win = getWindowRef();
     return safeCall(() => win && typeof win.getComputedStyle === 'function' ? win.getComputedStyle(el) : null, null);
   }
 
@@ -75,7 +75,7 @@ export function createEditorBlocksSelectionSession({
   }
 
   function rangeFromPoint(root, x, y, options = {}) {
-    const doc = ownerDocumentFor(root);
+    const doc = getDocumentRef();
     const containsNode = typeof options.containsNode === 'function' ? options.containsNode : noopContains;
     const textOnly = !!options.textOnly;
     const targetX = Number(x) || 0;

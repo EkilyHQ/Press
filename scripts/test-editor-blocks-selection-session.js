@@ -19,6 +19,24 @@ function makeRange() {
   };
 }
 
+const throwingOwnerDocument = {
+  createRange() {
+    throw new Error('ownerDocument.createRange should not be used');
+  },
+  createTextNode() {
+    throw new Error('ownerDocument.createTextNode should not be used');
+  },
+  createTreeWalker() {
+    throw new Error('ownerDocument.createTreeWalker should not be used');
+  },
+  caretPositionFromPoint() {
+    throw new Error('ownerDocument.caretPositionFromPoint should not be used');
+  },
+  caretRangeFromPoint() {
+    throw new Error('ownerDocument.caretRangeFromPoint should not be used');
+  }
+};
+
 {
   const selectedRanges = [];
   let removed = 0;
@@ -54,7 +72,7 @@ function makeRange() {
     }
   };
   const session = createEditorBlocksSelectionSession({ documentRef, windowRef });
-  const root = { ownerDocument: documentRef };
+  const root = { ownerDocument: throwingOwnerDocument };
 
   assert.equal(session.getSelectionRange(root), activeRange);
   assert.deepEqual(session.createTextNode(root, 'hello'), { nodeType: 3, nodeValue: 'hello' });
@@ -70,6 +88,7 @@ function makeRange() {
   const textNode = { nodeType: 3 };
   const elementNode = { nodeType: 1 };
   const root = {
+    ownerDocument: throwingOwnerDocument,
     contains(node) {
       return node === textNode;
     }
@@ -80,7 +99,6 @@ function makeRange() {
       return { offsetNode: textNode, offset: 2 };
     }
   };
-  root.ownerDocument = documentRef;
   const session = createEditorBlocksSelectionSession({ documentRef, windowRef: {} });
   const range = session.rangeFromPoint(root, 10, 20, { textOnly: true });
   assert.equal(range.startContainer, textNode);
@@ -92,6 +110,7 @@ function makeRange() {
   const textNode = { nodeType: 3 };
   const outsideNode = { nodeType: 3 };
   const root = {
+    ownerDocument: throwingOwnerDocument,
     contains(node) {
       return node === textNode;
     }
@@ -108,7 +127,6 @@ function makeRange() {
       return range;
     }
   };
-  root.ownerDocument = documentRef;
   const session = createEditorBlocksSelectionSession({ documentRef, windowRef: {} });
   const range = session.rangeFromPoint(root, 1, 2, { textOnly: true });
   assert.equal(range.startContainer, textNode);

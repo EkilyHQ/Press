@@ -3015,8 +3015,8 @@ assert.match(
 
 assert.doesNotMatch(
   editorBlocksSelectionSessionSource,
-  /defaultView|typeof window/,
-  'blocks selection session should not derive window APIs from ownerDocument/defaultView'
+  /ownerDocument|defaultView|typeof window/,
+  'blocks selection session should not derive document/window APIs from ownerDocument/defaultView'
 );
 
 assert.match(

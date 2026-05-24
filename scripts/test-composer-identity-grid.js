@@ -4294,6 +4294,22 @@ assert.match(
   'dialog boundary should own add-entry prompts, discard confirmations, and protection password overlays'
 );
 
+assert.doesNotMatch(
+  [
+    composerNotificationsSource,
+    composerDialogsSource,
+    composerDiffUiSource,
+    composerUnsyncedSummarySource,
+    composerPathToolsSource,
+    composerFilePanelControllerSource,
+    composerEditorDetailPanelControllerSource,
+    composerModeControllerSource,
+    composerContentMutationsSource
+  ].join('\n'),
+  /(?:documentRef|windowRef)\s*=\s*options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof (?:document|window)|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|structuredClone|CSS)\b|\|\|\s*console\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame)\s*\(/m,
+  'composer shell/control controllers should receive browser refs, timers, CSS, cloning, and logging through explicit runtime wiring instead of discovering globals themselves'
+);
+
 assert.match(
   source,
   /from '\.\/composer-remote-sync\.js\?v=[\w.-]+'/,

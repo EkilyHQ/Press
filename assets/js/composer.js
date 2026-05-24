@@ -626,6 +626,8 @@ const {
 const editorDetailPanelController = createComposerEditorDetailPanelController({
   documentRef: composerDocument,
   windowRef: composerWindow,
+  setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
+  clearTimeoutRef: (id) => editorRuntime.clearTimer(id),
   setSystemPanelVisible: (visible) => setEditorSystemPanelVisible(visible),
   showSystemPanel: (mode) => showEditorSystemPanel(mode)
 });
@@ -719,6 +721,7 @@ composerServices.setModeController(createComposerModeController({
   updateDynamicTabDirtyState,
   setTabLoadingState,
   loadDynamicTabContent,
+  requestAnimationFrameRef: (handler) => editorRuntime.requestFrame(handler),
   alertRef: (message) => editorRuntime.showAlert(message),
   consoleRef: console
 }));

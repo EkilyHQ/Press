@@ -2,7 +2,7 @@ export function createComposerPathTools(options = {}) {
   const preferredLangOrder = Array.isArray(options.preferredLangOrder)
     ? options.preferredLangOrder
     : [];
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const windowRef = options.windowRef || null;
   const getIndexVariantLocation = typeof options.getIndexVariantLocation === 'function'
     ? options.getIndexVariantLocation
     : ((value) => (typeof value === 'string' ? value : ''));

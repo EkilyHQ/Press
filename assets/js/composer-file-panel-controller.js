@@ -32,9 +32,9 @@ function setDisplay(element, visible, visibleDisplay = '') {
 }
 
 export function createComposerFilePanelController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
-  const storage = options.storage || (windowRef && windowRef.localStorage) || null;
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
+  const storage = options.storage || null;
   const storageKey = String(options.storageKey || 'press_composer_file');
   const t = typeof options.t === 'function' ? options.t : (key) => key;
   const prefersReducedMotion = typeof options.prefersReducedMotion === 'function'
@@ -46,20 +46,21 @@ export function createComposerFilePanelController(options = {}) {
       if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
         return windowRef.requestAnimationFrame(callback);
       }
-      return (windowRef && typeof windowRef.setTimeout === 'function'
-        ? windowRef.setTimeout(callback, 0)
-        : setTimeout(callback, 0));
+      if (windowRef && typeof windowRef.setTimeout === 'function') {
+        return windowRef.setTimeout(callback, 0);
+      }
+      if (typeof callback === 'function') callback();
+      return 0;
     };
   const setTimeoutRef = typeof options.setTimeoutRef === 'function'
     ? options.setTimeoutRef
     : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
       ? windowRef.setTimeout(handler, delay)
-      : setTimeout(handler, delay));
+      : null);
   const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
     ? options.clearTimeoutRef
     : (id) => {
       if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
-      else clearTimeout(id);
     };
   const onPanelStateApplied = typeof options.onPanelStateApplied === 'function'
     ? options.onPanelStateApplied

@@ -26,8 +26,8 @@ function setPanelVisible(panel, visible) {
 }
 
 export function createComposerEditorDetailPanelController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const setSystemPanelVisible = typeof options.setSystemPanelVisible === 'function'
     ? options.setSystemPanelVisible
     : noop;
@@ -38,12 +38,11 @@ export function createComposerEditorDetailPanelController(options = {}) {
     ? options.setTimeoutRef
     : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
       ? windowRef.setTimeout(handler, delay)
-      : setTimeout(handler, delay));
+      : null);
   const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
     ? options.clearTimeoutRef
     : (id) => {
       if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
-      else clearTimeout(id);
     };
 
   function getStructurePanel() {

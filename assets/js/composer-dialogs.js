@@ -1,6 +1,6 @@
 export function createComposerDialogController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
 
   let discardConfirmElements = null;

@@ -10,8 +10,8 @@ export function getComposerSystemModeNodeId(value) {
 }
 
 export function createComposerModeController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const getDynamicEditorTabs = typeof options.getDynamicEditorTabs === 'function' ? options.getDynamicEditorTabs : (() => new Map());
   const isDynamicMode = typeof options.isDynamicMode === 'function' ? options.isDynamicMode : (() => false);
   const getFirstDynamicModeId = typeof options.getFirstDynamicModeId === 'function' ? options.getFirstDynamicModeId : (() => '');
@@ -41,7 +41,16 @@ export function createComposerModeController(options = {}) {
   const setTabLoadingState = typeof options.setTabLoadingState === 'function' ? options.setTabLoadingState : (() => {});
   const loadDynamicTabContent = typeof options.loadDynamicTabContent === 'function' ? options.loadDynamicTabContent : (() => Promise.resolve(''));
   const alertRef = typeof options.alertRef === 'function' ? options.alertRef : (() => {});
-  const consoleRef = options.consoleRef || console;
+  const consoleRef = options.consoleRef || null;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : (handler) => {
+      if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
+        return windowRef.requestAnimationFrame(handler);
+      }
+      if (typeof handler === 'function') handler();
+      return 0;
+    };
 
   let currentMode = options.initialMode || null;
 
@@ -61,22 +70,8 @@ export function createComposerModeController(options = {}) {
 
   function requestFrame(handler) {
     try {
-      const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
-        ? windowRef.requestAnimationFrame.bind(windowRef)
-        : (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null);
-      if (raf) {
-        raf(handler);
-        return;
-      }
+      requestAnimationFrameRef(handler);
     } catch (_) {}
-    try {
-      const timeout = windowRef && typeof windowRef.setTimeout === 'function'
-        ? windowRef.setTimeout.bind(windowRef)
-        : setTimeout;
-      timeout(handler, 0);
-    } catch (_) {
-      handler();
-    }
   }
 
   function scheduleEditorLayoutRefresh(editorApi, nextMode) {

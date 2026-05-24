@@ -1,6 +1,6 @@
 export function createComposerNotificationController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const translate = typeof options.t === 'function' ? options.t : ((key) => String(key || ''));
   const safeString = typeof options.safeString === 'function'
     ? options.safeString
@@ -8,7 +8,7 @@ export function createComposerNotificationController(options = {}) {
   const alertRef = typeof options.alertRef === 'function' ? options.alertRef : (message) => {
     if (windowRef && typeof windowRef.alert === 'function') windowRef.alert(message);
   };
-  const consoleRef = options.consoleRef || console;
+  const consoleRef = options.consoleRef || null;
 
   function ensureToastRoot() {
     if (!documentRef) return null;

@@ -11,33 +11,31 @@ let composerSiteScrollCleanup = null;
 const activeSlideAnimations = new WeakMap();
 
 function createComposerUiMotionRuntime(options = {}) {
-  const windowRef = options.windowRef || null;
-  const documentRef = options.documentRef || null;
   return {
-    documentRef,
-    windowRef,
+    documentRef: options.documentRef || null,
+    windowRef: options.windowRef || null,
     requestAnimationFrameRef: typeof options.requestAnimationFrameRef === 'function'
       ? options.requestAnimationFrameRef
-      : (windowRef && typeof windowRef.requestAnimationFrame === 'function' ? windowRef.requestAnimationFrame.bind(windowRef) : null),
+      : null,
     cancelAnimationFrameRef: typeof options.cancelAnimationFrameRef === 'function'
       ? options.cancelAnimationFrameRef
-      : (windowRef && typeof windowRef.cancelAnimationFrame === 'function' ? windowRef.cancelAnimationFrame.bind(windowRef) : null),
+      : null,
     setTimeoutRef: typeof options.setTimeoutRef === 'function'
       ? options.setTimeoutRef
-      : (windowRef && typeof windowRef.setTimeout === 'function' ? windowRef.setTimeout.bind(windowRef) : null),
+      : null,
     clearTimeoutRef: typeof options.clearTimeoutRef === 'function'
       ? options.clearTimeoutRef
-      : (windowRef && typeof windowRef.clearTimeout === 'function' ? windowRef.clearTimeout.bind(windowRef) : null),
+      : null,
     matchesMediaRef: typeof options.matchesMedia === 'function'
       ? options.matchesMedia
-      : (windowRef && typeof windowRef.matchMedia === 'function' ? windowRef.matchMedia.bind(windowRef) : null),
+      : null,
     getComputedStyleRef: typeof options.getComputedStyleRef === 'function'
       ? options.getComputedStyleRef
-      : (windowRef && typeof windowRef.getComputedStyle === 'function' ? windowRef.getComputedStyle.bind(windowRef) : null),
-    performanceRef: options.performanceRef || (windowRef && windowRef.performance) || null,
+      : null,
+    performanceRef: options.performanceRef || null,
     ResizeObserverRef: typeof options.ResizeObserverRef === 'function'
       ? options.ResizeObserverRef
-      : (windowRef && typeof windowRef.ResizeObserver === 'function' ? windowRef.ResizeObserver : null)
+      : null
   };
 }
 

@@ -1942,6 +1942,12 @@ assert.doesNotMatch(
   'UI motion module should consume browser effects through configured runtime adapters instead of ambient globals'
 );
 
+assert.doesNotMatch(
+  composerUiMotionSource,
+  /windowRef\s*&&\s*(?:typeof windowRef\.(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|matchMedia|getComputedStyle|ResizeObserver)\b|windowRef\.performance)/,
+  'UI motion module should not derive browser effect adapters from windowRef'
+);
+
 assert.match(
   source,
   /from '\.\/composer-site-config\.js\?v=[\w.-]+'/,

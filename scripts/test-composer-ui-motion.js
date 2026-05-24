@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  animateComposerViewportScroll,
   captureElementRect,
   clearInlineSlideStyles,
   configureComposerUiMotionRuntime,
@@ -155,6 +156,86 @@ try {
     }),
     { top: 1, left: 2, width: 3, height: 4 },
     'captureElementRect should keep only stable transition dimensions'
+  );
+
+  const ambientWindowCalls = [];
+  configureComposerUiMotionRuntime({
+    documentRef: {
+      documentElement: { style: createStyleRecorder() }
+    },
+    windowRef: {
+      pageYOffset: 0,
+      requestAnimationFrame() {
+        ambientWindowCalls.push('requestAnimationFrame');
+        return 99;
+      },
+      cancelAnimationFrame() {
+        ambientWindowCalls.push('cancelAnimationFrame');
+      },
+      setTimeout() {
+        ambientWindowCalls.push('setTimeout');
+        return 99;
+      },
+      clearTimeout() {
+        ambientWindowCalls.push('clearTimeout');
+      },
+      matchMedia() {
+        ambientWindowCalls.push('matchMedia');
+        return { matches: true };
+      },
+      getComputedStyle() {
+        ambientWindowCalls.push('getComputedStyle');
+        return { gap: '200px', display: 'none' };
+      },
+      performance: {
+        now() {
+          ambientWindowCalls.push('performance.now');
+          return 1234;
+        }
+      },
+      ResizeObserver: class {
+        constructor() {
+          ambientWindowCalls.push('ResizeObserver');
+        }
+      },
+      scrollTo() {
+        ambientWindowCalls.push('scrollTo');
+      }
+    }
+  });
+
+  const noAdapterRootStyle = createStyleRecorder();
+  const noAdapterLabel = {
+    scrollWidth: 40,
+    closest() {
+      return {
+        querySelector() {
+          return { scrollWidth: 5 };
+        }
+      };
+    }
+  };
+  syncSiteEditorSingleLabelWidth({
+    style: noAdapterRootStyle,
+    querySelectorAll(selector) {
+      return selector === '.cs-single-grid-title' ? [noAdapterLabel] : [];
+    }
+  });
+  assert.equal(
+    noAdapterRootStyle.values.get('--cs-editor-single-label-width'),
+    '88px',
+    'single-label measurement should use its internal minimum without implicit window style adapters'
+  );
+
+  assert.equal(
+    animateComposerViewportScroll(20, 200),
+    false,
+    'viewport scroll animation should require an injected frame adapter'
+  );
+  assert.deepEqual(
+    ambientWindowCalls,
+    [],
+    'UI motion runtime should not derive frame, timer, media, style, performance, or observer adapters from windowRef'
   );
 } finally {
   configureComposerUiMotionRuntime();

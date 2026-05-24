@@ -5,7 +5,8 @@ import { getThemeRegion } from './theme-regions.js';
 
 export function installLightbox(opts = {}) {
   const regionNames = opts.rootRegion || ['main'];
-  const root = () => getThemeRegion(regionNames) || document;
+  const readThemeRegion = typeof opts.getRegion === 'function' ? opts.getRegion : getThemeRegion;
+  const root = () => readThemeRegion(regionNames) || document;
 
   // Create overlay once
   let overlay = document.getElementById('press-lightbox');

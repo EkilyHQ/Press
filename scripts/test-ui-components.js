@@ -32,6 +32,7 @@ const theme = read('assets/js/theme.js');
 const themeBoot = read('assets/js/theme-boot.js');
 const toc = read('assets/js/toc.js');
 const linkCards = read('assets/js/link-cards.js');
+const lightbox = read('assets/js/lightbox.js');
 const nativeSearch = read('assets/themes/native/modules/search-box.js');
 const nativeToc = read('assets/themes/native/modules/toc.js');
 const nativeInteractions = read('assets/themes/native/modules/interactions.js');
@@ -272,6 +273,8 @@ assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/post-nav\.js\?v=[\
 assert.doesNotMatch(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=[\w.-]+'/, 'native interactions should not statically load internal link-card hydration');
 assert.match(nativeInteractions, /import\('\.\.\/\.\.\/\.\.\/js\/link-cards\.js\?v=[\w.-]+'\)/, 'native interactions should lazy-load and cache-bust internal link-card hydration');
 assert.match(nativeInteractions, /nativeLinkCardsModulePromise = null;[\s\S]*throw err;/, 'native lazy link-card fallback should retry after a transient dynamic import failure');
+assert.match(lightbox, /const readThemeRegion = typeof opts\.getRegion === 'function' \? opts\.getRegion : getThemeRegion;[\s\S]*const root = \(\) => readThemeRegion\(regionNames\) \|\| document;/, 'lightbox should allow editor runtimes to inject theme region lookup');
+assert.match(nativeInteractions, /installLightbox\(\{[\s\S]*rootRegion: \['main'\],[\s\S]*getRegion: \(names\) => getRegion\(names, documentRef\)[\s\S]*\}\)/, 'native interactions should install lightbox through the active theme context region reader');
 assert.match(nativeInteractions, /const refreshMasonry = \(el\) => \{[\s\S]*updateMasonryItem/, 'native cards should keep masonry refresh centralized');
 assert.match(nativeInteractions, /if \(meta && meta\.protected\) \{[\s\S]*ui\.protectedExcerpt[\s\S]*refreshMasonry\(el\);[\s\S]*return;/, 'native cards should not fetch protected article bodies for previews and should refresh masonry spans');
 assert.match(nativeInteractions, /const inlineMinutes = readMinutesFromMeta\(meta\);[\s\S]*if \(inlineMinutes > 0\) \{[\s\S]*updateMetaLine\(el, meta, inlineMinutes, false\);[\s\S]*refreshMasonry\(el\);[\s\S]*\}\s*if \(typeof context\.getFile/, 'native cards should use index readTime immediately but still fetch Markdown to verify encryption state');

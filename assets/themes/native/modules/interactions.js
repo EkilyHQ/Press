@@ -2125,7 +2125,13 @@ export function mount(context = {}) {
   masonryHandlersBound = false;
 
   if (!lightboxInstalled) {
-    try { installLightbox({ rootRegion: ['main'] }); lightboxInstalled = true; } catch (_) {}
+    try {
+      installLightbox({
+        rootRegion: ['main'],
+        getRegion: (names) => getRegion(names, documentRef)
+      });
+      lightboxInstalled = true;
+    } catch (_) {}
   }
 
   const effects = {};

@@ -15,7 +15,6 @@ import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
 
-let themeI18n = null;
 let nativeLinkCardsModulePromise = null;
 
 function loadNativeLinkCardsModule() {
@@ -37,13 +36,14 @@ async function hydrateInternalLinkCardsFallback(container, options = {}) {
   } catch (_) {}
 }
 
-function setThemeI18n(context = {}) {
-  themeI18n = context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null;
-}
-
 function getRuntimeRegions(runtimeState = null) {
   const regions = runtimeState && runtimeState.regions;
   return regions && typeof regions === 'object' ? regions : null;
+}
+
+function getRuntimeI18n(runtimeState = null) {
+  const i18n = runtimeState && runtimeState.i18n;
+  return i18n && typeof i18n === 'object' ? i18n : null;
 }
 
 function getRegion(name, documentRef = defaultDocument, runtimeState = null) {
@@ -103,42 +103,54 @@ function getSearchInput(documentRef = defaultDocument, runtimeState = null) {
   return (search && search.input) || (search && search.querySelector && search.querySelector('input[type="search"]')) || null;
 }
 
-function getCurrentLang() {
-  const i18n = themeI18n || {};
+function getCurrentLang(runtimeState = null, documentRef = defaultDocument, windowRef = defaultWindow) {
+  const i18n = getRuntimeI18n(runtimeState) || {};
   try {
     if (typeof i18n.getCurrentLang === 'function') return i18n.getCurrentLang();
     if (typeof i18n.lang === 'string' && i18n.lang.trim()) return i18n.lang.trim();
   } catch (_) {}
   try {
-    const lang = defaultDocument && defaultDocument.documentElement && defaultDocument.documentElement.getAttribute('lang');
+    const lang = documentRef && documentRef.documentElement && documentRef.documentElement.getAttribute('lang');
     if (lang) return lang;
   } catch (_) {}
   try {
-    const url = new URL((defaultWindow && defaultWindow.location && defaultWindow.location.href) || '');
+    const url = new URL((windowRef && windowRef.location && windowRef.location.href) || '');
     const lang = url.searchParams.get('lang');
     if (lang) return lang;
   } catch (_) {}
   return 'en';
 }
 
-function t(key, ...args) {
-  const i18n = themeI18n || {};
+function translateNative(runtimeState = null, key, ...args) {
+  const i18n = getRuntimeI18n(runtimeState) || {};
   try {
     if (typeof i18n.t === 'function') return i18n.t(key, ...args);
   } catch (_) {}
   return args.length ? `${key} ${args.join(' ')}` : String(key || '');
 }
 
-function withLangParam(urlStr) {
-  const i18n = themeI18n || {};
+function t(key, ...args) {
+  return translateNative(null, key, ...args);
+}
+
+function getRuntimeTranslator(runtimeState = null) {
+  return (key, ...args) => translateNative(runtimeState, key, ...args);
+}
+
+function getTranslator(params = {}, runtimeState = null) {
+  const candidate = params && (params.translate || params.translator || params.t);
+  return typeof candidate === 'function' ? candidate : getRuntimeTranslator(runtimeState);
+}
+
+function withLangParam(urlStr, runtimeState = null, documentRef = defaultDocument, windowRef = defaultWindow) {
+  const i18n = getRuntimeI18n(runtimeState) || {};
   try {
     if (typeof i18n.withLangParam === 'function') return i18n.withLangParam(urlStr);
   } catch (_) {}
   const raw = String(urlStr || '');
-  const lang = getCurrentLang();
+  const lang = getCurrentLang(runtimeState, documentRef, windowRef);
   try {
-    const win = defaultWindow;
-    const current = new URL((win && win.location && win.location.href) || 'https://example.test/');
+    const current = new URL((windowRef && windowRef.location && windowRef.location.href) || 'https://example.test/');
     const url = new URL(raw, current.href);
     if (lang) url.searchParams.set('lang', lang);
     if (url.origin === current.origin && url.pathname === current.pathname) return `${url.search}${url.hash}`;
@@ -150,8 +162,15 @@ function withLangParam(urlStr) {
   }
 }
 
+function getLangUrlFactory(params = {}, runtimeState = null, documentRef = defaultDocument, windowRef = defaultWindow) {
+  return typeof params.withLangParam === 'function'
+    ? params.withLangParam
+    : (url) => withLangParam(url, runtimeState, documentRef, windowRef);
+}
+
 function createNativeInteractionsRuntimeState(context = {}) {
   return {
+    i18n: context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null,
     regions: context && context.regions && typeof context.regions === 'object' ? context.regions : null,
     hasInitiallyRendered: false,
     pendingHighlightRaf: 0,
@@ -522,7 +541,7 @@ function bindPostVersionSelectorsNative(documentRef = defaultDocument, windowRef
           if (!win || !win.location) return;
           const url = new URL(win.location.href);
           url.searchParams.set('id', loc);
-          const lang = (typeof getCurrentLang === 'function' && getCurrentLang()) || (win.document && win.document.documentElement && win.document.documentElement.getAttribute('lang')) || 'en';
+          const lang = getCurrentLang(runtimeState, documentRef, win) || (win.document && win.document.documentElement && win.document.documentElement.getAttribute('lang')) || 'en';
           if (lang) url.searchParams.set('lang', lang);
           try {
             win.history.pushState({}, '', url.toString());
@@ -764,7 +783,7 @@ function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowR
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
   const toc = scope.tocElement || params.tocElement || (documentRef ? getTocRegion(documentRef, runtimeState) : null);
   if (!toc) return false;
-  const translate = params.translate || params.translator || t;
+  const translate = getTranslator(params, runtimeState);
   const title = params.articleTitle != null ? String(params.articleTitle) : '';
   const tocHtml = params.tocHtml || '';
   const baseDir = getRenderedMarkdownBaseDir(params);
@@ -812,7 +831,7 @@ function renderErrorStateNative(params = {}, documentRef = defaultDocument, runt
   const title = params.title != null ? String(params.title) : '';
   const message = params.message != null ? String(params.message) : '';
   const actions = Array.isArray(params.actions) ? params.actions : [];
-  const translate = params.translate || params.translator || t;
+  const translate = getTranslator(params, runtimeState);
   const titleHtml = title ? `<h3>${escapeHtml(title)}</h3>` : '';
   const messageHtml = message ? `<p>${escapeHtml(message)}</p>` : '';
   let actionsHtml = '';
@@ -931,7 +950,7 @@ function decoratePostViewNative(params = {}, documentRef = defaultDocument, wind
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
   const container = scope.mainElement || params.container || getMainRegion(documentRef, runtimeState);
   if (!container) return false;
-  const translate = params.translate || params.t || t;
+  const translate = getTranslator(params, runtimeState);
   const articleTitle = params.articleTitle != null ? String(params.articleTitle) : '';
   let handled = false;
 
@@ -1057,7 +1076,7 @@ function renderSiteLinksNative(params = {}, documentRef = defaultDocument) {
   return true;
 }
 
-function renderSiteIdentityNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderSiteIdentityNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return false;
   const cfg = params.config;
   if (!cfg) return false;
@@ -1065,7 +1084,7 @@ function renderSiteIdentityNative(params = {}, documentRef = defaultDocument, wi
     if (val == null) return '';
     if (typeof val === 'string') return val;
     if (typeof val === 'object') {
-      const lang = getCurrentLang && getCurrentLang();
+      const lang = getCurrentLang(runtimeState, documentRef, windowRef);
       const langVal = (lang && val[lang]) || val.default || '';
       return typeof langVal === 'string' ? langVal : '';
     }
@@ -1104,7 +1123,7 @@ function reflectThemeConfigNative(params = {}, documentRef = defaultDocument) {
   return true;
 }
 
-function renderFooterNavNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
+function renderFooterNavNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
   if (!documentRef) return false;
   const nav = documentRef.getElementById('footerNav');
   if (!nav) return false;
@@ -1114,15 +1133,15 @@ function renderFooterNavNative(params = {}, documentRef = defaultDocument, windo
     : () => getHomeSlug(tabs, windowRef);
   const getLabel = typeof params.getHomeLabel === 'function'
     ? params.getHomeLabel
-    : () => computeHomeLabel(getHome(), tabs);
+    : () => computeHomeLabel(getHome(), tabs, runtimeState);
   const postsEnabledFn = typeof params.postsEnabled === 'function'
     ? params.postsEnabled
     : () => postsEnabled(windowRef);
   const queryGetter = typeof params.getQueryVariable === 'function'
     ? params.getQueryVariable
     : (name) => getQueryVariable(name, windowRef);
-  const makeLangUrl = typeof params.withLangParam === 'function' ? params.withLangParam : withLangParam;
-  const translate = params.t || params.translate || t;
+  const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
+  const translate = getTranslator(params, runtimeState);
 
   const homeSlug = (() => { try { return slugifyTab(getHome()) || 'posts'; } catch (_) { return 'posts'; }})();
   const defaultTab = homeSlug || 'posts';
@@ -1132,7 +1151,7 @@ function renderFooterNavNative(params = {}, documentRef = defaultDocument, windo
   const isActive = (slug) => currentTab === slug;
   let html = '';
   const homeLabel = (() => {
-    try { const lbl = getLabel(); return lbl || computeHomeLabel(homeSlug, tabs); } catch (_) { return computeHomeLabel(homeSlug, tabs); }
+    try { const lbl = getLabel(); return lbl || computeHomeLabel(homeSlug, tabs, runtimeState); } catch (_) { return computeHomeLabel(homeSlug, tabs, runtimeState); }
   })();
   html += makeLink(`?tab=${encodeURIComponent(homeSlug)}`, homeLabel, isActive(homeSlug) ? 'active' : '');
   if (postsEnabledFn() && homeSlug !== 'posts') {
@@ -1152,7 +1171,7 @@ function renderPostLoadingStateNative(params = {}, documentRef = defaultDocument
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
   const toc = scope.tocElement || params.tocElement || getTocRegion(documentRef, runtimeState);
   const main = scope.mainElement || params.mainElement || getMainRegion(documentRef, runtimeState);
-  const translate = params.translator || params.t || t;
+  const translate = getTranslator(params, runtimeState);
   const renderSkeleton = typeof params.renderSkeletonArticle === 'function' ? params.renderSkeletonArticle : renderSkeletonArticle;
   const ensureAutoHeight = typeof params.ensureAutoHeight === 'function' ? params.ensureAutoHeight : (() => {});
   const show = typeof params.showElement === 'function' ? params.showElement : ((el) => { if (el) { el.style.display = ''; el.setAttribute('aria-hidden', 'false'); } });
@@ -1193,7 +1212,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
   const metadata = params.postMetadata || {};
   const metadataTitle = metadata && metadata.title != null ? String(metadata.title) : '';
   const markdown = params.markdown || '';
-  const translate = params.translate || params.t || t;
+  const translate = getTranslator(params, runtimeState);
   const siteConfig = params.siteConfig || {};
   const postsIndex = params.postsIndex || {};
   const postsByLocationTitle = params.postsByLocationTitle || {};
@@ -1246,7 +1265,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
 
   const hydrateLinks = getUtility(params, 'hydrateInternalLinkCards', (selector, opts) => hydrateInternalLinkCardsFallback(selector, opts));
   const fetchMarkdown = getUtility(params, 'fetchMarkdown', () => Promise.resolve(''));
-  const makeHref = getUtility(params, 'makeLangHref', (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`));
+  const makeHref = getUtility(params, 'makeLangHref', (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`, runtimeState, documentRef, windowRef));
   try {
     hydrateLinks(container, {
       allowedLocations,
@@ -1355,7 +1374,8 @@ function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, w
 
   const hydrateLinks = getUtility(params, 'hydrateInternalLinkCards', (selector, opts) => hydrateInternalLinkCardsFallback(selector, opts));
   const fetchMarkdown = getUtility(params, 'fetchMarkdown', () => Promise.resolve(''));
-  const makeHref = getUtility(params, 'makeLangHref', (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`));
+  const translate = getTranslator(params, runtimeState);
+  const makeHref = getUtility(params, 'makeLangHref', (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`, runtimeState, documentRef, windowRef));
   try {
     hydrateLinks(container, {
       allowedLocations: params.allowedLocations || new Set(),
@@ -1363,7 +1383,7 @@ function renderStaticTabViewNative(params = {}, documentRef = defaultDocument, w
       postsByLocationTitle: params.postsByLocationTitle || {},
       postsIndexCache: params.postsIndex || {},
       siteConfig: params.siteConfig || {},
-      translate: params.translate || params.t || t,
+      translate,
       makeHref,
       fetchMarkdown
     });
@@ -1411,8 +1431,8 @@ function resetThemeControlsNative(params = {}, documentRef = defaultDocument) {
   return true;
 }
 
-function setupFooterNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow) {
-  const translate = params.translate || params.t || t;
+function setupFooterNative(params = {}, documentRef = defaultDocument, windowRef = defaultWindow, runtimeState = null) {
+  const translate = getTranslator(params, runtimeState);
   const yearEl = documentRef && documentRef.getElementById('footerYear');
   if (yearEl) {
     try { yearEl.textContent = String(new Date().getFullYear()); } catch (_) {}
@@ -1453,8 +1473,8 @@ function renderIndexViewNative(params = {}, documentRef = defaultDocument, windo
   const pageEntries = Array.isArray(params.pageEntries) ? params.pageEntries : [];
   const totalPages = Math.max(1, parseInt(params.totalPages || 1, 10));
   const page = Math.max(1, parseInt(params.page || 1, 10));
-  const translate = params.translate || params.t || t;
-  const makeLangUrl = typeof params.withLangParam === 'function' ? params.withLangParam : withLangParam;
+  const translate = getTranslator(params, runtimeState);
+  const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const siteConfig = params.siteConfig || {};
 
   let html = '<div class="index">';
@@ -1506,7 +1526,7 @@ function renderIndexViewNative(params = {}, documentRef = defaultDocument, windo
 function updateCardMetadata(entries = [], context = {}) {
   const documentRef = context.document || defaultDocument;
   if (!documentRef) return;
-  const translate = context.translate || t;
+  const translate = context.translate || getRuntimeTranslator(context.runtimeState || null);
   const cards = Array.from(documentRef.querySelectorAll('.index a'));
   const readMinutesFromMeta = (meta) => {
     const raw = meta && (meta.readTime != null ? meta.readTime : (meta.minutes != null ? meta.minutes : meta.readMinutes));
@@ -1597,9 +1617,9 @@ function updateCardMetadata(entries = [], context = {}) {
   });
 }
 
-function afterIndexRenderNative(params = {}, documentRef = defaultDocument) {
+function afterIndexRenderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
-  updateCardMetadata(params.entries || [], { ...params, document: documentRef });
+  updateCardMetadata(params.entries || [], { ...params, document: documentRef, translate: getTranslator(params, runtimeState), runtimeState });
   return true;
 }
 
@@ -1614,8 +1634,8 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
   const page = Math.max(1, parseInt(params.page || 1, 10));
   const query = String(params.query || '');
   const tagFilter = String(params.tagFilter || '');
-  const translate = params.translate || params.t || t;
-  const makeLangUrl = typeof params.withLangParam === 'function' ? params.withLangParam : withLangParam;
+  const translate = getTranslator(params, runtimeState);
+  const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const siteConfig = params.siteConfig || {};
 
   if (total === 0) {
@@ -1676,9 +1696,9 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
   return true;
 }
 
-function afterSearchRenderNative(params = {}, documentRef = defaultDocument) {
+function afterSearchRenderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
-  updateCardMetadata(params.entries || [], { ...params, document: documentRef });
+  updateCardMetadata(params.entries || [], { ...params, document: documentRef, translate: getTranslator(params, runtimeState), runtimeState });
   return true;
 }
 
@@ -1701,9 +1721,10 @@ function postsEnabled(windowRef = defaultWindow) {
   return true;
 }
 
-function computeHomeLabel(slug, tabs) {
-  if (slug === 'posts') return t('ui.allPosts');
-  if (slug === 'search') return t('ui.searchTab');
+function computeHomeLabel(slug, tabs, runtimeState = null) {
+  const translate = getRuntimeTranslator(runtimeState);
+  if (slug === 'posts') return translate('ui.allPosts');
+  if (slug === 'search') return translate('ui.searchTab');
   const info = tabs && tabs[slug];
   if (info && info.title) return info.title;
   return slug;
@@ -1790,7 +1811,7 @@ function updateMovingHighlight(nav, windowRef = defaultWindow, documentRef = def
   });
 }
 
-function buildSafeTrackFromHtml(markup, documentRef = defaultDocument, windowRef = defaultWindow, searchQuery = '') {
+function buildSafeTrackFromHtml(markup, documentRef = defaultDocument, windowRef = defaultWindow, searchQuery = '', runtimeState = null) {
   const safeTrack = documentRef ? documentRef.createElement('div') : document.createElement('div');
   safeTrack.className = 'tabs-track';
   const src = String(markup || '');
@@ -1823,9 +1844,9 @@ function buildSafeTrackFromHtml(markup, documentRef = defaultDocument, windowRef
           const sp = new URLSearchParams(search);
           const tagParam = (sp.get('tag') || '').trim();
           const qParam = (sp.get('q') || String(searchQuery || '')).trim();
-          href = withLangParam(`?tab=search${tagParam ? `&tag=${encodeURIComponent(tagParam)}` : (qParam ? `&q=${encodeURIComponent(qParam)}` : '')}`);
+          href = withLangParam(`?tab=search${tagParam ? `&tag=${encodeURIComponent(tagParam)}` : (qParam ? `&q=${encodeURIComponent(qParam)}` : '')}`, runtimeState, documentRef, windowRef);
         } else if (safeSlug) {
-          href = withLangParam(`?tab=${encodeURIComponent(safeSlug)}`);
+          href = withLangParam(`?tab=${encodeURIComponent(safeSlug)}`, runtimeState, documentRef, windowRef);
         }
       } catch (_) {}
     }
@@ -1847,8 +1868,8 @@ function buildSafeTrackFromHtml(markup, documentRef = defaultDocument, windowRef
   return safeTrack;
 }
 
-function setTrackHtml(nav, markup, documentRef = defaultDocument, windowRef = defaultWindow, searchQuery = '') {
-  const safeTrack = buildSafeTrackFromHtml(markup, documentRef, windowRef, searchQuery);
+function setTrackHtml(nav, markup, documentRef = defaultDocument, windowRef = defaultWindow, searchQuery = '', runtimeState = null) {
+  const safeTrack = buildSafeTrackFromHtml(markup, documentRef, windowRef, searchQuery, runtimeState);
   const existing = nav.querySelector('.tabs-track');
   if (!existing) {
     while (nav.firstChild) nav.removeChild(nav.firstChild);
@@ -1867,6 +1888,7 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
   const tabs = params.tabsBySlug || {};
   const activeSlug = params.activeSlug;
   const searchQuery = params.searchQuery;
+  const translate = getTranslator(params, runtimeState);
 
   const getHomeFn = typeof params.getHomeSlug === 'function'
     ? params.getHomeSlug
@@ -1877,14 +1899,14 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
   const homeSlug = safeHome || homeSlugRaw || 'posts';
   const getHomeLabelFn = typeof params.getHomeLabel === 'function'
     ? params.getHomeLabel
-    : () => computeHomeLabel(homeSlugRaw || homeSlug, tabs);
+    : () => computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState);
   let homeLabel;
-  try { homeLabel = getHomeLabelFn(); } catch (_) { homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs); }
-  if (!homeLabel) homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs);
+  try { homeLabel = getHomeLabelFn(); } catch (_) { homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState); }
+  if (!homeLabel) homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState);
   const postsEnabledFn = typeof params.postsEnabled === 'function'
     ? params.postsEnabled
     : () => postsEnabled(windowRef);
-  const makeLangUrl = typeof params.withLangParam === 'function' ? params.withLangParam : withLangParam;
+  const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
 
   const make = (slug, label) => {
     const safeSlug = slugifyTab(slug) || slug;
@@ -1895,7 +1917,7 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
   let html = '';
   html += make(homeSlug, homeLabel);
   if (postsEnabledFn() && homeSlug !== 'posts') {
-    html += make('posts', t('ui.allPosts'));
+    html += make('posts', translate('ui.allPosts'));
   }
   for (const [slug, info] of Object.entries(tabs)) {
     if (slug === homeSlug) continue;
@@ -1909,18 +1931,18 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
     const tag = (sp.get('tag') || '').trim();
     const q = (sp.get('q') || String(searchQuery || '')).trim();
     const href = makeLangUrl(`?tab=search${tag ? `&tag=${encodeURIComponent(tag)}` : (q ? `&q=${encodeURIComponent(q)}` : '')}`);
-    const label = tag ? t('ui.tagSearch', tag) : (q ? t('titles.search', q) : t('ui.searchTab'));
+    const label = tag ? translate('ui.tagSearch', tag) : (q ? translate('titles.search', q) : translate('ui.searchTab'));
     html += `<a class="tab active" data-slug="search" href="${href}">${escapeHtml(String(label || ''))}</a>`;
   } else if (activeSlug === 'post') {
-    const raw = String(searchQuery || t('ui.postTab')).trim();
-    const label = raw ? escapeHtml(raw.length > 28 ? `${raw.slice(0, 25)}…` : raw) : t('ui.postTab');
+    const raw = String(searchQuery || translate('ui.postTab')).trim();
+    const label = raw ? escapeHtml(raw.length > 28 ? `${raw.slice(0, 25)}…` : raw) : translate('ui.postTab');
     html += `<span class="tab active" data-slug="post">${label}</span>`;
   }
 
   const measureWidth = (markup) => {
     try {
       const tempNav = nav.cloneNode(false);
-      setTrackHtml(tempNav, markup, documentRef, windowRef, searchQuery);
+      setTrackHtml(tempNav, markup, documentRef, windowRef, searchQuery, runtimeState);
       tempNav.style.position = 'absolute';
       tempNav.style.visibility = 'hidden';
       tempNav.style.pointerEvents = 'none';
@@ -1945,11 +1967,11 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
       const tag = (sp.get('tag') || '').trim();
       const q = (sp.get('q') || String(searchQuery || '')).trim();
       const href = makeLangUrl(`?tab=search${tag ? `&tag=${encodeURIComponent(tag)}` : (q ? `&q=${encodeURIComponent(q)}` : '')}`);
-      const label = tag ? t('ui.tagSearch', tag) : (q ? t('titles.search', q) : t('ui.searchTab'));
+      const label = tag ? translate('ui.tagSearch', tag) : (q ? translate('titles.search', q) : translate('ui.searchTab'));
       compact += `<a class="tab active" data-slug="search" href="${href}">${escapeHtml(String(label || ''))}</a>`;
     } else if (activeSlug === 'post') {
-      const raw = String(searchQuery || t('ui.postTab')).trim();
-      const label = raw ? escapeHtml(raw.length > 28 ? `${raw.slice(0, 25)}…` : raw) : t('ui.postTab');
+      const raw = String(searchQuery || translate('ui.postTab')).trim();
+      const label = raw ? escapeHtml(raw.length > 28 ? `${raw.slice(0, 25)}…` : raw) : translate('ui.postTab');
       compact += `<span class="tab active" data-slug="post">${label}</span>`;
     } else if (activeSlug && activeSlug !== 'posts') {
       const info = tabs[activeSlug];
@@ -1958,15 +1980,15 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
     }
     if (containerWidth && measureWidth(compact) > containerWidth - 8) {
       if (activeSlug === 'post') {
-        const raw = String(searchQuery || t('ui.postTab')).trim();
-        const label = raw ? escapeHtml(raw.length > 16 ? `${raw.slice(0, 13)}…` : raw) : t('ui.postTab');
+        const raw = String(searchQuery || translate('ui.postTab')).trim();
+        const label = raw ? escapeHtml(raw.length > 16 ? `${raw.slice(0, 13)}…` : raw) : translate('ui.postTab');
         compact = make(homeSlug, homeLabel) + `<span class="tab active" data-slug="post">${label}</span>`;
       } else if (activeSlug === 'search') {
         const search = windowRef && windowRef.location ? windowRef.location.search : '';
         const sp = new URLSearchParams(search);
         const tag = (sp.get('tag') || '').trim();
         const q = (sp.get('q') || String(searchQuery || '')).trim();
-        const labelRaw = tag ? t('ui.tagSearch', tag) : (q ? t('titles.search', q) : t('ui.searchTab'));
+        const labelRaw = tag ? translate('ui.tagSearch', tag) : (q ? translate('titles.search', q) : translate('ui.searchTab'));
         const label = escapeHtml(labelRaw.length > 16 ? `${labelRaw.slice(0, 13)}…` : labelRaw);
         const href = makeLangUrl(`?tab=search${tag ? `&tag=${encodeURIComponent(tag)}` : (q ? `&q=${encodeURIComponent(q)}` : '')}`);
         compact = make(homeSlug, homeLabel) + `<a class="tab active" data-slug="search" href="${href}">${label}</a>`;
@@ -1985,7 +2007,7 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
   } catch (_) {}
 
   if (!runtimeState.hasInitiallyRendered) {
-    setTrackHtml(nav, html, documentRef, windowRef, searchQuery);
+    setTrackHtml(nav, html, documentRef, windowRef, searchQuery, runtimeState);
     ensureHighlightOverlay(nav, documentRef);
     runtimeState.hasInitiallyRendered = true;
     updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
@@ -2014,7 +2036,7 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
     const delay = (windowRef && typeof windowRef.setTimeout === 'function') ? windowRef.setTimeout.bind(windowRef) : setTimeout;
 
     delay(() => {
-      setTrackHtml(nav, html, documentRef, windowRef, searchQuery);
+      setTrackHtml(nav, html, documentRef, windowRef, searchQuery, runtimeState);
       ensureHighlightOverlay(nav, documentRef);
       nav.style.width = `${newWidth}px`;
       updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
@@ -2124,7 +2146,6 @@ function setupResponsiveTabsObserverNative(params = {}, runtimeState = createNat
 }
 
 export function mount(context = {}) {
-  setThemeI18n(context);
   const windowRef = context.window || defaultWindow;
   const documentRef = context.document || defaultDocument;
   const runtimeState = createNativeInteractionsRuntimeState(context);
@@ -2146,8 +2167,8 @@ export function mount(context = {}) {
   effects.showElement = (params = {}) => showElementNative(params, windowRef);
   effects.hideElement = (params = {}) => hideElementNative(params, windowRef);
   effects.renderSiteLinks = (params = {}) => renderSiteLinksNative(params, documentRef);
-  effects.renderSiteIdentity = (params = {}) => renderSiteIdentityNative(params, documentRef, windowRef);
-  effects.renderFooterNav = (params = {}) => renderFooterNavNative(params, documentRef, windowRef);
+  effects.renderSiteIdentity = (params = {}) => renderSiteIdentityNative(params, documentRef, windowRef, runtimeState);
+  effects.renderFooterNav = (params = {}) => renderFooterNavNative(params, documentRef, windowRef, runtimeState);
   effects.renderTabs = (params = {}) => renderTabsNative({ ...params, window: windowRef, document: documentRef }, runtimeState);
   effects.updateTabHighlight = (nav) => updateMovingHighlight(nav, windowRef, documentRef, runtimeState);
   effects.ensureTabOverlay = (nav) => ensureHighlightOverlay(nav, documentRef);
@@ -2166,9 +2187,9 @@ export function mount(context = {}) {
   effects.renderStaticTabLoadingState = (params = {}) => renderStaticTabLoadingStateNative(params, documentRef, runtimeState);
   effects.renderStaticTabView = (params = {}) => renderStaticTabViewNative(params, documentRef, windowRef, runtimeState);
   effects.renderIndexView = (params = {}) => renderIndexViewNative(params, documentRef, windowRef, runtimeState);
-  effects.afterIndexRender = (params = {}) => afterIndexRenderNative(params, documentRef);
+  effects.afterIndexRender = (params = {}) => afterIndexRenderNative(params, documentRef, runtimeState);
   effects.renderSearchResults = (params = {}) => renderSearchResultsNative(params, documentRef, windowRef, runtimeState);
-  effects.afterSearchRender = (params = {}) => afterSearchRenderNative(params, documentRef);
+  effects.afterSearchRender = (params = {}) => afterSearchRenderNative(params, documentRef, runtimeState);
   effects.enhanceIndexLayout = (params = {}) => enhanceIndexLayoutNative(params, documentRef, windowRef, runtimeState);
   effects.decoratePostView = (params = {}) => decoratePostViewNative(params, documentRef, windowRef, runtimeState);
   effects.handleDocumentClick = (params = {}) => handleDocumentClickNative(params, documentRef, windowRef);
@@ -2176,7 +2197,7 @@ export function mount(context = {}) {
   effects.setupThemeControls = (params = {}) => setupThemeControlsNative(params);
   effects.resetThemeControls = (params = {}) => resetThemeControlsNative(params, documentRef);
   effects.reflectThemeConfig = (params = {}) => reflectThemeConfigNative(params, documentRef);
-  effects.setupFooter = (params = {}) => setupFooterNative(params, documentRef, windowRef);
+  effects.setupFooter = (params = {}) => setupFooterNative(params, documentRef, windowRef, runtimeState);
 
   const views = {
     post: effects.renderPostView,

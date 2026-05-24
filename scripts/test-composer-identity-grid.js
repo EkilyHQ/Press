@@ -4386,6 +4386,12 @@ assert.match(
 );
 
 assert.match(
+  source,
+  /const composerPublishService = createComposerPublishService\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),/,
+  'composer should inject publish/sync timer, frame, and media adapters from the app runtime'
+);
+
+assert.match(
   composerPublishServiceSource,
   /from '\.\/composer-sync-commit-controller\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-sync-overlay\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-settings-ui\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-summary\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-flow\.js\?v=[\w.-]+'[\s\S]*from '\.\/publish\/settings-store\.js\?v=[\w.-]+'/,
   'composer publish service should cache-bust the publish control-plane modules it composes'
@@ -4395,6 +4401,34 @@ assert.match(
   composerPublishServiceSource,
   /export function createComposerPublishService\(options = \{\}\)[\s\S]*const publishSettingsStore = createPublishSettingsStoreRef\([\s\S]*const syncOverlayController = createSyncOverlayControllerRef\([\s\S]*const publishTransportUi = createPublishTransportSettingsUiRef\([\s\S]*const publishSummaryRenderer = createPublishSummaryRendererRef\([\s\S]*const publishFlow = createComposerPublishFlowRef\([\s\S]*syncCommitController = createComposerSyncCommitControllerRef\(/,
   'composer publish service should own settings, overlay, transport UI, summary, publish flow, and Sync commit controller assembly'
+);
+
+assert.match(
+  composerPublishServiceSource,
+  /const syncOverlayController = createSyncOverlayControllerRef\(\{[\s\S]*documentRef,[\s\S]*translate: t,[\s\S]*requestAnimationFrameRef,[\s\S]*setTimeoutRef,[\s\S]*clearTimeoutRef[\s\S]*\}\);/,
+  'publish service should inject explicit frame and timer adapters into the Sync overlay controller'
+);
+
+assert.match(
+  composerPublishServiceSource,
+  /const publishSummaryRenderer = createPublishSummaryRendererRef\(\{[\s\S]*documentRef,[\s\S]*t,[\s\S]*matchesMedia,[\s\S]*setTimeoutRef[\s\S]*\}\);/,
+  'publish service should inject explicit media and timer adapters into the publish summary renderer'
+);
+
+assert.match(
+  composerPublishServiceSource,
+  /syncCommitController = createComposerSyncCommitControllerRef\(\{[\s\S]*documentRef,[\s\S]*t,[\s\S]*setTimeoutRef,[\s\S]*clearTimeoutRef[\s\S]*\}\);/,
+  'publish service should inject explicit timer adapters into the Sync commit controller'
+);
+
+assert.doesNotMatch(
+  [
+    composerSyncOverlaySource,
+    composerPublishSummarySource,
+    composerSyncPanelSource
+  ].join('\n'),
+  /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame)\s*\(/m,
+  'publish/sync overlay, summary, and refresh panel should use injected runtime timer, frame, and media adapters'
 );
 
 assert.doesNotMatch(

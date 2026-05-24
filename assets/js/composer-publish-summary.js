@@ -1,7 +1,8 @@
 export function createPublishSummaryRenderer({
   documentRef = null,
-  windowRef = null,
-  t = (key) => key
+  t = (key) => key,
+  matchesMedia = null,
+  setTimeoutRef = null
 } = {}) {
   function describeSummaryEntry(entry) {
     if (!entry) return '';
@@ -130,7 +131,7 @@ export function createPublishSummaryRenderer({
 
     let closing = false;
     const reduceMotion = (() => {
-      try { return !!(windowRef.matchMedia && windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+      try { return typeof matchesMedia === 'function' && !!matchesMedia('(prefers-reduced-motion: reduce)'); }
       catch (_) { return false; }
     })();
     const hadModalOpen = documentRef.body.classList.contains('press-modal-open');
@@ -159,7 +160,8 @@ export function createPublishSummaryRenderer({
       };
       try {
         previewDialog.addEventListener('animationend', onEnd, { once: true });
-        windowRef.setTimeout(onEnd, 200);
+        if (typeof setTimeoutRef === 'function') setTimeoutRef(onEnd, 200);
+        else onEnd();
       } catch (_) { onEnd(); }
     };
 

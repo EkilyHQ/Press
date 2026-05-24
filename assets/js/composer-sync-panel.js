@@ -176,16 +176,17 @@ export async function refreshSyncCommitPanelView(options = {}, deps = {}) {
 
 export function scheduleSyncCommitPanelRefreshView({
   currentMode,
-  windowRef = null,
   timer,
   setTimer = () => {},
-  refreshSyncCommitPanel = () => {}
+  refreshSyncCommitPanel = () => {},
+  setTimeoutRef = null,
+  clearTimeoutRef = null
 } = {}) {
   if (currentMode !== 'sync') return timer || 0;
   try {
-    if (timer && windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(timer);
-    if (windowRef && typeof windowRef.setTimeout === 'function') {
-      const nextTimer = windowRef.setTimeout(() => {
+    if (timer && typeof clearTimeoutRef === 'function') clearTimeoutRef(timer);
+    if (typeof setTimeoutRef === 'function') {
+      const nextTimer = setTimeoutRef(() => {
         setTimer(0);
         refreshSyncCommitPanel();
       }, 120);

@@ -18,6 +18,10 @@ export function createComposerPublishService(options = {}) {
   const createComposerPublishFlowRef = options.createComposerPublishFlow || createComposerPublishFlow;
   const createComposerSyncCommitControllerRef = options.createComposerSyncCommitController || createComposerSyncCommitController;
   const fetchImpl = typeof options.fetchContent === 'function' ? options.fetchContent : null;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : null;
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function' ? options.clearTimeoutRef : null;
+  const matchesMedia = typeof options.matchesMedia === 'function' ? options.matchesMedia : () => false;
 
   const publishSettingsStore = createPublishSettingsStoreRef({
     windowRef,
@@ -40,8 +44,10 @@ export function createComposerPublishService(options = {}) {
 
   const syncOverlayController = createSyncOverlayControllerRef({
     documentRef,
-    windowRef,
-    translate: t
+    translate: t,
+    requestAnimationFrameRef,
+    setTimeoutRef,
+    clearTimeoutRef
   });
   const {
     show: showSyncOverlay,
@@ -80,8 +86,9 @@ export function createComposerPublishService(options = {}) {
 
   const publishSummaryRenderer = createPublishSummaryRendererRef({
     documentRef,
-    windowRef,
-    t
+    t,
+    matchesMedia,
+    setTimeoutRef
   });
   const {
     describeSummaryEntry,
@@ -120,7 +127,6 @@ export function createComposerPublishService(options = {}) {
 
   syncCommitController = createComposerSyncCommitControllerRef({
     documentRef,
-    windowRef,
     t,
     getCurrentMode: options.getCurrentMode || (() => null),
     computeUnsyncedSummary: options.computeUnsyncedSummary || (() => []),
@@ -137,7 +143,9 @@ export function createComposerPublishService(options = {}) {
     showToast: options.showToast || noop,
     performConnectGithubCommit,
     performDirectGithubCommit,
-    switchToPatFallbackAndFocusToken
+    switchToPatFallbackAndFocusToken,
+    setTimeoutRef,
+    clearTimeoutRef
   });
 
   return {

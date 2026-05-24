@@ -89,14 +89,12 @@ class FakeDocument {
   const calls = [];
   const controller = createComposerSyncCommitController({
     documentRef,
-    windowRef: {
-      setTimeout(handler) {
-        calls.push(['setTimeout']);
-        return 9;
-      },
-      clearTimeout() {
-        calls.push(['clearTimeout']);
-      }
+    setTimeoutRef(handler) {
+      calls.push(['setTimeout']);
+      return 9;
+    },
+    clearTimeoutRef() {
+      calls.push(['clearTimeout']);
     },
     t: key => key,
     getCurrentMode: () => 'sync',
@@ -136,15 +134,13 @@ class FakeDocument {
   const calls = [];
   const controller = createComposerSyncCommitController({
     documentRef,
-    windowRef: {
-      setTimeout(handler) {
-        calls.push(['setTimeout']);
-        handler();
-        return 11;
-      },
-      clearTimeout() {
-        calls.push(['clearTimeout']);
-      }
+    setTimeoutRef(handler) {
+      calls.push(['setTimeout']);
+      handler();
+      return 11;
+    },
+    clearTimeoutRef() {
+      calls.push(['clearTimeout']);
     },
     getCurrentMode: () => 'composer',
     gatherCommitPayload: async () => calls.push(['refresh'])

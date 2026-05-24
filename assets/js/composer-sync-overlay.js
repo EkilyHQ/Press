@@ -1,7 +1,9 @@
 export function createSyncOverlayController({
   documentRef = null,
-  windowRef = null,
-  translate = (key) => key
+  translate = (key) => key,
+  requestAnimationFrameRef = null,
+  setTimeoutRef = null,
+  clearTimeoutRef = null
 } = {}) {
   let syncOverlayElements = null;
   let syncOverlayCancelHandler = null;
@@ -12,22 +14,20 @@ export function createSyncOverlayController({
     return value || key;
   };
   const requestFrame = (handler) => {
-    if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
-      return windowRef.requestAnimationFrame(handler);
+    if (typeof requestAnimationFrameRef === 'function') {
+      return requestAnimationFrameRef(handler);
     }
     if (typeof handler === 'function') handler();
     return 0;
   };
   const setTimer = (handler, delay) => (
-    windowRef && typeof windowRef.setTimeout === 'function'
-      ? windowRef.setTimeout(handler, delay)
+    typeof setTimeoutRef === 'function'
+      ? setTimeoutRef(handler, delay)
       : null
   );
   const clearTimer = (timerId) => {
     if (!timerId) return;
-    if (windowRef && typeof windowRef.clearTimeout === 'function') {
-      windowRef.clearTimeout(timerId);
-    }
+    if (typeof clearTimeoutRef === 'function') clearTimeoutRef(timerId);
   };
 
   function ensureElements() {

@@ -7,7 +7,6 @@ function noop() {}
 
 export function createComposerSyncCommitController({
   documentRef = null,
-  windowRef = null,
   t = (key) => key,
   getCurrentMode = () => null,
   computeUnsyncedSummary = () => [],
@@ -24,7 +23,9 @@ export function createComposerSyncCommitController({
   showToast = noop,
   performConnectGithubCommit = async () => {},
   performDirectGithubCommit = async () => {},
-  switchToPatFallbackAndFocusToken = noop
+  switchToPatFallbackAndFocusToken = noop,
+  setTimeoutRef = null,
+  clearTimeoutRef = null
 } = {}) {
   let renderSeq = 0;
   let refreshTimer = 0;
@@ -95,12 +96,13 @@ export function createComposerSyncCommitController({
   function scheduleRefresh() {
     refreshTimer = scheduleSyncCommitPanelRefreshView({
       currentMode: getCurrentMode(),
-      windowRef,
       timer: refreshTimer,
       setTimer: (timer) => {
         refreshTimer = timer;
       },
-      refreshSyncCommitPanel: refresh
+      refreshSyncCommitPanel: refresh,
+      setTimeoutRef,
+      clearTimeoutRef
     });
     return refreshTimer;
   }

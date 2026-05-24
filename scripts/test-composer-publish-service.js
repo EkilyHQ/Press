@@ -9,6 +9,10 @@ const windowRef = {
 const fetchContent = (...args) => {
   calls.push(['runtime:fetch', args.length]);
 };
+const requestAnimationFrameRef = () => 1;
+const setTimeoutRef = () => 2;
+const clearTimeoutRef = () => {};
+const matchesMedia = () => false;
 const publishSettingsStore = { id: 'settings-store' };
 const overlayController = {
   show(options) {
@@ -104,6 +108,10 @@ const service = createComposerPublishService({
   documentRef,
   windowRef,
   fetchContent,
+  requestAnimationFrameRef,
+  setTimeoutRef,
+  clearTimeoutRef,
+  matchesMedia,
   t: (key) => key,
   scopeKey: (key) => `scope:${key}`,
   getActiveSiteRepoConfig: () => ({ owner: 'EkilyHQ', name: 'Press', branch: 'main' }),
@@ -125,8 +133,10 @@ const service = createComposerPublishService({
   },
   createSyncOverlayController(options) {
     assert.equal(options.documentRef, documentRef);
-    assert.equal(options.windowRef, windowRef);
     assert.equal(options.translate('x'), 'x');
+    assert.equal(options.requestAnimationFrameRef, requestAnimationFrameRef);
+    assert.equal(options.setTimeoutRef, setTimeoutRef);
+    assert.equal(options.clearTimeoutRef, clearTimeoutRef);
     calls.push(['factory:overlay']);
     return overlayController;
   },
@@ -139,7 +149,8 @@ const service = createComposerPublishService({
   },
   createPublishSummaryRenderer(options) {
     assert.equal(options.documentRef, documentRef);
-    assert.equal(options.windowRef, windowRef);
+    assert.equal(options.matchesMedia, matchesMedia);
+    assert.equal(options.setTimeoutRef, setTimeoutRef);
     calls.push(['factory:summary']);
     return publishSummaryRenderer;
   },
@@ -161,6 +172,8 @@ const service = createComposerPublishService({
     assert.equal(options.ensureConnectPublishGrant, publishFlow.ensureConnectPublishGrant);
     assert.equal(options.performConnectGithubCommit, publishFlow.performConnectGithubCommit);
     assert.equal(options.performDirectGithubCommit, publishFlow.performDirectGithubCommit);
+    assert.equal(options.setTimeoutRef, setTimeoutRef);
+    assert.equal(options.clearTimeoutRef, clearTimeoutRef);
     calls.push(['factory:sync-controller']);
     return syncCommitController;
   }

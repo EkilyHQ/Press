@@ -149,7 +149,6 @@ let hasInitiallyRendered = false;
 let pendingHighlightRaf = 0;
 let tabsResizeTimer = 0;
 let responsiveObserverBound = false;
-let lightboxInstalled = false;
 let masonryHandlersBound = false;
 
 const NATIVE_CARD_CLASSES = {
@@ -2124,15 +2123,14 @@ export function mount(context = {}) {
   responsiveObserverBound = false;
   masonryHandlersBound = false;
 
-  if (!lightboxInstalled) {
-    try {
-      installLightbox({
-        rootRegion: ['main'],
-        getRegion: (names) => getRegion(names, documentRef)
-      });
-      lightboxInstalled = true;
-    } catch (_) {}
-  }
+  try {
+    installLightbox({
+      rootRegion: ['main'],
+      document: documentRef,
+      window: windowRef,
+      getRegion: (names) => getRegion(names, documentRef)
+    });
+  } catch (_) {}
 
   const effects = {};
   effects.getViewContainer = (params = {}) => getContainerByRole(params.role, documentRef);

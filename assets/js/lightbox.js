@@ -3,60 +3,94 @@ import { getThemeRegion } from './theme-regions.js';
 // Simple, dependency-free image lightbox for the article region
 // Usage: import { installLightbox } from './js/lightbox.js'; installLightbox({ rootRegion: ['main'] });
 
+const defaultWindow = typeof window !== 'undefined' ? window : undefined;
+const defaultDocument = typeof document !== 'undefined' ? document : undefined;
+const defaultSetTimeout = typeof setTimeout === 'function' ? setTimeout : null;
+const defaultClearTimeout = typeof clearTimeout === 'function' ? clearTimeout : null;
+
 export function installLightbox(opts = {}) {
   const regionNames = opts.rootRegion || ['main'];
+  const documentRef = opts.document || (opts.window && opts.window.document) || defaultDocument;
+  if (!documentRef || typeof documentRef.getElementById !== 'function' || typeof documentRef.createElement !== 'function') {
+    return false;
+  }
+  const windowRef = opts.window || documentRef.defaultView || defaultWindow || {};
+  const ElementCtor = opts.Element || (windowRef && windowRef.Element);
+  const setTimer = typeof opts.setTimeout === 'function'
+    ? opts.setTimeout
+    : ((windowRef && typeof windowRef.setTimeout === 'function') ? windowRef.setTimeout.bind(windowRef) : defaultSetTimeout);
+  const clearTimer = typeof opts.clearTimeout === 'function'
+    ? opts.clearTimeout
+    : ((windowRef && typeof windowRef.clearTimeout === 'function') ? windowRef.clearTimeout.bind(windowRef) : defaultClearTimeout);
+  const requestFrame = typeof opts.requestAnimationFrame === 'function'
+    ? opts.requestAnimationFrame
+    : ((windowRef && typeof windowRef.requestAnimationFrame === 'function')
+        ? windowRef.requestAnimationFrame.bind(windowRef)
+        : (setTimer ? ((fn) => setTimer(fn, 16)) : null));
   const readThemeRegion = typeof opts.getRegion === 'function' ? opts.getRegion : getThemeRegion;
-  const root = () => readThemeRegion(regionNames) || document;
 
   // Create overlay once
-  let overlay = document.getElementById('press-lightbox');
+  let overlay = documentRef.getElementById('press-lightbox');
   if (!overlay) {
-    overlay = document.createElement('div');
+    overlay = documentRef.createElement('div');
     overlay.id = 'press-lightbox';
     overlay.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('role', 'dialog');
 
-    const closeBtn = document.createElement('button');
+    const closeBtn = documentRef.createElement('button');
     closeBtn.className = 'press-lb-close';
     closeBtn.setAttribute('aria-label', 'Close');
     closeBtn.textContent = '×';
 
-    const resetBtn = document.createElement('button');
+    const resetBtn = documentRef.createElement('button');
     resetBtn.className = 'press-lb-reset';
     resetBtn.setAttribute('aria-label', 'Reset zoom');
     resetBtn.textContent = '⤾';
 
-    const stageDiv = document.createElement('div');
+    const stageDiv = documentRef.createElement('div');
     stageDiv.className = 'press-lb-stage';
 
-    const imgNode = document.createElement('img');
+    const imgNode = documentRef.createElement('img');
     imgNode.className = 'press-lb-img';
     imgNode.alt = '';
 
-    const captionDiv = document.createElement('div');
+    const captionDiv = documentRef.createElement('div');
     captionDiv.className = 'press-lb-caption';
     captionDiv.setAttribute('aria-live', 'polite');
 
     stageDiv.appendChild(imgNode);
     stageDiv.appendChild(captionDiv);
 
-    const zoomDiv = document.createElement('div');
+    const zoomDiv = documentRef.createElement('div');
     zoomDiv.className = 'press-lb-zoom';
     zoomDiv.setAttribute('aria-hidden', 'true');
 
-    const prevBtn = document.createElement('button');
+    const prevBtn = documentRef.createElement('button');
     prevBtn.className = 'press-lb-prev';
     prevBtn.setAttribute('aria-label', 'Previous');
     prevBtn.textContent = '‹';
 
-    const nextBtn = document.createElement('button');
+    const nextBtn = documentRef.createElement('button');
     nextBtn.className = 'press-lb-next';
     nextBtn.setAttribute('aria-label', 'Next');
     nextBtn.textContent = '›';
 
     overlay.append(closeBtn, resetBtn, stageDiv, zoomDiv, prevBtn, nextBtn);
-    document.body.appendChild(overlay);
+    if (documentRef.body) documentRef.body.appendChild(overlay);
   }
+  overlay.__pressLightboxGetRegion = readThemeRegion;
+  overlay.__pressLightboxRegionNames = regionNames;
+
+  const root = () => {
+    const reader = typeof overlay.__pressLightboxGetRegion === 'function'
+      ? overlay.__pressLightboxGetRegion
+      : readThemeRegion;
+    const names = overlay.__pressLightboxRegionNames || regionNames;
+    return reader(names) || documentRef;
+  };
+
+  if (overlay.__pressLightboxInstalled === true) return true;
+  overlay.__pressLightboxInstalled = true;
 
   const imgEl = overlay.querySelector('.press-lb-img');
   const captionEl = overlay.querySelector('.press-lb-caption');
@@ -91,8 +125,8 @@ export function installLightbox(opts = {}) {
     const natH = imgEl.naturalHeight || 0;
     if (!natW || !natH) { lastFit = { baseW: 0, baseH: 0, natW, natH }; return lastFit; }
     const capH = (captionEl && captionEl.offsetHeight) || 0;
-    const sw = stageEl.clientWidth || window.innerWidth;
-    const sh = Math.max(0, (stageEl.clientHeight || window.innerHeight) - capH - 8);
+    const sw = stageEl.clientWidth || (windowRef && windowRef.innerWidth) || 0;
+    const sh = Math.max(0, (stageEl.clientHeight || (windowRef && windowRef.innerHeight) || 0) - capH - 8);
     const fit = Math.min(sw / natW, sh / natH);
     const baseW = natW * fit;
     const baseH = natH * fit;
@@ -104,8 +138,8 @@ export function installLightbox(opts = {}) {
     if (scale <= 1) { tx = 0; ty = 0; return; }
     const { baseW, baseH } = lastFit.baseW ? lastFit : computeBaseFit();
     const capH = (captionEl && captionEl.offsetHeight) || 0;
-    const sw = stageEl.clientWidth || window.innerWidth;
-    const sh = Math.max(0, (stageEl.clientHeight || window.innerHeight) - capH - 8);
+    const sw = stageEl.clientWidth || (windowRef && windowRef.innerWidth) || 0;
+    const sh = Math.max(0, (stageEl.clientHeight || (windowRef && windowRef.innerHeight) || 0) - capH - 8);
     const vw = sw; const vh = sh;
     const dispW = baseW * scale;
     const dispH = baseH * scale;
@@ -146,8 +180,8 @@ export function installLightbox(opts = {}) {
     targetScale = Math.max(minScale, Math.min(maxScale, next));
     if (anchor) {
       zoomAnchor = { x: anchor.x, y: anchor.y };
-      if (zoomAnchorTimer) clearTimeout(zoomAnchorTimer);
-      zoomAnchorTimer = setTimeout(() => { zoomAnchor = null; }, 180);
+      if (zoomAnchorTimer && clearTimer) clearTimer(zoomAnchorTimer);
+      zoomAnchorTimer = setTimer ? setTimer(() => { zoomAnchor = null; }, 180) : null;
     }
     ensureRaf();
   }
@@ -183,7 +217,7 @@ export function installLightbox(opts = {}) {
   }
 
   function ensureRaf() {
-    if (rafId == null) rafId = requestAnimationFrame(tick);
+    if (rafId == null && requestFrame) rafId = requestFrame(tick);
   }
 
   function collectImages() {
@@ -199,7 +233,7 @@ export function installLightbox(opts = {}) {
       const s = (raw || '').trim();
       if (!s) return '';
       // Permit only http, https, blob, and data:image/* (raster only) URLs
-      const u = new URL(s, document.baseURI);
+      const u = new URL(s, documentRef.baseURI || (windowRef && windowRef.location && windowRef.location.href) || 'https://example.test/');
       const p = u.protocol;
       if (p === 'http:' || p === 'https:' || p === 'blob:') return u.href;
       if (p === 'data:') {
@@ -242,17 +276,17 @@ export function installLightbox(opts = {}) {
     captionEl.textContent = alt;
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
-    document.documentElement.classList.add('press-lb-lock');
+    if (documentRef.documentElement) documentRef.documentElement.classList.add('press-lb-lock');
     resetTransform();
-    try { lastActive = document.activeElement; } catch (_) {}
-    closeBtn.focus({ preventScroll: true });
+    try { lastActive = documentRef.activeElement; } catch (_) {}
+    if (closeBtn && typeof closeBtn.focus === 'function') closeBtn.focus({ preventScroll: true });
     updateAriaForButtons();
   }
 
   function close() {
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
-    document.documentElement.classList.remove('press-lb-lock');
+    if (documentRef.documentElement) documentRef.documentElement.classList.remove('press-lb-lock');
     imgEl.removeAttribute('src');
     captionEl.textContent = '';
     try { if (lastActive && lastActive.focus) lastActive.focus({ preventScroll: true }); } catch (_) {}
@@ -279,7 +313,7 @@ export function installLightbox(opts = {}) {
   if (resetBtn) resetBtn.addEventListener('click', (e) => { e.preventDefault(); animateReset(); });
 
   // Keyboard navigation when open
-  document.addEventListener('keydown', (e) => {
+  documentRef.addEventListener('keydown', (e) => {
     if (!overlay.classList.contains('open')) return;
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
@@ -292,7 +326,8 @@ export function installLightbox(opts = {}) {
     // Always prevent default to avoid page scrolling behind overlay
     e.preventDefault();
 
-    const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+    const nav = windowRef && windowRef.navigator;
+    const ua = ((nav && nav.userAgent) || '') + ' ' + ((nav && nav.platform) || '');
     const isMac = /Mac|Macintosh|Mac OS/.test(ua);
     const isPinch = !!e.ctrlKey; // Chrome/Safari set ctrlKey during trackpad pinch
 
@@ -358,13 +393,13 @@ export function installLightbox(opts = {}) {
     imgEl.classList.add('press-lb-grabbing');
     e.preventDefault();
   });
-  window.addEventListener('mousemove', (e) => {
+  if (windowRef && typeof windowRef.addEventListener === 'function') windowRef.addEventListener('mousemove', (e) => {
     if (!dragging) return;
     tx = startTx + (e.clientX - dragX);
     ty = startTy + (e.clientY - dragY);
     applyTransform();
   });
-  window.addEventListener('mouseup', () => { if (dragging) { dragging = false; imgEl.classList.remove('press-lb-grabbing'); } });
+  if (windowRef && typeof windowRef.addEventListener === 'function') windowRef.addEventListener('mouseup', () => { if (dragging) { dragging = false; imgEl.classList.remove('press-lb-grabbing'); } });
 
   // Touch: pinch to zoom and drag to pan
   imgEl.addEventListener('touchstart', (e) => {
@@ -400,12 +435,12 @@ export function installLightbox(opts = {}) {
   imgEl.addEventListener('touchend', () => { dragging = false; imgEl.classList.remove('press-lb-grabbing'); }, { passive: true });
 
   // Recompute bounds on resize
-  window.addEventListener('resize', () => { if (overlay.classList.contains('open')) { computeBaseFit(); applyTransform(); } });
+  if (windowRef && typeof windowRef.addEventListener === 'function') windowRef.addEventListener('resize', () => { if (overlay.classList.contains('open')) { computeBaseFit(); applyTransform(); } });
 
   // Delegate click from root to open images
-  document.addEventListener('click', (e) => {
+  documentRef.addEventListener('click', (e) => {
     const t = e.target;
-    if (!t || !(t instanceof Element)) return;
+    if (!t || (ElementCtor ? !(t instanceof ElementCtor) : t.nodeType !== 1)) return;
     const container = root();
     if (!container.contains(t)) return;
     const img = t.closest('img');
@@ -421,4 +456,5 @@ export function installLightbox(opts = {}) {
     const idx = currentList.indexOf(img);
     openAt(idx >= 0 ? idx : 0);
   }, true);
+  return true;
 }

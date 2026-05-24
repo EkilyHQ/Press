@@ -63,7 +63,11 @@ function createFileReader({ base64 = 'QUJD' } = {}) {
   };
 }
 
-function createFixture({ currentMarkdownPath = 'docs/post.md', input = null } = {}) {
+function createFixture({
+  currentMarkdownPath = 'docs/post.md',
+  input = null,
+  FileReaderCtor = createFileReader({ base64: 'QUJD' })
+} = {}) {
   const imageInput = input || new FakeElement();
   const imageButton = new FakeElement();
   const textarea = new FakeElement();
@@ -72,8 +76,9 @@ function createFixture({ currentMarkdownPath = 'docs/post.md', input = null } = 
   const calls = [];
   const emittedAssets = [];
   const toasts = [];
+  const errors = [];
   const runtime = {
-    getFileReader: () => createFileReader({ base64: 'QUJD' }),
+    getFileReader: () => FileReaderCtor,
     createMouseEvent: (type, options) => ({ type, options }),
     onWindow: (type, handler, options) => {
       calls.push(['onWindow', type, options]);
@@ -105,6 +110,9 @@ function createFixture({ currentMarkdownPath = 'docs/post.md', input = null } = 
       calls.push(['setValue', value, options]);
       textarea.value = value;
     },
+    consoleRef: {
+      error: (...args) => errors.push(args)
+    },
     emitToast: (kind, message) => toasts.push([kind, message])
   });
   return {
@@ -115,7 +123,8 @@ function createFixture({ currentMarkdownPath = 'docs/post.md', input = null } = 
     textarea,
     calls,
     emittedAssets,
-    toasts
+    toasts,
+    errors
   };
 }
 
@@ -137,6 +146,7 @@ function createFixture({ currentMarkdownPath = 'docs/post.md', input = null } = 
   assert.deepEqual(fixture.toasts, [
     ['success', `editor.toasts.assetAttached:${fixture.emittedAssets[0].relativePath}`]
   ]);
+  assert.deepEqual(fixture.errors, []);
 }
 
 {
@@ -159,4 +169,24 @@ function createFixture({ currentMarkdownPath = 'docs/post.md', input = null } = 
   assert.deepEqual(fixture.toasts, [
     ['warn', 'Open a markdown file before inserting images.']
   ]);
+}
+
+{
+  class FailingFileReader {
+    readAsDataURL() {
+      this.error = new Error('read failed');
+      this.onerror();
+    }
+  }
+  const fixture = createFixture({ FileReaderCtor: FailingFileReader });
+
+  await fixture.session.handleImageFiles([{ name: 'hero.png', type: 'image/png' }]);
+
+  assert.deepEqual(fixture.emittedAssets, []);
+  assert.deepEqual(fixture.toasts, [
+    ['error', 'read failed']
+  ]);
+  assert.equal(fixture.errors.length, 1);
+  assert.equal(fixture.errors[0][0], 'Failed to read image for insertion');
+  assert.equal(fixture.errors[0][1].message, 'read failed');
 }

@@ -16,6 +16,7 @@ export function createEditorMainImageSession(options = {}) {
   const buildMarkdown = typeof options.buildMarkdown === 'function' ? options.buildMarkdown : (body) => String(body || '');
   const setValue = typeof options.setValue === 'function' ? options.setValue : noop;
   const getBlocksEditor = typeof options.getBlocksEditor === 'function' ? options.getBlocksEditor : () => null;
+  const consoleRef = options.consoleRef || null;
   const emitToastImpl = typeof options.emitToast === 'function'
     ? options.emitToast
     : (kind, message) => {
@@ -58,6 +59,12 @@ export function createEditorMainImageSession(options = {}) {
     if (!value) return;
     emitToastImpl(kind, value);
   };
+
+  function error(...args) {
+    try {
+      if (consoleRef && typeof consoleRef.error === 'function') consoleRef.error(...args);
+    } catch (_) {}
+  }
 
   const readFileAsBase64 = (file) => new Promise((resolve, reject) => {
     if (!file) {
@@ -224,7 +231,7 @@ export function createEditorMainImageSession(options = {}) {
       try {
         base64 = await readFileAsBase64(file);
       } catch (err) {
-        console.error('Failed to read image for insertion', err);
+        error('Failed to read image for insertion', err);
         emitToast('error', err && err.message ? err.message : 'Failed to read image file.');
         continue;
       }
@@ -268,7 +275,7 @@ export function createEditorMainImageSession(options = {}) {
           });
         }
       } catch (err) {
-        console.error('Failed to dispatch asset-added event', err);
+        error('Failed to dispatch asset-added event', err);
       }
 
       emitToast('success', translate('editor.toasts.assetAttached', { label: paths.relativePath }));
@@ -409,7 +416,7 @@ export function createEditorMainImageSession(options = {}) {
         : { source: 'picker' };
       if (replaceMarkdown) imageFileOptions.insertAbortToast = translate('editor.toasts.imageReplaceTargetMissing');
       handleImageFiles(files, imageFileOptions).catch((err) => {
-        console.error('Image insertion failed', err);
+        error('Image insertion failed', err);
       });
     }
     if (imageInput) imageInput.value = '';
@@ -450,7 +457,7 @@ export function createEditorMainImageSession(options = {}) {
         const files = event.dataTransfer.files;
         if (files && files.length) {
           handleImageFiles(files, { source: 'drop' }).catch((err) => {
-            console.error('Image drop failed', err);
+            error('Image drop failed', err);
           });
         }
       });

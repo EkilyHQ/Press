@@ -156,6 +156,7 @@ editorMainRuntime.onDocumentReady(() => {
     buildMarkdown: documentSession.buildMarkdown,
     setValue: documentSession.setValue,
     getBlocksEditor: appServices.getBlocksEditor,
+    consoleRef: console,
     emitToast: shellService.emitToast
   }));
 

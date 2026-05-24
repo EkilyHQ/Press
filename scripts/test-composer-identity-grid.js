@@ -1423,7 +1423,7 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /const imageSession = appServices\.setImageSession\(createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: appServices\.getBlocksEditor,[\s\S]*emitToast: shellService\.emitToast[\s\S]*\}\)\);/,
+  /const imageSession = appServices\.setImageSession\(createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: appServices\.getBlocksEditor,[\s\S]*consoleRef: console,[\s\S]*emitToast: shellService\.emitToast[\s\S]*\}\)\);/,
   'editor main should compose image picker, upload, drop, and block image actions through the image session'
 );
 
@@ -1590,14 +1590,14 @@ assert.match(
 
 assert.match(
   editorMainImageSessionSource,
-  /import \{ insertImageMarkdownAtSelection \} from '\.\/editor-markdown-ops\.js';[\s\S]*import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*runtime\.getFileReader\(\)[\s\S]*runtime\.createMouseEvent\(type, eventOptions\)[\s\S]*runtime\.emitAssetAdded\([\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
+  /import \{ insertImageMarkdownAtSelection \} from '\.\/editor-markdown-ops\.js';[\s\S]*import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*runtime\.getFileReader\(\)[\s\S]*runtime\.createMouseEvent\(type, eventOptions\)[\s\S]*function error\(\.\.\.args\)[\s\S]*consoleRef\.error\(\.\.\.args\)[\s\S]*runtime\.emitAssetAdded\([\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
   'editor image session should route markdown-image operations, picker effects, and asset events through explicit dependencies and runtime services'
 );
 
 assert.doesNotMatch(
   editorMainImageSessionSource,
-  /\bwindowRef\b|options\.windowRef|windowRef\.|new MouseEvent|windowRef\.setTimeout|windowRef\.FileReader|windowRef\.MouseEvent/,
-  'editor image session should not retain direct window refs for timers, FileReader, or MouseEvent construction'
+  /\bwindowRef\b|options\.windowRef|windowRef\.|new MouseEvent|windowRef\.setTimeout|windowRef\.FileReader|windowRef\.MouseEvent|console\.error/,
+  'editor image session should not retain direct window refs for timers, FileReader, MouseEvent construction, or error logging'
 );
 
 assert.match(

@@ -22,11 +22,12 @@ export function createComposerPublishFlow({
   showToast = () => {},
   describeSummaryEntry = (entry) => entry && (entry.label || entry.path || entry.kind) || '',
   switchToPatFallbackAndFocusToken = () => {},
-  setGitHubCommitInFlight = () => {}
+  setGitHubCommitInFlight = () => {},
+  consoleRef = null
 } = {}) {
   const fetchRef = typeof fetchImpl === 'function'
     ? fetchImpl
-    : (windowRef && typeof windowRef.fetch === 'function' ? windowRef.fetch.bind(windowRef) : null);
+    : null;
 
   async function waitForRemotePropagation(files = []) {
     return waitForPublishedFiles(files, {
@@ -116,7 +117,9 @@ export function createComposerPublishFlow({
           message = t('editor.toasts.githubTokenRejected');
         }
       }
-      console.error('Press GitHub commit failed', err);
+      if (consoleRef && typeof consoleRef.error === 'function') {
+        consoleRef.error('Press GitHub commit failed', err);
+      }
       const toastOptions = { duration: 5200 };
       if (transport && transport.type === 'connect' && connectFallbackActionAvailable) {
         toastOptions.duration = 9000;

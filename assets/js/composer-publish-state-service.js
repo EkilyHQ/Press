@@ -77,7 +77,11 @@ export function createComposerPublishStateService(options = {}) {
     getRemoteBaselineSite: options.getRemoteBaselineSite || (() => null),
     cloneSiteState: options.cloneSiteState,
     isIndexMetadataObject: options.isIndexMetadataObject,
-    getIndexVariantLocation: options.getIndexVariantLocation
+    getIndexVariantLocation: options.getIndexVariantLocation,
+    fetchImpl: typeof options.fetchContent === 'function' ? options.fetchContent : null,
+    getLocationOrigin: options.getLocationOrigin || (() => ''),
+    getDocumentLang: options.getDocumentLang || (() => ''),
+    consoleRef: options.consoleRef || null
   });
 
   const postCommitStateApplier = createPostCommitStateApplierRef({

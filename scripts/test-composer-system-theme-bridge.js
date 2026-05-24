@@ -72,3 +72,9 @@ assert.match(
   /initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*onStateChange: refreshThemeState,[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack[\s\S]*\}\)/,
   'bridge should initialize system updates and theme manager with the existing callbacks'
 );
+
+assert.doesNotMatch(
+  bridgeSource,
+  /\|\|\s*console\b/,
+  'system/theme bridge should receive logging through explicit composer wiring'
+);

@@ -2,7 +2,7 @@ import { initSystemUpdates, getSystemUpdateSummaryEntries, getSystemUpdateCommit
 import { initThemeManager, getThemeManagerSummaryEntries, getThemeManagerCommitFiles, clearThemeManagerState } from './theme-manager.js?v=press-system-v3.4.50';
 
 export function createComposerSystemThemeBridge(options = {}) {
-  const consoleRef = options.consoleRef || console;
+  const consoleRef = options.consoleRef || null;
   const getStateSlice = typeof options.getStateSlice === 'function' ? options.getStateSlice : (() => ({}));
   const setStateSlice = typeof options.setStateSlice === 'function' ? options.setStateSlice : (() => {});
   const notifyComposerChange = typeof options.notifyComposerChange === 'function' ? options.notifyComposerChange : (() => {});
@@ -66,7 +66,9 @@ export function createComposerSystemThemeBridge(options = {}) {
     try {
       initSystemUpdates({ onStateChange: refreshUnsyncedSummary });
     } catch (err) {
-      consoleRef.error('Failed to initialize system updates module', err);
+      if (consoleRef && typeof consoleRef.error === 'function') {
+        consoleRef.error('Failed to initialize system updates module', err);
+      }
     }
     try {
       initThemeManager({
@@ -75,7 +77,9 @@ export function createComposerSystemThemeBridge(options = {}) {
         setSiteThemePack
       });
     } catch (err) {
-      consoleRef.error('Failed to initialize theme manager module', err);
+      if (consoleRef && typeof consoleRef.error === 'function') {
+        consoleRef.error('Failed to initialize theme manager module', err);
+      }
     }
   }
 

@@ -4,10 +4,10 @@ import { createComposerPublishService } from '../assets/js/composer-publish-serv
 const calls = [];
 const documentRef = { id: 'document' };
 const windowRef = {
-  id: 'window',
-  fetch(...args) {
-    calls.push(['window:fetch', args.length]);
-  }
+  id: 'window'
+};
+const fetchContent = (...args) => {
+  calls.push(['runtime:fetch', args.length]);
 };
 const publishSettingsStore = { id: 'settings-store' };
 const overlayController = {
@@ -103,6 +103,7 @@ const syncCommitController = {
 const service = createComposerPublishService({
   documentRef,
   windowRef,
+  fetchContent,
   t: (key) => key,
   scopeKey: (key) => `scope:${key}`,
   getActiveSiteRepoConfig: () => ({ owner: 'EkilyHQ', name: 'Press', branch: 'main' }),
@@ -114,6 +115,7 @@ const service = createComposerPublishService({
   applyMode: (mode) => calls.push(['mode', mode]),
   showEditorSystemPanel: (mode) => calls.push(['system-panel', mode]),
   showToast: (kind, message) => calls.push(['toast', kind, message]),
+  consoleRef: { error: (...args) => calls.push(['console:error', args.length]) },
   setGitHubCommitInFlight: (value) => calls.push(['in-flight', !!value]),
   createPublishSettingsStore(options) {
     assert.equal(options.windowRef, windowRef);
@@ -142,12 +144,13 @@ const service = createComposerPublishService({
     return publishSummaryRenderer;
   },
   createComposerPublishFlow(options) {
-    assert.equal(typeof options.fetchImpl, 'function');
+    assert.equal(options.fetchImpl, fetchContent);
     assert.equal(options.getCachedConnectPublishGrant, publishTransportUi.getCachedConnectPublishGrant);
     assert.equal(options.clearCachedFineGrainedToken, publishTransportUi.clearCachedFineGrainedToken);
     assert.equal(options.showSyncOverlay, overlayController.show);
     assert.equal(options.describeSummaryEntry, publishSummaryRenderer.describeSummaryEntry);
     assert.equal(options.switchToPatFallbackAndFocusToken, publishTransportUi.switchToPatFallbackAndFocusToken);
+    assert.equal(typeof options.consoleRef.error, 'function');
     calls.push(['factory:flow']);
     return publishFlow;
   },

@@ -255,6 +255,7 @@ const composerPublishService = createComposerPublishService({
   documentRef: composerDocument,
   windowRef: composerWindow,
   t,
+  fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
   scopeKey: scopedEditorStorageKey,
   getActiveSiteRepoConfig: () => getActiveSiteRepoConfig(),
   getTrackedPublishContentRoot: () => getTrackedPublishContentRoot(),
@@ -265,6 +266,7 @@ const composerPublishService = createComposerPublishService({
   applyMode: (mode, options) => applyMode(mode, options),
   showEditorSystemPanel: (mode) => showEditorSystemPanel(mode),
   showToast,
+  consoleRef: console,
   setGitHubCommitInFlight: (value) => {
     gitHubCommitInFlight = !!value;
   }
@@ -381,6 +383,19 @@ const composerPublishStateService = createComposerPublishStateService({
   textWithFallback,
   getRemoteBaselineSite: () => composerStateStore.getRemoteBaseline('site'),
   cloneSiteState,
+  fetchContent: (url, options) => editorRuntime.fetchContent(url, options),
+  getLocationOrigin: () => {
+    const location = editorRuntime.getLocation();
+    return location && location.origin ? location.origin : '';
+  },
+  getDocumentLang: () => {
+    try {
+      return composerDocument && composerDocument.documentElement ? composerDocument.documentElement.lang || '' : '';
+    } catch (_) {
+      return '';
+    }
+  },
+  consoleRef: console,
   setRemoteBaselineSlice: (kind, value) => composerStateStore.setRemoteBaseline(kind, value),
   notifyComposerChange,
   clearDraftStorage,

@@ -17,9 +17,7 @@ export function createComposerPublishService(options = {}) {
   const createPublishSummaryRendererRef = options.createPublishSummaryRenderer || createPublishSummaryRenderer;
   const createComposerPublishFlowRef = options.createComposerPublishFlow || createComposerPublishFlow;
   const createComposerSyncCommitControllerRef = options.createComposerSyncCommitController || createComposerSyncCommitController;
-  const fetchImpl = windowRef && typeof windowRef.fetch === 'function'
-    ? (...args) => windowRef.fetch(...args)
-    : null;
+  const fetchImpl = typeof options.fetchContent === 'function' ? options.fetchContent : null;
 
   const publishSettingsStore = createPublishSettingsStoreRef({
     windowRef,
@@ -111,7 +109,8 @@ export function createComposerPublishService(options = {}) {
     showToast: options.showToast || noop,
     describeSummaryEntry,
     switchToPatFallbackAndFocusToken,
-    setGitHubCommitInFlight: options.setGitHubCommitInFlight || noop
+    setGitHubCommitInFlight: options.setGitHubCommitInFlight || noop,
+    consoleRef: options.consoleRef || null
   });
   const {
     performDirectGithubCommit,

@@ -30,6 +30,7 @@ const composerYamlDraftsPath = resolve(here, '../assets/js/composer-yaml-drafts.
 const composerYamlActionsPath = resolve(here, '../assets/js/composer-yaml-actions.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
+const composerSeoStagingPath = resolve(here, '../assets/js/composer-seo-staging.js');
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
@@ -145,6 +146,7 @@ const composerYamlDraftsSource = readFileSync(composerYamlDraftsPath, 'utf8');
 const composerYamlActionsSource = readFileSync(composerYamlActionsPath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
+const composerSeoStagingSource = readFileSync(composerSeoStagingPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
@@ -1747,7 +1749,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: console,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
   'composer should delegate system/theme staging, status, and initialization through app-service callbacks'
 );
 
@@ -1755,6 +1757,12 @@ assert.match(
   composerSystemThemeBridgeSource,
   /from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*id: 'themes'[\s\S]*function init\(\)[\s\S]*initSystemUpdates\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*initThemeManager\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
   'system/theme bridge should own manager imports, staging providers, and module initialization'
+);
+
+assert.doesNotMatch(
+  composerSystemThemeBridgeSource,
+  /\|\|\s*console\b/,
+  'system/theme bridge should receive logging through explicit composer wiring'
 );
 
 assert.match(
@@ -1771,7 +1779,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => \{[\s\S]*editorRuntime\.getLocation\(\)[\s\S]*getDocumentLang: \(\) => \{[\s\S]*composerDocument\.documentElement[\s\S]*consoleRef: console,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
   'composer should reduce publish persistence to explicit app-service callbacks'
 );
 
@@ -1785,6 +1793,18 @@ assert.match(
   composerPublishStateServiceSource,
   /export function createComposerPublishStateService\(options = \{\}\)[\s\S]*const stagingRegistry = createStagingRegistryRef\(\)[\s\S]*const indexPublishMetadata = createIndexPublishMetadataEnricherRef\([\s\S]*const contentCommitStagingProvider = createContentCommitStagingProviderRef\([\s\S]*const seoStagingProvider = createSeoStagingProviderRef\([\s\S]*const postCommitStateApplier = createPostCommitStateApplierRef\(\{[\s\S]*applyComposerEffectiveSiteConfig: options\.applyComposerEffectiveSiteConfig[\s\S]*stagingRegistry\.registerStagingProvider\(\{[\s\S]*id: 'content'[\s\S]*options\.registerExternalStagingProviders\(stagingRegistry\)[\s\S]*id: 'seo'[\s\S]*function getStagingSummaryEntries\(context = \{\}\)[\s\S]*function applyLocalPostCommitState\(files = \[\]\)[\s\S]*return \{[\s\S]*gatherCommitPayload,[\s\S]*getTrackedPublishContentRoot,[\s\S]*getStagingSummaryEntries,[\s\S]*applyLocalPostCommitState[\s\S]*\};/,
   'publish state service should own staging assembly, state application, and expose only app-level publish state operations'
+);
+
+assert.match(
+  composerPublishStateServiceSource,
+  /createSeoStagingProviderRef\(\{[\s\S]*fetchImpl: typeof options\.fetchContent === 'function' \? options\.fetchContent : null,[\s\S]*getLocationOrigin: options\.getLocationOrigin \|\| \(\(\) => ''\),[\s\S]*getDocumentLang: options\.getDocumentLang \|\| \(\(\) => ''\),[\s\S]*consoleRef: options\.consoleRef \|\| null[\s\S]*\}\);/,
+  'publish state service should pass SEO staging browser effects through explicit app-service callbacks'
+);
+
+assert.doesNotMatch(
+  composerSeoStagingSource,
+  /typeof (?:window|document|fetch)\b|fetchImpl\s*=\s*fetch\b|console\.error|window\.location|document\.documentElement/,
+  'SEO staging should receive location, document language, fetch, and logging through explicit callbacks'
 );
 
 assert.match(
@@ -4313,7 +4333,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishService = createComposerPublishService\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*setGitHubCommitInFlight/,
+  /const composerPublishService = createComposerPublishService\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*consoleRef: console,[\s\S]*setGitHubCommitInFlight/,
   'composer should pass app callbacks into the publish service instead of assembling the publish control plane itself'
 );
 
@@ -4338,7 +4358,7 @@ assert.doesNotMatch(
     composerPublishFlowSource,
     composerSyncCommitControllerSource
   ].join('\n'),
-  /(?:documentRef|windowRef)\s*=\s*(?:document|window)\b|typeof (?:document|window|fetch)\s|fetchImpl:\s*fetch\b/,
+  /(?:documentRef|windowRef)\s*=\s*(?:document|window)\b|typeof (?:document|window|fetch)\s|fetchImpl:\s*fetch\b|windowRef\.fetch|console\.error/,
   'publish service modules should receive browser refs and fetch from the explicit composer runtime instead of discovering globals themselves'
 );
 

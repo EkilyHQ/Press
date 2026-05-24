@@ -94,6 +94,10 @@ const service = createComposerPublishStateService({
     return {};
   },
   getContentRootSafe: () => 'wwwroot',
+  fetchContent: async () => ({ ok: false, text: async () => '' }),
+  getLocationOrigin: () => 'https://example.test',
+  getDocumentLang: () => 'ja',
+  consoleRef: { error: (...args) => calls.push(['console:error', args.length]) },
   registerExternalStagingProviders(externalRegistry) {
     assert.equal(externalRegistry, registry);
     externalRegistry.registerStagingProvider({
@@ -123,6 +127,9 @@ assert.equal(registeredProviders[0].required, true, 'content staging should rema
 assert.equal(typeof received.contentOptions.enrichIndexStateForPublish, 'function');
 assert.equal(received.postCommitOptions.stagingRegistry, registry);
 assert.equal(received.seoOptions.getContentRootSafe(), 'wwwroot');
+assert.equal(typeof received.seoOptions.fetchImpl, 'function');
+assert.equal(received.seoOptions.getLocationOrigin(), 'https://example.test');
+assert.equal(received.seoOptions.getDocumentLang(), 'ja');
 
 const contentProviderFiles = await registeredProviders[0].getCommitFiles({ cleanupUnusedAssets: false });
 assert.equal(contentProviderFiles[0].content, 'ok');

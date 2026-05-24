@@ -77,9 +77,14 @@ function computeSeoContentRoot(siteConfig) {
   return trimmed || 'wwwroot';
 }
 
-function generateSeoRobotsTxt(siteConfig) {
+function resolveOptionValue(value) {
+  return typeof value === 'function' ? value() : value;
+}
+
+function generateSeoRobotsTxt(siteConfig, options = {}) {
   const baseUrl = resolveSiteBaseUrl(siteConfig);
   const contentRoot = computeSeoContentRoot(siteConfig);
+  const locationOrigin = String(resolveOptionValue(options.locationOrigin) || '');
   const deriveBasePath = () => {
     if (!baseUrl) return '/';
     const ensureLeadingAndTrailingSlash = (value) => {
@@ -97,8 +102,8 @@ function generateSeoRobotsTxt(siteConfig) {
         return parsed.pathname || '/';
       } catch (_) {
         try {
-          if (typeof window !== 'undefined' && window.location && window.location.origin) {
-            const parsed = new URL(raw, window.location.origin);
+          if (locationOrigin) {
+            const parsed = new URL(raw, locationOrigin);
             return parsed.pathname || '/';
           }
         } catch (_) {
@@ -204,16 +209,12 @@ function normalizeSeoLangCode(value) {
   return sanitized || '';
 }
 
-function computeSeoHtmlLang(siteConfig) {
+function computeSeoHtmlLang(siteConfig, options = {}) {
   const fromConfig = siteConfig && siteConfig.defaultLanguage;
   const normalized = normalizeSeoLangCode(fromConfig);
   if (normalized) return normalized;
-  try {
-    if (typeof document !== 'undefined' && document.documentElement) {
-      const docLang = normalizeSeoLangCode(document.documentElement.lang);
-      if (docLang) return docLang;
-    }
-  } catch (_) { /* ignore */ }
+  const docLang = normalizeSeoLangCode(resolveOptionValue(options.documentLang));
+  if (docLang) return docLang;
   return 'en';
 }
 
@@ -262,9 +263,9 @@ function buildDefaultIndexHtml(metaBlock, lang) {
   return html;
 }
 
-function generateSeoIndexHtml(siteConfig, baseHtml) {
+function generateSeoIndexHtml(siteConfig, baseHtml, options = {}) {
   const metaBlock = ensureTrailingNewline(generateSeoMetaTags(siteConfig)).trimEnd();
-  const lang = computeSeoHtmlLang(siteConfig);
+  const lang = computeSeoHtmlLang(siteConfig, options);
   let html = '';
   if (baseHtml) {
     html = injectSeoMetaIntoIndexHtml(baseHtml, metaBlock);
@@ -294,7 +295,10 @@ export function createSeoStagingProvider({
   cloneSiteState = (state) => ({ ...(state || {}) }),
   isIndexMetadataObject = (value) => !!value && typeof value === 'object' && !Array.isArray(value),
   getIndexVariantLocation = (value) => typeof value === 'string' ? value : String(value && (value.location || value.path) || ''),
-  fetchImpl = fetch
+  fetchImpl = null,
+  getLocationOrigin = () => '',
+  getDocumentLang = () => '',
+  consoleRef = null
 } = {}) {
   function exportIndexDataForSeo(state) {
     const output = {};
@@ -368,6 +372,7 @@ export function createSeoStagingProvider({
   }
 
   async function fetchExistingSeoFile(path) {
+    if (typeof fetchImpl !== 'function') return '';
     try {
       const response = await fetchImpl(path, { cache: 'no-store' });
       if (!response.ok) return '';
@@ -384,9 +389,13 @@ export function createSeoStagingProvider({
       const tabsState = exportTabsDataForSeo(getStateSlice('tabs'));
       const urls = generateSitemapData(indexState, tabsState, siteState) || [];
       const sitemapXml = ensureTrailingNewline(generateSeoSitemapXml(urls));
-      const robotsTxt = ensureTrailingNewline(generateSeoRobotsTxt(siteState));
+      const robotsTxt = ensureTrailingNewline(generateSeoRobotsTxt(siteState, {
+        locationOrigin: getLocationOrigin
+      }));
       const remoteIndexHtml = await fetchExistingSeoFile('index.html');
-      const indexHtml = generateSeoIndexHtml(siteState, remoteIndexHtml);
+      const indexHtml = generateSeoIndexHtml(siteState, remoteIndexHtml, {
+        documentLang: getDocumentLang
+      });
 
       const candidates = [
         { seoType: 'sitemap', path: 'sitemap.xml', label: 'sitemap.xml', content: sitemapXml },
@@ -411,7 +420,9 @@ export function createSeoStagingProvider({
       }
       return files;
     } catch (err) {
-      console.error('Failed to prepare SEO files for commit', err);
+      if (consoleRef && typeof consoleRef.error === 'function') {
+        consoleRef.error('Failed to prepare SEO files for commit', err);
+      }
       return [];
     }
   }

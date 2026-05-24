@@ -19,6 +19,7 @@ const composerSyncCommitControllerPath = resolve(here, '../assets/js/composer-sy
 const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
 const composerPublishServicePath = resolve(here, '../assets/js/composer-publish-service.js');
 const composerPublishStateServicePath = resolve(here, '../assets/js/composer-publish-state-service.js');
+const composerSyncOverlayPath = resolve(here, '../assets/js/composer-sync-overlay.js');
 const composerPublishSettingsUiPath = resolve(here, '../assets/js/composer-publish-settings-ui.js');
 const composerPublishSummaryPath = resolve(here, '../assets/js/composer-publish-summary.js');
 const composerPublishFlowPath = resolve(here, '../assets/js/composer-publish-flow.js');
@@ -133,6 +134,7 @@ const composerSyncCommitControllerSource = readFileSync(composerSyncCommitContro
 const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
 const composerPublishServiceSource = readFileSync(composerPublishServicePath, 'utf8');
 const composerPublishStateServiceSource = readFileSync(composerPublishStateServicePath, 'utf8');
+const composerSyncOverlaySource = readFileSync(composerSyncOverlayPath, 'utf8');
 const composerPublishSettingsUiSource = readFileSync(composerPublishSettingsUiPath, 'utf8');
 const composerPublishSummarySource = readFileSync(composerPublishSummaryPath, 'utf8');
 const composerPublishFlowSource = readFileSync(composerPublishFlowPath, 'utf8');
@@ -4181,6 +4183,19 @@ assert.match(
   composerPublishServiceSource,
   /export function createComposerPublishService\(options = \{\}\)[\s\S]*const publishSettingsStore = createPublishSettingsStoreRef\([\s\S]*const syncOverlayController = createSyncOverlayControllerRef\([\s\S]*const publishTransportUi = createPublishTransportSettingsUiRef\([\s\S]*const publishSummaryRenderer = createPublishSummaryRendererRef\([\s\S]*const publishFlow = createComposerPublishFlowRef\([\s\S]*syncCommitController = createComposerSyncCommitControllerRef\(/,
   'composer publish service should own settings, overlay, transport UI, summary, publish flow, and Sync commit controller assembly'
+);
+
+assert.doesNotMatch(
+  [
+    composerPublishServiceSource,
+    composerSyncOverlaySource,
+    composerPublishSettingsUiSource,
+    composerPublishSummarySource,
+    composerPublishFlowSource,
+    composerSyncCommitControllerSource
+  ].join('\n'),
+  /(?:documentRef|windowRef)\s*=\s*(?:document|window)\b|typeof (?:document|window|fetch)\s|fetchImpl:\s*fetch\b/,
+  'publish service modules should receive browser refs and fetch from the explicit composer runtime instead of discovering globals themselves'
 );
 
 assert.match(

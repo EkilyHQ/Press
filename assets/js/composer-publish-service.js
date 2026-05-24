@@ -8,8 +8,8 @@ import { createPublishSettingsStore } from './publish/settings-store.js?v=press-
 function noop() {}
 
 export function createComposerPublishService(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
   const createPublishSettingsStoreRef = options.createPublishSettingsStore || createPublishSettingsStore;
   const createSyncOverlayControllerRef = options.createSyncOverlayController || createSyncOverlayController;
@@ -17,6 +17,9 @@ export function createComposerPublishService(options = {}) {
   const createPublishSummaryRendererRef = options.createPublishSummaryRenderer || createPublishSummaryRenderer;
   const createComposerPublishFlowRef = options.createComposerPublishFlow || createComposerPublishFlow;
   const createComposerSyncCommitControllerRef = options.createComposerSyncCommitController || createComposerSyncCommitController;
+  const fetchImpl = windowRef && typeof windowRef.fetch === 'function'
+    ? (...args) => windowRef.fetch(...args)
+    : null;
 
   const publishSettingsStore = createPublishSettingsStoreRef({
     windowRef,
@@ -90,6 +93,7 @@ export function createComposerPublishService(options = {}) {
   const publishFlow = createComposerPublishFlowRef({
     windowRef,
     documentRef,
+    fetchImpl,
     t,
     getActiveSiteRepoConfig: options.getActiveSiteRepoConfig || (() => ({})),
     getTrackedPublishContentRoot: options.getTrackedPublishContentRoot || (() => 'wwwroot'),

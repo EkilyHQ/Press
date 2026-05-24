@@ -6,8 +6,8 @@ import {
 function noop() {}
 
 export function createComposerSyncCommitController({
-  documentRef = typeof document !== 'undefined' ? document : null,
-  windowRef = typeof window !== 'undefined' ? window : null,
+  documentRef = null,
+  windowRef = null,
   t = (key) => key,
   getCurrentMode = () => null,
   computeUnsyncedSummary = () => [],

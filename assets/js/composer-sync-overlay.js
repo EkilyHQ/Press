@@ -1,6 +1,6 @@
 export function createSyncOverlayController({
-  documentRef = document,
-  windowRef = window,
+  documentRef = null,
+  windowRef = null,
   translate = (key) => key
 } = {}) {
   let syncOverlayElements = null;
@@ -10,6 +10,24 @@ export function createSyncOverlayController({
   const t = (key) => {
     const value = typeof translate === 'function' ? translate(key) : '';
     return value || key;
+  };
+  const requestFrame = (handler) => {
+    if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
+      return windowRef.requestAnimationFrame(handler);
+    }
+    if (typeof handler === 'function') handler();
+    return 0;
+  };
+  const setTimer = (handler, delay) => (
+    windowRef && typeof windowRef.setTimeout === 'function'
+      ? windowRef.setTimeout(handler, delay)
+      : null
+  );
+  const clearTimer = (timerId) => {
+    if (!timerId) return;
+    if (windowRef && typeof windowRef.clearTimeout === 'function') {
+      windowRef.clearTimeout(timerId);
+    }
   };
 
   function ensureElements() {
@@ -145,8 +163,7 @@ export function createSyncOverlayController({
         }
       } catch (_) {}
     };
-    try { windowRef.requestAnimationFrame(focusOverlay); }
-    catch (_) { focusOverlay(); }
+    requestFrame(focusOverlay);
   }
 
   function hide() {
@@ -185,7 +202,7 @@ export function createSyncOverlayController({
       if (aborted) return;
       aborted = true;
       if (timer) {
-        windowRef.clearTimeout(timer);
+        clearTimer(timer);
         timer = null;
       }
       hide();
@@ -200,8 +217,8 @@ export function createSyncOverlayController({
     const scheduleNext = (delay) => {
       if (aborted) return;
       const ms = Math.max(1200, Number(delay) || 0);
-      if (timer) windowRef.clearTimeout(timer);
-      timer = windowRef.setTimeout(runFetch, ms);
+      if (timer) clearTimer(timer);
+      timer = setTimer(runFetch, ms);
     };
 
     const runFetch = async () => {

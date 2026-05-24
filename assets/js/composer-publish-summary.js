@@ -1,6 +1,6 @@
 export function createPublishSummaryRenderer({
-  documentRef = document,
-  windowRef = window,
+  documentRef = null,
+  windowRef = null,
   t = (key) => key
 } = {}) {
   function describeSummaryEntry(entry) {
@@ -52,6 +52,7 @@ export function createPublishSummaryRenderer({
 
   function openGithubCommitFilePreview(file, triggerEl) {
     if (!file) return;
+    if (!documentRef || typeof documentRef.createElement !== 'function') return;
 
     const previewModal = documentRef.createElement('div');
     previewModal.className = 'press-modal github-preview-modal';
@@ -190,7 +191,9 @@ export function createPublishSummaryRenderer({
   }
 
   function appendGithubCommitSummary(summaryBlock, commitFiles = [], seoFiles = [], summaryEntries = []) {
+    if (!summaryBlock) return;
     summaryBlock.innerHTML = '';
+    if (!documentRef || typeof documentRef.createElement !== 'function') return;
     const files = Array.isArray(commitFiles) ? commitFiles : [];
     if (files.length) {
       const systemFilesGroup = files.filter((file) => file && file.kind === 'system');

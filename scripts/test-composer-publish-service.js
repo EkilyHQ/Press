@@ -3,7 +3,12 @@ import { createComposerPublishService } from '../assets/js/composer-publish-serv
 
 const calls = [];
 const documentRef = { id: 'document' };
-const windowRef = { id: 'window' };
+const windowRef = {
+  id: 'window',
+  fetch(...args) {
+    calls.push(['window:fetch', args.length]);
+  }
+};
 const publishSettingsStore = { id: 'settings-store' };
 const overlayController = {
   show(options) {
@@ -137,6 +142,7 @@ const service = createComposerPublishService({
     return publishSummaryRenderer;
   },
   createComposerPublishFlow(options) {
+    assert.equal(typeof options.fetchImpl, 'function');
     assert.equal(options.getCachedConnectPublishGrant, publishTransportUi.getCachedConnectPublishGrant);
     assert.equal(options.clearCachedFineGrainedToken, publishTransportUi.clearCachedFineGrainedToken);
     assert.equal(options.showSyncOverlay, overlayController.show);

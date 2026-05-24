@@ -2,8 +2,9 @@ import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publ
 import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.50';
 
 export function createComposerPublishFlow({
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
+  fetchImpl = null,
   t = (key) => key,
   getActiveSiteRepoConfig = () => ({}),
   getTrackedPublishContentRoot = () => 'wwwroot',
@@ -23,10 +24,14 @@ export function createComposerPublishFlow({
   switchToPatFallbackAndFocusToken = () => {},
   setGitHubCommitInFlight = () => {}
 } = {}) {
+  const fetchRef = typeof fetchImpl === 'function'
+    ? fetchImpl
+    : (windowRef && typeof windowRef.fetch === 'function' ? windowRef.fetch.bind(windowRef) : null);
+
   async function waitForRemotePropagation(files = []) {
     return waitForPublishedFiles(files, {
       windowRef,
-      fetchImpl: fetch,
+      fetchImpl: fetchRef,
       setStatus: setSyncOverlayStatus,
       setCancelHandler: setSyncOverlayCancelHandler
     });

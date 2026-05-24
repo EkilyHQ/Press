@@ -823,6 +823,18 @@ assert.match(
 
 assert.match(
   source,
+  /const composerSiteSettingsUi = createComposerSiteSettingsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*cssRef: editorRuntime\.getCss\(\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
+  'composer should inject Site Settings document, window, frame, timer, fetch, style, performance, and CSS access through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /options\.(?:documentRef|windowRef|performanceRef|cssRef)\s*\|\|\s*\(typeof globalThis|const\s+(?:document|window|performance|CSS)\s*=|typeof (?:document|window|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|fetch|CSS|performance)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|fetch)\s*\(/m,
+  'Site Settings UI should receive browser refs, frames, timers, style, CSS, and fetch through explicit runtime wiring instead of rediscovering globals'
+);
+
+assert.match(
+  source,
   /from '\.\/composer-markdown-assets\.js\?v=[\w.-]+'/,
   'composer should cache-bust the extracted Markdown asset manager boundary'
 );
@@ -5397,7 +5409,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const handle = document\.createElement\('span'\);[\s\S]*handle\.setAttribute\('role', 'button'\);[\s\S]*handle\.className = 'cs-link-drag-handle';[\s\S]*handle\.setAttribute\('aria-label', t\('editor\.composer\.site\.reorderLink'\)\);[\s\S]*handle\.addEventListener\('pointerdown',/,
+  /const handle = documentRef\.createElement\('span'\);[\s\S]*handle\.setAttribute\('role', 'button'\);[\s\S]*handle\.className = 'cs-link-drag-handle';[\s\S]*handle\.setAttribute\('aria-label', t\('editor\.composer\.site\.reorderLink'\)\);[\s\S]*handle\.addEventListener\('pointerdown',/,
   'profile links should render a standalone pointer drag handle for reordering'
 );
 
@@ -5409,7 +5421,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const animateLinkRows = \(callback\) => \{[\s\S]*getBoundingClientRect\(\)[\s\S]*row\.style\.transform = `translate3d\(0, \$\{previous\.top - next\.top\}px, 0\)`[\s\S]*requestAnimationFrame/,
+  /const animateLinkRows = \(callback\) => \{[\s\S]*getBoundingClientRect\(\)[\s\S]*row\.style\.transform = `translate3d\(0, \$\{previous\.top - next\.top\}px, 0\)`[\s\S]*requestFrame/,
   'profile link drag should animate non-dragged rows into their preview positions'
 );
 
@@ -5727,7 +5739,7 @@ assert.doesNotMatch(
 
 assert.match(
   siteSettingsSource,
-  /const resolveSiteScrollContainer = \(\) => \{[\s\S]*root \? root\.querySelector\('\.cs-viewport'\)[\s\S]*canOwnScroll[\s\S]*return viewport;[\s\S]*root\.closest\('\.editor-modal-body'\)[\s\S]*return modalBody;[\s\S]*return window;[\s\S]*\};/,
+  /const resolveSiteScrollContainer = \(\) => \{[\s\S]*root \? root\.querySelector\('\.cs-viewport'\)[\s\S]*canOwnScroll[\s\S]*return viewport;[\s\S]*root\.closest\('\.editor-modal-body'\)[\s\S]*return modalBody;[\s\S]*return windowRef;[\s\S]*\};/,
   'site settings scrolling should prefer the internal content viewport before falling back to the modal body'
 );
 
@@ -5775,7 +5787,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const renderThemeGrid = \(section\) => \{[\s\S]*fetch\('assets\/themes\/packs\.json', \{ cache: 'no-store' \}\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
+  /const renderThemeGrid = \(section\) => \{[\s\S]*fetchContent\('assets\/themes\/packs\.json', \{ cache: 'no-store' \}\)[\s\S]*applyThemePackOptions\(fallbackThemePacks\);/,
   'Theme compact grid should preserve dynamic theme pack loading with fallback options'
 );
 

@@ -22,7 +22,7 @@ const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
 const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 
-const previewRuntime = createEditorPreviewAppRuntime();
+export function createEditorPreviewRuntimeController(previewRuntime = createEditorPreviewAppRuntime()) {
 
 function postToParent(payload) {
   previewRuntime.postToParent(payload);
@@ -407,24 +407,34 @@ async function renderPreview(payload = {}) {
   }
 }
 
-previewRuntime.onRenderMessage((event) => {
-  if (!previewRuntime.isTrustedMessageEvent(event)) return;
-  const payload = event.data && typeof event.data === 'object' ? event.data : {};
-  if (payload.type !== RENDER_MESSAGE) return;
-  const requestId = beginPreviewRender(payload);
-  renderPreview(payload).catch((err) => {
-    if (!isCurrentPreviewRender(requestId)) return;
-    postToParent({
-      type: ERROR_MESSAGE,
-      requestId,
-      themePack: payload.themePack || '',
-      message: err && err.message ? err.message : 'Preview failed.'
+  function start() {
+    previewRuntime.onRenderMessage((event) => {
+      if (!previewRuntime.isTrustedMessageEvent(event)) return;
+      const payload = event.data && typeof event.data === 'object' ? event.data : {};
+      if (payload.type !== RENDER_MESSAGE) return;
+      const requestId = beginPreviewRender(payload);
+      renderPreview(payload).catch((err) => {
+        if (!isCurrentPreviewRender(requestId)) return;
+        postToParent({
+          type: ERROR_MESSAGE,
+          requestId,
+          themePack: payload.themePack || '',
+          message: err && err.message ? err.message : 'Preview failed.'
+        });
+      });
     });
-  });
-});
 
-initI18n()
-  .catch(() => {})
-  .finally(() => {
-    postToParent({ type: READY_MESSAGE });
-  });
+    initI18n()
+      .catch(() => {})
+      .finally(() => {
+        postToParent({ type: READY_MESSAGE });
+      });
+  }
+
+  return {
+    renderPreview,
+    start
+  };
+}
+
+createEditorPreviewRuntimeController().start();

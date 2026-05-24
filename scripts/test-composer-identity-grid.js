@@ -4454,6 +4454,18 @@ assert.match(
 );
 
 assert.match(
+  editorPreviewRuntimeSource,
+  /export function createEditorPreviewRuntimeController\(previewRuntime = createEditorPreviewAppRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
+  'editor preview runtime should expose an explicit controller boundary before browser startup'
+);
+
+assert.doesNotMatch(
+  editorPreviewRuntimeSource,
+  /const previewRuntime = createEditorPreviewAppRuntime\(\)/,
+  'editor preview runtime should not create a module-level preview runtime singleton'
+);
+
+assert.match(
   editorPreviewAppRuntimeSource,
   /let activeThemePack = '';[\s\S]*let latestRenderRequestId = 0;[\s\S]*function beginRender\(requestId\)[\s\S]*function isCurrentRender\(requestId\)[\s\S]*function shouldResetThemePack\(pack\)[\s\S]*function setActiveThemePack\(pack\)[\s\S]*return \{[\s\S]*beginRender,[\s\S]*isCurrentRender,[\s\S]*shouldResetThemePack,[\s\S]*setActiveThemePack,/,
   'editor preview app runtime should own active theme and render request state'

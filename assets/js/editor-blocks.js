@@ -133,8 +133,9 @@ function normalizeInlineDomSession(inlineDomSession) {
     : fallbackInlineDomSession;
 }
 
-function createCaretSession(selectionSession = null) {
+function createCaretSession(selectionSession = null, documentRef = null) {
   return createEditorBlocksCaretSession({
+    documentRef,
     selectionSession: normalizeSelectionSession(selectionSession),
     nodeContains,
     serializeInlineDom,
@@ -618,7 +619,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     windowRef: blocksWindow
   });
   const inlineDomSession = createInlineDomSession(selectionSession, blocksDocument);
-  const caretSession = createCaretSession(selectionSession);
+  const caretSession = createCaretSession(selectionSession, blocksDocument);
   const createBlockTypeIconWithRuntime = (blockType) => createBlockTypeIcon(blockType, runtime);
 
   root.classList.add('markdown-blocks-shell');

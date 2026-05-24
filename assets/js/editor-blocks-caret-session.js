@@ -32,12 +32,31 @@ function caretBoundaryDistance(rect, boundaryX, x, y) {
 }
 
 export function createEditorBlocksCaretSession({
+  documentRef = null,
   selectionSession = null,
   nodeContains = defaultContains,
   serializeInlineDom = defaultSerializeInlineDom,
   editableVisibleText = defaultEditableVisibleText
 } = {}) {
   const selectionTools = normalizeSelectionSession(selectionSession);
+
+  const createSessionElement = (tagName) => {
+    try {
+      return documentRef && typeof documentRef.createElement === 'function'
+        ? documentRef.createElement(tagName)
+        : null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const getSessionBody = () => {
+    try {
+      return documentRef && documentRef.body ? documentRef.body : null;
+    } catch (_) {
+      return null;
+    }
+  };
 
   function textOffsetForDomPosition(root, container, offset) {
     let total = 0;
@@ -133,7 +152,8 @@ export function createEditorBlocksCaretSession({
       if (rect && (rect.width || rect.height)) return rect;
       const restoreRange = range.cloneRange();
       const markerRange = range.cloneRange();
-      const marker = el.ownerDocument.createElement('span');
+      const marker = createSessionElement('span');
+      if (!marker) return null;
       marker.textContent = '\u200b';
       markerRange.insertNode(marker);
       const markerRect = marker.getBoundingClientRect();
@@ -316,14 +336,15 @@ export function createEditorBlocksCaretSession({
 
   function textareaTextOffsetDetailsFromPoint(area, x, y, limit = CARET_POINT_MEASURE_LIMIT) {
     const value = String(area && area.value != null ? area.value : '');
-    const body = area && area.ownerDocument ? area.ownerDocument.body : null;
+    const body = getSessionBody();
     if (!area || !body) return null;
     if (!value) return { offset: 0, distance: 0, insideTextRect: false, textRectCount: 0 };
     if (value.length > limit) return null;
     const rect = area.getBoundingClientRect ? area.getBoundingClientRect() : null;
     if (!rect) return null;
     const computed = selectionTools.getComputedStyle(area);
-    const mirror = area.ownerDocument.createElement('div');
+    const mirror = createSessionElement('div');
+    if (!mirror) return null;
     mirror.setAttribute('aria-hidden', 'true');
     mirror.style.position = 'fixed';
     mirror.style.left = `${rect.left}px`;

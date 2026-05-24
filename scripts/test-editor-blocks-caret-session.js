@@ -131,6 +131,53 @@ function createSelectionSession(root, rangeRef = { value: null }) {
   };
 }
 
+function createMirrorDocument() {
+  const appended = [];
+  const doc = {
+    appended,
+    body: {
+      appendChild(node) {
+        appended.push(node);
+        node.parentElement = this;
+        return node;
+      }
+    },
+    createElement(tagName) {
+      const node = elementNode(tagName);
+      node.style = {};
+      node.attributes = {};
+      node.setAttribute = (name, value) => {
+        node.attributes[name] = String(value);
+      };
+      node.remove = () => {
+        node.removed = true;
+      };
+      Object.defineProperty(node, 'textContent', {
+        get() {
+          return node._textContent || '';
+        },
+        set(value) {
+          const text = String(value == null ? '' : value);
+          node._textContent = text;
+          const child = textNode(text);
+          child.rects = Array.from(text, (_, index) => ({
+            left: index * 10,
+            right: (index + 1) * 10,
+            top: 0,
+            bottom: 10,
+            width: 10,
+            height: 10
+          }));
+          child.parentElement = node;
+          node.childNodes = [child];
+        }
+      });
+      return node;
+    }
+  };
+  return doc;
+}
+
 const first = textNode('Hi');
 const second = textNode('there');
 const math = elementNode('span', [], {
@@ -213,6 +260,34 @@ const details = measuredSession.measuredTextOffsetDetailsFromPoint(measuredRoot,
 assert.equal(details.offset, 1);
 assert.equal(details.insideTextRect, true);
 assert.equal(details.textRectCount, 2);
+
+const mirrorDocument = createMirrorDocument();
+const textareaMeasureSession = createEditorBlocksCaretSession({
+  documentRef: mirrorDocument,
+  selectionSession: createSelectionSession(null, { value: null })
+});
+const textareaMeasureArea = {
+  value: 'ab',
+  ownerDocument: {
+    body: {},
+    createElement() {
+      throw new Error('ownerDocument.createElement should not be used');
+    }
+  },
+  getBoundingClientRect() {
+    return { left: 0, top: 0, width: 40, height: 20 };
+  }
+};
+const textareaDetails = textareaMeasureSession.textareaTextOffsetDetailsFromPoint(
+  textareaMeasureArea,
+  11,
+  5,
+  CARET_POINT_MEASURE_LIMIT
+);
+assert.equal(textareaDetails.offset, 1);
+assert.equal(textareaDetails.insideTextRect, true);
+assert.equal(mirrorDocument.appended.length, 1);
+assert.equal(mirrorDocument.appended[0].removed, true);
 
 const textarea = {
   value: 'top\nbottom',

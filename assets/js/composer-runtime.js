@@ -42,11 +42,15 @@ export function createComposerRuntime(options = {}) {
   }
 
   function getLocation() {
-    try {
-      return runtime.windowRef && runtime.windowRef.location ? runtime.windowRef.location : null;
-    } catch (_) {
-      return null;
-    }
+    return runtime.browser.getLocation();
+  }
+
+  function getLocationOrigin() {
+    return runtime.browser.getLocationOrigin();
+  }
+
+  function getLocationHref() {
+    return runtime.browser.getLocationHref();
   }
 
   function getContentRoot() {
@@ -88,14 +92,7 @@ export function createComposerRuntime(options = {}) {
   }
 
   function populateEditorLanguageSelect() {
-    try {
-      const populate = runtime.globals.get(POPULATE_EDITOR_LANGUAGE_SELECT_GLOBAL);
-      if (typeof populate !== 'function') return false;
-      populate.call(runtime.windowRef);
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return runtime.globals.call(POPULATE_EDITOR_LANGUAGE_SELECT_GLOBAL);
   }
 
   function requestFrame(handler) {
@@ -182,8 +179,7 @@ export function createComposerRuntime(options = {}) {
       const clipboard = navigatorRef && navigatorRef.clipboard;
       const canUseClipboard = clipboard
         && typeof clipboard.writeText === 'function'
-        && runtime.windowRef
-        && runtime.windowRef.isSecureContext;
+        && runtime.browser.isSecureContext();
       if (canUseClipboard) {
         await clipboard.writeText(value);
         return true;
@@ -225,6 +221,8 @@ export function createComposerRuntime(options = {}) {
     ...runtime,
     onDocumentReady,
     getLocation,
+    getLocationOrigin,
+    getLocationHref,
     getContentRoot,
     setContentRoot,
     getSiteRepo,

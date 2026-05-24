@@ -174,6 +174,16 @@ function createRuntimeGlobals(windowRef) {
   return {
     get,
     set,
+    call(name, ...args) {
+      try {
+        const value = get(name);
+        if (typeof value !== 'function') return false;
+        value.apply(windowRef || null, args);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    },
     getObject,
     getString(name, fallback = '') {
       const value = get(name);
@@ -273,20 +283,42 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
-  function getLocationOrigin() {
+  function isSecureContext() {
     try {
-      return (windowRef && windowRef.location && windowRef.location.origin) || '';
+      return !!(windowRef && windowRef.isSecureContext);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function readLocationProperty(name) {
+    try {
+      return (windowRef && windowRef.location && windowRef.location[name]) || '';
     } catch (_) {
       return '';
     }
   }
 
+  function getLocation() {
+    const snapshot = {
+      href: String(readLocationProperty('href') || ''),
+      origin: String(readLocationProperty('origin') || ''),
+      protocol: String(readLocationProperty('protocol') || ''),
+      host: String(readLocationProperty('host') || ''),
+      hostname: String(readLocationProperty('hostname') || ''),
+      pathname: String(readLocationProperty('pathname') || ''),
+      search: String(readLocationProperty('search') || ''),
+      hash: String(readLocationProperty('hash') || '')
+    };
+    return Object.values(snapshot).some(Boolean) ? snapshot : null;
+  }
+
+  function getLocationOrigin() {
+    return readLocationProperty('origin');
+  }
+
   function getLocationHref() {
-    try {
-      return (windowRef && windowRef.location && windowRef.location.href) || '';
-    } catch (_) {
-      return '';
-    }
+    return readLocationProperty('href');
   }
 
   function postMessage(targetWindow, payload, targetOrigin = getLocationOrigin()) {
@@ -512,6 +544,8 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     createMouseEvent,
     getFileReader,
     getNavigator,
+    isSecureContext,
+    getLocation,
     getLocationOrigin,
     getLocationHref,
     postMessage,

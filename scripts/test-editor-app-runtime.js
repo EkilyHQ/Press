@@ -108,6 +108,9 @@ class FakeResizeObserver {}
   };
   windowRef.__press_site_repo = { owner: 'EkilyHQ', name: 'Press' };
   windowRef.__press_primary_editor = { setView() {} };
+  windowRef.__press_call_target = function callTarget(...args) {
+    this.__press_call_args = args;
+  };
   const timers = [];
   const fetchCalls = [];
   const alerts = [];
@@ -117,7 +120,17 @@ class FakeResizeObserver {}
   const messages = [];
   const scrolls = [];
   const openedWindows = [];
-  windowRef.location = { origin: 'https://example.test', href: 'https://example.test/editor.html' };
+  windowRef.location = {
+    origin: 'https://example.test',
+    href: 'https://example.test/editor.html?mode=sync#panel',
+    protocol: 'https:',
+    host: 'example.test',
+    hostname: 'example.test',
+    pathname: '/editor.html',
+    search: '?mode=sync',
+    hash: '#panel'
+  };
+  windowRef.isSecureContext = true;
   windowRef.innerHeight = 900;
   windowRef.innerWidth = 1200;
   windowRef.requestAnimationFrame = (fn) => {
@@ -181,6 +194,9 @@ class FakeResizeObserver {}
   assert.equal(runtime.globals.getPrimaryEditorApi(), windowRef.__press_primary_editor);
   assert.equal(runtime.globals.setString('__press_editor_base_dir', 'wwwroot/'), true);
   assert.equal(runtime.globals.getString('__press_editor_base_dir'), 'wwwroot/');
+  assert.equal(runtime.globals.call('__press_call_target', 'a', 'b'), true);
+  assert.deepEqual(windowRef.__press_call_args, ['a', 'b']);
+  assert.equal(runtime.globals.call('__press_missing_call_target'), false);
 
   assert.equal(runtime.browser.getElementById('previewFrame').id, 'previewFrame');
   assert.equal(runtime.browser.querySelector('.view-toggle').selector, '.view-toggle');
@@ -204,8 +220,20 @@ class FakeResizeObserver {}
   assert.equal(mouseEvent.bubbles, true);
   assert.equal(runtime.browser.getFileReader(), FakeFileReader);
   assert.equal(runtime.browser.getNavigator(), windowRef.navigator);
+  assert.equal(runtime.browser.isSecureContext(), true);
+  assert.deepEqual(runtime.browser.getLocation(), {
+    href: 'https://example.test/editor.html?mode=sync#panel',
+    origin: 'https://example.test',
+    protocol: 'https:',
+    host: 'example.test',
+    hostname: 'example.test',
+    pathname: '/editor.html',
+    search: '?mode=sync',
+    hash: '#panel'
+  });
+  assert.notEqual(runtime.browser.getLocation(), windowRef.location);
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
-  assert.equal(runtime.browser.getLocationHref(), 'https://example.test/editor.html');
+  assert.equal(runtime.browser.getLocationHref(), 'https://example.test/editor.html?mode=sync#panel');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);
   assert.deepEqual(runtime.browser.getWindowScroll(), { x: 12, y: 345 });
@@ -270,6 +298,7 @@ class FakeResizeObserver {}
     'clearTimeout',
     'getComputedStyle',
     'open',
+    'location',
     'console'
   ];
   const originals = new Map();
@@ -303,6 +332,10 @@ class FakeResizeObserver {}
       ambientCalls.push(['open', args]);
       return { ambient: true };
     };
+    globalThis.location = {
+      href: 'https://ambient.test/editor.html',
+      origin: 'https://ambient.test'
+    };
     globalThis.console = {
       warn: (...args) => ambientCalls.push(['console.warn', args]),
       error: (...args) => ambientCalls.push(['console.error', args])
@@ -318,6 +351,10 @@ class FakeResizeObserver {}
     runtime.browser.clearTimer(1002);
     assert.equal(runtime.browser.getComputedStyle({ nodeType: 1 }), null);
     assert.equal(runtime.browser.openWindow('/ambient', '_blank'), null);
+    assert.equal(runtime.browser.isSecureContext(), false);
+    assert.equal(runtime.browser.getLocation(), null);
+    assert.equal(runtime.browser.getLocationOrigin(), '');
+    assert.equal(runtime.browser.getLocationHref(), '');
     assert.equal(runtime.browser.warn('ambient'), false);
     assert.equal(runtime.browser.error('ambient'), false);
     assert.deepEqual(

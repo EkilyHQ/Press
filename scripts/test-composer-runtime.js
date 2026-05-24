@@ -25,7 +25,16 @@ const cssRef = { escape: (value) => `escaped:${value}` };
 class TestResizeObserver {}
 const windowRef = {
   __press_content_root: 'docs',
-  location: { href: 'https://example.test/index_editor.html' },
+  location: {
+    href: 'https://example.test/index_editor.html?mode=sync#site',
+    origin: 'https://example.test',
+    protocol: 'https:',
+    host: 'example.test',
+    hostname: 'example.test',
+    pathname: '/index_editor.html',
+    search: '?mode=sync',
+    hash: '#site'
+  },
   localStorage: new Map(),
   innerHeight: 740,
   innerWidth: 1180,
@@ -138,6 +147,19 @@ const documentRef = {
 const runtime = createComposerRuntime({ windowRef, documentRef, navigatorRef });
 
 assert.equal(runtime.getContentRoot(), 'docs');
+assert.deepEqual(runtime.getLocation(), {
+  href: 'https://example.test/index_editor.html?mode=sync#site',
+  origin: 'https://example.test',
+  protocol: 'https:',
+  host: 'example.test',
+  hostname: 'example.test',
+  pathname: '/index_editor.html',
+  search: '?mode=sync',
+  hash: '#site'
+});
+assert.notEqual(runtime.getLocation(), windowRef.location);
+assert.equal(runtime.getLocationOrigin(), 'https://example.test');
+assert.equal(runtime.getLocationHref(), 'https://example.test/index_editor.html?mode=sync#site');
 assert.equal(runtime.setContentRoot('/wwwroot/'), 'wwwroot');
 assert.equal(windowRef.__press_content_root, 'wwwroot');
 
@@ -245,6 +267,7 @@ const noBrowserEffectsRuntime = createComposerRuntime({
     confirm: undefined,
     console: undefined,
     open: undefined,
+    location: undefined,
     performance: undefined,
     CSS: undefined,
     ResizeObserver: undefined
@@ -276,6 +299,21 @@ assert.equal(
   noBrowserEffectsRuntime.openWindow('/missing', '_blank'),
   null,
   'composer runtime should not fall back to ambient open outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.getLocation(),
+  null,
+  'composer runtime should not fall back to ambient location outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.getLocationOrigin(),
+  '',
+  'composer runtime should not fall back to ambient location origin outside the app runtime browser facade'
+);
+assert.equal(
+  noBrowserEffectsRuntime.getLocationHref(),
+  '',
+  'composer runtime should not fall back to ambient location href outside the app runtime browser facade'
 );
 assert.equal(
   noBrowserEffectsRuntime.getPerformance(),

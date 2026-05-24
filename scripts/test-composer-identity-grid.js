@@ -649,10 +649,22 @@ assert.match(
   'blocks runtime should own global listener, DOM factory, clipboard, timer, viewport, and translation adapters'
 );
 
+assert.match(
+  editorBlocksRuntimeSource,
+  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*const appRuntime = createEditorAppRuntime\(\{ documentRef, windowRef, storage: null \}\)[\s\S]*appRuntime\.browser\.writeClipboardText\(text, navigatorRef\)/,
+  'blocks runtime should delegate clipboard browser details to the shared editor app runtime facade'
+);
+
 assert.doesNotMatch(
   editorBlocksRuntimeSource,
   /documentRef\s*=\s*typeof document|windowRef\s*=\s*typeof window|navigatorRef\s*=\s*typeof navigator|typeof (?:document|window|navigator|requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
   'blocks runtime should use injected refs instead of ambient browser global fallbacks'
+);
+
+assert.doesNotMatch(
+  editorBlocksRuntimeSource,
+  /navigatorRef && navigatorRef\.clipboard|windowRef && windowRef\.isSecureContext|runtime\.browser\.isSecureContext\(/,
+  'blocks runtime should not reimplement clipboard or secure-context browser checks outside the shared app runtime'
 );
 
 assert.doesNotMatch(

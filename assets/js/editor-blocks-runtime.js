@@ -1,3 +1,5 @@
+import { createEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+
 function noop() {}
 
 function safeCall(fn, fallback = null) {
@@ -10,6 +12,8 @@ export function createEditorBlocksRuntime({
   windowRef = null,
   navigatorRef = windowRef && windowRef.navigator ? windowRef.navigator : null
 } = {}) {
+  const appRuntime = createEditorAppRuntime({ documentRef, windowRef, storage: null });
+
   function on(target, type, handler, options) {
     try {
       if (!target || typeof target.addEventListener !== 'function') return noop;
@@ -52,15 +56,7 @@ export function createEditorBlocksRuntime({
   }
 
   async function writeClipboardText(text) {
-    try {
-      const clipboard = navigatorRef && navigatorRef.clipboard;
-      if (!clipboard || typeof clipboard.writeText !== 'function') return false;
-      if (!windowRef || !windowRef.isSecureContext) return false;
-      await clipboard.writeText(String(text == null ? '' : text));
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return appRuntime.browser.writeClipboardText(text, navigatorRef);
   }
 
   function translate(key, fallback) {

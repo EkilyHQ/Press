@@ -128,6 +128,49 @@ function installAmbientGlobal(name, value) {
 }
 
 {
+  const appended = [];
+  const removed = [];
+  const commands = [];
+  const documentRef = {
+    body: {
+      appendChild(node) {
+        appended.push(node);
+      },
+      removeChild(node) {
+        removed.push(node);
+      }
+    },
+    createElement(tagName) {
+      return {
+        tagName: String(tagName || '').toUpperCase(),
+        style: {},
+        value: '',
+        focused: false,
+        selected: false,
+        focus() { this.focused = true; },
+        select() { this.selected = true; }
+      };
+    },
+    execCommand(command) {
+      commands.push(command);
+      return command === 'copy';
+    }
+  };
+  const runtime = createEditorBlocksRuntime({
+    documentRef,
+    windowRef: { isSecureContext: false },
+    navigatorRef: { clipboard: { writeText() { throw new Error('should not write insecure clipboard'); } } }
+  });
+  assert.equal(await runtime.writeClipboardText('legacy blocks copy'), true);
+  assert.equal(appended.length, 1);
+  assert.equal(removed[0], appended[0]);
+  assert.equal(appended[0].value, 'legacy blocks copy');
+  assert.equal(appended[0].focused, true);
+  assert.equal(appended[0].selected, true);
+  assert.deepEqual(commands, ['copy']);
+}
+
+{
   const writes = [];
   const windowRef = {
     isSecureContext: true,

@@ -1306,7 +1306,6 @@ function getActiveSiteRepoConfig() {
 
 const composerOrderDiffUi = createComposerOrderDiffUi({
   documentRef: composerDocument,
-  windowRef: composerWindow,
   tComposer,
   tComposerDiff,
   truncateText,
@@ -1334,7 +1333,8 @@ const composerOrderDiffUi = createComposerOrderDiffUi({
   addDocumentListener: (type, handler, options) => editorRuntime.events.onDocument(type, handler, options),
   matchesMedia: (query) => editorRuntime.matchesMedia(query),
   getComputedStyleRef: (element) => editorRuntime.getComputedStyle(element),
-  ResizeObserverRef: editorRuntime.getResizeObserver()
+  ResizeObserverRef: editorRuntime.getResizeObserver(),
+  consoleRef: console
 });
 const {
   openComposerDiffModal,

@@ -8,7 +8,6 @@ function normalizeOrderKind(kind) {
 
 export function createComposerOrderDiffUi(options = {}) {
   const documentRef = options.documentRef || null;
-  const windowRef = options.windowRef || null;
   const tComposer = typeof options.tComposer === 'function' ? options.tComposer : (suffix) => suffix;
   const tComposerDiff = typeof options.tComposerDiff === 'function' ? options.tComposerDiff : (suffix) => suffix;
   const truncateText = typeof options.truncateText === 'function' ? options.truncateText : (value) => String(value || '');
@@ -32,76 +31,38 @@ export function createComposerOrderDiffUi(options = {}) {
   const getSlideDurations = typeof options.getSlideDurations === 'function' ? options.getSlideDurations : () => ({ open: 420, close: 360 });
   const setTimeoutRef = typeof options.setTimeoutRef === 'function'
     ? options.setTimeoutRef
-    : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
-      ? windowRef.setTimeout(handler, delay)
-      : null);
+    : () => null;
   const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
     ? options.clearTimeoutRef
-    : (id) => {
-      if (id == null) return;
-      if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
-    };
+    : noop;
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
     ? options.requestAnimationFrameRef
-    : (handler) => (windowRef && typeof windowRef.requestAnimationFrame === 'function'
-      ? windowRef.requestAnimationFrame(handler)
-      : setTimeoutRef(handler, 0));
+    : () => null;
   const cancelAnimationFrameRef = typeof options.cancelAnimationFrameRef === 'function'
     ? options.cancelAnimationFrameRef
-    : (id) => {
-      if (id == null) return;
-      if (windowRef && typeof windowRef.cancelAnimationFrame === 'function') windowRef.cancelAnimationFrame(id);
-      else clearTimeoutRef(id);
-    };
+    : noop;
   const addWindowListener = typeof options.addWindowListener === 'function'
     ? options.addWindowListener
-    : (type, handler, listenerOptions) => {
-      try {
-        if (!windowRef || typeof windowRef.addEventListener !== 'function') return noop;
-        windowRef.addEventListener(type, handler, listenerOptions);
-        return () => {
-          try { windowRef.removeEventListener(type, handler, listenerOptions); } catch (_) {}
-        };
-      } catch (_) {
-        return noop;
-      }
-    };
+    : () => noop;
   const addDocumentListener = typeof options.addDocumentListener === 'function'
     ? options.addDocumentListener
-    : (type, handler, listenerOptions) => {
-      try {
-        if (!documentRef || typeof documentRef.addEventListener !== 'function') return noop;
-        documentRef.addEventListener(type, handler, listenerOptions);
-        return () => {
-          try { documentRef.removeEventListener(type, handler, listenerOptions); } catch (_) {}
-        };
-      } catch (_) {
-        return noop;
-      }
-    };
+    : () => noop;
   const matchesMedia = typeof options.matchesMedia === 'function'
     ? options.matchesMedia
-    : (query) => {
-      try {
-        return !!(windowRef && typeof windowRef.matchMedia === 'function' && windowRef.matchMedia(query).matches);
-      } catch (_) {
-        return false;
-      }
-    };
+    : () => false;
   const getComputedStyleRef = typeof options.getComputedStyleRef === 'function'
     ? options.getComputedStyleRef
-    : (element) => {
-      try {
-        return windowRef && typeof windowRef.getComputedStyle === 'function' && element
-          ? windowRef.getComputedStyle(element)
-          : null;
-      } catch (_) {
-        return null;
-      }
-    };
+    : () => null;
   const ResizeObserverRef = typeof options.ResizeObserverRef === 'function'
     ? options.ResizeObserverRef
-    : (windowRef && typeof windowRef.ResizeObserver === 'function' ? windowRef.ResizeObserver : null);
+    : null;
+  const consoleRef = options.consoleRef || null;
+
+  function warn(...args) {
+    try {
+      if (consoleRef && typeof consoleRef.warn === 'function') consoleRef.warn(...args);
+    } catch (_) {}
+  }
 
   let composerDiffModal = null;
   let composerOrderState = null;
@@ -119,7 +80,7 @@ export function createComposerOrderDiffUi(options = {}) {
       const modal = ensureComposerDiffModal();
       modal.open(kind, initialTab);
     } catch (err) {
-      console.warn('Composer: failed to open composer diff modal', err);
+      warn('Composer: failed to open composer diff modal', err);
     }
   }
 

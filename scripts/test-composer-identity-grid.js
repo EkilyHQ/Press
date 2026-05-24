@@ -515,6 +515,18 @@ assert.doesNotMatch(
   'blocks editor should not reintroduce ad hoc late-bound session slots at the root'
 );
 
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const\s+fallback(?:Selection|InlineDom|Caret)Session\s*=/,
+  'blocks editor should not keep module-level fallback session singletons'
+);
+
+assert.match(
+  editorBlocksSource,
+  /function createFallbackSelectionSession\(\) \{[\s\S]*return createEditorBlocksSelectionSession\(\);[\s\S]*function normalizeSelectionSession\(selectionSession\) \{[\s\S]*: createFallbackSelectionSession\(\);[\s\S]*function normalizeInlineDomSession\(inlineDomSession\) \{[\s\S]*: createInlineDomSession\(\);[\s\S]*function normalizeCaretSession\(caretSessionOrSelectionSession\) \{[\s\S]*return createCaretSession\(\);/,
+  'blocks editor should create temporary fallback sessions at call time instead of retaining hidden module state'
+);
+
 assert.match(
   editorBlocksSessionRegistrySource,
   /const SERVICE_NAMES = \[[\s\S]*'activeSession'[\s\S]*'bodySession'[\s\S]*'cardPickerSession'[\s\S]*'commandSession'[\s\S]*'focusSession'[\s\S]*'inlineToolbarSession'[\s\S]*'layoutSession'[\s\S]*'linkSession'[\s\S]*'listSession'[\s\S]*'mathSession'[\s\S]*'pointerSession'[\s\S]*\];/,

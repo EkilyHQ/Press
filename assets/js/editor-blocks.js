@@ -106,12 +106,14 @@ export {
   splitTextBlockIntoParagraph,
   toggleInlineMarkOnRuns
 } from './editor-blocks-model.js?v=press-system-v3.4.50';
-const fallbackSelectionSession = createEditorBlocksSelectionSession();
+function createFallbackSelectionSession() {
+  return createEditorBlocksSelectionSession();
+}
 
 function normalizeSelectionSession(selectionSession) {
   return selectionSession && typeof selectionSession.getSelectionRange === 'function'
     ? selectionSession
-    : fallbackSelectionSession;
+    : createFallbackSelectionSession();
 }
 
 function createInlineDomSession(selectionSession = null, documentRef = null, renderMath = null) {
@@ -126,12 +128,10 @@ function createInlineDomSession(selectionSession = null, documentRef = null, ren
   });
 }
 
-const fallbackInlineDomSession = createInlineDomSession(fallbackSelectionSession);
-
 function normalizeInlineDomSession(inlineDomSession) {
   return inlineDomSession && typeof inlineDomSession.renderInlineRunsInto === 'function'
     ? inlineDomSession
-    : fallbackInlineDomSession;
+    : createInlineDomSession();
 }
 
 function createCaretSession(selectionSession = null, documentRef = null) {
@@ -144,8 +144,6 @@ function createCaretSession(selectionSession = null, documentRef = null) {
   });
 }
 
-const fallbackCaretSession = createCaretSession(fallbackSelectionSession);
-
 function normalizeCaretSession(caretSessionOrSelectionSession) {
   if (caretSessionOrSelectionSession && typeof caretSessionOrSelectionSession.selectionOffsets === 'function') {
     return caretSessionOrSelectionSession;
@@ -153,7 +151,7 @@ function normalizeCaretSession(caretSessionOrSelectionSession) {
   if (caretSessionOrSelectionSession && typeof caretSessionOrSelectionSession.getSelectionRange === 'function') {
     return createCaretSession(caretSessionOrSelectionSession);
   }
-  return fallbackCaretSession;
+  return createCaretSession();
 }
 
 function renderInlineRunsInto(root, runs, inlineDomSession = null) {

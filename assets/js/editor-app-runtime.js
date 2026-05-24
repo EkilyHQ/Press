@@ -234,6 +234,29 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function onDocumentReady(handler) {
+    if (typeof handler !== 'function') return noop;
+    try {
+      if (documentRef && documentRef.readyState && documentRef.readyState !== 'loading') {
+        const timer = setTimer(handler, 0);
+        return () => clearTimer(timer);
+      }
+    } catch (_) {}
+    try {
+      if (!documentRef || typeof documentRef.addEventListener !== 'function') return noop;
+      documentRef.addEventListener('DOMContentLoaded', handler);
+      return () => {
+        try {
+          if (typeof documentRef.removeEventListener === 'function') {
+            documentRef.removeEventListener('DOMContentLoaded', handler);
+          }
+        } catch (_) {}
+      };
+    } catch (_) {
+      return noop;
+    }
+  }
+
   function createEvent(type, options = {}) {
     const eventType = String(type || '');
     if (!eventType) return null;
@@ -577,6 +600,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
       try { return documentRef && documentRef.documentElement ? documentRef.documentElement : null; }
       catch (_) { return null; }
     },
+    onDocumentReady,
     requestFrame,
     cancelFrame,
     setTimer,

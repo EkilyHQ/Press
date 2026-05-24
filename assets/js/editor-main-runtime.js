@@ -42,15 +42,7 @@ export function createEditorMainRuntime(options = {}) {
   const runtime = createEditorAppRuntime(options);
 
   function onDocumentReady(handler) {
-    if (typeof handler !== 'function') return () => {};
-    const documentRef = runtime.documentRef;
-    try {
-      if (documentRef && documentRef.readyState && documentRef.readyState !== 'loading') {
-        const timer = runtime.browser.setTimer(handler, 0);
-        return () => { runtime.browser.clearTimer(timer); };
-      }
-    } catch (_) {}
-    return runtime.events.onDocument('DOMContentLoaded', handler);
+    return runtime.browser.onDocumentReady(handler);
   }
 
   function readMarkdownEditorView() {

@@ -1540,6 +1540,12 @@ assert.doesNotMatch(
   'editor main runtime should delegate fetch, alert, and logger lookup to the shared editor app runtime facade'
 );
 
+assert.doesNotMatch(
+  editorMainRuntimeSource,
+  /const documentRef = runtime\.documentRef|documentRef\.readyState|DOMContentLoaded|runtime\.events\.onDocument\('DOMContentLoaded'/,
+  'editor main runtime should delegate DOM-ready state and listener details to the shared editor app runtime facade'
+);
+
 assert.match(
   editorMainSource,
   /editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);/,
@@ -1804,6 +1810,12 @@ assert.match(
   'editor app runtime should expose explicit state, baseline, diff, storage, event, and global-access boundaries'
 );
 
+assert.match(
+  editorAppRuntimeSource,
+  /function onDocumentReady\(handler\)[\s\S]*documentRef\.readyState[\s\S]*DOMContentLoaded[\s\S]*onDocumentReady,/,
+  'editor app runtime should own DOM-ready state checks and DOMContentLoaded listener registration'
+);
+
 assert.doesNotMatch(
   editorAppRuntimeSource,
   /typeof (?:CustomEvent|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|getComputedStyle)\s*\(/m,
@@ -1820,6 +1832,12 @@ assert.doesNotMatch(
   composerRuntimeSource,
   /typeof (?:navigator|fetch|alert|confirm|console|open|location|performance|CSS|ResizeObserver|globalThis)\b|runtime\.windowRef\b|runtime\.browser\.isSecureContext\(|documentRef\.(?:body|createElement|execCommand)|globalThis\.(?:getComputedStyle|location)|windowRef\.(?:fetch|alert|confirm|console|open|location|isSecureContext|performance|CSS|getComputedStyle|ResizeObserver)/,
   'composer runtime should delegate browser global lookup to the shared editor app runtime facade'
+);
+
+assert.doesNotMatch(
+  composerRuntimeSource,
+  /const documentRef = runtime\.documentRef|documentRef\.readyState|DOMContentLoaded|runtime\.events\.onDocument\('DOMContentLoaded'/,
+  'composer runtime should delegate DOM-ready state and listener details to the shared editor app runtime facade'
 );
 
 assert.doesNotMatch(

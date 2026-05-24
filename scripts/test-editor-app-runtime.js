@@ -85,6 +85,7 @@ class FakeResizeObserver {}
 
 {
   const documentRef = new FakeEventTarget();
+  documentRef.readyState = 'complete';
   const windowRef = new FakeEventTarget();
   windowRef.CustomEvent = FakeCustomEvent;
   windowRef.Event = FakeEvent;
@@ -226,6 +227,11 @@ class FakeResizeObserver {}
   assert.equal(runtime.browser.getElementById('previewFrame').id, 'previewFrame');
   assert.equal(runtime.browser.querySelector('.view-toggle').selector, '.view-toggle');
   assert.deepEqual(runtime.browser.querySelectorAll('[data-preview-resize]').map(item => item.selector), ['[data-preview-resize]']);
+  let readyCalls = 0;
+  const detachReady = runtime.browser.onDocumentReady(() => { readyCalls += 1; });
+  assert.equal(readyCalls, 1);
+  detachReady();
+  assert.equal(timers.includes('clear:23'), true);
   assert.equal(runtime.browser.requestFrame(() => {}), 17);
   runtime.browser.cancelFrame(17);
   assert.equal(timers.includes('cancel:17'), true);
@@ -301,6 +307,19 @@ class FakeResizeObserver {}
   assert.equal(appendedNodes[0].focused, true);
   assert.equal(appendedNodes[0].selected, true);
   assert.deepEqual(legacyCopyCommands, ['copy']);
+}
+
+{
+  const documentRef = new FakeEventTarget();
+  documentRef.readyState = 'loading';
+  const runtime = createEditorAppRuntime({ windowRef: {}, documentRef });
+  let readyCalls = 0;
+  const detachReady = runtime.browser.onDocumentReady(() => { readyCalls += 1; });
+  assert.equal((documentRef.listeners.get('DOMContentLoaded') || []).length, 1);
+  documentRef.dispatchEvent({ type: 'DOMContentLoaded' });
+  assert.equal(readyCalls, 1);
+  detachReady();
+  assert.equal((documentRef.listeners.get('DOMContentLoaded') || []).length, 0);
 }
 
 {

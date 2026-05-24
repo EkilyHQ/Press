@@ -258,6 +258,19 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     }
   }
 
+  function getViewportWidth() {
+    try {
+      const width = Number(windowRef && windowRef.innerWidth);
+      if (Number.isFinite(width) && width > 0) return width;
+    } catch (_) {}
+    try {
+      const width = Number(documentRef && documentRef.documentElement && documentRef.documentElement.clientWidth);
+      return Number.isFinite(width) && width > 0 ? width : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   function scrollToTop({ smooth = true } = {}) {
     try {
       if (!windowRef || typeof windowRef.scrollTo !== 'function') return false;
@@ -300,6 +313,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
     postMessage,
     matchesMedia,
     getPageYOffset,
+    getViewportWidth,
     scrollToTop
   };
 }

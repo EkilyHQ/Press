@@ -12,6 +12,7 @@ const alerts = [];
 const confirms = [];
 const populateCalls = [];
 const fetchCalls = [];
+const scrolls = [];
 const clipboardWrites = [];
 const appendedNodes = [];
 const removedNodes = [];
@@ -23,6 +24,7 @@ const windowRef = {
   __press_content_root: 'docs',
   location: { href: 'https://example.test/index_editor.html' },
   localStorage: new Map(),
+  innerWidth: 1180,
   performance: performanceRef,
   CSS: cssRef,
   isSecureContext: true,
@@ -50,6 +52,9 @@ const windowRef = {
   confirm(message) {
     confirms.push(message);
     return message === 'continue';
+  },
+  scrollTo(...args) {
+    scrolls.push(args);
   },
   matchMedia(query) {
     return { matches: query === '(prefers-reduced-motion: reduce)' };
@@ -182,6 +187,11 @@ assert.equal(runtime.getPerformance(), performanceRef);
 assert.equal(runtime.getCss(), cssRef);
 assert.equal(runtime.matchesMedia('(prefers-reduced-motion: reduce)'), true);
 assert.equal(runtime.matchesMedia('(min-width: 1px)'), false);
+assert.equal(runtime.getViewportWidth(), 1180);
+assert.equal(runtime.scrollWindowToTop('smooth'), true);
+assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
+assert.equal(runtime.scrollWindowToTop('auto'), true);
+assert.deepEqual(scrolls.at(-1), [0, 0]);
 assert.deepEqual(runtime.getComputedStyle({ nodeType: 1 }), { marginTop: '4px', marginBottom: '8px' });
 assert.equal(runtime.getResizeObserver(), TestResizeObserver);
 assert.equal(await runtime.writeClipboardText('copy me'), true);

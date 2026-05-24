@@ -92,6 +92,7 @@ class FakeCustomEvent {
   const scrolls = [];
   windowRef.location = { origin: 'https://example.test' };
   windowRef.innerHeight = 900;
+  windowRef.innerWidth = 1200;
   windowRef.requestAnimationFrame = (fn) => {
     fn();
     return 17;
@@ -148,6 +149,7 @@ class FakeCustomEvent {
   assert.equal(runtime.browser.getLocationOrigin(), 'https://example.test');
   assert.equal(runtime.browser.matchesMedia('(prefers-reduced-motion: reduce)'), true);
   assert.equal(runtime.browser.getPageYOffset(), 321);
+  assert.equal(runtime.browser.getViewportWidth(), 1200);
   assert.equal(runtime.browser.scrollToTop({ smooth: true }), true);
   assert.deepEqual(scrolls.at(-1), [{ top: 0, behavior: 'smooth' }]);
   assert.equal(runtime.browser.postMessage({ postMessage: (payload, origin) => messages.push({ payload, origin }) }, { ok: true }), true);

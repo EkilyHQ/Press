@@ -1,5 +1,4 @@
 export function animateEditorSystemPanelContent({
-  windowRef = null,
   documentRef = null,
   setTimeoutRef = null,
   clearTimeoutRef = null
@@ -9,14 +8,14 @@ export function animateEditorSystemPanelContent({
   if (!panel) return;
   const setTimer = typeof setTimeoutRef === 'function'
     ? setTimeoutRef
-    : (handler, delay) => (windowRef && typeof windowRef.setTimeout === 'function'
-      ? windowRef.setTimeout(handler, delay)
-      : null);
+    : (handler) => {
+      if (typeof handler === 'function') handler();
+      return 0;
+    };
   const clearTimer = typeof clearTimeoutRef === 'function'
     ? clearTimeoutRef
     : (id) => {
       if (id == null) return;
-      if (windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(id);
     };
   try {
     const previousTimer = panel.__pressSystemAnimationTimer;
@@ -36,7 +35,6 @@ export function animateEditorSystemPanelContent({
 export function showEditorSystemPanel(mode, deps = {}) {
   const {
     documentRef = null,
-    windowRef = null,
     setTimeoutRef = null,
     clearTimeoutRef = null,
     treeText = (_key, fallback) => fallback,
@@ -48,7 +46,6 @@ export function showEditorSystemPanel(mode, deps = {}) {
     refreshSyncCommitPanel = () => {},
     animatePanel = () => animateEditorSystemPanelContent({
       documentRef,
-      windowRef,
       setTimeoutRef,
       clearTimeoutRef
     })

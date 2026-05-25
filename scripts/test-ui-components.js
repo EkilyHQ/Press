@@ -250,6 +250,8 @@ assert.match(indexEditorHtml, /src="assets\/js\/editor-main\.js\?v=[\w.-]+"/, 'e
 assert.match(indexEditorHtml, /src="assets\/js\/composer\.js\?v=[\w.-]+"/, 'editor should cache-bust composer after version compatibility changes');
 assert.match(composerMarkdownActionsUi, /if \('checked' in btn\) btn\.checked = protectedState;[\s\S]*btn\.setAttribute\('aria-checked', protectedState \? 'true' : 'false'\);[\s\S]*switchEl\.dataset\.state = protectedState \? 'on' : 'off';/, 'markdown protection switch should synchronize native checked state and visual switch state');
 assert.match(search, /addEventListener\('press:search'[\s\S]*navigateSearch/, 'search routing should listen for press:search');
+assert.doesNotMatch(search, /^let\s+componentSearchBound\b/m, 'search routing should not keep a module-level root-bound flag');
+assert.match(search, /const SEARCH_EVENTS_BOUND = Symbol\('pressSearchEventsBound'\)[\s\S]*markSearchEventsBound\(root\)[\s\S]*root\[SEARCH_EVENTS_BOUND\] = true/, 'search routing should bind press:search once per runtime root');
 assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own the component input via onkeydown');
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');
 

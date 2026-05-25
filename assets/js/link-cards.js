@@ -11,14 +11,42 @@ const DEFAULT_STRINGS = {
   'ui.protectedExcerpt': 'Protected article'
 };
 
-const mdCache = new Map();
-
 const defaultTranslate = (key) => DEFAULT_STRINGS[key] || key;
 const defaultMakeHref = (loc) => `?id=${encodeURIComponent(loc)}`;
-const defaultFetchMarkdown = (loc) => {
+
+function createLinkCardState() {
+  return {
+    mdCache: new Map()
+  };
+}
+
+function createLinkCardRuntime(options = {}) {
+  const state = createLinkCardState();
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
+  const fetchImpl = typeof options.fetchImpl === 'function' ? options.fetchImpl : null;
+  return {
+    state,
+    getDocument() {
+      return documentRef || (typeof document !== 'undefined' ? document : null);
+    },
+    getWindow() {
+      return windowRef || (typeof window !== 'undefined' ? window : null);
+    },
+    getFetch() {
+      if (fetchImpl) return fetchImpl;
+      if (typeof fetch === 'function') return fetch;
+      return null;
+    }
+  };
+}
+
+const defaultFetchMarkdown = (runtime, loc) => {
   try {
     const url = `${getContentRoot()}/${loc}`;
-    return fetch(url, { cache: 'no-store' }).then(resp => (resp && resp.ok) ? resp.text() : '');
+    const fetchRef = runtime && typeof runtime.getFetch === 'function' ? runtime.getFetch() : null;
+    if (!fetchRef) return Promise.resolve('');
+    return fetchRef(url, { cache: 'no-store' }).then(resp => (resp && resp.ok) ? resp.text() : '');
   } catch (_) {
     return Promise.resolve('');
   }
@@ -121,28 +149,34 @@ function buildCoverHtml(meta, loc, title, siteConfig) {
   return useFallbackCover ? fallbackCover(title) : '';
 }
 
-function ensureMarkdown(loc, fetchMarkdown) {
+function ensureMarkdown(runtime, loc, fetchMarkdown) {
+  const state = runtime.state;
   if (!loc) return Promise.resolve('');
-  if (!mdCache.has(loc)) {
-    mdCache.set(loc, Promise.resolve(fetchMarkdown(loc)).catch(() => ''));
+  if (!state.mdCache.has(loc)) {
+    state.mdCache.set(loc, Promise.resolve(fetchMarkdown(loc)).catch(() => ''));
   }
-  return mdCache.get(loc);
+  return state.mdCache.get(loc);
 }
 
-export function hydrateInternalLinkCards(container, options = {}) {
+function hydrateInternalLinkCardsWithRuntime(runtime, container, options = {}) {
   const {
     allowedLocations = null,
     locationAliasMap = new Map(),
     postsByLocationTitle = {},
     postsIndexCache = {},
     siteConfig = {},
-    fetchMarkdown = defaultFetchMarkdown,
+    fetchMarkdown = (loc) => defaultFetchMarkdown(runtime, loc),
     translate = defaultTranslate,
     makeHref = defaultMakeHref
   } = options || {};
 
   try {
-    const root = typeof container === 'string' ? document.querySelector(container) : (container || document);
+    const documentRef = runtime.getDocument();
+    const windowRef = runtime.getWindow();
+    if (!documentRef || !windowRef || !windowRef.location) return;
+    const NodeCtor = (windowRef && windowRef.Node) || (typeof Node !== 'undefined' ? Node : null);
+    const textNodeType = NodeCtor ? NodeCtor.TEXT_NODE : 3;
+    const root = typeof container === 'string' ? documentRef.querySelector(container) : (container || documentRef);
     if (!root) return;
     const anchors = Array.from(root.querySelectorAll('a[href]'));
     if (!anchors.length) return;
@@ -151,7 +185,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
       const p = el && el.parentNode;
       if (!p) return false;
       const nodes = Array.from(p.childNodes || []);
-      return nodes.every(n => (n === el) || (n.nodeType === Node.TEXT_NODE && !String(n.textContent || '').trim()));
+      return nodes.every(n => (n === el) || (n.nodeType === textNodeType && !String(n.textContent || '').trim()));
     };
 
     const parseInternalLink = (href) => {
@@ -163,12 +197,12 @@ export function hydrateInternalLinkCards(container, options = {}) {
       const startsWithQuery = trimmed.startsWith('?');
       let url;
       try {
-        url = new URL(trimmed, window.location.href);
+        url = new URL(trimmed, windowRef.location.href);
       } catch (_) {
         return null;
       }
 
-      if (!startsWithQuery && url.origin !== window.location.origin) return null;
+      if (!startsWithQuery && url.origin !== windowRef.location.origin) return null;
 
       const id = url.searchParams.get('id');
       if (!id) return null;
@@ -218,7 +252,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
           if (parsed.startsWithQuery) {
             return `${clone.search || ''}${clone.hash || ''}` || defaultMakeHref(loc);
           }
-          if (clone.origin === window.location.origin) {
+          if (clone.origin === windowRef.location.origin) {
             return `${clone.pathname}${clone.search}${clone.hash || ''}` || defaultMakeHref(loc);
           }
           return clone.href || defaultMakeHref(loc);
@@ -267,7 +301,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
         ? String(meta.excerpt)
         : (meta && meta.protected ? translate('ui.protectedExcerpt') : translate('ui.loading'));
 
-      const wrapper = document.createElement('div');
+      const wrapper = documentRef.createElement('div');
       wrapper.className = 'link-card-wrap';
       const initialMeta = [dateHtml, protectedHtml, draftHtml].filter(Boolean).join('<span class="card-sep">•</span>');
       wrapper.innerHTML = `<a class="link-card" href="${href}">${cover}<div class="card-title">${escapeHtml(resolvedTitle)}</div><div class="card-excerpt">${escapeHtml(initialExcerpt)}</div><div class="card-meta">${initialMeta}</div>${tagsHtml}</a>`;
@@ -298,7 +332,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
 
       if (meta && meta.protected) return;
 
-      ensureMarkdown(loc, fetchMarkdown).then(md => {
+      ensureMarkdown(runtime, loc, fetchMarkdown).then(md => {
         if (!wrapper.isConnected) return;
         const rawMarkdown = String(md || '');
         const encrypted = isEncryptedMarkdown(rawMarkdown);
@@ -317,7 +351,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
         if (existingCover || nextCoverHtml) {
           if (existingCover) existingCover.remove();
           if (nextCoverHtml) {
-            const temp = document.createElement('div');
+            const temp = documentRef.createElement('div');
             temp.innerHTML = nextCoverHtml;
             const nextCover = temp.firstElementChild;
             if (nextCover) {
@@ -341,7 +375,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
         if (metaEl) {
           const fragments = [];
           if (mergedMeta && mergedMeta.date) {
-            const date = document.createElement('span');
+            const date = documentRef.createElement('span');
             date.className = 'card-date';
             try {
               date.textContent = formatDisplayDate(mergedMeta.date);
@@ -351,19 +385,19 @@ export function hydrateInternalLinkCards(container, options = {}) {
             fragments.push(date);
           }
           if (mergedMeta && mergedMeta.protected) {
-            const p = document.createElement('span');
+            const p = documentRef.createElement('span');
             p.className = 'card-draft';
             p.textContent = translate('ui.protectedBadge');
             fragments.push(p);
           }
           if (!encrypted) {
-            const read = document.createElement('span');
+            const read = documentRef.createElement('span');
             read.className = 'card-read';
             read.textContent = `${minutes} ${translate('ui.minRead')}`;
             fragments.push(read);
           }
           if (mergedMeta && mergedMeta.draft) {
-            const d = document.createElement('span');
+            const d = documentRef.createElement('span');
             d.className = 'card-draft';
             d.textContent = translate('ui.draftBadge');
             fragments.push(d);
@@ -371,7 +405,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
           metaEl.textContent = '';
           fragments.forEach((node, idx) => {
             if (idx > 0) {
-              const sep = document.createElement('span');
+              const sep = documentRef.createElement('span');
               sep.className = 'card-sep';
               sep.textContent = '•';
               metaEl.appendChild(sep);
@@ -383,7 +417,7 @@ export function hydrateInternalLinkCards(container, options = {}) {
         const nextTagsHtml = renderTags(mergedMeta && mergedMeta.tag);
         const existingTags = card.querySelector('.tags');
         if (nextTagsHtml) {
-          const temp = document.createElement('div');
+          const temp = documentRef.createElement('div');
           temp.innerHTML = nextTagsHtml;
           const nextTags = temp.firstElementChild;
           if (nextTags) {
@@ -398,4 +432,25 @@ export function hydrateInternalLinkCards(container, options = {}) {
       }).catch(() => {});
     });
   } catch (_) {}
+}
+
+export function createLinkCardHydrator(options = {}) {
+  const runtime = createLinkCardRuntime(options);
+  return {
+    hydrate(container, hydrateOptions = {}) {
+      return hydrateInternalLinkCardsWithRuntime(runtime, container, hydrateOptions);
+    },
+    clearMarkdownCache() {
+      runtime.state.mdCache.clear();
+    },
+    getMarkdownCacheSize() {
+      return runtime.state.mdCache.size;
+    }
+  };
+}
+
+const defaultLinkCardHydrator = createLinkCardHydrator();
+
+export function hydrateInternalLinkCards(container, options = {}) {
+  return defaultLinkCardHydrator.hydrate(container, options);
 }

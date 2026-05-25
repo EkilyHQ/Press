@@ -303,6 +303,8 @@ assert.match(nativeInteractions, /if \(exEl && \(encrypted \|\| !inlineExcerpt\)
 assert.match(nativeInteractions, /const minutes = encrypted \? 0 : \(inlineMinutes > 0 \? inlineMinutes : context\.computeReadTime\(publicMarkdown, 200\)\);/, 'native cards should preserve index readTime when fetching Markdown for verification or missing excerpts');
 assert.match(linkCards, /if \(meta && meta\.protected\) return;/, 'internal link cards should not fetch protected article bodies when public metadata marks protection');
 assert.match(linkCards, /stripEncryptedBodyForPublicUse\(rawMarkdown\)/, 'internal link cards should strip encrypted bodies before extracting public metadata');
+assert.doesNotMatch(linkCards, /^const\s+mdCache\s*=\s*new Map\(\)/m, 'internal link-card markdown cache should not be module-level mutable state');
+assert.match(linkCards, /function createLinkCardState\(\) \{[\s\S]*mdCache: new Map\(\)[\s\S]*export function createLinkCardHydrator\(options = \{\}\) \{[\s\S]*const runtime = createLinkCardRuntime\(options\)[\s\S]*hydrate\(container, hydrateOptions = \{\}\)/, 'internal link-card cache should be scoped to explicit hydrator runtimes');
 
 assert.match(nativeCss, /press-search\.box,[\s\S]*press-theme-controls\.box,[\s\S]*press-toc\.box\s*\{\s*display: block;/, 'native component hosts should preserve block layout');
 assert.match(nativeCss, /\.protected-post-excerpt[\s\S]*color: var\(--text\);/, 'native locked article panel should style the public excerpt separately from the generic unlock copy');

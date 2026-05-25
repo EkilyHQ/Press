@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T15:31:09.278Z",
+  "generatedAt": "2026-05-25T16:49:01.458Z",
   "status": "ok",
   "desired": {
     "source": "press-system-release",
@@ -150,7 +150,8 @@
     },
     "connect": {
       "label": "Ekily Connect",
-      "source": "https://connect-8mr.pages.dev/api/health"
+      "source": "https://connect-8mr.pages.dev/api/health",
+      "requiresPublishTelemetry": true
     }
   },
   "pressSystem": {
@@ -336,12 +337,28 @@
     "label": "Ekily Connect",
     "source": "https://connect-8mr.pages.dev/api/health",
     "status": "ok",
+    "publishTelemetry": {
+      "schemaVersion": 1,
+      "status": "ok",
+      "migrationRequired": false,
+      "window": {
+        "since": 1779641342,
+        "until": 1779727742,
+        "seconds": 86400
+      },
+      "totalEvents": 0,
+      "grantsIssued": 0,
+      "publishSuccess": 0,
+      "publishFailure": 0,
+      "lastEventAt": null,
+      "upstreamFailures": []
+    },
     "service": "ekily-connect",
     "version": "0.3.0"
   },
   "problems": [],
   "observed": {
-    "checkedAt": "2026-05-25T15:31:09.278Z",
+    "checkedAt": "2026-05-25T16:49:01.458Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
@@ -514,6 +531,22 @@
       "label": "Ekily Connect",
       "source": "https://connect-8mr.pages.dev/api/health",
       "status": "ok",
+      "publishTelemetry": {
+        "schemaVersion": 1,
+        "status": "ok",
+        "migrationRequired": false,
+        "window": {
+          "since": 1779641342,
+          "until": 1779727742,
+          "seconds": 86400
+        },
+        "totalEvents": 0,
+        "grantsIssued": 0,
+        "publishSuccess": 0,
+        "publishFailure": 0,
+        "lastEventAt": null,
+        "upstreamFailures": []
+      },
       "service": "ekily-connect",
       "version": "0.3.0"
     }

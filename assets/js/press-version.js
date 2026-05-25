@@ -1,7 +1,5 @@
 export const PRESS_SYSTEM_MANIFEST_PATH = 'assets/press-system.json';
 
-let pressSystemCache = null;
-
 export function normalizeSemver(value) {
   const raw = String(value || '').trim();
   const match = raw.match(/^v?(\d+)\.(\d+)\.(\d+)$/i);
@@ -88,17 +86,47 @@ export function normalizePressSystemManifest(input) {
   };
 }
 
-export async function loadPressSystemManifest(options = {}) {
-  if (pressSystemCache && options.force !== true) return pressSystemCache;
-  const path = options.path || PRESS_SYSTEM_MANIFEST_PATH;
-  const response = await fetch(path, { cache: 'no-store' });
-  if (!response || !response.ok) throw new Error('Unable to load Press system version.');
-  pressSystemCache = normalizePressSystemManifest(await response.json());
-  return pressSystemCache;
+function getDefaultFetch() {
+  return typeof fetch === 'function' ? fetch : null;
 }
 
-export function setPressSystemManifestForTests(manifest) {
-  pressSystemCache = manifest ? normalizePressSystemManifest(manifest) : null;
+export function createPressSystemManifestLoader(options = {}) {
+  let manifestCache = options.manifest ? normalizePressSystemManifest(options.manifest) : null;
+  const configuredFetch = typeof options.fetchImpl === 'function' ? options.fetchImpl : null;
+
+  return {
+    async load(loadOptions = {}) {
+      if (manifestCache && loadOptions.force !== true) return manifestCache;
+      const path = loadOptions.path || options.path || PRESS_SYSTEM_MANIFEST_PATH;
+      const fetchImpl = typeof loadOptions.fetchImpl === 'function'
+        ? loadOptions.fetchImpl
+        : (configuredFetch || getDefaultFetch());
+      if (typeof fetchImpl !== 'function') throw new Error('Unable to load Press system version.');
+      const response = await fetchImpl(path, { cache: 'no-store' });
+      if (!response || !response.ok) throw new Error('Unable to load Press system version.');
+      manifestCache = normalizePressSystemManifest(await response.json());
+      return manifestCache;
+    },
+    setForTests(manifest) {
+      manifestCache = manifest ? normalizePressSystemManifest(manifest) : null;
+    }
+  };
+}
+
+const defaultPressSystemManifestLoader = createPressSystemManifestLoader();
+
+function getPressSystemManifestLoader(options = {}) {
+  return options && options.manifestLoader && typeof options.manifestLoader.load === 'function'
+    ? options.manifestLoader
+    : defaultPressSystemManifestLoader;
+}
+
+export async function loadPressSystemManifest(options = {}) {
+  return getPressSystemManifestLoader(options).load(options);
+}
+
+export function setPressSystemManifestForTests(manifest, options = {}) {
+  getPressSystemManifestLoader(options).setForTests(manifest);
 }
 
 export function isUpgradeAllowed(currentVersion, upgradeFrom) {

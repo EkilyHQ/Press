@@ -34,6 +34,18 @@ function normalizeArtifact(input) {
   };
 }
 
+function normalizeRuntime(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  return {
+    manifestPath: safeString(source.manifestPath).trim(),
+    type: safeString(source.type).trim(),
+    strategy: safeString(source.strategy).trim(),
+    cacheKey: safeString(source.cacheKey).trim(),
+    entryCount: Number(source.entryCount || 0),
+    edgeCount: Number(source.edgeCount || 0)
+  };
+}
+
 function normalizeThemeEntry(input) {
   const source = input && typeof input === 'object' ? input : {};
   const slug = safeString(source.slug || source.value).trim();
@@ -83,7 +95,8 @@ export function normalizeProductState(input) {
       ...pressSystem,
       status: normalizeStatus(pressSystem.status),
       version: safeString(pressSystem.version).trim(),
-      tag: safeString(pressSystem.tag).trim()
+      tag: safeString(pressSystem.tag).trim(),
+      runtime: normalizeRuntime(pressSystem.runtime)
     },
     downstream: normalizeComponentMap(input.downstream),
     themeDemos: normalizeComponentMap(input.themeDemos),

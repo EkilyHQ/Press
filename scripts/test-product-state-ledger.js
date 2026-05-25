@@ -62,6 +62,14 @@ function systemRelease(version = '3.4.51') {
       ranges: ['>=3.4.50 <3.4.51'],
       allowUnknownSource: false
     },
+    runtime: {
+      manifestPath: 'assets/press-runtime-manifest.json',
+      type: 'press-runtime-assets',
+      strategy: 'query-param',
+      cacheKey: `press-system-v${version}`,
+      entryCount: 125,
+      edgeCount: 300
+    },
     htmlUrl: `https://github.com/EkilyHQ/Press/releases/tag/v${version}`,
     asset: {
       name: `press-system-v${version}.zip`,
@@ -393,12 +401,31 @@ test('buildProductState reports ok when all declared and observed facts agree', 
 
   assert.equal(state.status, 'ok');
   assert.equal(state.pressSystem.version, '3.4.51');
+  assert.equal(state.pressSystem.runtime.type, 'press-runtime-assets');
+  assert.equal(state.pressSystem.runtime.edgeCount, 300);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
   assert.equal(state.themes.catalog.status, 'ok');
   assert.equal(state.themes.entries[0].status, 'ok');
   assert.equal(state.connect.status, 'ok');
   assert.equal(shouldFailCheck(state), false);
+});
+
+test('buildProductState marks a release without runtime asset graph metadata as drift', async () => {
+  const release = systemRelease();
+  delete release.runtime;
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:system': release
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.pressSystem.status, 'drift');
+  assert.match(state.problems.map((problem) => problem.code).join('\n'), /system_release_invalid_runtime_graph/);
+  assert.equal(shouldFailCheck(state), true);
 });
 
 test('buildProductState marks downstream version lag as pending, not a new source of truth', async () => {

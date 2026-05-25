@@ -97,8 +97,10 @@ function renderProductStateDashboard(state) {
   const themes = source.themes && typeof source.themes === 'object' ? source.themes : {};
   const catalog = themes.catalog && typeof themes.catalog === 'object' ? themes.catalog : {};
   const connect = source.connect && typeof source.connect === 'object' ? source.connect : {};
+  const runtime = pressSystem.runtime && typeof pressSystem.runtime === 'object' ? pressSystem.runtime : {};
   const generatedAt = valueOrDash(source.generatedAt);
   const pressVersion = semverLabel(pressSystem.version);
+  const runtimeSummary = `${Number(runtime.entryCount || 0)} files / ${Number(runtime.edgeCount || 0)} edges`;
   const title = `Ekily Product State ${statusClass(source.status)}`;
   return `<!doctype html>
 <html lang="en">
@@ -154,6 +156,7 @@ function renderProductStateDashboard(state) {
 
     <div class="summary">
       <div class="metric"><span>Press System</span><strong>${escapeHtml(pressVersion || '-')} ${statusBadge(pressSystem.status)}</strong></div>
+      <div class="metric"><span>Runtime Graph</span><strong>${escapeHtml(runtimeSummary)}</strong></div>
       <div class="metric"><span>Catalog</span><strong>${escapeHtml(String(catalog.count || 0))} themes ${statusBadge(catalog.status)}</strong></div>
       <div class="metric"><span>Connect</span><strong>${escapeHtml(valueOrDash(connect.service || connect.label))} ${statusBadge(connect.status)}</strong></div>
       <div class="metric"><span>Problems</span><strong>${escapeHtml(String(Array.isArray(source.problems) ? source.problems.length : 0))}</strong></div>

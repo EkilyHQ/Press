@@ -283,6 +283,7 @@ function normalizeSystemRelease(input) {
   const version = normalizeSemver(source.version);
   const tag = semverToTag(source.tag || version);
   const asset = source.asset && typeof source.asset === 'object' ? source.asset : {};
+  const runtime = source.runtime && typeof source.runtime === 'object' ? source.runtime : {};
   return {
     schemaVersion: Number(source.schemaVersion) || 0,
     name: String(source.name || tag || '').trim(),
@@ -290,6 +291,14 @@ function normalizeSystemRelease(input) {
     version,
     publishedAt: String(source.publishedAt || source.published_at || '').trim(),
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
+    runtime: {
+      manifestPath: String(runtime.manifestPath || '').trim(),
+      type: String(runtime.type || '').trim(),
+      strategy: String(runtime.strategy || '').trim(),
+      cacheKey: String(runtime.cacheKey || '').trim(),
+      entryCount: Number(runtime.entryCount || 0),
+      edgeCount: Number(runtime.edgeCount || 0)
+    },
     htmlUrl: String(source.htmlUrl || source.html_url || source.releaseUrl || '').trim(),
     asset: {
       name: String(asset.name || '').trim(),
@@ -458,6 +467,21 @@ async function buildProductState(options = {}) {
       component: 'pressSystem',
       code: 'system_release_invalid_asset',
       message: 'system-release.json must include fetchable asset url, size, and digest',
+      owner: DEFAULT_PRESS_REPOSITORY
+    });
+  } else if (
+    systemRelease.runtime.type !== 'press-runtime-assets'
+    || systemRelease.runtime.manifestPath !== 'assets/press-runtime-manifest.json'
+    || systemRelease.runtime.cacheKey !== `press-system-${systemRelease.tag}`
+    || systemRelease.runtime.strategy !== 'query-param'
+    || !(systemRelease.runtime.entryCount > 0)
+    || !(systemRelease.runtime.edgeCount > 0)
+  ) {
+    state.pressSystem.status = 'drift';
+    addProblem(state, {
+      component: 'pressSystem.runtime',
+      code: 'system_release_invalid_runtime_graph',
+      message: 'system-release.json must include runtime manifest path, cache key, inventory count, and asset graph edge count',
       owner: DEFAULT_PRESS_REPOSITORY
     });
   } else {

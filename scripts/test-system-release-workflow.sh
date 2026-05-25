@@ -88,6 +88,11 @@ if ! grep -F 'assets/press-runtime-manifest.json' scripts/package-system-release
   exit 1
 fi
 
+if ! grep -F 'graph: {' scripts/sync-runtime-cache-keys.mjs >/dev/null || ! grep -F 'edgeCount: edges.length' scripts/sync-runtime-cache-keys.mjs >/dev/null; then
+  echo "runtime asset manifest must include a materialized asset graph" >&2
+  exit 1
+fi
+
 if ! grep -F 'bash scripts/test-pages-workflow.sh' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the Pages deployment workflow contract before publishing" >&2
   exit 1
@@ -245,6 +250,11 @@ fi
 
 if ! grep -F '"upgradeFrom": system.get("upgradeFrom") or {}' "${workflow}" >/dev/null; then
   echo "system release manifest must publish upgradeFrom compatibility metadata" >&2
+  exit 1
+fi
+
+if ! grep -F '"runtime": {' "${workflow}" >/dev/null || ! grep -F '"edgeCount": len(runtime_edges)' "${workflow}" >/dev/null; then
+  echo "system release manifest must publish runtime asset graph summary metadata" >&2
   exit 1
 fi
 

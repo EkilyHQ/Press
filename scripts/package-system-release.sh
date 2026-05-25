@@ -12,18 +12,7 @@ fi
 repo_root="$(git rev-parse --show-toplevel)"
 archive_name="press-system-${version}.zip"
 prefix="press-system-${version}/"
-
-system_paths=(
-  "index.html"
-  "index_editor.html"
-  "index_editor_preview.html"
-  "assets/press-system.json"
-  "assets/main.js"
-  "assets/js"
-  "assets/i18n"
-  "assets/schema"
-  "assets/themes/native"
-)
+package_source="${PRESS_PACKAGE_SOURCE:-head}"
 
 mkdir -p "${output_dir}"
 output_dir="$(cd "${output_dir}" && pwd)"
@@ -39,7 +28,39 @@ trap cleanup EXIT
 payload_dir="${tmp_dir}/${prefix%/}"
 mkdir -p "${payload_dir}"
 
-package_source="${PRESS_PACKAGE_SOURCE:-head}"
+case "${package_source}" in
+  head|worktree)
+    ;;
+  *)
+    echo "PRESS_PACKAGE_SOURCE must be head or worktree" >&2
+    exit 2
+    ;;
+esac
+
+surface_cli="${repo_root}/scripts/print-press-system-surface.mjs"
+if [[ "${package_source}" == "head" ]]; then
+  surface_source_dir="${tmp_dir}/surface-source"
+  mkdir -p "${surface_source_dir}"
+  git archive --format=tar HEAD -- scripts/print-press-system-surface.mjs assets/js/press-system-surface.mjs | tar -xf - -C "${surface_source_dir}"
+  surface_cli="${surface_source_dir}/scripts/print-press-system-surface.mjs"
+fi
+
+system_paths_file="${tmp_dir}/system-paths.txt"
+if ! node "${surface_cli}" package-paths > "${system_paths_file}"; then
+  echo "failed to read Press system package paths" >&2
+  exit 1
+fi
+
+system_paths=()
+while IFS= read -r system_path; do
+  system_paths+=("${system_path}")
+done < "${system_paths_file}"
+
+if [[ "${#system_paths[@]}" -eq 0 ]]; then
+  echo "Press system surface produced no package paths" >&2
+  exit 1
+fi
+
 case "${package_source}" in
   head)
     git archive --format=tar --prefix="${prefix}" HEAD -- "${system_paths[@]}" | tar -xf - -C "${tmp_dir}"
@@ -49,10 +70,6 @@ case "${package_source}" in
       mkdir -p "${payload_dir}/$(dirname "${file}")"
       cp "${file}" "${payload_dir}/${file}"
     done < <(git ls-files -z -- "${system_paths[@]}")
-    ;;
-  *)
-    echo "PRESS_PACKAGE_SOURCE must be head or worktree" >&2
-    exit 2
     ;;
 esac
 

@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import {
+  getPressSystemRuntimeRoots,
+  isPressSystemManagedRuntimePath,
+  PRESS_SYSTEM_SURFACE
+} from '../assets/js/press-system-surface.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..');
@@ -12,7 +17,7 @@ const VERSIONED_REF_PATTERN = /[?&]v=press-system-v\d+\.\d+\.\d+/;
 const MANAGED_EXTENSIONS = new Set(['.css', '.js', '.mjs']);
 const REWRITE_EXTENSIONS = new Set(['.css', '.html', '.js']);
 const LANGUAGE_MANIFEST = 'assets/i18n/languages.json';
-const RUNTIME_MANIFEST_PATH = 'assets/press-runtime-manifest.json';
+const RUNTIME_MANIFEST_PATH = PRESS_SYSTEM_SURFACE.runtimeManifestPath;
 const NATIVE_CACHE_CONSTANTS = [
   'NATIVE_MODULE_CACHE_KEY',
   'NATIVE_STYLE_CACHE_KEY',
@@ -124,18 +129,7 @@ function normalizeSlash(value) {
 }
 
 function runtimeRoots(includeManifest = false) {
-  const roots = [
-    'index.html',
-    'index_editor.html',
-    'index_editor_preview.html',
-    'assets/main.js',
-    'assets/js',
-    'assets/i18n',
-    'assets/schema',
-    'assets/themes/native'
-  ];
-  if (includeManifest) roots.push(RUNTIME_MANIFEST_PATH);
-  return roots;
+  return getPressSystemRuntimeRoots({ includeRuntimeManifest: includeManifest });
 }
 
 function rewriteTargetFiles(rootDir) {
@@ -184,12 +178,7 @@ function isManagedRuntimeAssetPath(rootDir, resolved) {
   if (!resolved) return false;
   const ext = path.posix.extname(resolved).toLowerCase();
   if (!MANAGED_EXTENSIONS.has(ext)) return false;
-  if (
-    resolved === 'assets/main.js'
-    || resolved.startsWith('assets/js/')
-    || resolved.startsWith('assets/i18n/')
-    || resolved.startsWith('assets/themes/native/')
-  ) {
+  if (isPressSystemManagedRuntimePath(resolved)) {
     return fs.existsSync(path.join(rootDir, resolved));
   }
   return false;

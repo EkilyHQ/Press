@@ -29,6 +29,17 @@ if [[ ! -f "${zip_path}" ]]; then
   exit 1
 fi
 
+subdir_zip_dir="${tmp_dir}/subdir"
+mkdir -p "${subdir_zip_dir}"
+(
+  cd "${repo_root}/assets/js"
+  bash "${repo_root}/scripts/package-system-release.sh" "${version}" "${subdir_zip_dir}" >/dev/null
+)
+if [[ ! -f "${subdir_zip_dir}/press-system-${version}.zip" ]]; then
+  echo "expected package script to work from a repository subdirectory" >&2
+  exit 1
+fi
+
 entries_file="${tmp_dir}/entries.txt"
 unzip -Z1 "${zip_path}" | sed '/\/$/d' > "${entries_file}"
 
@@ -59,6 +70,11 @@ fi
 
 if ! grep -qx "press-system-${version}/assets/js/system-updates.js" "${entries_file}"; then
   echo "expected package to include system updater code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/press-system-surface.mjs" "${entries_file}"; then
+  echo "expected package to include the shared Press system surface contract" >&2
   exit 1
 fi
 
@@ -571,6 +587,33 @@ mkdir -p "${dirty_zip_dir}"
 bash "${repo_root}/scripts/package-system-release.sh" "${version}" "${dirty_zip_dir}" >/dev/null
 if unzip -p "${dirty_zip_dir}/press-system-${version}.zip" "press-system-${version}/assets/js/system-updates.js" | grep -F "__dirty_system_release_probe__" >/dev/null; then
   echo "system release package must read tracked files from HEAD, not the worktree" >&2
+  exit 1
+fi
+cp "${tracked_backup}" "${tracked_probe}"
+tracked_probe=""
+tracked_backup=""
+
+tracked_probe="${repo_root}/assets/js/press-system-surface.mjs"
+tracked_backup="${tmp_dir}/press-system-surface.mjs.backup"
+cp "${tracked_probe}" "${tracked_backup}"
+SURFACE_PROBE="${tracked_probe}" node <<'NODE'
+const fs = require('fs');
+const file = process.env.SURFACE_PROBE;
+const source = fs.readFileSync(file, 'utf8');
+const next = source.replace(
+  "  'assets/themes/native'\n]);",
+  "  'assets/themes/native',\n  'wwwroot'\n]);"
+);
+if (next === source) {
+  throw new Error('failed to dirty Press system surface package paths');
+}
+fs.writeFileSync(file, next);
+NODE
+surface_dirty_zip_dir="${tmp_dir}/dirty-surface"
+mkdir -p "${surface_dirty_zip_dir}"
+bash "${repo_root}/scripts/package-system-release.sh" "${version}" "${surface_dirty_zip_dir}" >/dev/null
+if unzip -Z1 "${surface_dirty_zip_dir}/press-system-${version}.zip" | grep -q "press-system-${version}/wwwroot/"; then
+  echo "system release package must read the package path surface from HEAD, not the worktree" >&2
   exit 1
 fi
 cp "${tracked_backup}" "${tracked_probe}"

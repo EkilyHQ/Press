@@ -33,6 +33,18 @@ if "${repo_root}/scripts/check-main-safety.sh" >/dev/null 2>&1; then
   exit 1
 fi
 
+workflow="${repo_root}/.github/workflows/main-guard.yml"
+for command in \
+  'node scripts/test-release-targets.js' \
+  'node scripts/test-dispatch-system-release.js' \
+  'node scripts/test-product-state-ledger.js'
+do
+  if ! grep -F "${command}" "${workflow}" >/dev/null; then
+    echo "main guard workflow must run ${command}" >&2
+    exit 1
+  fi
+done
+
 cat > site.yaml <<'EOF'
 contentRoot: wwwroot
 EOF

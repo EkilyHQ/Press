@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const {
+  RELEASE_EVENT_TYPE,
+  getReleaseDispatchTargets
+} = require('./release-targets.js');
 
 const API_ROOT = process.env.GITHUB_API_URL || 'https://api.github.com';
 const API_VERSION = '2022-11-28';
 const PRESS_SYSTEM_MANIFEST = 'assets/press-system.json';
-const DEFAULT_TARGETS = [
-  { repository: 'EkilyHQ/YAP', eventType: 'press-system-release', label: 'YAP starter runtime' },
-  { repository: 'EkilyHQ/Press-Theme-Starter', eventType: 'press-system-release', label: 'theme starter version' },
-  { repository: 'EkilyHQ/Press-Theme-Arcus', eventType: 'press-system-release', label: 'Arcus demo site' },
-  { repository: 'EkilyHQ/Press-Theme-Cartograph', eventType: 'press-system-release', label: 'Cartograph demo site' },
-  { repository: 'EkilyHQ/Press-Theme-Glasswing', eventType: 'press-system-release', label: 'Glasswing demo site' },
-  { repository: 'EkilyHQ/Press-Theme-Solstice', eventType: 'press-system-release', label: 'Solstice demo site' }
-];
 
 function env(name, fallback = '') {
   return process.env[name] || fallback;
@@ -61,17 +57,23 @@ async function request(path, options = {}) {
 
 function normalizeTargets(input) {
   const raw = String(input || '').trim();
-  const targets = raw ? JSON.parse(raw) : DEFAULT_TARGETS;
+  const targets = raw ? JSON.parse(raw) : getReleaseDispatchTargets();
   if (!Array.isArray(targets) || !targets.length) {
     throw new Error('release dispatch targets must be a non-empty JSON array');
   }
+  const seen = new Set();
   return targets.map((target) => {
     const repository = String(target.repository || '').trim();
-    const eventType = String(target.eventType || target.event_type || 'press-system-release').trim();
+    const eventType = String(target.eventType || target.event_type || RELEASE_EVENT_TYPE).trim();
     const label = String(target.label || repository).trim();
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
       throw new Error(`invalid dispatch repository: ${repository}`);
     }
+    const identity = `${repository}\0${eventType}`;
+    if (seen.has(identity)) {
+      throw new Error(`duplicate dispatch target: ${repository} ${eventType}`);
+    }
+    seen.add(identity);
     if (!eventType || eventType.length > 100) {
       throw new Error(`invalid dispatch event type for ${repository}`);
     }
@@ -124,7 +126,7 @@ async function installationTokenForTargets(jwt, targets) {
   if (!installation || !installation.id) {
     throw new Error(`GitHub App is not installed for ${owner}`);
   }
-  const repositories = targets.map((target) => target.repository.split('/')[1]);
+  const repositories = [...new Set(targets.map((target) => target.repository.split('/')[1]))];
   const token = await request(`/app/installations/${installation.id}/access_tokens`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
@@ -182,7 +184,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.log(`::error title=Release dispatch failed::${error.message}`);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.log(`::error title=Release dispatch failed::${error.message}`);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  buildPayload,
+  dispatch,
+  installationTokenForTargets,
+  main,
+  normalizeTargets
+};

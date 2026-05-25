@@ -33,6 +33,8 @@ jobs:
           bash scripts/test-system-release-workflow.sh
           bash scripts/test-pages-workflow.sh
           bash scripts/test-product-state-workflow.sh
+          node scripts/test-release-targets.js
+          node scripts/test-dispatch-system-release.js
           node scripts/test-product-state-ledger.js
           node scripts/test-product-state-dashboard.js
           node --experimental-default-type=module scripts/test-system-updates.js

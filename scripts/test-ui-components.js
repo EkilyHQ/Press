@@ -121,6 +121,8 @@ assert.match(main, /import\('\.\/js\/math-render\.js\?v=[\w.-]+'\)/, 'main shoul
 assert.match(mathRender, /querySelectorAll\('\.press-math\[data-tex\]'\)/, 'math renderer should only target parser-generated math nodes');
 assert.doesNotMatch(mathRender, /auto-render/i, 'math renderer must not use KaTeX auto-render');
 assert.match(mathRender, /vendor\/katex\/[\s\S]*katex\.min\.css[\s\S]*katex\.min\.js/, 'math renderer should load vendored KaTeX core assets');
+assert.doesNotMatch(mathRender, /^let\s+katexLoadPromise\b/m, 'math renderer should not keep the KaTeX loader promise as module-level mutable state');
+assert.match(mathRender, /function createKatexLoaderState\(\) \{[\s\S]*return \{ loadPromise: null \};[\s\S]*function loadKatexScript\(documentRef, windowRef = null, loaderState = null\)[\s\S]*state\.loadPromise = promise\.then/, 'math renderer should scope KaTeX loader state to renderer/runtime instances');
 assert.match(editorPreviewRuntime, /renderPressMath\(main, \{[\s\S]*documentRef: previewRuntime\.documentRef,[\s\S]*windowRef: previewRuntime\.windowRef[\s\S]*\}\)/, 'editor preview should render math through explicit preview runtime refs');
 assert.doesNotMatch(main, /from '\.\/js\/syntax-highlight\.js\?v=[\w.-]+';/, 'main should not statically load syntax highlighting on the public homepage');
 assert.match(main, /import\('\.\/js\/syntax-highlight\.js\?v=[\w.-]+'\)/, 'main should lazy-load and cache-bust syntax highlighting when code blocks are present');

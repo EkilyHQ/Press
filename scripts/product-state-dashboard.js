@@ -154,6 +154,9 @@ function renderProductStateDashboard(state) {
   const themes = source.themes && typeof source.themes === 'object' ? source.themes : {};
   const catalog = themes.catalog && typeof themes.catalog === 'object' ? themes.catalog : {};
   const connect = source.connect && typeof source.connect === 'object' ? source.connect : {};
+  const publishTelemetry = connect.publishTelemetry && typeof connect.publishTelemetry === 'object'
+    ? connect.publishTelemetry
+    : {};
   const verdict = source.verdict && typeof source.verdict === 'object' ? source.verdict : {};
   const runtime = pressSystem.runtime && typeof pressSystem.runtime === 'object' ? pressSystem.runtime : {};
   const generatedAt = valueOrDash(source.generatedAt);
@@ -220,6 +223,7 @@ function renderProductStateDashboard(state) {
       <div class="metric"><span>Converged</span><strong>${escapeHtml(convergenceLabel)} ${statusBadge(verdictStatus)}</strong></div>
       <div class="metric"><span>Catalog</span><strong>${escapeHtml(String(catalog.count || 0))} themes ${statusBadge(catalog.status)}</strong></div>
       <div class="metric"><span>Connect</span><strong>${escapeHtml(valueOrDash(connect.service || connect.label))} ${statusBadge(connect.status)}</strong></div>
+      <div class="metric"><span>Publish Telemetry</span><strong>${escapeHtml(String(Number(publishTelemetry.publishSuccess || 0)))} ok / ${escapeHtml(String(Number(publishTelemetry.publishFailure || 0)))} failed ${statusBadge(publishTelemetry.status)}</strong></div>
       <div class="metric"><span>Blocking Problems</span><strong>${escapeHtml(String(Number(verdict.blockingProblemCount || 0)))}</strong></div>
     </div>
 

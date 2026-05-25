@@ -1,5 +1,37 @@
 import { CONNECT_PUBLISH_MESSAGE_TYPE } from '../settings-store.js?v=press-system-v3.4.50';
 
+function resolveAmbientValue(name) {
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    return scope ? scope[name] : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resolveAmbientFunction(name) {
+  const value = resolveAmbientValue(name);
+  const scope = typeof globalThis === 'object' ? globalThis : null;
+  return typeof value === 'function' && scope ? value.bind(scope) : null;
+}
+
+function resolveFetch(fetchImpl) {
+  return typeof fetchImpl === 'function' ? fetchImpl : resolveAmbientFunction('fetch');
+}
+
+function resolveWindow(windowRef) {
+  if (windowRef) return windowRef;
+  const ambientWindow = resolveAmbientValue('window');
+  return ambientWindow && typeof ambientWindow === 'object' ? ambientWindow : null;
+}
+
+function resolveDocument(documentRef, windowRef) {
+  if (documentRef) return documentRef;
+  if (windowRef && windowRef.document) return windowRef.document;
+  const ambientDocument = resolveAmbientValue('document');
+  return ambientDocument && typeof ambientDocument === 'object' ? ambientDocument : null;
+}
+
 export function serializeConnectPublishFile(file) {
   const out = {
     path: String(file && file.path || '').replace(/^\/+/, '')
@@ -26,13 +58,14 @@ export async function createConnectPublishCommit({
   files,
   contentRoot,
   grant,
-  fetchImpl = fetch,
+  fetchImpl = null,
   translate = (key) => key
 } = {}) {
   const message = (key, fallback) => {
     const value = typeof translate === 'function' ? translate(key) : '';
     return value && value !== key ? value : fallback;
   };
+  const fetchRef = resolveFetch(fetchImpl);
   if (!connect || !connect.baseUrl) {
     throw new Error(message('editor.composer.github.modal.connectMissing', 'Connect publish settings are missing.'));
   }
@@ -52,7 +85,7 @@ export async function createConnectPublishCommit({
   let response = null;
   let payload = null;
   try {
-    response = await fetchImpl(endpoint.href, {
+    response = await fetchRef(endpoint.href, {
       method: 'POST',
       referrerPolicy: 'unsafe-url',
       headers: {
@@ -83,8 +116,8 @@ export async function ensureConnectPublishGrant({
   repo,
   getCachedGrant,
   setCachedGrant,
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
   translate = (key) => key,
   messageType = CONNECT_PUBLISH_MESSAGE_TYPE
 } = {}) {
@@ -111,40 +144,52 @@ export function requestConnectPublishGrant({
   connect,
   repo,
   setCachedGrant,
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
   translate = (key) => key,
   messageType = CONNECT_PUBLISH_MESSAGE_TYPE
 } = {}) {
+  windowRef = resolveWindow(windowRef);
+  documentRef = resolveDocument(documentRef, windowRef);
   const startUrl = new URL('/github/press/start', connect.baseUrl);
-  startUrl.searchParams.set('origin', windowRef.location.origin);
+  startUrl.searchParams.set('origin', windowRef && windowRef.location ? windowRef.location.origin || '' : '');
   startUrl.searchParams.set('owner', repo.owner);
   startUrl.searchParams.set('repo', repo.name);
   startUrl.searchParams.set('branch', repo.branch || 'main');
 
   const popupName = 'pressConnectPublish';
-  const popup = windowRef.open('', popupName, 'popup,width=520,height=720');
+  const popup = windowRef && typeof windowRef.open === 'function'
+    ? windowRef.open('', popupName, 'popup,width=520,height=720')
+    : null;
   if (!popup) {
     return Promise.reject(new Error(translate('editor.toasts.popupBlocked')));
   }
-  const link = documentRef.createElement('a');
-  link.href = startUrl.href;
-  link.target = popupName;
-  link.referrerPolicy = 'unsafe-url';
-  link.rel = 'opener';
-  link.style.display = 'none';
-  documentRef.body.appendChild(link);
-  link.click();
-  link.remove();
+  if (documentRef && typeof documentRef.createElement === 'function' && documentRef.body) {
+    const link = documentRef.createElement('a');
+    link.href = startUrl.href;
+    link.target = popupName;
+    link.referrerPolicy = 'unsafe-url';
+    link.rel = 'opener';
+    link.style.display = 'none';
+    documentRef.body.appendChild(link);
+    link.click();
+    link.remove();
+  } else {
+    try {
+      popup.location.href = startUrl.href;
+    } catch (_) {}
+  }
 
   const connectOrigin = new URL(connect.baseUrl).origin;
   return new Promise((resolve, reject) => {
     let timer = 0;
     let closeTimer = 0;
     const cleanup = () => {
-      windowRef.removeEventListener('message', onMessage);
-      if (timer) windowRef.clearTimeout(timer);
-      if (closeTimer) windowRef.clearInterval(closeTimer);
+      if (windowRef && typeof windowRef.removeEventListener === 'function') {
+        windowRef.removeEventListener('message', onMessage);
+      }
+      if (timer && windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(timer);
+      if (closeTimer && windowRef && typeof windowRef.clearInterval === 'function') windowRef.clearInterval(closeTimer);
     };
     const onMessage = (event) => {
       if (!event || event.origin !== connectOrigin) return;
@@ -165,19 +210,29 @@ export function requestConnectPublishGrant({
       if (typeof setCachedGrant === 'function') setCachedGrant(grant);
       resolve(grant);
     };
-    windowRef.addEventListener('message', onMessage);
-    closeTimer = windowRef.setInterval(() => {
-      try {
-        if (!popup.closed) return;
-      } catch (_) {
-        return;
-      }
+    if (windowRef && typeof windowRef.addEventListener === 'function') {
+      windowRef.addEventListener('message', onMessage);
+    } else {
       cleanup();
-      reject(new Error(translate('editor.composer.github.modal.connectAuthorizationCanceled')));
-    }, 500);
-    timer = windowRef.setTimeout(() => {
-      cleanup();
-      reject(new Error(translate('editor.composer.github.modal.connectAuthorizationTimedOut')));
-    }, 5 * 60 * 1000);
+      reject(new Error(translate('editor.composer.github.modal.connectAuthorizationFailed')));
+      return;
+    }
+    if (typeof windowRef.setInterval === 'function') {
+      closeTimer = windowRef.setInterval(() => {
+        try {
+          if (!popup.closed) return;
+        } catch (_) {
+          return;
+        }
+        cleanup();
+        reject(new Error(translate('editor.composer.github.modal.connectAuthorizationCanceled')));
+      }, 500);
+    }
+    if (typeof windowRef.setTimeout === 'function') {
+      timer = windowRef.setTimeout(() => {
+        cleanup();
+        reject(new Error(translate('editor.composer.github.modal.connectAuthorizationTimedOut')));
+      }, 5 * 60 * 1000);
+    }
   });
 }

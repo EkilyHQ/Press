@@ -15,17 +15,23 @@ import {
   getLanguageLabel
 } from './i18n.js?v=press-system-v3.4.50';
 import {
+  createThemeRegionController,
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
-  getThemeLayoutContext as readThemeLayoutContext,
-  getThemeRegion,
+  getDefaultThemeRegionController,
   mergeThemeRegions,
-  setThemeLayoutContext
 } from './theme-regions.js';
 
-let activePack = null;
-let layoutPromise = null;
-let layoutMountGeneration = 0;
+function createThemeLayoutState(options = {}) {
+  return {
+    activePack: null,
+    layoutPromise: null,
+    layoutMountGeneration: 0,
+    regionController: options.regionController || getDefaultThemeRegionController()
+  };
+}
+
+const defaultThemeLayoutState = createThemeLayoutState();
 
 const DEFAULT_PACK = 'native';
 const CONTRACT_VERSION = 1;
@@ -191,7 +197,12 @@ function applyManifestStyles(pack, manifest) {
   } catch (_) {}
 }
 
-function clearFailedThemeArtifacts(pack) {
+function getThemeRegionController(options = {}) {
+  const state = getThemeLayoutState(options);
+  return state.regionController || getDefaultThemeRegionController();
+}
+
+function clearFailedThemeArtifacts(pack, options = {}) {
   try {
     document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
   } catch (_) {}
@@ -205,10 +216,10 @@ function clearFailedThemeArtifacts(pack) {
     document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
   } catch (_) {}
   try { delete document.body.dataset.themeLayout; } catch (_) {}
-  try { setThemeLayoutContext(null); } catch (_) {}
+  try { getThemeRegionController(options).setThemeLayoutContext(null); } catch (_) {}
 }
 
-function clearMountedThemeArtifacts() {
+function clearMountedThemeArtifacts(options = {}) {
   try {
     document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
   } catch (_) {}
@@ -216,16 +227,21 @@ function clearMountedThemeArtifacts() {
     document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
   } catch (_) {}
   try { delete document.body.dataset.themeLayout; } catch (_) {}
-  try { setThemeLayoutContext(null); } catch (_) {}
+  try { getThemeRegionController(options).setThemeLayoutContext(null); } catch (_) {}
+}
+
+function getThemeLayoutState(options = {}) {
+  return options && options.themeLayoutState ? options.themeLayoutState : defaultThemeLayoutState;
 }
 
 function getMountGeneration(options = {}) {
+  const state = getThemeLayoutState(options);
   const generation = Number(options.mountGeneration);
-  return Number.isFinite(generation) ? generation : layoutMountGeneration;
+  return Number.isFinite(generation) ? generation : state.layoutMountGeneration;
 }
 
-function isCurrentMountGeneration(generation) {
-  return Number(generation) === layoutMountGeneration;
+function isCurrentMountGeneration(generation, options = {}) {
+  return Number(generation) === getThemeLayoutState(options).layoutMountGeneration;
 }
 
 function warnUndeclaredRegions(pack, manifest, regions) {
@@ -415,20 +431,22 @@ async function mountLoadedModule(pack, entry, mod, context, manifest) {
 
 async function mountPack(pack, allowFallback = true, options = {}) {
   const persist = options.persist !== false;
+  const themeLayoutState = getThemeLayoutState(options);
+  const regionController = themeLayoutState.regionController || getDefaultThemeRegionController();
   const mountGeneration = getMountGeneration(options);
   let manifest;
   try {
     manifest = await loadManifest(pack);
-    if (!isCurrentMountGeneration(mountGeneration)) return null;
+    if (!isCurrentMountGeneration(mountGeneration, options)) return null;
   } catch (err) {
-    if (!isCurrentMountGeneration(mountGeneration)) return null;
+    if (!isCurrentMountGeneration(mountGeneration, options)) return null;
     console.error(`[theme] Failed to load manifest for "${pack}"`, err);
     if (allowFallback && pack !== DEFAULT_PACK) {
       if (persist) {
         suppressThemePack(pack);
         clearPendingThemePack(pack);
       }
-      clearFailedThemeArtifacts(pack);
+      clearFailedThemeArtifacts(pack, options);
       return mountPack(DEFAULT_PACK, false, options);
     }
     manifest = FALLBACK_MANIFEST;
@@ -438,7 +456,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
   try {
     moduleResults = await loadThemeModules(pack, manifest, { failFast: allowFallback && pack !== DEFAULT_PACK });
   } catch (failure) {
-    if (!isCurrentMountGeneration(mountGeneration)) return null;
+    if (!isCurrentMountGeneration(mountGeneration, options)) return null;
     const entry = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'entry')
       ? failure.entry
       : '';
@@ -451,12 +469,12 @@ async function mountPack(pack, allowFallback = true, options = {}) {
         suppressThemePack(pack);
         clearPendingThemePack(pack);
       }
-      clearFailedThemeArtifacts(pack);
+      clearFailedThemeArtifacts(pack, options);
       return mountPack(DEFAULT_PACK, false, options);
     }
     moduleResults = [];
   }
-  if (!isCurrentMountGeneration(mountGeneration)) return null;
+  if (!isCurrentMountGeneration(mountGeneration, options)) return null;
 
   const loadedModules = [];
   for (const result of moduleResults) {
@@ -467,7 +485,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
           suppressThemePack(pack);
           clearPendingThemePack(pack);
         }
-        clearFailedThemeArtifacts(pack);
+        clearFailedThemeArtifacts(pack, options);
         return mountPack(DEFAULT_PACK, false, options);
       }
       continue;
@@ -483,79 +501,83 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     manifest,
     theme: createThemeApi(pack, manifest),
     utilities: {
-      getRegion: getThemeRegion,
+      getRegion: (names) => regionController.getThemeRegion(names),
       warn: themeDevWarn
     }
   };
 
-  if (!isCurrentMountGeneration(mountGeneration)) return null;
+  if (!isCurrentMountGeneration(mountGeneration, options)) return null;
   applyManifestStyles(pack, manifest);
 
   for (const { entry, mod } of loadedModules) {
     try {
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
+      if (!isCurrentMountGeneration(mountGeneration, options)) return null;
       await mountLoadedModule(pack, entry, mod, context, manifest);
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
+      if (!isCurrentMountGeneration(mountGeneration, options)) return null;
     } catch (err) {
-      if (!isCurrentMountGeneration(mountGeneration)) return null;
+      if (!isCurrentMountGeneration(mountGeneration, options)) return null;
       console.error('[theme] Failed to mount module', entry, err);
       if (allowFallback && pack !== DEFAULT_PACK) {
         if (persist) {
           suppressThemePack(pack);
           clearPendingThemePack(pack);
         }
-        clearFailedThemeArtifacts(pack);
+        clearFailedThemeArtifacts(pack, options);
         return mountPack(DEFAULT_PACK, false, options);
       }
     }
   }
 
-  if (!isCurrentMountGeneration(mountGeneration)) return null;
+  if (!isCurrentMountGeneration(mountGeneration, options)) return null;
   document.body.dataset.themeLayout = pack;
   warnMissingRegions(pack, manifest, context);
-  setThemeLayoutContext(context);
+  regionController.setThemeLayoutContext(context);
   if (persist && pack !== DEFAULT_PACK) {
     commitThemePack(pack, { applyStyles: false });
   }
   return context;
 }
 
-export async function ensureThemeLayout(options = {}) {
+async function ensureThemeLayoutWithState(themeLayoutState, options = {}) {
   const requestedPack = options && options.pack ? String(options.pack) : '';
   const pack = requestedPack || getRequestedThemePack();
-  let mountGeneration = layoutMountGeneration;
+  let mountGeneration = themeLayoutState.layoutMountGeneration;
   if (options && options.reset) {
-    mountGeneration = layoutMountGeneration + 1;
-    layoutMountGeneration = mountGeneration;
-    clearMountedThemeArtifacts();
-    activePack = null;
-    layoutPromise = null;
+    mountGeneration = themeLayoutState.layoutMountGeneration + 1;
+    themeLayoutState.layoutMountGeneration = mountGeneration;
+    clearMountedThemeArtifacts({ themeLayoutState });
+    themeLayoutState.activePack = null;
+    themeLayoutState.layoutPromise = null;
   }
-  const cachedContext = readThemeLayoutContext();
+  const cachedContext = themeLayoutState.regionController.getThemeLayoutContext();
   if (cachedContext && document.body.dataset.themeLayout === pack) {
     return cachedContext;
   }
-  if (layoutPromise && activePack === pack) {
-    return layoutPromise;
+  if (themeLayoutState.layoutPromise && themeLayoutState.activePack === pack) {
+    return themeLayoutState.layoutPromise;
   }
-  activePack = pack;
-  layoutPromise = mountPack(pack, true, { ...options, mountGeneration }).then((context) => {
-    if (!isCurrentMountGeneration(mountGeneration)) return context;
+  themeLayoutState.activePack = pack;
+  themeLayoutState.layoutPromise = mountPack(pack, true, { ...options, mountGeneration, themeLayoutState }).then((context) => {
+    if (!isCurrentMountGeneration(mountGeneration, { themeLayoutState })) return context;
     const resolvedPack = (context && context.pack) || document.body.dataset.themeLayout || DEFAULT_PACK;
-    activePack = resolvedPack;
+    themeLayoutState.activePack = resolvedPack;
     return context;
   });
-  return layoutPromise;
+  return themeLayoutState.layoutPromise;
+}
+
+export async function ensureThemeLayout(options = {}) {
+  return ensureThemeLayoutWithState(defaultThemeLayoutState, options);
 }
 
 export function getThemeLayoutContext() {
-  return readThemeLayoutContext();
+  return defaultThemeLayoutState.regionController.getThemeLayoutContext();
 }
 
-export function getThemeApiHandler(name) {
+function getThemeApiHandlerWithState(name, themeLayoutState) {
   const hookName = String(name || '').trim();
   if (!hookName) return null;
-  const context = readThemeLayoutContext();
+  const context = themeLayoutState.regionController.getThemeLayoutContext();
   const api = context && context.theme;
   if (api && typeof api === 'object') {
     const viewName = EFFECT_VIEW_NAMES[hookName];
@@ -569,4 +591,20 @@ export function getThemeApiHandler(name) {
   return null;
 }
 
-export { getThemeRegion };
+export function getThemeApiHandler(name) {
+  return getThemeApiHandlerWithState(name, defaultThemeLayoutState);
+}
+
+export function getThemeRegion(names) {
+  return defaultThemeLayoutState.regionController.getThemeRegion(names);
+}
+
+export function createThemeLayoutController() {
+  const themeLayoutState = createThemeLayoutState({ regionController: createThemeRegionController() });
+  return {
+    ensureThemeLayout: (options = {}) => ensureThemeLayoutWithState(themeLayoutState, options),
+    getThemeLayoutContext: () => themeLayoutState.regionController.getThemeLayoutContext(),
+    getThemeApiHandler: (name) => getThemeApiHandlerWithState(name, themeLayoutState),
+    getThemeRegion: (names) => themeLayoutState.regionController.getThemeRegion(names)
+  };
+}

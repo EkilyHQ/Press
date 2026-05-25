@@ -40,6 +40,17 @@ const run = (name, fn) => {
 };
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
+const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
+const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
+const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
+const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
+const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
+const editorBlocksRichTextSessionSource = readFileSync(new URL('../assets/js/editor-blocks-rich-text-session.js', import.meta.url), 'utf8');
+const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
+const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
+const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
+const editorBlocksSourceSessionSource = readFileSync(new URL('../assets/js/editor-blocks-source-session.js', import.meta.url), 'utf8');
+const editorBlocksListSessionSource = readFileSync(new URL('../assets/js/editor-blocks-list-session.js', import.meta.url), 'utf8');
 
 const functionSource = (name) => {
   const start = editorBlocksSource.indexOf(`function ${name}`);
@@ -114,6 +125,29 @@ run('inline math is mutually exclusive with code, link, and emphasis marks', () 
 
   const emphasized = toggleInlineMarkOnRuns(parseInlineRuns('x+y'), 0, 3, 'bold');
   assert.deepEqual(applyInlineMathToRuns(emphasized, 0, 3, 'x+y'), [{ text: 'x+y', bold: false, italic: false, strike: false, code: false, math: true, link: '', linkTitle: '' }]);
+});
+
+run('rich text and list initialization render through the runtime inline DOM session', () => {
+  assert.match(
+    editorBlocksSource,
+    /const setPlainContentEditableValueWithRuntime = \(el, value\) => setPlainContentEditableValue\(el, value, inlineDomSession\);/,
+    'the blocks editor should bind plain contenteditable rendering to the runtime inline-DOM session'
+  );
+  assert.match(
+    editorBlocksSource,
+    /createEditorBlocksRichTextSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    'rich text blocks should use the runtime-bound contenteditable renderer'
+  );
+  assert.match(
+    editorBlocksSource,
+    /createEditorBlocksListSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    'list items should use the runtime-bound contenteditable renderer'
+  );
+  assert.doesNotMatch(
+    editorBlocksSource,
+    /renderMath = renderPressMath|\brenderPressMath\b/,
+    'editor blocks should not rediscover the implicit math renderer through fallback inline-DOM sessions'
+  );
 });
 
 run('dirty supported blocks serialize edited markdown', () => {
@@ -314,12 +348,12 @@ run('text block split helper only supports editable text block types', () => {
 run('mid-enter split leaves end-of-block Enter on the blank block insertion path', () => {
   assert.match(
     editorBlocksSource,
-    /offsets\.start >= currentText\.length[\s\S]*return false;[\s\S]*splitEditableTextAtSelection\(editable\)/,
+    /offsets\.start >= currentText\.length[\s\S]*return false;[\s\S]*splitEditableTextAtSelection\(editable, selectionSession\)/,
     'split path should bail out before splitting when the caret is at the end'
   );
   assert.match(
-    editorBlocksSource,
-    /splitTextBlockAfterCaret\(event, block, index, editable\)[\s\S]*shouldInsertBlankBlockOnEnter\(editable\)[\s\S]*insertBlankBlockAfter\(index, editable, sync\)/,
+    editorBlocksRichTextSessionSource,
+    /splitTextBlockAfterCaret\(event, block, index, editable\)[\s\S]*shouldInsertBlankBlockOnEnter\(editable, caretSession\)[\s\S]*insertBlankBlockAfter\(index, editable, sync\)/,
     'plain Enter should try mid-split before falling back to real blank block insertion'
   );
 });
@@ -489,8 +523,8 @@ run('first list item Backspace refuses nested or child-owning items', () => {
 
 run('backspace merge path runs after empty-block removal and before Enter handling', () => {
   assert.match(
-    editorBlocksSource,
-    /removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*event\.key !== 'Enter'/,
+    editorBlocksRichTextSessionSource,
+    /removeEmptyBlockWithBackspace\(event, block, index, editable, sync\)[\s\S]*mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*isPlainEnter\(event\)/,
     'text block Backspace merge should run after empty-block removal and before Enter handling'
   );
   assert.match(
@@ -516,19 +550,19 @@ run('backspace merge focuses previous block at its rendered text length', () => 
   );
   assert.match(
     editorBlocksSource,
-    /state\.pendingListFocus = \{[\s\S]*caretOffset: merged\.focusCaretOffset[\s\S]*\}/,
+    /blocksState\.replaceBlocks\(index - 1, 2, \[merged\],[\s\S]*caretOffset: merged\.focusCaretOffset[\s\S]*\}/,
     'caret should land after any inserted separator after text-to-list merge'
   );
 });
 
 run('cross-block arrows only handle plain vertical arrow keys', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksFocusSessionSource,
     /event\.key !== 'ArrowUp' && event\.key !== 'ArrowDown'/,
     'cross-block navigation should only consider vertical arrow keys'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksFocusSessionSource,
     /event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing/,
     'cross-block navigation should ignore modified arrow key chords and IME composition'
   );
@@ -536,27 +570,27 @@ run('cross-block arrows only handle plain vertical arrow keys', () => {
 
 run('cross-block arrows only leave text editables from edge lines', () => {
   assert.match(
-    editorBlocksSource,
-    /isEditableCaretOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
+    editorBlocksFocusSessionSource,
+    /caretSession\.isEditableOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
     'contenteditable arrow navigation should only cross blocks on the first or last visual line'
   );
   assert.match(
-    editorBlocksSource,
-    /isTextareaCaretOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
+    editorBlocksFocusSessionSource,
+    /caretSession\.isTextareaOnEdgeLine\(editable, direction\)[\s\S]*if \(!onEdge\) return false;/,
     'textarea arrow navigation should only cross blocks at the first or last text line'
   );
 });
 
 run('cross-block arrows detect wrapped contenteditable visual lines from text ranges', () => {
-  const edgeLineSource = functionSource('isEditableCaretOnEdgeLine');
+  const edgeLineSource = editorBlocksCaretSessionSource;
   assert.match(
-    editorBlocksSource,
-    /function editableVisualLineRects\(el\)[\s\S]*createTreeWalker\(el, NodeFilter\.SHOW_TEXT\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
+    editorBlocksCaretSessionSource,
+    /function visualLineRects\(el\)[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
     'visual line detection should be based on per-character text range rectangles'
   );
   assert.match(
     edgeLineSource,
-    /const lineRects = editableVisualLineRects\(el\);/,
+    /const lineRects = visualLineRects\(el\);/,
     'edge-line detection should use grouped visual text lines'
   );
   assert.doesNotMatch(
@@ -568,20 +602,20 @@ run('cross-block arrows detect wrapped contenteditable visual lines from text ra
 
 run('cross-block arrows place target caret using grouped visual text lines', () => {
   assert.match(
-    functionSource('placeCaretAtVisualLine'),
-    /const lineRects = editableVisualLineRects\(el\);/,
+    editorBlocksCaretSessionSource,
+    /function placeAtVisualLine\(el, x, edge, fallbackOffset = 0\) \{[\s\S]*const lineRects = visualLineRects\(el\);/,
     'target caret placement should use the same visual line grouping as edge detection'
   );
 });
 
 run('cross-block arrows focus non-text block containers and continue from them', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksFocusSessionSource,
     /if \(!editable\) \{[\s\S]*activateNonTextBlockFromPointer\(target\.index, target\.blockEl\);[\s\S]*return true;[\s\S]*\}/,
     'non-text navigation targets should focus the block container'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBodySessionSource,
     /if \(event\.target !== item\) return;[\s\S]*handleCrossBlockArrowNavigation\(event, index\);/,
     'focused non-text block containers should continue cross-block arrow navigation'
   );
@@ -589,30 +623,30 @@ run('cross-block arrows focus non-text block containers and continue from them',
 
 run('cross-block arrows keep list item navigation before block-level fallback', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksListSessionSource,
     /nextIndex < 0 \|\| nextIndex >= items\.length[\s\S]*handleCrossBlockArrowNavigation\(event, index, span\)/,
     'list items should cross blocks only when arrowing beyond the first or last item'
   );
   assert.match(
-    editorBlocksSource,
-    /placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset\)/,
+    editorBlocksListSessionSource,
+    /placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, caretSession\)/,
     'existing list item visual-line navigation should be preserved'
   );
 });
 
 run('cross-block arrows wire rich text, code, and source editables', () => {
   assert.match(
-    editorBlocksSource,
-    /mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, editable\)[\s\S]*event\.key !== 'Enter'/,
+    editorBlocksRichTextSessionSource,
+    /mergeTextBlockWithPreviousOnBackspace\(event, block, index, editable\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, editable\)[\s\S]*isPlainEnter\(event\)/,
     'rich text editables should run cross-block arrows before Enter handling'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksCodeSessionSource,
     /removeEmptyBlockWithBackspace\(event, block, index, code, sync\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, code\)[\s\S]*event\.key !== 'Enter'/,
     'code editables should run cross-block arrows before code Enter handling'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksSourceSessionSource,
     /removeEmptyBlockWithBackspace\(event, block, index, area, sync\)[\s\S]*handleCrossBlockArrowNavigation\(event, index, area\)/,
     'source textareas should run cross-block arrows after empty-block deletion'
   );
@@ -620,12 +654,12 @@ run('cross-block arrows wire rich text, code, and source editables', () => {
 
 run('empty list item Enter exits or splits the list before normal item splitting', () => {
   assert.match(
-    editorBlocksSource,
-    /if \(event\.key === 'Enter'\) \{[\s\S]*const currentText = editableText\(span\);[\s\S]*const outdentedItems = outdentEmptyListItemForEnter\(currentItems, itemIndex\);[\s\S]*if \(outdentedItems\) \{[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\);[\s\S]*return;[\s\S]*const trailingParagraph = isEditableSelectionAtStart\(span\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\);[\s\S]*const emptySplit = splitListItemsAtEmptyItem\(currentItems, itemIndex\);[\s\S]*const splitAfter = normalizeSplitListStartItems\(emptySplit\.after\);[\s\S]*state\.blocks\.splice\(index \+ 1, 0, nextBlock\)[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*state\.blocks\.splice\(index, 1, blank\)[\s\S]*return;[\s\S]*const split = splitEditableTextAtSelection\(span\);[\s\S]*state\.pendingListFocus = \{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \};/,
+    editorBlocksListSessionSource,
+    /if \(event\.key === 'Enter'\) \{[\s\S]*const currentText = editableText\(span\);[\s\S]*const outdentedItems = outdentEmptyListItemForEnter\(currentItems, itemIndex\);[\s\S]*if \(outdentedItems\) \{[\s\S]*updateFromControl\(block, \{ items: outdentedItems \}, true\);[\s\S]*return;[\s\S]*const trailingParagraph = isEditableSelectionAtStart\(span, caretSession\)[\s\S]*convertListTailItemAfterEmptyToParagraph\(currentItems, itemIndex\)[\s\S]*focusBlockPrimaryEditable\(paragraph, 0\);[\s\S]*const emptySplit = splitListItemsAtEmptyItem\(currentItems, itemIndex\);[\s\S]*const splitAfter = normalizeSplitListStartItems\(emptySplit\.after\);[\s\S]*blocksState\.replaceBlocks\(index, 1, \[block, nextBlock\][\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\)[\s\S]*blocksState\.replaceBlocks\(index, 1, \[blank\]\)[\s\S]*return;[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
     'empty list item Enter should delete the empty item and choose list split, blank exit, or blank replacement before normal item splitting'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksListSessionSource,
     /if \(event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing\) return;[\s\S]*if \(event\.key === 'Enter'\)/,
     'empty list item Enter should share the existing plain-Enter-only guard'
   );
@@ -638,12 +672,12 @@ run('blank blocks replace the inline virtual insertion state', () => {
     'blank blocks should not depend on persistent inline virtual block state'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksModelSource,
     /const BLOCK_TYPES = new Set\(\[[^\]]*'blank'[^\]]*\]\)/,
     'blank should be an internal block type'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksModelSource,
     /function makeBlankBlock\(after = '\\n', data = \{\}\)[\s\S]*makeBlock\('blank', '', \{ \.\.\.data, after: after \|\| '\\n' \}\)/,
     'blank blocks should serialize as newline whitespace only'
   );
@@ -651,19 +685,19 @@ run('blank blocks replace the inline virtual insertion state', () => {
 
 run('visual editor has no terminal virtual UI and only materializes blank blocks for empty documents', () => {
   assert.match(
-    editorBlocksSource,
-    /const ensureEditableBlankForEmptyDocument = \(\) => \{[\s\S]*if \(state\.blocks\.length\) return null;[\s\S]*Empty documents still need one real blank block[\s\S]*non-empty documents rely on Enter at the end instead[\s\S]*makeBlankBlock\('\\n', \{ dirty: true \}\)[\s\S]*state\.blocks\.push\(block\)/,
+    editorBlocksStateSource,
+    /function ensureEditableBlankForEmptyDocument\(\) \{[\s\S]*if \(state\.blocks\.length\) return null;[\s\S]*makeBlankBlock\('\\n', \{ dirty: true \}\)[\s\S]*state\.blocks\.push\(block\)/,
     'visual editor state should create a dirty real blank only for empty documents'
   );
   assert.match(
-    editorBlocksSource,
-    /setMarkdown\(markdown\) \{[\s\S]*state\.blocks = parseMarkdownBlocks\(markdown\);[\s\S]*ensureEditableBlankForEmptyDocument\(\);[\s\S]*state\.activeIndex = -1;/,
+    editorBlocksStateSource,
+    /function setMarkdown\(markdown\) \{[\s\S]*state\.blocks = parseMarkdownBlocksRef\(markdown\);[\s\S]*ensureEditableBlankForEmptyDocument\(\);[\s\S]*resetEditorSession\(\);/,
     'setMarkdown should add a real blank only when the parsed document has no blocks'
   );
   const setMarkdownSource = editorBlocksSource.match(/setMarkdown\(markdown\) \{[\s\S]*?\n    \},/)?.[0] || '';
   assert.match(
     setMarkdownSource,
-    /ensureEditableBlankForEmptyDocument\(\);[\s\S]*render\(\);/,
+    /blocksState\.setMarkdown\(markdown\);[\s\S]*render\(\);/,
     'setMarkdown should render the empty-document blank'
   );
   assert.doesNotMatch(
@@ -680,25 +714,25 @@ run('visual editor has no terminal virtual UI and only materializes blank blocks
 
 run('typing or slash command on blank blocks replaces the blank block', () => {
   assert.match(
-    editorBlocksSource,
-    /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*event\.data === '\/'[\s\S]*openBlockCommandMenu\(index\)[\s\S]*createParagraphFromBlankInput\(event\.data, index\)/,
-    'blank block input should either open the command menu or become a paragraph'
+    editorBlocksCommandSessionSource,
+    /const renderBlankBlock = \(body, block, index\) => \{[\s\S]*event\.data === '\/'[\s\S]*openMenu\(index\)[\s\S]*createParagraphFromBlankInput\(event\.data, index\)/,
+    'blank block input should be owned by the command session and either open the command menu or become a paragraph'
   );
   assert.match(
-    editorBlocksSource,
-    /renderBlankBlock[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*event\.key === 'Enter' && !event\.shiftKey && !event\.altKey && !event\.ctrlKey && !event\.metaKey && !event\.isComposing[\s\S]*event\.preventDefault\(\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*return;[\s\S]*removeEmptyBlockWithBackspace/,
-    'plain Enter in a blank block should insert a following blank instead of converting the current blank to a paragraph'
+    editorBlocksCommandSessionSource,
+    /renderBlankBlock[\s\S]*editable\.addEventListener\('keydown', \(event\) => \{[\s\S]*isPlainEnter\(event\)[\s\S]*prevent\(event\);[\s\S]*insertBlankBlock\(index \+ 1, \{ focus: true \}\);[\s\S]*return;[\s\S]*removeEmptyBlockWithBackspace/,
+    'plain Enter in a blank block should be handled by the command session and insert a following blank instead of converting the current blank to a paragraph'
   );
   assert.match(
-    editorBlocksSource,
-    /if \(state\.blocks\[safeIndex\] && state\.blocks\[safeIndex\]\.type === 'blank'\) \{[\s\S]*state\.blocks\.splice\(safeIndex, 1, block\);[\s\S]*render\(\);/,
+    editorBlocksStateSource,
+    /function placeCommandBlock\(type, data = \{\}, index = state\.blocks\.length\) \{[\s\S]*if \(state\.blocks\[safeIndex\] && state\.blocks\[safeIndex\]\.type === 'blank'\) \{[\s\S]*state\.blocks\.splice\(safeIndex, 1, block\);/,
     'command-selected blocks should replace an existing blank block without forcing a new trailing blank'
   );
 });
 
 run('blank blocks use existing removable and cross-block navigation paths', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksModelSource,
     /if \(block\.type === 'blank'\) return true;/,
     'empty-block Backspace detection should treat blank blocks as removable'
   );
@@ -708,23 +742,28 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
     'blank Backspace removal should still skip the first block'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksCommandSessionSource,
     /editable\.className = 'blocks-rich-editable blocks-paragraph-text blocks-virtual-editable blocks-blank-editable'/,
-    'blank blocks should expose a rich editable for cross-block arrow targeting'
+    'blank blocks should expose a rich editable for cross-block arrow targeting through the command session'
   );
   assert.match(
-    editorBlocksSource,
-    /const tableCells = Array\.from\(blockEl\.querySelectorAll\('\.blocks-table-cell-input'\)\);[\s\S]*const tableTarget = tableCells\.length \? \(edge === 'last' \? tableCells\[tableCells\.length - 1\] : tableCells\[0\]\) : null;[\s\S]*const editable = listTarget[\s\S]*\|\| tableTarget/,
+    editorBlocksFocusSessionSource,
+    /const tableCells = safeArray\(blockEl\.querySelectorAll\('\.blocks-table-cell-input'\)\);[\s\S]*const tableTarget = tableCells\.length \? \(edge === 'last' \? tableCells\[tableCells\.length - 1\] : tableCells\[0\]\) : null;[\s\S]*const editable = listTarget[\s\S]*\|\| tableTarget/,
     'cross-block target discovery should respect edge direction for table cells'
   );
   assert.match(
-    editorBlocksSource,
-    /const head = document\.createElement\('div'\);[\s\S]*head\.className = 'blocks-block-head';[\s\S]*head\.appendChild\(actions\);[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
+    editorBlocksBodySessionSource,
+    /headSession\.createBlockHead\(\{[\s\S]*block,[\s\S]*index,[\s\S]*blockCount: Array\.isArray\(state\.blocks\) \? state\.blocks\.length : 0[\s\S]*\}\)[\s\S]*item\.append\(head, renderBlockBody\(block, index\)\);/,
     'blank blocks should use the normal floating block toolbar'
   );
   assert.match(
-    editorBlocksSource,
-    /const focusPreviousBlockEnd = \(index\) => \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*editableListItems\(target\.data && target\.data\.items\)\.length - 1[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);/,
+    editorBlocksHeadSessionSource,
+    /const createBlockHead = \(\{[\s\S]*head\.className = 'blocks-block-head';[\s\S]*appendIf\(head, createActionControls\(index, blockCount\)\);/,
+    'blank block toolbar rendering should be provided by the head session'
+  );
+  assert.match(
+    editorBlocksFocusSessionSource,
+    /function focusPreviousBlockEnd\(index\) \{[\s\S]*if \(target\.type === 'list'\) \{[\s\S]*listItems\(target\.data && target\.data\.items\)\.length - 1[\s\S]*focusListItemEditable\(target, itemIndex, \{ atEnd: true \}\);[\s\S]*return;[\s\S]*focusBlockPrimaryEditable\(target\);/,
     'empty-block Backspace should focus the previous list block at its last item end'
   );
 });

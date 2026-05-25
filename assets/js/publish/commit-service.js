@@ -8,8 +8,8 @@ export async function ensurePublishGrant({
   repo,
   getCachedGrant,
   setCachedGrant,
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
   translate = (key) => key
 } = {}) {
   return authorizeConnectPublishGrant({
@@ -31,8 +31,9 @@ export async function publishCommit({
   contentRoot,
   getCachedGrant,
   setCachedGrant,
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
+  fetchImpl = null,
   translate = (key) => key,
   onStatus
 } = {}) {
@@ -62,6 +63,7 @@ export async function publishCommit({
       files,
       grant,
       contentRoot,
+      fetchImpl,
       translate
     });
   }
@@ -73,6 +75,7 @@ export async function publishCommit({
     branch,
     headline,
     files,
+    fetchImpl,
     onStatus
   });
 }

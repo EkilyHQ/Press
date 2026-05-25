@@ -1,5 +1,3 @@
-let cachedContext = null;
-
 function isElement(value) {
   return value && typeof value === 'object' && value.nodeType === 1;
 }
@@ -84,21 +82,18 @@ export function mergeThemeRegions(current = {}, next = {}) {
   return registry;
 }
 
-export function setThemeLayoutContext(context) {
+function normalizeThemeLayoutContext(context) {
   if (context && typeof context === 'object') {
     context.regions = ensureThemeRegionRegistry(context.regions);
+    return context;
   }
-  cachedContext = context || null;
+  return null;
 }
 
-export function getThemeLayoutContext() {
-  return cachedContext;
-}
-
-export function getThemeRegion(names) {
+function getThemeRegionFromContext(context, names) {
   const list = Array.isArray(names) ? names : [names];
-  const regions = cachedContext && cachedContext.regions && typeof cachedContext.regions === 'object'
-    ? ensureThemeRegionRegistry(cachedContext.regions)
+  const regions = context && context.regions && typeof context.regions === 'object'
+    ? ensureThemeRegionRegistry(context.regions)
     : createThemeRegionRegistry();
   for (const name of list) {
     const key = String(name || '').trim();
@@ -107,4 +102,38 @@ export function getThemeRegion(names) {
     if (region) return region;
   }
   return null;
+}
+
+export function createThemeRegionController(initialContext = null) {
+  let contextRef = normalizeThemeLayoutContext(initialContext);
+  return {
+    setThemeLayoutContext(context) {
+      contextRef = normalizeThemeLayoutContext(context);
+      return contextRef;
+    },
+    getThemeLayoutContext() {
+      return contextRef;
+    },
+    getThemeRegion(names) {
+      return getThemeRegionFromContext(contextRef, names);
+    }
+  };
+}
+
+const defaultThemeRegionController = createThemeRegionController();
+
+export function getDefaultThemeRegionController() {
+  return defaultThemeRegionController;
+}
+
+export function setThemeLayoutContext(context) {
+  return defaultThemeRegionController.setThemeLayoutContext(context);
+}
+
+export function getThemeLayoutContext() {
+  return defaultThemeRegionController.getThemeLayoutContext();
+}
+
+export function getThemeRegion(names) {
+  return defaultThemeRegionController.getThemeRegion(names);
 }

@@ -15,9 +15,13 @@ function getTargetLabel(target) {
   return `${getTargetFileBase(target)}.yaml`;
 }
 
+function noop() {}
+
 export function createComposerYamlActions(options = {}) {
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
-  const consoleRef = options.consoleRef || console;
+  const consoleRef = options.consoleRef || { error: noop, warn: noop };
+  const confirmRef = typeof options.confirmRef === 'function'
+    ? options.confirmRef
+    : () => true;
   const t = typeof options.t === 'function' ? options.t : (key, params = {}) => {
     if (params && params.label) return `${key}:${params.label}`;
     if (params && params.name) return `${key}:${params.name}`;
@@ -59,7 +63,7 @@ export function createComposerYamlActions(options = {}) {
   const showDiscardConfirm = typeof options.showDiscardConfirm === 'function' ? options.showDiscardConfirm : async () => true;
   const setTimeoutRef = typeof options.setTimeoutRef === 'function'
     ? options.setTimeoutRef
-    : (handler, delay) => setTimeout(handler, delay);
+    : () => null;
 
   function prepareRemoteSnapshot(target, remote) {
     const safeTarget = normalizeTarget(target);
@@ -143,12 +147,7 @@ export function createComposerYamlActions(options = {}) {
       return await showDiscardConfirm(button, promptMessage);
     } catch (err) {
       consoleRef.warn('Custom discard prompt failed, falling back to native confirm', err);
-      try {
-        if (windowRef && typeof windowRef.confirm === 'function') {
-          return windowRef.confirm(promptMessage);
-        }
-      } catch (_) {}
-      return true;
+      return confirmRef(promptMessage);
     }
   }
 

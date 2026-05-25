@@ -1,7 +1,13 @@
 export function createComposerDialogController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : null;
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function' ? options.clearTimeoutRef : null;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
+  const addWindowListener = typeof options.addWindowListener === 'function' ? options.addWindowListener : () => null;
+  const addDocumentListener = typeof options.addDocumentListener === 'function' ? options.addDocumentListener : () => null;
+  const getViewportSizeRef = typeof options.getViewportSize === 'function' ? options.getViewportSize : null;
+  const getWindowScroll = typeof options.getWindowScroll === 'function' ? options.getWindowScroll : () => ({ x: 0, y: 0 });
 
   let discardConfirmElements = null;
   let discardConfirmActiveClose = null;
@@ -14,24 +20,34 @@ export function createComposerDialogController(options = {}) {
   let markdownProtectionPasswordDialogElements = null;
 
   function clearTimer(timer) {
-    if (!timer || !windowRef || typeof windowRef.clearTimeout !== 'function') return;
-    windowRef.clearTimeout(timer);
+    if (!timer || !clearTimeoutRef) return;
+    clearTimeoutRef(timer);
   }
 
   function scheduleTimer(callback, delay) {
-    if (windowRef && typeof windowRef.setTimeout === 'function') {
-      return windowRef.setTimeout(callback, delay);
+    if (setTimeoutRef) {
+      return setTimeoutRef(callback, delay);
     }
     callback();
     return null;
   }
 
   function scheduleFrame(callback) {
-    if (windowRef && typeof windowRef.requestAnimationFrame === 'function') {
-      windowRef.requestAnimationFrame(callback);
+    if (requestAnimationFrameRef) {
+      requestAnimationFrameRef(callback);
       return;
     }
     callback();
+  }
+
+  function listenWindow(type, handler, listenerOptions) {
+    const cleanup = addWindowListener(type, handler, listenerOptions);
+    return typeof cleanup === 'function' ? cleanup : () => {};
+  }
+
+  function listenDocument(type, handler, listenerOptions) {
+    const cleanup = addDocumentListener(type, handler, listenerOptions);
+    return typeof cleanup === 'function' ? cleanup : () => {};
   }
 
   function focusElement(element, options = {}) {
@@ -45,10 +61,17 @@ export function createComposerDialogController(options = {}) {
   }
 
   function getViewportSize() {
+    if (getViewportSizeRef) {
+      const viewport = getViewportSizeRef() || {};
+      return {
+        width: Number(viewport.width) || 0,
+        height: Number(viewport.height) || 0
+      };
+    }
     const docEl = documentRef && documentRef.documentElement;
     return {
-      width: docEl && docEl.clientWidth ? docEl.clientWidth : (windowRef && windowRef.innerWidth ? windowRef.innerWidth : 0),
-      height: docEl && docEl.clientHeight ? docEl.clientHeight : (windowRef && windowRef.innerHeight ? windowRef.innerHeight : 0)
+      width: docEl && docEl.clientWidth ? docEl.clientWidth : 0,
+      height: docEl && docEl.clientHeight ? docEl.clientHeight : 0
     };
   }
 
@@ -66,8 +89,9 @@ export function createComposerDialogController(options = {}) {
       onInvalidAnchor();
       return;
     }
-    const scrollX = windowRef ? (windowRef.scrollX || windowRef.pageXOffset || 0) : 0;
-    const scrollY = windowRef ? (windowRef.scrollY || windowRef.pageYOffset || 0) : 0;
+    const scroll = getWindowScroll() || {};
+    const scrollX = Number(scroll.x) || 0;
+    const scrollY = Number(scroll.y) || 0;
     const viewport = getViewportSize();
     const margin = 12;
     const width = popover.offsetWidth || 0;
@@ -288,6 +312,8 @@ export function createComposerDialogController(options = {}) {
 
     let resolve;
     let closed = false;
+    let windowListenerDisposers = [];
+    let documentListenerDisposers = [];
 
     const finish = (result, value) => {
       if (closed) return;
@@ -313,15 +339,14 @@ export function createComposerDialogController(options = {}) {
       confirmBtn.removeEventListener('click', onConfirm);
       input.removeEventListener('keydown', onInputKeyDown, true);
       input.removeEventListener('input', onInputChange);
-      if (documentRef) {
-        documentRef.removeEventListener('keydown', onKeyDown, true);
-        documentRef.removeEventListener('mousedown', onOutside, true);
-        documentRef.removeEventListener('touchstart', onOutside, true);
-      }
-      if (windowRef && typeof windowRef.removeEventListener === 'function') {
-        windowRef.removeEventListener('resize', reposition);
-        windowRef.removeEventListener('scroll', reposition, true);
-      }
+      documentListenerDisposers.forEach((dispose) => {
+        try { dispose(); } catch (_) {}
+      });
+      documentListenerDisposers = [];
+      windowListenerDisposers.forEach((dispose) => {
+        try { dispose(); } catch (_) {}
+      });
+      windowListenerDisposers = [];
 
       if (anchor && typeof anchor.setAttribute === 'function') {
         anchor.setAttribute('aria-expanded', 'false');
@@ -408,15 +433,15 @@ export function createComposerDialogController(options = {}) {
     confirmBtn.addEventListener('click', onConfirm);
     input.addEventListener('keydown', onInputKeyDown, true);
     input.addEventListener('input', onInputChange);
-    if (documentRef) {
-      documentRef.addEventListener('keydown', onKeyDown, true);
-      documentRef.addEventListener('mousedown', onOutside, true);
-      documentRef.addEventListener('touchstart', onOutside, true);
-    }
-    if (windowRef && typeof windowRef.addEventListener === 'function') {
-      windowRef.addEventListener('resize', reposition);
-      windowRef.addEventListener('scroll', reposition, true);
-    }
+    documentListenerDisposers = [
+      listenDocument('keydown', onKeyDown, true),
+      listenDocument('mousedown', onOutside, true),
+      listenDocument('touchstart', onOutside, true)
+    ];
+    windowListenerDisposers = [
+      listenWindow('resize', reposition),
+      listenWindow('scroll', reposition, true)
+    ];
 
     return new Promise((res) => {
       resolve = res;
@@ -573,6 +598,7 @@ export function createComposerDialogController(options = {}) {
 
     return new Promise((resolve) => {
       let closed = false;
+      let documentListenerDisposers = [];
 
       const setError = (text) => {
         const value = String(text || '');
@@ -594,7 +620,10 @@ export function createComposerDialogController(options = {}) {
         passwordInput.removeEventListener('keydown', onKeyDown, true);
         confirmInput.removeEventListener('keydown', onKeyDown, true);
         overlay.removeEventListener('mousedown', onOverlayMouseDown, true);
-        if (documentRef) documentRef.removeEventListener('keydown', onDocumentKeyDown, true);
+        documentListenerDisposers.forEach((dispose) => {
+          try { dispose(); } catch (_) {}
+        });
+        documentListenerDisposers = [];
         resolve(value ? String(value) : '');
       };
 
@@ -654,7 +683,9 @@ export function createComposerDialogController(options = {}) {
       passwordInput.addEventListener('keydown', onKeyDown, true);
       confirmInput.addEventListener('keydown', onKeyDown, true);
       overlay.addEventListener('mousedown', onOverlayMouseDown, true);
-      if (documentRef) documentRef.addEventListener('keydown', onDocumentKeyDown, true);
+      documentListenerDisposers = [
+        listenDocument('keydown', onDocumentKeyDown, true)
+      ];
 
       overlay.hidden = false;
       overlay.classList.add('is-visible');
@@ -735,6 +766,8 @@ export function createComposerDialogController(options = {}) {
 
     return new Promise((resolve) => {
       let closed = false;
+      let windowListenerDisposers = [];
+      let documentListenerDisposers = [];
 
       const finish = (result) => {
         if (closed) return;
@@ -757,15 +790,14 @@ export function createComposerDialogController(options = {}) {
 
         cancelBtn.removeEventListener('click', onCancel);
         confirmBtn.removeEventListener('click', onConfirm);
-        if (documentRef) {
-          documentRef.removeEventListener('keydown', onKeyDown, true);
-          documentRef.removeEventListener('mousedown', onOutside, true);
-          documentRef.removeEventListener('touchstart', onOutside, true);
-        }
-        if (windowRef && typeof windowRef.removeEventListener === 'function') {
-          windowRef.removeEventListener('resize', reposition);
-          windowRef.removeEventListener('scroll', reposition, true);
-        }
+        documentListenerDisposers.forEach((dispose) => {
+          try { dispose(); } catch (_) {}
+        });
+        documentListenerDisposers = [];
+        windowListenerDisposers.forEach((dispose) => {
+          try { dispose(); } catch (_) {}
+        });
+        windowListenerDisposers = [];
 
         if (anchor && typeof anchor.setAttribute === 'function') {
           anchor.setAttribute('aria-expanded', 'false');
@@ -826,15 +858,15 @@ export function createComposerDialogController(options = {}) {
 
       cancelBtn.addEventListener('click', onCancel);
       confirmBtn.addEventListener('click', onConfirm);
-      if (documentRef) {
-        documentRef.addEventListener('keydown', onKeyDown, true);
-        documentRef.addEventListener('mousedown', onOutside, true);
-        documentRef.addEventListener('touchstart', onOutside, true);
-      }
-      if (windowRef && typeof windowRef.addEventListener === 'function') {
-        windowRef.addEventListener('resize', reposition);
-        windowRef.addEventListener('scroll', reposition, true);
-      }
+      documentListenerDisposers = [
+        listenDocument('keydown', onKeyDown, true),
+        listenDocument('mousedown', onOutside, true),
+        listenDocument('touchstart', onOutside, true)
+      ];
+      windowListenerDisposers = [
+        listenWindow('resize', reposition),
+        listenWindow('scroll', reposition, true)
+      ];
 
       discardConfirmActiveClose = finish;
 

@@ -1,13 +1,15 @@
 export function createComposerSiteSettingsUi(options = {}) {
   const noop = () => {};
-  const documentRef = options.documentRef || (typeof globalThis !== 'undefined' ? globalThis.document : null);
-  const windowRef = options.windowRef || (typeof globalThis !== 'undefined' ? globalThis.window : null);
-  const performanceRef = options.performanceRef || (typeof globalThis !== 'undefined' ? globalThis.performance : null);
-  const cssRef = options.cssRef || (typeof globalThis !== 'undefined' ? globalThis.CSS : null);
-  const document = documentRef || {};
-  const window = windowRef || {};
-  const performance = performanceRef || {};
-  const CSS = cssRef || {};
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
+  const performanceRef = options.performanceRef || null;
+  const cssRef = options.cssRef || null;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
+  const cancelAnimationFrameRef = typeof options.cancelAnimationFrameRef === 'function' ? options.cancelAnimationFrameRef : null;
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function' ? options.setTimeoutRef : null;
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function' ? options.clearTimeoutRef : null;
+  const fetchContent = typeof options.fetchContent === 'function' ? options.fetchContent : null;
+  const getComputedStyleRef = typeof options.getComputedStyleRef === 'function' ? options.getComputedStyleRef : null;
   const PREFERRED_LANG_ORDER = Array.isArray(options.preferredLangOrder) ? options.preferredLangOrder : [];
   const LANG_CODE_PATTERN = options.langCodePattern || /^[a-z]{2,3}(?:-[a-z0-9]+)*$/i;
   const LANGUAGE_POOL_CHANGED_EVENT = options.languagePoolChangedEvent || 'press-composer-language-pool-changed';
@@ -37,8 +39,50 @@ export function createComposerSiteSettingsUi(options = {}) {
   const applyMode = typeof options.applyMode === 'function' ? options.applyMode : noop;
   const safeString = typeof options.safeString === 'function' ? options.safeString : (value) => (value == null ? '' : String(value));
 
+  const requestFrame = (handler) => {
+    if (typeof handler !== 'function') return null;
+    if (requestAnimationFrameRef) {
+      try { return requestAnimationFrameRef(handler); } catch (_) {}
+    }
+    handler();
+    return null;
+  };
+
+  const cancelFrame = (id) => {
+    if (id == null || !cancelAnimationFrameRef) return;
+    try { cancelAnimationFrameRef(id); } catch (_) {}
+  };
+
+  const setTimer = (handler, delay = 0) => {
+    if (typeof handler !== 'function') return null;
+    if (setTimeoutRef) {
+      try { return setTimeoutRef(handler, delay); } catch (_) {}
+    }
+    if ((Number(delay) || 0) <= 0) handler();
+    return null;
+  };
+
+  const clearTimer = (id) => {
+    if (id == null || !clearTimeoutRef) return;
+    try { clearTimeoutRef(id); } catch (_) {}
+  };
+
+  const getComputedStyleFor = (element) => {
+    if (!element) return null;
+    try {
+      if (getComputedStyleRef) return getComputedStyleRef(element);
+    } catch (_) {}
+    try {
+      return windowRef && typeof windowRef.getComputedStyle === 'function'
+        ? windowRef.getComputedStyle(element)
+        : null;
+    } catch (_) {
+      return null;
+    }
+  };
+
   function buildSiteUI(root, state) {
-    if (!root) return;
+    if (!root || !documentRef || typeof documentRef.createElement !== 'function') return;
     root.innerHTML = '';
     try {
       if (typeof root.__pressSiteCompactNavCleanup === 'function') root.__pressSiteCompactNavCleanup();
@@ -72,7 +116,7 @@ export function createComposerSiteSettingsUi(options = {}) {
     }
     setStateSlice('site', site);
 
-    const container = document.createElement('div');
+    const container = documentRef.createElement('div');
     container.className = 'cs-root';
     root.appendChild(container);
 
@@ -89,8 +133,8 @@ export function createComposerSiteSettingsUi(options = {}) {
     })();
 
     const getNow = () => {
-      if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-        try { return performance.now(); } catch (_) {}
+      if (performanceRef && typeof performanceRef.now === 'function') {
+        try { return performanceRef.now(); } catch (_) {}
       }
       try { return Date.now(); } catch (_) { return 0; }
     };
@@ -102,24 +146,24 @@ export function createComposerSiteSettingsUi(options = {}) {
     const escapeFieldKey = (value) => {
       const raw = value == null ? '' : String(value);
       try {
-        if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(raw);
+        if (cssRef && typeof cssRef.escape === 'function') return cssRef.escape(raw);
       } catch (_) {}
       return raw.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     };
 
-    const layout = document.createElement('div');
+    const layout = documentRef.createElement('div');
     layout.className = 'cs-layout';
     container.appendChild(layout);
 
-    const viewport = document.createElement('div');
+    const viewport = documentRef.createElement('div');
     viewport.className = 'cs-viewport';
     layout.appendChild(viewport);
 
     const resolveViewportAnchorTop = () => {
-      if (typeof window === 'undefined') return 0;
+      if (!windowRef || !documentRef) return 0;
       let toolbarOffset = 0;
       try {
-        const docStyles = window.getComputedStyle(document.documentElement);
+        const docStyles = getComputedStyleFor(documentRef.documentElement);
         const parsedToolbar = parseFloat(docStyles && docStyles.getPropertyValue('--editor-toolbar-offset'));
         if (Number.isFinite(parsedToolbar)) toolbarOffset = Math.max(parsedToolbar, 0);
       } catch (_) {}
@@ -127,7 +171,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       let desiredTop = Math.max(toolbarOffset + 12, 12);
       try {
         const scrollContainer = resolveSiteScrollContainer();
-        if (scrollContainer && scrollContainer !== window && typeof scrollContainer.getBoundingClientRect === 'function') {
+        if (scrollContainer && scrollContainer !== windowRef && typeof scrollContainer.getBoundingClientRect === 'function') {
           const containerRect = scrollContainer.getBoundingClientRect();
           if (containerRect && Number.isFinite(containerRect.top)) {
             desiredTop = Math.max(containerRect.top + 12, 12);
@@ -138,11 +182,11 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const resolveSiteScrollContainer = () => {
-      if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+      if (!windowRef || !documentRef) return null;
       try {
         const viewport = root ? root.querySelector('.cs-viewport') : null;
         if (viewport) {
-          const styles = typeof window.getComputedStyle === 'function' ? window.getComputedStyle(viewport) : null;
+          const styles = getComputedStyleFor(viewport);
           const overflowY = styles ? String(styles.overflowY || '') : '';
           const canOwnScroll = /(auto|scroll|overlay)/.test(overflowY)
             && (!viewport.getClientRects || viewport.getClientRects().length > 0);
@@ -154,9 +198,9 @@ export function createComposerSiteSettingsUi(options = {}) {
         if (modalBody) return modalBody;
       } catch (_) {}
       let node = root && root.parentElement ? root.parentElement : null;
-      while (node && node !== document.body && node !== document.documentElement) {
+      while (node && node !== documentRef.body && node !== documentRef.documentElement) {
         try {
-          const styles = typeof window.getComputedStyle === 'function' ? window.getComputedStyle(node) : null;
+          const styles = getComputedStyleFor(node);
           const overflowY = styles ? String(styles.overflowY || '') : '';
           const canScroll = /(auto|scroll|overlay)/.test(overflowY)
             && (node.scrollHeight || 0) > (node.clientHeight || 0) + 1;
@@ -164,30 +208,30 @@ export function createComposerSiteSettingsUi(options = {}) {
         } catch (_) {}
         node = node.parentElement;
       }
-      return window;
+      return windowRef;
     };
 
     const getSiteScrollTop = (scrollContainer) => {
-      if (!scrollContainer || scrollContainer === window) {
-        return window.pageYOffset || document.documentElement.scrollTop || 0;
+      if (!scrollContainer || scrollContainer === windowRef) {
+        return windowRef.pageYOffset || documentRef.documentElement.scrollTop || 0;
       }
       return scrollContainer.scrollTop || 0;
     };
 
     const getSiteViewportHeight = (scrollContainer) => {
-      if (!scrollContainer || scrollContainer === window) {
-        return window.innerHeight || document.documentElement.clientHeight || 0;
+      if (!scrollContainer || scrollContainer === windowRef) {
+        return windowRef.innerHeight || documentRef.documentElement.clientHeight || 0;
       }
-      return scrollContainer.clientHeight || window.innerHeight || document.documentElement.clientHeight || 0;
+      return scrollContainer.clientHeight || windowRef.innerHeight || documentRef.documentElement.clientHeight || 0;
     };
 
     const scrollSiteContainerTo = (scrollContainer, targetY, behavior) => {
-      if (!scrollContainer || scrollContainer === window) {
-        if (typeof window.scrollTo === 'function') {
+      if (!scrollContainer || scrollContainer === windowRef) {
+        if (typeof windowRef.scrollTo === 'function') {
           try {
-            window.scrollTo({ top: targetY, behavior });
+            windowRef.scrollTo({ top: targetY, behavior });
           } catch (_) {
-            window.scrollTo(0, targetY);
+            windowRef.scrollTo(0, targetY);
           }
         }
         return;
@@ -248,21 +292,21 @@ export function createComposerSiteSettingsUi(options = {}) {
             }
           };
           try {
-            requestAnimationFrame(applyFocus);
+            requestFrame(applyFocus);
           } catch (_) {
             applyFocus();
           }
         };
         const ms = Math.max(0, Number(delay) || 0);
-        if (ms > 0 && typeof setTimeout === 'function') {
-          setTimeout(schedule, ms);
+        if (ms > 0) {
+          setTimer(schedule, ms);
         } else {
           schedule();
         }
         focusTarget = null;
       };
 
-      if (shouldScroll && activeMeta && typeof window !== 'undefined') {
+      if (shouldScroll && activeMeta && windowRef) {
         const executeScroll = () => {
           try {
             const scrollContainer = resolveSiteScrollContainer();
@@ -280,7 +324,7 @@ export function createComposerSiteSettingsUi(options = {}) {
                 scrollSyncLockUntil = now + Math.max(lockDuration, 140);
               }
 
-              if (scrollContainer === window && !prefersReduced && behavior !== 'auto' && behavior !== 'instant') {
+              if (scrollContainer === windowRef && !prefersReduced && behavior !== 'auto' && behavior !== 'instant') {
                 const animated = animateComposerViewportScroll(targetY, resolvedDuration, () => commitFocus(48));
                 if (animated) return;
               }
@@ -300,8 +344,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         };
 
         try {
-          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(executeScroll);
-          else executeScroll();
+          requestFrame(executeScroll);
         } catch (_) {
           executeScroll();
         }
@@ -316,11 +359,8 @@ export function createComposerSiteSettingsUi(options = {}) {
 
     function cancelScheduledScrollSync() {
       if (scrollSyncHandle == null) return;
-      if (scrollSyncHandleType === 'raf' && typeof cancelAnimationFrame === 'function') {
-        try { cancelAnimationFrame(scrollSyncHandle); } catch (_) {}
-      } else if (scrollSyncHandleType === 'timeout' && typeof clearTimeout === 'function') {
-        try { clearTimeout(scrollSyncHandle); } catch (_) {}
-      }
+      if (scrollSyncHandleType === 'raf') cancelFrame(scrollSyncHandle);
+      else if (scrollSyncHandleType === 'timeout') clearTimer(scrollSyncHandle);
       scrollSyncHandle = null;
       scrollSyncHandleType = '';
     }
@@ -328,18 +368,16 @@ export function createComposerSiteSettingsUi(options = {}) {
     function runScrollSync() {
       scrollSyncHandle = null;
       scrollSyncHandleType = '';
-      if (typeof window === 'undefined') return;
+      if (!windowRef) return;
       const now = getNow();
       if (now < scrollSyncLockUntil) {
-        if (typeof setTimeout === 'function') {
-          const delay = Math.max(24, Math.min(240, scrollSyncLockUntil - now + 16));
-          scrollSyncHandleType = 'timeout';
-          scrollSyncHandle = setTimeout(() => {
-            scrollSyncHandle = null;
-            scrollSyncHandleType = '';
-            runScrollSync();
-          }, delay);
-        }
+        const delay = Math.max(24, Math.min(240, scrollSyncLockUntil - now + 16));
+        scrollSyncHandleType = 'timeout';
+        scrollSyncHandle = setTimer(() => {
+          scrollSyncHandle = null;
+          scrollSyncHandleType = '';
+          runScrollSync();
+        }, delay);
       } else {
         if (!sectionsMeta.length) return;
         const scrollContainer = resolveSiteScrollContainer();
@@ -373,7 +411,7 @@ export function createComposerSiteSettingsUi(options = {}) {
     }
 
     function scheduleScrollSync() {
-      if (typeof window === 'undefined') return;
+      if (!windowRef) return;
       if (scrollSyncHandle != null) return;
       const runner = () => {
         scrollSyncHandle = null;
@@ -382,36 +420,32 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
       try {
         scrollSyncHandleType = 'raf';
-        scrollSyncHandle = requestAnimationFrame(() => runner());
+        scrollSyncHandle = requestFrame(() => runner());
       } catch (_) {
-        if (typeof setTimeout === 'function') {
-          scrollSyncHandleType = 'timeout';
-          scrollSyncHandle = setTimeout(runner, 66);
-        } else {
-          runner();
-        }
+        scrollSyncHandleType = 'timeout';
+        scrollSyncHandle = setTimer(runner, 66);
       }
     }
 
     const createSection = (title, description) => {
-      const section = document.createElement('section');
+      const section = documentRef.createElement('section');
       section.className = 'cs-section';
       section.setAttribute('role', 'tabpanel');
       section.setAttribute('aria-hidden', 'false');
       const sectionId = `cs-section-${sectionsMeta.length + 1}`;
       section.id = sectionId;
       if (title || description) {
-        const head = document.createElement('div');
+        const head = documentRef.createElement('div');
         head.className = 'cs-section-head';
         let heading = null;
         if (title) {
-          heading = document.createElement('h3');
+          heading = documentRef.createElement('h3');
           heading.className = 'cs-section-title';
           heading.textContent = title;
           head.appendChild(heading);
         }
         if (description) {
-          const desc = document.createElement('p');
+          const desc = documentRef.createElement('p');
           desc.className = 'cs-section-description';
           desc.textContent = description;
           head.appendChild(desc);
@@ -462,7 +496,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         if (options.scroll !== false) {
           try {
             const behavior = options.behavior || 'smooth';
-            requestAnimationFrame(() => {
+            requestFrame(() => {
               try { fieldEl.scrollIntoView({ block: 'start', behavior }); }
               catch (_) { fieldEl.scrollIntoView(); }
             });
@@ -481,7 +515,7 @@ export function createComposerSiteSettingsUi(options = {}) {
             focusTarget = fieldEl.querySelector('[data-autofocus], input:not([type="hidden"]), select, textarea, button:not([type="hidden"]), [tabindex]:not([tabindex="-1"])') || fieldEl;
           }
           try {
-            requestAnimationFrame(() => {
+            requestFrame(() => {
               if (typeof focusTarget.focus === 'function') {
                 try { focusTarget.focus({ preventScroll: options.scroll !== false }); }
                 catch (_) { focusTarget.focus(); }
@@ -510,19 +544,19 @@ export function createComposerSiteSettingsUi(options = {}) {
     try { root.__pressSiteNavFocusHandler = focusHandler; } catch (_) {}
     try { root.__pressSiteRevealField = revealField; } catch (_) {}
 
-    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    if (windowRef && typeof windowRef.addEventListener === 'function') {
       const onScroll = () => scheduleScrollSync();
       const onResize = () => scheduleScrollSync();
       const scrollContainer = resolveSiteScrollContainer();
       let passiveScrollListener = false;
       try {
-        window.addEventListener('scroll', onScroll, { passive: true });
+        windowRef.addEventListener('scroll', onScroll, { passive: true });
         passiveScrollListener = true;
       } catch (_) {
-        try { window.addEventListener('scroll', onScroll); } catch (_) {}
+        try { windowRef.addEventListener('scroll', onScroll); } catch (_) {}
       }
       let passiveContainerScrollListener = false;
-      if (scrollContainer && scrollContainer !== window && typeof scrollContainer.addEventListener === 'function') {
+      if (scrollContainer && scrollContainer !== windowRef && typeof scrollContainer.addEventListener === 'function') {
         try {
           scrollContainer.addEventListener('scroll', onScroll, { passive: true });
           passiveContainerScrollListener = true;
@@ -530,19 +564,19 @@ export function createComposerSiteSettingsUi(options = {}) {
           try { scrollContainer.addEventListener('scroll', onScroll); } catch (_) {}
         }
       }
-      try { window.addEventListener('resize', onResize); } catch (_) {}
+      try { windowRef.addEventListener('resize', onResize); } catch (_) {}
       const cleanup = () => {
         try {
-          if (passiveScrollListener) window.removeEventListener('scroll', onScroll, { passive: true });
+          if (passiveScrollListener) windowRef.removeEventListener('scroll', onScroll, { passive: true });
         } catch (_) {}
-        try { window.removeEventListener('scroll', onScroll); } catch (_) {}
+        try { windowRef.removeEventListener('scroll', onScroll); } catch (_) {}
         try {
-          if (scrollContainer && scrollContainer !== window && typeof scrollContainer.removeEventListener === 'function') {
+          if (scrollContainer && scrollContainer !== windowRef && typeof scrollContainer.removeEventListener === 'function') {
             if (passiveContainerScrollListener) scrollContainer.removeEventListener('scroll', onScroll, { passive: true });
             else scrollContainer.removeEventListener('scroll', onScroll);
           }
         } catch (_) {}
-        try { window.removeEventListener('resize', onResize); } catch (_) {}
+        try { windowRef.removeEventListener('resize', onResize); } catch (_) {}
         cancelScheduledScrollSync();
       };
       try { root.__pressSiteScrollSyncCleanup = cleanup; }
@@ -656,15 +690,15 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const createField = (section, config) => {
-      const field = document.createElement('div');
+      const field = documentRef.createElement('div');
       field.className = 'cs-field';
       if (config.dataKey) field.dataset.field = config.dataKey;
-      const head = document.createElement('div');
+      const head = documentRef.createElement('div');
       head.className = 'cs-field-head';
-      const labelWrap = document.createElement('div');
+      const labelWrap = documentRef.createElement('div');
       labelWrap.className = 'cs-field-label-wrap';
       head.appendChild(labelWrap);
-      const labelEl = document.createElement('label');
+      const labelEl = documentRef.createElement('label');
       labelEl.className = 'cs-field-label';
       labelEl.textContent = config.label || '';
       labelWrap.appendChild(labelEl);
@@ -678,7 +712,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       field.__csLabelWrap = labelWrap;
       const inlineDescription = config.inlineDescription !== false;
       if (config.description) {
-        const desc = document.createElement('p');
+        const desc = documentRef.createElement('p');
         desc.className = 'cs-field-help';
         desc.textContent = config.description;
         field.__csHelp = desc;
@@ -694,20 +728,20 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const createSubheadingField = (section, config) => {
-      const field = document.createElement('div');
+      const field = documentRef.createElement('div');
       field.className = 'cs-field cs-subheading-field';
       if (config.dataKey) field.dataset.field = config.dataKey;
       if (config.label || config.description) {
-        const head = document.createElement('div');
+        const head = documentRef.createElement('div');
         head.className = 'cs-config-subsection-head';
         if (config.label) {
-          const title = document.createElement('div');
+          const title = documentRef.createElement('div');
           title.className = 'cs-config-subsection-title';
           title.textContent = config.label;
           head.appendChild(title);
         }
         if (config.description) {
-          const description = document.createElement('p');
+          const description = documentRef.createElement('p');
           description.className = 'cs-config-subsection-description';
           description.textContent = config.description;
           head.appendChild(description);
@@ -719,19 +753,19 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const createConfigSubsection = (section, title, description) => {
-      const block = document.createElement('div');
+      const block = documentRef.createElement('div');
       block.className = 'cs-config-subsection';
       if (title || description) {
-        const head = document.createElement('div');
+        const head = documentRef.createElement('div');
         head.className = 'cs-config-subsection-head';
         if (title) {
-          const heading = document.createElement('div');
+          const heading = documentRef.createElement('div');
           heading.className = 'cs-config-subsection-title';
           heading.textContent = title;
           head.appendChild(heading);
         }
         if (description) {
-          const desc = document.createElement('p');
+          const desc = documentRef.createElement('p');
           desc.className = 'cs-config-subsection-description';
           desc.textContent = description;
           head.appendChild(desc);
@@ -756,19 +790,19 @@ export function createComposerSiteSettingsUi(options = {}) {
           label: options.label,
           description: options.description
         });
-      const list = document.createElement('div');
+      const list = documentRef.createElement('div');
       list.className = useLocalizedGrid
         ? 'cs-localized-list cs-localized-list--grid'
         : 'cs-localized-list';
       field.appendChild(list);
-      const controls = document.createElement('div');
+      const controls = documentRef.createElement('div');
       controls.className = 'cs-field-controls';
       field.appendChild(controls);
-      const addWrap = document.createElement('div');
+      const addWrap = documentRef.createElement('div');
       addWrap.className = 'cs-add-lang has-menu';
       controls.appendChild(addWrap);
 
-      const addBtn = document.createElement('button');
+      const addBtn = documentRef.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'btn-secondary cs-add-lang';
       addBtn.textContent = t('editor.composer.site.addLanguage');
@@ -776,7 +810,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       addBtn.setAttribute('aria-expanded', 'false');
       addWrap.appendChild(addBtn);
 
-      const menu = document.createElement('div');
+      const menu = documentRef.createElement('div');
       menu.className = 'press-menu';
       menu.setAttribute('role', 'listbox');
       menu.hidden = true;
@@ -844,8 +878,8 @@ export function createComposerSiteSettingsUi(options = {}) {
         addWrap.style.removeProperty('display');
       };
 
-      if (typeof document !== 'undefined' && document.addEventListener) {
-        document.addEventListener(LANGUAGE_POOL_CHANGED_EVENT, refreshMenu);
+      if (documentRef && documentRef.addEventListener) {
+        documentRef.addEventListener(LANGUAGE_POOL_CHANGED_EVENT, refreshMenu);
       }
 
       const closeMenu = () => {
@@ -855,15 +889,17 @@ export function createComposerSiteSettingsUi(options = {}) {
           addBtn.classList.remove('is-open');
           addWrap.classList.remove('is-open');
           addBtn.setAttribute('aria-expanded', 'false');
-          document.removeEventListener('mousedown', onDocDown, true);
-          document.removeEventListener('keydown', onKeyDown, true);
+          if (documentRef && typeof documentRef.removeEventListener === 'function') {
+            documentRef.removeEventListener('mousedown', onDocDown, true);
+            documentRef.removeEventListener('keydown', onKeyDown, true);
+          }
           menu.classList.remove('is-closing');
         };
         try {
           menu.classList.add('is-closing');
           const onEnd = () => { menu.removeEventListener('animationend', onEnd); finish(); };
           menu.addEventListener('animationend', onEnd, { once: true });
-          setTimeout(finish, 180);
+          setTimer(finish, 180);
         } catch (_) {
           finish();
         }
@@ -879,8 +915,10 @@ export function createComposerSiteSettingsUi(options = {}) {
         addWrap.classList.add('is-open');
         addBtn.setAttribute('aria-expanded', 'true');
         try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-        document.addEventListener('mousedown', onDocDown, true);
-        document.addEventListener('keydown', onKeyDown, true);
+        if (documentRef && typeof documentRef.addEventListener === 'function') {
+          documentRef.addEventListener('mousedown', onDocDown, true);
+          documentRef.addEventListener('keydown', onKeyDown, true);
+        }
         menu.querySelectorAll('.press-menu-item').forEach((item) => {
           item.addEventListener('click', () => {
             const code = normalizeLangCode(item.getAttribute('data-lang'));
@@ -926,22 +964,22 @@ export function createComposerSiteSettingsUi(options = {}) {
         langs.forEach((lang) => {
           if (!localized && lang !== 'default') return;
           if (options.ensureDefault !== false && !Object.prototype.hasOwnProperty.call(localized, lang)) localized[lang] = '';
-          const row = document.createElement('div');
+          const row = documentRef.createElement('div');
           row.className = 'cs-localized-row';
           if (useLocalizedGrid) row.classList.add('cs-localized-row--grid');
           if (options.multiline) row.classList.add('cs-localized-row--multiline');
           row.dataset.lang = lang;
-          const badge = document.createElement('span');
+          const badge = documentRef.createElement('span');
           badge.className = 'cs-lang-chip';
           badge.textContent = lang === 'default'
             ? t('editor.composer.site.languageDefault')
             : lang.toUpperCase();
           row.appendChild(badge);
-          const inputWrap = document.createElement('div');
+          const inputWrap = documentRef.createElement('div');
           inputWrap.className = options.multiline
             ? 'cs-localized-input cs-localized-input--multiline'
             : 'cs-localized-input';
-          const input = document.createElement(options.multiline ? 'textarea' : 'input');
+          const input = documentRef.createElement(options.multiline ? 'textarea' : 'input');
           if (!options.multiline) input.type = 'text';
           else input.rows = options.rows || 3;
           input.className = options.multiline ? 'cs-input cs-localized-textarea' : 'cs-input';
@@ -960,8 +998,8 @@ export function createComposerSiteSettingsUi(options = {}) {
             input.addEventListener('focus', expandMultiline);
             input.addEventListener('focusin', expandMultiline);
             input.addEventListener('blur', () => {
-              setTimeout(() => {
-                if (document.activeElement !== input) row.classList.remove('is-expanded');
+              setTimer(() => {
+                if (documentRef.activeElement !== input) row.classList.remove('is-expanded');
               }, 0);
             });
             input.addEventListener('keydown', (event) => {
@@ -978,7 +1016,7 @@ export function createComposerSiteSettingsUi(options = {}) {
           inputWrap.appendChild(input);
           row.appendChild(inputWrap);
           if (lang !== 'default' || options.allowDefaultDelete) {
-            const removeBtn = document.createElement('button');
+            const removeBtn = documentRef.createElement('button');
             removeBtn.type = 'button';
             removeBtn.className = 'btn-tertiary cs-remove-lang';
             removeBtn.textContent = t('editor.composer.site.removeLanguage');
@@ -994,7 +1032,7 @@ export function createComposerSiteSettingsUi(options = {}) {
           list.appendChild(row);
         });
         if (!list.children.length) {
-          const empty = document.createElement('div');
+          const empty = documentRef.createElement('div');
           empty.className = 'cs-empty';
           empty.textContent = t('editor.composer.site.noLanguages');
           list.appendChild(empty);
@@ -1010,23 +1048,23 @@ export function createComposerSiteSettingsUi(options = {}) {
       const subtitleLabel = t('editor.composer.site.fields.siteSubtitle');
       ensureLocalized('siteTitle', true);
       ensureLocalized('siteSubtitle', true);
-      const field = document.createElement('div');
+      const field = documentRef.createElement('div');
       field.className = 'cs-field cs-identity-fieldset';
       field.dataset.field = 'siteTitle|siteSubtitle';
       field.setAttribute('role', 'group');
       field.setAttribute('aria-label', `${titleLabel} / ${subtitleLabel}`);
       section.appendChild(field);
-      const grid = document.createElement('div');
+      const grid = documentRef.createElement('div');
       grid.className = 'cs-identity-grid';
       field.appendChild(grid);
-      const controls = document.createElement('div');
+      const controls = documentRef.createElement('div');
       controls.className = 'cs-field-controls';
       field.appendChild(controls);
-      const addWrap = document.createElement('div');
+      const addWrap = documentRef.createElement('div');
       addWrap.className = 'cs-add-lang has-menu';
       controls.appendChild(addWrap);
 
-      const addBtn = document.createElement('button');
+      const addBtn = documentRef.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'btn-secondary cs-add-lang';
       addBtn.textContent = t('editor.composer.site.addLanguage');
@@ -1034,7 +1072,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       addBtn.setAttribute('aria-expanded', 'false');
       addWrap.appendChild(addBtn);
 
-      const menu = document.createElement('div');
+      const menu = documentRef.createElement('div');
       menu.className = 'press-menu';
       menu.setAttribute('role', 'listbox');
       menu.hidden = true;
@@ -1112,8 +1150,8 @@ export function createComposerSiteSettingsUi(options = {}) {
         addWrap.style.removeProperty('display');
       };
 
-      if (typeof document !== 'undefined' && document.addEventListener) {
-        document.addEventListener(LANGUAGE_POOL_CHANGED_EVENT, refreshMenu);
+      if (documentRef && documentRef.addEventListener) {
+        documentRef.addEventListener(LANGUAGE_POOL_CHANGED_EVENT, refreshMenu);
       }
 
       const closeMenu = () => {
@@ -1123,15 +1161,17 @@ export function createComposerSiteSettingsUi(options = {}) {
           addBtn.classList.remove('is-open');
           addWrap.classList.remove('is-open');
           addBtn.setAttribute('aria-expanded', 'false');
-          document.removeEventListener('mousedown', onDocDown, true);
-          document.removeEventListener('keydown', onKeyDown, true);
+          if (documentRef && typeof documentRef.removeEventListener === 'function') {
+            documentRef.removeEventListener('mousedown', onDocDown, true);
+            documentRef.removeEventListener('keydown', onKeyDown, true);
+          }
           menu.classList.remove('is-closing');
         };
         try {
           menu.classList.add('is-closing');
           const onEnd = () => { menu.removeEventListener('animationend', onEnd); finish(); };
           menu.addEventListener('animationend', onEnd, { once: true });
-          setTimeout(finish, 180);
+          setTimer(finish, 180);
         } catch (_) {
           finish();
         }
@@ -1147,8 +1187,10 @@ export function createComposerSiteSettingsUi(options = {}) {
         addWrap.classList.add('is-open');
         addBtn.setAttribute('aria-expanded', 'true');
         try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-        document.addEventListener('mousedown', onDocDown, true);
-        document.addEventListener('keydown', onKeyDown, true);
+        if (documentRef && typeof documentRef.addEventListener === 'function') {
+          documentRef.addEventListener('mousedown', onDocDown, true);
+          documentRef.addEventListener('keydown', onKeyDown, true);
+        }
         menu.querySelectorAll('.press-menu-item').forEach((item) => {
           item.addEventListener('click', () => {
             const code = normalizeLangCode(item.getAttribute('data-lang'));
@@ -1183,18 +1225,18 @@ export function createComposerSiteSettingsUi(options = {}) {
       });
 
       const appendHeader = () => {
-        const header = document.createElement('div');
+        const header = documentRef.createElement('div');
         header.className = 'cs-identity-row cs-identity-head';
-        const langSpacer = document.createElement('span');
+        const langSpacer = documentRef.createElement('span');
         langSpacer.className = 'cs-identity-head-spacer';
         langSpacer.setAttribute('aria-hidden', 'true');
-        const titleHead = document.createElement('span');
+        const titleHead = documentRef.createElement('span');
         titleHead.className = 'cs-identity-column-title';
         titleHead.textContent = titleLabel;
-        const subtitleHead = document.createElement('span');
+        const subtitleHead = documentRef.createElement('span');
         subtitleHead.className = 'cs-identity-column-title';
         subtitleHead.textContent = subtitleLabel;
-        const actionSpacer = document.createElement('span');
+        const actionSpacer = documentRef.createElement('span');
         actionSpacer.className = 'cs-identity-head-spacer';
         actionSpacer.setAttribute('aria-hidden', 'true');
         header.append(langSpacer, titleHead, subtitleHead, actionSpacer);
@@ -1202,12 +1244,12 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
 
       const appendInput = (row, lang, key, labelText, value) => {
-        const cell = document.createElement('label');
+        const cell = documentRef.createElement('label');
         cell.className = 'cs-identity-field';
-        const mobileLabel = document.createElement('span');
+        const mobileLabel = documentRef.createElement('span');
         mobileLabel.className = 'cs-identity-cell-label';
         mobileLabel.textContent = labelText;
-        const input = document.createElement('input');
+        const input = documentRef.createElement('input');
         input.type = 'text';
         input.className = 'cs-input';
         input.dataset.field = key;
@@ -1232,12 +1274,12 @@ export function createComposerSiteSettingsUi(options = {}) {
         langs.forEach((lang) => {
           if (!Object.prototype.hasOwnProperty.call(title, lang)) title[lang] = '';
           if (!Object.prototype.hasOwnProperty.call(subtitle, lang)) subtitle[lang] = '';
-          const row = document.createElement('div');
+          const row = documentRef.createElement('div');
           row.className = 'cs-identity-row';
           row.dataset.lang = lang;
-          const langCell = document.createElement('div');
+          const langCell = documentRef.createElement('div');
           langCell.className = 'cs-identity-lang';
-          const badge = document.createElement('span');
+          const badge = documentRef.createElement('span');
           badge.className = 'cs-lang-chip';
           badge.textContent = lang === 'default'
             ? t('editor.composer.site.languageDefault')
@@ -1246,10 +1288,10 @@ export function createComposerSiteSettingsUi(options = {}) {
           row.appendChild(langCell);
           appendInput(row, lang, 'siteTitle', titleLabel, title[lang] || '');
           appendInput(row, lang, 'siteSubtitle', subtitleLabel, subtitle[lang] || '');
-          const actions = document.createElement('div');
+          const actions = documentRef.createElement('div');
           actions.className = 'cs-identity-actions';
           if (lang !== 'default') {
-            const removeBtn = document.createElement('button');
+            const removeBtn = documentRef.createElement('button');
             removeBtn.type = 'button';
             removeBtn.className = 'btn-tertiary cs-remove-lang cs-identity-remove';
             removeBtn.textContent = t('editor.composer.site.removeLanguage');
@@ -1279,9 +1321,9 @@ export function createComposerSiteSettingsUi(options = {}) {
         label: config.label,
         description: config.description
       });
-      const control = document.createElement('div');
+      const control = documentRef.createElement('div');
       control.className = 'cs-field-controls';
-      const input = document.createElement(config.multiline ? 'textarea' : 'input');
+      const input = documentRef.createElement(config.multiline ? 'textarea' : 'input');
       if (!config.multiline) input.type = config.type || 'text';
       else input.rows = config.rows || 3;
       input.className = 'cs-input';
@@ -1299,38 +1341,38 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const createSingleGridFieldset = (section) => {
-      const field = document.createElement('div');
+      const field = documentRef.createElement('div');
       field.className = 'cs-field cs-single-grid-fieldset';
-      const grid = document.createElement('div');
+      const grid = documentRef.createElement('div');
       grid.className = 'cs-single-grid';
       field.appendChild(grid);
       section.appendChild(field);
 
       const addRow = (item, index = grid.children.length) => {
-        const row = document.createElement('div');
+        const row = documentRef.createElement('div');
         row.className = 'cs-single-grid-row';
         row.dataset.field = item.dataKey;
 
         const controlId = `cs-single-grid-${item.dataKey}-${index}`;
         const tooltipId = `cs-single-grid-help-${item.dataKey}-${index}`;
 
-        const labelCell = document.createElement('div');
+        const labelCell = documentRef.createElement('div');
         labelCell.className = 'cs-single-grid-label';
 
-        const tooltipWrap = document.createElement('span');
+        const tooltipWrap = documentRef.createElement('span');
         tooltipWrap.className = 'cs-help-tooltip-wrap';
-        const tooltip = document.createElement('button');
+        const tooltip = documentRef.createElement('button');
         tooltip.type = 'button';
         tooltip.className = 'cs-help-tooltip';
         tooltip.textContent = '?';
         tooltip.setAttribute('aria-label', `${item.label}: ${item.description}`);
         tooltip.setAttribute('aria-describedby', tooltipId);
-        const tooltipBubble = document.createElement('span');
+        const tooltipBubble = documentRef.createElement('span');
         tooltipBubble.id = tooltipId;
         tooltipBubble.className = 'cs-help-tooltip-bubble';
         tooltipBubble.setAttribute('role', 'tooltip');
         tooltipBubble.textContent = item.description;
-        const label = document.createElement('label');
+        const label = documentRef.createElement('label');
         label.className = 'cs-single-grid-title';
         label.htmlFor = controlId;
         label.textContent = item.label;
@@ -1340,7 +1382,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         labelCell.appendChild(tooltipWrap);
         row.appendChild(labelCell);
 
-        const controlCell = document.createElement('div');
+        const controlCell = documentRef.createElement('div');
         controlCell.className = 'cs-single-grid-control';
         row.appendChild(controlCell);
         grid.appendChild(row);
@@ -1355,7 +1397,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       const { addRow } = createSingleGridFieldset(section);
       items.forEach((item, index) => {
         const { controlCell, controlId } = addRow(item, index);
-        const input = document.createElement('input');
+        const input = documentRef.createElement('input');
         input.id = controlId;
         input.type = item.type || 'text';
         input.className = 'cs-input';
@@ -1412,9 +1454,9 @@ export function createComposerSiteSettingsUi(options = {}) {
         label: config.label,
         description: config.description
       });
-      const control = document.createElement('div');
+      const control = documentRef.createElement('div');
       control.className = 'cs-field-controls';
-      const input = document.createElement('input');
+      const input = documentRef.createElement('input');
       input.type = 'number';
       input.className = 'cs-input cs-input-small';
       input.dataset.field = config.dataKey;
@@ -1437,21 +1479,21 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const createSwitchControl = (field, labelText, options = {}) => {
-      const controls = document.createElement('div');
+      const controls = documentRef.createElement('div');
       controls.className = 'cs-field-controls cs-field-controls-inline';
       if (Array.isArray(options.classes)) controls.classList.add(...options.classes);
       const target = options.target || field;
-      const toggle = document.createElement('label');
+      const toggle = documentRef.createElement('label');
       toggle.className = 'cs-switch';
       toggle.dataset.state = 'off';
-      const checkbox = document.createElement('input');
+      const checkbox = documentRef.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'cs-switch-input';
       checkbox.setAttribute('role', 'switch');
       checkbox.setAttribute('aria-checked', 'false');
-      const track = document.createElement('span');
+      const track = documentRef.createElement('span');
       track.className = 'cs-switch-track';
-      const thumb = document.createElement('span');
+      const thumb = documentRef.createElement('span');
       thumb.className = 'cs-switch-thumb';
       track.appendChild(thumb);
       toggle.appendChild(checkbox);
@@ -1547,13 +1589,13 @@ export function createComposerSiteSettingsUi(options = {}) {
         label: config.label,
         description: config.description
       });
-      const control = document.createElement('div');
+      const control = documentRef.createElement('div');
       control.className = 'cs-field-controls';
-      const select = document.createElement('select');
+      const select = documentRef.createElement('select');
       select.className = 'cs-select';
       select.dataset.field = config.dataKey;
       (config.options || []).forEach((opt) => {
-        const option = document.createElement('option');
+        const option = documentRef.createElement('option');
         option.value = opt.value;
         option.textContent = opt.label;
         select.appendChild(option);
@@ -1615,7 +1657,7 @@ export function createComposerSiteSettingsUi(options = {}) {
 
       const createSelectRow = (item) => {
         const { controlCell, controlId } = addBehaviorRow(item);
-        const select = document.createElement('select');
+        const select = documentRef.createElement('select');
         select.id = controlId;
         select.className = 'cs-select';
         select.dataset.field = item.dataKey;
@@ -1633,7 +1675,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         const codes = collectLanguageCodes();
         const seen = new Set();
         const appendOption = (value, label) => {
-          const option = document.createElement('option');
+          const option = documentRef.createElement('option');
           option.value = value;
           option.textContent = label;
           defaultLanguageSelect.appendChild(option);
@@ -1661,7 +1703,7 @@ export function createComposerSiteSettingsUi(options = {}) {
 
       const createNumberRow = (item) => {
         const { controlCell, controlId } = addBehaviorRow(item);
-        const input = document.createElement('input');
+        const input = documentRef.createElement('input');
         input.id = controlId;
         input.type = 'number';
         input.className = 'cs-input';
@@ -1758,7 +1800,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         let firstOption = null;
         const addOption = (value, label) => {
           if (value === '' || seen.has(value)) return;
-          const option = document.createElement('option');
+          const option = documentRef.createElement('option');
           option.value = value;
           option.textContent = label;
           landingTabSelect.appendChild(option);
@@ -1832,12 +1874,12 @@ export function createComposerSiteSettingsUi(options = {}) {
 
       const createSelectRow = (item) => {
         const { controlCell, controlId } = addThemeRow(item);
-        const select = document.createElement('select');
+        const select = documentRef.createElement('select');
         select.id = controlId;
         select.className = 'cs-select';
         select.dataset.field = item.dataKey;
         (item.options || []).forEach((opt) => {
-          const option = document.createElement('option');
+          const option = documentRef.createElement('option');
           option.value = opt.value;
           option.textContent = opt.label;
           select.appendChild(option);
@@ -1938,7 +1980,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         const current = sanitizeThemePackValue(site.themePack);
         const seen = new Set();
         const appendOption = (value, label) => {
-          const option = document.createElement('option');
+          const option = documentRef.createElement('option');
           option.value = value;
           option.textContent = safeString(label || value) || value;
           themePackSelect.appendChild(option);
@@ -1959,7 +2001,10 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
 
       applyThemePackOptions(fallbackThemePacks);
-      fetch('assets/themes/packs.json', { cache: 'no-store' })
+      const themePackRequest = fetchContent
+        ? fetchContent('assets/themes/packs.json', { cache: 'no-store' })
+        : Promise.reject(new Error('Theme pack fetch is not available in this runtime.'));
+      themePackRequest
         .then((response) => (response && response.ok ? response.json() : Promise.reject()))
         .then((list) => {
           if (!Array.isArray(list) || !normalizeThemePackList(list).length) throw new Error('empty theme pack list');
@@ -1974,7 +2019,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         label: 'Manage themes',
         description: 'Theme Manager.'
       });
-      const manageThemesButton = document.createElement('button');
+      const manageThemesButton = documentRef.createElement('button');
       manageThemesButton.type = 'button';
       manageThemesButton.className = 'btn-secondary';
       manageThemesButton.textContent = 'Manage themes';
@@ -2035,7 +2080,7 @@ export function createComposerSiteSettingsUi(options = {}) {
 
       const createTextRow = (item) => {
         const { controlCell, controlId } = addAnnotateRow(item);
-        const input = document.createElement('input');
+        const input = documentRef.createElement('input');
         input.id = controlId;
         input.type = item.type || 'text';
         input.className = 'cs-input';
@@ -2052,10 +2097,10 @@ export function createComposerSiteSettingsUi(options = {}) {
         });
         controlCell.appendChild(input);
         if (item.listId && Array.isArray(item.options)) {
-          const list = document.createElement('datalist');
+          const list = documentRef.createElement('datalist');
           list.id = item.listId;
           item.options.forEach((entry) => {
-            const option = document.createElement('option');
+            const option = documentRef.createElement('option');
             option.value = entry.value;
             option.label = entry.label || entry.value;
             list.appendChild(option);
@@ -2129,7 +2174,7 @@ export function createComposerSiteSettingsUi(options = {}) {
         label: t('editor.composer.site.fields.assetLargeImageThreshold'),
         description: t('editor.composer.site.fields.assetLargeImageThresholdHelp')
       });
-      const thresholdInput = document.createElement('input');
+      const thresholdInput = documentRef.createElement('input');
       thresholdInput.id = thresholdId;
       thresholdInput.type = 'number';
       thresholdInput.className = 'cs-input';
@@ -2159,13 +2204,13 @@ export function createComposerSiteSettingsUi(options = {}) {
           label: config.label,
           description: config.description
         });
-      const listWrap = document.createElement('div');
+      const listWrap = documentRef.createElement('div');
       listWrap.className = 'cs-link-list';
       field.appendChild(listWrap);
-      const controls = document.createElement('div');
+      const controls = documentRef.createElement('div');
       controls.className = 'cs-field-controls';
       field.appendChild(controls);
-      const addBtn = document.createElement('button');
+      const addBtn = documentRef.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'btn-secondary cs-add-link';
       addBtn.textContent = t('editor.composer.site.addLink');
@@ -2206,7 +2251,7 @@ export function createComposerSiteSettingsUi(options = {}) {
           if (!deltaY) return;
           row.style.transition = 'none';
           row.style.transform = `translate3d(0, ${previous.top - next.top}px, 0)`;
-          requestAnimationFrame(() => {
+          requestFrame(() => {
             row.style.transition = 'transform .18s cubic-bezier(.2,.8,.2,1)';
             row.style.transform = '';
           });
@@ -2215,7 +2260,7 @@ export function createComposerSiteSettingsUi(options = {}) {
 
       const createDragPlaceholder = (row) => {
         const rowRect = row.getBoundingClientRect();
-        const placeholder = document.createElement('div');
+        const placeholder = documentRef.createElement('div');
         placeholder.className = 'cs-link-drop-placeholder';
         placeholder.style.height = `${rowRect.height}px`;
         return placeholder;
@@ -2262,9 +2307,9 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
 
       const endDrag = () => {
-        document.removeEventListener('pointermove', handleDragPointerMove, true);
-        document.removeEventListener('pointerup', endDrag, true);
-        document.removeEventListener('pointercancel', endDrag, true);
+        documentRef.removeEventListener('pointermove', handleDragPointerMove, true);
+        documentRef.removeEventListener('pointerup', endDrag, true);
+        documentRef.removeEventListener('pointercancel', endDrag, true);
         if (linkDragState) {
           const { fromIndex, dragRow, placeholder } = linkDragState;
           const toIndex = getDropIndex();
@@ -2290,7 +2335,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
 
       const createDragHandle = (index) => {
-        const handle = document.createElement('span');
+        const handle = documentRef.createElement('span');
         handle.setAttribute('role', 'button');
         handle.tabIndex = 0;
         handle.className = 'cs-link-drag-handle';
@@ -2318,9 +2363,9 @@ export function createComposerSiteSettingsUi(options = {}) {
           row.style.zIndex = '1000';
           row.style.transform = 'translate3d(0, 0, 0)';
           updateDragRowState();
-          document.addEventListener('pointermove', handleDragPointerMove, true);
-          document.addEventListener('pointerup', endDrag, true);
-          document.addEventListener('pointercancel', endDrag, true);
+          documentRef.addEventListener('pointermove', handleDragPointerMove, true);
+          documentRef.addEventListener('pointerup', endDrag, true);
+          documentRef.addEventListener('pointercancel', endDrag, true);
         });
         handle.addEventListener('keydown', (event) => {
           if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
@@ -2333,7 +2378,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       const renderRows = () => {
         listWrap.innerHTML = '';
         if (!list.length) {
-          const empty = document.createElement('div');
+          const empty = documentRef.createElement('div');
           empty.className = 'cs-empty';
           empty.textContent = t('editor.composer.site.noLinks');
           listWrap.appendChild(empty);
@@ -2342,20 +2387,20 @@ export function createComposerSiteSettingsUi(options = {}) {
         const labelTitleId = `${key}-label-title`;
         const hrefTitleId = `${key}-href-title`;
         const appendLinkHeader = () => {
-          const head = document.createElement('div');
+          const head = documentRef.createElement('div');
           head.className = 'cs-link-head';
-          const handleSpacer = document.createElement('span');
+          const handleSpacer = documentRef.createElement('span');
           handleSpacer.className = 'cs-link-head-spacer';
           handleSpacer.setAttribute('aria-hidden', 'true');
-          const labelTitle = document.createElement('span');
+          const labelTitle = documentRef.createElement('span');
           labelTitle.id = labelTitleId;
           labelTitle.className = 'cs-link-field-title cs-link-field-title--label';
           labelTitle.textContent = t('editor.composer.site.linkLabelTitle');
-          const hrefTitle = document.createElement('span');
+          const hrefTitle = documentRef.createElement('span');
           hrefTitle.id = hrefTitleId;
           hrefTitle.className = 'cs-link-field-title cs-link-field-title--href';
           hrefTitle.textContent = t('editor.composer.site.linkHrefTitle');
-          const actionSpacer = document.createElement('span');
+          const actionSpacer = documentRef.createElement('span');
           actionSpacer.className = 'cs-link-head-actions';
           actionSpacer.setAttribute('aria-hidden', 'true');
           head.append(handleSpacer, labelTitle, hrefTitle, actionSpacer);
@@ -2363,19 +2408,19 @@ export function createComposerSiteSettingsUi(options = {}) {
         };
         appendLinkHeader();
         list.forEach((item, index) => {
-          const row = document.createElement('div');
+          const row = documentRef.createElement('div');
           row.className = 'cs-link-row';
           row.dataset.index = String(index);
 
           const dragHandle = createDragHandle(index);
 
-          const labelField = document.createElement('div');
+          const labelField = documentRef.createElement('div');
           labelField.className = 'cs-link-field cs-link-field--label';
           if (index > 0) {
             labelField.classList.add('cs-link-field--compact');
           }
           const labelInputId = `${key}-label-${index}`;
-          const labelInput = document.createElement('input');
+          const labelInput = documentRef.createElement('input');
           labelInput.type = 'text';
           labelInput.id = labelInputId;
           labelInput.className = 'cs-input';
@@ -2391,13 +2436,13 @@ export function createComposerSiteSettingsUi(options = {}) {
           });
           labelField.append(labelInput);
 
-          const hrefField = document.createElement('div');
+          const hrefField = documentRef.createElement('div');
           hrefField.className = 'cs-link-field cs-link-field--href';
           if (index > 0) {
             hrefField.classList.add('cs-link-field--compact');
           }
           const hrefInputId = `${key}-href-${index}`;
-          const hrefInput = document.createElement('input');
+          const hrefInput = documentRef.createElement('input');
           hrefInput.type = 'text';
           hrefInput.id = hrefInputId;
           hrefInput.className = 'cs-input';
@@ -2412,9 +2457,9 @@ export function createComposerSiteSettingsUi(options = {}) {
             markDirty();
           });
           hrefField.append(hrefInput);
-          const actions = document.createElement('div');
+          const actions = documentRef.createElement('div');
           actions.className = 'cs-link-actions';
-          const removeBtn = document.createElement('button');
+          const removeBtn = documentRef.createElement('button');
           removeBtn.type = 'button';
           removeBtn.className = 'btn-tertiary cs-remove-link';
           removeBtn.textContent = t('editor.composer.site.removeLink');
@@ -2443,33 +2488,33 @@ export function createComposerSiteSettingsUi(options = {}) {
       t('editor.composer.site.sections.repo.description')
     );
     const repo = ensureRepo();
-    const repoInputs = document.createElement('div');
+    const repoInputs = documentRef.createElement('div');
     repoInputs.className = 'cs-repo-grid';
     repoInputs.dataset.field = 'repo';
 
     const createRepoFieldTitle = (text) => {
-      const title = document.createElement('span');
+      const title = documentRef.createElement('span');
       title.className = 'cs-repo-field-title';
       title.textContent = text;
       return title;
     };
 
     const createRepoFieldGroup = (className, titleText, field) => {
-      const group = document.createElement('label');
+      const group = documentRef.createElement('label');
       group.className = `cs-repo-field-group ${className}`;
       group.append(createRepoFieldTitle(titleText), field);
       return group;
     };
 
     const createRepoIconAffix = (pathData) => {
-      const affix = document.createElement('span');
+      const affix = documentRef.createElement('span');
       affix.className = 'cs-repo-affix cs-repo-icon-affix';
       affix.setAttribute('aria-hidden', 'true');
       affix.innerHTML = `<svg viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="${pathData}"></path></svg>`;
       return affix;
     };
 
-    const ownerInput = document.createElement('input');
+    const ownerInput = documentRef.createElement('input');
     ownerInput.type = 'text';
     ownerInput.className = 'cs-input cs-repo-input cs-repo-input--owner';
     ownerInput.placeholder = t('editor.composer.site.repoOwner');
@@ -2478,7 +2523,7 @@ export function createComposerSiteSettingsUi(options = {}) {
     ownerInput.value = repo.owner || '';
     ownerInput.addEventListener('input', () => { repo.owner = ownerInput.value; markDirty(); });
 
-    const nameInput = document.createElement('input');
+    const nameInput = documentRef.createElement('input');
     nameInput.type = 'text';
     nameInput.className = 'cs-input cs-repo-input cs-repo-input--name';
     nameInput.placeholder = t('editor.composer.site.repoName');
@@ -2487,7 +2532,7 @@ export function createComposerSiteSettingsUi(options = {}) {
     nameInput.value = repo.name || '';
     nameInput.addEventListener('input', () => { repo.name = nameInput.value; markDirty(); });
 
-    const branchInput = document.createElement('input');
+    const branchInput = documentRef.createElement('input');
     branchInput.type = 'text';
     branchInput.className = 'cs-input cs-repo-input cs-repo-input--branch';
     branchInput.placeholder = t('editor.composer.site.repoBranch');
@@ -2496,26 +2541,26 @@ export function createComposerSiteSettingsUi(options = {}) {
     branchInput.value = repo.branch || '';
     branchInput.addEventListener('input', () => { repo.branch = branchInput.value; markDirty(); });
 
-    const ownerWrap = document.createElement('div');
+    const ownerWrap = documentRef.createElement('div');
     ownerWrap.className = 'cs-repo-field cs-repo-field--owner';
     ownerWrap.dataset.field = 'repo';
     ownerWrap.dataset.subfield = 'owner';
-    const ownerAffix = document.createElement('span');
+    const ownerAffix = documentRef.createElement('span');
     ownerAffix.className = 'cs-repo-affix';
     ownerAffix.textContent = t('editor.composer.site.repoOwnerPrefix');
     ownerAffix.setAttribute('aria-hidden', 'true');
     ownerWrap.append(ownerAffix, ownerInput);
 
-    const repoWrap = document.createElement('div');
+    const repoWrap = documentRef.createElement('div');
     repoWrap.className = 'cs-repo-field cs-repo-field--name';
     repoWrap.dataset.field = 'repo';
     repoWrap.dataset.subfield = 'name';
     const repoAffix = createRepoIconAffix('M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z');
     repoWrap.append(repoAffix, nameInput);
 
-    const pathRow = document.createElement('div');
+    const pathRow = documentRef.createElement('div');
     pathRow.className = 'cs-repo-path';
-    const divider = document.createElement('span');
+    const divider = documentRef.createElement('span');
     divider.className = 'cs-repo-divider';
     divider.textContent = '/';
     divider.setAttribute('aria-hidden', 'true');
@@ -2525,7 +2570,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       createRepoFieldGroup('cs-repo-field-group--name', t('editor.composer.site.repoName'), repoWrap)
     );
 
-    const branchWrap = document.createElement('div');
+    const branchWrap = documentRef.createElement('div');
     branchWrap.className = 'cs-repo-field cs-repo-field--branch';
     branchWrap.dataset.field = 'repo';
     branchWrap.dataset.subfield = 'branch';
@@ -2609,11 +2654,11 @@ export function createComposerSiteSettingsUi(options = {}) {
         t('editor.composer.site.sections.extras.title'),
         t('editor.composer.site.sections.extras.description')
       );
-      const list = document.createElement('ul');
+      const list = documentRef.createElement('ul');
       list.className = 'cs-extra-list';
       list.dataset.field = '__extras';
       Object.keys(site.__extras).sort().forEach((key) => {
-        const item = document.createElement('li');
+        const item = documentRef.createElement('li');
         item.textContent = key;
         list.appendChild(item);
       });

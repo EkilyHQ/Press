@@ -120,7 +120,16 @@ export function applyInferredRepoConfig(site, inferred) {
 }
 
 export function createComposerSiteConfigController(options = {}) {
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const runtime = options.runtime || null;
+  const setContentRoot = typeof options.setContentRoot === 'function'
+    ? options.setContentRoot
+    : (runtime && typeof runtime.setContentRoot === 'function' ? runtime.setContentRoot : (root) => root);
+  const setSiteRepo = typeof options.setSiteRepo === 'function'
+    ? options.setSiteRepo
+    : (runtime && typeof runtime.setSiteRepo === 'function' ? runtime.setSiteRepo : (repo) => repo);
+  const emitSiteConfigChange = typeof options.emitSiteConfigChange === 'function'
+    ? options.emitSiteConfigChange
+    : (runtime && typeof runtime.emitSiteConfigChange === 'function' ? runtime.emitSiteConfigChange : () => false);
   const cloneValue = typeof options.deepClone === 'function'
     ? options.deepClone
     : (value) => JSON.parse(JSON.stringify(value));
@@ -130,27 +139,20 @@ export function createComposerSiteConfigController(options = {}) {
     const tracked = siteConfig && typeof siteConfig === 'object' ? siteConfig : {};
     const effective = mergeYamlConfig(tracked, siteLocalOverride);
     const root = (effective && effective.contentRoot) ? String(effective.contentRoot) : 'wwwroot';
-    try {
-      windowRef.__press_content_root = root;
-    } catch (_) {}
+    setContentRoot(root);
     try {
       const repo = (effective && effective.repo) || {};
-      windowRef.__press_site_repo = {
+      setSiteRepo({
         owner: String(repo.owner || ''),
         name: String(repo.name || ''),
         branch: String(repo.branch || 'main')
-      };
+      });
     } catch (_) {
       try {
-        windowRef.__press_site_repo = { owner: '', name: '', branch: 'main' };
+        setSiteRepo({ owner: '', name: '', branch: 'main' });
       } catch (_) {}
     }
-    try {
-      const EventCtor = windowRef && windowRef.CustomEvent ? windowRef.CustomEvent : CustomEvent;
-      windowRef.dispatchEvent(new EventCtor('press-editor-site-config-change', {
-        detail: { siteConfig: cloneValue(effective) }
-      }));
-    } catch (_) {}
+    emitSiteConfigChange(cloneValue(effective));
     return effective;
   }
 

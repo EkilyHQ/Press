@@ -1,18 +1,31 @@
 export function animateEditorSystemPanelContent({
-  windowRef = window,
-  documentRef = document
+  documentRef = null,
+  setTimeoutRef = null,
+  clearTimeoutRef = null
 } = {}) {
+  if (!documentRef || typeof documentRef.getElementById !== 'function') return;
   const panel = documentRef.getElementById('editorSystemPanel');
   if (!panel) return;
+  const setTimer = typeof setTimeoutRef === 'function'
+    ? setTimeoutRef
+    : (handler) => {
+      if (typeof handler === 'function') handler();
+      return 0;
+    };
+  const clearTimer = typeof clearTimeoutRef === 'function'
+    ? clearTimeoutRef
+    : (id) => {
+      if (id == null) return;
+    };
   try {
     const previousTimer = panel.__pressSystemAnimationTimer;
-    if (previousTimer) windowRef.clearTimeout(previousTimer);
+    if (previousTimer) clearTimer(previousTimer);
   } catch (_) {}
   panel.classList.remove('is-content-entering');
   try { panel.getBoundingClientRect(); } catch (_) {}
   panel.classList.add('is-content-entering');
   try {
-    panel.__pressSystemAnimationTimer = windowRef.setTimeout(() => {
+    panel.__pressSystemAnimationTimer = setTimer(() => {
       panel.classList.remove('is-content-entering');
       panel.__pressSystemAnimationTimer = null;
     }, 260);
@@ -21,7 +34,9 @@ export function animateEditorSystemPanelContent({
 
 export function showEditorSystemPanel(mode, deps = {}) {
   const {
-    documentRef = document,
+    documentRef = null,
+    setTimeoutRef = null,
+    clearTimeoutRef = null,
     treeText = (_key, fallback) => fallback,
     mountEditorSystemPanels = () => {},
     setEditorSystemPanelVisible = () => {},
@@ -29,8 +44,13 @@ export function showEditorSystemPanel(mode, deps = {}) {
     applyComposerFile = () => {},
     resetSiteSettingsNavOnOpen = () => {},
     refreshSyncCommitPanel = () => {},
-    animatePanel = () => animateEditorSystemPanelContent({ documentRef })
+    animatePanel = () => animateEditorSystemPanelContent({
+      documentRef,
+      setTimeoutRef,
+      clearTimeoutRef
+    })
   } = deps;
+  if (!documentRef || typeof documentRef.getElementById !== 'function') return;
   const nextMode = mode === 'sync' ? 'sync' : (mode === 'updates' ? 'updates' : (mode === 'themes' ? 'themes' : 'composer'));
   mountEditorSystemPanels();
   const panel = documentRef.getElementById('editorSystemPanel');

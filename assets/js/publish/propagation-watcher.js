@@ -1,46 +1,64 @@
 import { normalizeMarkdownDraftContent } from '../composer-markdown-save.js';
 
-function sleep(ms) {
-  const timeout = Math.max(0, Number(ms) || 0);
-  return new Promise((resolve) => { setTimeout(resolve, timeout); });
-}
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 function arrayBufferToBase64(buffer) {
   if (!buffer) return '';
   try {
     const bytes = new Uint8Array(buffer);
-    const chunk = 0x8000;
-    let binary = '';
-    for (let i = 0; i < bytes.length; i += chunk) {
-      const slice = bytes.subarray(i, i + chunk);
-      binary += String.fromCharCode.apply(null, slice);
+    let output = '';
+    for (let i = 0; i < bytes.length; i += 3) {
+      const a = bytes[i];
+      const b = i + 1 < bytes.length ? bytes[i + 1] : 0;
+      const c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      const triplet = (a << 16) | (b << 8) | c;
+      output += BASE64_CHARS[(triplet >> 18) & 63];
+      output += BASE64_CHARS[(triplet >> 12) & 63];
+      output += i + 1 < bytes.length ? BASE64_CHARS[(triplet >> 6) & 63] : '=';
+      output += i + 2 < bytes.length ? BASE64_CHARS[triplet & 63] : '=';
     }
-    return btoa(binary);
+    return output;
   } catch (_) {
-    try {
-      return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)));
-    } catch (err) {
-      console.error('Failed to encode array buffer to base64', err);
-      return '';
-    }
+    return '';
   }
+}
+
+function normalizeContentRoot(value) {
+  const root = String(value || 'wwwroot').replace(/\\+/g, '/').replace(/^\/+|\/+$/g, '');
+  return root || 'wwwroot';
+}
+
+function resolveAmbientFunction(name) {
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    const value = scope ? scope[name] : null;
+    return typeof value === 'function' ? value.bind(scope) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resolveFetch(fetchImpl) {
+  return typeof fetchImpl === 'function' ? fetchImpl : resolveAmbientFunction('fetch');
+}
+
+function defaultSleepMs(ms) {
+  return new Promise((resolve) => {
+    const timeout = Math.max(0, Number(ms) || 0);
+    const setTimeoutRef = resolveAmbientFunction('setTimeout');
+    if (setTimeoutRef) setTimeoutRef(resolve, timeout);
+    else resolve();
+  });
 }
 
 export async function waitForRemotePropagation(files = [], options = {}) {
   if (!Array.isArray(files) || !files.length) return { canceled: false };
-  const windowRef = options.windowRef || window;
-  const fetchImpl = options.fetchImpl || fetch;
+  const fetchImpl = resolveFetch(options.fetchImpl);
   const setStatus = typeof options.setStatus === 'function' ? options.setStatus : () => {};
   const setCancelHandler = typeof options.setCancelHandler === 'function' ? options.setCancelHandler : () => {};
-
-  const normalizedRoot = (() => {
-    try {
-      const root = (windowRef.__press_content_root || 'wwwroot').replace(/\\+/g, '/').replace(/^\/+|\/+$/g, '');
-      return root;
-    } catch (_) {
-      return 'wwwroot';
-    }
-  })();
+  const sleepMs = typeof options.sleepMs === 'function' ? options.sleepMs : defaultSleepMs;
+  const now = typeof options.now === 'function' ? options.now : () => Date.now();
+  const normalizedRoot = normalizeContentRoot(options.contentRoot);
 
   const toLivePath = (path) => {
     const clean = String(path || '').replace(/\\+/g, '/').replace(/^\/+/, '');
@@ -113,7 +131,7 @@ export async function waitForRemotePropagation(files = [], options = {}) {
         for (const path of candidates) {
           if (!path) continue;
           try {
-            const url = `${path}?ts=${Date.now()}`;
+            const url = `${path}?ts=${now()}`;
             const resp = await fetchImpl(url, { cache: 'no-store' });
             checked = true;
             if (resp.ok) {
@@ -132,7 +150,7 @@ export async function waitForRemotePropagation(files = [], options = {}) {
         for (const path of candidates) {
           if (!path) continue;
           try {
-            const url = `${path}?ts=${Date.now()}`;
+            const url = `${path}?ts=${now()}`;
             const resp = await fetchImpl(url, { cache: 'no-store' });
             if (!resp.ok) {
               ok = false;
@@ -165,7 +183,7 @@ export async function waitForRemotePropagation(files = [], options = {}) {
       for (let remaining = checkIntervalMs; remaining > 0; remaining -= countdownStepMs) {
         const seconds = Math.ceil(remaining / 1000);
         setStatus(`Attempt ${attempt} did not match for ${displayLabel}. Next check in ${seconds}s...`);
-        await sleep(Math.min(countdownStepMs, remaining));
+        await sleepMs(Math.min(countdownStepMs, remaining));
         if (canceled) break;
       }
     }

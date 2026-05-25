@@ -117,7 +117,7 @@ export function bindComposerMarkdownToolbar({
 
 export function bindComposerWorkspaceUi({
   documentRef,
-  consoleRef = console,
+  consoleRef = null,
   mountEditorSystemPanels = noop,
   initEditorOverlay = noop,
   initEditorRailResize = noop,
@@ -204,9 +204,9 @@ export function bindComposerWorkspaceUi({
 }
 
 export async function loadInitialComposerState({
-  windowRef,
-  consoleRef = console,
+  consoleRef = null,
   t = (key) => key,
+  ensureSiteRepo = noop,
   fetchTrackedSiteConfig,
   applyEffectiveSiteConfig,
   fetchConfigWithYamlFallback,
@@ -221,9 +221,7 @@ export async function loadInitialComposerState({
   showStatus = noop
 } = {}) {
   try {
-    if (windowRef && (!windowRef.__press_site_repo || typeof windowRef.__press_site_repo !== 'object')) {
-      windowRef.__press_site_repo = { owner: '', name: '', branch: 'main' };
-    }
+    ensureSiteRepo();
   } catch (_) {}
 
   const state = { index: {}, tabs: {}, site: {} };
@@ -264,12 +262,12 @@ export async function loadInitialComposerState({
 
 export function assembleComposerWorkspace({
   documentRef,
-  windowRef,
   t = (key) => key,
   state,
   loadDraftSnapshotsIntoState,
   applyInferredRepoConfig,
   inferRepoConfigFromGitHubPagesUrl,
+  getLocation = () => null,
   applyEffectiveSiteConfig,
   updateMarkdownPushButton = noop,
   getActiveDynamicTab = () => null,
@@ -284,14 +282,24 @@ export function assembleComposerWorkspace({
   applyMode,
   setAllowEditorStatePersist,
   persistDynamicEditorState,
-  setTimeoutRef = (handler, delay) => setTimeout(handler, delay)
+  setTimeoutRef = null
 } = {}) {
+  const scheduleTimer = (handler, delay) => {
+    if (typeof setTimeoutRef !== 'function') return false;
+    try {
+      setTimeoutRef(handler, delay);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
   const restoredDrafts = loadDraftSnapshotsIntoState(state);
   let inferredSiteRepoApplied = false;
   try {
     inferredSiteRepoApplied = applyInferredRepoConfig(
       state.site,
-      inferRepoConfigFromGitHubPagesUrl(windowRef && windowRef.location)
+      inferRepoConfigFromGitHubPagesUrl(getLocation())
     );
   } catch (_) {
     inferredSiteRepoApplied = false;
@@ -304,7 +312,7 @@ export function assembleComposerWorkspace({
       .map(k => (k === 'tabs' ? 'tabs.yaml' : k === 'site' ? 'site.yaml' : 'index.yaml'))
       .join(' & ');
     showStatus(t('editor.composer.statusMessages.restoredDraft', { label }));
-    setTimeoutRef(() => { showStatus(''); }, 1800);
+    scheduleTimer(() => { showStatus(''); }, 1800);
   } else {
     showStatus('');
   }
@@ -323,11 +331,7 @@ export function assembleComposerWorkspace({
   if (!restoredEditorState) applyMode('editor');
   setAllowEditorStatePersist(true);
   if (restoredEditorState) {
-    try {
-      setTimeoutRef(() => persistDynamicEditorState(), 500);
-    } catch (_) {
-      persistDynamicEditorState();
-    }
+    if (!scheduleTimer(() => persistDynamicEditorState(), 500)) persistDynamicEditorState();
   } else {
     persistDynamicEditorState();
   }
@@ -367,8 +371,10 @@ export async function initializeComposerOnDomReady(options = {}) {
 }
 
 export function initializeComposerApp(options = {}) {
-  const documentRef = options.documentRef;
   const handler = () => initializeComposerOnDomReady(options);
-  documentRef.addEventListener('DOMContentLoaded', handler);
+  const onDocumentReady = typeof options.onDocumentReady === 'function'
+    ? options.onDocumentReady
+    : (readyHandler) => readyHandler();
+  onDocumentReady(handler);
   return handler;
 }

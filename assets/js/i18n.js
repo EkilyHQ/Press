@@ -12,7 +12,7 @@
 import { parseFrontMatter } from './content.js';
 import { isEncryptedMarkdown } from './encrypted-content.js?v=press-system-v3.4.50';
 import { getContentRoot } from './utils.js';
-import { fetchConfigWithYamlFallback } from './yaml.js';
+import { parseYAML } from './yaml.js';
 import { getThemeRegion } from './theme-regions.js';
 import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=press-system-v3.4.50';
 
@@ -20,9 +20,8 @@ import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=
 
 // Default language fallback when no user/browser preference is available.
 const DEFAULT_LANG = 'en';
-// Site base default language (can be overridden by initI18n via <html lang>)
-let baseDefaultLang = DEFAULT_LANG;
 const STORAGE_KEY = 'lang';
+const FALLBACK_LANGUAGE_LABEL = (enLanguageMeta && enLanguageMeta.label) ? enLanguageMeta.label : 'English';
 
 // Export the default language constant for use by other modules
 export { DEFAULT_LANG };
@@ -30,13 +29,46 @@ export { DEFAULT_LANG };
 // UI translation bundles are loaded dynamically from assets/i18n.
 // Each language module should export a default object that mirrors en.js.
 // Missing keys automatically fall back to the default language bundle.
-const translations = {};
-const languageNames = {};
-let languageManifest = [];
-let manifestLoadPromise = null;
-const languageModuleUrls = new Map();
-const bundleLoadPromises = new Map();
-let manifestBaseUrl = null;
+function createI18nTranslations() {
+  const bundles = {};
+  bundles[DEFAULT_LANG] = cloneI18nBundle(enTranslations);
+  return bundles;
+}
+
+function createI18nLanguageNames() {
+  const names = {};
+  names[DEFAULT_LANG] = FALLBACK_LANGUAGE_LABEL;
+  return names;
+}
+
+function cloneI18nBundle(value) {
+  if (Array.isArray(value)) return value.map(cloneI18nBundle);
+  if (value && typeof value === 'object') {
+    const out = {};
+    Object.keys(value).forEach((key) => {
+      out[key] = cloneI18nBundle(value[key]);
+    });
+    return out;
+  }
+  return value;
+}
+
+async function fetchConfigWithYamlFallbackForRuntime(runtime, names) {
+  const candidates = Array.isArray(names) ? names : [String(names || 'site.yaml')];
+  for (const name of candidates) {
+    try {
+      const response = await runtime.getFetch()(name, { cache: 'no-store' });
+      if (!response || !response.ok) continue;
+      const lower = String(name || '').toLowerCase();
+      if (lower.endsWith('.json')) return await response.json();
+      if (lower.endsWith('.yaml') || lower.endsWith('.yml')) {
+        const text = await response.text();
+        try { return parseYAML(text); } catch (_) { /* try next */ }
+      }
+    } catch (_) { /* try next */ }
+  }
+  return {};
+}
 
 // Limit for concurrent front matter fetches when resolving simplified content entries.
 // Set to a positive integer to chunk requests; falsy values disable the limit.
@@ -44,10 +76,63 @@ const FRONTMATTER_FETCH_BATCH_SIZE = 6;
 
 export const POSTS_METADATA_READY_EVENT = 'ns:posts-metadata-ready';
 
-const frontMatterMetadataCache = new Map();
-const frontMatterPromiseCache = new Map();
-const frontMatterFetchQueue = [];
-let frontMatterActiveFetches = 0;
+function createI18nState() {
+  return {
+    baseDefaultLang: DEFAULT_LANG,
+    translations: createI18nTranslations(),
+    languageNames: createI18nLanguageNames(),
+    languageManifest: [{ value: DEFAULT_LANG, label: FALLBACK_LANGUAGE_LABEL }],
+    manifestLoadPromise: null,
+    languageModuleUrls: new Map(),
+    bundleLoadPromises: new Map(),
+    manifestBaseUrl: null,
+    frontMatterMetadataCache: new Map(),
+    frontMatterPromiseCache: new Map(),
+    frontMatterFetchQueue: [],
+    frontMatterActiveFetches: 0,
+    currentLang: DEFAULT_LANG,
+    contentLangs: null
+  };
+}
+
+function createI18nRuntime(options = {}) {
+  const state = createI18nState();
+  const documentRef = options.documentRef || null;
+  const windowRef = options.windowRef || null;
+  const navigatorRef = options.navigatorRef || null;
+  const localStorageRef = options.localStorageRef || null;
+  const fetchImpl = typeof options.fetchImpl === 'function' ? options.fetchImpl : null;
+
+  const runtime = {
+    state,
+    getDocument() {
+      return documentRef || (typeof document !== 'undefined' ? document : null);
+    },
+    getWindow() {
+      return windowRef || (typeof window !== 'undefined' ? window : null);
+    },
+    getNavigator() {
+      const win = runtime.getWindow();
+      return navigatorRef || (win && win.navigator) || (typeof navigator !== 'undefined' ? navigator : null);
+    },
+    getLocalStorage() {
+      const win = runtime.getWindow();
+      return localStorageRef || (win && win.localStorage) || (typeof localStorage !== 'undefined' ? localStorage : null);
+    },
+    getFetch() {
+      if (fetchImpl) return fetchImpl;
+      if (typeof fetch === 'function') return fetch;
+      throw new Error('I18n fetch is unavailable.');
+    },
+    createCustomEvent(type, options = {}) {
+      const win = runtime.getWindow();
+      const CustomEventCtor = (win && win.CustomEvent) || (typeof CustomEvent !== 'undefined' ? CustomEvent : null);
+      if (typeof CustomEventCtor === 'function') return new CustomEventCtor(type, options);
+      return { type, detail: options.detail };
+    }
+  };
+  return runtime;
+}
 
 function interpretTruthyFlag(v) {
   if (v === true) return true;
@@ -209,12 +294,12 @@ function mergeDefinedMetadata(base, update) {
   return out;
 }
 
-async function performFrontMatterFetch(markdownPath) {
+async function performFrontMatterFetch(runtime, markdownPath) {
   const path = normalizeMarkdownPath(markdownPath);
   if (!path) return { location: path };
   try {
     const url = `${getContentRoot()}/${path}`;
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await runtime.getFetch()(url, { cache: 'no-store' });
     if (!response || !response.ok) {
       console.warn(`Failed to load content from ${path}: HTTP ${response ? response.status : 'unknown'}`);
       return { location: path };
@@ -248,10 +333,11 @@ async function performFrontMatterFetch(markdownPath) {
   }
 }
 
-function processFrontMatterQueue() {
+function processFrontMatterQueue(runtime) {
+  const state = runtime.state;
   const limit = getFrontMatterConcurrencyLimit();
-  while (frontMatterFetchQueue.length && frontMatterActiveFetches < limit) {
-    const job = frontMatterFetchQueue.shift();
+  while (state.frontMatterFetchQueue.length && state.frontMatterActiveFetches < limit) {
+    const job = state.frontMatterFetchQueue.shift();
     if (!job || typeof job.resolve !== 'function') {
       continue;
     }
@@ -260,89 +346,88 @@ function processFrontMatterQueue() {
       try { job.resolve({ location: path }); } catch (_) {}
       continue;
     }
-    frontMatterActiveFetches += 1;
-    performFrontMatterFetch(path)
+    state.frontMatterActiveFetches += 1;
+    performFrontMatterFetch(runtime, path)
       .then((meta) => {
         const data = meta && meta.location ? meta : { location: path };
         const stable = Object.freeze({ ...data });
-        frontMatterMetadataCache.set(path, stable);
+        state.frontMatterMetadataCache.set(path, stable);
         try { job.resolve(stable); } catch (_) {}
       })
       .catch((err) => {
         console.warn(`Failed to load content from ${path}:`, err);
         const fallback = Object.freeze({ location: path });
-        frontMatterMetadataCache.set(path, fallback);
+        state.frontMatterMetadataCache.set(path, fallback);
         try { job.resolve(fallback); } catch (_) {}
       })
       .finally(() => {
-        frontMatterActiveFetches = Math.max(0, frontMatterActiveFetches - 1);
-        frontMatterPromiseCache.delete(path);
-        processFrontMatterQueue();
+        state.frontMatterActiveFetches = Math.max(0, state.frontMatterActiveFetches - 1);
+        state.frontMatterPromiseCache.delete(path);
+        processFrontMatterQueue(runtime);
       });
   }
 }
 
-function getFrontMatterMetadata(path) {
+function getFrontMatterMetadata(runtime, path) {
+  const state = runtime.state;
   const normalized = normalizeMarkdownPath(path);
   if (!normalized) return Promise.resolve({ location: normalized });
-  if (frontMatterMetadataCache.has(normalized)) {
-    return Promise.resolve(frontMatterMetadataCache.get(normalized));
+  if (state.frontMatterMetadataCache.has(normalized)) {
+    return Promise.resolve(state.frontMatterMetadataCache.get(normalized));
   }
-  if (frontMatterPromiseCache.has(normalized)) {
-    return frontMatterPromiseCache.get(normalized);
+  if (state.frontMatterPromiseCache.has(normalized)) {
+    return state.frontMatterPromiseCache.get(normalized);
   }
   const promise = new Promise((resolve) => {
-    frontMatterFetchQueue.push({ path: normalized, resolve });
-    processFrontMatterQueue();
+    state.frontMatterFetchQueue.push({ path: normalized, resolve });
+    processFrontMatterQueue(runtime);
   });
-  frontMatterPromiseCache.set(normalized, promise);
+  state.frontMatterPromiseCache.set(normalized, promise);
   return promise;
 }
 
-const FALLBACK_LANGUAGE_LABEL = (enLanguageMeta && enLanguageMeta.label) ? enLanguageMeta.label : 'English';
-translations[DEFAULT_LANG] = enTranslations;
-languageNames[DEFAULT_LANG] = FALLBACK_LANGUAGE_LABEL;
-languageManifest = [{ value: DEFAULT_LANG, label: FALLBACK_LANGUAGE_LABEL }];
-
-function emitBundleLoaded(lang) {
-  if (typeof window === 'undefined') return;
+function emitBundleLoaded(runtime, lang) {
+  const windowRef = runtime.getWindow();
+  if (!windowRef || typeof windowRef.dispatchEvent !== 'function') return;
   try {
-    window.dispatchEvent(new CustomEvent('ns:i18n-bundle-loaded', { detail: { lang } }));
+    windowRef.dispatchEvent(runtime.createCustomEvent('ns:i18n-bundle-loaded', { detail: { lang } }));
   } catch (_) { /* ignore */ }
 }
 
-function upsertManifestEntry(value, label, { preferFront = false } = {}) {
+function upsertManifestEntry(runtime, value, label, { preferFront = false } = {}) {
+  const state = runtime.state;
   if (!value) return;
   const normalized = String(value).toLowerCase();
-  const display = label || languageNames[normalized] || normalized;
-  const idx = languageManifest.findIndex((item) => item && item.value === normalized);
+  const display = label || state.languageNames[normalized] || normalized;
+  const idx = state.languageManifest.findIndex((item) => item && item.value === normalized);
   if (idx >= 0) {
-    const existing = languageManifest[idx];
+    const existing = state.languageManifest[idx];
     if (!existing || existing.label !== display) {
-      languageManifest[idx] = { value: normalized, label: display };
+      state.languageManifest[idx] = { value: normalized, label: display };
     }
   } else if (preferFront) {
-    languageManifest.unshift({ value: normalized, label: display });
+    state.languageManifest.unshift({ value: normalized, label: display });
   } else {
-    languageManifest.push({ value: normalized, label: display });
+    state.languageManifest.push({ value: normalized, label: display });
   }
 }
 
-async function loadLanguageBundle(langCode) {
+async function loadLanguageBundle(runtime, langCode) {
+  const state = runtime.state;
   const code = String(langCode || '').toLowerCase();
   if (!code) return null;
-  if (translations[code]) return translations[code];
-  if (bundleLoadPromises.has(code)) return bundleLoadPromises.get(code);
-  if (manifestLoadPromise) await manifestLoadPromise;
-  const moduleHref = languageModuleUrls.get(code);
+  if (state.translations[code]) return state.translations[code];
+  if (state.bundleLoadPromises.has(code)) return state.bundleLoadPromises.get(code);
+  if (state.manifestLoadPromise) await state.manifestLoadPromise;
+  const moduleHref = state.languageModuleUrls.get(code);
   if (!moduleHref) {
-    if (code === DEFAULT_LANG) return translations[DEFAULT_LANG] || null;
+    if (code === DEFAULT_LANG) return state.translations[DEFAULT_LANG] || null;
     // Attempt implicit fallback to ./<code>.js relative to manifest when not registered
-    if (manifestBaseUrl) {
+    if (state.manifestBaseUrl) {
       try {
-        const implicitUrl = new URL(`./${code}.js`, manifestBaseUrl);
-        languageModuleUrls.set(code, implicitUrl.href);
-        return loadLanguageBundle(code);
+        const implicitUrl = new URL(`./${code}.js`, state.manifestBaseUrl);
+        state.languageModuleUrls.set(code, implicitUrl.href);
+        return loadLanguageBundle(runtime, code);
       } catch (_) {
         // ignore
       }
@@ -357,31 +442,32 @@ async function loadLanguageBundle(langCode) {
         console.warn(`[i18n] Language module ${moduleHref} did not export a translations object`);
         return null;
       }
-      translations[code] = bundle;
-      const metaLabel = languageNames[code] || mod.languageLabel || (mod.languageMeta && mod.languageMeta.label);
-      if (metaLabel) languageNames[code] = metaLabel;
-      upsertManifestEntry(code, languageNames[code]);
-      emitBundleLoaded(code);
-      return bundle;
+      state.translations[code] = cloneI18nBundle(bundle);
+      const metaLabel = state.languageNames[code] || mod.languageLabel || (mod.languageMeta && mod.languageMeta.label);
+      if (metaLabel) state.languageNames[code] = metaLabel;
+      upsertManifestEntry(runtime, code, state.languageNames[code]);
+      emitBundleLoaded(runtime, code);
+      return state.translations[code];
     } catch (err) {
       console.warn("[i18n] Failed to load language bundle for %s", code, err);
       return null;
     }
   })().finally(() => {
-    bundleLoadPromises.delete(code);
+    state.bundleLoadPromises.delete(code);
   });
-  bundleLoadPromises.set(code, loader);
+  state.bundleLoadPromises.set(code, loader);
   return loader;
 }
 
-async function ensureLanguageBundlesLoaded(langToEnsure) {
-  if (!manifestLoadPromise) {
-    manifestLoadPromise = (async () => {
+async function ensureLanguageBundlesLoaded(runtime, langToEnsure) {
+  const state = runtime.state;
+  if (!state.manifestLoadPromise) {
+    state.manifestLoadPromise = (async () => {
       const manifestUrl = new URL('../i18n/languages.json', import.meta.url);
-      manifestBaseUrl = manifestUrl;
+      state.manifestBaseUrl = manifestUrl;
       let manifest = [];
       try {
-        const resp = await fetch(manifestUrl, { cache: 'no-store' });
+        const resp = await runtime.getFetch()(manifestUrl, { cache: 'no-store' });
         if (resp && resp.ok) {
           const data = await resp.json();
           if (Array.isArray(data)) manifest = data;
@@ -393,7 +479,7 @@ async function ensureLanguageBundlesLoaded(langToEnsure) {
         manifest = [{ value: DEFAULT_LANG, label: 'English', module: './en.js' }];
       }
       const seen = new Set();
-      languageManifest = [];
+      state.languageManifest = [];
       for (const entry of manifest) {
         if (!entry) continue;
         const value = String(entry.value || '').toLowerCase().trim();
@@ -406,22 +492,22 @@ async function ensureLanguageBundlesLoaded(langToEnsure) {
           console.warn(`[i18n] Invalid module path for ${value}`, err);
           continue;
         }
-        languageModuleUrls.set(value, moduleUrl.href);
-        if (entry.label) languageNames[value] = entry.label;
-        upsertManifestEntry(value, entry.label || value);
+        state.languageModuleUrls.set(value, moduleUrl.href);
+        if (entry.label) state.languageNames[value] = entry.label;
+        upsertManifestEntry(runtime, value, entry.label || value);
         seen.add(value);
       }
-      if (!languageModuleUrls.has(DEFAULT_LANG)) {
+      if (!state.languageModuleUrls.has(DEFAULT_LANG)) {
         try {
           const fallbackUrl = new URL('./en.js', manifestUrl);
-          languageModuleUrls.set(DEFAULT_LANG, fallbackUrl.href);
+          state.languageModuleUrls.set(DEFAULT_LANG, fallbackUrl.href);
         } catch (err) {
           console.warn('[i18n] Unable to register fallback English bundle', err);
         }
       }
-      if (!languageNames[DEFAULT_LANG]) languageNames[DEFAULT_LANG] = FALLBACK_LANGUAGE_LABEL;
-      upsertManifestEntry(DEFAULT_LANG, languageNames[DEFAULT_LANG] || FALLBACK_LANGUAGE_LABEL || DEFAULT_LANG, { preferFront: true });
-      languageManifest = languageManifest.reduce((acc, entry) => {
+      if (!state.languageNames[DEFAULT_LANG]) state.languageNames[DEFAULT_LANG] = FALLBACK_LANGUAGE_LABEL;
+      upsertManifestEntry(runtime, DEFAULT_LANG, state.languageNames[DEFAULT_LANG] || FALLBACK_LANGUAGE_LABEL || DEFAULT_LANG, { preferFront: true });
+      state.languageManifest = state.languageManifest.reduce((acc, entry) => {
         if (!entry || !entry.value) return acc;
         if (acc.find((item) => item.value === entry.value)) return acc;
         acc.push(entry);
@@ -429,34 +515,34 @@ async function ensureLanguageBundlesLoaded(langToEnsure) {
       }, []);
   })();
 }
-  await manifestLoadPromise;
+  await state.manifestLoadPromise;
 
-  if (!translations[DEFAULT_LANG]) {
-    await loadLanguageBundle(DEFAULT_LANG);
+  if (!state.translations[DEFAULT_LANG]) {
+    await loadLanguageBundle(runtime, DEFAULT_LANG);
   }
 
-  const target = String(langToEnsure || currentLang || DEFAULT_LANG).toLowerCase();
-  if (target && !translations[target]) {
-    await loadLanguageBundle(target);
+  const target = String(langToEnsure || state.currentLang || DEFAULT_LANG).toLowerCase();
+  if (target && !state.translations[target]) {
+    await loadLanguageBundle(runtime, target);
   }
 
-  return translations[target] || translations[DEFAULT_LANG] || null;
+  return state.translations[target] || state.translations[DEFAULT_LANG] || null;
 }
 
-
-let currentLang = DEFAULT_LANG;
-
-function detectLang() {
+function detectLang(runtime) {
+  const windowRef = runtime.getWindow();
+  const storage = runtime.getLocalStorage();
+  const navigatorRef = runtime.getNavigator();
   try {
-    const url = new URL(window.location.href);
+    const url = new URL(windowRef && windowRef.location ? windowRef.location.href : '');
     const qp = (url.searchParams.get('lang') || '').trim();
     if (qp) return qp;
   } catch (_) {}
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = storage && typeof storage.getItem === 'function' ? storage.getItem(STORAGE_KEY) : '';
     if (saved) return saved;
   } catch (_) {}
-  const nav = typeof navigator !== 'undefined' ? (navigator.language || navigator.userLanguage || '') : '';
+  const nav = navigatorRef ? (navigatorRef.language || navigatorRef.userLanguage || '') : '';
   return normalizeBrowserLanguage(nav) || DEFAULT_LANG;
 }
 
@@ -472,46 +558,55 @@ function normalizeBrowserLanguage(raw) {
   return lower.slice(0, 2);
 }
 
-export async function initI18n(opts = {}) {
-  const desiredInput = (opts.lang || detectLang() || '').toLowerCase();
+async function initI18nWithRuntime(runtime, opts = {}) {
+  const state = runtime.state;
+  const documentRef = runtime.getDocument();
+  const storage = runtime.getLocalStorage();
+  const desiredInput = (opts.lang || detectLang(runtime) || '').toLowerCase();
   const def = (opts.defaultLang || DEFAULT_LANG).toLowerCase();
   const desired = desiredInput || def;
-  await ensureLanguageBundlesLoaded(desired);
-  currentLang = desiredInput || def;
-  baseDefaultLang = def || DEFAULT_LANG;
+  await ensureLanguageBundlesLoaded(runtime, desired);
+  state.currentLang = desiredInput || def;
+  state.baseDefaultLang = def || DEFAULT_LANG;
   // If translation bundle missing, fall back to default bundle for UI
-  if (!translations[currentLang]) currentLang = def;
+  if (!state.translations[state.currentLang]) state.currentLang = def;
   // Persist only when allowed (default: true). This enables callers to
   // perform a non-persistent bootstrap before site config is loaded.
   const shouldPersist = (opts && Object.prototype.hasOwnProperty.call(opts, 'persist')) ? !!opts.persist : true;
   if (shouldPersist) {
-    try { localStorage.setItem(STORAGE_KEY, currentLang); } catch (_) {}
+    try {
+      if (storage && typeof storage.setItem === 'function') storage.setItem(STORAGE_KEY, state.currentLang);
+    } catch (_) {}
   }
   // Reflect on <html lang>
-  document.documentElement.setAttribute('lang', currentLang);
+  if (documentRef && documentRef.documentElement && typeof documentRef.documentElement.setAttribute === 'function') {
+    documentRef.documentElement.setAttribute('lang', state.currentLang);
+  }
   // Update a few static DOM bits (placeholders, site card)
-  applyStaticTranslations();
-  return currentLang;
+  applyStaticTranslations(runtime);
+  return state.currentLang;
 }
 
-export function getCurrentLang() { return currentLang; }
+function getCurrentLangWithRuntime(runtime) { return runtime.state.currentLang; }
 
-export async function ensureLanguageBundle(langCode) {
+async function ensureLanguageBundleWithRuntime(runtime, langCode) {
+  const state = runtime.state;
   const code = String(langCode || '').toLowerCase();
   if (code) {
-    await ensureLanguageBundlesLoaded(code);
-    if (translations[code]) return translations[code];
+    await ensureLanguageBundlesLoaded(runtime, code);
+    if (state.translations[code]) return state.translations[code];
   }
-  await ensureLanguageBundlesLoaded(baseDefaultLang || DEFAULT_LANG);
-  return translations[code] || translations[currentLang] || translations[DEFAULT_LANG] || null;
+  await ensureLanguageBundlesLoaded(runtime, state.baseDefaultLang || DEFAULT_LANG);
+  return state.translations[code] || state.translations[state.currentLang] || state.translations[DEFAULT_LANG] || null;
 }
 
 // Translate helper: fetches a nested value from the current language bundle,
 // with graceful fallback to the default language.
-export function t(path, vars) {
+function tWithRuntime(runtime, path, vars) {
+  const state = runtime.state;
   const segs = String(path || '').split('.');
-  const pick = (lang) => segs.reduce((o, k) => (o && o[k] != null ? o[k] : undefined), translations[lang] || {});
-  let val = pick(currentLang);
+  const pick = (lang) => segs.reduce((o, k) => (o && o[k] != null ? o[k] : undefined), state.translations[lang] || {});
+  let val = pick(state.currentLang);
   if (val == null) val = pick(DEFAULT_LANG);
   if (typeof val === 'function') return val(vars);
   return val != null ? String(val) : path;
@@ -563,7 +658,8 @@ export function normalizeLangKey(k) {
 
 // Attempt to transform a unified content JSON object into a flat map
 // for the current language with default fallback.
-function transformUnifiedContent(obj, lang) {
+function transformUnifiedContent(runtime, obj, lang) {
+  const state = runtime.state;
   const RESERVED = INDEX_METADATA_KEYS;
   const out = {};
   const langsSeen = new Set();
@@ -591,7 +687,7 @@ function transformUnifiedContent(obj, lang) {
     };
     // Try requested lang, then site default, then common English code, then legacy 'default'
     const nlang = normalizeLangKey(lang);
-    chosen = tryPick(nlang) || tryPick(baseDefaultLang) || tryPick('en') || tryPick('default');
+    chosen = tryPick(nlang) || tryPick(state.baseDefaultLang) || tryPick('en') || tryPick('default');
     // If still not chosen, fall back to the first available variant (for single-language entries)
     if (!chosen && variantKeys.length) {
       for (const vk of variantKeys) {
@@ -668,7 +764,8 @@ function buildEntryFromVariants(rawVariants, fallbackTitle) {
   return { title: resolvedTitle, meta };
 }
 
-async function loadContentFromFrontMatter(obj, lang) {
+async function loadContentFromFrontMatter(runtime, obj, lang) {
+  const state = runtime.state;
   const out = {};
   const langsSeen = new Set();
   const nlang = normalizeLangKey(lang);
@@ -694,7 +791,7 @@ async function loadContentFromFrontMatter(obj, lang) {
     const languageKeys = getIndexLanguageKeys(val);
     if (val && typeof val === 'object') {
       if (val[nlang] != null && isIndexVariantBucket(val[nlang])) chosenBucketKey = nlang;
-      else if (val[baseDefaultLang] != null && isIndexVariantBucket(val[baseDefaultLang])) chosenBucketKey = baseDefaultLang;
+      else if (val[state.baseDefaultLang] != null && isIndexVariantBucket(val[state.baseDefaultLang])) chosenBucketKey = state.baseDefaultLang;
       else if (val['en'] != null && isIndexVariantBucket(val['en'])) chosenBucketKey = 'en';
       else if (val['default'] != null && isIndexVariantBucket(val['default'])) chosenBucketKey = 'default';
       if (!chosenBucketKey) {
@@ -710,7 +807,7 @@ async function loadContentFromFrontMatter(obj, lang) {
 
     const variantSources = declaredVariants.map((variant) => {
       if (variant.__indexMetadata) return variant;
-      const cached = frontMatterMetadataCache.get(variant.location);
+      const cached = state.frontMatterMetadataCache.get(variant.location);
       return cached ? mergeDefinedMetadata(variant, cached) : variant;
     });
     const placeholderEntry = buildEntryFromVariants(variantSources, key);
@@ -718,13 +815,13 @@ async function loadContentFromFrontMatter(obj, lang) {
 
     out[placeholderEntry.title] = placeholderEntry.meta;
 
-    const needsAsync = variantSources.some((variant) => !variant.__indexMetadata && !frontMatterMetadataCache.has(variant.location));
+    const needsAsync = variantSources.some((variant) => !variant.__indexMetadata && !state.frontMatterMetadataCache.has(variant.location));
     if (!needsAsync) continue;
 
     const fetchPromises = variantSources.map((variant) =>
       variant.__indexMetadata
         ? Promise.resolve(variant)
-        : getFrontMatterMetadata(variant.location).then(meta => mergeDefinedMetadata(variant, meta)).catch(() => variant)
+        : getFrontMatterMetadata(runtime, variant.location).then(meta => mergeDefinedMetadata(variant, meta)).catch(() => variant)
     );
 
     const previousTitle = placeholderEntry.title;
@@ -751,9 +848,10 @@ async function loadContentFromFrontMatter(obj, lang) {
 
   if (updatePromises.length) {
     Promise.allSettled(updatePromises).then(() => {
-      if (typeof window === 'undefined') return;
+      const windowRef = runtime.getWindow();
+      if (!windowRef || typeof windowRef.dispatchEvent !== 'function') return;
       try {
-        window.dispatchEvent(new CustomEvent(POSTS_METADATA_READY_EVENT, {
+        windowRef.dispatchEvent(runtime.createCustomEvent(POSTS_METADATA_READY_EVENT, {
           detail: {
             entries: out,
             lang: nlang
@@ -769,11 +867,11 @@ async function loadContentFromFrontMatter(obj, lang) {
 
 // Try to load unified YAML (`base.yaml`) first; if not unified or missing, fallback to legacy
 // per-language files (base.<currentLang>.yaml -> base.<default>.yaml -> base.yaml)
-export async function loadContentJsonWithRaw(basePath, baseName) {
+async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
   // YAML only (unified or simplified)
   let raw = null;
   try {
-    const obj = await fetchConfigWithYamlFallback([
+    const obj = await fetchConfigWithYamlFallbackForRuntime(runtime, [
       `${basePath}/${baseName}.yaml`,
       `${basePath}/${baseName}.yml`
     ]);
@@ -803,17 +901,17 @@ export async function loadContentJsonWithRaw(basePath, baseName) {
       
       if (isSimplified) {
         // Handle simplified format - load metadata from front matter
-        const current = getCurrentLang();
-        const { entries, availableLangs } = await loadContentFromFrontMatter(obj, current);
-        __setContentLangs(availableLangs);
+        const current = getCurrentLangWithRuntime(runtime);
+        const { entries, availableLangs } = await loadContentFromFrontMatter(runtime, obj, current);
+        setContentLangs(runtime, availableLangs);
         return { entries, raw };
       }
       
       if (isUnified) {
-        const current = getCurrentLang();
-        const { entries, availableLangs } = transformUnifiedContent(obj, current);
+        const current = getCurrentLangWithRuntime(runtime);
+        const { entries, availableLangs } = transformUnifiedContent(runtime, obj, current);
         // Record available content languages so the dropdown can reflect them
-        __setContentLangs(availableLangs);
+        setContentLangs(runtime, availableLangs);
         return { entries, raw };
       }
       // Not unified; fall through to legacy handling below
@@ -821,16 +919,17 @@ export async function loadContentJsonWithRaw(basePath, baseName) {
   } catch (_) { /* fall back */ }
 
   // Legacy per-language YAML chain
-  return { entries: await loadLangJson(basePath, baseName), raw };
+  return { entries: await loadLangJsonWithRuntime(runtime, basePath, baseName), raw };
 }
 
-export async function loadContentJson(basePath, baseName) {
-  const result = await loadContentJsonWithRaw(basePath, baseName);
+async function loadContentJsonWithRuntime(runtime, basePath, baseName) {
+  const result = await loadContentJsonWithRawWithRuntime(runtime, basePath, baseName);
   return (result && result.entries) || {};
 }
 
 // Transform unified tabs YAML into a flat map: title -> { location }
-function transformUnifiedTabs(obj, lang) {
+function transformUnifiedTabs(runtime, obj, lang) {
+  const state = runtime.state;
   const out = {};
   const langsSeen = new Set();
   for (const [key, val] of Object.entries(obj || {})) {
@@ -849,7 +948,7 @@ function transformUnifiedTabs(obj, lang) {
       return null;
     };
     const nlang = normalizeLangKey(lang);
-    let chosen = tryPick(nlang) || tryPick(baseDefaultLang) || tryPick('en') || tryPick('default');
+    let chosen = tryPick(nlang) || tryPick(state.baseDefaultLang) || tryPick('en') || tryPick('default');
     // If not found, fall back to the first available variant to ensure visibility
     if (!chosen && variantKeys.length) {
       for (const vk of variantKeys) {
@@ -872,9 +971,9 @@ function transformUnifiedTabs(obj, lang) {
 }
 
 // Load tabs in unified format first, then fall back to legacy per-language files
-export async function loadTabsJson(basePath, baseName) {
+async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
   try {
-    const obj = await fetchConfigWithYamlFallback([
+    const obj = await fetchConfigWithYamlFallbackForRuntime(runtime, [
       `${basePath}/${baseName}.yaml`,
       `${basePath}/${baseName}.yml`
     ]);
@@ -888,113 +987,233 @@ export async function loadTabsJson(basePath, baseName) {
         }
       }
       if (isUnified) {
-        const current = getCurrentLang();
-        const { entries, availableLangs } = transformUnifiedTabs(obj, current);
-        __setContentLangs(availableLangs);
+        const current = getCurrentLangWithRuntime(runtime);
+        const { entries, availableLangs } = transformUnifiedTabs(runtime, obj, current);
+        setContentLangs(runtime, availableLangs);
         return entries;
       }
     }
   } catch (_) { /* fall through */ }
-  return loadLangJson(basePath, baseName);
+  return loadLangJsonWithRuntime(runtime, basePath, baseName);
 }
 
 // Ensure lang param is included when generating internal links
-export function withLangParam(urlStr) {
+function withLangParamWithRuntime(runtime, urlStr) {
+  const state = runtime.state;
+  const windowRef = runtime.getWindow();
   try {
-    const url = new URL(urlStr, window.location.href);
-    url.searchParams.set('lang', currentLang);
+    const url = new URL(urlStr, windowRef && windowRef.location ? windowRef.location.href : undefined);
+    url.searchParams.set('lang', state.currentLang);
     return url.search ? `${url.pathname}${url.search}` : url.pathname;
   } catch (_) {
     // Fallback: naive append
     const joiner = urlStr.includes('?') ? '&' : '?';
-    return `${urlStr}${joiner}lang=${encodeURIComponent(currentLang)}`;
+    return `${urlStr}${joiner}lang=${encodeURIComponent(state.currentLang)}`;
   }
 }
 
 // Try to load JSON for a given base name with lang suffix, falling back in order:
 // base.<currentLang>.json -> base.<default>.json -> base.json
-export async function loadLangJson(basePath, baseName) {
+async function loadLangJsonWithRuntime(runtime, basePath, baseName) {
+  const state = runtime.state;
   const attempts = [
-    `${basePath}/${baseName}.${currentLang}.yaml`,
-    `${basePath}/${baseName}.${currentLang}.yml`,
+    `${basePath}/${baseName}.${state.currentLang}.yaml`,
+    `${basePath}/${baseName}.${state.currentLang}.yml`,
     `${basePath}/${baseName}.${DEFAULT_LANG}.yaml`,
     `${basePath}/${baseName}.${DEFAULT_LANG}.yml`,
     `${basePath}/${baseName}.yaml`,
     `${basePath}/${baseName}.yml`
   ];
   try {
-    return await fetchConfigWithYamlFallback(attempts);
+    return await fetchConfigWithYamlFallbackForRuntime(runtime, attempts);
   } catch (_) {
     return {};
   }
 }
 
 // Update static DOM bits outside main render cycle (sidebar card, search placeholder)
-function applyStaticTranslations() {
+function applyStaticTranslations(runtime) {
+  const documentRef = runtime.getDocument();
+  if (!documentRef) return;
   // Search placeholder
-  const search = document.querySelector('press-search');
+  const search = documentRef.querySelector && documentRef.querySelector('press-search');
   if (search && typeof search.setPlaceholder === 'function') {
-    search.setPlaceholder(t('sidebar.searchPlaceholder'));
+    search.setPlaceholder(tWithRuntime(runtime, 'sidebar.searchPlaceholder'));
     return;
   }
   const searchRegion = getThemeRegion('search');
   const input = searchRegion && searchRegion.matches && searchRegion.matches('input')
     ? searchRegion
     : ((searchRegion && searchRegion.input) || (searchRegion && searchRegion.querySelector && searchRegion.querySelector('input[type="search"]')));
-  if (input) input.setAttribute('placeholder', t('sidebar.searchPlaceholder'));
+  if (input) input.setAttribute('placeholder', tWithRuntime(runtime, 'sidebar.searchPlaceholder'));
 }
 
-// Expose translations for testing/customization
-export const __translations = translations;
-
-let __contentLangs = null;
-function __setContentLangs(list) {
+function setContentLangs(runtime, list) {
+  const state = runtime.state;
   try {
     const add = Array.isArray(list) && list.length ? Array.from(new Set(list)) : [];
-    if (!__contentLangs || !__contentLangs.length) {
-      __contentLangs = add.length ? add : null;
+    if (!state.contentLangs || !state.contentLangs.length) {
+      state.contentLangs = add.length ? add : null;
     } else if (add.length) {
-      const s = new Set(__contentLangs);
+      const s = new Set(state.contentLangs);
       add.forEach(x => s.add(x));
-      __contentLangs = Array.from(s);
+      state.contentLangs = Array.from(s);
     }
   } catch (_) { /* ignore */ }
 }
-export function getAvailableLangs() {
+
+function getAvailableLangsWithRuntime(runtime) {
+  const state = runtime.state;
   // UI language choices come from the project language manifest. Content
   // languages are intentionally separate: an article may omit variants and
   // rely on the content fallback chain without hiding UI languages.
-  const current = getCurrentLang();
-  if (current && !translations[current]) {
-    ensureLanguageBundle(current).catch(() => {});
+  const current = getCurrentLangWithRuntime(runtime);
+  if (current && !state.translations[current]) {
+    ensureLanguageBundleWithRuntime(runtime, current).catch(() => {});
   }
-  if (languageManifest && languageManifest.length) return languageManifest.map((entry) => entry.value);
-  return Object.keys(translations);
+  if (state.languageManifest && state.languageManifest.length) return state.languageManifest.map((entry) => entry.value);
+  return Object.keys(state.translations);
 }
 
-export function getContentLangs() {
-  return __contentLangs && __contentLangs.length ? __contentLangs.slice() : [];
+function getContentLangsWithRuntime(runtime) {
+  const contentLangs = runtime.state.contentLangs;
+  return contentLangs && contentLangs.length ? contentLangs.slice() : [];
 }
-export function getLanguageLabel(code) {
+
+function getLanguageLabelWithRuntime(runtime, code) {
+  const state = runtime.state;
   const normalized = String(code || '').toLowerCase();
-  if (languageNames[normalized]) return languageNames[normalized];
-  const entry = (languageManifest || []).find((item) => item.value === normalized);
+  if (state.languageNames[normalized]) return state.languageNames[normalized];
+  const entry = (state.languageManifest || []).find((item) => item.value === normalized);
   if (entry && entry.label) return entry.label;
   return code;
 }
 
 // Programmatic language switching used by the sidebar dropdown
-export function switchLanguage(langCode) {
+function switchLanguageWithRuntime(runtime, langCode) {
+  const documentRef = runtime.getDocument();
+  const windowRef = runtime.getWindow();
+  const storage = runtime.getLocalStorage();
   const code = String(langCode || '').toLowerCase();
   if (!code) return;
-  try { localStorage.setItem(STORAGE_KEY, code); } catch (_) {}
-  document.documentElement.setAttribute('lang', code);
   try {
-    const url = new URL(window.location.href);
-    url.searchParams.set('lang', code);
-    window.location.assign(url.toString());
-  } catch (_) {
-    const joiner = window.location.search ? '&' : '?';
-    window.location.assign(window.location.pathname + window.location.search + `${joiner}lang=${encodeURIComponent(code)}`);
+    if (storage && typeof storage.setItem === 'function') storage.setItem(STORAGE_KEY, code);
+  } catch (_) {}
+  if (documentRef && documentRef.documentElement && typeof documentRef.documentElement.setAttribute === 'function') {
+    documentRef.documentElement.setAttribute('lang', code);
   }
+  if (!windowRef || !windowRef.location) return;
+  try {
+    const url = new URL(windowRef.location.href);
+    url.searchParams.set('lang', code);
+    windowRef.location.assign(url.toString());
+  } catch (_) {
+    const joiner = windowRef.location.search ? '&' : '?';
+    windowRef.location.assign(windowRef.location.pathname + windowRef.location.search + `${joiner}lang=${encodeURIComponent(code)}`);
+  }
+}
+
+export function createI18nController(options = {}) {
+  const runtime = createI18nRuntime(options);
+  return {
+    init(initOptions = {}) {
+      return initI18nWithRuntime(runtime, initOptions);
+    },
+    getCurrentLang() {
+      return getCurrentLangWithRuntime(runtime);
+    },
+    ensureLanguageBundle(langCode) {
+      return ensureLanguageBundleWithRuntime(runtime, langCode);
+    },
+    t(path, vars) {
+      return tWithRuntime(runtime, path, vars);
+    },
+    loadContentJsonWithRaw(basePath, baseName) {
+      return loadContentJsonWithRawWithRuntime(runtime, basePath, baseName);
+    },
+    loadContentJson(basePath, baseName) {
+      return loadContentJsonWithRuntime(runtime, basePath, baseName);
+    },
+    loadTabsJson(basePath, baseName) {
+      return loadTabsJsonWithRuntime(runtime, basePath, baseName);
+    },
+    withLangParam(urlStr) {
+      return withLangParamWithRuntime(runtime, urlStr);
+    },
+    loadLangJson(basePath, baseName) {
+      return loadLangJsonWithRuntime(runtime, basePath, baseName);
+    },
+    getAvailableLangs() {
+      return getAvailableLangsWithRuntime(runtime);
+    },
+    getContentLangs() {
+      return getContentLangsWithRuntime(runtime);
+    },
+    getLanguageLabel(code) {
+      return getLanguageLabelWithRuntime(runtime, code);
+    },
+    switchLanguage(langCode) {
+      return switchLanguageWithRuntime(runtime, langCode);
+    },
+    getTranslations() {
+      return runtime.state.translations;
+    }
+  };
+}
+
+const defaultI18nController = createI18nController();
+
+// Expose default-controller translations for testing/customization.
+export const __translations = defaultI18nController.getTranslations();
+
+export function initI18n(opts = {}) {
+  return defaultI18nController.init(opts);
+}
+
+export function getCurrentLang() {
+  return defaultI18nController.getCurrentLang();
+}
+
+export function ensureLanguageBundle(langCode) {
+  return defaultI18nController.ensureLanguageBundle(langCode);
+}
+
+export function t(path, vars) {
+  return defaultI18nController.t(path, vars);
+}
+
+export function loadContentJsonWithRaw(basePath, baseName) {
+  return defaultI18nController.loadContentJsonWithRaw(basePath, baseName);
+}
+
+export function loadContentJson(basePath, baseName) {
+  return defaultI18nController.loadContentJson(basePath, baseName);
+}
+
+export function loadTabsJson(basePath, baseName) {
+  return defaultI18nController.loadTabsJson(basePath, baseName);
+}
+
+export function withLangParam(urlStr) {
+  return defaultI18nController.withLangParam(urlStr);
+}
+
+export function loadLangJson(basePath, baseName) {
+  return defaultI18nController.loadLangJson(basePath, baseName);
+}
+
+export function getAvailableLangs() {
+  return defaultI18nController.getAvailableLangs();
+}
+
+export function getContentLangs() {
+  return defaultI18nController.getContentLangs();
+}
+
+export function getLanguageLabel(code) {
+  return defaultI18nController.getLanguageLabel(code);
+}
+
+export function switchLanguage(langCode) {
+  return defaultI18nController.switchLanguage(langCode);
 }

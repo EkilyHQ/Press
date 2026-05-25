@@ -1,5 +1,5 @@
 export function createEditorContentTreeController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   const expandedNodeIds = options.expandedNodeIds instanceof Set ? options.expandedNodeIds : new Set();
   const normalizePath = typeof options.normalizePath === 'function' ? options.normalizePath : ((value) => String(value || '').trim());
   const flattenTree = typeof options.flattenTree === 'function' ? options.flattenTree : ((nodes) => {

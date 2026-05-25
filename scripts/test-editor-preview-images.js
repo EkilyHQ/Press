@@ -78,7 +78,42 @@ assert.equal(
 );
 
 const { mdParse } = await import('../assets/js/markdown.js?editor-preview-images');
-const { setSafeHtml } = await import('../assets/js/safe-html.js?editor-preview-images');
+const { resolveImageSrc, setSafeHtml } = await import('../assets/js/safe-html.js?editor-preview-images');
+
+assert.equal(
+  resolveImageSrc('content/page.jpeg', 'content/articles', {
+    contentRoot: 'content',
+    origin: 'http://runtime.test'
+  }),
+  'content/page.jpeg',
+  'image src resolution should honor explicit runtime content root before ambient window state'
+);
+
+const explicitMarkdown = mdParse('![Page](content/page.jpeg)', 'content/articles', {
+  imageResolution: {
+    contentRoot: 'content',
+    origin: 'http://runtime.test'
+  }
+}).post;
+assert.match(
+  explicitMarkdown,
+  /src="content\/page\.jpeg"/,
+  'markdown image resolution should honor explicit runtime content root before ambient window state'
+);
+
+const explicitTarget = documentRef.createElement('div');
+setSafeHtml(explicitTarget, '<p><img src="content/page.jpeg" alt="Page"></p>', 'content/articles', {
+  alreadySanitized: true,
+  imageResolution: {
+    contentRoot: 'content',
+    origin: 'http://runtime.test'
+  }
+});
+assert.equal(
+  collectElements(explicitTarget, 'img')[0].getAttribute('src'),
+  'content/page.jpeg',
+  'safe html image rewriting should honor explicit runtime content root before ambient window state'
+);
 
 function collectElements(node, tagName, out = []) {
   if (!node) return out;

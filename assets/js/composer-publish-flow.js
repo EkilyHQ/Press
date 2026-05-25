@@ -1,14 +1,26 @@
 import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.50';
 import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.50';
 
+function resolveAmbientFunction(name) {
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    const value = scope ? scope[name] : null;
+    return typeof value === 'function' ? value.bind(scope) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 export function createComposerPublishFlow({
-  windowRef = window,
-  documentRef = document,
+  windowRef = null,
+  documentRef = null,
+  fetchImpl = null,
   t = (key) => key,
   getActiveSiteRepoConfig = () => ({}),
   getTrackedPublishContentRoot = () => 'wwwroot',
   gatherCommitPayload = async () => ({ files: [] }),
   applyLocalPostCommitState = () => {},
+  setTimeoutRef = null,
   getCachedConnectPublishGrant = () => null,
   setCachedConnectPublishGrant = () => {},
   clearCachedConnectPublishGrant = () => {},
@@ -21,12 +33,26 @@ export function createComposerPublishFlow({
   showToast = () => {},
   describeSummaryEntry = (entry) => entry && (entry.label || entry.path || entry.kind) || '',
   switchToPatFallbackAndFocusToken = () => {},
-  setGitHubCommitInFlight = () => {}
+  setGitHubCommitInFlight = () => {},
+  consoleRef = null
 } = {}) {
+  const fetchRef = typeof fetchImpl === 'function'
+    ? fetchImpl
+    : resolveAmbientFunction('fetch');
+  const timerRef = typeof setTimeoutRef === 'function'
+    ? setTimeoutRef
+    : resolveAmbientFunction('setTimeout');
+  const sleepMs = (ms) => new Promise((resolve) => {
+    const timeout = Math.max(0, Number(ms) || 0);
+    if (timerRef) timerRef(resolve, timeout);
+    else resolve();
+  });
+
   async function waitForRemotePropagation(files = []) {
     return waitForPublishedFiles(files, {
-      windowRef,
-      fetchImpl: fetch,
+      fetchImpl: fetchRef,
+      contentRoot: getTrackedPublishContentRoot(),
+      sleepMs,
       setStatus: setSyncOverlayStatus,
       setCancelHandler: setSyncOverlayCancelHandler
     });
@@ -69,6 +95,7 @@ export function createComposerPublishFlow({
           setCachedGrant: setCachedConnectPublishGrant,
           windowRef,
           documentRef,
+          fetchImpl: fetchRef,
           translate: t,
           onStatus: setSyncOverlayStatus
         });
@@ -79,6 +106,7 @@ export function createComposerPublishFlow({
           repo: { owner, name, branch },
           headline,
           files,
+          fetchImpl: fetchRef,
           translate: t,
           onStatus: setSyncOverlayStatus
         });
@@ -111,7 +139,9 @@ export function createComposerPublishFlow({
           message = t('editor.toasts.githubTokenRejected');
         }
       }
-      console.error('Press GitHub commit failed', err);
+      if (consoleRef && typeof consoleRef.error === 'function') {
+        consoleRef.error('Press GitHub commit failed', err);
+      }
       const toastOptions = { duration: 5200 };
       if (transport && transport.type === 'connect' && connectFallbackActionAvailable) {
         toastOptions.duration = 9000;

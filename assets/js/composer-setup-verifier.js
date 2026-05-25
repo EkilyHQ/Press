@@ -1,7 +1,6 @@
 export function createComposerSetupVerifier(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
-  const consoleRef = options.consoleRef || console;
+  const documentRef = options.documentRef || null;
+  const consoleRef = options.consoleRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
   const getState = typeof options.getState === 'function' ? options.getState : () => ({ index: {}, tabs: {} });
   const getActiveComposerFile = typeof options.getActiveComposerFile === 'function' ? options.getActiveComposerFile : () => 'index';
@@ -28,13 +27,22 @@ export function createComposerSetupVerifier(options = {}) {
   const getMarkdownPushLabel = typeof options.getMarkdownPushLabel === 'function'
     ? options.getMarkdownPushLabel
     : () => t('editor.composer.verify');
+  const runtime = options.runtime || null;
+  const readContentRoot = typeof options.getContentRoot === 'function'
+    ? options.getContentRoot
+    : (runtime && typeof runtime.getContentRoot === 'function' ? runtime.getContentRoot : () => 'wwwroot');
   const fetchRef = typeof options.fetchRef === 'function'
     ? options.fetchRef
-    : (windowRef && typeof windowRef.fetch === 'function' ? windowRef.fetch.bind(windowRef) : async () => ({ ok: false, text: async () => '' }));
+    : (runtime && typeof runtime.fetchContent === 'function' ? runtime.fetchContent : async () => ({ ok: false, text: async () => '' }));
+  const matchesMedia = typeof options.matchesMedia === 'function'
+    ? options.matchesMedia
+    : (runtime && typeof runtime.matchesMedia === 'function' ? runtime.matchesMedia : () => false);
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : (runtime && typeof runtime.setTimer === 'function' ? runtime.setTimer : () => null);
 
   function getContentRoot() {
-    const fromOption = typeof options.getContentRoot === 'function' ? options.getContentRoot() : '';
-    const value = fromOption || (windowRef && windowRef.__press_content_root) || 'wwwroot';
+    const value = readContentRoot() || 'wwwroot';
     return String(value || 'wwwroot').replace(/[\\]+/g, '/').replace(/\/?$/, '');
   }
 
@@ -286,7 +294,7 @@ export function createComposerSetupVerifier(options = {}) {
   }
 
   function prefersReducedMotion() {
-    try { return !!(windowRef && windowRef.matchMedia && windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    try { return !!matchesMedia('(prefers-reduced-motion: reduce)'); }
     catch (_) { return false; }
   }
 
@@ -376,7 +384,7 @@ export function createComposerSetupVerifier(options = {}) {
       };
       try {
         dialog.addEventListener('animationend', onEnd, { once: true });
-        if (windowRef && typeof windowRef.setTimeout === 'function') windowRef.setTimeout(onEnd, 200);
+        setTimeoutRef(onEnd, 200);
       } catch (_) {
         onEnd();
       }

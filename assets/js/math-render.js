@@ -1,5 +1,4 @@
 const KATEX_VENDOR_BASE = './vendor/katex/';
-let katexLoadPromise = null;
 
 function resolveVendorUrl(path) {
   try {
@@ -19,13 +18,18 @@ function ensureKatexStyle(documentRef) {
   documentRef.head.appendChild(link);
 }
 
-function loadKatexScript(documentRef) {
-  const win = documentRef && documentRef.defaultView ? documentRef.defaultView : (typeof window !== 'undefined' ? window : null);
+function createKatexLoaderState() {
+  return { loadPromise: null };
+}
+
+function loadKatexScript(documentRef, windowRef = null, loaderState = null) {
+  const win = windowRef || null;
   if (win && win.katex && typeof win.katex.render === 'function') return Promise.resolve(win.katex);
-  if (katexLoadPromise) return katexLoadPromise;
+  const state = loaderState && typeof loaderState === 'object' ? loaderState : null;
+  if (state && state.loadPromise) return state.loadPromise;
   if (!documentRef || !documentRef.head) return Promise.resolve(null);
 
-  katexLoadPromise = new Promise((resolve) => {
+  const promise = new Promise((resolve) => {
     const existing = documentRef.querySelector && documentRef.querySelector('script[data-press-katex="script"]');
     if (existing) {
       existing.addEventListener('load', () => resolve(win && win.katex ? win.katex : null), { once: true });
@@ -40,18 +44,57 @@ function loadKatexScript(documentRef) {
     script.addEventListener('error', () => resolve(null), { once: true });
     documentRef.head.appendChild(script);
   });
-  return katexLoadPromise;
+  if (!state) return promise;
+  state.loadPromise = promise.then((katex) => {
+    if (!katex) state.loadPromise = null;
+    return katex;
+  }, (err) => {
+    state.loadPromise = null;
+    throw err;
+  });
+  return state.loadPromise;
 }
 
-export async function renderPressMath(root) {
+function fallbackDocumentRef(root) {
+  return root && root.ownerDocument
+    ? root.ownerDocument
+    : (typeof document !== 'undefined' ? document : null);
+}
+
+function fallbackWindowRef(documentRef) {
+  return documentRef && documentRef.defaultView
+    ? documentRef.defaultView
+    : (typeof window !== 'undefined' ? window : null);
+}
+
+function resolveMathRuntimeRefs(root, options = {}) {
+  const hasDocumentRef = Object.prototype.hasOwnProperty.call(options || {}, 'documentRef');
+  const hasWindowRef = Object.prototype.hasOwnProperty.call(options || {}, 'windowRef');
+  const documentRef = hasDocumentRef ? (options.documentRef || null) : fallbackDocumentRef(root);
+  const windowRef = hasWindowRef ? (options.windowRef || null) : fallbackWindowRef(documentRef);
+  return { documentRef, windowRef };
+}
+
+export function createPressMathRenderer(options = {}) {
+  const documentRef = Object.prototype.hasOwnProperty.call(options || {}, 'documentRef')
+    ? options.documentRef || null
+    : null;
+  const windowRef = Object.prototype.hasOwnProperty.call(options || {}, 'windowRef')
+    ? options.windowRef || null
+    : null;
+  const loaderState = createKatexLoaderState();
+  return root => renderPressMath(root, { documentRef, windowRef, loaderState });
+}
+
+export async function renderPressMath(root, options = {}) {
   if (!root || !root.querySelectorAll) return { rendered: 0, failed: 0 };
   const nodes = Array.from(root.querySelectorAll('.press-math[data-tex]'))
     .filter(node => node && node.dataset && node.dataset.pressMathRendered !== 'true');
   if (!nodes.length) return { rendered: 0, failed: 0 };
 
-  const documentRef = root.ownerDocument || (typeof document !== 'undefined' ? document : null);
+  const { documentRef, windowRef } = resolveMathRuntimeRefs(root, options);
   ensureKatexStyle(documentRef);
-  const katex = await loadKatexScript(documentRef);
+  const katex = await loadKatexScript(documentRef, windowRef, options.loaderState || null);
   if (!katex || typeof katex.render !== 'function') return { rendered: 0, failed: nodes.length };
 
   let rendered = 0;

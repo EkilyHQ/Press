@@ -1,6 +1,5 @@
 export function createComposerContentMutationController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
   const treeText = typeof options.treeText === 'function' ? options.treeText : (_key, fallback) => fallback;
   const showToast = typeof options.showToast === 'function' ? options.showToast : () => {};
@@ -24,13 +23,7 @@ export function createComposerContentMutationController(options = {}) {
   const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : (value) => String(value || '').replace(/^\/+/, '');
   const deepClone = typeof options.deepClone === 'function'
     ? options.deepClone
-    : (value) => {
-        try {
-          if (typeof structuredClone === 'function') return structuredClone(value);
-        } catch (_) {}
-        try { return JSON.parse(JSON.stringify(value)); }
-        catch (_) { return value; }
-      };
+    : (value) => value;
   const normalizeIndexVariantList = typeof options.normalizeIndexVariantList === 'function' ? options.normalizeIndexVariantList : (value) => (Array.isArray(value) ? value.slice() : (value ? [value] : []));
   const getIndexVariantLocation = typeof options.getIndexVariantLocation === 'function' ? options.getIndexVariantLocation : (value) => String(value || '');
   const isIndexMetadataObject = typeof options.isIndexMetadataObject === 'function' ? options.isIndexMetadataObject : (value) => !!(value && typeof value === 'object' && !Array.isArray(value));
@@ -46,25 +39,18 @@ export function createComposerContentMutationController(options = {}) {
   const cssEscape = typeof options.cssEscape === 'function'
     ? options.cssEscape
     : (value) => {
-        try {
-          if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(value);
-        } catch (_) {}
         return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '\\$&');
       };
   const clearInlineSlideStyles = typeof options.clearInlineSlideStyles === 'function' ? options.clearInlineSlideStyles : () => {};
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
     ? options.requestAnimationFrameRef
     : (callback) => {
-        if (windowRef && typeof windowRef.requestAnimationFrame === 'function') return windowRef.requestAnimationFrame(callback);
-        callback();
+        if (typeof callback === 'function') callback();
         return 0;
       };
   const confirmRef = typeof options.confirmRef === 'function'
     ? options.confirmRef
-    : (message) => {
-        if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(message);
-        return true;
-      };
+    : () => true;
 
   function setActiveNodeId(nodeId) {
     if (editorContentTreeController && typeof editorContentTreeController.setActiveNodeId === 'function') {
@@ -325,7 +311,7 @@ export function createComposerContentMutationController(options = {}) {
       if (!result || !result.confirmed) return '';
       return String(result.value || '').trim();
     } catch (err) {
-      const consoleRef = options.consoleRef || console;
+      const consoleRef = options.consoleRef || null;
       if (consoleRef && typeof consoleRef.warn === 'function') consoleRef.warn('Failed to capture new entry key', err);
       return '';
     }
@@ -371,7 +357,7 @@ export function createComposerContentMutationController(options = {}) {
     try {
       key = await promptComposerEntryKey(normalized, anchor);
     } catch (err) {
-      const consoleRef = options.consoleRef || console;
+      const consoleRef = options.consoleRef || null;
       if (consoleRef && typeof consoleRef.warn === 'function') consoleRef.warn('Failed to add composer entry', err);
       return '';
     }

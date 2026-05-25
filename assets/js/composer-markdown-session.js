@@ -40,7 +40,12 @@ export function createComposerMarkdownSessionController(options = {}) {
   const setActiveNodeIdIfExists = typeof options.setActiveNodeIdIfExists === 'function' ? options.setActiveNodeIdIfExists : noop;
   const setEditorRailScrollTop = typeof options.setEditorRailScrollTop === 'function' ? options.setEditorRailScrollTop : noop;
   const restoreEditorContentScrollForMode = typeof options.restoreEditorContentScrollForMode === 'function' ? options.restoreEditorContentScrollForMode : noop;
-  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : (fn) => setTimeout(fn, 0);
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : (fn) => {
+      if (typeof fn === 'function') fn();
+      return 0;
+    };
   const applyMode = typeof options.applyMode === 'function' ? options.applyMode : noop;
   const selectEditorTreeNodeByPath = typeof options.selectEditorTreeNodeByPath === 'function' ? options.selectEditorTreeNodeByPath : noop;
   const showComposerDiscardConfirm = typeof options.showComposerDiscardConfirm === 'function' ? options.showComposerDiscardConfirm : null;
@@ -48,11 +53,11 @@ export function createComposerMarkdownSessionController(options = {}) {
     if (params && params.label) return `${key}: ${params.label}`;
     return String(key || '');
   };
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
-  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : (message) => {
-    if (windowRef && typeof windowRef.alert === 'function') windowRef.alert(message);
-  };
-  const consoleRef = options.consoleRef || console;
+  const alertRef = typeof options.alertRef === 'function' ? options.alertRef : noop;
+  const confirmRef = typeof options.confirmRef === 'function'
+    ? options.confirmRef
+    : () => true;
+  const consoleRef = options.consoleRef || { warn: noop, error: noop };
   const updateDynamicTabsGroupState = typeof options.updateDynamicTabsGroupState === 'function' ? options.updateDynamicTabsGroupState : noop;
   const detachPrimaryEditorListeners = typeof options.detachPrimaryEditorListeners === 'function' ? options.detachPrimaryEditorListeners : noop;
   const updateMarkdownActionsForTab = typeof options.updateMarkdownActionsForTab === 'function' ? options.updateMarkdownActionsForTab : noop;
@@ -291,14 +296,7 @@ export function createComposerMarkdownSessionController(options = {}) {
       const ref = tab.path || tab.label || t('editor.composer.discardConfirm.closeTabFallback');
       const promptMessage = t('editor.composer.discardConfirm.closeTabMessage', { label: ref });
       let proceed;
-      const runNativeConfirm = () => {
-        try {
-          if (windowRef && typeof windowRef.confirm === 'function') return windowRef.confirm(promptMessage);
-        } catch (_) {
-          return true;
-        }
-        return true;
-      };
+      const runNativeConfirm = () => confirmRef(promptMessage);
 
       if (anchorEl && showComposerDiscardConfirm) {
         try {

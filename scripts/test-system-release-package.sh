@@ -136,8 +136,278 @@ if ! grep -qx "press-system-${version}/assets/js/composer-runtime-styles.js" "${
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-runtime.js" "${entries_file}"; then
+  echo "expected package to include composer runtime boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-app-runtime.js" "${entries_file}"; then
+  echo "expected package to include explicit editor app runtime code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-boot-runtime.js" "${entries_file}"; then
+  echo "expected package to include editor boot runtime boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-preview-app-runtime.js" "${entries_file}"; then
+  echo "expected package to include editor preview app runtime boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-runtime.js" "${entries_file}"; then
+  echo "expected package to include editor main runtime boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-metadata-panel.js" "${entries_file}"; then
+  echo "expected package to include editor main metadata panel boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-session.js" "${entries_file}"; then
+  echo "expected package to include editor main preview session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-current-file-session.js" "${entries_file}"; then
+  echo "expected package to include editor main current-file session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-sidebar-session.js" "${entries_file}"; then
+  echo "expected package to include editor main sidebar session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-toolbar-session.js" "${entries_file}"; then
+  echo "expected package to include editor main toolbar session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-image-session.js" "${entries_file}"; then
+  echo "expected package to include editor main image session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-link-card-context.js" "${entries_file}"; then
+  echo "expected package to include editor main link-card context boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-workspace-session.js" "${entries_file}"; then
+  echo "expected package to include editor main workspace session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-blocks-session.js" "${entries_file}"; then
+  echo "expected package to include editor main blocks session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-document-session.js" "${entries_file}"; then
+  echo "expected package to include editor main document session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-content-service.js" "${entries_file}"; then
+  echo "expected package to include editor main content service boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-file-context-service.js" "${entries_file}"; then
+  echo "expected package to include editor main file context service boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-language-session.js" "${entries_file}"; then
+  echo "expected package to include editor main language session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-scroll-session.js" "${entries_file}"; then
+  echo "expected package to include editor main scroll session boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-shell-service.js" "${entries_file}"; then
+  echo "expected package to include editor main shell service boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-main-service-registry.js" "${entries_file}"; then
+  echo "expected package to include editor main service registry boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-model.js" "${entries_file}"; then
+  echo "expected package to include editor blocks model boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-runtime.js" "${entries_file}"; then
+  echo "expected package to include editor blocks runtime boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-session-registry.js" "${entries_file}"; then
+  echo "expected package to include editor blocks session registry boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-layout-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks layout session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-body-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks body session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-state.js" "${entries_file}"; then
+  echo "expected package to include editor blocks state controller code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-menu-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks menu session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-head-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks head session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-command-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks command session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-rich-text-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks rich text session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-editable-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks editable session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-selection-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks selection session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-inline-dom-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks inline DOM session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-caret-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks caret session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-focus-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks focus session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-pointer-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks pointer session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-active-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks active session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-inline-toolbar-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks inline toolbar session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-link-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks link session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-math-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks math session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-table-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks table session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-card-picker-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks card picker session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-image-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks image session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-code-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks code session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-source-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks source session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-list-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks list session code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-system-theme-bridge.js" "${entries_file}"; then
   echo "expected package to include composer system/theme bridge code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-sync-commit-controller.js" "${entries_file}"; then
+  echo "expected package to include composer Sync commit controller code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-publish-service.js" "${entries_file}"; then
+  echo "expected package to include composer publish app-service code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-publish-state-service.js" "${entries_file}"; then
+  echo "expected package to include composer publish state service code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-service-registry.js" "${entries_file}"; then
+  echo "expected package to include composer service registry code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-file-panel-controller.js" "${entries_file}"; then
+  echo "expected package to include composer file panel controller code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-editor-detail-panel-controller.js" "${entries_file}"; then
+  echo "expected package to include composer editor detail panel controller code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-yaml-panels-controller.js" "${entries_file}"; then
+  echo "expected package to include composer YAML panels controller code" >&2
   exit 1
 fi
 
@@ -188,6 +458,11 @@ fi
 
 if ! grep -qx "press-system-${version}/assets/js/composer-markdown-session.js" "${entries_file}"; then
   echo "expected package to include composer Markdown session code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-markdown-workspace.js" "${entries_file}"; then
+  echo "expected package to include composer Markdown workspace controller code" >&2
   exit 1
 fi
 

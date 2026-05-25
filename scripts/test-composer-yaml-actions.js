@@ -43,9 +43,6 @@ function createHarness(overrides = {}) {
   const draftMeta = { index: null, tabs: null, site: null, ...(overrides.draftMeta || {}) };
 
   const action = createComposerYamlActions({
-    windowRef: {
-      confirm: () => true
-    },
     consoleRef: {
       error: (...args) => calls.push(['error', ...args]),
       warn: (...args) => calls.push(['warn', ...args])
@@ -97,6 +94,7 @@ function createHarness(overrides = {}) {
       calls.push(['confirm', message]);
       return overrides.confirmResult !== false;
     },
+    confirmRef: () => overrides.confirmResult !== false,
     setTimeoutRef: (handler, delay) => {
       timers.push({ handler, delay });
       return timers.length;

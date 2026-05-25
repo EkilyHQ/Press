@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 let moduleSeq = 0;
+const cacheControlSource = readFileSync(new URL('../assets/js/cache-control.js', import.meta.url), 'utf8');
+
+assert.doesNotMatch(
+  cacheControlSource,
+  /^let\s+fetchPatched\b/m,
+  'cache control should not keep fetch patch state as a module-level mutable flag'
+);
+assert.match(
+  cacheControlSource,
+  /const FETCH_CACHE_POLICY_PATCHED = Symbol\('pressFetchCachePolicyPatched'\)[\s\S]*windowRef\[FETCH_CACHE_POLICY_PATCHED\] = true;[\s\S]*function ensureFetchCachePolicyPatched\(windowRef = getDefaultWindowRef\(\)\)/,
+  'cache control should scope fetch patch state to the supplied window ref'
+);
 
 async function loadCacheControl({ pathname = '/' } = {}) {
   const calls = [];
@@ -78,4 +91,25 @@ await run('non-content resources keep their existing cache behavior', async () =
   assert.equal(calls[0].init.cache, 'default');
   assert.equal(calls[1].init.cache, 'no-store');
   assert.equal(calls[2].init.cache, 'no-store');
+});
+
+await run('fetch patch marker is scoped to each window ref', async () => {
+  const { mod } = await loadCacheControl({ pathname: '/' });
+  const secondCalls = [];
+  const secondWindow = {
+    location: { href: 'https://example.test/preview.html', pathname: '/preview.html' },
+    fetch: async (input, init) => {
+      secondCalls.push({ input, init: init ? { ...init } : init });
+      return { ok: true, text: async () => '', json: async () => ({}) };
+    }
+  };
+
+  mod.ensureFetchCachePolicyPatched(secondWindow);
+  const patchedFetch = secondWindow.fetch;
+  mod.ensureFetchCachePolicyPatched(secondWindow);
+
+  assert.equal(secondWindow.fetch, patchedFetch);
+  await secondWindow.fetch('/wwwroot/post/demo.md', { cache: 'no-store' });
+  assert.equal(secondCalls.length, 1);
+  assert.equal(secondCalls[0].init.cache, 'default');
 });

@@ -156,36 +156,40 @@ function findByClass(root, className) {
 
 function createController() {
   const documentRef = createFakeDocument();
-  const windowRef = {
-    innerWidth: 960,
-    innerHeight: 640,
-    scrollX: 0,
-    scrollY: 0,
-    requestAnimationFrame(fn) {
-      fn();
-      return 1;
-    },
-    setTimeout(fn) {
-      fn();
-      return 1;
-    },
-    clearTimeout() {},
-    addEventListener() {},
-    removeEventListener() {}
-  };
+  const documentListeners = [];
   const controller = createComposerDialogController({
     documentRef,
-    windowRef,
+    setTimeoutRef: (fn) => {
+      fn();
+      return 1;
+    },
+    clearTimeoutRef: () => {},
+    requestAnimationFrameRef: (fn) => {
+      fn();
+      return 1;
+    },
+    addWindowListener: () => () => {},
+    addDocumentListener: (type, handler, options) => {
+      documentRef.addEventListener(type, handler, options);
+      const entry = { type, handler, options, disposed: false };
+      documentListeners.push(entry);
+      return () => {
+        entry.disposed = true;
+        documentRef.removeEventListener(type, handler, options);
+      };
+    },
+    getViewportSize: () => ({ width: 960, height: 640 }),
+    getWindowScroll: () => ({ x: 0, y: 0 }),
     t: (key, params = {}) => {
       if (key === 'editor.composer.addEntryPrompt.message') return `Add ${params.label}`;
       return key;
     }
   });
-  return { controller, documentRef };
+  return { controller, documentRef, documentListeners };
 }
 
 {
-  const { controller, documentRef } = createController();
+  const { controller, documentRef, documentListeners } = createController();
   const anchor = documentRef.createElement('button');
   documentRef.body.appendChild(anchor);
   const resultPromise = controller.showAddEntryPrompt(anchor, {
@@ -215,10 +219,12 @@ function createController() {
   confirm.click();
   assert.deepEqual(await resultPromise, { confirmed: true, value: 'new-entry' });
   assert.equal(anchor.getAttribute('aria-expanded'), 'false');
+  assert.equal(documentListeners.length, 3);
+  assert.equal(documentListeners.every(listener => listener.disposed), true);
 }
 
 {
-  const { controller, documentRef } = createController();
+  const { controller, documentRef, documentListeners } = createController();
   const anchor = documentRef.createElement('button');
   documentRef.body.appendChild(anchor);
   const resultPromise = controller.showAddEntryPrompt(anchor, {
@@ -232,7 +238,7 @@ function createController() {
 }
 
 {
-  const { controller, documentRef } = createController();
+  const { controller, documentRef, documentListeners } = createController();
   const anchor = documentRef.createElement('button');
   documentRef.body.appendChild(anchor);
   const resultPromise = controller.showDiscardConfirm(anchor, 'Discard draft?');
@@ -242,10 +248,12 @@ function createController() {
   findByClass(prompt, 'composer-confirm-confirm').click();
   assert.equal(await resultPromise, true);
   assert.equal(anchor.getAttribute('aria-expanded'), 'false');
+  assert.equal(documentListeners.length, 3);
+  assert.equal(documentListeners.every(listener => listener.disposed), true);
 }
 
 {
-  const { controller, documentRef } = createController();
+  const { controller, documentRef, documentListeners } = createController();
   const resultPromise = controller.requestMarkdownProtectionPassword({ confirm: true });
   const password = documentRef.getElementById('composerMarkdownProtectionPasswordInput');
   const confirmation = documentRef.getElementById('composerMarkdownProtectionPasswordConfirm');
@@ -269,6 +277,8 @@ function createController() {
   confirm.click();
   assert.equal(await resultPromise, 'secret');
   assert.equal(overlay.hidden, true);
+  assert.equal(documentListeners.length, 1);
+  assert.equal(documentListeners.every(listener => listener.disposed), true);
 }
 
 console.log('composer dialogs tests passed');

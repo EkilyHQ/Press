@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  assembleComposerWorkspace,
   bindComposerMarkdownToolbar,
   bindComposerWorkspaceUi,
   initializeComposerApp,
@@ -276,9 +277,52 @@ class FakeDocument {
 
 {
   const documentRef = new FakeDocument();
-  const handler = initializeComposerApp({ documentRef });
+  documentRef.addElement(new FakeElement('composerIndex'));
+  documentRef.addElement(new FakeElement('composerTabs'));
+  documentRef.addElement(new FakeElement('composerSite'));
+  const calls = [];
+  assembleComposerWorkspace({
+    documentRef,
+    state: { index: {}, tabs: {}, site: {} },
+    t: (key, params = {}) => params.label ? `${key}:${params.label}` : key,
+    loadDraftSnapshotsIntoState: () => ['index'],
+    applyInferredRepoConfig: () => false,
+    inferRepoConfigFromGitHubPagesUrl: () => null,
+    getLocation: () => null,
+    applyEffectiveSiteConfig: () => calls.push(['applySite']),
+    updateMarkdownPushButton: () => calls.push(['updatePush']),
+    showStatus: message => calls.push(['status', message]),
+    bindWorkspaceUi: () => calls.push(['bindWorkspace']),
+    buildIndexUI: () => calls.push(['buildIndex']),
+    buildTabsUI: () => calls.push(['buildTabs']),
+    buildSiteUI: () => calls.push(['buildSite']),
+    notifyComposerChange: kind => calls.push(['notify', kind]),
+    refreshEditorContentTree: () => calls.push(['refreshTree']),
+    restoreDynamicEditorState: () => false,
+    applyMode: mode => calls.push(['applyMode', mode]),
+    setAllowEditorStatePersist: value => calls.push(['allowPersist', value]),
+    persistDynamicEditorState: () => calls.push(['persist'])
+  });
+  assert.deepEqual(
+    calls.filter(call => call[0] === 'status'),
+    [['status', 'editor.composer.statusMessages.restoredDraft:index.yaml']],
+    'composer bootstrap should not run delayed status clearing without an injected timer'
+  );
+  assert.equal(calls.some(call => call[0] === 'persist'), true);
+}
+
+{
+  const documentRef = new FakeDocument();
+  const readyHandlers = [];
+  const handler = initializeComposerApp({
+    documentRef,
+    onDocumentReady: (readyHandler) => {
+      readyHandlers.push(readyHandler);
+    }
+  });
   assert.equal(typeof handler, 'function');
-  assert.equal(documentRef.listeners.get('DOMContentLoaded').length, 1);
+  assert.deepEqual(readyHandlers, [handler]);
+  assert.equal(documentRef.listeners.has('DOMContentLoaded'), false);
 }
 
 {
@@ -288,7 +332,13 @@ class FakeDocument {
   assert.doesNotMatch(composerSource, /document\.addEventListener\('DOMContentLoaded'/);
   assert.doesNotMatch(composerSource, /function bindComposerUI\(/);
   assert.match(composerSource, /from '\.\/composer-bootstrap\.js\?v=[\w.-]+'/);
-  assert.match(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'/);
+  assert.match(bootstrapSource, /const onDocumentReady = typeof options\.onDocumentReady === 'function'/);
+  assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m);
+  assert.doesNotMatch(
+    bootstrapSource,
+    /consoleRef\s*=\s*console|setTimeoutRef\s*=\s*\([^)]*handler/,
+    'composer bootstrap should receive logging and timers explicitly from the runtime wiring'
+  );
 }
 
 console.log('composer bootstrap tests passed');

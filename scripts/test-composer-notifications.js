@@ -88,47 +88,43 @@ function createFakeEnvironment() {
   const openedUrls = [];
   const warnings = [];
   const alerts = [];
-  const windowRef = {
-    requestAnimationFrame: (fn) => {
-      fn();
-      return 1;
-    },
-    setTimeout: (fn, delay) => {
-      timers.push({ fn, delay });
-      return timers.length;
-    },
-    clearTimeout: () => {},
-    open: (href) => {
-      openedUrls.push(href);
-      return {
-        closed: false,
-        opener: {},
-        location: {
-          replacedWith: '',
-          replace(value) {
-            this.replacedWith = value;
-          }
-        },
-        close() {
-          this.closed = true;
+  const requestAnimationFrameRef = (fn) => {
+    fn();
+    return 1;
+  };
+  const setTimeoutRef = (fn, delay) => {
+    timers.push({ fn, delay });
+    return timers.length;
+  };
+  const openWindowRef = (href) => {
+    openedUrls.push(href);
+    return {
+      closed: false,
+      opener: {},
+      location: {
+        replacedWith: '',
+        replace(value) {
+          this.replacedWith = value;
         }
-      };
-    },
-    alert: (message) => {
-      alerts.push(message);
-    }
+      },
+      close() {
+        this.closed = true;
+      }
+    };
   };
   const controller = createComposerNotificationController({
     documentRef,
-    windowRef,
     t: (key) => key,
     safeString: (value) => String(value == null ? '' : value),
     alertRef: (message) => alerts.push(message),
+    requestAnimationFrameRef,
+    setTimeoutRef,
+    openWindowRef,
     consoleRef: {
       warn: (...args) => warnings.push(args)
     }
   });
-  return { controller, documentRef, windowRef, timers, openedUrls, warnings, alerts };
+  return { controller, documentRef, timers, openedUrls, warnings, alerts };
 }
 
 {

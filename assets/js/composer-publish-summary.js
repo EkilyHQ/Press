@@ -1,7 +1,8 @@
 export function createPublishSummaryRenderer({
-  documentRef = document,
-  windowRef = window,
-  t = (key) => key
+  documentRef = null,
+  t = (key) => key,
+  matchesMedia = null,
+  setTimeoutRef = null
 } = {}) {
   function describeSummaryEntry(entry) {
     if (!entry) return '';
@@ -52,6 +53,7 @@ export function createPublishSummaryRenderer({
 
   function openGithubCommitFilePreview(file, triggerEl) {
     if (!file) return;
+    if (!documentRef || typeof documentRef.createElement !== 'function') return;
 
     const previewModal = documentRef.createElement('div');
     previewModal.className = 'press-modal github-preview-modal';
@@ -129,7 +131,7 @@ export function createPublishSummaryRenderer({
 
     let closing = false;
     const reduceMotion = (() => {
-      try { return !!(windowRef.matchMedia && windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+      try { return typeof matchesMedia === 'function' && !!matchesMedia('(prefers-reduced-motion: reduce)'); }
       catch (_) { return false; }
     })();
     const hadModalOpen = documentRef.body.classList.contains('press-modal-open');
@@ -158,7 +160,8 @@ export function createPublishSummaryRenderer({
       };
       try {
         previewDialog.addEventListener('animationend', onEnd, { once: true });
-        windowRef.setTimeout(onEnd, 200);
+        if (typeof setTimeoutRef === 'function') setTimeoutRef(onEnd, 200);
+        else onEnd();
       } catch (_) { onEnd(); }
     };
 
@@ -190,7 +193,9 @@ export function createPublishSummaryRenderer({
   }
 
   function appendGithubCommitSummary(summaryBlock, commitFiles = [], seoFiles = [], summaryEntries = []) {
+    if (!summaryBlock) return;
     summaryBlock.innerHTML = '';
+    if (!documentRef || typeof documentRef.createElement !== 'function') return;
     const files = Array.isArray(commitFiles) ? commitFiles : [];
     if (files.length) {
       const systemFilesGroup = files.filter((file) => file && file.kind === 'system');

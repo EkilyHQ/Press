@@ -14,7 +14,7 @@ function normalizeComposerKind(kind) {
 }
 
 export function createComposerDiffUi(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   const translate = typeof options.t === 'function' ? options.t : (key) => key;
   const tComposer = typeof options.tComposer === 'function'
     ? options.tComposer

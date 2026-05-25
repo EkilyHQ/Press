@@ -1,16 +1,151 @@
 const SLIDE_OPEN_DUR = 420;
 const SLIDE_CLOSE_DUR = 360;
 
-let composerReduceMotionQuery = null;
-const composerInlineVisibilityAnimations = new WeakMap();
-const composerInlineVisibilityFallbacks = new WeakMap();
-const composerListTransitions = new WeakMap();
-const composerOrderMainTransitions = new WeakMap();
-let composerSiteScrollAnimationId = null;
-let composerSiteScrollCleanup = null;
-const activeSlideAnimations = new WeakMap();
+function createComposerUiMotionState() {
+  return {
+    reduceMotionQuery: null,
+    inlineVisibilityAnimations: new WeakMap(),
+    inlineVisibilityFallbacks: new WeakMap(),
+    listTransitions: new WeakMap(),
+    orderMainTransitions: new WeakMap(),
+    siteScrollAnimationId: null,
+    siteScrollCleanup: null,
+    activeSlideAnimations: new WeakMap()
+  };
+}
 
-export function syncSiteEditorSingleLabelWidth(root) {
+function createComposerUiMotionRuntime(options = {}) {
+  return {
+    documentRef: options.documentRef || null,
+    windowRef: options.windowRef || null,
+    requestAnimationFrameRef: typeof options.requestAnimationFrameRef === 'function'
+      ? options.requestAnimationFrameRef
+      : null,
+    cancelAnimationFrameRef: typeof options.cancelAnimationFrameRef === 'function'
+      ? options.cancelAnimationFrameRef
+      : null,
+    setTimeoutRef: typeof options.setTimeoutRef === 'function'
+      ? options.setTimeoutRef
+      : null,
+    clearTimeoutRef: typeof options.clearTimeoutRef === 'function'
+      ? options.clearTimeoutRef
+      : null,
+    matchesMediaRef: typeof options.matchesMedia === 'function'
+      ? options.matchesMedia
+      : null,
+    getComputedStyleRef: typeof options.getComputedStyleRef === 'function'
+      ? options.getComputedStyleRef
+      : null,
+    performanceRef: options.performanceRef || null,
+    ResizeObserverRef: typeof options.ResizeObserverRef === 'function'
+      ? options.ResizeObserverRef
+      : null,
+    state: createComposerUiMotionState()
+  };
+}
+
+function getMotionState(runtime) {
+  return runtime.state;
+}
+
+function getDocumentRef(runtime) {
+  return runtime.documentRef || null;
+}
+
+function getWindowRef(runtime) {
+  return runtime.windowRef || null;
+}
+
+function requestFrame(runtime, fn) {
+  const requestAnimationFrameRef = runtime.requestAnimationFrameRef;
+  if (requestAnimationFrameRef) return requestAnimationFrameRef(fn);
+  return setTimer(runtime, fn, 0);
+}
+
+function cancelFrame(runtime, id) {
+  if (id == null) return;
+  const cancelAnimationFrameRef = runtime.cancelAnimationFrameRef;
+  if (cancelAnimationFrameRef) {
+    try {
+      cancelAnimationFrameRef(id);
+      return;
+    } catch (_) {}
+  }
+  clearTimer(runtime, id);
+}
+
+function setTimer(runtime, fn, delay = 0) {
+  const setTimeoutRef = runtime.setTimeoutRef;
+  if (setTimeoutRef) return setTimeoutRef(fn, delay);
+  if (typeof fn === 'function') {
+    try { fn(); } catch (_) {}
+  }
+  return null;
+}
+
+function clearTimer(runtime, id) {
+  if (id == null) return;
+  const clearTimeoutRef = runtime.clearTimeoutRef;
+  if (clearTimeoutRef) {
+    try { clearTimeoutRef(id); } catch (_) {}
+  }
+}
+
+function getComputedStyleFor(runtime, element) {
+  const getComputedStyleRef = runtime.getComputedStyleRef;
+  if (!getComputedStyleRef || !element) return null;
+  try {
+    return getComputedStyleRef(element);
+  } catch (_) {
+    return null;
+  }
+}
+
+function getNow(runtime) {
+  const performanceRef = runtime.performanceRef;
+  try {
+    if (performanceRef && typeof performanceRef.now === 'function') return performanceRef.now();
+  } catch (_) {}
+  return Date.now();
+}
+
+function getResizeObserverRef(runtime) {
+  return runtime.ResizeObserverRef || null;
+}
+
+function matchesMediaQuery(runtime, query) {
+  const matchesMediaRef = runtime.matchesMediaRef;
+  if (!matchesMediaRef) return false;
+  try {
+    const result = matchesMediaRef(query);
+    return typeof result === 'boolean' ? result : !!(result && result.matches);
+  } catch (_) {
+    return false;
+  }
+}
+
+export function createComposerUiMotionController(options = {}) {
+  const runtime = createComposerUiMotionRuntime(options);
+  return {
+    syncSiteEditorSingleLabelWidth: (root) => syncSiteEditorSingleLabelWidth(runtime, root),
+    composerPrefersReducedMotion: () => composerPrefersReducedMotion(runtime),
+    cancelComposerSiteScrollAnimation: () => cancelComposerSiteScrollAnimation(runtime),
+    animateComposerViewportScroll: (targetY, duration, onComplete) => animateComposerViewportScroll(runtime, targetY, duration, onComplete),
+    animateComposerInlineVisibility: (element, show, methodOptions = {}) => animateComposerInlineVisibility(runtime, element, show, methodOptions),
+    captureElementRect,
+    cancelListTransition: (list) => cancelListTransition(runtime, list),
+    animateComposerListTransition: (list, previousRect, methodOptions = {}) => animateComposerListTransition(runtime, list, previousRect, methodOptions),
+    cancelComposerOrderMainTransition: (main) => cancelComposerOrderMainTransition(runtime, main),
+    animateComposerOrderMainReset: (host, previousRect, methodOptions = {}) => animateComposerOrderMainReset(runtime, host, previousRect, methodOptions),
+    clearInlineSlideStyles,
+    resolveComposerScrollDuration,
+    slideToggle: (el, toOpen) => slideToggle(runtime, el, toOpen),
+    getComposerSlideDurations,
+    dispose: () => cancelComposerSiteScrollAnimation(runtime)
+  };
+}
+
+function syncSiteEditorSingleLabelWidth(runtime, root) {
   if (!root || typeof root.querySelectorAll !== 'function') return;
   try {
     if (typeof root.__pressSiteSingleLabelWidthCleanup === 'function') root.__pressSiteSingleLabelWidthCleanup();
@@ -25,22 +160,6 @@ export function syncSiteEditorSingleLabelWidth(root) {
 
   let frame = 0;
   let observer = null;
-  const requestFrame = (fn) => {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      return window.requestAnimationFrame(fn);
-    }
-    if (typeof requestAnimationFrame === 'function') return requestAnimationFrame(fn);
-    return setTimeout(fn, 0);
-  };
-  const cancelFrame = (id) => {
-    if (!id) return;
-    if (typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
-      window.cancelAnimationFrame(id);
-      return;
-    }
-    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
-    else clearTimeout(id);
-  };
   const measure = () => {
     frame = 0;
     let width = 88;
@@ -52,9 +171,7 @@ export function syncSiteEditorSingleLabelWidth(root) {
         const tooltip = target.querySelector ? target.querySelector('.cs-help-tooltip') : null;
         const tooltipWidth = tooltip ? tooltip.scrollWidth || 0 : 0;
         const labelWidth = label.scrollWidth || 0;
-        const targetStyle = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
-          ? window.getComputedStyle(target)
-          : null;
+        const targetStyle = getComputedStyleFor(runtime, target);
         const gap = targetStyle ? parseFloat(targetStyle.gap || targetStyle.columnGap || '0') || 0 : 0;
         measured = labelWidth + tooltipWidth + gap;
       } catch (_) {
@@ -69,12 +186,13 @@ export function syncSiteEditorSingleLabelWidth(root) {
   };
   const schedule = () => {
     if (frame) return;
-    frame = requestFrame(measure);
+    frame = requestFrame(runtime, measure);
   };
 
-  if (typeof ResizeObserver === 'function') {
+  const ResizeObserverRef = getResizeObserverRef(runtime);
+  if (ResizeObserverRef) {
     try {
-      observer = new ResizeObserver(schedule);
+      observer = new ResizeObserverRef(schedule);
       observer.observe(root);
       labels.forEach((label) => {
         const cell = label.closest ? label.closest('.cs-single-grid-label') : label;
@@ -85,41 +203,46 @@ export function syncSiteEditorSingleLabelWidth(root) {
     }
   }
 
+  const documentRef = getDocumentRef(runtime);
   try {
-    if (document.fonts && typeof document.fonts.ready?.then === 'function') document.fonts.ready.then(schedule).catch(() => {});
+    if (documentRef && documentRef.fonts && typeof documentRef.fonts.ready?.then === 'function') documentRef.fonts.ready.then(schedule).catch(() => {});
   } catch (_) {}
   schedule();
 
   root.__pressSiteSingleLabelWidthCleanup = () => {
-    cancelFrame(frame);
+    cancelFrame(runtime, frame);
     frame = 0;
     try { if (observer) observer.disconnect(); } catch (_) {}
     observer = null;
   };
 }
 
-export function composerPrefersReducedMotion() {
+function composerPrefersReducedMotion(runtime) {
+  const state = getMotionState(runtime);
   try {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-    if (!composerReduceMotionQuery) composerReduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    return !!composerReduceMotionQuery.matches;
+    if (!state.reduceMotionQuery) {
+      const matchesMediaRef = runtime.matchesMediaRef;
+      if (!matchesMediaRef) return false;
+      state.reduceMotionQuery = matchesMediaRef('(prefers-reduced-motion: reduce)');
+    }
+    if (typeof state.reduceMotionQuery === 'boolean') return state.reduceMotionQuery;
+    return !!state.reduceMotionQuery.matches;
   } catch (_) {
     return false;
   }
 }
 
-export function cancelComposerSiteScrollAnimation() {
+function cancelComposerSiteScrollAnimation(runtime) {
+  const state = getMotionState(runtime);
   try {
-    if (composerSiteScrollAnimationId != null && typeof cancelAnimationFrame === 'function') {
-      cancelAnimationFrame(composerSiteScrollAnimationId);
-    }
+    cancelFrame(runtime, state.siteScrollAnimationId);
   } catch (_) {}
-  composerSiteScrollAnimationId = null;
-  if (typeof composerSiteScrollCleanup === 'function') {
-    try { composerSiteScrollCleanup(); }
+  state.siteScrollAnimationId = null;
+  if (typeof state.siteScrollCleanup === 'function') {
+    try { state.siteScrollCleanup(); }
     catch (_) {}
   }
-  composerSiteScrollCleanup = null;
+  state.siteScrollCleanup = null;
 }
 
 export function createCubicBezierEasing(mX1, mY1, mX2, mY2) {
@@ -201,14 +324,17 @@ export function resolveComposerScrollDuration(duration) {
   return fallbackDuration;
 }
 
-export function animateComposerViewportScroll(targetY, duration, onComplete) {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return false;
-  if (typeof window.requestAnimationFrame !== 'function' || typeof window.scrollTo !== 'function') return false;
+function animateComposerViewportScroll(runtime, targetY, duration, onComplete) {
+  const windowRef = getWindowRef(runtime);
+  const documentRef = getDocumentRef(runtime);
+  if (!windowRef || !documentRef || typeof windowRef.scrollTo !== 'function') return false;
+  if (!runtime.requestAnimationFrameRef) return false;
 
-  const startY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  const rootEl = documentRef.documentElement || null;
+  const startY = windowRef.pageYOffset || (rootEl ? rootEl.scrollTop || 0 : 0);
   const distance = targetY - startY;
   if (Math.abs(distance) < 0.5) {
-    try { window.scrollTo(0, targetY); } catch (_) {}
+    try { windowRef.scrollTo(0, targetY); } catch (_) {}
     if (typeof onComplete === 'function') {
       try { onComplete(); } catch (_) {}
     }
@@ -217,19 +343,12 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
 
   const resolvedDuration = resolveComposerScrollDuration(duration);
 
-  const startTime = (() => {
-    try {
-      if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-        return performance.now();
-      }
-    } catch (_) {}
-    return Date.now();
-  })();
+  const startTime = getNow(runtime);
+  const state = getMotionState(runtime);
 
-  cancelComposerSiteScrollAnimation();
+  cancelComposerSiteScrollAnimation(runtime);
 
   let restoreScrollBehavior = null;
-  const rootEl = typeof document !== 'undefined' ? document.documentElement : null;
   if (rootEl && rootEl.style) {
     try {
       const previousBehavior = rootEl.style.scrollBehavior || '';
@@ -246,7 +365,7 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
   }
 
   if (typeof restoreScrollBehavior === 'function') {
-    composerSiteScrollCleanup = () => {
+    state.siteScrollCleanup = () => {
       if (typeof restoreScrollBehavior === 'function') {
         try { restoreScrollBehavior(); }
         catch (_) {}
@@ -254,40 +373,32 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
       restoreScrollBehavior = null;
     };
   } else {
-    composerSiteScrollCleanup = null;
+    state.siteScrollCleanup = null;
   }
 
   const finalize = (shouldInvokeCallback) => {
-    composerSiteScrollAnimationId = null;
-    if (typeof composerSiteScrollCleanup === 'function') {
-      try { composerSiteScrollCleanup(); }
+    state.siteScrollAnimationId = null;
+    if (typeof state.siteScrollCleanup === 'function') {
+      try { state.siteScrollCleanup(); }
       catch (_) {}
     }
-    composerSiteScrollCleanup = null;
+    state.siteScrollCleanup = null;
     if (shouldInvokeCallback && typeof onComplete === 'function') {
       try { onComplete(); } catch (_) {}
     }
   };
 
   const step = (timestamp) => {
-    const now = (() => {
-      if (typeof timestamp === 'number') return timestamp;
-      try {
-        if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-          return performance.now();
-        }
-      } catch (_) {}
-      return Date.now();
-    })();
+    const now = typeof timestamp === 'number' ? timestamp : getNow(runtime);
 
     const progress = Math.min(1, (now - startTime) / resolvedDuration);
     const eased = easeOutComposerScroll(progress);
     const nextY = startY + (distance * eased);
-    try { window.scrollTo(0, nextY); } catch (_) {}
+    try { windowRef.scrollTo(0, nextY); } catch (_) {}
 
     if (progress < 1) {
       try {
-        composerSiteScrollAnimationId = window.requestAnimationFrame(step);
+        state.siteScrollAnimationId = requestFrame(runtime, step);
         return;
       } catch (_) {}
     }
@@ -296,7 +407,7 @@ export function animateComposerViewportScroll(targetY, duration, onComplete) {
   };
 
   try {
-    composerSiteScrollAnimationId = window.requestAnimationFrame(step);
+    state.siteScrollAnimationId = requestFrame(runtime, step);
     return true;
   } catch (_) {
     finalize(false);
@@ -316,11 +427,13 @@ export function parseCssDuration(value, fallback) {
   return numeric;
 }
 
-function getComposerInlineAnimConfig() {
+function getComposerInlineAnimConfig(runtime) {
   const defaults = { durationIn: 480, durationOut: 380, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
-  if (typeof window === 'undefined' || typeof document === 'undefined') return defaults;
+  const documentRef = getDocumentRef(runtime);
+  if (!documentRef || !documentRef.documentElement) return defaults;
   try {
-    const styles = getComputedStyle(document.documentElement);
+    const styles = getComputedStyleFor(runtime, documentRef.documentElement);
+    if (!styles) return defaults;
     const durationIn = parseCssDuration(styles.getPropertyValue('--composer-inline-duration-in'), defaults.durationIn);
     const durationOut = parseCssDuration(styles.getPropertyValue('--composer-inline-duration-out'), defaults.durationOut);
     const easing = (styles.getPropertyValue('--composer-inline-ease') || '').trim() || defaults.easing;
@@ -330,25 +443,27 @@ function getComposerInlineAnimConfig() {
   }
 }
 
-function cancelInlineVisibilityAnimation(element) {
+function cancelInlineVisibilityAnimation(runtime, element) {
   if (!element) return;
-  const active = composerInlineVisibilityAnimations.get(element);
+  const state = getMotionState(runtime);
+  const active = state.inlineVisibilityAnimations.get(element);
   if (active && typeof active.cancel === 'function') {
     try { active.cancel(); } catch (_) {}
   }
-  if (active) composerInlineVisibilityAnimations.delete(element);
-  const fallback = composerInlineVisibilityFallbacks.get(element);
+  if (active) state.inlineVisibilityAnimations.delete(element);
+  const fallback = state.inlineVisibilityFallbacks.get(element);
   if (fallback != null) {
-    clearTimeout(fallback);
-    composerInlineVisibilityFallbacks.delete(element);
+    clearTimer(runtime, fallback);
+    state.inlineVisibilityFallbacks.delete(element);
   }
   if (element.dataset && element.dataset.animState && !element.hidden) delete element.dataset.animState;
 }
 
-export function animateComposerInlineVisibility(element, show, options = {}) {
+function animateComposerInlineVisibility(runtime, element, show, options = {}) {
   if (!element) return;
-  const reduceMotion = composerPrefersReducedMotion();
-  const config = getComposerInlineAnimConfig();
+  const state = getMotionState(runtime);
+  const reduceMotion = composerPrefersReducedMotion(runtime);
+  const config = getComposerInlineAnimConfig(runtime);
   const duration = show ? config.durationIn : config.durationOut;
   const immediate = !!options.immediate || reduceMotion || duration <= 0;
   const force = !!options.force;
@@ -370,7 +485,7 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
     }
   }
 
-  cancelInlineVisibilityAnimation(element);
+  cancelInlineVisibilityAnimation(runtime, element);
 
   if (immediate) {
     element.hidden = !show;
@@ -397,7 +512,7 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
     } else if (element.dataset) {
       element.dataset.animState = 'exit';
     }
-    const timer = window.setTimeout(() => {
+    const timer = setTimer(runtime, () => {
       if (!show) {
         element.hidden = true;
         element.setAttribute('aria-hidden', 'true');
@@ -405,10 +520,10 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
         element.setAttribute('aria-hidden', 'false');
       }
       if (element.dataset && element.dataset.animState) delete element.dataset.animState;
-      composerInlineVisibilityFallbacks.delete(element);
+      state.inlineVisibilityFallbacks.delete(element);
       finish();
     }, duration);
-    composerInlineVisibilityFallbacks.set(element, timer);
+    state.inlineVisibilityFallbacks.set(element, timer);
   };
 
   if (typeof element.animate === 'function') {
@@ -418,11 +533,11 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
         element.setAttribute('aria-hidden', 'false');
         if (element.dataset) element.dataset.animState = 'enter';
         const animation = element.animate(keyframesIn, { duration, easing: config.easing, fill: 'both' });
-        composerInlineVisibilityAnimations.set(element, animation);
+        state.inlineVisibilityAnimations.set(element, animation);
         const finalize = () => {
-          const active = composerInlineVisibilityAnimations.get(element);
+          const active = state.inlineVisibilityAnimations.get(element);
           if (active !== animation) return;
-          composerInlineVisibilityAnimations.delete(element);
+          state.inlineVisibilityAnimations.delete(element);
           if (element.dataset && element.dataset.animState === 'enter') delete element.dataset.animState;
           finish();
         };
@@ -432,11 +547,11 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
       }
       if (element.dataset) element.dataset.animState = 'exit';
       const animation = element.animate(keyframesOut, { duration, easing: config.easing, fill: 'both' });
-      composerInlineVisibilityAnimations.set(element, animation);
+      state.inlineVisibilityAnimations.set(element, animation);
       const finalize = () => {
-        const active = composerInlineVisibilityAnimations.get(element);
+        const active = state.inlineVisibilityAnimations.get(element);
         if (active !== animation) return;
-        composerInlineVisibilityAnimations.delete(element);
+        state.inlineVisibilityAnimations.delete(element);
         element.hidden = true;
         element.setAttribute('aria-hidden', 'true');
         if (element.dataset && element.dataset.animState === 'exit') delete element.dataset.animState;
@@ -446,7 +561,7 @@ export function animateComposerInlineVisibility(element, show, options = {}) {
       animation.addEventListener('cancel', finalize, { once: true });
       return;
     } catch (_) {
-      cancelInlineVisibilityAnimation(element);
+      cancelInlineVisibilityAnimation(runtime, element);
     }
   }
 
@@ -463,15 +578,16 @@ export function captureElementRect(element) {
   }
 }
 
-export function cancelListTransition(list) {
+function cancelListTransition(runtime, list) {
   if (!list) return;
-  const active = composerListTransitions.get(list);
+  const state = getMotionState(runtime);
+  const active = state.listTransitions.get(list);
   if (!active) return;
-  composerListTransitions.delete(list);
+  state.listTransitions.delete(list);
   if (active.animation && typeof active.animation.cancel === 'function') {
     try { active.animation.cancel(); } catch (_) {}
   }
-  if (active.timer != null) clearTimeout(active.timer);
+  if (active.timer != null) clearTimer(runtime, active.timer);
   if (active.restoreTransition != null) list.style.transition = active.restoreTransition;
   list.style.transform = 'none';
   list.style.filter = 'none';
@@ -479,12 +595,13 @@ export function cancelListTransition(list) {
   delete list.dataset.animating;
 }
 
-export function animateComposerListTransition(list, previousRect, options = {}) {
-  if (!list || !previousRect || composerPrefersReducedMotion()) return;
+function animateComposerListTransition(runtime, list, previousRect, options = {}) {
+  if (!list || !previousRect || composerPrefersReducedMotion(runtime)) return;
+  const state = getMotionState(runtime);
   const immediate = !!options.immediate;
   const forceFallback = immediate || !!options.forceFallback;
   const onMeasured = typeof options.onMeasured === 'function' ? options.onMeasured : null;
-  cancelListTransition(list);
+  cancelListTransition(runtime, list);
   const run = () => {
     if (!list.isConnected) return;
     let nextRect = captureElementRect(list);
@@ -504,7 +621,7 @@ export function animateComposerListTransition(list, previousRect, options = {}) 
     if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) transforms.push(`translate(${dx}px, ${dy}px)`);
     if (Math.abs(sx - 1) > 0.02 || Math.abs(sy - 1) > 0.02) transforms.push(`scale(${sx}, ${sy})`);
     if (!transforms.length) return;
-    const { durationIn, easing } = getComposerInlineAnimConfig();
+    const { durationIn, easing } = getComposerInlineAnimConfig(runtime);
     if (durationIn <= 0) return;
     const keyframes = [
       { transform: transforms.join(' '), filter: 'brightness(0.96)', opacity: 0.98 },
@@ -519,11 +636,11 @@ export function animateComposerListTransition(list, previousRect, options = {}) 
         animation = null;
       }
       if (animation) {
-        composerListTransitions.set(list, { animation });
+        state.listTransitions.set(list, { animation });
         const finalize = () => {
-          const active = composerListTransitions.get(list);
+          const active = state.listTransitions.get(list);
           if (!active || active.animation !== animation) return;
-          composerListTransitions.delete(list);
+          state.listTransitions.delete(list);
           delete list.dataset.animating;
         };
         animation.finished.then(finalize).catch(finalize);
@@ -537,35 +654,36 @@ export function animateComposerListTransition(list, previousRect, options = {}) 
     list.style.transform = transformsValue;
     list.style.filter = 'brightness(0.96)';
     list.style.opacity = '0.98';
-    requestAnimationFrame(() => {
+    requestFrame(runtime, () => {
       list.style.transition = `transform ${durationIn}ms ${easing}, filter ${durationIn}ms ${easing}, opacity ${durationIn}ms ${easing}`;
       list.style.transform = 'none';
       list.style.filter = 'none';
       list.style.opacity = '';
     });
-    const timer = window.setTimeout(() => {
-      const active = composerListTransitions.get(list);
+    const timer = setTimer(runtime, () => {
+      const active = state.listTransitions.get(list);
       if (!active || active.timer !== timer) return;
       list.style.transition = previousTransition;
-      composerListTransitions.delete(list);
+      state.listTransitions.delete(list);
       delete list.dataset.animating;
     }, durationIn + 40);
-    composerListTransitions.set(list, { timer, restoreTransition: previousTransition });
+    state.listTransitions.set(list, { timer, restoreTransition: previousTransition });
   };
 
   if (immediate) run();
-  else requestAnimationFrame(run);
+  else requestFrame(runtime, run);
 }
 
-export function cancelComposerOrderMainTransition(main) {
+function cancelComposerOrderMainTransition(runtime, main) {
   if (!main) return;
-  const active = composerOrderMainTransitions.get(main);
+  const state = getMotionState(runtime);
+  const active = state.orderMainTransitions.get(main);
   if (!active) return;
-  composerOrderMainTransitions.delete(main);
+  state.orderMainTransitions.delete(main);
   if (active.animation && typeof active.animation.cancel === 'function') {
     try { active.animation.cancel(); } catch (_) {}
   }
-  if (active.timer != null) clearTimeout(active.timer);
+  if (active.timer != null) clearTimer(runtime, active.timer);
   if (active.restoreTransition != null) main.style.transition = active.restoreTransition;
   main.style.transform = 'none';
   main.style.filter = 'none';
@@ -573,14 +691,15 @@ export function cancelComposerOrderMainTransition(main) {
   delete main.dataset.orderMainAnimating;
 }
 
-export function animateComposerOrderMainReset(host, previousRect, options = {}) {
+function animateComposerOrderMainReset(runtime, host, previousRect, options = {}) {
   if (!host || !previousRect) return;
+  const state = getMotionState(runtime);
   const main = host.querySelector('.composer-order-main');
   if (!main || !main.isConnected) return;
-  cancelComposerOrderMainTransition(main);
+  cancelComposerOrderMainTransition(runtime, main);
 
-  const reduceMotion = composerPrefersReducedMotion();
-  const { durationOut, easing } = getComposerInlineAnimConfig();
+  const reduceMotion = composerPrefersReducedMotion(runtime);
+  const { durationOut, easing } = getComposerInlineAnimConfig(runtime);
   const duration = typeof durationOut === 'number' ? durationOut : 0;
   const immediate = !!options.immediate || reduceMotion || duration <= 0;
   if (immediate) return;
@@ -615,11 +734,11 @@ export function animateComposerOrderMainReset(host, previousRect, options = {}) 
         animation = null;
       }
       if (animation) {
-        composerOrderMainTransitions.set(main, { animation });
+        state.orderMainTransitions.set(main, { animation });
         const finalize = () => {
-          const active = composerOrderMainTransitions.get(main);
+          const active = state.orderMainTransitions.get(main);
           if (!active || active.animation !== animation) return;
-          composerOrderMainTransitions.delete(main);
+          state.orderMainTransitions.delete(main);
           delete main.dataset.orderMainAnimating;
         };
         animation.finished.then(finalize).catch(finalize);
@@ -634,24 +753,24 @@ export function animateComposerOrderMainReset(host, previousRect, options = {}) 
     main.style.transform = transformsValue;
     main.style.filter = 'brightness(0.97)';
     main.style.opacity = '0.99';
-    requestAnimationFrame(() => {
+    requestFrame(runtime, () => {
       if (!main.isConnected) return;
       main.style.transition = `transform ${duration}ms ${easing}, filter ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
       main.style.transform = 'none';
       main.style.filter = 'none';
       main.style.opacity = '';
     });
-    const timer = window.setTimeout(() => {
-      const active = composerOrderMainTransitions.get(main);
+    const timer = setTimer(runtime, () => {
+      const active = state.orderMainTransitions.get(main);
       if (!active || active.timer !== timer) return;
       main.style.transition = previousTransition;
-      composerOrderMainTransitions.delete(main);
+      state.orderMainTransitions.delete(main);
       delete main.dataset.orderMainAnimating;
     }, duration + 40);
-    composerOrderMainTransitions.set(main, { timer, restoreTransition: previousTransition });
+    state.orderMainTransitions.set(main, { timer, restoreTransition: previousTransition });
   };
 
-  requestAnimationFrame(run);
+  requestFrame(runtime, run);
 }
 
 export function clearInlineSlideStyles(el) {
@@ -667,34 +786,41 @@ function parsePx(value) {
   return isNaN(n) ? 0 : n;
 }
 
-function getSlidePadding(el) {
-  const cs = window.getComputedStyle(el);
+function getSlidePadding(runtime, el) {
+  const cs = getComputedStyleFor(runtime, el) || {};
   return {
     top: parsePx(cs.paddingTop),
     bottom: parsePx(cs.paddingBottom)
   };
 }
 
-function forgetActiveSlideAnimation(el, anim) {
-  const stored = activeSlideAnimations.get(el);
-  if (stored && stored.anim === anim) activeSlideAnimations.delete(el);
+function forgetActiveSlideAnimation(runtime, el, anim) {
+  const state = getMotionState(runtime);
+  const stored = state.activeSlideAnimations.get(el);
+  if (stored && stored.anim === anim) state.activeSlideAnimations.delete(el);
 }
 
-function finalizeSlideAnimation(el, anim) {
+function finalizeSlideAnimation(runtime, el, anim) {
   if (!anim) return;
   try { anim.onfinish = null; } catch (_) {}
   try { anim.oncancel = null; } catch (_) {}
   try { anim.commitStyles(); } catch (_) {}
   try { anim.cancel(); } catch (_) {}
-  forgetActiveSlideAnimation(el, anim);
+  forgetActiveSlideAnimation(runtime, el, anim);
 }
 
-export function slideToggle(el, toOpen) {
+function slideToggle(runtime, el, toOpen) {
   if (!el) return;
-  const isReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const state = getMotionState(runtime);
+  const isReduced = matchesMediaQuery(runtime, '(prefers-reduced-motion: reduce)');
   let computedDisplay = '';
-  try { computedDisplay = window.getComputedStyle(el).display; } catch (_) { computedDisplay = el.style.display; }
-  const running = activeSlideAnimations.get(el);
+  try {
+    const computedStyle = getComputedStyleFor(runtime, el);
+    computedDisplay = computedStyle ? computedStyle.display : el.style.display;
+  } catch (_) {
+    computedDisplay = el.style.display;
+  }
+  const running = state.activeSlideAnimations.get(el);
   const runningTarget = running && typeof running.target === 'boolean' ? running.target : null;
   const currentState = (runningTarget !== null)
     ? runningTarget
@@ -704,7 +830,7 @@ export function slideToggle(el, toOpen) {
   if (runningTarget !== null) {
     if (open === runningTarget) return;
     try { running.anim?.cancel(); } catch (_) {}
-    activeSlideAnimations.delete(el);
+    state.activeSlideAnimations.delete(el);
   } else if (open === currentState) {
     return;
   }
@@ -719,7 +845,7 @@ export function slideToggle(el, toOpen) {
   if (open) {
     el.dataset.open = '1';
     el.style.display = 'block';
-    const pad = getSlidePadding(el);
+    const pad = getSlidePadding(runtime, el);
     const totalEnd = el.scrollHeight;
     const contentTarget = Math.max(0, totalEnd - pad.top - pad.bottom);
     try {
@@ -733,15 +859,15 @@ export function slideToggle(el, toOpen) {
         { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px' },
         { height: `${contentTarget}px`, opacity: 1, paddingTop: `${pad.top}px`, paddingBottom: `${pad.bottom}px` }
       ], { duration: SLIDE_OPEN_DUR, easing: 'ease', fill: 'forwards' });
-      activeSlideAnimations.set(el, { target: true, anim });
+      state.activeSlideAnimations.set(el, { target: true, anim });
       anim.onfinish = () => {
-        finalizeSlideAnimation(el, anim);
+        finalizeSlideAnimation(runtime, el, anim);
         el.dataset.open = '1';
         clearInlineSlideStyles(el);
       };
       anim.oncancel = () => {
         clearInlineSlideStyles(el);
-        forgetActiveSlideAnimation(el, anim);
+        forgetActiveSlideAnimation(runtime, el, anim);
       };
     } catch (_) {
       clearInlineSlideStyles(el);
@@ -749,7 +875,7 @@ export function slideToggle(el, toOpen) {
     }
   } else {
     el.dataset.open = '0';
-    const pad = getSlidePadding(el);
+    const pad = getSlidePadding(runtime, el);
     const totalStart = el.scrollHeight;
     const contentStart = Math.max(0, totalStart - pad.top - pad.bottom);
     try {
@@ -764,16 +890,16 @@ export function slideToggle(el, toOpen) {
         { height: `${contentStart}px`, opacity: 1, paddingTop: `${pad.top}px`, paddingBottom: `${pad.bottom}px` },
         { height: '0px', opacity: 0, paddingTop: '0px', paddingBottom: '0px' }
       ], { duration: SLIDE_CLOSE_DUR, easing: 'ease', fill: 'forwards' });
-      activeSlideAnimations.set(el, { target: false, anim });
+      state.activeSlideAnimations.set(el, { target: false, anim });
       anim.onfinish = () => {
-        finalizeSlideAnimation(el, anim);
+        finalizeSlideAnimation(runtime, el, anim);
         el.style.display = 'none';
         el.dataset.open = '0';
         clearInlineSlideStyles(el);
       };
       anim.oncancel = () => {
         clearInlineSlideStyles(el);
-        forgetActiveSlideAnimation(el, anim);
+        forgetActiveSlideAnimation(runtime, el, anim);
       };
     } catch (_) {
       el.style.display = 'none';

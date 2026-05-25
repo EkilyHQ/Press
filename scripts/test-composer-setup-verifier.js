@@ -23,11 +23,13 @@ function createHarness(overrides = {}) {
 
   const controller = createComposerSetupVerifier({
     documentRef: null,
-    windowRef: {
-      __press_content_root: 'wwwroot',
-      matchMedia: () => ({ matches: true })
-    },
     consoleRef: { warn: (...args) => calls.push(['warn', args]) },
+    getContentRoot: () => 'wwwroot',
+    matchesMedia: () => true,
+    setTimeoutRef: (handler) => {
+      calls.push(['timer', handler]);
+      return handler;
+    },
     t: (key, params = {}) => {
       if (key === 'editor.toasts.yamlUpToDate') return `${params.name} up to date`;
       if (key === 'editor.composer.remoteWatcher.waitingForLabel') return `waiting ${params.label}`;

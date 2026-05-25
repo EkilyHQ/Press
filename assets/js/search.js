@@ -1,7 +1,17 @@
 import { getThemeRegion } from './theme-regions.js';
 
 const SEARCH_BOUND = Symbol('pressSearchBound');
-let componentSearchBound = false;
+const SEARCH_EVENTS_BOUND = Symbol('pressSearchEventsBound');
+
+function markSearchEventsBound(root) {
+  try {
+    if (root[SEARCH_EVENTS_BOUND]) return false;
+    root[SEARCH_EVENTS_BOUND] = true;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 export function navigateSearch(query) {
   const q = String(query || '').trim();
@@ -24,13 +34,11 @@ export function navigateSearch(query) {
 }
 
 export function bindSearchEvents(root = document) {
-  if (!componentSearchBound && root && typeof root.addEventListener === 'function') {
-    root.addEventListener('press:search', (event) => {
-      const detail = event && event.detail ? event.detail : {};
-      navigateSearch(detail.query || '');
-    });
-    componentSearchBound = true;
-  }
+  if (!root || typeof root.addEventListener !== 'function' || !markSearchEventsBound(root)) return;
+  root.addEventListener('press:search', (event) => {
+    const detail = event && event.detail ? event.detail : {};
+    navigateSearch(detail.query || '');
+  });
 }
 
 export function setupSearch() {

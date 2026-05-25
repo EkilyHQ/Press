@@ -4,8 +4,7 @@ import {
 } from './composer-system-panel.js?v=press-system-v3.4.50';
 
 export function createComposerEditorShell(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
-  const windowRef = options.windowRef || (typeof window !== 'undefined' ? window : null);
+  const documentRef = options.documentRef || null;
   const editorSessionStateStore = options.editorSessionStateStore;
   const expandedEditorTreeNodeIds = options.expandedEditorTreeNodeIds || new Set();
   const treeText = typeof options.treeText === 'function' ? options.treeText : ((key, fallback) => fallback || key);
@@ -19,6 +18,42 @@ export function createComposerEditorShell(options = {}) {
   const applyComposerFile = typeof options.applyComposerFile === 'function' ? options.applyComposerFile : (() => {});
   const refreshSyncCommitPanel = typeof options.refreshSyncCommitPanel === 'function' ? options.refreshSyncCommitPanel : (() => {});
   const applyMode = typeof options.applyMode === 'function' ? options.applyMode : (() => {});
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : (handler) => {
+      if (typeof handler === 'function') handler();
+      return 0;
+    };
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : (handler) => {
+      if (typeof handler === 'function') handler();
+      return 0;
+    };
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
+    ? options.clearTimeoutRef
+    : () => {};
+  const addWindowListener = typeof options.addWindowListener === 'function'
+    ? options.addWindowListener
+    : () => () => {};
+  const addDocumentListener = typeof options.addDocumentListener === 'function'
+    ? options.addDocumentListener
+    : () => () => {};
+  const matchesMedia = typeof options.matchesMedia === 'function'
+    ? options.matchesMedia
+    : () => false;
+  const getViewportWidth = typeof options.getViewportWidth === 'function'
+    ? options.getViewportWidth
+    : () => 0;
+  const scrollWindowToTop = typeof options.scrollWindowToTop === 'function'
+    ? options.scrollWindowToTop
+    : () => false;
+  const getDocumentVisibilityState = typeof options.getDocumentVisibilityState === 'function'
+    ? options.getDocumentVisibilityState
+    : () => {
+      try { return documentRef ? documentRef.visibilityState : ''; }
+      catch (_) { return ''; }
+    };
 
   let editorRailResizeBound = false;
   let editorMobileRailBound = false;
@@ -136,12 +171,9 @@ export function createComposerEditorShell(options = {}) {
     const top = editorContentScrollByKey[key];
     const apply = () => setEditorContentScrollTopForMode(mode, top);
     try {
-      const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
-        ? windowRef.requestAnimationFrame.bind(windowRef)
-        : requestAnimationFrame;
-      raf(() => raf(apply));
+      requestAnimationFrameRef(() => requestAnimationFrameRef(apply));
     } catch (_) {
-      setTimeout(apply, 0);
+      setTimeoutRef(apply, 0);
     }
   }
 
@@ -161,10 +193,7 @@ export function createComposerEditorShell(options = {}) {
         } catch (__) {}
       }
     }
-    if (windowRef && typeof windowRef.scrollTo === 'function') {
-      try { windowRef.scrollTo({ top: 0, behavior }); }
-      catch (_) { try { windowRef.scrollTo(0, 0); } catch (__) {} }
-    }
+    scrollWindowToTop(behavior);
   }
 
   function persistSystemTreeExpandedState() {
@@ -175,13 +204,8 @@ export function createComposerEditorShell(options = {}) {
   function scheduleEditorStatePersist() {
     if (!getAllowEditorStatePersist()) return;
     try {
-      if (editorStatePersistTimer && windowRef) windowRef.clearTimeout(editorStatePersistTimer);
-      editorStatePersistTimer = windowRef
-        ? windowRef.setTimeout(() => {
-          editorStatePersistTimer = 0;
-          persistDynamicEditorState();
-        }, EDITOR_SCROLL_SAVE_DELAY)
-        : setTimeout(() => {
+      if (editorStatePersistTimer) clearTimeoutRef(editorStatePersistTimer);
+      editorStatePersistTimer = setTimeoutRef(() => {
           editorStatePersistTimer = 0;
           persistDynamicEditorState();
         }, EDITOR_SCROLL_SAVE_DELAY);
@@ -207,15 +231,11 @@ export function createComposerEditorShell(options = {}) {
         }
       } catch (_) {}
     };
-    try { documentRef.addEventListener('scroll', onScroll, true); } catch (_) {}
-    try {
-      if (windowRef) windowRef.addEventListener('pagehide', () => persistDynamicEditorState());
-    } catch (_) {}
-    try {
-      documentRef.addEventListener('visibilitychange', () => {
-        if (documentRef.visibilityState === 'hidden') persistDynamicEditorState();
-      });
-    } catch (_) {}
+    addDocumentListener('scroll', onScroll, true);
+    addWindowListener('pagehide', () => persistDynamicEditorState());
+    addDocumentListener('visibilitychange', () => {
+      if (getDocumentVisibilityState() === 'hidden') persistDynamicEditorState();
+    });
   }
 
   function mountEditorSystemPanels() {
@@ -255,7 +275,11 @@ export function createComposerEditorShell(options = {}) {
   }
 
   function animateEditorSystemPanelContent() {
-    animateSystemPanelContent({ windowRef, documentRef });
+    animateSystemPanelContent({
+      documentRef,
+      setTimeoutRef,
+      clearTimeoutRef
+    });
   }
 
   function resetSiteSettingsNavOnOpen() {
@@ -290,10 +314,7 @@ export function createComposerEditorShell(options = {}) {
     };
     activateFirst();
     try {
-      const raf = windowRef && typeof windowRef.requestAnimationFrame === 'function'
-        ? windowRef.requestAnimationFrame.bind(windowRef)
-        : requestAnimationFrame;
-      raf(() => raf(activateFirst));
+      requestAnimationFrameRef(() => requestAnimationFrameRef(activateFirst));
     } catch (_) {
       activateFirst();
     }
@@ -349,8 +370,9 @@ export function createComposerEditorShell(options = {}) {
   function computeEditorRailMaxWidth() {
     let viewportLimit = EDITOR_RAIL_MAX_WIDTH;
     try {
-      if (windowRef && Number.isFinite(windowRef.innerWidth)) {
-        viewportLimit = Math.min(EDITOR_RAIL_MAX_WIDTH, windowRef.innerWidth * 0.46);
+      const viewportWidth = Number(getViewportWidth());
+      if (Number.isFinite(viewportWidth) && viewportWidth > 0) {
+        viewportLimit = Math.min(EDITOR_RAIL_MAX_WIDTH, viewportWidth * 0.46);
       }
     } catch (_) {}
     return Math.max(EDITOR_RAIL_MIN_WIDTH, viewportLimit);
@@ -395,13 +417,24 @@ export function createComposerEditorShell(options = {}) {
 
     const isMobile = () => {
       try {
-        return !!(windowRef && windowRef.matchMedia && windowRef.matchMedia('(max-width: 820px)').matches);
+        return matchesMedia('(max-width: 820px)');
       } catch (_) {
         return false;
       }
     };
 
     let dragState = null;
+    let disposeRailPointerMove = null;
+    let disposeRailPointerUp = null;
+    let disposeRailPointerCancel = null;
+    const clearRailDragListeners = () => {
+      if (typeof disposeRailPointerMove === 'function') disposeRailPointerMove();
+      if (typeof disposeRailPointerUp === 'function') disposeRailPointerUp();
+      if (typeof disposeRailPointerCancel === 'function') disposeRailPointerCancel();
+      disposeRailPointerMove = null;
+      disposeRailPointerUp = null;
+      disposeRailPointerCancel = null;
+    };
     const finishDrag = () => {
       if (!dragState) return;
       const width = dragState.width;
@@ -409,9 +442,7 @@ export function createComposerEditorShell(options = {}) {
       shell.classList.remove('is-resizing-rail');
       try { documentRef.body.style.removeProperty('cursor'); } catch (_) {}
       setEditorRailWidth(width, { persist: true });
-      documentRef.removeEventListener('pointermove', onMove);
-      documentRef.removeEventListener('pointerup', finishDrag);
-      documentRef.removeEventListener('pointercancel', finishDrag);
+      clearRailDragListeners();
     };
     const onMove = (event) => {
       if (!dragState || isMobile()) return;
@@ -430,9 +461,10 @@ export function createComposerEditorShell(options = {}) {
       dragState.width = dragState.startWidth;
       shell.classList.add('is-resizing-rail');
       try { documentRef.body.style.cursor = 'col-resize'; } catch (_) {}
-      documentRef.addEventListener('pointermove', onMove);
-      documentRef.addEventListener('pointerup', finishDrag);
-      documentRef.addEventListener('pointercancel', finishDrag);
+      clearRailDragListeners();
+      disposeRailPointerMove = addDocumentListener('pointermove', onMove);
+      disposeRailPointerUp = addDocumentListener('pointerup', finishDrag);
+      disposeRailPointerCancel = addDocumentListener('pointercancel', finishDrag);
     });
 
     resizer.addEventListener('keydown', (event) => {
@@ -452,17 +484,15 @@ export function createComposerEditorShell(options = {}) {
       setEditorRailWidth(current + delta, { persist: true });
     });
 
-    if (windowRef) {
-      windowRef.addEventListener('resize', () => {
-        const current = Number(resizer.getAttribute('aria-valuenow')) || EDITOR_RAIL_DEFAULT_WIDTH;
-        setEditorRailWidth(current, { persist: false });
-      });
-    }
+    addWindowListener('resize', () => {
+      const current = Number(resizer.getAttribute('aria-valuenow')) || EDITOR_RAIL_DEFAULT_WIDTH;
+      setEditorRailWidth(current, { persist: false });
+    });
   }
 
   function isEditorMobileRailLayout() {
     try {
-      return !!(windowRef && windowRef.matchMedia && windowRef.matchMedia('(max-width: 820px)').matches);
+      return matchesMedia('(max-width: 820px)');
     } catch (_) {
       return false;
     }
@@ -508,14 +538,12 @@ export function createComposerEditorShell(options = {}) {
       });
     });
     if (scrim) scrim.addEventListener('click', closeEditorRailDrawer);
-    documentRef.addEventListener('keydown', (event) => {
+    addDocumentListener('keydown', (event) => {
       if (event.key === 'Escape') closeEditorRailDrawer();
     });
-    if (windowRef) {
-      windowRef.addEventListener('resize', () => {
-        if (!isEditorMobileRailLayout()) closeEditorRailDrawer();
-      });
-    }
+    addWindowListener('resize', () => {
+      if (!isEditorMobileRailLayout()) closeEditorRailDrawer();
+    });
   }
 
   return {

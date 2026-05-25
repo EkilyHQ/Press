@@ -43,7 +43,7 @@ function defaultSetButtonLabel(btn, label) {
 
 export function createComposerMarkdownActionsUi(options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
-  const documentRef = opts.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = opts.documentRef || null;
   const t = typeof opts.translate === 'function' ? opts.translate : (key) => String(key || '');
   const getCurrentMode = typeof opts.getCurrentMode === 'function' ? opts.getCurrentMode : () => null;
   const getActiveDynamicTab = typeof opts.getActiveDynamicTab === 'function' ? opts.getActiveDynamicTab : () => null;

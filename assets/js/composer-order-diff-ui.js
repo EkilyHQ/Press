@@ -1,12 +1,13 @@
 const ORDER_LINE_COLORS = ['#2563eb', '#ec4899', '#f97316', '#10b981', '#8b5cf6', '#f59e0b', '#22d3ee'];
 
+function noop() {}
+
 function normalizeOrderKind(kind) {
   return kind === 'tabs' ? 'tabs' : 'index';
 }
 
 export function createComposerOrderDiffUi(options = {}) {
-  const document = options.documentRef || (typeof globalThis !== 'undefined' ? globalThis.document : null);
-  const window = options.windowRef || (typeof globalThis !== 'undefined' ? globalThis.window : null);
+  const documentRef = options.documentRef || null;
   const tComposer = typeof options.tComposer === 'function' ? options.tComposer : (suffix) => suffix;
   const tComposerDiff = typeof options.tComposerDiff === 'function' ? options.tComposerDiff : (suffix) => suffix;
   const truncateText = typeof options.truncateText === 'function' ? options.truncateText : (value) => String(value || '');
@@ -28,14 +29,50 @@ export function createComposerOrderDiffUi(options = {}) {
     : (value) => String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const getComposerViewTransition = typeof options.getComposerViewTransition === 'function' ? options.getComposerViewTransition : () => null;
   const getSlideDurations = typeof options.getSlideDurations === 'function' ? options.getSlideDurations : () => ({ open: 420, close: 360 });
+  const setTimeoutRef = typeof options.setTimeoutRef === 'function'
+    ? options.setTimeoutRef
+    : () => null;
+  const clearTimeoutRef = typeof options.clearTimeoutRef === 'function'
+    ? options.clearTimeoutRef
+    : noop;
+  const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function'
+    ? options.requestAnimationFrameRef
+    : () => null;
+  const cancelAnimationFrameRef = typeof options.cancelAnimationFrameRef === 'function'
+    ? options.cancelAnimationFrameRef
+    : noop;
+  const addWindowListener = typeof options.addWindowListener === 'function'
+    ? options.addWindowListener
+    : () => noop;
+  const addDocumentListener = typeof options.addDocumentListener === 'function'
+    ? options.addDocumentListener
+    : () => noop;
+  const matchesMedia = typeof options.matchesMedia === 'function'
+    ? options.matchesMedia
+    : () => false;
+  const getComputedStyleRef = typeof options.getComputedStyleRef === 'function'
+    ? options.getComputedStyleRef
+    : () => null;
+  const ResizeObserverRef = typeof options.ResizeObserverRef === 'function'
+    ? options.ResizeObserverRef
+    : null;
+  const consoleRef = options.consoleRef || null;
+
+  function warn(...args) {
+    try {
+      if (consoleRef && typeof consoleRef.warn === 'function') consoleRef.warn(...args);
+    } catch (_) {}
+  }
 
   let composerDiffModal = null;
   let composerOrderState = null;
   let composerDiffResizeHandler = null;
+  let composerDiffResizeDispose = null;
   let composerOrderPreviewElements = { index: null, tabs: null };
   let composerOrderPreviewState = { index: null, tabs: null };
   let composerOrderPreviewActiveKind = 'index';
   let composerOrderPreviewResizeHandler = null;
+  let composerOrderPreviewResizeDispose = null;
   const composerOrderPreviewRelayoutTimers = { index: null, tabs: null };
 
   function openComposerDiffModal(kind, initialTab = 'overview') {
@@ -43,7 +80,7 @@ export function createComposerOrderDiffUi(options = {}) {
       const modal = ensureComposerDiffModal();
       modal.open(kind, initialTab);
     } catch (err) {
-      console.warn('Composer: failed to open composer diff modal', err);
+      warn('Composer: failed to open composer diff modal', err);
     }
   }
 
@@ -132,25 +169,25 @@ export function createComposerOrderDiffUi(options = {}) {
   }
 
   function buildOrderDiffItem(entry, side) {
-    const item = document.createElement('div');
+    const item = documentRef.createElement('div');
     item.className = 'composer-order-item';
     item.dataset.status = entry.status || 'same';
     item.dataset.side = side;
     item.setAttribute('data-key', entry.key || '');
 
-    const idxEl = document.createElement('span');
+    const idxEl = documentRef.createElement('span');
     idxEl.className = 'composer-order-index';
     idxEl.textContent = `#${entry.index + 1}`;
     item.appendChild(idxEl);
 
-    const keyEl = document.createElement('span');
+    const keyEl = documentRef.createElement('span');
     keyEl.className = 'composer-order-key';
     const keyText = entry.key || tComposerDiff('order.emptyKey');
     keyEl.textContent = keyText;
     keyEl.title = keyText;
     item.appendChild(keyEl);
 
-    const badgeEl = document.createElement('span');
+    const badgeEl = documentRef.createElement('span');
     badgeEl.className = 'composer-order-badge';
     let badgeText = '';
     if (entry.status === 'moved') {
@@ -178,24 +215,24 @@ export function createComposerOrderDiffUi(options = {}) {
   function ensureComposerDiffModal() {
     if (composerDiffModal) return composerDiffModal;
 
-    const modal = document.createElement('div');
+    const modal = documentRef.createElement('div');
     modal.id = 'composerOrderModal';
     modal.className = 'press-modal composer-order-modal composer-diff-modal';
 
-    const dialog = document.createElement('div');
+    const dialog = documentRef.createElement('div');
     dialog.className = 'press-modal-dialog composer-order-dialog composer-diff-dialog';
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
 
-    const head = document.createElement('div');
+    const head = documentRef.createElement('div');
     head.className = 'composer-order-head';
-    const title = document.createElement('h2');
+    const title = documentRef.createElement('h2');
     title.id = 'composerOrderTitle';
     title.textContent = tComposerDiff('heading');
-    const subtitle = document.createElement('p');
+    const subtitle = documentRef.createElement('p');
     subtitle.className = 'composer-order-subtitle';
     subtitle.textContent = tComposerDiff('subtitle.default');
-    const closeBtn = document.createElement('button');
+    const closeBtn = documentRef.createElement('button');
     closeBtn.className = 'press-modal-close btn-secondary composer-order-close';
     closeBtn.type = 'button';
     closeBtn.setAttribute('aria-label', tComposerDiff('close'));
@@ -204,7 +241,7 @@ export function createComposerOrderDiffUi(options = {}) {
     head.appendChild(subtitle);
     head.appendChild(closeBtn);
 
-    const tabsWrap = document.createElement('div');
+    const tabsWrap = documentRef.createElement('div');
     tabsWrap.className = 'composer-diff-tabs';
     tabsWrap.setAttribute('role', 'tablist');
 
@@ -242,7 +279,7 @@ export function createComposerOrderDiffUi(options = {}) {
     }
 
     tabDefs.forEach((tab, index) => {
-      const btn = document.createElement('button');
+      const btn = documentRef.createElement('button');
       btn.type = 'button';
       btn.className = 'composer-diff-tab';
       btn.textContent = tComposerDiff(tab.labelKey);
@@ -257,11 +294,11 @@ export function createComposerOrderDiffUi(options = {}) {
       tabsWrap.appendChild(btn);
     });
 
-    const viewsWrap = document.createElement('div');
+    const viewsWrap = documentRef.createElement('div');
     viewsWrap.className = 'composer-diff-views';
 
     function createView(id, extraClass) {
-      const view = document.createElement('section');
+      const view = documentRef.createElement('section');
       view.className = `composer-diff-view ${extraClass}`;
       view.dataset.view = id;
       view.setAttribute('role', 'tabpanel');
@@ -283,43 +320,43 @@ export function createComposerOrderDiffUi(options = {}) {
     const viewEntries = createView('entries', 'composer-diff-view-entries');
     const viewOrder = createView('order', 'composer-diff-view-order');
 
-    const statsWrap = document.createElement('div');
+    const statsWrap = documentRef.createElement('div');
     statsWrap.className = 'composer-order-stats';
 
-    const body = document.createElement('div');
+    const body = documentRef.createElement('div');
     body.className = 'composer-order-body';
 
-    const viz = document.createElement('div');
+    const viz = documentRef.createElement('div');
     viz.className = 'composer-order-visual';
 
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const svg = documentRef.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.classList.add('composer-order-lines');
     svg.setAttribute('aria-hidden', 'true');
 
-    const columns = document.createElement('div');
+    const columns = documentRef.createElement('div');
     columns.className = 'composer-order-columns';
 
-    const beforeCol = document.createElement('div');
+    const beforeCol = documentRef.createElement('div');
     beforeCol.className = 'composer-order-column composer-order-before';
-    const beforeTitle = document.createElement('div');
+    const beforeTitle = documentRef.createElement('div');
     beforeTitle.className = 'composer-order-column-title';
     beforeTitle.textContent = tComposerDiff('order.remoteTitle');
-    const beforeList = document.createElement('div');
+    const beforeList = documentRef.createElement('div');
     beforeList.className = 'composer-order-list';
     beforeCol.appendChild(beforeTitle);
     beforeCol.appendChild(beforeList);
 
-    const afterCol = document.createElement('div');
+    const afterCol = documentRef.createElement('div');
     afterCol.className = 'composer-order-column composer-order-after';
-    const afterTitle = document.createElement('div');
+    const afterTitle = documentRef.createElement('div');
     afterTitle.className = 'composer-order-column-title';
     afterTitle.textContent = tComposerDiff('order.currentTitle');
-    const afterList = document.createElement('div');
+    const afterList = documentRef.createElement('div');
     afterList.className = 'composer-order-list';
     afterCol.appendChild(afterTitle);
     afterCol.appendChild(afterList);
 
-    const emptyNotice = document.createElement('div');
+    const emptyNotice = documentRef.createElement('div');
     emptyNotice.className = 'composer-order-empty';
     emptyNotice.textContent = tComposerDiff('order.empty');
 
@@ -338,7 +375,7 @@ export function createComposerOrderDiffUi(options = {}) {
     dialog.appendChild(viewsWrap);
 
     modal.appendChild(dialog);
-    document.body.appendChild(modal);
+    documentRef.body.appendChild(modal);
 
     const focusableSelector = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
     let lastActive = null;
@@ -353,17 +390,14 @@ export function createComposerOrderDiffUi(options = {}) {
     };
 
     function prefersReducedMotion() {
-      try {
-        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-      } catch (_) {
-        return false;
-      }
+      return matchesMedia('(prefers-reduced-motion: reduce)');
     }
 
     function closeModal() {
       if (composerDiffResizeHandler) {
-        window.removeEventListener('resize', composerDiffResizeHandler);
+        try { composerDiffResizeDispose && composerDiffResizeDispose(); } catch (_) {}
         composerDiffResizeHandler = null;
+        composerDiffResizeDispose = null;
       }
       composerOrderState = null;
       activeDiff = null;
@@ -371,7 +405,7 @@ export function createComposerOrderDiffUi(options = {}) {
       if (reduce) {
         modal.classList.remove('is-open');
         modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('press-modal-open');
+        documentRef.body.classList.remove('press-modal-open');
         try { lastActive && lastActive.focus(); } catch (_) {}
         return;
       }
@@ -381,13 +415,13 @@ export function createComposerOrderDiffUi(options = {}) {
         try { modal.classList.remove('press-anim-out'); } catch (_) {}
         modal.classList.remove('is-open');
         modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('press-modal-open');
+        documentRef.body.classList.remove('press-modal-open');
         try { lastActive && lastActive.focus(); } catch (_) {}
       };
       try {
         const onEnd = () => { dialog.removeEventListener('animationend', onEnd); finish(); };
         dialog.addEventListener('animationend', onEnd, { once: true });
-        setTimeout(finish, 220);
+        setTimeoutRef(finish, 220);
       } catch (_) {
         finish();
       }
@@ -419,13 +453,14 @@ export function createComposerOrderDiffUi(options = {}) {
         renderOrder(activeKind);
         if (!composerDiffResizeHandler) {
           composerDiffResizeHandler = () => drawOrderDiffLines();
-          window.addEventListener('resize', composerDiffResizeHandler);
+          composerDiffResizeDispose = addWindowListener('resize', composerDiffResizeHandler);
         }
-        requestAnimationFrame(() => drawOrderDiffLines());
-        setTimeout(drawOrderDiffLines, 140);
+        requestAnimationFrameRef(() => drawOrderDiffLines());
+        setTimeoutRef(drawOrderDiffLines, 140);
       } else if (composerDiffResizeHandler) {
-        window.removeEventListener('resize', composerDiffResizeHandler);
+        try { composerDiffResizeDispose && composerDiffResizeDispose(); } catch (_) {}
         composerDiffResizeHandler = null;
+        composerDiffResizeDispose = null;
         composerOrderState = null;
       }
     }
@@ -433,13 +468,13 @@ export function createComposerOrderDiffUi(options = {}) {
     function renderOverview(kind, diff) {
       viewOverview.innerHTML = '';
       if (!diff) {
-        const empty = document.createElement('p');
+        const empty = documentRef.createElement('p');
         empty.className = 'composer-diff-empty';
         empty.textContent = tComposerDiff('overview.empty');
         viewOverview.appendChild(empty);
         return;
       }
-      const statWrap = document.createElement('div');
+      const statWrap = documentRef.createElement('div');
       statWrap.className = 'composer-diff-overview-stats';
       const diffKeys = diff.keys || {};
       const modifiedKeys = Object.keys(diffKeys).filter(key => {
@@ -454,15 +489,15 @@ export function createComposerOrderDiffUi(options = {}) {
         { id: 'order', label: tComposerDiff('overview.stats.order'), value: diff.orderChanged ? tComposerDiff('overview.stats.changed') : tComposerDiff('overview.stats.unchanged'), state: diff.orderChanged ? 'changed' : 'clean' }
       ];
       statDefs.forEach(def => {
-        const card = document.createElement('div');
+        const card = documentRef.createElement('div');
         card.className = 'composer-diff-stat';
         card.dataset.id = def.id;
         if (typeof def.value === 'number') card.dataset.value = String(def.value);
         if (def.state) card.dataset.state = def.state;
-        const valueEl = document.createElement('div');
+        const valueEl = documentRef.createElement('div');
         valueEl.className = 'composer-diff-stat-value';
         valueEl.textContent = typeof def.value === 'number' ? String(def.value) : def.value;
-        const labelEl = document.createElement('div');
+        const labelEl = documentRef.createElement('div');
         labelEl.className = 'composer-diff-stat-label';
         labelEl.textContent = def.label;
         card.appendChild(valueEl);
@@ -471,26 +506,26 @@ export function createComposerOrderDiffUi(options = {}) {
       });
       viewOverview.appendChild(statWrap);
 
-      const blocks = document.createElement('div');
+      const blocks = documentRef.createElement('div');
       blocks.className = 'composer-diff-overview-blocks';
       function appendKeyBlock(title, keys) {
         if (!keys || !keys.length) return;
-        const block = document.createElement('section');
+        const block = documentRef.createElement('section');
         block.className = 'composer-diff-overview-block';
-        const h3 = document.createElement('h3');
+        const h3 = documentRef.createElement('h3');
         h3.textContent = title;
-        const list = document.createElement('ul');
+        const list = documentRef.createElement('ul');
         list.className = 'composer-diff-key-list';
         const max = 10;
         keys.slice(0, max).forEach(key => {
-          const li = document.createElement('li');
-          const code = document.createElement('code');
+          const li = documentRef.createElement('li');
+          const code = documentRef.createElement('code');
           code.textContent = key;
           li.appendChild(code);
           list.appendChild(li);
         });
         if (keys.length > max) {
-          const more = document.createElement('li');
+          const more = documentRef.createElement('li');
           more.className = 'composer-diff-key-more';
           more.textContent = tComposerDiff('lists.more', { count: keys.length - max });
           list.appendChild(more);
@@ -512,7 +547,7 @@ export function createComposerOrderDiffUi(options = {}) {
         (info.removedLangs || []).forEach(lang => langSet.add(lang.toUpperCase()));
       });
       if (langSet.size) {
-        const p = document.createElement('p');
+        const p = documentRef.createElement('p');
         p.className = 'composer-diff-overview-langs';
         p.textContent = tComposerDiff('overview.languagesImpacted', { languages: Array.from(langSet).sort().join(', ') });
         viewOverview.appendChild(p);
@@ -528,12 +563,12 @@ export function createComposerOrderDiffUi(options = {}) {
     }
 
     function buildEntryDetails(kind, key, info, sectionType) {
-      const list = document.createElement('ul');
+      const list = documentRef.createElement('ul');
       list.className = 'composer-diff-field-list';
       let hasContent = false;
       const push = (text) => {
         if (!text) return;
-        const li = document.createElement('li');
+        const li = documentRef.createElement('li');
         li.textContent = text;
         list.appendChild(li);
         hasContent = true;
@@ -630,7 +665,7 @@ export function createComposerOrderDiffUi(options = {}) {
     function renderEntries(kind, diff) {
       viewEntries.innerHTML = '';
       if (!diff) {
-        const empty = document.createElement('p');
+        const empty = documentRef.createElement('p');
         empty.className = 'composer-diff-empty';
         empty.textContent = tComposerDiff('entries.empty');
         viewEntries.appendChild(empty);
@@ -648,7 +683,7 @@ export function createComposerOrderDiffUi(options = {}) {
       ];
       const hasData = sections.some(section => section.keys && section.keys.length);
       if (!hasData) {
-        const empty = document.createElement('p');
+        const empty = documentRef.createElement('p');
         empty.className = 'composer-diff-empty';
         empty.textContent = tComposerDiff('entries.orderOnly');
         viewEntries.appendChild(empty);
@@ -656,23 +691,23 @@ export function createComposerOrderDiffUi(options = {}) {
       }
       sections.forEach(section => {
         if (!section.keys || !section.keys.length) return;
-        const block = document.createElement('section');
+        const block = documentRef.createElement('section');
         block.className = 'composer-diff-section';
         block.dataset.section = section.type;
-        const heading = document.createElement('h3');
+        const heading = documentRef.createElement('h3');
         heading.textContent = section.title;
         block.appendChild(heading);
-        const list = document.createElement('ul');
+        const list = documentRef.createElement('ul');
         list.className = 'composer-diff-entry-list';
         section.keys.forEach(key => {
           const info = diffKeys[key] || { state: section.type };
-          const item = document.createElement('li');
+          const item = documentRef.createElement('li');
           item.className = 'composer-diff-entry';
-          const name = document.createElement('span');
+          const name = documentRef.createElement('span');
           name.className = 'composer-diff-entry-key';
           name.textContent = key;
           item.appendChild(name);
-          const badgeWrap = document.createElement('span');
+          const badgeWrap = documentRef.createElement('span');
           badgeWrap.className = 'composer-diff-entry-badges';
           const badgesHtml = buildEntryDiffBadges(kind, info);
           if (badgesHtml) {
@@ -745,18 +780,18 @@ export function createComposerOrderDiffUi(options = {}) {
       }
       if (activeTab === 'order') {
         drawOrderDiffLines();
-        requestAnimationFrame(drawOrderDiffLines);
-        setTimeout(drawOrderDiffLines, 120);
+        requestAnimationFrameRef(drawOrderDiffLines);
+        setTimeoutRef(drawOrderDiffLines, 120);
       }
     }
 
     function openModal(kind, initialTab = 'overview') {
-      lastActive = document.activeElement;
+      lastActive = documentRef.activeElement;
       const reduce = prefersReducedMotion();
       try { modal.classList.remove('press-anim-out'); } catch (_) {}
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
-      document.body.classList.add('press-modal-open');
+      documentRef.body.classList.add('press-modal-open');
       if (!reduce) {
         try {
           modal.classList.add('press-anim-in');
@@ -774,7 +809,7 @@ export function createComposerOrderDiffUi(options = {}) {
       renderOrder(safeKind);
       const targetTab = tabButtons.has(initialTab) ? initialTab : 'overview';
       setActiveTab(targetTab);
-      setTimeout(() => {
+      setTimeoutRef(() => {
         try { closeBtn.focus(); } catch (_) {}
       }, 0);
     }
@@ -789,8 +824,8 @@ export function createComposerOrderDiffUi(options = {}) {
         if (!focusables.length) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
-        if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
-        else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+        if (ev.shiftKey && documentRef.activeElement === first) { ev.preventDefault(); last.focus(); }
+        else if (!ev.shiftKey && documentRef.activeElement === last) { ev.preventDefault(); first.focus(); }
       }
     });
 
@@ -829,7 +864,7 @@ export function createComposerOrderDiffUi(options = {}) {
     };
     if (!modal.__pressLangBound) {
       modal.__pressLangBound = true;
-      document.addEventListener('press-editor-language-applied', refreshLocale);
+      modal.__pressLangDispose = addDocumentListener('press-editor-language-applied', refreshLocale);
     }
 
     return composerDiffModal;
@@ -894,9 +929,7 @@ export function createComposerOrderDiffUi(options = {}) {
       const anchorRect = anchor && typeof anchor.getBoundingClientRect === 'function'
         ? anchor.getBoundingClientRect()
         : rowRect;
-      const cs = (typeof window !== 'undefined' && window.getComputedStyle && rightRow)
-        ? window.getComputedStyle(rightRow)
-        : null;
+      const cs = rightRow ? getComputedStyleRef(rightRow) : null;
 
       if (leftEl.style) {
         const anchorHeight = anchorRect && typeof anchorRect.height === 'number' ? anchorRect.height : 0;
@@ -996,7 +1029,7 @@ export function createComposerOrderDiffUi(options = {}) {
       const cached = existingPathCache.get(pathKey);
       let path = cached && cached.path ? cached.path : null;
       if (!path || !path.isConnected) {
-        path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path = documentRef.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.classList.add('composer-order-path');
       }
 
@@ -1049,11 +1082,11 @@ export function createComposerOrderDiffUi(options = {}) {
     const normalized = kind === 'tabs' ? 'tabs' : 'index';
     const timers = composerOrderPreviewRelayoutTimers[normalized];
     if (timers) {
-      if (typeof cancelAnimationFrame === 'function' && typeof timers.raf === 'number') {
-        try { cancelAnimationFrame(timers.raf); } catch (_) {}
+      if (timers.raf != null) {
+        cancelAnimationFrameRef(timers.raf);
       }
       if (timers.timeout != null) {
-        clearTimeout(timers.timeout);
+        clearTimeoutRef(timers.timeout);
       }
     }
 
@@ -1068,7 +1101,7 @@ export function createComposerOrderDiffUi(options = {}) {
     const delayBase = Math.max(durations.open, durations.close, 260) + 80;
 
     const scheduleTrailing = () => {
-      pending.timeout = setTimeout(() => {
+      pending.timeout = setTimeoutRef(() => {
         pending.timeout = null;
         run();
         finalize();
@@ -1081,16 +1114,11 @@ export function createComposerOrderDiffUi(options = {}) {
       return;
     }
 
-    if (typeof requestAnimationFrame === 'function') {
-      pending.raf = requestAnimationFrame(() => {
-        pending.raf = null;
-        run();
-        scheduleTrailing();
-      });
-    } else {
+    pending.raf = requestAnimationFrameRef(() => {
+      pending.raf = null;
       run();
       scheduleTrailing();
-    }
+    });
 
     composerOrderPreviewRelayoutTimers[normalized] = pending;
   }
@@ -1100,20 +1128,20 @@ export function createComposerOrderDiffUi(options = {}) {
     if (!composerOrderPreviewElements) composerOrderPreviewElements = { index: null, tabs: null };
     if (composerOrderPreviewElements[normalized]) return composerOrderPreviewElements[normalized];
 
-    const host = document.querySelector(`.composer-order-host[data-kind="${normalized}"]`);
+    const host = documentRef.querySelector(`.composer-order-host[data-kind="${normalized}"]`);
     if (!host) return null;
     const root = host.querySelector('.composer-order-inline');
     if (!root) return null;
 
     let svg = host.querySelector('svg.composer-order-inline-lines');
     if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg = documentRef.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.classList.add('composer-order-lines', 'composer-order-inline-lines');
       svg.setAttribute('aria-hidden', 'true');
       host.appendChild(svg);
     }
 
-    const meta = document.getElementById('composerOrderInlineMeta');
+    const meta = documentRef.getElementById('composerOrderInlineMeta');
     const statsWrap = meta ? meta.querySelector('.composer-order-inline-stats') : null;
     const list = root.querySelector('.composer-order-inline-list');
     const emptyNotice = root.querySelector('.composer-order-inline-empty');
@@ -1129,9 +1157,9 @@ export function createComposerOrderDiffUi(options = {}) {
       });
     }
 
-    if (typeof ResizeObserver === 'function' && !host.__pressOrderResizeObserver) {
+    if (ResizeObserverRef && !host.__pressOrderResizeObserver) {
       try {
-        const ro = new ResizeObserver(() => {
+        const ro = new ResizeObserverRef(() => {
           const state = composerOrderPreviewState && composerOrderPreviewState[normalized];
           if (state) drawOrderDiffLines(state);
         });
@@ -1148,7 +1176,7 @@ export function createComposerOrderDiffUi(options = {}) {
           if (state) drawOrderDiffLines(state);
         });
       };
-      try { window.addEventListener('resize', composerOrderPreviewResizeHandler); } catch (_) {}
+      composerOrderPreviewResizeDispose = addWindowListener('resize', composerOrderPreviewResizeHandler);
     }
 
     const preview = { host, root, list, statsWrap, emptyNotice, svg, kindLabel, openBtn, title, meta };
@@ -1165,7 +1193,7 @@ export function createComposerOrderDiffUi(options = {}) {
     const { host, root, list, statsWrap, emptyNotice, svg, kindLabel, openBtn, title, meta } = preview;
     const label = normalized === 'tabs' ? 'tabs.yaml' : 'index.yaml';
     const allowReveal = options.reveal !== false;
-    const primaryList = normalized === 'tabs' ? document.getElementById('ctList') : document.getElementById('ciList');
+    const primaryList = normalized === 'tabs' ? documentRef.getElementById('ctList') : documentRef.getElementById('ciList');
     const primaryListRectBefore = captureElementRect(primaryList);
     let listAnimationScheduled = false;
     const collapseImmediately = !!options.collapseImmediately
@@ -1373,13 +1401,13 @@ export function createComposerOrderDiffUi(options = {}) {
         applyComposerOrderHover(host, host.__pressOrderHoverState.currentKey);
       }
       drawOrderDiffLines(state);
-      requestAnimationFrame(() => drawOrderDiffLines(state));
-      setTimeout(() => drawOrderDiffLines(state), 120);
+      requestAnimationFrameRef(() => drawOrderDiffLines(state));
+      setTimeoutRef(() => drawOrderDiffLines(state), 120);
     }
   }
 
   function observeComposerOrderRow(row, kind) {
-    if (!row || typeof ResizeObserver !== 'function') return;
+    if (!row || !ResizeObserverRef) return;
     const normalized = kind === 'tabs' ? 'tabs' : 'index';
     const existing = row.__pressOrderResize;
     if (existing && existing.kind === normalized) return;
@@ -1389,7 +1417,7 @@ export function createComposerOrderDiffUi(options = {}) {
       }
     } catch (_) {}
     try {
-      const observer = new ResizeObserver(() => {
+      const observer = new ResizeObserverRef(() => {
         scheduleComposerOrderPreviewRelayout(normalized);
       });
       observer.observe(row);

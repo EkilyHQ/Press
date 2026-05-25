@@ -1,5 +1,5 @@
 export function createComposerUnsyncedSummaryController(options = {}) {
-  const documentRef = options.documentRef || (typeof document !== 'undefined' ? document : null);
+  const documentRef = options.documentRef || null;
   const getDynamicEditorTabs = typeof options.getDynamicEditorTabs === 'function' ? options.getDynamicEditorTabs : (() => new Map());
   const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : ((value) => String(value || '').trim());
   const normalizeMarkdownContent = typeof options.normalizeMarkdownContent === 'function' ? options.normalizeMarkdownContent : ((value) => String(value || ''));

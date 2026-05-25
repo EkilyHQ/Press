@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
+import { setPressSystemManifestForTests } from '../assets/js/press-version.js?v=press-system-v3.4.50';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 if (!globalThis.btoa) {
@@ -29,6 +30,7 @@ const {
   analyzeThemeArchive,
   clearThemeManagerState,
   collectThemeArchiveEntries,
+  createThemeManagerController,
   getOfficialThemeCatalogStatus,
   getThemeManagerCommitFiles,
   handleImportFile,
@@ -43,6 +45,8 @@ const {
   stageThemeUninstall,
   verifyThemeAsset
 } = await import('../assets/js/theme-manager.js?theme-manager-test');
+
+const themeManagerSource = readFileSync(new URL('../assets/js/theme-manager.js', import.meta.url), 'utf8');
 
 function makeZip(files) {
   const entries = {};
@@ -159,6 +163,96 @@ function mockFetchRegistry(registry, options = {}) {
     };
   };
 }
+
+await run('exposes theme manager through an explicit controller facade', async () => {
+  const controller = createThemeManagerController();
+  assert.equal(typeof controller.init, 'function');
+  assert.equal(typeof controller.getSummaryEntries, 'function');
+  assert.equal(typeof controller.getCommitFiles, 'function');
+  assert.equal(typeof controller.clear, 'function');
+  assert.equal(typeof controller.analyzeArchive, 'function');
+  assert.equal(typeof controller.handleImportFile, 'function');
+  assert.equal(typeof controller.loadOfficialCatalog, 'function');
+  assert.equal(typeof controller.getOfficialCatalogStatus, 'function');
+  assert.equal(typeof controller.stageCatalogTheme, 'function');
+  assert.equal(typeof controller.stageUninstall, 'function');
+});
+
+await run('scopes theme manager state to controller instances', async () => {
+  for (const name of [
+    'initialized',
+    'busy',
+    'registryCache',
+    'catalogCache',
+    'catalogLoadError',
+    'currentSummary',
+    'currentFiles',
+    'currentThemeDigest',
+    'currentThemeSize',
+    'currentThemeAssetName',
+    'pendingSiteThemeFallback'
+  ]) {
+    assert.doesNotMatch(
+      themeManagerSource,
+      new RegExp(`^let\\s+${name}\\b`, 'm'),
+      `theme manager should not keep ${name} as module-level mutable state`
+    );
+  }
+  assert.doesNotMatch(
+    themeManagerSource,
+    /^const\s+listeners\s*=\s*new\s+Set\(/m,
+    'theme manager should not keep listener state at module scope'
+  );
+  assert.doesNotMatch(
+    themeManagerSource,
+    /^const\s+optionsRef\s*=\s*\{/m,
+    'theme manager should not keep option callbacks at module scope'
+  );
+  assert.doesNotMatch(
+    themeManagerSource,
+    /^const\s+elements\s*=\s*\{/m,
+    'theme manager should not keep element refs at module scope'
+  );
+  assert.match(
+    themeManagerSource,
+    /function createThemeManagerState\(\)[\s\S]*function createThemeManagerRuntime\(options = \{\}\)[\s\S]*export function createThemeManagerController\(options = \{\}\)/,
+    'theme manager should create explicit controller runtime state'
+  );
+
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.0',
+    tag: 'v3.4.0',
+    upgradeFrom: { ranges: ['>=3.3.0 <3.4.0'], allowUnknownSource: true, message: '' }
+  });
+  try {
+    const fetchFor = () => async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'assets/themes/packs.json') {
+        return { ok: true, json: async () => [{ value: 'native', label: 'Native', builtIn: true, removable: false, files: [] }] };
+      }
+      return {
+        ok: false,
+        text: async () => '',
+        arrayBuffer: async () => new ArrayBuffer(0)
+      };
+    };
+
+    const firstController = createThemeManagerController({ fetchImpl: fetchFor('first') });
+    const secondController = createThemeManagerController({ fetchImpl: fetchFor('second') });
+    await firstController.analyzeArchive(makeThemeZip({ slug: 'alpha', name: 'Alpha' }), 'press-theme-alpha-v1.0.0.zip');
+    await secondController.analyzeArchive(makeThemeZip({ slug: 'beta', name: 'Beta' }), 'press-theme-beta-v1.0.0.zip');
+
+    assert(firstController.getCommitFiles().some((file) => file.path === 'assets/themes/alpha/theme.json'));
+    assert(!firstController.getCommitFiles().some((file) => file.path === 'assets/themes/beta/theme.json'));
+    assert(secondController.getCommitFiles().some((file) => file.path === 'assets/themes/beta/theme.json'));
+    assert(!secondController.getCommitFiles().some((file) => file.path === 'assets/themes/alpha/theme.json'));
+    assert.deepEqual(getThemeManagerCommitFiles(), []);
+  } finally {
+    setPressSystemManifestForTests(null);
+  }
+});
 
 function themeTextFiles(slug, files) {
   const out = {};

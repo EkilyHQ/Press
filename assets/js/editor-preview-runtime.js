@@ -2,7 +2,7 @@ import './components.js';
 import { mdParse } from './markdown.js?v=press-system-v3.4.50';
 import { createContentModel } from './content-model.js';
 import { parseFrontMatter } from './content.js';
-import { getContentRoot, setSafeHtml } from './safe-html.js?v=press-system-v3.4.50';
+import { setSafeHtml } from './safe-html.js?v=press-system-v3.4.50';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from './post-render.js';
 import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.50';
 import { applyLangHints } from './typography.js';
@@ -13,7 +13,8 @@ import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.50';
 import { renderPostNav } from './post-nav.js?v=press-system-v3.4.50';
 import { renderTagSidebar } from './tags.js?v=press-system-v3.4.50';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, createThemeI18nContext, getThemeRegion } from './theme-layout.js?v=press-system-v3.4.50';
+import { createThemeLayoutController, createThemeI18nContext } from './theme-layout.js?v=press-system-v3.4.50';
+import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js?v=press-system-v3.4.50';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';
@@ -21,11 +22,13 @@ const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
 const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 
-let activePack = '';
-let latestRenderRequestId = 0;
+export function createEditorPreviewRuntimeController(
+  previewRuntime = createEditorPreviewAppRuntime(),
+  themeLayout = createThemeLayoutController()
+) {
 
 function postToParent(payload) {
-  try { window.parent.postMessage(payload, window.location.origin); } catch (_) {}
+  previewRuntime.postToParent(payload);
 }
 
 function sanitizePack(value) {
@@ -33,44 +36,47 @@ function sanitizePack(value) {
   return clean || 'native';
 }
 
-function normalizeRequestId(value) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : 0;
-}
-
 function beginPreviewRender(payload) {
-  const requestId = normalizeRequestId(payload && payload.requestId);
-  latestRenderRequestId = requestId;
-  return requestId;
+  return previewRuntime.beginRender(payload && payload.requestId);
 }
 
 function isCurrentPreviewRender(requestId) {
-  return normalizeRequestId(requestId) === latestRenderRequestId;
+  return previewRuntime.isCurrentRender(requestId);
+}
+
+function getContentRoot() {
+  return previewRuntime.getContentRoot();
+}
+
+function inferPayloadContentRoot(payload = {}) {
+  if (Object.prototype.hasOwnProperty.call(payload, 'contentRoot')) return payload.contentRoot;
+  const baseDir = String(payload.baseDir || '').trim().replace(/[\\]+/g, '/').replace(/^\/+/, '');
+  const first = baseDir.split('/').find(Boolean);
+  return first || 'wwwroot';
+}
+
+function applyPreviewContentRoot(payload = {}) {
+  previewRuntime.setContentRoot(inferPayloadContentRoot(payload));
+  return getContentRoot();
+}
+
+function getImageResolutionOptions() {
+  return {
+    contentRoot: getContentRoot(),
+    origin: previewRuntime.getLocationOrigin()
+  };
+}
+
+function setPreviewSafeHtml(target, html, baseDir, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const nextOptions = opts.imageResolution && typeof opts.imageResolution === 'object'
+    ? opts
+    : { ...opts, imageResolution: getImageResolutionOptions() };
+  return setSafeHtml(target, html, baseDir, nextOptions);
 }
 
 function applyPreviewColorMode(siteConfig = {}) {
-  const mode = String(siteConfig.themeMode || '').toLowerCase();
-  if (mode === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    return;
-  }
-  if (mode === 'light') {
-    document.documentElement.removeAttribute('data-theme');
-    return;
-  }
-  if (mode === 'auto') {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-    return;
-  }
-  try {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-    else document.documentElement.removeAttribute('data-theme');
-  } catch (_) {}
+  previewRuntime.applyColorMode(siteConfig);
 }
 
 function restorePreviewThemeStyles(pack, manifest) {
@@ -85,24 +91,13 @@ function restorePreviewThemeStyles(pack, manifest) {
       const base = `assets/themes/${encodeURIComponent(themePack)}/${entry}`;
       const version = themePack === 'native' ? NATIVE_STYLE_CACHE_KEY : String((manifest && manifest.version) || '').trim();
       return version ? `${base}?v=${encodeURIComponent(version)}` : base;
-    });
+  });
   if (!hrefs.length) return;
-  const primary = hrefs[0];
-  try {
-    const link = document.getElementById('theme-pack');
-    if (link && link.getAttribute('href') !== primary) link.setAttribute('href', primary);
-    window.__themePackHref = primary;
-  } catch (_) {}
-  try {
-    document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
-    hrefs.slice(1).forEach((href, index) => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.setAttribute('data-theme-pack-extra-style', `${themePack}:${index + 1}`);
-      document.head.appendChild(link);
-    });
-  } catch (_) {}
+  previewRuntime.applyThemeStyleLinks({
+    primary: hrefs[0],
+    extraHrefs: hrefs.slice(1),
+    pack: themePack
+  });
 }
 
 function regionValue(regions, key) {
@@ -114,16 +109,16 @@ function regionValue(regions, key) {
 }
 
 function getPreviewContainers() {
-  const layout = getThemeLayoutContext();
+  const layout = themeLayout.getThemeLayoutContext();
   const regions = layout && layout.regions;
-  const main = regionValue(regions, 'main') || document.querySelector('[data-theme-region="main"], .native-mainview');
-  const toc = regionValue(regions, 'toc') || document.querySelector('[data-theme-region="toc"]');
-  const tags = regionValue(regions, 'tags') || document.querySelector('[data-theme-region="tags"]');
-  const search = regionValue(regions, 'search') || document.querySelector('[data-theme-region="search"]');
-  const nav = regionValue(regions, 'nav') || document.querySelector('[data-theme-region="nav"]');
-  const content = regionValue(regions, 'content') || document.querySelector('.content');
-  const sidebar = regionValue(regions, 'sidebar') || document.querySelector('.sidebar');
-  const container = regionValue(regions, 'container') || document.querySelector('[data-theme-root="container"], .container');
+  const main = regionValue(regions, 'main') || previewRuntime.querySelector('[data-theme-region="main"], .native-mainview');
+  const toc = regionValue(regions, 'toc') || previewRuntime.querySelector('[data-theme-region="toc"]');
+  const tags = regionValue(regions, 'tags') || previewRuntime.querySelector('[data-theme-region="tags"]');
+  const search = regionValue(regions, 'search') || previewRuntime.querySelector('[data-theme-region="search"]');
+  const nav = regionValue(regions, 'nav') || previewRuntime.querySelector('[data-theme-region="nav"]');
+  const content = regionValue(regions, 'content') || previewRuntime.querySelector('.content');
+  const sidebar = regionValue(regions, 'sidebar') || previewRuntime.querySelector('.sidebar');
+  const container = regionValue(regions, 'container') || previewRuntime.querySelector('[data-theme-root="container"], .container');
   return {
     mainElement: main,
     tocElement: toc,
@@ -138,12 +133,28 @@ function getPreviewContainers() {
 
 function callThemeEffect(name, params) {
   try {
-    const handler = getThemeApiHandler(name);
+    const handler = themeLayout.getThemeApiHandler(name);
     if (typeof handler === 'function') return handler(params);
   } catch (err) {
-    console.warn('[editor-preview] Theme handler failed', name, err);
+    previewRuntime.warn('[editor-preview] Theme handler failed', name, err);
   }
   return undefined;
+}
+
+function getPreviewThemeRegion(names) {
+  return themeLayout.getThemeRegion(names);
+}
+
+function setupPreviewAnchors() {
+  return setupAnchors({ getRegion: getPreviewThemeRegion });
+}
+
+function setupPreviewTOC() {
+  return setupTOC({ getRegion: getPreviewThemeRegion });
+}
+
+function renderPreviewTagSidebar(indexMap) {
+  return renderTagSidebar(indexMap, { getRegion: getPreviewThemeRegion });
 }
 
 function normalizeAssetKey(value) {
@@ -155,7 +166,7 @@ function normalizeAssetKey(value) {
 }
 
 function applyAssetOverrides(container, payload) {
-  const root = container || document;
+  const root = container || previewRuntime.documentRef;
   const overrides = new Map();
   const contentRoot = normalizeAssetKey(getContentRoot());
   (Array.isArray(payload.assetOverrides) ? payload.assetOverrides : []).forEach((item) => {
@@ -217,11 +228,20 @@ function resolvePostMetadata(payload) {
   }
 }
 
+function applyPreviewLangHints(container) {
+  return applyLangHints(container, {
+    documentRef: previewRuntime.documentRef,
+    windowRef: previewRuntime.windowRef,
+    nodeFilterRef: previewRuntime.getNodeFilter(),
+    allowAmbient: false
+  });
+}
+
 function createRuntimeContext({ payload, containers, content }) {
-  const layout = getThemeLayoutContext();
+  const layout = themeLayout.getThemeLayoutContext();
   return {
-    document,
-    window,
+    document: previewRuntime.documentRef,
+    window: previewRuntime.windowRef,
     view: 'post',
     route: { key: payload.currentPath ? `post:${payload.currentPath}` : 'editor-preview', id: payload.currentPath || '' },
     router: {
@@ -234,17 +254,17 @@ function createRuntimeContext({ payload, containers, content }) {
     regions: layout && layout.regions,
     containers,
     utilities: {
-      getRegion: getThemeRegion,
+      getRegion: getPreviewThemeRegion,
       renderPostNav,
       hydratePostImages,
       hydratePostVideos,
       hydrateInternalLinkCards,
       applyLazyLoadingIn,
-      applyLangHints,
+      applyLangHints: applyPreviewLangHints,
       renderPostTOC: () => {},
-      renderTagSidebar,
-      setupAnchors,
-      setupTOC,
+      renderTagSidebar: renderPreviewTagSidebar,
+      setupAnchors: setupPreviewAnchors,
+      setupTOC: setupPreviewTOC,
       ensureAutoHeight: (el) => {
         if (!el) return;
         try {
@@ -253,9 +273,9 @@ function createRuntimeContext({ payload, containers, content }) {
           el.style.overflow = '';
         } catch (_) {}
       },
-      getFile: (filename) => fetch(String(filename || ''), { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
+      getFile: (filename) => previewRuntime.fetchText(filename),
       getContentRoot,
-      setSafeHtml
+      setSafeHtml: setPreviewSafeHtml
     },
     themeConfig: payload.siteConfig || {},
     manifest: layout && layout.manifest,
@@ -263,18 +283,20 @@ function createRuntimeContext({ payload, containers, content }) {
   };
 }
 
-async function renderPreview(payload) {
+async function renderPreview(payload = {}) {
   const requestId = beginPreviewRender(payload);
+  const contentRoot = applyPreviewContentRoot(payload);
   const requestedPack = sanitizePack(payload.themePack || (payload.siteConfig && payload.siteConfig.themePack) || 'native');
   applyPreviewColorMode(payload.siteConfig || {});
   try {
-    const reset = activePack !== requestedPack;
-    const layout = await ensureThemeLayout({ pack: requestedPack, persist: false, reset });
+    const reset = previewRuntime.shouldResetThemePack(requestedPack);
+    const layout = await themeLayout.ensureThemeLayout({ pack: requestedPack, persist: false, reset });
     if (!isCurrentPreviewRender(requestId)) return;
-    activePack = (layout && layout.pack) || document.body.dataset.themeLayout || requestedPack;
+    const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);
     const markdown = String(payload.markdown || '');
-    const baseDir = String(payload.baseDir || `${getContentRoot()}/`);
-    const output = mdParse(markdown, baseDir);
+    const baseDir = String(payload.baseDir || `${contentRoot}/`);
+    const imageResolution = getImageResolutionOptions();
+    const output = mdParse(markdown, baseDir, { imageResolution });
     const postMetadata = resolvePostMetadata(payload);
     const fallbackTitle = postMetadata.title || payload.currentPath || 'Preview';
     const content = createContentModel({
@@ -291,7 +313,7 @@ async function renderPreview(payload) {
       title: fallbackTitle
     });
     const containers = getPreviewContainers();
-    const main = containers.mainElement || document.body;
+    const main = containers.mainElement || previewRuntime.getBody();
     const allowedLocations = new Set(Array.isArray(payload.allowedLocations) ? payload.allowedLocations : []);
     const locationAliasMap = new Map(Array.isArray(payload.locationAliases) ? payload.locationAliases : []);
     const ctx = createRuntimeContext({ payload, containers, content });
@@ -314,20 +336,20 @@ async function renderPreview(payload) {
       allowedLocations,
       locationAliasMap,
       translate: t,
-      document,
-      window,
+      document: previewRuntime.documentRef,
+      window: previewRuntime.windowRef,
       utilities: {
         renderPostNav,
         hydratePostImages,
         hydratePostVideos,
         hydrateInternalLinkCards,
         applyLazyLoadingIn,
-        applyLangHints,
+        applyLangHints: applyPreviewLangHints,
         renderPostTOC: () => {},
-        renderTagSidebar,
+        renderTagSidebar: renderPreviewTagSidebar,
         getArticleTitleFromMain,
-        setupAnchors,
-        setupTOC,
+        setupAnchors: setupPreviewAnchors,
+        setupTOC: setupPreviewTOC,
         ensureAutoHeight: (el) => {
           if (!el) return;
           try {
@@ -336,29 +358,43 @@ async function renderPreview(payload) {
             el.style.overflow = '';
           } catch (_) {}
         },
-        getFile: (filename) => fetch(String(filename || ''), { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
+        getFile: (filename) => previewRuntime.fetchText(filename),
         getContentRoot,
-        setSafeHtml,
+        setSafeHtml: setPreviewSafeHtml,
         withLangParam,
-        fetchMarkdown: (loc) => fetch(`${getContentRoot()}/${loc}`, { cache: 'no-store' }).then((resp) => (resp && resp.ok ? resp.text() : '')),
+        fetchMarkdown: (loc) => previewRuntime.fetchText(`${getContentRoot()}/${loc}`),
         makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
       }
     }));
     if (!isCurrentPreviewRender(requestId)) return;
     if (!result && main) {
-      setSafeHtml(main, output.post || '', baseDir, { alreadySanitized: true });
+      setPreviewSafeHtml(main, output.post || '', baseDir, { alreadySanitized: true, imageResolution });
     }
     if (!isCurrentPreviewRender(requestId)) return;
     applyAssetOverrides(main, payload);
     try { hydratePostImages(main); } catch (_) {}
     try { hydratePostVideos(main); } catch (_) {}
     try { applyLazyLoadingIn(main); } catch (_) {}
-    try { applyLangHints(main); } catch (_) {}
-    try { renderPressMath(main); } catch (_) {}
-    try { initSyntaxHighlighting(main); } catch (_) {}
+    try { applyPreviewLangHints(main); } catch (_) {}
+    try {
+      renderPressMath(main, {
+        documentRef: previewRuntime.documentRef,
+        windowRef: previewRuntime.windowRef
+      });
+    } catch (_) {}
+    try {
+      initSyntaxHighlighting(main, {
+        documentRef: previewRuntime.documentRef,
+        windowRef: previewRuntime.windowRef,
+        setTimer: previewRuntime.setTimer,
+        writeClipboardText: (text) => previewRuntime.writeClipboardText(text),
+        translate: t,
+        allowAmbient: false
+      });
+    } catch (_) {}
     if (!isCurrentPreviewRender(requestId)) return;
     restorePreviewThemeStyles(activePack, layout && layout.manifest);
-    const status = document.getElementById('editorPreviewStatus');
+    const status = previewRuntime.getPreviewStatusElement();
     if (status) status.hidden = true;
     postToParent({ type: RENDERED_MESSAGE, requestId, themePack: activePack });
   } catch (err) {
@@ -375,36 +411,49 @@ async function renderPreview(payload) {
       });
       return;
     }
-    const status = document.getElementById('editorPreviewStatus') || document.body;
-    try { status.hidden = false; } catch (_) {}
-    status.textContent = err && err.message ? err.message : 'Preview failed.';
+    const status = previewRuntime.getPreviewStatusElement({ fallbackToBody: true });
+    const message = err && err.message ? err.message : 'Preview failed.';
+    if (status) {
+      try { status.hidden = false; } catch (_) {}
+      try { status.textContent = message; } catch (_) {}
+    }
     postToParent({
       type: ERROR_MESSAGE,
       requestId,
       themePack: requestedPack,
-      message: status.textContent
+      message: status && typeof status.textContent === 'string' ? status.textContent : message
     });
   }
 }
 
-window.addEventListener('message', (event) => {
-  if (event.origin !== window.location.origin) return;
-  const payload = event.data && typeof event.data === 'object' ? event.data : {};
-  if (payload.type !== RENDER_MESSAGE) return;
-  latestRenderRequestId = normalizeRequestId(payload.requestId);
-  renderPreview(payload).catch((err) => {
-    if (!isCurrentPreviewRender(payload.requestId)) return;
-    postToParent({
-      type: ERROR_MESSAGE,
-      requestId: payload.requestId,
-      themePack: payload.themePack || '',
-      message: err && err.message ? err.message : 'Preview failed.'
+  function start() {
+    previewRuntime.onRenderMessage((event) => {
+      if (!previewRuntime.isTrustedMessageEvent(event)) return;
+      const payload = event.data && typeof event.data === 'object' ? event.data : {};
+      if (payload.type !== RENDER_MESSAGE) return;
+      const requestId = beginPreviewRender(payload);
+      renderPreview(payload).catch((err) => {
+        if (!isCurrentPreviewRender(requestId)) return;
+        postToParent({
+          type: ERROR_MESSAGE,
+          requestId,
+          themePack: payload.themePack || '',
+          message: err && err.message ? err.message : 'Preview failed.'
+        });
+      });
     });
-  });
-});
 
-initI18n()
-  .catch(() => {})
-  .finally(() => {
-    postToParent({ type: READY_MESSAGE });
-  });
+    initI18n()
+      .catch(() => {})
+      .finally(() => {
+        postToParent({ type: READY_MESSAGE });
+      });
+  }
+
+  return {
+    renderPreview,
+    start
+  };
+}
+
+createEditorPreviewRuntimeController().start();

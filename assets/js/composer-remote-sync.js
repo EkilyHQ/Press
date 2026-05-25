@@ -1,5 +1,9 @@
 const noop = () => {};
 
+async function unavailableFetchContent() {
+  throw new Error('Fetch is not available in this runtime.');
+}
+
 function normalizeKind(kind) {
   if (kind === 'tabs') return 'tabs';
   if (kind === 'site') return 'site';
@@ -20,7 +24,7 @@ function yamlLabel(kind) {
 export function createComposerRemoteSyncController(options = {}) {
   const fetchContent = typeof options.fetchContent === 'function'
     ? options.fetchContent
-    : (url, fetchOptions) => fetch(url, fetchOptions);
+    : unavailableFetchContent;
   const getContentRootSafe = typeof options.getContentRootSafe === 'function' ? options.getContentRootSafe : () => 'wwwroot';
   const normalizeRelPath = typeof options.normalizeRelPath === 'function'
     ? options.normalizeRelPath

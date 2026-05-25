@@ -1,8 +1,7 @@
-let fetchPatched = false;
-
 const SUPPORTED_CACHE_MODES = new Set(['default', 'no-cache', 'no-store']);
 const MAIN_CONTENT_CACHE_MODE = 'default';
 const EDITOR_CONTENT_CACHE_MODE = 'no-store';
+const FETCH_CACHE_POLICY_PATCHED = Symbol('pressFetchCachePolicyPatched');
 
 const policyState = {
   context: detectCacheContext(),
@@ -89,13 +88,25 @@ export function configureFetchCachePolicy(config = {}, options = {}) {
   policyState.editorContent = normalizeCacheMode(policy.editorContent, EDITOR_CONTENT_CACHE_MODE);
 }
 
-export function ensureFetchCachePolicyPatched() {
-  if (fetchPatched) return;
-  fetchPatched = true;
-  if (typeof window === 'undefined' || typeof window.fetch !== 'function') return;
+function getDefaultWindowRef() {
+  return typeof window !== 'undefined' ? window : null;
+}
 
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = (input, init) => {
+function markFetchCachePolicyPatched(windowRef) {
+  try {
+    if (windowRef[FETCH_CACHE_POLICY_PATCHED]) return false;
+    windowRef[FETCH_CACHE_POLICY_PATCHED] = true;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+export function ensureFetchCachePolicyPatched(windowRef = getDefaultWindowRef()) {
+  if (!windowRef || typeof windowRef.fetch !== 'function' || !markFetchCachePolicyPatched(windowRef)) return;
+
+  const originalFetch = windowRef.fetch.bind(windowRef);
+  windowRef.fetch = (input, init) => {
     const url = extractUrl(input);
     const ext = getExtension(url);
     const originalInit = init && typeof init === 'object' ? init : undefined;

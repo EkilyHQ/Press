@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
-import { dirname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const themeSource = readFileSync(resolve(here, '../assets/js/theme.js'), 'utf8');
 let importCounter = 0;
+
+assert.doesNotMatch(
+  themeSource,
+  /^const\s+suppressedThemePacks\s*=\s*new Set\(\)/m,
+  'theme-pack suppression state should not be module-level mutable state'
+);
+assert.match(
+  themeSource,
+  /function createThemePackState\(\) \{[\s\S]*suppressedThemePacks: new Set\(\)[\s\S]*export function createThemePackController\(\) \{[\s\S]*const runtime = createThemePackRuntime\(\)[\s\S]*isSuppressed\(name\)/,
+  'theme-pack suppression state should be scoped to explicit controller runtimes'
+);
 
 class TestElement {
   constructor(tagName) {
@@ -239,6 +252,17 @@ await run('unlocked site defaults do not clear a pending pack switch', async () 
   assert.equal(getRequestedThemePack(), 'cartograph');
 });
 
+await run('theme pack controllers isolate suppressed state', async () => {
+  installGlobals({ savedPack: 'native' });
+  const { createThemePackController, isThemePackSuppressed } = await freshThemeHelpers();
+  const first = createThemePackController();
+  const second = createThemePackController();
+  first.suppress('cartograph');
+  assert.equal(first.isSuppressed('cartograph'), true);
+  assert.equal(second.isSuppressed('cartograph'), false);
+  assert.equal(isThemePackSuppressed('cartograph'), false);
+});
+
 await run('theme modules load in parallel and mount in manifest order', async () => {
   const modules = ['modules/slow.js', 'modules/fast-a.js', 'modules/fast-b.js'];
   const requested = [];
@@ -272,6 +296,78 @@ await run('theme modules load in parallel and mount in manifest order', async ()
   releaseSlowModule();
   await layoutPromise;
   assert.deepEqual(mounted, modules);
+});
+
+await run('theme layout controllers keep in-flight layout state per instance', async () => {
+  const requested = [];
+  let releaseModule = () => {};
+  const moduleReady = new Promise((resolve) => { releaseModule = resolve; });
+  installGlobals({
+    savedPack: 'isolated',
+    manifests: {
+      isolated: makeManifest('isolated', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async (path, context) => {
+    requested.push(context && context.entry ? context.entry : String(path || ''));
+    await moduleReady;
+    return { mount() {} };
+  };
+  const { createThemeLayoutController } = await freshThemeLayout();
+  const first = createThemeLayoutController();
+  const second = createThemeLayoutController();
+  const firstLayout = first.ensureThemeLayout({ pack: 'isolated', persist: false });
+  const secondLayout = second.ensureThemeLayout({ pack: 'isolated', persist: false });
+  await waitFor(
+    () => requested.length === 2,
+    'separate theme layout controllers should not share the same in-flight layout promise'
+  );
+  releaseModule();
+  await Promise.all([firstLayout, secondLayout]);
+  assert.deepEqual(requested, ['modules/layout.js', 'modules/layout.js']);
+});
+
+await run('theme layout controllers keep region contexts per instance', async () => {
+  installGlobals({
+    savedPack: 'alpha',
+    manifests: {
+      alpha: makeManifest('alpha', ['modules/layout.js']),
+      beta: makeManifest('beta', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async (_path, moduleContext) => ({
+    mount(layoutContext) {
+      const root = document.createElement('main');
+      root.nodeType = 1;
+      root.id = `${moduleContext.pack}-main`;
+      root.setAttribute('data-theme-root', moduleContext.pack);
+      root.setAttribute('data-theme-region', 'main');
+      document.body.appendChild(root);
+      return {
+        regions: { main: root },
+        effects: {
+          renderPostView() {
+            return moduleContext.pack;
+          }
+        }
+      };
+    }
+  });
+  const { createThemeLayoutController, getThemeLayoutContext } = await freshThemeLayout();
+  const defaultContextBefore = getThemeLayoutContext();
+  const first = createThemeLayoutController();
+  const second = createThemeLayoutController();
+  await first.ensureThemeLayout({ pack: 'alpha', persist: false, reset: true });
+  const firstContext = first.getThemeLayoutContext();
+  const firstRegion = first.getThemeRegion('main');
+  await second.ensureThemeLayout({ pack: 'beta', persist: false, reset: true });
+  assert.equal(first.getThemeLayoutContext(), firstContext);
+  assert.equal(first.getThemeRegion('main'), firstRegion);
+  assert.equal(first.getThemeApiHandler('renderPostView')(), 'alpha');
+  assert.equal(second.getThemeRegion('main').id, 'beta-main');
+  assert.equal(second.getThemeApiHandler('renderPostView')(), 'beta');
+  assert.notEqual(first.getThemeLayoutContext(), second.getThemeLayoutContext());
+  assert.equal(getThemeLayoutContext(), defaultContextBefore);
 });
 
 await run('external theme module load failures fall back without waiting for slow modules', async () => {

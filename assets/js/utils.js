@@ -52,19 +52,54 @@ export function getQueryVariable(variable) {
   return value !== null ? decodeURIComponent(value) : null;
 }
 
-let baseSiteTitle = (() => {
-  const t = document.title || 'Press';
-  return (t && String(t).trim()) || 'Press';
-})();
+const BASE_SITE_TITLE = Symbol('pressBaseSiteTitle');
 
-export function setBaseSiteTitle(title) {
-  const next = (title && String(title).trim()) || null;
-  baseSiteTitle = next || baseSiteTitle || 'Press';
+function getDefaultDocumentRef() {
+  return typeof document !== 'undefined' ? document : null;
 }
 
-export function setDocTitle(title) {
-  if (title && String(title).trim()) document.title = `${String(title).trim()} · ${baseSiteTitle}`;
-  else document.title = baseSiteTitle;
+function getDocumentBaseSiteTitle(documentRef) {
+  if (!documentRef || typeof documentRef !== 'object') return 'Press';
+  if (!documentRef[BASE_SITE_TITLE]) {
+    const title = documentRef.title || 'Press';
+    documentRef[BASE_SITE_TITLE] = (title && String(title).trim()) || 'Press';
+  }
+  return documentRef[BASE_SITE_TITLE] || 'Press';
+}
+
+function setDocumentBaseSiteTitle(documentRef, title) {
+  if (!documentRef || typeof documentRef !== 'object') return false;
+  const next = (title && String(title).trim()) || null;
+  documentRef[BASE_SITE_TITLE] = next || getDocumentBaseSiteTitle(documentRef) || 'Press';
+  return true;
+}
+
+function setDocumentTitle(documentRef, title) {
+  if (!documentRef || typeof documentRef !== 'object') return false;
+  const baseSiteTitle = getDocumentBaseSiteTitle(documentRef);
+  if (title && String(title).trim()) documentRef.title = `${String(title).trim()} · ${baseSiteTitle}`;
+  else documentRef.title = baseSiteTitle;
+  return true;
+}
+
+export function createDocumentTitleController(options = {}) {
+  const documentRef = options.documentRef || getDefaultDocumentRef();
+  return {
+    setBaseSiteTitle(title) {
+      return setDocumentBaseSiteTitle(documentRef, title);
+    },
+    setDocTitle(title) {
+      return setDocumentTitle(documentRef, title);
+    }
+  };
+}
+
+export function setBaseSiteTitle(title, options = {}) {
+  return setDocumentBaseSiteTitle(options.documentRef || getDefaultDocumentRef(), title);
+}
+
+export function setDocTitle(title, options = {}) {
+  return setDocumentTitle(options.documentRef || getDefaultDocumentRef(), title);
 }
 
 export function cardImageSrc(p) {

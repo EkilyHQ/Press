@@ -3,6 +3,10 @@ import { t, withLangParam } from './i18n.js?v=press-system-v3.4.50';
 import { getThemeRegion } from './theme-regions.js';
 import { getQueryVariable, escapeHtml } from './utils.js';
 
+function getRegionReader(options = {}) {
+  return options && typeof options.getRegion === 'function' ? options.getRegion : getThemeRegion;
+}
+
 // Build a sorted list of tags with counts from an index map
 export function aggregateTags(indexMap) {
   const counts = new Map();
@@ -26,8 +30,8 @@ export function aggregateTags(indexMap) {
 }
 
 // Render the tag sidebar with collapse/expand and ensure the active tag remains visible
-export function renderTagSidebar(indexMap) {
-  const root = getThemeRegion('tags');
+export function renderTagSidebar(indexMap, options = {}) {
+  const root = getRegionReader(options)('tags');
   if (!root) return;
   const items = aggregateTags(indexMap);
   const currentTag = (getQueryVariable('tag') || '').trim().toLowerCase();

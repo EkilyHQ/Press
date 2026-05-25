@@ -5,7 +5,17 @@ export { renderPressPostCardHtml } from './post-card-html.js';
 const safe = (value) => escapeHtml(String(value ?? '')) || '';
 const asBool = (value) => value === true || value === 'true' || value === '';
 const isDomElement = (value) => value && typeof value === 'object' && value.nodeType === 1;
-let pressSearchId = 0;
+const PRESS_SEARCH_ID = Symbol('pressSearchId');
+
+function nextPressSearchInputId(element) {
+  const documentRef = element && element.ownerDocument && typeof element.ownerDocument === 'object'
+    ? element.ownerDocument
+    : null;
+  const current = documentRef ? Number(documentRef[PRESS_SEARCH_ID] || 0) : 0;
+  const next = current + 1;
+  if (documentRef) documentRef[PRESS_SEARCH_ID] = next;
+  return `press-search-input-${next}`;
+}
 
 function defineElement(name, ctor) {
   try {
@@ -69,7 +79,7 @@ export class PressSearch extends HTMLElement {
   constructor() {
     super();
     this._input = null;
-    this._inputId = `press-search-input-${++pressSearchId}`;
+    this._inputId = nextPressSearchInputId(this);
     this._inputHandler = (event) => this._handleKeydown(event);
     this._toggleCleanup = null;
   }
@@ -214,7 +224,7 @@ export class PressSearch extends HTMLElement {
     const iconClass = safe(this.getAttribute('icon-class') || 'press-search__icon');
     const icon = this.hasAttribute('icon') ? safe(this.getAttribute('icon') || '') : '';
     const iconHtml = icon ? `<span class="${iconClass}" part="icon" aria-hidden="true">${icon}</span>` : '';
-    const inputId = safe(this._inputId || `press-search-input-${++pressSearchId}`);
+    const inputId = safe(this._inputId || nextPressSearchInputId(this));
     const input = `<input id="${inputId}" part="input" type="search" autocomplete="off" spellcheck="false" aria-label="${label}" placeholder="${placeholder}" />`;
     return `<label class="${fieldClass}" part="label" for="${inputId}">${iconHtml}${input}</label>`;
   }

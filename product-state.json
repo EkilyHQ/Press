@@ -1,32 +1,32 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T18:00:26.480Z",
-  "status": "ok",
+  "generatedAt": "2026-05-25T18:34:40.831Z",
+  "status": "pending",
   "desired": {
     "source": "press-system-release",
     "generatedFrom": {
       "repository": "EkilyHQ/Press",
-      "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
-      "version": "3.4.59",
-      "tag": "v3.4.59",
-      "publishedAt": "2026-05-25T15:30:47Z"
+      "source": "dist/system-release.json",
+      "version": "3.4.60",
+      "tag": "v3.4.60",
+      "publishedAt": "2026-05-25T18:34:40Z"
     },
     "pressSystem": {
       "repository": "EkilyHQ/Press",
-      "version": "3.4.59",
-      "tag": "v3.4.59",
+      "version": "3.4.60",
+      "tag": "v3.4.60",
       "asset": {
-        "name": "press-system-v3.4.59.zip",
-        "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.59/press-system-v3.4.59.zip",
-        "size": 1764750,
-        "digest": "sha256:0c800ad0ac4978f583876ebe791ab4547d752a6733f734b377e783fd6d5ba606"
+        "name": "press-system-v3.4.60.zip",
+        "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.60/press-system-v3.4.60.zip",
+        "size": 1764762,
+        "digest": "sha256:768b05c548d700b11af1a0cbe49bca0768c24b3388dcce3e9ea0b21f648499a3"
       },
       "runtime": {
         "manifestPath": "assets/press-runtime-manifest.json",
         "type": "press-runtime-assets",
         "strategy": "query-param",
-        "cacheKey": "press-system-v3.4.59",
+        "cacheKey": "press-system-v3.4.60",
         "entryCount": 246,
         "edgeCount": 296
       }
@@ -36,8 +36,8 @@
         "label": "YAP starter runtime",
         "repository": "EkilyHQ/YAP",
         "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
-        "expectedVersion": "3.4.59",
-        "expectedTag": "v3.4.59",
+        "expectedVersion": "3.4.60",
+        "expectedTag": "v3.4.60",
         "reconciler": {
           "eventType": "press-system-release",
           "kind": "press-runtime-sync",
@@ -48,8 +48,8 @@
         "label": "Theme starter marker",
         "repository": "EkilyHQ/Press-Theme-Starter",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
-        "expectedVersion": "3.4.59",
-        "expectedTag": "v3.4.59",
+        "expectedVersion": "3.4.60",
+        "expectedTag": "v3.4.60",
         "reconciler": {
           "eventType": "press-system-release",
           "kind": "theme-starter-marker-sync",
@@ -62,8 +62,8 @@
         "label": "Arcus demo runtime",
         "repository": "EkilyHQ/Press-Theme-Arcus",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
-        "expectedTag": "v3.4.59",
+        "expectedVersion": "3.4.60",
+        "expectedTag": "v3.4.60",
         "reconciler": {
           "eventType": "press-system-release",
           "kind": "theme-demo-runtime-sync",
@@ -74,8 +74,8 @@
         "label": "Cartograph demo runtime",
         "repository": "EkilyHQ/Press-Theme-Cartograph",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
-        "expectedTag": "v3.4.59",
+        "expectedVersion": "3.4.60",
+        "expectedTag": "v3.4.60",
         "reconciler": {
           "eventType": "press-system-release",
           "kind": "theme-demo-runtime-sync",
@@ -86,8 +86,8 @@
         "label": "Glasswing demo runtime",
         "repository": "EkilyHQ/Press-Theme-Glasswing",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
-        "expectedTag": "v3.4.59",
+        "expectedVersion": "3.4.60",
+        "expectedTag": "v3.4.60",
         "reconciler": {
           "eventType": "press-system-release",
           "kind": "theme-demo-runtime-sync",
@@ -98,8 +98,8 @@
         "label": "Solstice demo runtime",
         "repository": "EkilyHQ/Press-Theme-Solstice",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
-        "expectedTag": "v3.4.59",
+        "expectedVersion": "3.4.60",
+        "expectedTag": "v3.4.60",
         "reconciler": {
           "eventType": "press-system-release",
           "kind": "theme-demo-runtime-sync",
@@ -120,7 +120,7 @@
           "repository": "EkilyHQ/Press-Theme-Arcus",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/main/theme-release.json",
           "expectedContractVersion": 1,
-          "expectedPressVersion": "3.4.59"
+          "expectedPressVersion": "3.4.60"
         },
         {
           "slug": "cartograph",
@@ -128,7 +128,7 @@
           "repository": "EkilyHQ/Press-Theme-Cartograph",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/main/theme-release.json",
           "expectedContractVersion": 1,
-          "expectedPressVersion": "3.4.59"
+          "expectedPressVersion": "3.4.60"
         },
         {
           "slug": "solstice",
@@ -136,7 +136,7 @@
           "repository": "EkilyHQ/Press-Theme-Solstice",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json",
           "expectedContractVersion": 1,
-          "expectedPressVersion": "3.4.59"
+          "expectedPressVersion": "3.4.60"
         },
         {
           "slug": "glasswing",
@@ -144,7 +144,7 @@
           "repository": "EkilyHQ/Press-Theme-Glasswing",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/main/theme-release.json",
           "expectedContractVersion": 1,
-          "expectedPressVersion": "3.4.59"
+          "expectedPressVersion": "3.4.60"
         }
       ]
     },
@@ -156,41 +156,41 @@
   },
   "pressSystem": {
     "repository": "EkilyHQ/Press",
-    "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
+    "source": "dist/system-release.json",
     "status": "ok",
     "schemaVersion": 1,
-    "name": "v3.4.59",
-    "tag": "v3.4.59",
-    "version": "3.4.59",
-    "publishedAt": "2026-05-25T15:30:47Z",
+    "name": "v3.4.60",
+    "tag": "v3.4.60",
+    "version": "3.4.60",
+    "publishedAt": "2026-05-25T18:34:40Z",
     "upgradeFrom": {
       "ranges": [
-        ">=3.4.58 <3.4.59"
+        ">=3.4.59 <3.4.60"
       ],
       "allowUnknownSource": false,
-      "message": "Update to v3.4.58 first."
+      "message": "Update to v3.4.59 first."
     },
     "runtime": {
       "manifestPath": "assets/press-runtime-manifest.json",
       "type": "press-runtime-assets",
       "strategy": "query-param",
-      "cacheKey": "press-system-v3.4.59",
+      "cacheKey": "press-system-v3.4.60",
       "entryCount": 246,
       "edgeCount": 296
     },
-    "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.59",
+    "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.60",
     "asset": {
-      "name": "press-system-v3.4.59.zip",
-      "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.59/press-system-v3.4.59.zip",
-      "size": 1764750,
-      "digest": "sha256:0c800ad0ac4978f583876ebe791ab4547d752a6733f734b377e783fd6d5ba606"
+      "name": "press-system-v3.4.60.zip",
+      "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.60/press-system-v3.4.60.zip",
+      "size": 1764762,
+      "digest": "sha256:768b05c548d700b11af1a0cbe49bca0768c24b3388dcce3e9ea0b21f648499a3"
     }
   },
   "downstream": {
     "yap": {
-      "status": "ok",
+      "status": "pending",
       "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
-      "expectedVersion": "3.4.59",
+      "expectedVersion": "3.4.60",
       "observedVersion": "3.4.59",
       "observedTag": "v3.4.59",
       "label": "YAP starter runtime",
@@ -198,9 +198,9 @@
       "type": "press-system-manifest"
     },
     "themeStarter": {
-      "status": "ok",
+      "status": "pending",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
-      "expectedVersion": "3.4.59",
+      "expectedVersion": "3.4.60",
       "observedVersion": "3.4.59",
       "observedTag": "v3.4.59",
       "label": "Theme starter marker",
@@ -210,36 +210,36 @@
   },
   "themeDemos": {
     "arcus": {
-      "status": "ok",
+      "status": "pending",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
-      "expectedVersion": "3.4.59",
+      "expectedVersion": "3.4.60",
       "observedVersion": "3.4.59",
       "observedTag": "v3.4.59",
       "label": "Arcus demo runtime",
       "repository": "EkilyHQ/Press-Theme-Arcus"
     },
     "cartograph": {
-      "status": "ok",
+      "status": "pending",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
-      "expectedVersion": "3.4.59",
+      "expectedVersion": "3.4.60",
       "observedVersion": "3.4.59",
       "observedTag": "v3.4.59",
       "label": "Cartograph demo runtime",
       "repository": "EkilyHQ/Press-Theme-Cartograph"
     },
     "glasswing": {
-      "status": "ok",
+      "status": "pending",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
-      "expectedVersion": "3.4.59",
+      "expectedVersion": "3.4.60",
       "observedVersion": "3.4.59",
       "observedTag": "v3.4.59",
       "label": "Glasswing demo runtime",
       "repository": "EkilyHQ/Press-Theme-Glasswing"
     },
     "solstice": {
-      "status": "ok",
+      "status": "pending",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
-      "expectedVersion": "3.4.59",
+      "expectedVersion": "3.4.60",
       "observedVersion": "3.4.59",
       "observedTag": "v3.4.59",
       "label": "Solstice demo runtime",
@@ -342,8 +342,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1779645628,
-        "until": 1779732028,
+        "since": 1779647682,
+        "until": 1779734082,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -356,35 +356,84 @@
     "service": "ekily-connect",
     "version": "0.3.0"
   },
-  "problems": [],
+  "problems": [
+    {
+      "severity": "warning",
+      "component": "downstream.yap",
+      "code": "downstream_pending",
+      "message": "YAP starter runtime is 3.4.59, expected 3.4.60",
+      "owner": "EkilyHQ/YAP",
+      "blocking": false
+    },
+    {
+      "severity": "warning",
+      "component": "downstream.themeStarter",
+      "code": "downstream_pending",
+      "message": "Theme starter marker is 3.4.59, expected 3.4.60",
+      "owner": "EkilyHQ/Press-Theme-Starter",
+      "blocking": false
+    },
+    {
+      "severity": "warning",
+      "component": "themeDemos.arcus",
+      "code": "theme_demo_pending",
+      "message": "Arcus demo runtime is 3.4.59, expected 3.4.60",
+      "owner": "EkilyHQ/Press-Theme-Arcus",
+      "blocking": false
+    },
+    {
+      "severity": "warning",
+      "component": "themeDemos.cartograph",
+      "code": "theme_demo_pending",
+      "message": "Cartograph demo runtime is 3.4.59, expected 3.4.60",
+      "owner": "EkilyHQ/Press-Theme-Cartograph",
+      "blocking": false
+    },
+    {
+      "severity": "warning",
+      "component": "themeDemos.glasswing",
+      "code": "theme_demo_pending",
+      "message": "Glasswing demo runtime is 3.4.59, expected 3.4.60",
+      "owner": "EkilyHQ/Press-Theme-Glasswing",
+      "blocking": false
+    },
+    {
+      "severity": "warning",
+      "component": "themeDemos.solstice",
+      "code": "theme_demo_pending",
+      "message": "Solstice demo runtime is 3.4.59, expected 3.4.60",
+      "owner": "EkilyHQ/Press-Theme-Solstice",
+      "blocking": false
+    }
+  ],
   "observed": {
-    "checkedAt": "2026-05-25T18:00:26.480Z",
+    "checkedAt": "2026-05-25T18:34:40.831Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
-      "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
+      "source": "dist/system-release.json",
       "status": "ok",
-      "version": "3.4.59",
-      "tag": "v3.4.59",
+      "version": "3.4.60",
+      "tag": "v3.4.60",
       "runtime": {
         "manifestPath": "assets/press-runtime-manifest.json",
         "type": "press-runtime-assets",
         "strategy": "query-param",
-        "cacheKey": "press-system-v3.4.59",
+        "cacheKey": "press-system-v3.4.60",
         "entryCount": 246,
         "edgeCount": 296
       },
       "asset": {
-        "name": "press-system-v3.4.59.zip",
-        "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.59/press-system-v3.4.59.zip",
-        "size": 1764750,
-        "digest": "sha256:0c800ad0ac4978f583876ebe791ab4547d752a6733f734b377e783fd6d5ba606"
+        "name": "press-system-v3.4.60.zip",
+        "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.60/press-system-v3.4.60.zip",
+        "size": 1764762,
+        "digest": "sha256:768b05c548d700b11af1a0cbe49bca0768c24b3388dcce3e9ea0b21f648499a3"
       }
     },
     "downstream": {
       "yap": {
-        "status": "ok",
+        "status": "pending",
         "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
-        "expectedVersion": "3.4.59",
+        "expectedVersion": "3.4.60",
         "observedVersion": "3.4.59",
         "observedTag": "v3.4.59",
         "label": "YAP starter runtime",
@@ -392,9 +441,9 @@
         "type": "press-system-manifest"
       },
       "themeStarter": {
-        "status": "ok",
+        "status": "pending",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
-        "expectedVersion": "3.4.59",
+        "expectedVersion": "3.4.60",
         "observedVersion": "3.4.59",
         "observedTag": "v3.4.59",
         "label": "Theme starter marker",
@@ -404,36 +453,36 @@
     },
     "themeDemos": {
       "arcus": {
-        "status": "ok",
+        "status": "pending",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
+        "expectedVersion": "3.4.60",
         "observedVersion": "3.4.59",
         "observedTag": "v3.4.59",
         "label": "Arcus demo runtime",
         "repository": "EkilyHQ/Press-Theme-Arcus"
       },
       "cartograph": {
-        "status": "ok",
+        "status": "pending",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
+        "expectedVersion": "3.4.60",
         "observedVersion": "3.4.59",
         "observedTag": "v3.4.59",
         "label": "Cartograph demo runtime",
         "repository": "EkilyHQ/Press-Theme-Cartograph"
       },
       "glasswing": {
-        "status": "ok",
+        "status": "pending",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
+        "expectedVersion": "3.4.60",
         "observedVersion": "3.4.59",
         "observedTag": "v3.4.59",
         "label": "Glasswing demo runtime",
         "repository": "EkilyHQ/Press-Theme-Glasswing"
       },
       "solstice": {
-        "status": "ok",
+        "status": "pending",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
-        "expectedVersion": "3.4.59",
+        "expectedVersion": "3.4.60",
         "observedVersion": "3.4.59",
         "observedTag": "v3.4.59",
         "label": "Solstice demo runtime",
@@ -536,8 +585,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1779645628,
-          "until": 1779732028,
+          "since": 1779647682,
+          "until": 1779734082,
           "seconds": 86400
         },
         "totalEvents": 0,
@@ -552,18 +601,67 @@
     }
   },
   "verdict": {
-    "status": "ok",
-    "converged": true,
+    "status": "pending",
+    "converged": false,
     "counts": {
-      "ok": 13,
-      "pending": 0,
+      "ok": 7,
+      "pending": 6,
       "unknown": 0,
       "drift": 0
     },
-    "problemCount": 0,
+    "problemCount": 6,
     "blockingProblemCount": 0,
-    "nonBlockingProblemCount": 0,
+    "nonBlockingProblemCount": 6,
     "blockingProblems": [],
-    "nonBlockingProblems": []
+    "nonBlockingProblems": [
+      {
+        "severity": "warning",
+        "component": "downstream.yap",
+        "code": "downstream_pending",
+        "message": "YAP starter runtime is 3.4.59, expected 3.4.60",
+        "owner": "EkilyHQ/YAP",
+        "blocking": false
+      },
+      {
+        "severity": "warning",
+        "component": "downstream.themeStarter",
+        "code": "downstream_pending",
+        "message": "Theme starter marker is 3.4.59, expected 3.4.60",
+        "owner": "EkilyHQ/Press-Theme-Starter",
+        "blocking": false
+      },
+      {
+        "severity": "warning",
+        "component": "themeDemos.arcus",
+        "code": "theme_demo_pending",
+        "message": "Arcus demo runtime is 3.4.59, expected 3.4.60",
+        "owner": "EkilyHQ/Press-Theme-Arcus",
+        "blocking": false
+      },
+      {
+        "severity": "warning",
+        "component": "themeDemos.cartograph",
+        "code": "theme_demo_pending",
+        "message": "Cartograph demo runtime is 3.4.59, expected 3.4.60",
+        "owner": "EkilyHQ/Press-Theme-Cartograph",
+        "blocking": false
+      },
+      {
+        "severity": "warning",
+        "component": "themeDemos.glasswing",
+        "code": "theme_demo_pending",
+        "message": "Glasswing demo runtime is 3.4.59, expected 3.4.60",
+        "owner": "EkilyHQ/Press-Theme-Glasswing",
+        "blocking": false
+      },
+      {
+        "severity": "warning",
+        "component": "themeDemos.solstice",
+        "code": "theme_demo_pending",
+        "message": "Solstice demo runtime is 3.4.59, expected 3.4.60",
+        "owner": "EkilyHQ/Press-Theme-Solstice",
+        "blocking": false
+      }
+    ]
   }
 }

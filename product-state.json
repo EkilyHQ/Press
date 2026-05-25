@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T08:10:40.460Z",
+  "generatedAt": "2026-05-25T08:11:00.435Z",
   "status": "pending",
   "pressSystem": {
     "repository": "EkilyHQ/Press",
-    "source": "dist/system-release.json",
+    "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
     "status": "ok",
     "schemaVersion": 1,
     "name": "v3.4.53",
@@ -29,21 +29,21 @@
   },
   "downstream": {
     "yap": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
       "expectedVersion": "3.4.53",
-      "observedVersion": "3.4.52",
-      "observedTag": "v3.4.52",
+      "observedVersion": "3.4.53",
+      "observedTag": "v3.4.53",
       "label": "YAP starter runtime",
       "repository": "EkilyHQ/YAP",
       "type": "press-system-manifest"
     },
     "themeStarter": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
       "expectedVersion": "3.4.53",
-      "observedVersion": "3.4.52",
-      "observedTag": "v3.4.52",
+      "observedVersion": "3.4.53",
+      "observedTag": "v3.4.53",
       "label": "Theme starter marker",
       "repository": "EkilyHQ/Press-Theme-Starter",
       "type": "press-release-marker"
@@ -182,22 +182,6 @@
     "version": "0.3.0"
   },
   "problems": [
-    {
-      "severity": "warning",
-      "component": "downstream.yap",
-      "code": "downstream_pending",
-      "message": "YAP starter runtime is 3.4.52, expected 3.4.53",
-      "owner": "EkilyHQ/YAP",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "downstream.themeStarter",
-      "code": "downstream_pending",
-      "message": "Theme starter marker is 3.4.52, expected 3.4.53",
-      "owner": "EkilyHQ/Press-Theme-Starter",
-      "blocking": false
-    },
     {
       "severity": "warning",
       "component": "themeDemos.arcus",

@@ -6,6 +6,7 @@ import {
   assembleComposerWorkspace,
   bindComposerMarkdownToolbar,
   bindComposerWorkspaceUi,
+  createComposerBootstrapFeatures,
   initializeComposerApp,
   initializeComposerOnDomReady
 } from '../assets/js/composer-bootstrap.js';
@@ -326,12 +327,27 @@ class FakeDocument {
 }
 
 {
+  const features = createComposerBootstrapFeatures({});
+  assert.deepEqual(
+    features.map(feature => feature.name),
+    ['composer.markdownToolbar', 'composer.initialState', 'composer.workspace'],
+    'composer bootstrap should expose an explicit feature lifecycle'
+  );
+  assert.deepEqual(features[1].requires, ['markdownToolbar']);
+  assert.deepEqual(features[2].requires, ['initialComposerState']);
+}
+
+{
   const here = dirname(fileURLToPath(import.meta.url));
   const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
   const bootstrapSource = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
   assert.doesNotMatch(composerSource, /document\.addEventListener\('DOMContentLoaded'/);
   assert.doesNotMatch(composerSource, /function bindComposerUI\(/);
   assert.match(composerSource, /from '\.\/composer-bootstrap\.js'/);
+  assert.match(bootstrapSource, /from '\.\/editor-app-kernel\.js'/);
+  assert.match(bootstrapSource, /createComposerBootstrapFeatures/);
+  assert.match(bootstrapSource, /documentRef: context\.documentRef/);
+  assert.match(bootstrapSource, /context\.initialComposerState = state/);
   assert.match(bootstrapSource, /const onDocumentReady = typeof options\.onDocumentReady === 'function'/);
   assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m);
   assert.doesNotMatch(

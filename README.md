@@ -74,6 +74,7 @@ bash scripts/test-frontmatter-roundtrip.sh
 bash scripts/test-system-release-package.sh
 bash scripts/test-system-release-workflow.sh
 bash scripts/test-product-state-workflow.sh
+node scripts/test-editor-app-kernel.mjs
 node scripts/test-product-state-ledger.js
 node scripts/test-product-state-dashboard.js
 node --experimental-default-type=module scripts/test-encrypted-content.js

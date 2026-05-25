@@ -1437,7 +1437,13 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /export function createEditorMainController\(editorMainRuntime = createEditorMainRuntime\(\)\) \{[\s\S]*const editorMainDocument = editorMainRuntime\.documentRef;[\s\S]*function start\(\) \{[\s\S]*editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const metadataPanel = appServices\.setMetadataPanel\(createEditorMainMetadataPanel\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*onChange: appServices\.notifyDocumentChange[\s\S]*\}\)\);/,
+  /from '\.\/editor-app-kernel\.js'/,
+  'editor main should use the shared app lifecycle kernel'
+);
+
+assert.match(
+  editorMainSource,
+  /export function createEditorMainFeatures\(\) \{[\s\S]*name: 'editorMain\.metadataPanel'[\s\S]*provides: \['metadataPanel'\][\s\S]*context\.metadataPanel = context\.appServices\.setMetadataPanel\(createEditorMainMetadataPanel\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*onChange: context\.appServices\.notifyDocumentChange[\s\S]*\}\)\);/,
   'editor main should compose front matter and tabs metadata through the metadata panel session'
 );
 
@@ -1449,31 +1455,31 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSource,
-  /const linkCardContext = createEditorMainLinkCardContext\(\{[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot,[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\),[\s\S]*translate: t,[\s\S]*makeHref: \(loc\) => withLangParam\(`\?id=\$\{encodeURIComponent\(loc\)\}`\)[\s\S]*\}\);/,
+  /name: 'editorMain\.linkCardContext'[\s\S]*provides: \['linkCardContext'\][\s\S]*context\.linkCardContext = createEditorMainLinkCardContext\(\{[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*fetch: \(url, options\) => context\.runtime\.fetchContent\(url, options\),[\s\S]*translate: t,[\s\S]*makeHref: \(loc\) => withLangParam\(`\?id=\$\{encodeURIComponent\(loc\)\}`\)[\s\S]*\}\);/,
   'editor main should compose link-card index state through the explicit link-card context service'
 );
 
 assert.match(
   editorMainSource,
-  /const shellService = createEditorMainShellService\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*editor,[\s\S]*textarea: ta[\s\S]*\}\);/,
+  /name: 'editorMain\.shellService'[\s\S]*provides: \['shellService'\][\s\S]*context\.shellService = createEditorMainShellService\(\{[\s\S]*runtime: context\.runtime,[\s\S]*editor: context\.editor,[\s\S]*textarea: context\.dom\.textarea[\s\S]*\}\);/,
   'editor main should compose layout refresh and editor toasts through the shell service'
 );
 
 assert.match(
   editorMainSource,
-  /const workspaceSession = appServices\.setWorkspaceSession\(createEditorMainWorkspaceSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getBlocksEditor: appServices\.getBlocksEditor,[\s\S]*syncBlocksFromSource: appServices\.syncBlocksFromSource,[\s\S]*requestLayout: shellService\.requestLayout[\s\S]*\}\)\);[\s\S]*workspaceSession\.initialize\(\);/,
+  /name: 'editorMain\.workspaceSession'[\s\S]*requires: \[[^\]]*'shellService'[\s\S]*provides: \['workspaceSession'\][\s\S]*context\.workspaceSession = context\.appServices\.setWorkspaceSession\(createEditorMainWorkspaceSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*forceMarkdownWrap: FORCE_MARKDOWN_WRAP,[\s\S]*editor: context\.editor,[\s\S]*textarea: context\.dom\.textarea,[\s\S]*getPreviewSession: context\.appServices\.getPreviewSession,[\s\S]*getBlocksEditor: context\.appServices\.getBlocksEditor,[\s\S]*syncBlocksFromSource: context\.appServices\.syncBlocksFromSource,[\s\S]*requestLayout: context\.shellService\.requestLayout[\s\S]*name: 'editorMain\.workspaceBinding'[\s\S]*requires: \['workspaceSession'\][\s\S]*context\.workspaceSession\.initialize\(\);/,
   'editor main should compose workspace view, wrap, preview button, and empty-state controls through the workspace session'
 );
 
 assert.match(
   editorMainSource,
-  /const documentSession = appServices\.setDocumentSession\(createEditorMainDocumentSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*editor,[\s\S]*textarea: ta,[\s\S]*metadataPanel,[\s\S]*workspaceSession,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getBlocksSession: appServices\.getBlocksSession,[\s\S]*requestLayout: shellService\.requestLayout,[\s\S]*setBaseDir: contentService\.setBaseDir,[\s\S]*setCurrentFileLabel: fileContextService\.setCurrentFileLabel[\s\S]*\}\)\);/,
+  /name: 'editorMain\.documentSession'[\s\S]*requires: \[[^\]]*'metadataPanel'[\s\S]*'workspaceSession'[\s\S]*'contentService'[\s\S]*provides: \['documentSession'\][\s\S]*context\.documentSession = context\.appServices\.setDocumentSession\(createEditorMainDocumentSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*editor: context\.editor,[\s\S]*textarea: context\.dom\.textarea,[\s\S]*metadataPanel: context\.metadataPanel,[\s\S]*workspaceSession: context\.workspaceSession,[\s\S]*getPreviewSession: context\.appServices\.getPreviewSession,[\s\S]*getBlocksSession: context\.appServices\.getBlocksSession,[\s\S]*requestLayout: context\.shellService\.requestLayout,[\s\S]*setBaseDir: context\.contentService\.setBaseDir,[\s\S]*setCurrentFileLabel: context\.fileContextService\.setCurrentFileLabel[\s\S]*\}\)\);/,
   'editor main should compose document value, input, change listeners, and primary-editor API through the document session'
 );
 
 assert.match(
   editorMainSource,
-  /const contentService = appServices\.setContentService\(createEditorMainContentService\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*getContentRoot,[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\),[\s\S]*linkCardContext,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getDocumentSession: appServices\.getDocumentSession,[\s\S]*getWorkspaceSession: appServices\.getWorkspaceSession,[\s\S]*setCurrentFileLabel: fileContextService\.setCurrentFileLabel,[\s\S]*warn: \(\.\.\.args\) => editorMainRuntime\.warn\(\.\.\.args\),[\s\S]*alert: \(message\) => editorMainRuntime\.showAlert\(message\)[\s\S]*\}\)\);/,
+  /name: 'editorMain\.contentService'[\s\S]*requires: \[[^\]]*'linkCardContext'[\s\S]*'fileContextService'[\s\S]*provides: \['contentService'\][\s\S]*context\.contentService = context\.appServices\.setContentService\(createEditorMainContentService\(\{[\s\S]*runtime: context\.runtime,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*fetch: \(url, options\) => context\.runtime\.fetchContent\(url, options\),[\s\S]*linkCardContext: context\.linkCardContext,[\s\S]*getPreviewSession: context\.appServices\.getPreviewSession,[\s\S]*getDocumentSession: context\.appServices\.getDocumentSession,[\s\S]*getWorkspaceSession: context\.appServices\.getWorkspaceSession,[\s\S]*setCurrentFileLabel: context\.fileContextService\.setCurrentFileLabel,[\s\S]*warn: \(\.\.\.args\) => context\.runtime\.warn\(\.\.\.args\),[\s\S]*alert: \(message\) => context\.runtime\.showAlert\(message\)[\s\S]*\}\)\);/,
   'editor main should compose site config, content loading, and open-markdown orchestration through the content service'
 );
 
@@ -1485,55 +1491,55 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSource,
-  /const fileContextService = createEditorMainFileContextService\(\{[\s\S]*getCurrentFileSession: appServices\.getCurrentFileSession,[\s\S]*getMetadataPanel: appServices\.getMetadataPanel,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getDocumentSession: appServices\.getDocumentSession[\s\S]*\}\);/,
+  /name: 'editorMain\.fileContextService'[\s\S]*provides: \['fileContextService'\][\s\S]*context\.fileContextService = createEditorMainFileContextService\(\{[\s\S]*getCurrentFileSession: context\.appServices\.getCurrentFileSession,[\s\S]*getMetadataPanel: context\.appServices\.getMetadataPanel,[\s\S]*getPreviewSession: context\.appServices\.getPreviewSession,[\s\S]*getDocumentSession: context\.appServices\.getDocumentSession[\s\S]*\}\);/,
   'editor main should compose current-file cross-session fan-out through the file context service'
 );
 
 assert.match(
   editorMainSource,
-  /const languageSession = createEditorMainLanguageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*getToolbarSession: appServices\.getToolbarSession,[\s\S]*getCurrentFileSession: appServices\.getCurrentFileSession,[\s\S]*getBlocksSession: appServices\.getBlocksSession,[\s\S]*getMetadataPanel: appServices\.getMetadataPanel[\s\S]*\}\);[\s\S]*languageSession\.bind\(\);/,
+  /name: 'editorMain\.languageSession'[\s\S]*requires: \[[^\]]*'toolbarSession'[\s\S]*'currentFileSession'[\s\S]*'blocksSession'[\s\S]*provides: \['languageSession'\][\s\S]*context\.languageSession = createEditorMainLanguageSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*getToolbarSession: context\.appServices\.getToolbarSession,[\s\S]*getCurrentFileSession: context\.appServices\.getCurrentFileSession,[\s\S]*getBlocksSession: context\.appServices\.getBlocksSession,[\s\S]*getMetadataPanel: context\.appServices\.getMetadataPanel[\s\S]*name: 'editorMain\.languageBinding'[\s\S]*requires: \[[^\]]*'toolbarBinding'[\s\S]*context\.languageSession\.bind\(\);/,
   'editor main should compose language-event fan-out through the language session'
 );
 
 assert.match(
   editorMainSource,
-  /const scrollSession = createEditorMainScrollSession\(\{ runtime: editorMainRuntime \}\);[\s\S]*scrollSession\.bind\(\);/,
+  /name: 'editorMain\.scrollSession'[\s\S]*provides: \['scrollSession'\][\s\S]*context\.scrollSession = createEditorMainScrollSession\(\{ runtime: context\.runtime \}\);[\s\S]*name: 'editorMain\.scrollBinding'[\s\S]*requires: \[[^\]]*'defaultWorkspaceView'[\s\S]*context\.scrollSession\.bind\(\);/,
   'editor main should compose back-to-top scroll UI through the scroll session'
 );
 
 assert.match(
   editorMainSource,
-  /const currentFileSession = appServices\.setCurrentFileSession\(createEditorMainCurrentFileSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*inferCurrentFileSource: fileContextService\.inferCurrentFileSource,[\s\S]*applyEditorEmptyState: workspaceSession\.applyEditorEmptyState,[\s\S]*onRendered: fileContextService\.handleCurrentFileRendered[\s\S]*\}\)\);/,
+  /name: 'editorMain\.currentFileSession'[\s\S]*requires: \[[^\]]*'documentSession'[\s\S]*provides: \['currentFileSession'\][\s\S]*context\.currentFileSession = context\.appServices\.setCurrentFileSession\(createEditorMainCurrentFileSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*translate: t,[\s\S]*getCurrentLang,[\s\S]*normalizeLangKey,[\s\S]*inferCurrentFileSource: context\.fileContextService\.inferCurrentFileSource,[\s\S]*applyEditorEmptyState: context\.workspaceSession\.applyEditorEmptyState,[\s\S]*onRendered: context\.fileContextService\.handleCurrentFileRendered[\s\S]*name: 'editorMain\.currentFileRender'[\s\S]*requires: \[[^\]]*'previewBinding'[\s\S]*'linkCardToolbarSync'[\s\S]*context\.fileContextService\.renderCurrentFile\(\);/,
   'editor main should compose current file state and header rendering through the current-file session'
 );
 
 assert.match(
   editorMainSource,
-  /const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*getContentRoot,[\s\S]*getEditorValue: appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => linkCardContext\.getLocationAliases\(\),[\s\S]*consoleRef: \{[\s\S]*warn: \(\.\.\.args\) => editorMainRuntime\.warn\(\.\.\.args\)[\s\S]*\},[\s\S]*fetch: \(url, options\) => editorMainRuntime\.fetchContent\(url, options\)[\s\S]*\}\)\);[\s\S]*previewSession\.bind\(\);/,
+  /name: 'editorMain\.previewSession'[\s\S]*requires: \[[^\]]*'linkCardContext'[\s\S]*'fileContextService'[\s\S]*provides: \['previewSession'\][\s\S]*context\.previewSession = context\.appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*getEditorValue: context\.appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: context\.fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: context\.appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => context\.linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => context\.linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => context\.linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => context\.linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => context\.linkCardContext\.getLocationAliases\(\),[\s\S]*warn: \(\.\.\.args\) => context\.runtime\.warn\(\.\.\.args\)[\s\S]*fetch: \(url, options\) => context\.runtime\.fetchContent\(url, options\)[\s\S]*name: 'editorMain\.previewBinding'[\s\S]*requires: \[[^\]]*'workspaceBinding'[\s\S]*context\.previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
 );
 
 assert.match(
   editorMainSource,
-  /const sidebarSession = createEditorMainSidebarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*normalizeLangKey,[\s\S]*bindCurrentFileElement: fileContextService\.bindCurrentFileElement,[\s\S]*loadSiteConfig: contentService\.loadSiteConfig,[\s\S]*loadIndexData: contentService\.loadIndexData,[\s\S]*loadTabsConfig: contentService\.loadTabsConfig,[\s\S]*onSiteConfigLoaded: contentService\.handleSiteConfigLoaded,[\s\S]*onIndexLoaded: contentService\.handleIndexLoaded,[\s\S]*onOpenMarkdown: contentService\.openMarkdown,[\s\S]*onWarn: contentService\.warn,[\s\S]*alert: contentService\.alert[\s\S]*\}\);[\s\S]*sidebarSession\.initialize\(\);/,
+  /name: 'editorMain\.sidebarSession'[\s\S]*provides: \['sidebarSession'\][\s\S]*context\.sidebarSession = createEditorMainSidebarSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*normalizeLangKey,[\s\S]*bindCurrentFileElement: context\.fileContextService\.bindCurrentFileElement,[\s\S]*loadSiteConfig: context\.contentService\.loadSiteConfig,[\s\S]*loadIndexData: context\.contentService\.loadIndexData,[\s\S]*loadTabsConfig: context\.contentService\.loadTabsConfig,[\s\S]*onSiteConfigLoaded: context\.contentService\.handleSiteConfigLoaded,[\s\S]*onIndexLoaded: context\.contentService\.handleIndexLoaded,[\s\S]*onOpenMarkdown: context\.contentService\.openMarkdown,[\s\S]*onWarn: context\.contentService\.warn,[\s\S]*alert: context\.contentService\.alert[\s\S]*name: 'editorMain\.sidebarStartup'[\s\S]*requires: \[[^\]]*'scrollBinding'[\s\S]*context\.sidebarSession\.initialize\(\);/,
   'editor main should compose file sidebar rendering through the sidebar session and route loading/open actions through the content service'
 );
 
 assert.match(
   editorMainSource,
-  /const toolbarSession = appServices\.setToolbarSession\(createEditorMainToolbarSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*documentRef: editorMainDocument,[\s\S]*translate: t,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*editorToolbarEl,[\s\S]*cardButton,[\s\S]*cardPopover,[\s\S]*cardSearchInput,[\s\S]*cardListEl,[\s\S]*cardEmptyEl,[\s\S]*getCardEntries: \(\) => linkCardContext\.getCardEntries\(\)[\s\S]*\}\)\);[\s\S]*toolbarSession\.bind\(\);/,
+  /name: 'editorMain\.toolbarSession'[\s\S]*requires: \[[^\]]*'documentSession'[\s\S]*'linkCardContext'[\s\S]*provides: \['toolbarSession'\][\s\S]*context\.toolbarSession = context\.appServices\.setToolbarSession\(createEditorMainToolbarSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*translate: t,[\s\S]*getEditorTextarea: context\.documentSession\.getEditorTextarea,[\s\S]*editorToolbarEl: context\.dom\.editorToolbarEl,[\s\S]*cardButton: context\.dom\.cardButton,[\s\S]*cardPopover: context\.dom\.cardPopover,[\s\S]*cardSearchInput: context\.dom\.cardSearchInput,[\s\S]*cardListEl: context\.dom\.cardListEl,[\s\S]*cardEmptyEl: context\.dom\.cardEmptyEl,[\s\S]*getCardEntries: \(\) => context\.linkCardContext\.getCardEntries\(\)[\s\S]*name: 'editorMain\.toolbarBinding'[\s\S]*requires: \[[^\]]*'blocksBinding'[\s\S]*context\.toolbarSession\.bind\(\);/,
   'editor main should compose markdown toolbar and article-card picker through the toolbar session'
 );
 
 assert.match(
   editorMainSource,
-  /const imageSession = appServices\.setImageSession\(createEditorMainImageSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*translate: t,[\s\S]*imageButton,[\s\S]*imageInput,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot,[\s\S]*getEditorTextarea: documentSession\.getEditorTextarea,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*buildMarkdown: documentSession\.buildMarkdown,[\s\S]*setValue: documentSession\.setValue,[\s\S]*getBlocksEditor: appServices\.getBlocksEditor,[\s\S]*consoleRef: \{[\s\S]*error: \(\.\.\.args\) => editorMainRuntime\.error\(\.\.\.args\)[\s\S]*\},[\s\S]*emitToast: shellService\.emitToast[\s\S]*\}\)\);/,
+  /name: 'editorMain\.imageSession'[\s\S]*requires: \[[^\]]*'documentSession'[\s\S]*'fileContextService'[\s\S]*'shellService'[\s\S]*provides: \['imageSession'\][\s\S]*context\.imageSession = context\.appServices\.setImageSession\(createEditorMainImageSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*translate: t,[\s\S]*imageButton: context\.dom\.imageButton,[\s\S]*imageInput: context\.dom\.imageInput,[\s\S]*getCurrentMarkdownPath: context\.fileContextService\.getCurrentMarkdownPath,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*getEditorTextarea: context\.documentSession\.getEditorTextarea,[\s\S]*getEditorBody: context\.documentSession\.getEditorBody,[\s\S]*buildMarkdown: context\.documentSession\.buildMarkdown,[\s\S]*setValue: context\.documentSession\.setValue,[\s\S]*getBlocksEditor: context\.appServices\.getBlocksEditor,[\s\S]*error: \(\.\.\.args\) => context\.runtime\.error\(\.\.\.args\)[\s\S]*emitToast: context\.shellService\.emitToast[\s\S]*\}\)\);/,
   'editor main should compose image picker, upload, drop, and block image actions through the image session'
 );
 
 assert.match(
   editorMainSource,
-  /const blocksSession = appServices\.setBlocksSession\(createEditorMainBlocksSession\(\{[\s\S]*runtime: editorMainRuntime,[\s\S]*root: blocksWrap,[\s\S]*translate: t,[\s\S]*getContentRoot,[\s\S]*getEditorBody: documentSession\.getEditorBody,[\s\S]*onBodyChange: documentSession\.setBodyFromBlocks,[\s\S]*getCurrentMarkdownPath: fileContextService\.getCurrentMarkdownPath,[\s\S]*getSiteConfig: appServices\.getSiteConfig,[\s\S]*getPreviewSession: appServices\.getPreviewSession,[\s\S]*getImageSession: appServices\.getImageSession,[\s\S]*linkCardContext,[\s\S]*resolveImageSrc[\s\S]*\}\)\);[\s\S]*blocksSession\.initialize\(\);/,
+  /name: 'editorMain\.blocksSession'[\s\S]*requires: \[[^\]]*'documentSession'[\s\S]*'previewSession'[\s\S]*'imageSession'[\s\S]*'linkCardContext'[\s\S]*provides: \['blocksSession'\][\s\S]*context\.blocksSession = context\.appServices\.setBlocksSession\(createEditorMainBlocksSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*root: context\.dom\.blocksWrap,[\s\S]*translate: t,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*getEditorBody: context\.documentSession\.getEditorBody,[\s\S]*onBodyChange: context\.documentSession\.setBodyFromBlocks,[\s\S]*getCurrentMarkdownPath: context\.fileContextService\.getCurrentMarkdownPath,[\s\S]*getSiteConfig: context\.appServices\.getSiteConfig,[\s\S]*getPreviewSession: context\.appServices\.getPreviewSession,[\s\S]*getImageSession: context\.appServices\.getImageSession,[\s\S]*linkCardContext: context\.linkCardContext,[\s\S]*resolveImageSrc: context\.resolveEditorImageSrc[\s\S]*name: 'editorMain\.blocksBinding'[\s\S]*requires: \[[^\]]*'contentBinding'[\s\S]*context\.blocksSession\.initialize\(\);/,
   'editor main should compose the Blocks editor through an explicit blocks session service'
 );
 
@@ -1658,14 +1664,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSource,
-  /export function createEditorMainController\(editorMainRuntime = createEditorMainRuntime\(\)\) \{[\s\S]*function start\(\) \{[\s\S]*editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const ta = editorMainRuntime\.getElementById\('mdInput'\)[\s\S]*const appServices = createEditorMainServiceRegistry\(\);[\s\S]*const previewSession = appServices\.setPreviewSession\(createEditorMainPreviewSession[\s\S]*previewSession\.bind\(\);[\s\S]*createEditorMainController\(\)\.start\(\);/,
+  /export function createEditorMainController\(editorMainRuntime = createEditorMainRuntime\(\)\) \{[\s\S]*function start\(\) \{[\s\S]*editorMainRuntime\.onDocumentReady\(\(\) => \{[\s\S]*const kernel = createEditorAppKernel\(\{[\s\S]*name: 'editor-main'[\s\S]*appServices: createEditorMainServiceRegistry\(\)[\s\S]*createEditorMainFeatures\(\)\.forEach\(feature => kernel\.registerFeature\(feature\)\)[\s\S]*kernel\.run\(\)\.catch[\s\S]*createEditorMainController\(\)\.start\(\);/,
   'editor main startup should wire the preview session through the editor runtime boundary'
 );
 
 assert.match(
   editorMainSource,
-  /import \{ resolveImageSrc \} from '\.\/safe-html\.js';[\s\S]*const getContentRoot = \(\) => editorMainRuntime\.getContentRoot\(\);[\s\S]*const resolveEditorImageSrc = \(src, baseDir\) => resolveImageSrc\(src, baseDir, \{[\s\S]*contentRoot: editorMainRuntime\.getContentRoot\(\),[\s\S]*origin: editorMainRuntime\.getLocationOrigin\(\)[\s\S]*resolveImageSrc: resolveEditorImageSrc/,
+  /import \{ resolveImageSrc \} from '\.\/safe-html\.js';[\s\S]*const getContentRoot = \(\) => editorMainRuntime\.getContentRoot\(\);[\s\S]*const resolveEditorImageSrc = \(src, baseDir\) => resolveImageSrc\(src, baseDir, \{[\s\S]*contentRoot: editorMainRuntime\.getContentRoot\(\),[\s\S]*origin: editorMainRuntime\.getLocationOrigin\(\)[\s\S]*resolveEditorImageSrc,/,
   'editor main should route content-root and image resolution through the explicit runtime boundary'
+);
+
+assert.match(
+  editorMainSource,
+  /resolveImageSrc: context\.resolveEditorImageSrc/,
+  'editor blocks feature should consume the injected editor image resolver'
 );
 
 assert.doesNotMatch(
@@ -1676,7 +1688,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSource,
-  /const editor = createHiEditor\(ta, 'markdown', false, \{[\s\S]*documentRef: editorMainDocument,[\s\S]*windowRef: editorMainRuntime\.windowRef,[\s\S]*setTimeoutRef: \(handler, delay\) => editorMainRuntime\.setTimer\(handler, delay\),[\s\S]*getComputedStyle: \(node\) => editorMainRuntime\.getComputedStyle\(node\),[\s\S]*getResizeObserver: \(\) => editorMainRuntime\.getResizeObserver\(\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorMainRuntime\.onDocument\(type, handler, options\),[\s\S]*addWindowListener: \(type, handler, options\) => editorMainRuntime\.onWindow\(type, handler, options\),[\s\S]*writeClipboardText: \(text\) => editorMainRuntime\.writeClipboardText\(text\),[\s\S]*editorRegistry: editorMainRuntime\.getHiEditorRegistry\(\),[\s\S]*allowAmbient: false[\s\S]*\}\);/,
+  /name: 'editorMain\.editor'[\s\S]*context\.editor = createHiEditor\(dom\.textarea, 'markdown', false, \{[\s\S]*documentRef,[\s\S]*windowRef: runtime\.windowRef,[\s\S]*setTimeoutRef: \(handler, delay\) => runtime\.setTimer\(handler, delay\),[\s\S]*getComputedStyle: \(node\) => runtime\.getComputedStyle\(node\),[\s\S]*getResizeObserver: \(\) => runtime\.getResizeObserver\(\),[\s\S]*addDocumentListener: \(type, handler, options\) => runtime\.onDocument\(type, handler, options\),[\s\S]*addWindowListener: \(type, handler, options\) => runtime\.onWindow\(type, handler, options\),[\s\S]*writeClipboardText: \(text\) => runtime\.writeClipboardText\(text\),[\s\S]*editorRegistry: runtime\.getHiEditorRegistry\(\),[\s\S]*allowAmbient: false[\s\S]*\}\);/,
   'editor main should create the primary HiEditor through explicit runtime refs and browser-effect adapters'
 );
 

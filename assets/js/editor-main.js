@@ -18,8 +18,417 @@ import { createEditorMainScrollSession } from './editor-main-scroll-session.js';
 import { createEditorMainServiceRegistry } from './editor-main-service-registry.js';
 import { createEditorMainShellService } from './editor-main-shell-service.js';
 import { createEditorMainRuntime } from './editor-main-runtime.js';
+import { createEditorAppKernel } from './editor-app-kernel.js';
 
 const FORCE_MARKDOWN_WRAP = true;
+
+export function createEditorMainFeatures() {
+  return [
+    {
+      name: 'editorMain.editor',
+      requires: ['runtime', 'documentRef', 'dom'],
+      provides: ['editor'],
+      init(context) {
+        const { runtime, documentRef, dom } = context;
+        context.editor = createHiEditor(dom.textarea, 'markdown', false, {
+          documentRef,
+          windowRef: runtime.windowRef,
+          setTimeoutRef: (handler, delay) => runtime.setTimer(handler, delay),
+          getComputedStyle: (node) => runtime.getComputedStyle(node),
+          getResizeObserver: () => runtime.getResizeObserver(),
+          addDocumentListener: (type, handler, options) => runtime.onDocument(type, handler, options),
+          addWindowListener: (type, handler, options) => runtime.onWindow(type, handler, options),
+          writeClipboardText: (text) => runtime.writeClipboardText(text),
+          editorRegistry: runtime.getHiEditorRegistry(),
+          allowAmbient: false
+        });
+      }
+    },
+    {
+      name: 'editorMain.metadataPanel',
+      requires: ['runtime', 'documentRef', 'getContentRoot', 'appServices'],
+      provides: ['metadataPanel'],
+      init(context) {
+        context.metadataPanel = context.appServices.setMetadataPanel(createEditorMainMetadataPanel({
+          runtime: context.runtime,
+          documentRef: context.documentRef,
+          translate: t,
+          getCurrentLang,
+          normalizeLangKey,
+          getContentRoot: context.getContentRoot,
+          onChange: context.appServices.notifyDocumentChange
+        }));
+      }
+    },
+    {
+      name: 'editorMain.linkCardContext',
+      requires: ['runtime', 'getContentRoot'],
+      provides: ['linkCardContext'],
+      init(context) {
+        context.linkCardContext = createEditorMainLinkCardContext({
+          getCurrentLang,
+          normalizeLangKey,
+          getContentRoot: context.getContentRoot,
+          fetch: (url, options) => context.runtime.fetchContent(url, options),
+          translate: t,
+          makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
+        });
+      }
+    },
+    {
+      name: 'editorMain.shellService',
+      requires: ['runtime', 'editor', 'dom'],
+      provides: ['shellService'],
+      init(context) {
+        context.shellService = createEditorMainShellService({
+          runtime: context.runtime,
+          editor: context.editor,
+          textarea: context.dom.textarea
+        });
+      }
+    },
+    {
+      name: 'editorMain.workspaceSession',
+      requires: ['runtime', 'documentRef', 'editor', 'dom', 'shellService', 'appServices'],
+      provides: ['workspaceSession'],
+      init(context) {
+        context.workspaceSession = context.appServices.setWorkspaceSession(createEditorMainWorkspaceSession({
+          runtime: context.runtime,
+          documentRef: context.documentRef,
+          forceMarkdownWrap: FORCE_MARKDOWN_WRAP,
+          editor: context.editor,
+          textarea: context.dom.textarea,
+          getPreviewSession: context.appServices.getPreviewSession,
+          getBlocksEditor: context.appServices.getBlocksEditor,
+          syncBlocksFromSource: context.appServices.syncBlocksFromSource,
+          requestLayout: context.shellService.requestLayout
+        }));
+      }
+    },
+    {
+      name: 'editorMain.fileContextService',
+      requires: ['workspaceSession', 'appServices'],
+      provides: ['fileContextService'],
+      init(context) {
+        context.fileContextService = createEditorMainFileContextService({
+          getCurrentFileSession: context.appServices.getCurrentFileSession,
+          getMetadataPanel: context.appServices.getMetadataPanel,
+          getPreviewSession: context.appServices.getPreviewSession,
+          getDocumentSession: context.appServices.getDocumentSession
+        });
+      }
+    },
+    {
+      name: 'editorMain.contentService',
+      requires: ['runtime', 'getContentRoot', 'linkCardContext', 'fileContextService', 'appServices'],
+      provides: ['contentService'],
+      init(context) {
+        context.contentService = context.appServices.setContentService(createEditorMainContentService({
+          runtime: context.runtime,
+          getContentRoot: context.getContentRoot,
+          fetch: (url, options) => context.runtime.fetchContent(url, options),
+          linkCardContext: context.linkCardContext,
+          getPreviewSession: context.appServices.getPreviewSession,
+          getDocumentSession: context.appServices.getDocumentSession,
+          getWorkspaceSession: context.appServices.getWorkspaceSession,
+          setCurrentFileLabel: context.fileContextService.setCurrentFileLabel,
+          warn: (...args) => context.runtime.warn(...args),
+          alert: (message) => context.runtime.showAlert(message)
+        }));
+      }
+    },
+    {
+      name: 'editorMain.documentSession',
+      requires: ['runtime', 'editor', 'dom', 'metadataPanel', 'workspaceSession', 'contentService', 'fileContextService', 'shellService', 'appServices'],
+      provides: ['documentSession'],
+      init(context) {
+        context.documentSession = context.appServices.setDocumentSession(createEditorMainDocumentSession({
+          runtime: context.runtime,
+          editor: context.editor,
+          textarea: context.dom.textarea,
+          metadataPanel: context.metadataPanel,
+          workspaceSession: context.workspaceSession,
+          getPreviewSession: context.appServices.getPreviewSession,
+          getBlocksSession: context.appServices.getBlocksSession,
+          requestLayout: context.shellService.requestLayout,
+          setBaseDir: context.contentService.setBaseDir,
+          setCurrentFileLabel: context.fileContextService.setCurrentFileLabel
+        }));
+      }
+    },
+    {
+      name: 'editorMain.currentFileSession',
+      requires: ['runtime', 'documentRef', 'fileContextService', 'workspaceSession', 'documentSession', 'appServices'],
+      provides: ['currentFileSession'],
+      init(context) {
+        context.currentFileSession = context.appServices.setCurrentFileSession(createEditorMainCurrentFileSession({
+          runtime: context.runtime,
+          documentRef: context.documentRef,
+          translate: t,
+          getCurrentLang,
+          normalizeLangKey,
+          inferCurrentFileSource: context.fileContextService.inferCurrentFileSource,
+          applyEditorEmptyState: context.workspaceSession.applyEditorEmptyState,
+          onRendered: context.fileContextService.handleCurrentFileRendered
+        }));
+      }
+    },
+    {
+      name: 'editorMain.previewSession',
+      requires: ['runtime', 'documentRef', 'getContentRoot', 'linkCardContext', 'fileContextService', 'appServices'],
+      provides: ['previewSession'],
+      init(context) {
+        context.previewSession = context.appServices.setPreviewSession(createEditorMainPreviewSession({
+          runtime: context.runtime,
+          documentRef: context.documentRef,
+          getContentRoot: context.getContentRoot,
+          getEditorValue: context.appServices.getEditorValue,
+          getCurrentFileInfo: context.fileContextService.getCurrentFileInfo,
+          getSiteConfig: context.appServices.getSiteConfig,
+          getPostsIndex: () => context.linkCardContext.getPostsIndex(),
+          getPostsByLocationTitle: () => context.linkCardContext.getPostsByLocationTitle(),
+          isLinkCardReady: () => context.linkCardContext.isReady(),
+          getAllowedLocations: () => context.linkCardContext.getAllowedLocations(),
+          getLocationAliases: () => context.linkCardContext.getLocationAliases(),
+          consoleRef: {
+            warn: (...args) => context.runtime.warn(...args)
+          },
+          fetch: (url, options) => context.runtime.fetchContent(url, options)
+        }));
+      }
+    },
+    {
+      name: 'editorMain.imageSession',
+      requires: ['runtime', 'dom', 'getContentRoot', 'documentSession', 'fileContextService', 'shellService', 'appServices'],
+      provides: ['imageSession'],
+      init(context) {
+        context.imageSession = context.appServices.setImageSession(createEditorMainImageSession({
+          runtime: context.runtime,
+          translate: t,
+          imageButton: context.dom.imageButton,
+          imageInput: context.dom.imageInput,
+          getCurrentMarkdownPath: context.fileContextService.getCurrentMarkdownPath,
+          getContentRoot: context.getContentRoot,
+          getEditorTextarea: context.documentSession.getEditorTextarea,
+          getEditorBody: context.documentSession.getEditorBody,
+          buildMarkdown: context.documentSession.buildMarkdown,
+          setValue: context.documentSession.setValue,
+          getBlocksEditor: context.appServices.getBlocksEditor,
+          consoleRef: {
+            error: (...args) => context.runtime.error(...args)
+          },
+          emitToast: context.shellService.emitToast
+        }));
+      }
+    },
+    {
+      name: 'editorMain.blocksSession',
+      requires: ['runtime', 'dom', 'getContentRoot', 'resolveEditorImageSrc', 'documentSession', 'fileContextService', 'previewSession', 'imageSession', 'linkCardContext', 'appServices'],
+      provides: ['blocksSession'],
+      init(context) {
+        context.blocksSession = context.appServices.setBlocksSession(createEditorMainBlocksSession({
+          runtime: context.runtime,
+          root: context.dom.blocksWrap,
+          translate: t,
+          getContentRoot: context.getContentRoot,
+          getEditorBody: context.documentSession.getEditorBody,
+          onBodyChange: context.documentSession.setBodyFromBlocks,
+          getCurrentMarkdownPath: context.fileContextService.getCurrentMarkdownPath,
+          getSiteConfig: context.appServices.getSiteConfig,
+          getPreviewSession: context.appServices.getPreviewSession,
+          getImageSession: context.appServices.getImageSession,
+          linkCardContext: context.linkCardContext,
+          resolveImageSrc: context.resolveEditorImageSrc
+        }));
+      }
+    },
+    {
+      name: 'editorMain.toolbarSession',
+      requires: ['runtime', 'documentRef', 'dom', 'documentSession', 'linkCardContext', 'appServices'],
+      provides: ['toolbarSession'],
+      init(context) {
+        context.toolbarSession = context.appServices.setToolbarSession(createEditorMainToolbarSession({
+          runtime: context.runtime,
+          documentRef: context.documentRef,
+          translate: t,
+          getEditorTextarea: context.documentSession.getEditorTextarea,
+          editorToolbarEl: context.dom.editorToolbarEl,
+          cardButton: context.dom.cardButton,
+          cardPopover: context.dom.cardPopover,
+          cardSearchInput: context.dom.cardSearchInput,
+          cardListEl: context.dom.cardListEl,
+          cardEmptyEl: context.dom.cardEmptyEl,
+          getCardEntries: () => context.linkCardContext.getCardEntries()
+        }));
+      }
+    },
+    {
+      name: 'editorMain.languageSession',
+      requires: ['runtime', 'toolbarSession', 'currentFileSession', 'blocksSession', 'metadataPanel', 'appServices'],
+      provides: ['languageSession'],
+      init(context) {
+        context.languageSession = createEditorMainLanguageSession({
+          runtime: context.runtime,
+          getToolbarSession: context.appServices.getToolbarSession,
+          getCurrentFileSession: context.appServices.getCurrentFileSession,
+          getBlocksSession: context.appServices.getBlocksSession,
+          getMetadataPanel: context.appServices.getMetadataPanel
+        });
+      }
+    },
+    {
+      name: 'editorMain.workspaceBinding',
+      requires: ['workspaceSession'],
+      provides: ['workspaceBinding'],
+      bind(context) {
+        context.workspaceSession.initialize();
+      }
+    },
+    {
+      name: 'editorMain.previewBinding',
+      requires: ['previewSession', 'workspaceBinding'],
+      provides: ['previewBinding'],
+      bind(context) {
+        context.previewSession.bind();
+      }
+    },
+    {
+      name: 'editorMain.contentBinding',
+      requires: ['contentService', 'previewBinding'],
+      provides: ['contentBinding'],
+      bind(context) {
+        context.contentService.bind();
+      }
+    },
+    {
+      name: 'editorMain.blocksBinding',
+      requires: ['blocksSession', 'contentBinding'],
+      provides: ['blocksBinding'],
+      bind(context) {
+        context.blocksSession.initialize();
+      }
+    },
+    {
+      name: 'editorMain.toolbarBinding',
+      requires: ['toolbarSession', 'blocksBinding'],
+      provides: ['toolbarBinding'],
+      bind(context) {
+        context.toolbarSession.bind();
+      }
+    },
+    {
+      name: 'editorMain.languageBinding',
+      requires: ['languageSession', 'toolbarBinding'],
+      provides: ['languageBinding'],
+      bind(context) {
+        context.languageSession.bind();
+      }
+    },
+    {
+      name: 'editorMain.linkCardToolbarSync',
+      requires: ['linkCardContext', 'toolbarSession', 'languageBinding'],
+      provides: ['linkCardToolbarSync'],
+      bind(context) {
+        context.linkCardContext.onCardEntriesChange((entries) => context.toolbarSession.setCardEntries(entries));
+        context.toolbarSession.setCardEntries(context.linkCardContext.getCardEntries());
+      }
+    },
+    {
+      name: 'editorMain.currentFileRender',
+      requires: ['currentFileSession', 'previewBinding', 'linkCardToolbarSync'],
+      provides: ['currentFileRender'],
+      bind(context) {
+        context.fileContextService.renderCurrentFile();
+      }
+    },
+    {
+      name: 'editorMain.documentInputBinding',
+      requires: ['documentSession', 'currentFileRender'],
+      provides: ['documentInputBinding'],
+      bind(context) {
+        context.documentSession.bindInput();
+      }
+    },
+    {
+      name: 'editorMain.initialDocumentState',
+      requires: ['seed', 'documentInputBinding', 'contentService'],
+      provides: ['initialDocumentState'],
+      start(context) {
+        context.documentSession.renderInitial(context.seed);
+        context.contentService.setBaseDir('');
+      }
+    },
+    {
+      name: 'editorMain.imageBinding',
+      requires: ['imageSession', 'initialDocumentState'],
+      provides: ['imageBinding'],
+      start(context) {
+        context.imageSession.bind();
+      }
+    },
+    {
+      name: 'editorMain.primaryEditorApi',
+      requires: ['documentSession', 'imageBinding'],
+      provides: ['primaryEditorApi'],
+      start(context) {
+        context.documentSession.registerPrimaryEditorApi();
+      }
+    },
+    {
+      name: 'editorMain.defaultWorkspaceView',
+      requires: ['workspaceSession', 'primaryEditorApi'],
+      provides: ['defaultWorkspaceView'],
+      start(context) {
+        context.workspaceSession.setView('blocks');
+      }
+    },
+    {
+      name: 'editorMain.scrollSession',
+      requires: ['runtime'],
+      provides: ['scrollSession'],
+      init(context) {
+        context.scrollSession = createEditorMainScrollSession({ runtime: context.runtime });
+      }
+    },
+    {
+      name: 'editorMain.scrollBinding',
+      requires: ['scrollSession', 'defaultWorkspaceView'],
+      provides: ['scrollBinding'],
+      start(context) {
+        context.scrollSession.bind();
+      }
+    },
+    {
+      name: 'editorMain.sidebarSession',
+      requires: ['runtime', 'documentRef', 'fileContextService', 'contentService'],
+      provides: ['sidebarSession'],
+      init(context) {
+        context.sidebarSession = createEditorMainSidebarSession({
+          runtime: context.runtime,
+          documentRef: context.documentRef,
+          normalizeLangKey,
+          bindCurrentFileElement: context.fileContextService.bindCurrentFileElement,
+          loadSiteConfig: context.contentService.loadSiteConfig,
+          loadIndexData: context.contentService.loadIndexData,
+          loadTabsConfig: context.contentService.loadTabsConfig,
+          onSiteConfigLoaded: context.contentService.handleSiteConfigLoaded,
+          onIndexLoaded: context.contentService.handleIndexLoaded,
+          onOpenMarkdown: context.contentService.openMarkdown,
+          onWarn: context.contentService.warn,
+          alert: context.contentService.alert
+        });
+      }
+    },
+    {
+      name: 'editorMain.sidebarStartup',
+      requires: ['sidebarSession', 'scrollBinding'],
+      provides: ['sidebarStartup'],
+      start(context) {
+        context.sidebarSession.initialize();
+      }
+    }
+  ];
+}
 
 export function createEditorMainController(editorMainRuntime = createEditorMainRuntime()) {
   const editorMainDocument = editorMainRuntime.documentRef;
@@ -33,235 +442,41 @@ export function createEditorMainController(editorMainRuntime = createEditorMainR
 
   function start() {
     editorMainRuntime.onDocumentReady(() => {
-      const ta = editorMainRuntime.getElementById('mdInput');
-      const editor = createHiEditor(ta, 'markdown', false, {
-        documentRef: editorMainDocument,
-        windowRef: editorMainRuntime.windowRef,
-        setTimeoutRef: (handler, delay) => editorMainRuntime.setTimer(handler, delay),
-        getComputedStyle: (node) => editorMainRuntime.getComputedStyle(node),
-        getResizeObserver: () => editorMainRuntime.getResizeObserver(),
-        addDocumentListener: (type, handler, options) => editorMainRuntime.onDocument(type, handler, options),
-        addWindowListener: (type, handler, options) => editorMainRuntime.onWindow(type, handler, options),
-        writeClipboardText: (text) => editorMainRuntime.writeClipboardText(text),
-        editorRegistry: editorMainRuntime.getHiEditorRegistry(),
-        allowAmbient: false
-      });
-      const imageButton = editorMainRuntime.getElementById('btnInsertImage');
-      const imageInput = editorMainRuntime.getElementById('editorImageInput');
-      const editorToolbarEl = editorMainRuntime.getElementById('editorToolbar');
-      const blocksWrap = editorMainRuntime.getElementById('blocks-wrap');
-      const cardButton = editorMainRuntime.getElementById('btnInsertCard');
-      const cardPopover = editorMainRuntime.getElementById('editorCardPicker');
-      const cardSearchInput = editorMainRuntime.getElementById('cardPickerSearch');
-      const cardListEl = editorMainRuntime.getElementById('cardPickerList');
-      const cardEmptyEl = editorMainRuntime.getElementById('cardPickerEmpty');
-
-      const seed = `# 新文章标题\n\n> 在左侧编辑 Markdown，切换到 Preview 查看渲染效果。\n\n- 支持代码块、表格、待办列表\n- 图片与视频语法\n\n\`\`\`js\nconsole.log('Hello, Press!');\n\`\`\`\n`;
-
-      const appServices = createEditorMainServiceRegistry();
-
-      const metadataPanel = appServices.setMetadataPanel(createEditorMainMetadataPanel({
-        runtime: editorMainRuntime,
-        documentRef: editorMainDocument,
-        translate: t,
-        getCurrentLang,
-        normalizeLangKey,
-        getContentRoot,
-        onChange: appServices.notifyDocumentChange
-      }));
-
-      const linkCardContext = createEditorMainLinkCardContext({
-        getCurrentLang,
-        normalizeLangKey,
-        getContentRoot,
-        fetch: (url, options) => editorMainRuntime.fetchContent(url, options),
-        translate: t,
-        makeHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
+      const kernel = createEditorAppKernel({
+        name: 'editor-main',
+        provides: ['runtime', 'documentRef', 'dom', 'appServices', 'getContentRoot', 'resolveEditorImageSrc', 'seed'],
+        context: {
+          runtime: editorMainRuntime,
+          documentRef: editorMainDocument,
+          getContentRoot,
+          resolveEditorImageSrc,
+          appServices: createEditorMainServiceRegistry(),
+          dom: {
+            textarea: editorMainRuntime.getElementById('mdInput'),
+            imageButton: editorMainRuntime.getElementById('btnInsertImage'),
+            imageInput: editorMainRuntime.getElementById('editorImageInput'),
+            editorToolbarEl: editorMainRuntime.getElementById('editorToolbar'),
+            blocksWrap: editorMainRuntime.getElementById('blocks-wrap'),
+            cardButton: editorMainRuntime.getElementById('btnInsertCard'),
+            cardPopover: editorMainRuntime.getElementById('editorCardPicker'),
+            cardSearchInput: editorMainRuntime.getElementById('cardPickerSearch'),
+            cardListEl: editorMainRuntime.getElementById('cardPickerList'),
+            cardEmptyEl: editorMainRuntime.getElementById('cardPickerEmpty')
+          },
+          seed: `# 新文章标题\n\n> 在左侧编辑 Markdown，切换到 Preview 查看渲染效果。\n\n- 支持代码块、表格、待办列表\n- 图片与视频语法\n\n\`\`\`js\nconsole.log('Hello, Press!');\n\`\`\`\n`
+        }
       });
 
-      const shellService = createEditorMainShellService({
-        runtime: editorMainRuntime,
-        editor,
-        textarea: ta
+      createEditorMainFeatures().forEach(feature => kernel.registerFeature(feature));
+      kernel.run().catch((err) => {
+        editorMainRuntime.error('Editor main lifecycle failed', err);
       });
-
-      const workspaceSession = appServices.setWorkspaceSession(createEditorMainWorkspaceSession({
-        runtime: editorMainRuntime,
-        documentRef: editorMainDocument,
-        forceMarkdownWrap: FORCE_MARKDOWN_WRAP,
-        editor,
-        textarea: ta,
-        getPreviewSession: appServices.getPreviewSession,
-        getBlocksEditor: appServices.getBlocksEditor,
-        syncBlocksFromSource: appServices.syncBlocksFromSource,
-        requestLayout: shellService.requestLayout
-      }));
-      workspaceSession.initialize();
-
-      const fileContextService = createEditorMainFileContextService({
-        getCurrentFileSession: appServices.getCurrentFileSession,
-        getMetadataPanel: appServices.getMetadataPanel,
-        getPreviewSession: appServices.getPreviewSession,
-        getDocumentSession: appServices.getDocumentSession
-      });
-
-      const contentService = appServices.setContentService(createEditorMainContentService({
-        runtime: editorMainRuntime,
-        getContentRoot,
-        fetch: (url, options) => editorMainRuntime.fetchContent(url, options),
-        linkCardContext,
-        getPreviewSession: appServices.getPreviewSession,
-        getDocumentSession: appServices.getDocumentSession,
-        getWorkspaceSession: appServices.getWorkspaceSession,
-        setCurrentFileLabel: fileContextService.setCurrentFileLabel,
-        warn: (...args) => editorMainRuntime.warn(...args),
-        alert: (message) => editorMainRuntime.showAlert(message)
-      }));
-
-      const documentSession = appServices.setDocumentSession(createEditorMainDocumentSession({
-        runtime: editorMainRuntime,
-        editor,
-        textarea: ta,
-        metadataPanel,
-        workspaceSession,
-        getPreviewSession: appServices.getPreviewSession,
-        getBlocksSession: appServices.getBlocksSession,
-        requestLayout: shellService.requestLayout,
-        setBaseDir: contentService.setBaseDir,
-        setCurrentFileLabel: fileContextService.setCurrentFileLabel
-      }));
-
-      const currentFileSession = appServices.setCurrentFileSession(createEditorMainCurrentFileSession({
-        runtime: editorMainRuntime,
-        documentRef: editorMainDocument,
-        translate: t,
-        getCurrentLang,
-        normalizeLangKey,
-        inferCurrentFileSource: fileContextService.inferCurrentFileSource,
-        applyEditorEmptyState: workspaceSession.applyEditorEmptyState,
-        onRendered: fileContextService.handleCurrentFileRendered
-      }));
-
-      const previewSession = appServices.setPreviewSession(createEditorMainPreviewSession({
-        runtime: editorMainRuntime,
-        documentRef: editorMainDocument,
-        getContentRoot,
-        getEditorValue: appServices.getEditorValue,
-        getCurrentFileInfo: fileContextService.getCurrentFileInfo,
-        getSiteConfig: appServices.getSiteConfig,
-        getPostsIndex: () => linkCardContext.getPostsIndex(),
-        getPostsByLocationTitle: () => linkCardContext.getPostsByLocationTitle(),
-        isLinkCardReady: () => linkCardContext.isReady(),
-        getAllowedLocations: () => linkCardContext.getAllowedLocations(),
-        getLocationAliases: () => linkCardContext.getLocationAliases(),
-        consoleRef: {
-          warn: (...args) => editorMainRuntime.warn(...args)
-        },
-        fetch: (url, options) => editorMainRuntime.fetchContent(url, options)
-      }));
-      previewSession.bind();
-      contentService.bind();
-
-      const imageSession = appServices.setImageSession(createEditorMainImageSession({
-        runtime: editorMainRuntime,
-        translate: t,
-        imageButton,
-        imageInput,
-        getCurrentMarkdownPath: fileContextService.getCurrentMarkdownPath,
-        getContentRoot,
-        getEditorTextarea: documentSession.getEditorTextarea,
-        getEditorBody: documentSession.getEditorBody,
-        buildMarkdown: documentSession.buildMarkdown,
-        setValue: documentSession.setValue,
-        getBlocksEditor: appServices.getBlocksEditor,
-        consoleRef: {
-          error: (...args) => editorMainRuntime.error(...args)
-        },
-        emitToast: shellService.emitToast
-      }));
-
-      const blocksSession = appServices.setBlocksSession(createEditorMainBlocksSession({
-        runtime: editorMainRuntime,
-        root: blocksWrap,
-        translate: t,
-        getContentRoot,
-        getEditorBody: documentSession.getEditorBody,
-        onBodyChange: documentSession.setBodyFromBlocks,
-        getCurrentMarkdownPath: fileContextService.getCurrentMarkdownPath,
-        getSiteConfig: appServices.getSiteConfig,
-        getPreviewSession: appServices.getPreviewSession,
-        getImageSession: appServices.getImageSession,
-        linkCardContext,
-        resolveImageSrc: resolveEditorImageSrc
-      }));
-      blocksSession.initialize();
-
-      const toolbarSession = appServices.setToolbarSession(createEditorMainToolbarSession({
-        runtime: editorMainRuntime,
-        documentRef: editorMainDocument,
-        translate: t,
-        getEditorTextarea: documentSession.getEditorTextarea,
-        editorToolbarEl,
-        cardButton,
-        cardPopover,
-        cardSearchInput,
-        cardListEl,
-        cardEmptyEl,
-        getCardEntries: () => linkCardContext.getCardEntries()
-      }));
-      toolbarSession.bind();
-
-      const languageSession = createEditorMainLanguageSession({
-        runtime: editorMainRuntime,
-        getToolbarSession: appServices.getToolbarSession,
-        getCurrentFileSession: appServices.getCurrentFileSession,
-        getBlocksSession: appServices.getBlocksSession,
-        getMetadataPanel: appServices.getMetadataPanel
-      });
-      languageSession.bind();
-
-      linkCardContext.onCardEntriesChange((entries) => toolbarSession.setCardEntries(entries));
-      toolbarSession.setCardEntries(linkCardContext.getCardEntries());
-
-      fileContextService.renderCurrentFile();
-      documentSession.bindInput();
-
-      // If empty, seed default text; otherwise render current content once.
-      documentSession.renderInitial(seed);
-
-      contentService.setBaseDir('');
-      imageSession.bind();
-      documentSession.registerPrimaryEditorApi();
-
-      // Clear draft action removed (no local storage drafts)
-
-      // Draft persistence on unload removed
-
-      // Default to blocks view
-      workspaceSession.setView('blocks');
-
-      const scrollSession = createEditorMainScrollSession({ runtime: editorMainRuntime });
-      scrollSession.bind();
-
-      const sidebarSession = createEditorMainSidebarSession({
-        runtime: editorMainRuntime,
-        documentRef: editorMainDocument,
-        normalizeLangKey,
-        bindCurrentFileElement: fileContextService.bindCurrentFileElement,
-        loadSiteConfig: contentService.loadSiteConfig,
-        loadIndexData: contentService.loadIndexData,
-        loadTabsConfig: contentService.loadTabsConfig,
-        onSiteConfigLoaded: contentService.handleSiteConfigLoaded,
-        onIndexLoaded: contentService.handleIndexLoaded,
-        onOpenMarkdown: contentService.openMarkdown,
-        onWarn: contentService.warn,
-        alert: contentService.alert
-      });
-      sidebarSession.initialize();
     });
   }
 
   return { start };
 }
 
-createEditorMainController().start();
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  createEditorMainController().start();
+}

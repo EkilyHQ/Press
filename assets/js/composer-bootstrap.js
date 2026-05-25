@@ -1,3 +1,5 @@
+import { createEditorAppKernel } from './editor-app-kernel.js';
+
 function noop() {}
 
 function getElement(documentRef, id) {
@@ -346,28 +348,79 @@ export function assembleComposerWorkspace({
 export async function initializeComposerOnDomReady(options = {}) {
   const {
     documentRef,
+    setActiveComposerState = noop
+  } = options;
+
+  const context = {
+    documentRef,
+    result: null,
+    state: null
+  };
+  const kernel = createEditorAppKernel({
+    name: 'composer-bootstrap',
+    context,
+    provides: ['documentRef']
+  });
+
+  createComposerBootstrapFeatures({
+    ...options,
+    setActiveComposerState
+  }).forEach(feature => kernel.registerFeature(feature));
+
+  const runResult = await kernel.run();
+  return runResult.context.result;
+}
+
+export function createComposerBootstrapFeatures(options = {}) {
+  const {
     markdownToolbar,
     initialState,
     workspace,
     setActiveComposerState = noop
   } = options;
 
-  bindComposerMarkdownToolbar({
-    documentRef,
-    ...(markdownToolbar || {})
-  });
-
-  const state = await loadInitialComposerState(initialState || {});
-  setActiveComposerState(state);
-  const workspaceResult = assembleComposerWorkspace({
-    documentRef,
-    state,
-    ...(workspace || {})
-  });
-  return {
-    state,
-    ...workspaceResult
-  };
+  return [
+    {
+      name: 'composer.markdownToolbar',
+      requires: ['documentRef'],
+      provides: ['markdownToolbar'],
+      bind(context) {
+        bindComposerMarkdownToolbar({
+          documentRef: context.documentRef,
+          ...(markdownToolbar || {})
+        });
+        context.markdownToolbar = true;
+      }
+    },
+    {
+      name: 'composer.initialState',
+      requires: ['markdownToolbar'],
+      provides: ['initialComposerState'],
+      async start(context) {
+        const state = await loadInitialComposerState(initialState || {});
+        context.initialComposerState = state;
+        setActiveComposerState(state);
+      }
+    },
+    {
+      name: 'composer.workspace',
+      requires: ['initialComposerState'],
+      provides: ['composerWorkspace'],
+      start(context) {
+        const state = context.initialComposerState || { index: {}, tabs: {}, site: {} };
+        const workspaceResult = assembleComposerWorkspace({
+          documentRef: context.documentRef,
+          state,
+          ...(workspace || {})
+        });
+        context.composerWorkspace = workspaceResult;
+        context.result = {
+          state,
+          ...workspaceResult
+        };
+      }
+    }
+  ];
 }
 
 export function initializeComposerApp(options = {}) {

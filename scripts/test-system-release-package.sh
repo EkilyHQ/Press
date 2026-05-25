@@ -443,6 +443,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-bootstrap.js" "${entri
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-app-kernel.js" "${entries_file}"; then
+  echo "expected package to include editor app lifecycle kernel code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-ui-motion.js" "${entries_file}"; then
   echo "expected package to include composer UI motion helper code" >&2
   exit 1

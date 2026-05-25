@@ -1,5 +1,6 @@
-import { t } from './i18n.js?v=press-system-v3.4.51';
-import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=press-system-v3.4.51';
+import { t } from './i18n.js?v=press-system-v3.4.52';
+import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js?v=press-system-v3.4.52';
+import { getProductStateThemeEntry, loadProductState } from './product-state.js?v=press-system-v3.4.52';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';
@@ -43,6 +44,8 @@ function createThemeManagerState() {
     registryCache: null,
     catalogCache: null,
     catalogLoadError: '',
+    productStateCache: null,
+    productStateLoadError: '',
     currentSummary: [],
     currentFiles: [],
     currentThemeDigest: '',
@@ -757,6 +760,14 @@ function getOfficialThemeCatalogStatusWithRuntime(runtime) {
   return { error: runtime.state.catalogLoadError };
 }
 
+function getProductStateStatusWithRuntime(runtime) {
+  const { productStateCache, productStateLoadError } = runtime.state;
+  return {
+    status: productStateCache ? productStateCache.status : '',
+    error: productStateLoadError
+  };
+}
+
 async function loadOfficialThemeCatalogWithRuntime(runtime, options = {}) {
   const state = runtime.state;
   if (state.catalogCache && !options.force) return state.catalogCache.slice();
@@ -770,6 +781,19 @@ async function loadOfficialThemeCatalogWithRuntime(runtime, options = {}) {
     state.catalogLoadError = err && err.message ? `Official theme catalog is unavailable: ${err.message}` : 'Official theme catalog is unavailable.';
   }
   return state.catalogCache.slice();
+}
+
+async function loadProductStateWithRuntime(runtime, options = {}) {
+  const state = runtime.state;
+  if (state.productStateCache && !options.force) return state.productStateCache;
+  state.productStateLoadError = '';
+  try {
+    state.productStateCache = await loadProductState({ fetchImpl: runtime.getFetch() });
+  } catch (err) {
+    state.productStateCache = null;
+    state.productStateLoadError = err && err.message ? `Product state is unavailable: ${err.message}` : 'Product state is unavailable.';
+  }
+  return state.productStateCache;
 }
 
 function makeRegistryEntry({ archive, previous, releaseManifest, source, assetMeta }) {
@@ -1068,11 +1092,40 @@ function renderPendingFiles(runtime) {
   });
 }
 
-function renderInstalledThemes(runtime, registry, catalog) {
+function formatThemeProductStateMeta(productState, slug) {
+  const entry = getProductStateThemeEntry(productState, slug);
+  if (!entry) return '';
+  return [
+    `release ${entry.status}`,
+    entry.version ? `v${entry.version}` : ''
+  ].filter(Boolean).join(' ');
+}
+
+function buildThemeManagerMeta(parts, productState, slug) {
+  return [
+    ...parts,
+    formatThemeProductStateMeta(productState, slug)
+  ].filter(Boolean).join(' · ');
+}
+
+function renderProductStateNotice(runtime, target, productState) {
+  const { productStateLoadError } = runtime.state;
+  const documentRef = runtime.getDocument();
+  if (!target || !documentRef) return;
+  const message = productStateLoadError || (productState && productState.status !== 'ok' ? `Product state: ${productState.status}` : '');
+  if (!message) return;
+  const notice = documentRef.createElement('p');
+  notice.className = 'muted';
+  notice.textContent = message;
+  target.appendChild(notice);
+}
+
+function renderInstalledThemes(runtime, registry, catalog, productState) {
   const { elements } = runtime.state;
   const documentRef = runtime.getDocument();
   if (!elements.installedList) return;
   clearElement(elements.installedList);
+  renderProductStateNotice(runtime, elements.installedList, productState);
   const currentThemePack = getCurrentThemePackValue(runtime) || 'native';
   registry.forEach((entry) => {
     if (!documentRef) return;
@@ -1084,11 +1137,11 @@ function renderInstalledThemes(runtime, registry, catalog) {
     title.textContent = entry.label || entry.value;
     const meta = documentRef.createElement('span');
     meta.className = 'muted';
-    meta.textContent = [
+    meta.textContent = buildThemeManagerMeta([
       entry.value,
       entry.version ? `v${entry.version}` : '',
       entry.builtIn ? 'built-in' : (entry.source && entry.source.type ? entry.source.type : '')
-    ].filter(Boolean).join(' · ');
+    ], productState, entry.value);
     body.appendChild(title);
     body.appendChild(meta);
     const actions = documentRef.createElement('div');
@@ -1138,11 +1191,12 @@ function renderInstalledThemes(runtime, registry, catalog) {
   });
 }
 
-function renderAvailableThemes(runtime, registry, catalog) {
+function renderAvailableThemes(runtime, registry, catalog, productState) {
   const { elements, catalogLoadError } = runtime.state;
   const documentRef = runtime.getDocument();
   if (!elements.availableList) return;
   clearElement(elements.availableList);
+  renderProductStateNotice(runtime, elements.availableList, productState);
   if (!catalog.length) {
     if (!documentRef) return;
     const empty = documentRef.createElement('p');
@@ -1162,7 +1216,7 @@ function renderAvailableThemes(runtime, registry, catalog) {
     title.textContent = entry.label || entry.value;
     const meta = documentRef.createElement('span');
     meta.className = 'muted';
-    meta.textContent = [entry.value, entry.repo || '', entry.description || ''].filter(Boolean).join(' · ');
+    meta.textContent = buildThemeManagerMeta([entry.value, entry.repo || '', entry.description || ''], productState, entry.value);
     body.appendChild(title);
     body.appendChild(meta);
     const actions = documentRef.createElement('div');
@@ -1191,12 +1245,13 @@ function renderAvailableThemes(runtime, registry, catalog) {
 
 async function renderThemeManager(runtime, options = {}) {
   if (!runtime.state.elements.root) return;
-  const [registry, catalog] = await Promise.all([
+  const [registry, catalog, productState] = await Promise.all([
     loadRegistry(runtime, options),
-    loadOfficialThemeCatalogWithRuntime(runtime, options)
+    loadOfficialThemeCatalogWithRuntime(runtime, options),
+    loadProductStateWithRuntime(runtime, options)
   ]);
-  renderInstalledThemes(runtime, registry, catalog);
-  renderAvailableThemes(runtime, registry, catalog);
+  renderInstalledThemes(runtime, registry, catalog, productState);
+  renderAvailableThemes(runtime, registry, catalog, productState);
   renderPendingFiles(runtime);
 }
 
@@ -1291,6 +1346,8 @@ function initThemeManagerWithRuntime(runtime, options = {}) {
         await renderThemeManager(runtime, { force: true });
         if (runtime.state.catalogLoadError) {
           setStatus(runtime, runtime.state.catalogLoadError, { tone: 'error' });
+        } else if (runtime.state.productStateLoadError) {
+          setStatus(runtime, runtime.state.productStateLoadError, { tone: 'error' });
         } else {
           setStatus(runtime, 'Theme catalog refreshed.', { tone: 'success' });
         }
@@ -1333,6 +1390,10 @@ function clearThemeManagerStateWithRuntime(runtime, options = {}) {
     if (options.keepCatalogCache !== true) {
       state.catalogCache = null;
       state.catalogLoadError = '';
+    }
+    if (options.keepProductStateCache !== true) {
+      state.productStateCache = null;
+      state.productStateLoadError = '';
     }
     renderThemeManager(runtime, { force: true }).catch(() => {});
   }
@@ -1378,6 +1439,12 @@ export function createThemeManagerController(options = {}) {
     getOfficialCatalogStatus() {
       return getOfficialThemeCatalogStatusWithRuntime(runtime);
     },
+    loadProductState(loadOptions = {}) {
+      return loadProductStateWithRuntime(runtime, loadOptions);
+    },
+    getProductStateStatus() {
+      return getProductStateStatusWithRuntime(runtime);
+    },
     stageCatalogTheme(catalogEntry, stageOptions = {}) {
       return stageCatalogThemeWithRuntime(runtime, catalogEntry, stageOptions);
     },
@@ -1419,6 +1486,14 @@ export function loadOfficialThemeCatalog(options = {}) {
 
 export function getOfficialThemeCatalogStatus() {
   return defaultThemeManagerController.getOfficialCatalogStatus();
+}
+
+export function loadThemeManagerProductState(options = {}) {
+  return defaultThemeManagerController.loadProductState(options);
+}
+
+export function getThemeManagerProductStateStatus() {
+  return defaultThemeManagerController.getProductStateStatus();
 }
 
 export function stageCatalogTheme(catalogEntry, options = {}) {

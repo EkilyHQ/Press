@@ -73,6 +73,9 @@ bash scripts/test-main-guard.sh
 bash scripts/test-frontmatter-roundtrip.sh
 bash scripts/test-system-release-package.sh
 bash scripts/test-system-release-workflow.sh
+bash scripts/test-product-state-workflow.sh
+node scripts/test-product-state-ledger.js
+node scripts/test-product-state-dashboard.js
 node --experimental-default-type=module scripts/test-encrypted-content.js
 node --experimental-default-type=module scripts/test-system-updates.js
 node --experimental-default-type=module scripts/test-theme-manager.js
@@ -91,6 +94,8 @@ System release manifests include `upgradeFrom` compatibility metadata. The edito
 Official documentation, site content, installed theme registry state, and external theme directories stay out of system update packages. Changes that only touch `wwwroot/` do not create a system release, and update packages must never include `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, workflow files, scripts, site-specific media such as `assets/avatar.png` and `assets/hero.jpeg`, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`.
 
 After a system release is published, the release workflow runs `scripts/dispatch-system-release.js` to notify downstream repositories. Configure the `Ekily Release` GitHub App for the `EkilyHQ` organization, install it on `YAP`, `Press-Theme-Starter`, and the official theme repositories, then set `EKILY_RELEASE_APP_ID` as a repository variable and `EKILY_RELEASE_PRIVATE_KEY` as a repository secret in `Press`. The workflow exchanges those credentials for an installation token and sends `press-system-release` repository dispatch events to rebuild YAP, refresh the theme starter version marker, and update official theme demo sites.
+
+The workflow also publishes a browser-readable product-state ledger at `release-artifacts/product-state.json` and a human-readable dashboard at `release-artifacts/product-state.html`. These files are generated status surfaces, not new sources of truth: they materialize the current Press system release, observed YAP and theme-demo runtime versions, the theme starter marker, official catalog entries, theme release manifests, and Connect health into one red/yellow/green product view. Theme Manager reads the JSON ledger to show official theme release state, but still installs from the catalog and theme release manifests. Run `node scripts/product-state-ledger.js --system-release dist/system-release.json --out dist/product-state.json` and `node scripts/product-state-dashboard.js --state dist/product-state.json --out dist/product-state.html` to generate the same surfaces locally, or add `--check` to the ledger command when using it as a release-state verifier.
 
 ## Branching
 

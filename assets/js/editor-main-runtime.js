@@ -1,4 +1,4 @@
-import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.51';
+import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.52';
 
 const LS_WRAP_KEY = 'press_editor_wrap_enabled';
 const LS_VIEW_KEY = 'press_editor_markdown_view_v2';

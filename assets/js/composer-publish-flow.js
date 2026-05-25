@@ -1,5 +1,5 @@
-import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.51';
-import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.51';
+import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.52';
+import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.52';
 
 function resolveAmbientFunction(name) {
   try {

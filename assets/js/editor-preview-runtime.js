@@ -1,26 +1,26 @@
 import './components.js';
-import { mdParse } from './markdown.js?v=press-system-v3.4.51';
+import { mdParse } from './markdown.js?v=press-system-v3.4.52';
 import { createContentModel } from './content-model.js';
 import { parseFrontMatter } from './content.js';
-import { setSafeHtml } from './safe-html.js?v=press-system-v3.4.51';
+import { setSafeHtml } from './safe-html.js?v=press-system-v3.4.52';
 import { hydratePostImages, hydratePostVideos, applyLazyLoadingIn } from './post-render.js';
-import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.51';
+import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.52';
 import { applyLangHints } from './typography.js';
-import { renderPressMath } from './math-render.js?v=press-system-v3.4.51';
-import { initSyntaxHighlighting } from './syntax-highlight.js?v=press-system-v3.4.51';
-import { setupAnchors, setupTOC } from './toc.js?v=press-system-v3.4.51';
-import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.51';
-import { renderPostNav } from './post-nav.js?v=press-system-v3.4.51';
-import { renderTagSidebar } from './tags.js?v=press-system-v3.4.51';
+import { renderPressMath } from './math-render.js?v=press-system-v3.4.52';
+import { initSyntaxHighlighting } from './syntax-highlight.js?v=press-system-v3.4.52';
+import { setupAnchors, setupTOC } from './toc.js?v=press-system-v3.4.52';
+import { initI18n, t, withLangParam } from './i18n.js?v=press-system-v3.4.52';
+import { renderPostNav } from './post-nav.js?v=press-system-v3.4.52';
+import { renderTagSidebar } from './tags.js?v=press-system-v3.4.52';
 import { getArticleTitleFromMain } from './dom-utils.js';
-import { createThemeLayoutController, createThemeI18nContext } from './theme-layout.js?v=press-system-v3.4.51';
-import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js?v=press-system-v3.4.51';
+import { createThemeLayoutController, createThemeI18nContext } from './theme-layout.js?v=press-system-v3.4.52';
+import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js?v=press-system-v3.4.52';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';
 const RENDERED_MESSAGE = 'press-editor-preview-rendered';
 const ERROR_MESSAGE = 'press-editor-preview-error';
-const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.51';
+const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.52';
 
 export function createEditorPreviewRuntimeController(
   previewRuntime = createEditorPreviewAppRuntime(),

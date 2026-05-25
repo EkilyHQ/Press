@@ -1,0 +1,77 @@
+name: Product State
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_run:
+    workflows:
+      - System Release
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-artifacts
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate product-state ledger
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          node scripts/product-state-ledger.js \
+            --out dist/product-state.json \
+            --allow-pending \
+            --allow-unknown
+          node scripts/product-state-dashboard.js \
+            --state dist/product-state.json \
+            --out dist/product-state.html
+
+      - name: Publish product-state ledger
+        run: |
+          set -euo pipefail
+          artifact_branch="release-artifacts"
+          product_state_path="product-state.json"
+          product_state_dashboard_path="product-state.html"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${artifact_branch}" || true
+          rm -rf artifacts-worktree
+          if git show-ref --verify --quiet "refs/remotes/origin/${artifact_branch}"; then
+            git worktree add artifacts-worktree "origin/${artifact_branch}"
+          else
+            git worktree add --detach artifacts-worktree
+            git -C artifacts-worktree checkout --orphan "${artifact_branch}"
+            git -C artifacts-worktree rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          cp dist/product-state.json "artifacts-worktree/${product_state_path}"
+          cp dist/product-state.html "artifacts-worktree/${product_state_dashboard_path}"
+          git -C artifacts-worktree add "${product_state_path}" "${product_state_dashboard_path}"
+          if git -C artifacts-worktree diff --cached --quiet; then
+            echo "Product-state ledger and dashboard are already current."
+          else
+            git -C artifacts-worktree commit -m "Refresh product state ledger"
+            git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
+          fi
+          git worktree remove artifacts-worktree --force
+
+      - name: Evaluate product-state ledger
+        run: |
+          node scripts/product-state-ledger.js \
+            --state dist/product-state.json \
+            --check \
+            --allow-pending \
+            --allow-unknown \
+            --quiet

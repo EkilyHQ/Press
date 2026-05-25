@@ -74,16 +74,14 @@ jobs:
         run: |
           set -euo pipefail
           site_dir="dist/pages"
-          rm -rf "${site_dir}"
-          mkdir -p "${site_dir}"
-
-          while IFS= read -r -d '' file; do
-            mkdir -p "${site_dir}/$(dirname "${file}")"
-            cp "${file}" "${site_dir}/${file}"
-          done < <(git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot)
-
           tag="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(tag);")"
-          node scripts/sync-runtime-cache-keys.mjs --materialize-root "${site_dir}" --tag "${tag}"
+          bash scripts/build-pages-artifact.sh "${site_dir}" "${tag}"
+          package_dir="$(mktemp -d)"
+          archive_path="$(bash scripts/package-system-release.sh "${tag}" "${package_dir}")"
+          node scripts/verify-pages-artifact.mjs \
+            --pages-root "${site_dir}" \
+            --system-archive "${archive_path}" \
+            --tag "${tag}"
 
       - name: Configure Pages
         uses: actions/configure-pages@v6

@@ -62,6 +62,7 @@ export function getPressSystemRuntimeRoots(options = {}) {
 export function getPressSystemReleasePlanPaths(options = {}) {
   const paths = new Set(SYSTEM_PACKAGE_PATHS);
   if (options.includePagesMaterializer) {
+    paths.add('scripts/build-pages-artifact.sh');
     paths.add('scripts/sync-runtime-cache-keys.mjs');
   }
   return [...paths];

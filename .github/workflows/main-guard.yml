@@ -31,3 +31,4 @@ jobs:
           node scripts/test-dispatch-system-release.js
           node scripts/test-product-state-ledger.js
           bash scripts/test-pages-workflow.sh
+          bash scripts/test-pages-artifact.sh

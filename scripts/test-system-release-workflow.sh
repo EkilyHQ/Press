@@ -15,6 +15,11 @@ if grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'group: release-artifacts' "${workflow}" >/dev/null; then
+  echo "system release workflow must share the release-artifacts concurrency group with product-state refreshes" >&2
+  exit 1
+fi
+
 if ! awk '
   /^  release:/ { in_release = 1; next }
   in_release && /^  [A-Za-z0-9_-]+:/ { in_release = 0 }
@@ -70,6 +75,21 @@ fi
 
 if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --check' "${workflow}" >/dev/null; then
   echo "system release workflow must verify runtime cache keys before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'bash scripts/test-product-state-workflow.sh' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the product-state refresh workflow contract before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-product-state-ledger.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must run product-state ledger tests before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-product-state-dashboard.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must run product-state dashboard tests before publishing" >&2
   exit 1
 fi
 
@@ -183,6 +203,16 @@ if ! grep -F 'manifest_path="system-release.json"' "${workflow}" >/dev/null; the
   exit 1
 fi
 
+if ! grep -F 'product_state_path="product-state.json"' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish the product-state ledger at the release-artifacts root" >&2
+  exit 1
+fi
+
+if ! grep -F 'product_state_dashboard_path="product-state.html"' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish the product-state dashboard at the release-artifacts root" >&2
+  exit 1
+fi
+
 if ! grep -F 'export FETCHABLE_ASSET_URL="${artifact_url}"' "${workflow}" >/dev/null; then
   echo "system release manifest must receive the fetchable artifact URL" >&2
   exit 1
@@ -208,13 +238,53 @@ if ! grep -F 'Path("dist/system-release.json").write_text' "${workflow}" >/dev/n
   exit 1
 fi
 
+if ! grep -F 'node scripts/product-state-ledger.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must generate the product-state ledger from the release manifest" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--system-release dist/system-release.json' "${workflow}" >/dev/null; then
+  echo "product-state ledger generation must use the freshly generated system-release manifest" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--out dist/product-state.json' "${workflow}" >/dev/null; then
+  echo "product-state ledger generation must write dist/product-state.json" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/product-state-dashboard.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must generate the product-state dashboard from the ledger" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--state dist/product-state.json' "${workflow}" >/dev/null; then
+  echo "product-state dashboard generation must read the freshly generated ledger" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--out dist/product-state.html' "${workflow}" >/dev/null; then
+  echo "product-state dashboard generation must write dist/product-state.html" >&2
+  exit 1
+fi
+
 if ! grep -F 'cp dist/system-release.json "artifacts-worktree/${manifest_path}"' "${workflow}" >/dev/null; then
   echo "system release workflow must copy the manifest into release-artifacts" >&2
   exit 1
 fi
 
-if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${manifest_path}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must commit the ZIP and manifest together on release-artifacts" >&2
+if ! grep -F 'cp dist/product-state.json "artifacts-worktree/${product_state_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must copy the product-state ledger into release-artifacts" >&2
+  exit 1
+fi
+
+if ! grep -F 'cp dist/product-state.html "artifacts-worktree/${product_state_dashboard_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must copy the product-state dashboard into release-artifacts" >&2
+  exit 1
+fi
+
+if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${product_state_path}" "${product_state_dashboard_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must commit the ZIP, manifest, product-state ledger, and dashboard together on release-artifacts" >&2
   exit 1
 fi
 

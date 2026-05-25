@@ -6,7 +6,7 @@ import {
   parseMarkdownFrontMatter,
   resolveFrontMatterBindings,
   valueIsPresent
-} from './frontmatter-document.js?v=press-system-v3.4.51';
+} from './frontmatter-document.js?v=press-system-v3.4.52';
 
 const fallbackTranslate = (key) => key;
 const fallbackGetCurrentLang = () => 'en';

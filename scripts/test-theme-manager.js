@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
-import { setPressSystemManifestForTests } from '../assets/js/press-version.js?v=press-system-v3.4.50';
+import { setPressSystemManifestForTests } from '../assets/js/press-version.js?v=press-system-v3.4.52';
+import { PRODUCT_STATE_URL } from '../assets/js/product-state.js?product-state-test';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 if (!globalThis.btoa) {
@@ -32,9 +33,11 @@ const {
   collectThemeArchiveEntries,
   createThemeManagerController,
   getOfficialThemeCatalogStatus,
+  getThemeManagerProductStateStatus,
   getThemeManagerCommitFiles,
   handleImportFile,
   initThemeManager,
+  loadThemeManagerProductState,
   loadOfficialThemeCatalog,
   normalizeThemeCatalog,
   normalizeThemeRegistry,
@@ -139,6 +142,14 @@ function mockFetchRegistry(registry, options = {}) {
       }
       return { ok: true, json: async () => catalog };
     }
+    if (url === PRODUCT_STATE_URL) {
+      if (options.productStateFailure) {
+        return { ok: false, json: async () => ({}) };
+      }
+      if (options.productState) {
+        return { ok: true, json: async () => options.productState };
+      }
+    }
     if (Object.prototype.hasOwnProperty.call(jsonFiles, url)) {
       return { ok: true, json: async () => jsonFiles[url] };
     }
@@ -174,6 +185,8 @@ await run('exposes theme manager through an explicit controller facade', async (
   assert.equal(typeof controller.handleImportFile, 'function');
   assert.equal(typeof controller.loadOfficialCatalog, 'function');
   assert.equal(typeof controller.getOfficialCatalogStatus, 'function');
+  assert.equal(typeof controller.loadProductState, 'function');
+  assert.equal(typeof controller.getProductStateStatus, 'function');
   assert.equal(typeof controller.stageCatalogTheme, 'function');
   assert.equal(typeof controller.stageUninstall, 'function');
 });
@@ -185,6 +198,8 @@ await run('scopes theme manager state to controller instances', async () => {
     'registryCache',
     'catalogCache',
     'catalogLoadError',
+    'productStateCache',
+    'productStateLoadError',
     'currentSummary',
     'currentFiles',
     'currentThemeDigest',
@@ -261,6 +276,128 @@ function themeTextFiles(slug, files) {
     out[path] = file.endsWith('.json') ? '{}' : '';
   });
   return out;
+}
+
+function makeElement(tagName = 'div') {
+  const element = {
+    tagName: String(tagName).toUpperCase(),
+    children: [],
+    dataset: {},
+    style: {},
+    attributes: {},
+    listeners: {},
+    className: '',
+    textContent: '',
+    hidden: false,
+    disabled: false,
+    type: '',
+    value: '',
+    files: [],
+    classList: {
+      toggle() {}
+    },
+    appendChild(child) {
+      this.children.push(child);
+      return child;
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = String(value);
+    },
+    addEventListener(type, listener) {
+      this.listeners[type] = listener;
+    },
+    click() {
+      if (this.listeners.click) this.listeners.click({ target: this });
+    }
+  };
+  Object.defineProperty(element, 'innerHTML', {
+    get() {
+      return '';
+    },
+    set() {
+      this.children = [];
+      this.textContent = '';
+    }
+  });
+  return element;
+}
+
+function makeThemeManagerDocument() {
+  const elements = Object.create(null);
+  const register = (id, tagName = 'div') => {
+    const element = makeElement(tagName);
+    element.id = id;
+    elements[id] = element;
+    return element;
+  };
+  register('mode-themes');
+  register('themeManagerStatus');
+  register('themeManagerInstalledList');
+  register('themeManagerAvailableList');
+  register('themeManagerPendingSection', 'section');
+  register('themeManagerFileList', 'ul');
+  register('themeImportFileInput', 'input');
+  register('btnThemeImport', 'button');
+  register('btnThemeImportInline', 'button');
+  register('btnThemeRefreshCatalog', 'button');
+  register('btnThemeClearStaged', 'button');
+  const tabs = ['installed', 'available', 'import'].map((view) => {
+    const button = makeElement('button');
+    button.dataset.themeManagerView = view;
+    return button;
+  });
+  const panels = ['installed', 'available', 'import'].map((view) => {
+    const panel = makeElement('section');
+    panel.dataset.themeManagerPanel = view;
+    return panel;
+  });
+  return {
+    elements,
+    createElement: makeElement,
+    getElementById(id) {
+      return elements[id] || null;
+    },
+    querySelectorAll(selector) {
+      if (selector === '[data-theme-manager-view]') return tabs;
+      if (selector === '[data-theme-manager-panel]') return panels;
+      return [];
+    }
+  };
+}
+
+function collectElementText(element) {
+  if (!element) return '';
+  return [
+    element.textContent || '',
+    ...element.children.map(collectElementText)
+  ].filter(Boolean).join(' ');
+}
+
+async function waitFor(predicate) {
+  for (let i = 0; i < 10; i += 1) {
+    if (predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  assert.equal(predicate(), true);
+}
+
+function makeProductState(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    type: 'ekily-product-state',
+    generatedAt: '2026-05-25T00:00:00.000Z',
+    status: 'ok',
+    pressSystem: { status: 'ok', version: '3.4.52', tag: 'v3.4.52' },
+    downstream: {},
+    themeDemos: {},
+    themes: {
+      catalog: { status: 'ok', count: 1 },
+      entries: []
+    },
+    connect: { status: 'ok' },
+    problems: [],
+    ...overrides
+  };
 }
 
 async function run(name, fn) {
@@ -351,6 +488,64 @@ await run('deduplicates remote catalog slugs', async () => {
   const loaded = await loadOfficialThemeCatalog({ force: true });
   assert.equal(loaded.length, 1);
   assert.equal(loaded[0].label, 'Arcus');
+});
+
+await run('loads and caches the product state ledger', async () => {
+  const productState = makeProductState({
+    themes: {
+      catalog: { status: 'ok', count: 1 },
+      entries: [{ slug: 'arcus', label: 'Arcus', status: 'ok', version: '1.2.3' }]
+    }
+  });
+  mockFetchRegistry([{ value: 'native', label: 'Native' }], { productState });
+  const loaded = await loadThemeManagerProductState({ force: true });
+  assert.equal(loaded.status, 'ok');
+  assert.equal(loaded.themes.entries[0].slug, 'arcus');
+  assert.equal(getThemeManagerProductStateStatus().status, 'ok');
+  const seen = [];
+  globalThis.fetch = async (input) => {
+    seen.push(String(input || '').split('?')[0]);
+    return { ok: true, json: async () => makeProductState({ status: 'pending' }) };
+  };
+  assert.equal((await loadThemeManagerProductState()).status, 'ok');
+  assert.equal(seen.length, 0);
+  assert.equal((await loadThemeManagerProductState({ force: true })).status, 'pending');
+  assert.deepEqual(seen, [PRODUCT_STATE_URL]);
+});
+
+await run('keeps theme manager usable when product state is unavailable', async () => {
+  mockFetchRegistry([{ value: 'native', label: 'Native' }], { productStateFailure: true });
+  const loaded = await loadThemeManagerProductState({ force: true });
+  assert.equal(loaded, null);
+  assert.match(getThemeManagerProductStateStatus().error, /unavailable/i);
+});
+
+await run('renders product-state release metadata for official themes', async () => {
+  const documentRef = makeThemeManagerDocument();
+  const productState = makeProductState({
+    themes: {
+      catalog: { status: 'ok', count: 1 },
+      entries: [{ slug: 'arcus', label: 'Arcus', status: 'ok', version: '1.2.3' }]
+    }
+  });
+  mockFetchRegistry([{ value: 'native', label: 'Native', builtIn: true, removable: false, files: [] }], {
+    catalog: {
+      schemaVersion: 1,
+      themes: [
+        { value: 'arcus', label: 'Arcus', repo: 'EkilyHQ/Press-Theme-Arcus', manifestUrl: 'https://example.test/arcus.json' }
+      ]
+    },
+    productState
+  });
+  const controller = createThemeManagerController({ documentRef });
+  controller.init({
+    getCurrentThemePack: () => 'native',
+    setSiteThemePack: () => {}
+  });
+  await waitFor(() => collectElementText(documentRef.elements.themeManagerAvailableList).includes('release ok v1.2.3'));
+  const availableText = collectElementText(documentRef.elements.themeManagerAvailableList);
+  assert.match(availableText, /Arcus/);
+  assert.match(availableText, /release ok v1\.2\.3/);
 });
 
 await run('normalizes release manifests and rejects contract mismatch', async () => {

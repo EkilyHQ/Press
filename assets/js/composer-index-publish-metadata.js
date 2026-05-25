@@ -1,5 +1,5 @@
-import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js?v=press-system-v3.4.51';
-import { parseEncryptedMarkdownEnvelope } from './encrypted-content.js?v=press-system-v3.4.51';
+import { computeReadTime, extractExcerpt, parseFrontMatter } from './content.js?v=press-system-v3.4.52';
+import { parseEncryptedMarkdownEnvelope } from './encrypted-content.js?v=press-system-v3.4.52';
 
 const INDEX_PUBLISH_METADATA_KEYS = new Set([
   'location',

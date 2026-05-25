@@ -5,7 +5,7 @@ import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
 import {
   satisfiesSemverRange,
   setPressSystemManifestForTests
-} from '../assets/js/press-version.js?v=press-system-v3.4.51';
+} from '../assets/js/press-version.js?v=press-system-v3.4.52';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 if (!globalThis.btoa) {

@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: system-release
+  group: release-artifacts
   cancel-in-progress: false
 
 jobs:
@@ -28,6 +28,9 @@ jobs:
           node scripts/sync-runtime-cache-keys.mjs --check
           bash scripts/test-system-release-package.sh
           bash scripts/test-system-release-workflow.sh
+          bash scripts/test-product-state-workflow.sh
+          node scripts/test-product-state-ledger.js
+          node scripts/test-product-state-dashboard.js
           node --experimental-default-type=module scripts/test-system-updates.js
 
       - name: Plan release
@@ -273,6 +276,8 @@ jobs:
           artifact_branch="release-artifacts"
           artifact_path="${tag}/${asset}"
           manifest_path="system-release.json"
+          product_state_path="product-state.json"
+          product_state_dashboard_path="product-state.html"
           artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"
           export FETCHABLE_ASSET_URL="${artifact_url}"
 
@@ -322,6 +327,14 @@ jobs:
               encoding="utf-8"
           )
           PY
+          node scripts/product-state-ledger.js \
+            --system-release dist/system-release.json \
+            --out dist/product-state.json \
+            --allow-pending \
+            --allow-unknown
+          node scripts/product-state-dashboard.js \
+            --state dist/product-state.json \
+            --out dist/product-state.html
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -338,9 +351,11 @@ jobs:
           mkdir -p "artifacts-worktree/${tag}"
           cp "${{ steps.package.outputs.archive_path }}" "artifacts-worktree/${artifact_path}"
           cp dist/system-release.json "artifacts-worktree/${manifest_path}"
-          git -C artifacts-worktree add "${artifact_path}" "${manifest_path}"
+          cp dist/product-state.json "artifacts-worktree/${product_state_path}"
+          cp dist/product-state.html "artifacts-worktree/${product_state_dashboard_path}"
+          git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${product_state_path}" "${product_state_dashboard_path}"
           if git -C artifacts-worktree diff --cached --quiet; then
-            echo "Artifact ${artifact_path} and ${manifest_path} are already published."
+            echo "Artifact ${artifact_path}, ${manifest_path}, ${product_state_path}, and ${product_state_dashboard_path} are already published."
           else
             git -C artifacts-worktree commit -m "Publish ${asset}"
             git -C artifacts-worktree push origin "HEAD:${artifact_branch}"

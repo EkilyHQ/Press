@@ -177,6 +177,10 @@ function resolveAssetPath(fromFile, rawRef) {
 
 function isManagedRuntimeAsset(rootDir, fromFile, rawRef) {
   const resolved = resolveAssetPath(fromFile, rawRef);
+  return isManagedRuntimeAssetPath(rootDir, resolved);
+}
+
+function isManagedRuntimeAssetPath(rootDir, resolved) {
   if (!resolved) return false;
   const ext = path.posix.extname(resolved).toLowerCase();
   if (!MANAGED_EXTENSIONS.has(ext)) return false;
@@ -189,6 +193,34 @@ function isManagedRuntimeAsset(rootDir, fromFile, rawRef) {
     return fs.existsSync(path.join(rootDir, resolved));
   }
   return false;
+}
+
+function extractPressCacheKey(rawRef) {
+  const { pathAndQuery } = splitHash(rawRef);
+  const { query } = splitQuery(pathAndQuery);
+  if (!query) return '';
+  const match = query.split('&').find((part) => /^v=press-system-v\d+\.\d+\.\d+$/.test(part));
+  return match ? match.slice(2) : '';
+}
+
+function importReferenceKind(prefix) {
+  const raw = String(prefix || '');
+  if (/^@import\b/.test(raw.trim())) return 'css-import';
+  if (/\bimport\s*\(\s*$/.test(raw)) return 'dynamic-import';
+  return 'module-import';
+}
+
+function pushRuntimeReference(refs, rootDir, relPath, rawRef, kind, match) {
+  const target = resolveAssetPath(relPath, rawRef);
+  if (!isManagedRuntimeAssetPath(rootDir, target)) return;
+  refs.push({
+    from: relPath,
+    to: target,
+    kind,
+    specifier: String(rawRef || ''),
+    cacheKey: extractPressCacheKey(rawRef),
+    match
+  });
 }
 
 function splitHash(value) {
@@ -357,21 +389,23 @@ function collectRefsForVerification(rootDir, relPath, source) {
   const refs = [];
   source.replace(
     /(\bfrom\s*|\bimport\s*(?:\(\s*)?|@import\s+)(['"`])([^'"`]+)(\2)/g,
-    (match, _prefix, _quote, rawRef) => {
-      if (isManagedRuntimeAsset(rootDir, relPath, rawRef)) refs.push({ rawRef, match });
+    (match, prefix, _quote, rawRef) => {
+      pushRuntimeReference(refs, rootDir, relPath, rawRef, importReferenceKind(prefix), match);
       return match;
     }
   );
   source.replace(
     /(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g,
-    (match, _prefix, _quote, rawRef) => {
-      if (isManagedRuntimeAsset(rootDir, relPath, rawRef)) refs.push({ rawRef, match });
+    (match, prefix, _quote, rawRef) => {
+      const attrMatch = prefix.match(/\b(src|href)\s*=/i);
+      const attr = attrMatch ? attrMatch[1].toLowerCase() : 'attr';
+      pushRuntimeReference(refs, rootDir, relPath, rawRef, `html-${attr}`, match);
       return match;
     }
   );
   if (relPath === LANGUAGE_MANIFEST) {
     source.replace(/("module"\s*:\s*")([^"]+)(")/g, (match, _prefix, rawRef) => {
-      if (isManagedRuntimeAsset(rootDir, relPath, rawRef)) refs.push({ rawRef, match });
+      pushRuntimeReference(refs, rootDir, relPath, rawRef, 'language-module', match);
       return match;
     });
   }
@@ -382,8 +416,8 @@ function findMaterializedGaps(rootDir, cacheKeyValue) {
   const gaps = [];
   rewriteTargetFiles(rootDir).forEach((file) => {
     const source = readText(rootDir, file);
-    collectRefsForVerification(rootDir, file, source).forEach(({ rawRef, match }) => {
-      const { pathAndQuery } = splitHash(rawRef);
+    collectRefsForVerification(rootDir, file, source).forEach(({ specifier, match }) => {
+      const { pathAndQuery } = splitHash(specifier);
       const { query } = splitQuery(pathAndQuery);
       const params = query.split('&').filter(Boolean);
       if (!params.includes(`v=${cacheKeyValue}`)) {
@@ -404,6 +438,61 @@ function sha256File(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+function collectNativeThemeManifestEdges(rootDir, cacheKeyValue) {
+  const relPath = 'assets/themes/native/theme.json';
+  const full = path.join(rootDir, relPath);
+  if (!fs.existsSync(full)) return [];
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(full, 'utf8'));
+  } catch (_) {
+    return [];
+  }
+  const edges = [];
+  const addEntries = (kind, entries) => {
+    (Array.isArray(entries) ? entries : []).forEach((entry) => {
+      const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
+      if (!safeEntry || safeEntry.includes('..') || safeEntry.includes('\\')) return;
+      const target = `assets/themes/native/${safeEntry}`;
+      if (!isManagedRuntimeAssetPath(rootDir, target)) return;
+      edges.push({
+        from: relPath,
+        to: target,
+        kind,
+        specifier: cacheKeyValue ? `${safeEntry}?v=${cacheKeyValue}` : safeEntry,
+        cacheKey: cacheKeyValue
+      });
+    });
+  };
+  addEntries('theme-style', manifest.styles && manifest.styles.length ? manifest.styles : ['theme.css']);
+  addEntries('theme-module', manifest.modules);
+  return edges;
+}
+
+function collectRuntimeGraphEdges(rootDir, cacheKeyValue) {
+  const edges = [];
+  rewriteTargetFiles(rootDir).forEach((file) => {
+    const source = readText(rootDir, file);
+    collectRefsForVerification(rootDir, file, source).forEach((ref) => {
+      edges.push({
+        from: ref.from,
+        to: ref.to,
+        kind: ref.kind,
+        specifier: ref.specifier,
+        cacheKey: ref.cacheKey
+      });
+    });
+  });
+  edges.push(...collectNativeThemeManifestEdges(rootDir, cacheKeyValue));
+  return Array.from(new Map(edges.map((edge) => [
+    `${edge.from}\0${edge.kind}\0${edge.to}\0${edge.specifier}`,
+    edge
+  ])).values()).sort((a, b) => {
+    return `${a.from}\0${a.kind}\0${a.to}\0${a.specifier}`
+      .localeCompare(`${b.from}\0${b.kind}\0${b.to}\0${b.specifier}`);
+  });
+}
+
 function writeRuntimeManifest(rootDir, tagValue, versionValue, cacheKeyValue) {
   const files = manifestTargetFiles(rootDir);
   const entries = files.map((file) => {
@@ -415,6 +504,7 @@ function writeRuntimeManifest(rootDir, tagValue, versionValue, cacheKeyValue) {
       sha256: sha256File(absolute)
     };
   });
+  const edges = collectRuntimeGraphEdges(rootDir, cacheKeyValue);
   const manifest = {
     schemaVersion: 1,
     type: 'press-runtime-assets',
@@ -422,7 +512,11 @@ function writeRuntimeManifest(rootDir, tagValue, versionValue, cacheKeyValue) {
     tag: tagValue,
     cacheKey: cacheKeyValue,
     strategy: 'query-param',
-    entries
+    entries,
+    graph: {
+      edgeCount: edges.length,
+      edges
+    }
   };
   writeText(rootDir, RUNTIME_MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
 }

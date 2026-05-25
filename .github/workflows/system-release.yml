@@ -270,6 +270,7 @@ jobs:
           EXPECTED_ASSET: ${{ steps.plan.outputs.asset_name }}
           EXPECTED_SIZE: ${{ steps.package.outputs.archive_size }}
           EXPECTED_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+          ARCHIVE_PATH: ${{ steps.package.outputs.archive_path }}
         run: |
           set -euo pipefail
           tag="${{ steps.plan.outputs.next_tag }}"
@@ -287,6 +288,7 @@ jobs:
           import json
           import os
           import sys
+          import zipfile
           from pathlib import Path
 
           with open("dist/release-published.json", "r", encoding="utf-8") as fh:
@@ -307,6 +309,24 @@ jobs:
 
           asset = assets[0]
           digest = str(asset.get("digest") or "").lower() or f"sha256:{expected_sha}"
+          runtime_manifest_path = "assets/press-runtime-manifest.json"
+          runtime = {}
+          with zipfile.ZipFile(os.environ["ARCHIVE_PATH"]) as archive:
+              runtime_name = f"press-system-{tag}/{runtime_manifest_path}"
+              try:
+                  runtime = json.loads(archive.read(runtime_name).decode("utf-8"))
+              except KeyError:
+                  sys.exit(f"release archive is missing {runtime_manifest_path}")
+          runtime_entries = runtime.get("entries") if isinstance(runtime.get("entries"), list) else []
+          runtime_graph = runtime.get("graph") if isinstance(runtime.get("graph"), dict) else {}
+          runtime_edges = runtime_graph.get("edges") if isinstance(runtime_graph.get("edges"), list) else []
+          expected_cache_key = f"press-system-{tag}"
+          if runtime.get("schemaVersion") != 1 or runtime.get("type") != "press-runtime-assets":
+              sys.exit("runtime manifest must use the press-runtime-assets schema")
+          if runtime.get("version") != version or runtime.get("tag") != tag or runtime.get("cacheKey") != expected_cache_key:
+              sys.exit("runtime manifest version, tag, and cacheKey must match the release")
+          if not runtime_entries or not runtime_edges:
+              sys.exit("runtime manifest must include file inventory and asset graph edges")
           manifest = {
               "schemaVersion": 1,
               "name": release.get("name") or release.get("tag_name") or "",
@@ -315,6 +335,14 @@ jobs:
               "publishedAt": release.get("published_at") or release.get("created_at") or "",
               "notes": release.get("body") or "",
               "upgradeFrom": system.get("upgradeFrom") or {},
+              "runtime": {
+                  "manifestPath": runtime_manifest_path,
+                  "type": runtime.get("type") or "",
+                  "strategy": runtime.get("strategy") or "",
+                  "cacheKey": runtime.get("cacheKey") or "",
+                  "entryCount": len(runtime_entries),
+                  "edgeCount": len(runtime_edges)
+              },
               "htmlUrl": release.get("html_url") or "",
               "asset": {
                   "name": asset.get("name") or expected_name,

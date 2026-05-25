@@ -613,6 +613,28 @@ if (manifest.cacheKey !== `press-system-${process.env.EXPECTED_TAG}`) {
 if (!Array.isArray(manifest.entries) || !manifest.entries.some((entry) => entry.path === 'assets/main.js')) {
   throw new Error('runtime manifest must inventory runtime files');
 }
+const paths = new Set(manifest.entries.map((entry) => entry && entry.path).filter(Boolean));
+const graph = manifest.graph && typeof manifest.graph === 'object' ? manifest.graph : {};
+if (!Array.isArray(graph.edges) || !graph.edges.length || graph.edgeCount !== graph.edges.length) {
+  throw new Error('runtime manifest must include a materialized asset graph');
+}
+function requireEdge(from, to, kind) {
+  if (!graph.edges.some((edge) => edge.from === from && edge.to === to && edge.kind === kind)) {
+    throw new Error(`runtime manifest graph missing ${kind} edge ${from} -> ${to}`);
+  }
+}
+for (const edge of graph.edges) {
+  if (!paths.has(edge.from)) throw new Error(`runtime graph edge source is not inventoried: ${edge.from}`);
+  if (!paths.has(edge.to)) throw new Error(`runtime graph edge target is not inventoried: ${edge.to}`);
+  if (edge.cacheKey !== `press-system-${process.env.EXPECTED_TAG}`) {
+    throw new Error(`runtime graph edge has stale cache key: ${edge.from} -> ${edge.to}`);
+  }
+}
+requireEdge('index.html', 'assets/main.js', 'html-src');
+requireEdge('assets/main.js', 'assets/js/markdown.js', 'dynamic-import');
+requireEdge('assets/main.js', 'assets/js/theme-layout.js', 'module-import');
+requireEdge('assets/themes/native/theme.css', 'assets/themes/native/base.css', 'css-import');
+requireEdge('assets/themes/native/theme.json', 'assets/themes/native/modules/interactions.js', 'theme-module');
 NODE
 
 assert_zip_contains() {

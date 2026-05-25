@@ -13,7 +13,19 @@ function sampleState(overrides = {}) {
     type: 'ekily-product-state',
     generatedAt: '2026-05-25T00:00:00Z',
     status: 'ok',
-    pressSystem: { status: 'ok', version: '3.4.52', tag: 'v3.4.52' },
+    pressSystem: {
+      status: 'ok',
+      version: '3.4.52',
+      tag: 'v3.4.52',
+      runtime: {
+        manifestPath: 'assets/press-runtime-manifest.json',
+        type: 'press-runtime-assets',
+        strategy: 'query-param',
+        cacheKey: 'press-system-v3.4.52',
+        entryCount: 125,
+        edgeCount: 300
+      }
+    },
     downstream: {
       yap: {
         label: 'YAP starter runtime',
@@ -59,6 +71,8 @@ test('renderProductStateDashboard renders human-readable product status sections
   const html = renderProductStateDashboard(sampleState());
   assert.match(html, /Ekily Product State/);
   assert.match(html, /Press System/);
+  assert.match(html, /Runtime Graph/);
+  assert.match(html, /125 files \/ 300 edges/);
   assert.match(html, /v3\.4\.52/);
   assert.match(html, /YAP starter runtime/);
   assert.match(html, /Official Themes/);

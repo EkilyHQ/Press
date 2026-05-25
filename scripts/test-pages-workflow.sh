@@ -55,6 +55,16 @@ if ! grep -F 'gh release view --json tagName' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must compare the Press system surface with the latest release before enforcing cache-key advancement" >&2
+  exit 1
+fi
+
+if ! grep -F 'No unreleased Press system surface changes; Pages can reuse ${latest_tag}.' "${workflow}" >/dev/null; then
+  echo "Pages workflow must allow workflow-only or non-system deploys to reuse the current release cache key" >&2
+  exit 1
+fi
+
 if ! grep -F 'Pages deploy cache key' "${workflow}" >/dev/null; then
   echo "Pages workflow must reject deployments that reuse the latest release cache key" >&2
   exit 1

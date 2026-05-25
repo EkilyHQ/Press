@@ -68,7 +68,7 @@ export function createEditorBlocksInlineDomSession({
       parent.appendChild(span);
       return;
     }
-    const textNode = createTextNode(parent, String(run && run.text != null ? run.text : ''));
+    const textNode = createTextNode(parent, String(run.text != null ? run.text : ''));
     if (!textNode) return;
     let node = textNode;
     const wrap = (tagName, attrs = {}) => {

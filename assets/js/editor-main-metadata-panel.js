@@ -102,7 +102,7 @@ export function createEditorMainMetadataPanel(options = {}) {
   const translateWithLocaleFallback = (key, fallbacks = {}) => {
     const translated = translate(key, null);
     if (translated != null && translated !== key) return translated;
-    let lang = 'en';
+    let lang;
     try {
       lang = normalizeLang(getCurrentLang()) || 'en';
     } catch (_) {

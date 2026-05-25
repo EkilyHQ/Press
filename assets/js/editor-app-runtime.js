@@ -550,7 +550,7 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
       return true;
     } catch (_) {
       try {
-        if (windowRef && typeof windowRef.scrollTo === 'function') {
+        if (typeof windowRef.scrollTo === 'function') {
           windowRef.scrollTo(0, 0);
           return true;
         }

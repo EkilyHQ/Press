@@ -11,7 +11,7 @@ function defaultQueueTask(task) {
 function blockIdFor(block) {
   if (!block) return '';
   if (typeof block === 'object') return String(block.id || '');
-  return String(block || '');
+  return String(block);
 }
 
 function safeArray(value) {

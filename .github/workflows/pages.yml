@@ -44,7 +44,9 @@ jobs:
             exit 0
           fi
 
-          changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
+          git fetch --no-tags --force --depth=1 origin "refs/tags/${latest_tag}:refs/tags/${latest_tag}"
+
+          changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native scripts/sync-runtime-cache-keys.mjs)"
           if [[ -z "${changed_system_files}" ]]; then
             echo "No unreleased Press system surface changes; Pages can reuse ${latest_tag}."
             exit 0

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { COMPOSER_SERVICE_PLAN, COMPOSER_SERVICE_SLOTS } from '../assets/js/composer-app-services.js';
 import { createComposerServiceRegistry } from '../assets/js/composer-service-registry.js';
 
 const registry = createComposerServiceRegistry();
@@ -24,6 +25,14 @@ assert.deepEqual(
   ],
   'composer service registry should expose only named composer service slots'
 );
+assert.deepEqual(
+  COMPOSER_SERVICE_SLOTS,
+  COMPOSER_SERVICE_PLAN.map(entry => entry.slot),
+  'composer service plan should be the registry slot source of truth'
+);
+COMPOSER_SERVICE_PLAN.forEach((entry) => {
+  assert.equal(typeof registry[entry.setter], 'function', `${entry.setter} should be exposed`);
+});
 
 assert.equal(registry.getCurrentMode(), null, 'missing mode controller should read as no active mode');
 assert.equal(registry.applyMode('site'), false, 'missing mode controller should ignore apply requests');

@@ -46,6 +46,7 @@ import {
   createComposerRuntime
 } from './composer-runtime.js';
 import { createComposerServiceRegistry } from './composer-service-registry.js';
+import { createComposerServiceLifecycle } from './composer-app-services.js';
 import { createComposerFilePanelController } from './composer-file-panel-controller.js';
 import { createComposerPublishService } from './composer-publish-service.js';
 import { createComposerNotificationController } from './composer-notifications.js';
@@ -424,6 +425,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     registerExternalStagingProviders: (registry) => composerSystemThemeBridge.registerStagingProviders(registry)
   });
   const composerServices = createComposerServiceRegistry();
+  const composerServiceLifecycle = createComposerServiceLifecycle(composerServices);
   const editorSessionStateStore = createEditorSessionStateStore({
     storage: editorRuntime.storage,
     scopeKey: scopedEditorStorageKey,
@@ -434,7 +436,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     editorStateVersion: EDITOR_STATE_VERSION
   });
   const expandedEditorTreeNodeIds = editorRuntime.getExpandedEditorTreeNodeIds();
-  composerServices.setMarkdownDraftController(createComposerMarkdownDraftController({
+  composerServiceLifecycle.setMarkdownDraftController(createComposerMarkdownDraftController({
     markdownDraftStore,
     normalizeRelPath,
     normalizeAssetDescriptor,
@@ -462,7 +464,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay),
     clearTimeoutRef: (id) => editorRuntime.clearTimer(id)
   }));
-  composerServices.setMarkdownLoader(createComposerMarkdownLoader({
+  composerServiceLifecycle.setMarkdownLoader(createComposerMarkdownLoader({
     getContentRootSafe,
     normalizeRelPath,
     normalizeMarkdownContent,
@@ -484,7 +486,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     openProtectionTitle: () => t('editor.composer.markdown.protection.openTitle'),
     openProtectionMessage: () => t('editor.composer.markdown.protection.openMessage')
   }));
-  composerServices.setMarkdownActionsUi(createComposerMarkdownActionsUi({
+  composerServiceLifecycle.setMarkdownActionsUi(createComposerMarkdownActionsUi({
     documentRef: composerDocument,
     translate: t,
     getCurrentMode: () => getCurrentComposerMode(),
@@ -674,7 +676,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     setEditorDetailPanelMode,
     setEditorStructurePanelVisible
   } = editorDetailPanelController;
-  composerServices.setMarkdownSessionController(createComposerMarkdownSessionController({
+  composerServiceLifecycle.setMarkdownSessionController(createComposerMarkdownSessionController({
     editorStateVersion: EDITOR_STATE_VERSION,
     editorSessionStateStore,
     normalizeRelPath,
@@ -714,7 +716,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     updateMarkdownActionsForTab,
     updateComposerMarkdownDraftIndicators
   }));
-  composerServices.setMarkdownWorkspaceController(createComposerMarkdownWorkspaceController({
+  composerServiceLifecycle.setMarkdownWorkspaceController(createComposerMarkdownWorkspaceController({
     getPrimaryEditorApi: () => editorRuntime.globals.getPrimaryEditorApi(),
     getMarkdownSessionController,
     getMarkdownActionsUi,
@@ -727,7 +729,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     inferMarkdownSourceFromPath,
     buildCurrentFileBreadcrumb
   }));
-  composerServices.setModeController(createComposerModeController({
+  composerServiceLifecycle.setModeController(createComposerModeController({
     documentRef: composerDocument,
     getDynamicEditorTabs: () => getDynamicEditorTabs(),
     isDynamicMode,
@@ -871,7 +873,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     renderComposerInlineSummary,
     renderOrderStatsChips
   } = composerDiffUi;
-  composerServices.setUnsyncedSummaryController(createComposerUnsyncedSummaryController({
+  composerServiceLifecycle.setUnsyncedSummaryController(createComposerUnsyncedSummaryController({
     documentRef: composerDocument,
     getDynamicEditorTabs: () => getDynamicEditorTabs(),
     normalizeRelPath,
@@ -1977,6 +1979,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function start() {
+    composerServiceLifecycle.assertReady();
     initializeComposerApp({
       documentRef: composerDocument,
       onDocumentReady: editorRuntime.onDocumentReady,

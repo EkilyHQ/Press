@@ -1,4 +1,4 @@
-import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.52';
+import { createBrowserEditorAppRuntime } from './editor-app-runtime.js';
 
 const POPULATE_EDITOR_LANGUAGE_SELECT_GLOBAL = '__pressPopulateEditorLanguageSelect';
 const SOFT_RESET_LANG_GLOBAL = '__press_softResetLang';

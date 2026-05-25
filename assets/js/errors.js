@@ -1,5 +1,5 @@
 // errors.js — lightweight global error overlay and reporter
-import { t } from './i18n.js?v=press-system-v3.4.52';
+import { t } from './i18n.js';
 
 const ERROR_HANDLERS_INSTALLED = Symbol('pressErrorHandlersInstalled');
 

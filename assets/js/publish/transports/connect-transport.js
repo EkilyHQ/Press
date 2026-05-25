@@ -1,4 +1,4 @@
-import { CONNECT_PUBLISH_MESSAGE_TYPE } from '../settings-store.js?v=press-system-v3.4.52';
+import { CONNECT_PUBLISH_MESSAGE_TYPE } from '../settings-store.js';
 
 function resolveAmbientValue(name) {
   try {

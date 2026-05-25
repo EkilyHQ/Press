@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
-import { setPressSystemManifestForTests } from '../assets/js/press-version.js?v=press-system-v3.4.52';
+import { setPressSystemManifestForTests } from '../assets/js/press-version.js';
 import { PRODUCT_STATE_URL } from '../assets/js/product-state.js?product-state-test';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;

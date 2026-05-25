@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
-import { dirname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const themeSource = readFileSync(resolve(here, '../assets/js/theme.js'), 'utf8');
 let importCounter = 0;
+
+assert.doesNotMatch(
+  themeSource,
+  /^const\s+suppressedThemePacks\s*=\s*new Set\(\)/m,
+  'theme-pack suppression state should not be module-level mutable state'
+);
+assert.match(
+  themeSource,
+  /function createThemePackState\(\) \{[\s\S]*suppressedThemePacks: new Set\(\)[\s\S]*export function createThemePackController\(\) \{[\s\S]*const runtime = createThemePackRuntime\(\)[\s\S]*isSuppressed\(name\)/,
+  'theme-pack suppression state should be scoped to explicit controller runtimes'
+);
 
 class TestElement {
   constructor(tagName) {
@@ -237,6 +250,17 @@ await run('unlocked site defaults do not clear a pending pack switch', async () 
   applyThemeConfig({ themePack: 'native', themeOverride: false });
   assert.equal(getPendingThemePack(), 'cartograph');
   assert.equal(getRequestedThemePack(), 'cartograph');
+});
+
+await run('theme pack controllers isolate suppressed state', async () => {
+  installGlobals({ savedPack: 'native' });
+  const { createThemePackController, isThemePackSuppressed } = await freshThemeHelpers();
+  const first = createThemePackController();
+  const second = createThemePackController();
+  first.suppress('cartograph');
+  assert.equal(first.isSuppressed('cartograph'), true);
+  assert.equal(second.isSuppressed('cartograph'), false);
+  assert.equal(isThemePackSuppressed('cartograph'), false);
 });
 
 await run('theme modules load in parallel and mount in manifest order', async () => {

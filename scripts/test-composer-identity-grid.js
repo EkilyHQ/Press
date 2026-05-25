@@ -1682,8 +1682,8 @@ assert.match(
 
 assert.match(
   hiEditorSource,
-  /const legacyEditorRegistry = new Map\(\);[\s\S]*function createHiEditorRuntime\(options = \{\}\) \{[\s\S]*const editorRegistry = options\.editorRegistry instanceof Map[\s\S]*\? options\.editorRegistry[\s\S]*: legacyEditorRegistry;[\s\S]*hasEditorApi\(id\)[\s\S]*getEditorApi\(id\)[\s\S]*setEditorApi\(id, api\)/,
-  'HiEditor runtime should accept an injected editor registry while preserving the legacy SEO registry path'
+  /function createHiEditorCompatibilityState\(\) \{[\s\S]*legacyEditorRegistry: new Map\(\)[\s\S]*function getLegacyEditorRegistry\(\)[\s\S]*function createHiEditorRuntime\(options = \{\}\) \{[\s\S]*const editorRegistry = options\.editorRegistry instanceof Map[\s\S]*\? options\.editorRegistry[\s\S]*: getLegacyEditorRegistry\(\);[\s\S]*hasEditorApi\(id\)[\s\S]*getEditorApi\(id\)[\s\S]*setEditorApi\(id, api\)/,
+  'HiEditor runtime should accept an injected editor registry while preserving the legacy registry path through explicit compatibility state'
 );
 
 assert.doesNotMatch(

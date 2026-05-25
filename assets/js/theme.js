@@ -7,8 +7,27 @@ const THEME_CONTROLS_I18N_BOUND = Symbol('pressThemeControlsI18nBound');
 const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 const THEME_PACK_KEY = 'themePack';
 const THEME_PACK_PENDING_KEY = 'themePackPending';
-const suppressedThemePacks = new Set();
 const COMPONENTS_READY = Symbol('pressComponentsReady');
+
+function createThemePackState() {
+  return {
+    suppressedThemePacks: new Set()
+  };
+}
+
+function createThemePackRuntime() {
+  return {
+    state: createThemePackState()
+  };
+}
+
+const defaultThemePackRuntime = createThemePackRuntime();
+
+function getSuppressedThemePacks(runtime = defaultThemePackRuntime) {
+  return runtime && runtime.state && runtime.state.suppressedThemePacks instanceof Set
+    ? runtime.state.suppressedThemePacks
+    : defaultThemePackRuntime.state.suppressedThemePacks;
+}
 
 function ensurePressComponents() {
   if (typeof window === 'undefined' || typeof document === 'undefined' || typeof customElements === 'undefined') return null;
@@ -67,7 +86,8 @@ function buildThemePackHref(pack, options = {}) {
   return cacheKey ? `${baseHref}?v=${encodeURIComponent(cacheKey)}` : baseHref;
 }
 
-export function setThemePackStylesheet(name, options = {}) {
+export function setThemePackStylesheet(name, options = {}, runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pack = sanitizePack(name);
   if (pack !== 'native' && suppressedThemePacks.has(pack) && options.allowSuppressed !== true) return '';
   const link = document.getElementById(PACK_LINK_ID);
@@ -77,12 +97,13 @@ export function setThemePackStylesheet(name, options = {}) {
   return href;
 }
 
-export function loadThemePack(name) {
+export function loadThemePack(name, runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pack = sanitizePack(name);
   setStoredPack(THEME_PACK_KEY, pack);
   removeStoredPack(THEME_PACK_PENDING_KEY);
   suppressedThemePacks.delete(pack);
-  setThemePackStylesheet(pack, { allowSuppressed: true });
+  setThemePackStylesheet(pack, { allowSuppressed: true }, runtime);
 }
 
 export function getSavedThemePack() {
@@ -93,7 +114,8 @@ export function getPendingThemePack() {
   return getStoredPack(THEME_PACK_PENDING_KEY) || '';
 }
 
-export function getRequestedThemePack() {
+export function getRequestedThemePack(runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pending = getPendingThemePack();
   if (pending) return pending;
   const saved = getSavedThemePack();
@@ -101,7 +123,8 @@ export function getRequestedThemePack() {
   return saved;
 }
 
-function getThemeControlPack() {
+function getThemeControlPack(runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pending = getPendingThemePack();
   if (pending && !suppressedThemePacks.has(pending)) return pending;
   const saved = getSavedThemePack();
@@ -109,20 +132,22 @@ function getThemeControlPack() {
   return saved;
 }
 
-export function requestThemePackSwitch(name) {
+export function requestThemePackSwitch(name, runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pack = sanitizePack(name);
   suppressedThemePacks.delete(pack);
   setStoredPack(THEME_PACK_PENDING_KEY, pack);
 }
 
-export function commitThemePack(name, options = {}) {
+export function commitThemePack(name, options = {}, runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pack = sanitizePack(name);
   suppressedThemePacks.delete(pack);
   setStoredPack(THEME_PACK_KEY, pack);
   const pending = getPendingThemePack();
   if (!pending || pending === pack || options.clearPending !== false) removeStoredPack(THEME_PACK_PENDING_KEY);
   if (options.applyStyles !== false) {
-    setThemePackStylesheet(pack, { ...options, allowSuppressed: true });
+    setThemePackStylesheet(pack, { ...options, allowSuppressed: true }, runtime);
   }
 }
 
@@ -132,24 +157,26 @@ export function clearPendingThemePack(name) {
   if (!name || pending === sanitizePack(name)) removeStoredPack(THEME_PACK_PENDING_KEY);
 }
 
-export function suppressThemePack(name) {
+export function suppressThemePack(name, runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pack = sanitizePack(name);
   if (pack !== 'native') suppressedThemePacks.add(pack);
 }
 
-export function isThemePackSuppressed(name) {
+export function isThemePackSuppressed(name, runtime = defaultThemePackRuntime) {
+  const suppressedThemePacks = getSuppressedThemePacks(runtime);
   const pack = sanitizePack(name);
   return pack !== 'native' && suppressedThemePacks.has(pack);
 }
 
-function storeConfiguredThemePack(pack) {
-  if (!pack || isThemePackSuppressed(pack)) return;
+function storeConfiguredThemePack(pack, runtime = defaultThemePackRuntime) {
+  if (!pack || isThemePackSuppressed(pack, runtime)) return;
   setStoredPack(THEME_PACK_KEY, pack);
   removeStoredPack(THEME_PACK_PENDING_KEY);
-  if (pack === 'native') setThemePackStylesheet(pack);
+  if (pack === 'native') setThemePackStylesheet(pack, {}, runtime);
 }
 
-export function applySavedTheme() {
+export function applySavedTheme(runtime = defaultThemePackRuntime) {
   try {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
@@ -158,13 +185,13 @@ export function applySavedTheme() {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
   } catch (_) { /* ignore */ }
-  const pack = getRequestedThemePack();
-  if (pack === 'native') setThemePackStylesheet(pack);
+  const pack = getRequestedThemePack(runtime);
+  if (pack === 'native') setThemePackStylesheet(pack, {}, runtime);
 }
 
 // Apply theme according to site config. When override = true, it forces the
 // site-defined values and updates localStorage to keep UI in sync.
-export function applyThemeConfig(siteConfig) {
+export function applyThemeConfig(siteConfig, runtime = defaultThemePackRuntime) {
   const cfg = siteConfig || {};
   const override = cfg.themeOverride !== false; // default true
   const mode = (cfg.themeMode || '').toLowerCase(); // 'dark' | 'light' | 'auto' | 'user'
@@ -192,10 +219,10 @@ export function applyThemeConfig(siteConfig) {
     if (mode === 'dark' || mode === 'light' || mode === 'auto') setMode(mode);
     else if (mode === 'user') {
       // Respect user choice entirely; if none, fall back to system preference
-      applySavedTheme();
+      applySavedTheme(runtime);
     }
     if (pack) {
-      storeConfiguredThemePack(pack);
+      storeConfiguredThemePack(pack, runtime);
     }
   } else {
     // Respect user choice; but if site provides a default and no user choice exists,
@@ -210,8 +237,44 @@ export function applyThemeConfig(siteConfig) {
       // When mode is 'user' and there's no saved user theme, do nothing here;
       // the boot code/applySavedTheme already applied system preference as a soft default.
     }
-    if (!hasUserPack && pack) storeConfiguredThemePack(pack);
+    if (!hasUserPack && pack) storeConfiguredThemePack(pack, runtime);
   }
+}
+
+export function createThemePackController() {
+  const runtime = createThemePackRuntime();
+  return {
+    setStylesheet(name, options = {}) {
+      return setThemePackStylesheet(name, options, runtime);
+    },
+    load(name) {
+      return loadThemePack(name, runtime);
+    },
+    getRequested() {
+      return getRequestedThemePack(runtime);
+    },
+    requestSwitch(name) {
+      return requestThemePackSwitch(name, runtime);
+    },
+    commit(name, options = {}) {
+      return commitThemePack(name, options, runtime);
+    },
+    clearPending(name) {
+      return clearPendingThemePack(name);
+    },
+    suppress(name) {
+      return suppressThemePack(name, runtime);
+    },
+    isSuppressed(name) {
+      return isThemePackSuppressed(name, runtime);
+    },
+    applySaved() {
+      return applySavedTheme(runtime);
+    },
+    applyConfig(siteConfig) {
+      return applyThemeConfig(siteConfig, runtime);
+    }
+  };
 }
 
 export function bindThemeToggle() {

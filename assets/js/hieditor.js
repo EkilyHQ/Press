@@ -225,7 +225,17 @@ function cleanupMarkerArtifacts(html) {
   return out;
 }
 
-const legacyEditorRegistry = new Map();
+function createHiEditorCompatibilityState() {
+  return {
+    legacyEditorRegistry: new Map()
+  };
+}
+
+const defaultHiEditorCompatibilityState = createHiEditorCompatibilityState();
+
+function getLegacyEditorRegistry() {
+  return defaultHiEditorCompatibilityState.legacyEditorRegistry;
+}
 
 function getAmbientDocument() {
   try { return typeof document !== 'undefined' ? document : null; }
@@ -250,7 +260,7 @@ function createHiEditorRuntime(options = {}) {
   const allowAmbient = options.allowAmbient !== false;
   const editorRegistry = options.editorRegistry instanceof Map
     ? options.editorRegistry
-    : legacyEditorRegistry;
+    : getLegacyEditorRegistry();
   const documentRef = options.documentRef || (allowAmbient ? getAmbientDocument() : null);
   const windowRef = options.windowRef || (allowAmbient ? getAmbientWindow() : null);
   const navigatorRef = options.navigatorRef || (allowAmbient ? getAmbientNavigator(windowRef) : null);

@@ -1,15 +1,7 @@
-const SERVICE_NAMES = [
-  'markdownActionsUi',
-  'markdownDraftController',
-  'markdownLoader',
-  'markdownSessionController',
-  'markdownWorkspaceController',
-  'modeController',
-  'unsyncedSummaryController'
-];
+import { COMPOSER_SERVICE_PLAN, COMPOSER_SERVICE_SLOTS } from './composer-app-services.js';
 
 function createEmptyServices() {
-  return SERVICE_NAMES.reduce((result, name) => {
+  return COMPOSER_SERVICE_SLOTS.reduce((result, name) => {
     result[name] = null;
     return result;
   }, {});
@@ -21,6 +13,7 @@ function createMissingServiceError(label) {
 
 export function createComposerServiceRegistry() {
   const services = createEmptyServices();
+  const labelsBySlot = new Map(COMPOSER_SERVICE_PLAN.map(entry => [entry.slot, entry.label]));
 
   const get = (name) => services[name] || null;
   const set = (name, service) => {
@@ -42,12 +35,12 @@ export function createComposerServiceRegistry() {
   return {
     applyMode: (...args) => call('modeController', 'applyMode', false, ...args),
     getCurrentMode: () => call('modeController', 'getCurrentMode', null),
-    getMarkdownActionsUi: () => requireService('markdownActionsUi', 'Markdown actions UI'),
-    getMarkdownDraftController: () => requireService('markdownDraftController', 'Markdown draft controller'),
-    getMarkdownLoader: () => requireService('markdownLoader', 'Markdown loader'),
-    getMarkdownSessionController: () => requireService('markdownSessionController', 'Markdown session controller'),
-    getMarkdownWorkspaceController: () => requireService('markdownWorkspaceController', 'Markdown workspace controller'),
-    getUnsyncedSummaryController: () => requireService('unsyncedSummaryController', 'Unsynced summary controller'),
+    getMarkdownActionsUi: () => requireService('markdownActionsUi', labelsBySlot.get('markdownActionsUi')),
+    getMarkdownDraftController: () => requireService('markdownDraftController', labelsBySlot.get('markdownDraftController')),
+    getMarkdownLoader: () => requireService('markdownLoader', labelsBySlot.get('markdownLoader')),
+    getMarkdownSessionController: () => requireService('markdownSessionController', labelsBySlot.get('markdownSessionController')),
+    getMarkdownWorkspaceController: () => requireService('markdownWorkspaceController', labelsBySlot.get('markdownWorkspaceController')),
+    getUnsyncedSummaryController: () => requireService('unsyncedSummaryController', labelsBySlot.get('unsyncedSummaryController')),
     setMarkdownActionsUi: (service) => set('markdownActionsUi', service),
     setMarkdownDraftController: (service) => set('markdownDraftController', service),
     setMarkdownLoader: (service) => set('markdownLoader', service),

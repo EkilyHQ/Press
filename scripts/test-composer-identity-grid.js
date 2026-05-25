@@ -50,6 +50,7 @@ const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-syste
 const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js');
 const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
 const composerServiceRegistryPath = resolve(here, '../assets/js/composer-service-registry.js');
+const composerAppServicesPath = resolve(here, '../assets/js/composer-app-services.js');
 const composerFilePanelControllerPath = resolve(here, '../assets/js/composer-file-panel-controller.js');
 const composerEditorDetailPanelControllerPath = resolve(here, '../assets/js/composer-editor-detail-panel-controller.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
@@ -173,6 +174,7 @@ const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePa
 const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
 const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
 const composerServiceRegistrySource = readFileSync(composerServiceRegistryPath, 'utf8');
+const composerAppServicesSource = readFileSync(composerAppServicesPath, 'utf8');
 const composerFilePanelControllerSource = readFileSync(composerFilePanelControllerPath, 'utf8');
 const composerEditorDetailPanelControllerSource = readFileSync(composerEditorDetailPanelControllerPath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
@@ -1221,8 +1223,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerServices = createComposerServiceRegistry\(\);[\s\S]*composerServices\.setMarkdownDraftController\(createComposerMarkdownDraftController\(\{[\s\S]*composerServices\.setMarkdownLoader\(createComposerMarkdownLoader\(\{[\s\S]*composerServices\.setMarkdownActionsUi\(createComposerMarkdownActionsUi\(\{[\s\S]*composerServices\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServices\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*composerServices\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
-  'composer should register late-bound controllers through the explicit composer service registry'
+  /const composerServices = createComposerServiceRegistry\(\);\s*const composerServiceLifecycle = createComposerServiceLifecycle\(composerServices\);[\s\S]*composerServiceLifecycle\.setMarkdownDraftController\(createComposerMarkdownDraftController\(\{[\s\S]*composerServiceLifecycle\.setMarkdownLoader\(createComposerMarkdownLoader\(\{[\s\S]*composerServiceLifecycle\.setMarkdownActionsUi\(createComposerMarkdownActionsUi\(\{[\s\S]*composerServiceLifecycle\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServiceLifecycle\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServiceLifecycle\.setModeController\(createComposerModeController\(\{[\s\S]*composerServiceLifecycle\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
+  'composer should register late-bound controllers through the explicit composer service lifecycle'
 );
 
 assert.doesNotMatch(
@@ -1232,14 +1234,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  composerServiceRegistrySource,
-  /const SERVICE_NAMES = \[[\s\S]*'markdownActionsUi'[\s\S]*'markdownDraftController'[\s\S]*'markdownLoader'[\s\S]*'markdownSessionController'[\s\S]*'markdownWorkspaceController'[\s\S]*'modeController'[\s\S]*'unsyncedSummaryController'[\s\S]*\];/,
-  'composer service registry should name every allowed late-bound composer dependency'
+  composerAppServicesSource,
+  /export const COMPOSER_SERVICE_PLAN = Object\.freeze\(\[[\s\S]*slot: 'markdownDraftController'[\s\S]*slot: 'markdownLoader'[\s\S]*slot: 'markdownActionsUi'[\s\S]*slot: 'markdownSessionController'[\s\S]*slot: 'markdownWorkspaceController'[\s\S]*slot: 'modeController'[\s\S]*slot: 'unsyncedSummaryController'[\s\S]*\]\);/,
+  'composer app service plan should name every allowed late-bound composer dependency'
 );
 
 assert.match(
   composerServiceRegistrySource,
-  /getCurrentMode: \(\) => call\('modeController', 'getCurrentMode', null\),[\s\S]*getMarkdownDraftController: \(\) => requireService\('markdownDraftController', 'Markdown draft controller'\),[\s\S]*getMarkdownWorkspaceController: \(\) => requireService\('markdownWorkspaceController', 'Markdown workspace controller'\),[\s\S]*setModeController: \(service\) => set\('modeController', service\),/,
+  /import \{ COMPOSER_SERVICE_PLAN, COMPOSER_SERVICE_SLOTS \} from '\.\/composer-app-services\.js';[\s\S]*getCurrentMode: \(\) => call\('modeController', 'getCurrentMode', null\),[\s\S]*getMarkdownDraftController: \(\) => requireService\('markdownDraftController', labelsBySlot\.get\('markdownDraftController'\)\),[\s\S]*getMarkdownWorkspaceController: \(\) => requireService\('markdownWorkspaceController', labelsBySlot\.get\('markdownWorkspaceController'\)\),[\s\S]*setModeController: \(service\) => set\('modeController', service\),/,
   'composer service registry should expose explicit service getters and setters instead of anonymous root slots'
 );
 
@@ -1263,7 +1265,7 @@ assert.match(
 
 assert.match(
   source,
-  /composerServices\.setModeController\(createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\)\);/,
+  /composerServiceLifecycle\.setModeController\(createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\)\);/,
   'composer should inject mode-controller frame scheduling, alerts, and logging through the runtime boundary'
 );
 

@@ -88,6 +88,16 @@ if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --check' "${workflow}" >/
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-composer-app-services.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the composer app service lifecycle before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-composer-service-registry.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the composer service registry before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-press-system-surface.mjs' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the shared Press system surface before publishing" >&2
   exit 1

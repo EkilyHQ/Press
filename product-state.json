@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T11:03:24.329Z",
+  "generatedAt": "2026-05-25T11:17:32.650Z",
   "status": "ok",
   "desired": {
     "source": "press-system-release",
@@ -341,7 +341,7 @@
   },
   "problems": [],
   "observed": {
-    "checkedAt": "2026-05-25T11:03:24.329Z",
+    "checkedAt": "2026-05-25T11:17:32.650Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",

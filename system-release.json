@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.52",
-  "tag": "v3.4.52",
-  "version": "3.4.52",
-  "publishedAt": "2026-05-25T06:24:51Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.52.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.52.zip`\n- SHA-256: `64bdf04e9d9843a7e186f51f824f58b9f6a80958c30975d63762c18651e44a19`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-editor-shell.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-markdown-assets.js\n- assets/js/composer-markdown-drafts.js\n- assets/js/composer-markdown-state.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-service.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-publish-state-service.js\n- assets/js/composer-runtime.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer-sync-commit-controller.js\n- assets/js/composer-system-theme-bridge.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks-caret-session.js\n- assets/js/editor-blocks-code-session.js\n- assets/js/editor-blocks-runtime.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot-runtime.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main-blocks-session.js\n- assets/js/editor-main-content-service.js\n- assets/js/editor-main-image-session.js\n- assets/js/editor-main-metadata-panel.js\n- assets/js/editor-main-runtime.js\n- assets/js/editor-main-workspace-session.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-app-runtime.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/post-nav.js\n- assets/js/product-state.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.51...v3.4.52\n",
+  "name": "v3.4.53",
+  "tag": "v3.4.53",
+  "version": "3.4.53",
+  "publishedAt": "2026-05-25T08:10:39Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.53.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.53.zip`\n- SHA-256: `6cbc1e49b02979b41067b0042aa796cf2ae154896ee16e0f019062645216a20c`\n\n## Changed System Files\n\n- assets/i18n/cht-hk.js\n- assets/i18n/languages.json\n- assets/js/composer-content-staging.js\n- assets/js/composer-editor-shell.js\n- assets/js/composer-index-publish-metadata.js\n- assets/js/composer-markdown-assets.js\n- assets/js/composer-markdown-drafts.js\n- assets/js/composer-markdown-state.js\n- assets/js/composer-post-commit-state.js\n- assets/js/composer-publish-flow.js\n- assets/js/composer-publish-service.js\n- assets/js/composer-publish-settings-ui.js\n- assets/js/composer-publish-state-service.js\n- assets/js/composer-runtime.js\n- assets/js/composer-seo-staging.js\n- assets/js/composer-sync-commit-controller.js\n- assets/js/composer-system-theme-bridge.js\n- assets/js/composer.js\n- assets/js/content.js\n- assets/js/editor-blocks-caret-session.js\n- assets/js/editor-blocks-code-session.js\n- assets/js/editor-blocks-runtime.js\n- assets/js/editor-blocks.js\n- assets/js/editor-boot-runtime.js\n- assets/js/editor-boot.js\n- assets/js/editor-drafts.js\n- assets/js/editor-main-blocks-session.js\n- assets/js/editor-main-content-service.js\n- assets/js/editor-main-image-session.js\n- assets/js/editor-main-metadata-panel.js\n- assets/js/editor-main-runtime.js\n- assets/js/editor-main-workspace-session.js\n- assets/js/editor-main.js\n- assets/js/editor-preview-app-runtime.js\n- assets/js/editor-preview-runtime.js\n- assets/js/encrypted-content.js\n- assets/js/errors.js\n- assets/js/hieditor.js\n- assets/js/i18n.js\n- assets/js/link-cards.js\n- assets/js/math-render.js\n- assets/js/post-nav.js\n- assets/js/publish/commit-service.js\n- assets/js/publish/transports/connect-transport.js\n- assets/js/seo.js\n- assets/js/system-updates.js\n- assets/js/tags.js\n- assets/js/templates.js\n- assets/js/theme-boot.js\n- assets/js/theme-layout.js\n- assets/js/theme-manager.js\n- assets/js/theme.js\n- assets/js/toc.js\n- assets/main.js\n- assets/press-system.json\n- assets/themes/native/modules/interactions.js\n- assets/themes/native/theme.css\n- index.html\n- index_editor.html\n- index_editor_preview.html\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.52...v3.4.53\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.51 <3.4.52"
+      ">=3.4.52 <3.4.53"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.51 first."
+    "message": "Update to v3.4.52 first."
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.52",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.53",
   "asset": {
-    "name": "press-system-v3.4.52.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.52/press-system-v3.4.52.zip",
-    "size": 1742089,
-    "digest": "sha256:64bdf04e9d9843a7e186f51f824f58b9f6a80958c30975d63762c18651e44a19"
+    "name": "press-system-v3.4.53.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.53/press-system-v3.4.53.zip",
+    "size": 1755794,
+    "digest": "sha256:6cbc1e49b02979b41067b0042aa796cf2ae154896ee16e0f019062645216a20c"
   }
 }

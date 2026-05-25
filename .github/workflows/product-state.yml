@@ -74,6 +74,8 @@ jobs:
           git worktree remove artifacts-worktree --force
 
       - name: Evaluate product-state ledger
+        env:
+          REQUIRE_CONVERGED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.require_converged == 'true' && 'true' || 'false' }}
         run: |
           set -euo pipefail
           check_args=(
@@ -81,7 +83,7 @@ jobs:
             --check
             --quiet
           )
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.require_converged }}" == "true" ]]; then
+          if [[ "${REQUIRE_CONVERGED}" == "true" ]]; then
             check_args+=(--require-converged)
           else
             check_args+=(--allow-pending --allow-unknown)

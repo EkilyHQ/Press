@@ -26,35 +26,59 @@ const RELEASE_MANIFEST_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press/re
 const SYSTEM_UPDATE_ALLOWED_PATH_PATTERN = /^(?:index\.html|index_editor\.html|index_editor_preview\.html|assets\/(?:press-system\.json|main\.js|js\/.+|i18n\/.+|schema\/.+|themes\/native\/.+))$/;
 const SYSTEM_UPDATE_BLOCKED_PATH_PATTERN = /^(?:\.git\/|\.github\/|wwwroot\/|site\.ya?ml$|site\.local\.ya?ml$|CNAME$|robots\.txt$|sitemap\.xml$|README(?:\.md)?$|BRANCHING\.md$|scripts\/|assets\/(?:avatar\.png|avatar\.jpe?g|hero\.jpeg)$)/i;
 
-let initialized = false;
-let releaseCache = null;
-let busy = false;
-let currentSummary = [];
-let currentFiles = [];
-let assetSha256 = '';
-let assetSize = 0;
-let assetName = '';
-let currentPressSystem = null;
+function createSystemUpdateElements() {
+  return {
+    root: null,
+    status: null,
+    downloadLink: null,
+    downloadButton: null,
+    selectButton: null,
+    fileInput: null,
+    fileSection: null,
+    fileList: null,
+    notes: null,
+    notesWrap: null,
+    currentVersion: null,
+    targetVersion: null,
+    metaTitle: null,
+    metaPublished: null,
+    assetMeta: null
+  };
+}
 
-const listeners = new Set();
+function createSystemUpdatesState() {
+  return {
+    initialized: false,
+    releaseCache: null,
+    busy: false,
+    currentSummary: [],
+    currentFiles: [],
+    assetSha256: '',
+    assetSize: 0,
+    assetName: '',
+    currentPressSystem: null,
+    listeners: new Set(),
+    elements: createSystemUpdateElements()
+  };
+}
 
-const elements = {
-  root: null,
-  status: null,
-  downloadLink: null,
-  downloadButton: null,
-  selectButton: null,
-  fileInput: null,
-  fileSection: null,
-  fileList: null,
-  notes: null,
-  notesWrap: null,
-  currentVersion: null,
-  targetVersion: null,
-  metaTitle: null,
-  metaPublished: null,
-  assetMeta: null
-};
+function createSystemUpdatesRuntime(options = {}) {
+  const state = createSystemUpdatesState();
+  const documentRef = options.documentRef || null;
+  const fetchImpl = typeof options.fetchImpl === 'function' ? options.fetchImpl : null;
+
+  return {
+    state,
+    getDocument() {
+      return documentRef || (typeof document !== 'undefined' ? document : null);
+    },
+    getFetch() {
+      if (fetchImpl) return fetchImpl;
+      if (typeof fetch === 'function') return fetch;
+      throw new Error('System update fetch is unavailable.');
+    }
+  };
+}
 
 function getBuffer(view) {
   if (view instanceof Uint8Array) {
@@ -127,25 +151,28 @@ function formatSize(bytes) {
   return `${value} ${units[unit]}`;
 }
 
-function setStatus(text, options = {}) {
+function setStatus(runtime, text, options = {}) {
+  const { elements } = runtime.state;
   if (!elements.status) return;
   const { tone = 'info' } = options;
   elements.status.textContent = text ? String(text) : '';
   elements.status.dataset.tone = tone;
 }
 
-function setBusy(flag) {
-  busy = !!flag;
+function setBusy(runtime, flag) {
+  const state = runtime.state;
+  const { elements } = state;
+  state.busy = !!flag;
   if (elements.downloadButton) {
-    elements.downloadButton.disabled = busy;
-    elements.downloadButton.dataset.state = busy ? 'busy' : 'idle';
+    elements.downloadButton.disabled = state.busy;
+    elements.downloadButton.dataset.state = state.busy ? 'busy' : 'idle';
   }
   if (elements.selectButton) {
-    elements.selectButton.disabled = busy;
-    elements.selectButton.dataset.state = busy ? 'busy' : 'idle';
+    elements.selectButton.disabled = state.busy;
+    elements.selectButton.dataset.state = state.busy ? 'busy' : 'idle';
   }
   if (elements.fileInput) {
-    elements.fileInput.disabled = busy;
+    elements.fileInput.disabled = state.busy;
   }
 }
 
@@ -154,7 +181,8 @@ function clearList(node) {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
 
-function renderNotes(body) {
+function renderNotes(runtime, body) {
+  const { elements } = runtime.state;
   if (!elements.notes) return;
   const raw = typeof body === 'string' ? body : '';
   const trimmed = raw.trim();
@@ -174,27 +202,31 @@ function renderNotes(body) {
   elements.notes.textContent = t('editor.systemUpdates.noNotes');
 }
 
-function notify() {
+function notify(runtime) {
+  const state = runtime.state;
   const snapshot = {
-    summary: currentSummary.slice(),
-    files: currentFiles.slice()
+    summary: state.currentSummary.slice(),
+    files: state.currentFiles.slice()
   };
-  listeners.forEach((fn) => {
+  state.listeners.forEach((fn) => {
     try { fn(snapshot); } catch (_) { /* noop */ }
   });
 }
 
-function applySummary(entries, files) {
-  currentSummary = Array.isArray(entries) ? entries : [];
-  currentFiles = Array.isArray(files) ? files : [];
-  renderFileList();
-  notify();
+function applySummary(runtime, entries, files) {
+  const state = runtime.state;
+  state.currentSummary = Array.isArray(entries) ? entries : [];
+  state.currentFiles = Array.isArray(files) ? files : [];
+  renderFileList(runtime);
+  notify(runtime);
 }
 
-function renderFileList() {
+function renderFileList(runtime) {
+  const { elements, currentSummary } = runtime.state;
+  const documentRef = runtime.getDocument();
   const section = elements.fileSection;
   const list = elements.fileList;
-  if (!section || !list) return;
+  if (!section || !list || !documentRef) return;
   clearList(list);
   if (!currentSummary.length) {
     section.hidden = true;
@@ -204,13 +236,13 @@ function renderFileList() {
   section.hidden = false;
   section.setAttribute('aria-hidden', 'false');
   currentSummary.forEach((entry) => {
-    const item = document.createElement('li');
+    const item = documentRef.createElement('li');
     item.className = 'updates-file-item';
     if (entry && entry.state) item.dataset.state = entry.state;
-    const name = document.createElement('span');
+    const name = documentRef.createElement('span');
     name.className = 'updates-file-name';
     name.textContent = entry.label || entry.path || '';
-    const badge = document.createElement('span');
+    const badge = documentRef.createElement('span');
     badge.className = 'updates-file-badge';
     if (entry && entry.state === 'added') badge.textContent = t('editor.systemUpdates.fileStatus.added');
     else if (entry && entry.state === 'modified') badge.textContent = t('editor.systemUpdates.fileStatus.modified');
@@ -426,21 +458,23 @@ function versionLabel(version) {
   return normalized ? `v${normalized}` : t('editor.systemUpdates.unknownVersion');
 }
 
-function renderCurrentPressVersion() {
+function renderCurrentPressVersion(runtime) {
+  const { elements, currentPressSystem } = runtime.state;
   if (!elements.currentVersion) return;
   elements.currentVersion.textContent = t('editor.systemUpdates.currentVersionLabel', {
     version: versionLabel(currentPressSystem && currentPressSystem.version)
   });
 }
 
-async function refreshCurrentPressSystem(options = {}) {
+async function refreshCurrentPressSystem(runtime, options = {}) {
+  const state = runtime.state;
   try {
-    currentPressSystem = await loadPressSystemManifest(options);
+    state.currentPressSystem = await loadPressSystemManifest(options);
   } catch (_) {
-    currentPressSystem = null;
+    state.currentPressSystem = null;
   }
-  renderCurrentPressVersion();
-  return currentPressSystem;
+  renderCurrentPressVersion(runtime);
+  return state.currentPressSystem;
 }
 
 function readArchivePressSystemManifest(entries) {
@@ -455,7 +489,8 @@ function readArchivePressSystemManifest(entries) {
   }
 }
 
-function assertSystemUpdateCompatibility(release, archiveSystem) {
+function assertSystemUpdateCompatibility(runtime, release, archiveSystem) {
+  const { currentPressSystem } = runtime.state;
   const targetVersion = normalizeSemver(
     (archiveSystem && archiveSystem.version) || (release && (release.version || release.tag)) || ''
   );
@@ -474,14 +509,15 @@ function assertSystemUpdateCompatibility(release, archiveSystem) {
   throw error;
 }
 
-function renderRelease() {
-  renderReleaseMeta();
-  renderNotes(getDisplayReleaseNotes(releaseCache));
-  updateDownloadLink();
+function renderRelease(runtime) {
+  renderReleaseMeta(runtime);
+  renderNotes(runtime, getDisplayReleaseNotes(runtime.state.releaseCache));
+  updateDownloadLink(runtime);
 }
 
-async function fetchLatestReleaseFromApi() {
-  const response = await fetch(RELEASE_API_URL, {
+async function fetchLatestReleaseFromApi(runtime) {
+  const fetchImpl = runtime.getFetch();
+  const response = await fetchImpl(RELEASE_API_URL, {
     headers: { Accept: 'application/vnd.github+json' },
     cache: 'no-store'
   });
@@ -494,12 +530,13 @@ function getManifestUrls() {
   return [RELEASE_MANIFEST_URL];
 }
 
-async function fetchLatestReleaseFromManifest() {
+async function fetchLatestReleaseFromManifest(runtime) {
+  const fetchImpl = runtime.getFetch();
   let lastError = null;
   const urls = getManifestUrls();
   for (const url of urls) {
     try {
-      const response = await fetch(url, {
+      const response = await fetchImpl(url, {
         headers: { Accept: 'application/json' },
         cache: 'no-store'
       });
@@ -516,19 +553,20 @@ async function fetchLatestReleaseFromManifest() {
   throw lastError || new Error('System release manifest fetch failed');
 }
 
-async function fetchLatestRelease() {
-  if (releaseCache) return releaseCache;
+async function fetchLatestRelease(runtime) {
+  const state = runtime.state;
+  if (state.releaseCache) return state.releaseCache;
   let apiRelease = null;
   let apiError = null;
   let manifestRelease = null;
   let manifestError = null;
   try {
-    apiRelease = await fetchLatestReleaseFromApi();
+    apiRelease = await fetchLatestReleaseFromApi(runtime);
   } catch (err) {
     apiError = err;
   }
   try {
-    manifestRelease = await fetchLatestReleaseFromManifest();
+    manifestRelease = await fetchLatestReleaseFromManifest(runtime);
   } catch (err) {
     manifestError = err;
   }
@@ -537,11 +575,11 @@ async function fetchLatestRelease() {
     ? compareReleaseTags(manifestRelease.tag, apiRelease.tag)
     : null;
   if (apiRelease && manifestRelease && manifestComparison !== null && manifestComparison >= 0) {
-    releaseCache = manifestRelease;
+    state.releaseCache = manifestRelease;
   } else if (apiRelease) {
-    releaseCache = apiRelease;
+    state.releaseCache = apiRelease;
   } else if (manifestRelease) {
-    releaseCache = manifestRelease;
+    state.releaseCache = manifestRelease;
   } else {
     const message = apiError && apiError.rateLimited
       ? t('editor.systemUpdates.errors.releaseRateLimited')
@@ -552,14 +590,15 @@ async function fetchLatestRelease() {
     throw error;
   }
 
-  renderRelease();
-  return releaseCache;
+  renderRelease(runtime);
+  return state.releaseCache;
 }
 
-async function fetchSystemUpdateAsset(url) {
+async function fetchSystemUpdateAsset(runtime, url) {
+  const fetchImpl = runtime.getFetch();
   let response = null;
   try {
-    response = await fetch(url, { cache: 'no-store' });
+    response = await fetchImpl(url, { cache: 'no-store' });
   } catch (err) {
     const error = new Error(t('editor.systemUpdates.errors.downloadFailed'));
     error.cause = err;
@@ -571,9 +610,10 @@ async function fetchSystemUpdateAsset(url) {
   return response.arrayBuffer();
 }
 
-function renderReleaseMeta() {
+function renderReleaseMeta(runtime) {
+  const { elements, releaseCache } = runtime.state;
   if (!releaseCache) return;
-  renderCurrentPressVersion();
+  renderCurrentPressVersion(runtime);
   if (elements.targetVersion) {
     elements.targetVersion.textContent = t('editor.systemUpdates.targetVersionLabel', {
       version: versionLabel(releaseCache.version || releaseCache.tag)
@@ -597,7 +637,8 @@ function renderReleaseMeta() {
   }
 }
 
-function updateDownloadLink() {
+function updateDownloadLink(runtime) {
+  const { elements, releaseCache } = runtime.state;
   const link = elements.downloadLink;
   if (!link) return;
   let href = 'https://github.com/EkilyHQ/Press/releases/latest';
@@ -627,7 +668,8 @@ function buildSummaryFromFiles(files) {
   }));
 }
 
-async function compareArchive(entries) {
+async function compareArchive(runtime, entries) {
+  const fetchImpl = runtime.getFetch();
   const files = [];
   for (const entry of entries) {
     const { path, data } = entry;
@@ -637,7 +679,7 @@ async function compareArchive(entries) {
     let existingBuffer = null;
     let existingSha = '';
     try {
-      const response = await fetch(path, { cache: 'no-store' });
+      const response = await fetchImpl(path, { cache: 'no-store' });
       if (response.ok) {
         existingBuffer = await response.arrayBuffer();
         existingSha = await digestSha256(existingBuffer);
@@ -676,45 +718,47 @@ async function compareArchive(entries) {
   return files;
 }
 
-async function processArchiveEntries(entries) {
-  return compareArchive(entries);
+async function processArchiveEntries(runtime, entries) {
+  return compareArchive(runtime, entries);
 }
 
-export async function analyzeArchive(buffer, filename) {
+async function analyzeArchiveWithRuntime(runtime, buffer, filename) {
+  const state = runtime.state;
   if (!(buffer instanceof ArrayBuffer)) buffer = getBuffer(buffer);
   if (!buffer || !buffer.byteLength) {
     throw new Error(t('editor.systemUpdates.errors.emptyFile'));
   }
 
-  const release = await fetchLatestRelease().catch(() => releaseCache);
+  const release = await fetchLatestRelease(runtime).catch(() => state.releaseCache);
   const nameFromRelease = release && release.asset ? (release.asset.name || release.name) : '';
-  assetName = filename || nameFromRelease || 'release.zip';
+  state.assetName = filename || nameFromRelease || 'release.zip';
   const verification = release && release.asset
     ? await verifySystemUpdateAsset(buffer, release.asset)
     : { sha256: await digestSha256(buffer), size: buffer.byteLength };
-  assetSha256 = verification.sha256;
-  assetSize = verification.size;
+  state.assetSha256 = verification.sha256;
+  state.assetSize = verification.size;
 
   if (release) {
     if (release.asset) {
-      release.asset.size = assetSize;
-      if (!release.asset.name) release.asset.name = assetName;
+      release.asset.size = state.assetSize;
+      if (!release.asset.name) release.asset.name = state.assetName;
     } else {
-      release.asset = { name: assetName, url: '', size: assetSize, digest: '' };
+      release.asset = { name: state.assetName, url: '', size: state.assetSize, digest: '' };
     }
-    renderReleaseMeta();
-    updateDownloadLink();
+    renderReleaseMeta(runtime);
+    updateDownloadLink(runtime);
   }
 
+  const { elements } = state;
   if (elements.assetMeta) {
     elements.assetMeta.textContent = t('editor.systemUpdates.assetWithHash', {
-      name: assetName,
-      size: formatSize(assetSize),
-      hash: assetSha256
+      name: state.assetName,
+      size: formatSize(state.assetSize),
+      hash: state.assetSha256
     });
   }
 
-  setStatus(t('editor.systemUpdates.status.verifying'));
+  setStatus(runtime, t('editor.systemUpdates.status.verifying'));
 
   let entries = [];
   let archiveSystem = null;
@@ -722,9 +766,9 @@ export async function analyzeArchive(buffer, filename) {
   try {
     entries = collectSystemUpdateArchiveEntries(buffer);
     archiveSystem = readArchivePressSystemManifest(entries);
-    await refreshCurrentPressSystem();
-    assertSystemUpdateCompatibility(release, archiveSystem);
-    files = await processArchiveEntries(entries);
+    await refreshCurrentPressSystem(runtime);
+    assertSystemUpdateCompatibility(runtime, release, archiveSystem);
+    files = await processArchiveEntries(runtime, entries);
   } catch (err) {
     console.error('Failed to unpack system update archive', err);
     if (err && err.pressUpgradeBlocked) throw err;
@@ -733,19 +777,19 @@ export async function analyzeArchive(buffer, filename) {
   }
 
   if (!files.length) {
-    setStatus(t('editor.systemUpdates.status.noChanges'), { tone: 'success' });
-    applySummary([], []);
+    setStatus(runtime, t('editor.systemUpdates.status.noChanges'), { tone: 'success' });
+    applySummary(runtime, [], []);
     return;
   }
 
-  setStatus(t('editor.systemUpdates.status.comparing'));
-  applySummary(buildSummaryFromFiles(files), files);
+  setStatus(runtime, t('editor.systemUpdates.status.comparing'));
+  applySummary(runtime, buildSummaryFromFiles(files), files);
   const count = files.length;
-  setStatus(t('editor.systemUpdates.status.changes', { count }), { tone: 'warn' });
+  setStatus(runtime, t('editor.systemUpdates.status.changes', { count }), { tone: 'warn' });
 }
 
-export async function stageLatestSystemUpdate() {
-  const release = await fetchLatestRelease();
+async function stageLatestSystemUpdateWithRuntime(runtime) {
+  const release = await fetchLatestRelease(runtime);
   if (!release || !release.asset || !release.asset.url) {
     throw new Error(t('editor.systemUpdates.noAsset'));
   }
@@ -753,130 +797,177 @@ export async function stageLatestSystemUpdate() {
     throw new Error(t('editor.systemUpdates.errors.downloadFailed'));
   }
   const fileName = release.asset.name || release.name || 'press-system.zip';
-  setStatus(t('editor.systemUpdates.status.downloading'));
-  applySummary([], []);
-  const buffer = await fetchSystemUpdateAsset(release.asset.url);
-  await analyzeArchive(buffer, fileName);
+  setStatus(runtime, t('editor.systemUpdates.status.downloading'));
+  applySummary(runtime, [], []);
+  const buffer = await fetchSystemUpdateAsset(runtime, release.asset.url);
+  await analyzeArchiveWithRuntime(runtime, buffer, fileName);
 }
 
-function handleSelectClick() {
+function handleSelectClick(runtime) {
+  const { busy, elements } = runtime.state;
   if (busy || !elements.fileInput) return;
   elements.fileInput.click();
 }
 
-async function handleDownloadClick() {
-  if (busy) return;
-  setBusy(true);
+async function handleDownloadClick(runtime) {
+  if (runtime.state.busy) return;
+  setBusy(runtime, true);
   try {
-    await stageLatestSystemUpdate();
+    await stageLatestSystemUpdateWithRuntime(runtime);
   } catch (err) {
     console.error('System update download failed', err);
     const message = err && err.message ? err.message : t('editor.systemUpdates.errors.downloadFailed');
-    setStatus(message, { tone: 'error' });
-    applySummary([], []);
+    setStatus(runtime, message, { tone: 'error' });
+    applySummary(runtime, [], []);
   } finally {
-    setBusy(false);
+    setBusy(runtime, false);
   }
 }
 
-async function handleFileInputChange(event) {
-  if (busy) return;
+async function handleFileInputChange(runtime, event) {
+  const { elements } = runtime.state;
+  if (runtime.state.busy) return;
   const input = event && event.target ? event.target : elements.fileInput;
   if (!input || !input.files || !input.files.length) return;
   const file = input.files[0];
   input.value = '';
   if (!file) return;
-  setBusy(true);
+  setBusy(runtime, true);
   try {
-    setStatus(t('editor.systemUpdates.status.reading'));
-    applySummary([], []);
+    setStatus(runtime, t('editor.systemUpdates.status.reading'));
+    applySummary(runtime, [], []);
     const buffer = await file.arrayBuffer();
-    await analyzeArchive(buffer, file.name);
+    await analyzeArchiveWithRuntime(runtime, buffer, file.name);
   } catch (err) {
     console.error('System update processing failed', err);
     const message = err && err.message ? err.message : t('editor.systemUpdates.errors.generic');
-    setStatus(message, { tone: 'error' });
-    applySummary([], []);
+    setStatus(runtime, message, { tone: 'error' });
+    applySummary(runtime, [], []);
   } finally {
-    setBusy(false);
+    setBusy(runtime, false);
   }
 }
 
-export function initSystemUpdates(options = {}) {
-  if (initialized) {
-    if (options && typeof options.onStateChange === 'function') listeners.add(options.onStateChange);
+function initSystemUpdatesWithRuntime(runtime, options = {}) {
+  const state = runtime.state;
+  const { elements } = state;
+  const documentRef = runtime.getDocument();
+  if (state.initialized) {
+    if (options && typeof options.onStateChange === 'function') state.listeners.add(options.onStateChange);
     return;
   }
-  initialized = true;
-  elements.root = document.getElementById('mode-updates');
-  elements.status = document.getElementById('systemUpdateStatus');
-  elements.downloadLink = document.getElementById('systemUpdateDownloadLink');
-  elements.downloadButton = document.getElementById('btnSystemDownload');
-  elements.selectButton = document.getElementById('btnSystemSelect');
-  elements.fileInput = document.getElementById('systemUpdateFileInput');
-  elements.fileSection = document.getElementById('systemUpdateFileSection');
-  elements.fileList = document.getElementById('systemUpdateFileList');
-  elements.notes = document.getElementById('systemUpdateReleaseNotes');
-  elements.currentVersion = document.getElementById('systemUpdateCurrentVersion');
-  elements.targetVersion = document.getElementById('systemUpdateTargetVersion');
-  elements.metaTitle = document.getElementById('systemUpdateReleaseMeta');
-  elements.metaPublished = document.getElementById('systemUpdateReleasePublished');
-  elements.assetMeta = document.getElementById('systemUpdateAssetMeta');
+  state.initialized = true;
+  if (documentRef && typeof documentRef.getElementById === 'function') {
+    elements.root = documentRef.getElementById('mode-updates');
+    elements.status = documentRef.getElementById('systemUpdateStatus');
+    elements.downloadLink = documentRef.getElementById('systemUpdateDownloadLink');
+    elements.downloadButton = documentRef.getElementById('btnSystemDownload');
+    elements.selectButton = documentRef.getElementById('btnSystemSelect');
+    elements.fileInput = documentRef.getElementById('systemUpdateFileInput');
+    elements.fileSection = documentRef.getElementById('systemUpdateFileSection');
+    elements.fileList = documentRef.getElementById('systemUpdateFileList');
+    elements.notes = documentRef.getElementById('systemUpdateReleaseNotes');
+    elements.currentVersion = documentRef.getElementById('systemUpdateCurrentVersion');
+    elements.targetVersion = documentRef.getElementById('systemUpdateTargetVersion');
+    elements.metaTitle = documentRef.getElementById('systemUpdateReleaseMeta');
+    elements.metaPublished = documentRef.getElementById('systemUpdateReleasePublished');
+    elements.assetMeta = documentRef.getElementById('systemUpdateAssetMeta');
+  }
 
-  if (options && typeof options.onStateChange === 'function') listeners.add(options.onStateChange);
+  if (options && typeof options.onStateChange === 'function') state.listeners.add(options.onStateChange);
 
   if (elements.downloadButton) {
     elements.downloadButton.dataset.state = 'idle';
-    elements.downloadButton.addEventListener('click', handleDownloadClick);
+    elements.downloadButton.addEventListener('click', () => handleDownloadClick(runtime));
   }
   if (elements.selectButton) {
     elements.selectButton.dataset.state = 'idle';
-    elements.selectButton.addEventListener('click', handleSelectClick);
+    elements.selectButton.addEventListener('click', () => handleSelectClick(runtime));
   }
   if (elements.fileInput) {
-    elements.fileInput.addEventListener('change', handleFileInputChange);
+    elements.fileInput.addEventListener('change', (event) => handleFileInputChange(runtime, event));
   }
 
-  updateDownloadLink();
-  setStatus(t('editor.systemUpdates.status.idle'));
-  refreshCurrentPressSystem().catch(() => {});
-  fetchLatestRelease().catch((err) => {
+  updateDownloadLink(runtime);
+  setStatus(runtime, t('editor.systemUpdates.status.idle'));
+  refreshCurrentPressSystem(runtime).catch(() => {});
+  fetchLatestRelease(runtime).catch((err) => {
     console.error('Failed to load system update metadata', err);
-    setStatus(err && err.message ? err.message : t('editor.systemUpdates.errors.releaseFetch'), { tone: 'error' });
+    setStatus(runtime, err && err.message ? err.message : t('editor.systemUpdates.errors.releaseFetch'), { tone: 'error' });
   });
 }
 
+function getSystemUpdateSummaryEntriesWithRuntime(runtime) {
+  return runtime.state.currentSummary.slice();
+}
+
+function getSystemUpdateCommitFilesWithRuntime(runtime) {
+  return runtime.state.currentFiles.slice();
+}
+
+function clearSystemUpdateStateWithRuntime(runtime, options = {}) {
+  const state = runtime.state;
+  applySummary(runtime, [], []);
+  state.currentSummary = [];
+  state.currentFiles = [];
+  state.assetSha256 = '';
+  state.assetSize = 0;
+  state.assetName = '';
+  if (options && options.clearReleaseCache === true) {
+    state.releaseCache = null;
+  }
+  if (options && options.keepStatus !== true) {
+    setStatus(runtime, t('editor.systemUpdates.status.idle'));
+  }
+  renderReleaseMeta(runtime);
+}
+
+export function createSystemUpdatesController(options = {}) {
+  const runtime = createSystemUpdatesRuntime(options);
+  return {
+    init(initOptions = {}) {
+      return initSystemUpdatesWithRuntime(runtime, initOptions);
+    },
+    getSummaryEntries() {
+      return getSystemUpdateSummaryEntriesWithRuntime(runtime);
+    },
+    getCommitFiles() {
+      return getSystemUpdateCommitFilesWithRuntime(runtime);
+    },
+    clear(clearOptions = {}) {
+      return clearSystemUpdateStateWithRuntime(runtime, clearOptions);
+    },
+    analyzeArchive(buffer, filename) {
+      return analyzeArchiveWithRuntime(runtime, buffer, filename);
+    },
+    stageLatest() {
+      return stageLatestSystemUpdateWithRuntime(runtime);
+    }
+  };
+}
+
+const defaultSystemUpdatesController = createSystemUpdatesController();
+
+export function initSystemUpdates(options = {}) {
+  return defaultSystemUpdatesController.init(options);
+}
+
 export function getSystemUpdateSummaryEntries() {
-  return currentSummary.slice();
+  return defaultSystemUpdatesController.getSummaryEntries();
 }
 
 export function getSystemUpdateCommitFiles() {
-  return currentFiles.slice();
+  return defaultSystemUpdatesController.getCommitFiles();
 }
 
 export function clearSystemUpdateState(options = {}) {
-  applySummary([], []);
-  currentSummary = [];
-  currentFiles = [];
-  assetSha256 = '';
-  assetSize = 0;
-  assetName = '';
-  if (options && options.clearReleaseCache === true) {
-    releaseCache = null;
-  }
-  if (options && options.keepStatus !== true) {
-    setStatus(t('editor.systemUpdates.status.idle'));
-  }
-  renderReleaseMeta();
+  return defaultSystemUpdatesController.clear(options);
 }
 
-export function createSystemUpdatesController() {
-  return {
-    init: initSystemUpdates,
-    getSummaryEntries: getSystemUpdateSummaryEntries,
-    getCommitFiles: getSystemUpdateCommitFiles,
-    clear: clearSystemUpdateState,
-    analyzeArchive,
-    stageLatest: stageLatestSystemUpdate
-  };
+export function analyzeArchive(buffer, filename) {
+  return defaultSystemUpdatesController.analyzeArchive(buffer, filename);
+}
+
+export function stageLatestSystemUpdate() {
+  return defaultSystemUpdatesController.stageLatest();
 }

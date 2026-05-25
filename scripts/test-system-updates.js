@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
 import {
   satisfiesSemverRange,
@@ -39,6 +40,8 @@ const {
   stageLatestSystemUpdate,
   verifySystemUpdateAsset
 } = await import('../assets/js/system-updates.js?system-updates-test');
+
+const systemUpdatesSource = readFileSync(new URL('../assets/js/system-updates.js', import.meta.url), 'utf8');
 
 function makeZip(files) {
   const entries = {};
@@ -137,6 +140,82 @@ await run('exposes system updates through an explicit controller facade', async 
   assert.equal(typeof controller.clear, 'function');
   assert.equal(typeof controller.analyzeArchive, 'function');
   assert.equal(typeof controller.stageLatest, 'function');
+});
+
+await run('scopes system update state to controller instances', async () => {
+  for (const name of [
+    'initialized',
+    'releaseCache',
+    'busy',
+    'currentSummary',
+    'currentFiles',
+    'assetSha256',
+    'assetSize',
+    'assetName',
+    'currentPressSystem'
+  ]) {
+    assert.doesNotMatch(
+      systemUpdatesSource,
+      new RegExp(`^let\\s+${name}\\b`, 'm'),
+      `system updates should not keep ${name} as module-level mutable state`
+    );
+  }
+  assert.doesNotMatch(
+    systemUpdatesSource,
+    /^const\s+listeners\s*=\s*new\s+Set\(/m,
+    'system updates should not keep listener state at module scope'
+  );
+  assert.doesNotMatch(
+    systemUpdatesSource,
+    /^const\s+elements\s*=\s*\{/m,
+    'system updates should not keep element refs at module scope'
+  );
+  assert.match(
+    systemUpdatesSource,
+    /function createSystemUpdatesState\(\)[\s\S]*function createSystemUpdatesRuntime\(options = \{\}\)[\s\S]*export function createSystemUpdatesController\(options = \{\}\)/,
+    'system updates should create explicit controller runtime state'
+  );
+
+  const firstBuffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>first</p>' });
+  const secondBuffer = makeZip({ 'press-system-v3.3.5/index.html': '<!doctype html><p>second</p>' });
+  const fetchFor = (label) => async (input) => {
+    const url = String(input || '');
+    if (url.includes('/repos/EkilyHQ/Press/releases/latest')) {
+      return jsonResponse({
+        name: `v3.3.5-${label}`,
+        tag_name: 'v3.3.5',
+        assets: [{
+          name: 'press-system-v3.3.5.zip',
+          browser_download_url: `https://example.test/${label}/press-system-v3.3.5.zip`,
+          size: 0,
+          digest: ''
+        }]
+      });
+    }
+    if (url === 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json') {
+      return jsonResponse({ message: 'not found' }, { ok: false, status: 404 });
+    }
+    return {
+      ok: false,
+      arrayBuffer: async () => new ArrayBuffer(0)
+    };
+  };
+
+  globalThis.fetch = async () => {
+    throw new Error('controller-specific fetch should be used');
+  };
+  try {
+    const firstController = createSystemUpdatesController({ fetchImpl: fetchFor('first') });
+    const secondController = createSystemUpdatesController({ fetchImpl: fetchFor('second') });
+
+    await firstController.analyzeArchive(firstBuffer, 'press-system-v3.3.5.zip');
+    await secondController.analyzeArchive(secondBuffer, 'press-system-v3.3.5.zip');
+
+    assert.deepEqual(firstController.getCommitFiles().map((file) => file.content), ['<!doctype html><p>first</p>']);
+    assert.deepEqual(secondController.getCommitFiles().map((file) => file.content), ['<!doctype html><p>second</p>']);
+  } finally {
+    delete globalThis.fetch;
+  }
 });
 
 await run('matches Press SemVer ranges', async () => {

@@ -35,6 +35,31 @@ if ! grep -F 'workflow_run:' "${workflow}" >/dev/null || ! grep -F -- '- System 
   exit 1
 fi
 
+if ! grep -F "github.event_name == 'workflow_run' && 'true'" "${workflow}" >/dev/null; then
+  echo "product-state workflow must require convergence after successful System Release runs" >&2
+  exit 1
+fi
+
+if ! grep -F 'PRODUCT_STATE_CONVERGENCE_ATTEMPTS' "${workflow}" >/dev/null || ! grep -F 'PRODUCT_STATE_CONVERGENCE_INTERVAL_SECONDS' "${workflow}" >/dev/null; then
+  echo "product-state workflow must expose convergence retry controls" >&2
+  exit 1
+fi
+
+if ! grep -F 'for (( attempt = 1; attempt <= attempts; attempt += 1 ))' "${workflow}" >/dev/null; then
+  echo "product-state workflow must poll until product state converges" >&2
+  exit 1
+fi
+
+if ! grep -F 'sleep "${interval}"' "${workflow}" >/dev/null; then
+  echo "product-state workflow must wait between convergence polling attempts" >&2
+  exit 1
+fi
+
+if ! grep -F 'converged=${converged}' "${workflow}" >/dev/null; then
+  echo "product-state workflow must expose whether convergence was reached" >&2
+  exit 1
+fi
+
 if ! grep -F 'contents: write' "${workflow}" >/dev/null; then
   echo "product-state workflow must be able to publish to release-artifacts" >&2
   exit 1

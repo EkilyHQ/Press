@@ -351,6 +351,26 @@ if ! grep -F 'scripts/dispatch-system-release.js' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if grep -F 'Release dispatch skipped' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must fail instead of skipping dispatch" >&2
+  exit 1
+fi
+
+if ! grep -F 'EKILY_RELEASE_APP_ID and EKILY_RELEASE_PRIVATE_KEY are required for release dispatch' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must fail when GitHub App credentials are missing" >&2
+  exit 1
+fi
+
+if ! grep -F 'Release dispatch incomplete:' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must fail when downstream dispatch is incomplete" >&2
+  exit 1
+fi
+
+if ! grep -F 'process.exitCode = 1' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must return a non-zero exit code on dispatch failure" >&2
+  exit 1
+fi
+
 if ! grep -F "eventType: 'press-system-release'" scripts/dispatch-system-release.js >/dev/null; then
   echo "system release workflow must dispatch the press-system-release event" >&2
   exit 1

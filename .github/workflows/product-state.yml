@@ -32,16 +32,58 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Generate product-state ledger
+        id: generate
+        env:
+          REQUIRE_CONVERGED: ${{ github.event_name == 'workflow_run' && 'true' || github.event_name == 'workflow_dispatch' && github.event.inputs.require_converged == 'true' && 'true' || 'false' }}
+          PRODUCT_STATE_CONVERGENCE_ATTEMPTS: ${{ vars.PRODUCT_STATE_CONVERGENCE_ATTEMPTS || '30' }}
+          PRODUCT_STATE_CONVERGENCE_INTERVAL_SECONDS: ${{ vars.PRODUCT_STATE_CONVERGENCE_INTERVAL_SECONDS || '60' }}
         run: |
           set -euo pipefail
           mkdir -p dist
-          node scripts/product-state-ledger.js \
-            --out dist/product-state.json \
-            --allow-pending \
-            --allow-unknown
-          node scripts/product-state-dashboard.js \
-            --state dist/product-state.json \
-            --out dist/product-state.html
+
+          attempts=1
+          interval=0
+          if [[ "${REQUIRE_CONVERGED}" == "true" ]]; then
+            attempts="${PRODUCT_STATE_CONVERGENCE_ATTEMPTS}"
+            interval="${PRODUCT_STATE_CONVERGENCE_INTERVAL_SECONDS}"
+          fi
+          if ! [[ "${attempts}" =~ ^[0-9]+$ ]] || (( attempts < 1 )); then
+            attempts=30
+          fi
+          if ! [[ "${interval}" =~ ^[0-9]+$ ]]; then
+            interval=60
+          fi
+
+          converged=false
+          for (( attempt = 1; attempt <= attempts; attempt += 1 )); do
+            node scripts/product-state-ledger.js \
+              --out dist/product-state.json \
+              --allow-pending \
+              --allow-unknown
+            node scripts/product-state-dashboard.js \
+              --state dist/product-state.json \
+              --out dist/product-state.html
+
+            if node scripts/product-state-ledger.js \
+              --state dist/product-state.json \
+              --check \
+              --require-converged \
+              --quiet 2>dist/product-state-check.log; then
+              converged=true
+              break
+            fi
+
+            cat dist/product-state-check.log >&2
+            if [[ "${REQUIRE_CONVERGED}" != "true" ]]; then
+              break
+            fi
+            if (( attempt < attempts )); then
+              echo "::notice title=Product state pending::Attempt ${attempt}/${attempts} has not converged; retrying in ${interval}s."
+              sleep "${interval}"
+            fi
+          done
+
+          echo "converged=${converged}" >> "${GITHUB_OUTPUT}"
 
       - name: Publish product-state ledger
         run: |
@@ -75,7 +117,7 @@ jobs:
 
       - name: Evaluate product-state ledger
         env:
-          REQUIRE_CONVERGED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.require_converged == 'true' && 'true' || 'false' }}
+          REQUIRE_CONVERGED: ${{ github.event_name == 'workflow_run' && 'true' || github.event_name == 'workflow_dispatch' && github.event.inputs.require_converged == 'true' && 'true' || 'false' }}
         run: |
           set -euo pipefail
           check_args=(

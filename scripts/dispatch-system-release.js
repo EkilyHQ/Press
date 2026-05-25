@@ -158,8 +158,7 @@ async function main() {
   const privateKey = env('EKILY_RELEASE_PRIVATE_KEY');
   const targets = normalizeTargets(env('RELEASE_DISPATCH_TARGETS'));
   if (!appId || !privateKey) {
-    console.log('::warning title=Release dispatch skipped::EKILY_RELEASE_APP_ID or EKILY_RELEASE_PRIVATE_KEY is not configured.');
-    return;
+    throw new Error('EKILY_RELEASE_APP_ID and EKILY_RELEASE_PRIVATE_KEY are required for release dispatch.');
   }
 
   const release = readRelease();
@@ -179,10 +178,11 @@ async function main() {
   }
 
   if (failures.length) {
-    console.log(`::warning title=Release dispatch incomplete::${failures.length} target(s) failed after ${clientPayload.tag} was published.`);
+    throw new Error(`Release dispatch incomplete: ${failures.join('; ')}`);
   }
 }
 
 main().catch((error) => {
-  console.log(`::warning title=Release dispatch skipped::${error.message}`);
+  console.log(`::error title=Release dispatch failed::${error.message}`);
+  process.exitCode = 1;
 });

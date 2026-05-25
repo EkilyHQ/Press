@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T11:00:34.602Z",
-  "status": "pending",
+  "generatedAt": "2026-05-25T11:03:24.329Z",
+  "status": "ok",
   "desired": {
     "source": "press-system-release",
     "generatedFrom": {
@@ -187,11 +187,11 @@
   },
   "downstream": {
     "yap": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
       "expectedVersion": "3.4.55",
-      "observedVersion": "3.4.54",
-      "observedTag": "v3.4.54",
+      "observedVersion": "3.4.55",
+      "observedTag": "v3.4.55",
       "label": "YAP starter runtime",
       "repository": "EkilyHQ/YAP",
       "type": "press-system-manifest"
@@ -218,11 +218,11 @@
       "repository": "EkilyHQ/Press-Theme-Arcus"
     },
     "cartograph": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
       "expectedVersion": "3.4.55",
-      "observedVersion": "3.4.54",
-      "observedTag": "v3.4.54",
+      "observedVersion": "3.4.55",
+      "observedTag": "v3.4.55",
       "label": "Cartograph demo runtime",
       "repository": "EkilyHQ/Press-Theme-Cartograph"
     },
@@ -339,26 +339,9 @@
     "service": "ekily-connect",
     "version": "0.3.0"
   },
-  "problems": [
-    {
-      "severity": "warning",
-      "component": "downstream.yap",
-      "code": "downstream_pending",
-      "message": "YAP starter runtime is 3.4.54, expected 3.4.55",
-      "owner": "EkilyHQ/YAP",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.cartograph",
-      "code": "theme_demo_pending",
-      "message": "Cartograph demo runtime is 3.4.54, expected 3.4.55",
-      "owner": "EkilyHQ/Press-Theme-Cartograph",
-      "blocking": false
-    }
-  ],
+  "problems": [],
   "observed": {
-    "checkedAt": "2026-05-25T11:00:34.602Z",
+    "checkedAt": "2026-05-25T11:03:24.329Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
@@ -382,11 +365,11 @@
     },
     "downstream": {
       "yap": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
         "expectedVersion": "3.4.55",
-        "observedVersion": "3.4.54",
-        "observedTag": "v3.4.54",
+        "observedVersion": "3.4.55",
+        "observedTag": "v3.4.55",
         "label": "YAP starter runtime",
         "repository": "EkilyHQ/YAP",
         "type": "press-system-manifest"
@@ -413,11 +396,11 @@
         "repository": "EkilyHQ/Press-Theme-Arcus"
       },
       "cartograph": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
         "expectedVersion": "3.4.55",
-        "observedVersion": "3.4.54",
-        "observedTag": "v3.4.54",
+        "observedVersion": "3.4.55",
+        "observedTag": "v3.4.55",
         "label": "Cartograph demo runtime",
         "repository": "EkilyHQ/Press-Theme-Cartograph"
       },
@@ -536,35 +519,18 @@
     }
   },
   "verdict": {
-    "status": "pending",
-    "converged": false,
+    "status": "ok",
+    "converged": true,
     "counts": {
-      "ok": 11,
-      "pending": 2,
+      "ok": 13,
+      "pending": 0,
       "unknown": 0,
       "drift": 0
     },
-    "problemCount": 2,
+    "problemCount": 0,
     "blockingProblemCount": 0,
-    "nonBlockingProblemCount": 2,
+    "nonBlockingProblemCount": 0,
     "blockingProblems": [],
-    "nonBlockingProblems": [
-      {
-        "severity": "warning",
-        "component": "downstream.yap",
-        "code": "downstream_pending",
-        "message": "YAP starter runtime is 3.4.54, expected 3.4.55",
-        "owner": "EkilyHQ/YAP",
-        "blocking": false
-      },
-      {
-        "severity": "warning",
-        "component": "themeDemos.cartograph",
-        "code": "theme_demo_pending",
-        "message": "Cartograph demo runtime is 3.4.54, expected 3.4.55",
-        "owner": "EkilyHQ/Press-Theme-Cartograph",
-        "blocking": false
-      }
-    ]
+    "nonBlockingProblems": []
   }
 }

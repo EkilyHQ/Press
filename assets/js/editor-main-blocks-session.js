@@ -1,5 +1,5 @@
-import { createMarkdownBlocksEditor } from './editor-blocks.js?v=press-system-v3.4.50';
-import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.50';
+import { createMarkdownBlocksEditor } from './editor-blocks.js?v=press-system-v3.4.51';
+import { hydrateInternalLinkCards } from './link-cards.js?v=press-system-v3.4.51';
 
 const noop = () => {};
 const fallbackTranslate = (key) => key;

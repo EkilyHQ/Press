@@ -1,4 +1,4 @@
-import { t } from './i18n.js?v=press-system-v3.4.50';
+import { t } from './i18n.js?v=press-system-v3.4.51';
 import { getThemeRegion } from './theme-regions.js';
 
 function getRegionReader(options = {}) {

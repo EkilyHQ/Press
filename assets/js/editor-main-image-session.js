@@ -1,5 +1,5 @@
 import { insertImageMarkdownAtSelection } from './editor-markdown-ops.js';
-import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.50';
+import { resolveLocalMarkdownAssetReference } from './repository-deletions.js?v=press-system-v3.4.51';
 
 const noop = () => {};
 const fallbackTranslate = (key) => key;

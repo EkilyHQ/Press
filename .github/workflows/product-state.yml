@@ -2,6 +2,12 @@ name: Product State
 
 on:
   workflow_dispatch:
+    inputs:
+      require_converged:
+        description: Fail unless desired and observed product state have fully converged.
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '17 * * * *'
   workflow_run:
@@ -69,9 +75,15 @@ jobs:
 
       - name: Evaluate product-state ledger
         run: |
-          node scripts/product-state-ledger.js \
-            --state dist/product-state.json \
-            --check \
-            --allow-pending \
-            --allow-unknown \
+          set -euo pipefail
+          check_args=(
+            --state dist/product-state.json
+            --check
             --quiet
+          )
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.require_converged }}" == "true" ]]; then
+            check_args+=(--require-converged)
+          else
+            check_args+=(--allow-pending --allow-unknown)
+          fi
+          node scripts/product-state-ledger.js "${check_args[@]}"

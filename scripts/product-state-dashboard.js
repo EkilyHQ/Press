@@ -57,6 +57,27 @@ function renderRows(rows) {
   ].join('\n');
 }
 
+function renderTargetRows(rows) {
+  if (!rows.length) {
+    return '<p class="empty">No release targets.</p>';
+  }
+  return [
+    '<table>',
+    '<thead><tr><th>Name</th><th>Expected</th><th>Reconciler</th><th>Owner</th></tr></thead>',
+    '<tbody>',
+    ...rows.map((row) => [
+      '<tr>',
+      `<td>${escapeHtml(valueOrDash(row.name))}</td>`,
+      `<td>${escapeHtml(valueOrDash(row.expected))}</td>`,
+      `<td>${escapeHtml(valueOrDash(row.reconciler))}</td>`,
+      `<td>${escapeHtml(valueOrDash(row.owner))}</td>`,
+      '</tr>'
+    ].join('')),
+    '</tbody>',
+    '</table>'
+  ].join('\n');
+}
+
 function renderProblems(problems) {
   const items = Array.isArray(problems) ? problems : [];
   if (!items.length) return '<p class="empty">No problems recorded.</p>';
@@ -80,6 +101,42 @@ function dashboardRowsFromMap(input) {
   }));
 }
 
+function desiredRows(state) {
+  const desired = state && state.desired && typeof state.desired === 'object' ? state.desired : {};
+  const pressSystem = desired.pressSystem && typeof desired.pressSystem === 'object' ? desired.pressSystem : {};
+  const rows = [];
+  if (pressSystem.version || pressSystem.tag) {
+    rows.push({
+      name: 'Press system release',
+      expected: pressSystem.tag || semverLabel(pressSystem.version),
+      reconciler: 'immutable artifact',
+      owner: pressSystem.repository || ''
+    });
+  }
+  [
+    ...(Object.entries(desired.downstream && typeof desired.downstream === 'object' ? desired.downstream : {})),
+    ...(Object.entries(desired.themeDemos && typeof desired.themeDemos === 'object' ? desired.themeDemos : {}))
+  ].forEach(([key, entry]) => {
+    const reconciler = entry.reconciler && typeof entry.reconciler === 'object' ? entry.reconciler : {};
+    rows.push({
+      name: entry.label || key,
+      expected: entry.expectedTag || semverLabel(entry.expectedVersion),
+      reconciler: reconciler.kind || reconciler.eventType || '',
+      owner: entry.repository || ''
+    });
+  });
+  const themeEntries = desired.themes && Array.isArray(desired.themes.entries) ? desired.themes.entries : [];
+  themeEntries.forEach((entry) => {
+    rows.push({
+      name: entry.label || entry.slug,
+      expected: entry.expectedPressVersion ? `Press ${semverLabel(entry.expectedPressVersion)}` : '',
+      reconciler: 'theme-release-compatibility',
+      owner: entry.repository || ''
+    });
+  });
+  return rows;
+}
+
 function themeRows(state) {
   const entries = state && state.themes && Array.isArray(state.themes.entries) ? state.themes.entries : [];
   return entries.map((entry) => ({
@@ -97,11 +154,14 @@ function renderProductStateDashboard(state) {
   const themes = source.themes && typeof source.themes === 'object' ? source.themes : {};
   const catalog = themes.catalog && typeof themes.catalog === 'object' ? themes.catalog : {};
   const connect = source.connect && typeof source.connect === 'object' ? source.connect : {};
+  const verdict = source.verdict && typeof source.verdict === 'object' ? source.verdict : {};
   const runtime = pressSystem.runtime && typeof pressSystem.runtime === 'object' ? pressSystem.runtime : {};
   const generatedAt = valueOrDash(source.generatedAt);
   const pressVersion = semverLabel(pressSystem.version);
   const runtimeSummary = `${Number(runtime.entryCount || 0)} files / ${Number(runtime.edgeCount || 0)} edges`;
-  const title = `Ekily Product State ${statusClass(source.status)}`;
+  const verdictStatus = verdict.status || source.status;
+  const title = `Ekily Product State ${statusClass(verdictStatus)}`;
+  const convergenceLabel = verdict.converged === true ? 'yes' : 'no';
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -151,16 +211,22 @@ function renderProductStateDashboard(state) {
         <h1>Ekily Product State</h1>
         <p class="meta">Generated ${escapeHtml(generatedAt)}</p>
       </div>
-      ${statusBadge(source.status)}
+      ${statusBadge(verdictStatus)}
     </header>
 
     <div class="summary">
       <div class="metric"><span>Press System</span><strong>${escapeHtml(pressVersion || '-')} ${statusBadge(pressSystem.status)}</strong></div>
       <div class="metric"><span>Runtime Graph</span><strong>${escapeHtml(runtimeSummary)}</strong></div>
+      <div class="metric"><span>Converged</span><strong>${escapeHtml(convergenceLabel)} ${statusBadge(verdictStatus)}</strong></div>
       <div class="metric"><span>Catalog</span><strong>${escapeHtml(String(catalog.count || 0))} themes ${statusBadge(catalog.status)}</strong></div>
       <div class="metric"><span>Connect</span><strong>${escapeHtml(valueOrDash(connect.service || connect.label))} ${statusBadge(connect.status)}</strong></div>
-      <div class="metric"><span>Problems</span><strong>${escapeHtml(String(Array.isArray(source.problems) ? source.problems.length : 0))}</strong></div>
+      <div class="metric"><span>Blocking Problems</span><strong>${escapeHtml(String(Number(verdict.blockingProblemCount || 0)))}</strong></div>
     </div>
+
+    <section>
+      <h2>Desired Release Target</h2>
+      ${renderTargetRows(desiredRows(source))}
+    </section>
 
     <section>
       <h2>Downstream Runtime</h2>

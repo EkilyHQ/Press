@@ -20,18 +20,28 @@ if ! grep -F 'pages: write' "${workflow}" >/dev/null || ! grep -F 'id-token: wri
   exit 1
 fi
 
-if ! grep -F 'actions/configure-pages@v5' "${workflow}" >/dev/null; then
+if ! grep -F 'actions/checkout@v6' "${workflow}" >/dev/null; then
+  echo "Pages workflow must use a Node 24-compatible checkout action" >&2
+  exit 1
+fi
+
+if ! grep -F 'actions/configure-pages@v6' "${workflow}" >/dev/null; then
   echo "Pages workflow must configure GitHub Pages before artifact upload" >&2
   exit 1
 fi
 
-if ! grep -F 'actions/upload-pages-artifact@v3' "${workflow}" >/dev/null; then
+if ! grep -F 'actions/upload-pages-artifact@v5' "${workflow}" >/dev/null; then
   echo "Pages workflow must upload a GitHub Pages artifact" >&2
   exit 1
 fi
 
-if ! grep -F 'actions/deploy-pages@v4' "${workflow}" >/dev/null; then
+if ! grep -F 'actions/deploy-pages@v5' "${workflow}" >/dev/null; then
   echo "Pages workflow must deploy through the official Pages action" >&2
+  exit 1
+fi
+
+if grep -E 'actions/(checkout@v4|configure-pages@v5|deploy-pages@v4|upload-artifact@v4|upload-pages-artifact@v3)' .github/workflows/*.yml >/dev/null; then
+  echo "Press workflows must not pin known Node 20-backed GitHub actions" >&2
   exit 1
 fi
 

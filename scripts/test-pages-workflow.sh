@@ -55,6 +55,21 @@ if ! grep -F 'gh release view --json tagName' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'git fetch --no-tags --force --depth=1 origin "refs/tags/${latest_tag}:refs/tags/${latest_tag}"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must fetch the latest release tag before diffing against it" >&2
+  exit 1
+fi
+
+if ! grep -F 'changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native scripts/sync-runtime-cache-keys.mjs)"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must compare the Press system surface with the latest release before enforcing cache-key advancement" >&2
+  exit 1
+fi
+
+if ! grep -F 'No unreleased Press system surface changes; Pages can reuse ${latest_tag}.' "${workflow}" >/dev/null; then
+  echo "Pages workflow must allow workflow-only or non-system deploys to reuse the current release cache key" >&2
+  exit 1
+fi
+
 if ! grep -F 'Pages deploy cache key' "${workflow}" >/dev/null; then
   echo "Pages workflow must reject deployments that reuse the latest release cache key" >&2
   exit 1
@@ -72,6 +87,11 @@ fi
 
 if ! grep -F 'path: dist/pages' "${workflow}" >/dev/null; then
   echo "Pages workflow must upload the materialized site directory" >&2
+  exit 1
+fi
+
+if ! grep -F 'include-hidden-files: true' "${workflow}" >/dev/null; then
+  echo "Pages workflow must include dotfiles such as .nojekyll in the Pages artifact" >&2
   exit 1
 fi
 

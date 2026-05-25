@@ -44,6 +44,14 @@ jobs:
             exit 0
           fi
 
+          git fetch --no-tags --force --depth=1 origin "refs/tags/${latest_tag}:refs/tags/${latest_tag}"
+
+          changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native scripts/sync-runtime-cache-keys.mjs)"
+          if [[ -z "${changed_system_files}" ]]; then
+            echo "No unreleased Press system surface changes; Pages can reuse ${latest_tag}."
+            exit 0
+          fi
+
           source_tag="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(tag);")"
           export LATEST_TAG="${latest_tag}"
           export NEXT_TAG="${source_tag}"
@@ -71,6 +79,7 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: dist/pages
+          include-hidden-files: true
 
       - name: Deploy to GitHub Pages
         id: deployment

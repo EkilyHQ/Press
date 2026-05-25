@@ -28,6 +28,7 @@ jobs:
           node scripts/sync-runtime-cache-keys.mjs --check
           bash scripts/test-system-release-package.sh
           bash scripts/test-system-release-workflow.sh
+          bash scripts/test-pages-workflow.sh
           bash scripts/test-product-state-workflow.sh
           node scripts/test-product-state-ledger.js
           node scripts/test-product-state-dashboard.js

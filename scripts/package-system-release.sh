@@ -36,7 +36,33 @@ cleanup() {
 }
 trap cleanup EXIT
 
-git archive --format=tar --prefix="${prefix}" HEAD -- "${system_paths[@]}" | tar -xf - -C "${tmp_dir}"
+payload_dir="${tmp_dir}/${prefix%/}"
+mkdir -p "${payload_dir}"
+
+package_source="${PRESS_PACKAGE_SOURCE:-head}"
+case "${package_source}" in
+  head)
+    git archive --format=tar --prefix="${prefix}" HEAD -- "${system_paths[@]}" | tar -xf - -C "${tmp_dir}"
+    ;;
+  worktree)
+    while IFS= read -r -d '' file; do
+      mkdir -p "${payload_dir}/$(dirname "${file}")"
+      cp "${file}" "${payload_dir}/${file}"
+    done < <(git ls-files -z -- "${system_paths[@]}")
+    ;;
+  *)
+    echo "PRESS_PACKAGE_SOURCE must be head or worktree" >&2
+    exit 2
+    ;;
+esac
+
+source_tag="$(PAYLOAD_DIR="${payload_dir}" node -e "const manifest = require(process.env.PAYLOAD_DIR + '/assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(tag);")"
+if [[ "${source_tag}" != "${version}" ]]; then
+  echo "package version ${version} must match assets/press-system.json tag ${source_tag}" >&2
+  exit 1
+fi
+
+node scripts/sync-runtime-cache-keys.mjs --materialize-root "${payload_dir}" --tag "${version}" >&2
 
 (
   cd "${tmp_dir}"

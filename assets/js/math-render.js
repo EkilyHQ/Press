@@ -1,10 +1,22 @@
 const KATEX_VENDOR_BASE = './vendor/katex/';
+const KATEX_VENDOR_CACHE_KEY = '';
+
+function appendVendorCacheKey(url) {
+  const cacheKey = String(KATEX_VENDOR_CACHE_KEY || '').trim();
+  if (!cacheKey) return url;
+  const raw = String(url || '');
+  const hashIndex = raw.indexOf('#');
+  const pathAndQuery = hashIndex >= 0 ? raw.slice(0, hashIndex) : raw;
+  const hash = hashIndex >= 0 ? raw.slice(hashIndex) : '';
+  const joiner = pathAndQuery.includes('?') ? '&' : '?';
+  return `${pathAndQuery}${joiner}v=${encodeURIComponent(cacheKey)}${hash}`;
+}
 
 function resolveVendorUrl(path) {
   try {
-    return new URL(`${KATEX_VENDOR_BASE}${path}`, import.meta.url).href;
+    return appendVendorCacheKey(new URL(`${KATEX_VENDOR_BASE}${path}`, import.meta.url).href);
   } catch (_) {
-    return `${KATEX_VENDOR_BASE}${path}`;
+    return appendVendorCacheKey(`${KATEX_VENDOR_BASE}${path}`);
   }
 }
 

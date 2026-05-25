@@ -5,7 +5,7 @@ import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
 import {
   satisfiesSemverRange,
   setPressSystemManifestForTests
-} from '../assets/js/press-version.js?v=press-system-v3.4.52';
+} from '../assets/js/press-version.js';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 if (!globalThis.btoa) {
@@ -665,6 +665,7 @@ await run('normalizes a rooted system update archive to safe site-relative paths
   const buffer = makeZip({
     'press-system-v3.3.5/index.html': '<!doctype html>',
     'press-system-v3.3.5/assets/press-system.json': '{"schemaVersion":1,"type":"press-system","version":"3.3.5","tag":"v3.3.5","upgradeFrom":{"ranges":[">=3.3.0 <3.3.5"],"allowUnknownSource":true,"message":""}}',
+    'press-system-v3.3.5/assets/press-runtime-manifest.json': '{"schemaVersion":1,"type":"press-runtime-assets","version":"3.3.5","tag":"v3.3.5","cacheKey":"press-system-v3.3.5","entries":[]}',
     'press-system-v3.3.5/assets/js/system-updates.js': 'export {};',
     'press-system-v3.3.5/assets/themes/native/theme.json': '{"name":"Native","contractVersion":1}'
   });
@@ -673,6 +674,7 @@ await run('normalizes a rooted system update archive to safe site-relative paths
 
   assert.deepEqual(entries.map((entry) => entry.path).sort(), [
     'assets/js/system-updates.js',
+    'assets/press-runtime-manifest.json',
     'assets/press-system.json',
     'assets/themes/native/theme.json',
     'index.html'

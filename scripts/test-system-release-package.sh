@@ -18,8 +18,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-version="v9.9.9"
+version="$(PRESS_REPO_ROOT="${repo_root}" node -e "const manifest = require(process.env.PRESS_REPO_ROOT + '/assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(tag);")"
 zip_path="${tmp_dir}/press-system-${version}.zip"
+package_root="press-system-${version}"
 
 bash "${repo_root}/scripts/package-system-release.sh" "${version}" "${tmp_dir}" >/dev/null
 
@@ -48,6 +49,11 @@ fi
 
 if ! grep -qx "press-system-${version}/assets/press-system.json" "${entries_file}"; then
   echo "expected package to include the Press system version manifest" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/press-runtime-manifest.json" "${entries_file}"; then
+  echo "expected package to include the generated runtime asset manifest" >&2
   exit 1
 fi
 
@@ -584,10 +590,51 @@ if grep -Eq "${blocked}" "${entries_file}"; then
   exit 1
 fi
 
-allowed="^press-system-${version}/(index\\.html|index_editor\\.html|index_editor_preview\\.html|assets/(press-system\\.json|main\\.js|js/.*|i18n/.*|schema/.*|themes/native/.*))$"
+allowed="^press-system-${version}/(index\\.html|index_editor\\.html|index_editor_preview\\.html|assets/(press-system\\.json|press-runtime-manifest\\.json|main\\.js|js/.*|i18n/.*|schema/.*|themes/native/.*))$"
 while IFS= read -r entry; do
   if [[ ! "${entry}" =~ ${allowed} ]]; then
     echo "unexpected file in system release package: ${entry}" >&2
     exit 1
   fi
 done < "${entries_file}"
+
+runtime_manifest_json="$(unzip -p "${zip_path}" "press-system-${version}/assets/press-runtime-manifest.json")"
+RUNTIME_MANIFEST_JSON="${runtime_manifest_json}" EXPECTED_VERSION="${version#v}" EXPECTED_TAG="${version}" node <<'NODE'
+const manifest = JSON.parse(process.env.RUNTIME_MANIFEST_JSON || '{}');
+if (manifest.schemaVersion !== 1 || manifest.type !== 'press-runtime-assets') {
+  throw new Error('runtime manifest must use the press-runtime-assets schema');
+}
+if (manifest.version !== process.env.EXPECTED_VERSION || manifest.tag !== process.env.EXPECTED_TAG) {
+  throw new Error('runtime manifest version must match the package tag');
+}
+if (manifest.cacheKey !== `press-system-${process.env.EXPECTED_TAG}`) {
+  throw new Error('runtime manifest cacheKey must match the package tag');
+}
+if (!Array.isArray(manifest.entries) || !manifest.entries.some((entry) => entry.path === 'assets/main.js')) {
+  throw new Error('runtime manifest must inventory runtime files');
+}
+NODE
+
+assert_zip_contains() {
+  local path="$1"
+  local needle="$2"
+  local description="$3"
+  if ! unzip -p "${zip_path}" "${package_root}/${path}" | grep -F "${needle}" >/dev/null; then
+    echo "expected materialized package ${path} to contain ${description}" >&2
+    exit 1
+  fi
+}
+
+assert_zip_contains "index.html" "src=\"assets/js/theme-boot.js?v=press-system-${version}\"" "the versioned theme boot URL"
+assert_zip_contains "index.html" "src=\"assets/main.js?v=press-system-${version}\"" "the versioned public runtime URL"
+assert_zip_contains "index_editor.html" "href=\"assets/themes/native/theme.css?v=press-system-${version}\"" "the versioned native editor stylesheet URL"
+assert_zip_contains "index_editor.html" "src=\"assets/js/editor-main.js?v=press-system-${version}\"" "the versioned editor runtime URL"
+assert_zip_contains "index_editor.html" "src=\"assets/js/composer.js?v=press-system-${version}\"" "the versioned composer runtime URL"
+assert_zip_contains "assets/main.js" "from './js/theme-layout.js?v=press-system-${version}';" "a versioned static runtime import"
+assert_zip_contains "assets/main.js" "import('./js/markdown.js?v=press-system-${version}')" "a versioned dynamic runtime import"
+assert_zip_contains "assets/i18n/languages.json" "./en.js?v=press-system-${version}" "versioned language bundle entries"
+assert_zip_contains "assets/js/math-render.js" "KATEX_VENDOR_CACHE_KEY = 'press-system-${version}'" "the materialized KaTeX vendor cache key"
+assert_zip_contains "assets/js/theme-layout.js" "NATIVE_MODULE_CACHE_KEY = 'press-system-${version}'" "the materialized native module cache key"
+assert_zip_contains "assets/js/theme-layout.js" "NATIVE_STYLE_CACHE_KEY = 'press-system-${version}'" "the materialized native style cache key"
+assert_zip_contains "assets/js/theme.js" "NATIVE_STYLE_CACHE_KEY = 'press-system-${version}'" "the materialized theme stylesheet cache key"
+assert_zip_contains "assets/themes/native/theme.css" "@import \"./base.css?v=press-system-${version}\";" "the versioned native base stylesheet import"

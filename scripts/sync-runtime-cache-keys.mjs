@@ -1,51 +1,159 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, '..');
-const args = new Set(process.argv.slice(2));
-const write = args.has('--write');
-const check = args.has('--check') || !write;
+const repoRoot = path.resolve(here, '..');
+const PRESS_CACHE_KEY_PATTERN = /^press-system-v\d+\.\d+\.\d+$/;
+const VERSIONED_REF_PATTERN = /[?&]v=press-system-v\d+\.\d+\.\d+/;
+const MANAGED_EXTENSIONS = new Set(['.css', '.js', '.mjs']);
+const REWRITE_EXTENSIONS = new Set(['.css', '.html', '.js']);
+const LANGUAGE_MANIFEST = 'assets/i18n/languages.json';
+const RUNTIME_MANIFEST_PATH = 'assets/press-runtime-manifest.json';
+const NATIVE_CACHE_CONSTANTS = [
+  'NATIVE_MODULE_CACHE_KEY',
+  'NATIVE_STYLE_CACHE_KEY',
+  'KATEX_VENDOR_CACHE_KEY'
+];
 
-if (args.has('--help') || args.has('-h')) {
-  console.log('usage: node scripts/sync-runtime-cache-keys.mjs [--check|--write]');
-  process.exit(0);
+const argv = process.argv.slice(2);
+const options = parseArgs(argv);
+
+if (options.help) {
+  usage(0);
 }
 
-const unknown = [...args].filter((arg) => !['--check', '--write'].includes(arg));
-if (unknown.length || (write && args.has('--check'))) {
-  console.error('usage: node scripts/sync-runtime-cache-keys.mjs [--check|--write]');
-  process.exit(2);
+const mode = options.materializeRoot ? 'materialize' : (options.write ? 'write' : 'check');
+const root = mode === 'materialize'
+  ? path.resolve(options.materializeRoot)
+  : repoRoot;
+const tag = resolveTag(root, options.tag);
+const version = tag.slice(1);
+const cacheKey = `press-system-${tag}`;
+
+if (mode === 'materialize') {
+  materializeRuntime(root, tag, version, cacheKey);
+} else {
+  checkOrCleanSource(root, mode);
 }
 
-function readText(relPath) {
-  return fs.readFileSync(path.join(root, relPath), 'utf8');
+function usage(exitCode = 2) {
+  const out = exitCode ? console.error : console.log;
+  out('usage: node scripts/sync-runtime-cache-keys.mjs [--check|--write]');
+  out('       node scripts/sync-runtime-cache-keys.mjs --materialize-root <payload-root> [--tag vX.Y.Z]');
+  process.exit(exitCode);
 }
 
-function writeText(relPath, text) {
-  fs.writeFileSync(path.join(root, relPath), text);
+function parseArgs(args) {
+  const parsed = {
+    check: false,
+    write: false,
+    help: false,
+    materializeRoot: '',
+    tag: ''
+  };
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '--check') parsed.check = true;
+    else if (arg === '--write') parsed.write = true;
+    else if (arg === '--materialize-root') {
+      i += 1;
+      if (!args[i]) usage();
+      parsed.materializeRoot = args[i];
+    } else if (arg === '--tag') {
+      i += 1;
+      if (!args[i]) usage();
+      parsed.tag = args[i];
+    } else if (arg === '--help' || arg === '-h') {
+      parsed.help = true;
+    } else {
+      usage();
+    }
+  }
+  if (parsed.write && parsed.check) usage();
+  if (parsed.materializeRoot && parsed.write) usage();
+  if (parsed.materializeRoot && parsed.check) usage();
+  if (parsed.tag && !/^v\d+\.\d+\.\d+$/.test(parsed.tag)) {
+    console.error(`invalid release tag: ${parsed.tag}`);
+    process.exit(2);
+  }
+  return parsed;
 }
 
-function readJson(relPath) {
-  return JSON.parse(readText(relPath));
+function readText(rootDir, relPath) {
+  return fs.readFileSync(path.join(rootDir, relPath), 'utf8');
 }
 
-function collectFiles(relPath) {
-  const full = path.join(root, relPath);
+function writeText(rootDir, relPath, text) {
+  fs.writeFileSync(path.join(rootDir, relPath), text);
+}
+
+function readJson(rootDir, relPath) {
+  return JSON.parse(readText(rootDir, relPath));
+}
+
+function resolveTag(rootDir, explicitTag = '') {
+  if (explicitTag) return explicitTag;
+  const manifest = readJson(rootDir, 'assets/press-system.json');
+  const versionValue = String(manifest.version || '').trim();
+  const tagValue = String(manifest.tag || '').trim();
+  if (!/^\d+\.\d+\.\d+$/.test(versionValue) || tagValue !== `v${versionValue}`) {
+    console.error('assets/press-system.json must declare matching SemVer version and tag.');
+    process.exit(1);
+  }
+  return tagValue;
+}
+
+function collectFiles(rootDir, relPath) {
+  const full = path.join(rootDir, relPath);
+  if (!fs.existsSync(full)) return [];
   const stat = fs.statSync(full);
   if (stat.isDirectory()) {
     return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => {
-      return collectFiles(path.join(relPath, entry.name));
+      return collectFiles(rootDir, path.posix.join(normalizeSlash(relPath), entry.name));
     });
   }
-  return [relPath];
+  return [normalizeSlash(relPath)];
 }
 
 function normalizeSlash(value) {
   return String(value || '').replace(/\\/g, '/');
+}
+
+function runtimeRoots(includeManifest = false) {
+  const roots = [
+    'index.html',
+    'index_editor.html',
+    'index_editor_preview.html',
+    'assets/main.js',
+    'assets/js',
+    'assets/i18n',
+    'assets/schema',
+    'assets/themes/native'
+  ];
+  if (includeManifest) roots.push(RUNTIME_MANIFEST_PATH);
+  return roots;
+}
+
+function rewriteTargetFiles(rootDir) {
+  return runtimeRoots(false)
+    .flatMap((entry) => collectFiles(rootDir, entry))
+    .filter((file) => {
+      if (file.includes('/vendor/')) return false;
+      if (file === LANGUAGE_MANIFEST) return true;
+      return REWRITE_EXTENSIONS.has(path.posix.extname(file).toLowerCase());
+    });
+}
+
+function manifestTargetFiles(rootDir) {
+  return runtimeRoots(false)
+    .flatMap((entry) => collectFiles(rootDir, entry))
+    .filter((file) => file !== RUNTIME_MANIFEST_PATH)
+    .filter((file) => fs.statSync(path.join(rootDir, file)).isFile())
+    .sort();
 }
 
 function resolveAssetPath(fromFile, rawRef) {
@@ -55,120 +163,266 @@ function resolveAssetPath(fromFile, rawRef) {
   const withoutQuery = withoutHash.split('?')[0];
   if (!withoutQuery) return '';
   if (withoutQuery.startsWith('/')) return withoutQuery.replace(/^\/+/, '');
+  if (
+    withoutQuery.startsWith('assets/')
+    || withoutQuery === 'index.html'
+    || withoutQuery === 'index_editor.html'
+    || withoutQuery === 'index_editor_preview.html'
+  ) {
+    return normalizeSlash(withoutQuery).replace(/^\.\//, '');
+  }
   const baseDir = path.posix.dirname(normalizeSlash(fromFile));
   return path.posix.normalize(path.posix.join(baseDir, withoutQuery)).replace(/^\.\//, '');
 }
 
-function isManagedAsset(fromFile, rawRef) {
+function isManagedRuntimeAsset(rootDir, fromFile, rawRef) {
   const resolved = resolveAssetPath(fromFile, rawRef);
   if (!resolved) return false;
-  return (
-    resolved === 'index.html'
-    || resolved === 'index_editor.html'
-    || resolved === 'index_editor_preview.html'
-    || resolved === 'assets/main.js'
+  const ext = path.posix.extname(resolved).toLowerCase();
+  if (!MANAGED_EXTENSIONS.has(ext)) return false;
+  if (
+    resolved === 'assets/main.js'
     || resolved.startsWith('assets/js/')
     || resolved.startsWith('assets/i18n/')
-    || resolved.startsWith('assets/schema/')
     || resolved.startsWith('assets/themes/native/')
+  ) {
+    return fs.existsSync(path.join(rootDir, resolved));
+  }
+  return false;
+}
+
+function splitHash(value) {
+  const raw = String(value || '');
+  const hashIndex = raw.indexOf('#');
+  return {
+    pathAndQuery: hashIndex >= 0 ? raw.slice(0, hashIndex) : raw,
+    hash: hashIndex >= 0 ? raw.slice(hashIndex) : ''
+  };
+}
+
+function splitQuery(value) {
+  const queryIndex = value.indexOf('?');
+  return {
+    pathname: queryIndex >= 0 ? value.slice(0, queryIndex) : value,
+    query: queryIndex >= 0 ? value.slice(queryIndex + 1) : ''
+  };
+}
+
+function stripPressCacheParam(rawRef) {
+  const { pathAndQuery, hash } = splitHash(rawRef);
+  const { pathname, query } = splitQuery(pathAndQuery);
+  if (!query) return rawRef;
+  const parts = query.split('&').filter((part) => !/^v=press-system-v\d+\.\d+\.\d+$/.test(part));
+  return `${pathname}${parts.length ? `?${parts.join('&')}` : ''}${hash}`;
+}
+
+function ensurePressCacheParam(rawRef, cacheKey) {
+  const clean = stripPressCacheParam(rawRef);
+  const { pathAndQuery, hash } = splitHash(clean);
+  const joiner = pathAndQuery.includes('?') ? '&' : '?';
+  return `${pathAndQuery}${joiner}v=${encodeURIComponent(cacheKey)}${hash}`;
+}
+
+function transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue) {
+  if (!isManagedRuntimeAsset(rootDir, relPath, rawRef)) return rawRef;
+  return mode === 'materialize'
+    ? ensurePressCacheParam(rawRef, cacheKeyValue)
+    : stripPressCacheParam(rawRef);
+}
+
+function transformImportRefs(rootDir, relPath, source, mode, cacheKeyValue) {
+  return source.replace(
+    /(\bfrom\s*|\bimport\s*(?:\(\s*)?|@import\s+)(['"`])([^'"`]+)(\2)/g,
+    (match, prefix, quote, rawRef, closeQuote) => {
+      const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
+      return nextRef === rawRef ? match : `${prefix}${quote}${nextRef}${closeQuote}`;
+    }
   );
 }
 
-function replaceUrlCacheKeys(relPath, source, cacheKey) {
-  return source.replace(/(\?v=)([^'"`\s<>)\\]+)/g, (match, prefix, _oldKey, offset) => {
-    const before = source.slice(Math.max(0, offset - 260), offset);
-    const refMatch = before.match(/(?:src|href|import|from)\s*=\s*["']([^"']+)$|(?:from|import)\s*["']([^"']+)$|import\(\s*["']([^"']+)$|@import\s+["']([^"']+)$|["'](?:module|src|href)["']\s*:\s*["']([^"']+)$/);
-    const rawRef = refMatch && (refMatch[1] || refMatch[2] || refMatch[3] || refMatch[4] || refMatch[5]);
-    if (!rawRef || !isManagedAsset(relPath, rawRef)) return match;
-    return `${prefix}${cacheKey}`;
-  });
-}
-
-function replaceSpecialRuntimeKeys(relPath, source, cacheKey) {
-  if (relPath !== 'assets/js/theme-boot.js') return source;
-  return source.replace(/(theme\.css\?v=)[^'"`\s<>)\\]+/g, `$1${cacheKey}`);
-}
-
-function replaceRuntimeCacheConstants(source, cacheKey) {
-  return source
-    .replace(/(const NATIVE_MODULE_CACHE_KEY = ')[^']*(';)/, `$1${cacheKey}$2`)
-    .replace(/(const NATIVE_STYLE_CACHE_KEY = ')[^']*(';)/g, `$1${cacheKey}$2`);
-}
-
-function collectStaticCacheKeys(relPath, source) {
-  const keys = [];
-  source.replace(/(\?v=)([^'"`\s<>)\\]+)/g, (match, prefix, key, offset) => {
-    const before = source.slice(Math.max(0, offset - 260), offset);
-    const refMatch = before.match(/(?:src|href|import|from)\s*=\s*["']([^"']+)$|(?:from|import)\s*["']([^"']+)$|import\(\s*["']([^"']+)$|@import\s+["']([^"']+)$|["'](?:module|src|href)["']\s*:\s*["']([^"']+)$/);
-    const rawRef = refMatch && (refMatch[1] || refMatch[2] || refMatch[3] || refMatch[4] || refMatch[5]);
-    if ((rawRef && isManagedAsset(relPath, rawRef)) || (relPath === 'assets/js/theme-boot.js' && before.endsWith('theme.css'))) {
-      keys.push({ key, match });
+function transformHtmlAttributeRefs(rootDir, relPath, source, mode, cacheKeyValue) {
+  return source.replace(
+    /(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g,
+    (match, prefix, quote, rawRef, closeQuote) => {
+      const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
+      return nextRef === rawRef ? match : `${prefix}${quote}${nextRef}${closeQuote}`;
     }
-    return match;
+  );
+}
+
+function transformLanguageManifestRefs(rootDir, relPath, source, mode, cacheKeyValue) {
+  if (relPath !== LANGUAGE_MANIFEST) return source;
+  return source.replace(
+    /("module"\s*:\s*")([^"]+)(")/g,
+    (match, prefix, rawRef, suffix) => {
+      const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
+      return nextRef === rawRef ? match : `${prefix}${nextRef}${suffix}`;
+    }
+  );
+}
+
+function transformNativeThemeBoot(source, mode, cacheKeyValue) {
+  return source.replace(/(\/theme\.css)(?:\?v=press-system-v\d+\.\d+\.\d+)?/g, (_match, pathPart) => {
+    return mode === 'materialize' ? `${pathPart}?v=${cacheKeyValue}` : pathPart;
   });
-  source.replace(/NATIVE_(?:MODULE|STYLE)_CACHE_KEY = '([^']*)'/g, (match, key) => {
-    keys.push({ key, match });
-    return match;
+}
+
+function transformNativeCacheConstants(source, mode, cacheKeyValue) {
+  let next = source;
+  NATIVE_CACHE_CONSTANTS.forEach((name) => {
+    const replacement = mode === 'materialize' ? cacheKeyValue : '';
+    next = next.replace(
+      new RegExp(`(const\\s+${name}\\s*=\\s*')[^']*(';)`, 'g'),
+      `$1${replacement}$2`
+    );
   });
-  return keys;
+  return next;
 }
 
-const manifest = readJson('assets/press-system.json');
-const version = String(manifest.version || '').trim();
-const tag = String(manifest.tag || '').trim();
-if (!/^\d+\.\d+\.\d+$/.test(version) || tag !== `v${version}`) {
-  console.error('assets/press-system.json must declare matching SemVer version and tag.');
-  process.exit(1);
+function transformSource(rootDir, relPath, source, mode, cacheKeyValue = '') {
+  let next = source;
+  next = transformImportRefs(rootDir, relPath, next, mode, cacheKeyValue);
+  next = transformHtmlAttributeRefs(rootDir, relPath, next, mode, cacheKeyValue);
+  next = transformLanguageManifestRefs(rootDir, relPath, next, mode, cacheKeyValue);
+  if (relPath === 'assets/js/theme-boot.js') next = transformNativeThemeBoot(next, mode, cacheKeyValue);
+  next = transformNativeCacheConstants(next, mode, cacheKeyValue);
+  return next;
 }
 
-const cacheKey = `press-system-v${version}`;
-const roots = [
-  'index.html',
-  'index_editor.html',
-  'index_editor_preview.html',
-  'assets/main.js',
-  'assets/js',
-  'assets/i18n',
-  'assets/schema',
-  'assets/themes/native'
-];
-const targetFiles = roots
-  .flatMap(collectFiles)
-  .concat(['scripts/test-system-updates.js'])
-  .filter((file) => /\.(?:html|js|css|json)$/.test(file))
-  .filter((file) => !file.includes('/vendor/'));
+function findSourceCacheKeys(rootDir) {
+  const findings = [];
+  rewriteTargetFiles(rootDir).forEach((file) => {
+    const source = readText(rootDir, file);
+    if (VERSIONED_REF_PATTERN.test(source)) {
+      findings.push(`${file}: contains a materialized press-system cache key`);
+    }
+    NATIVE_CACHE_CONSTANTS.forEach((name) => {
+      const re = new RegExp(`const\\s+${name}\\s*=\\s*'([^']*)'`, 'g');
+      source.replace(re, (_match, value) => {
+        if (value) {
+          const reason = PRESS_CACHE_KEY_PATTERN.test(value) ? 'is materialized in source' : 'is non-empty in source';
+          findings.push(`${file}: ${name} ${reason}`);
+        }
+        return _match;
+      });
+    });
+  });
+  return findings;
+}
 
-const changed = [];
-for (const file of targetFiles) {
-  const before = readText(file);
-  let after = replaceUrlCacheKeys(file, before, cacheKey);
-  after = replaceSpecialRuntimeKeys(file, after, cacheKey);
-  after = replaceRuntimeCacheConstants(after, cacheKey);
-  if (after !== before) {
-    changed.push(file);
-    if (write) writeText(file, after);
+function checkOrCleanSource(rootDir, mode) {
+  const changed = [];
+  if (mode === 'write') {
+    rewriteTargetFiles(rootDir).forEach((file) => {
+      const before = readText(rootDir, file);
+      const after = transformSource(rootDir, file, before, 'source');
+      if (after !== before) {
+        writeText(rootDir, file, after);
+        changed.push(file);
+      }
+    });
   }
-}
 
-const staleKeys = [];
-for (const file of targetFiles) {
-  const source = readText(file);
-  for (const { key, match } of collectStaticCacheKeys(file, source)) {
-    if (key !== cacheKey) staleKeys.push(`${file}: ${match}`);
+  const findings = findSourceCacheKeys(rootDir);
+  if (findings.length) {
+    console.error('Runtime source files must not contain materialized press-system cache keys.');
+    findings.forEach((entry) => console.error(`  ${entry}`));
+    console.error('Run: node scripts/sync-runtime-cache-keys.mjs --write');
+    process.exit(1);
   }
+  console.log(`${mode === 'write' ? 'cleaned' : 'checked'} runtime source cache keys${changed.length ? `: ${changed.length} files updated` : ''}`);
 }
 
-if (check && changed.length) {
-  console.error(`Runtime cache keys are not synchronized to ${cacheKey}.`);
-  changed.forEach((file) => console.error(`  ${file}`));
-  console.error('Run: node scripts/sync-runtime-cache-keys.mjs --write');
-  process.exit(1);
+function materializeRuntime(rootDir, tagValue, versionValue, cacheKeyValue) {
+  const changed = [];
+  rewriteTargetFiles(rootDir).forEach((file) => {
+    const before = readText(rootDir, file);
+    const after = transformSource(rootDir, file, before, 'materialize', cacheKeyValue);
+    if (after !== before) {
+      writeText(rootDir, file, after);
+      changed.push(file);
+    }
+  });
+  const missing = findMaterializedGaps(rootDir, cacheKeyValue);
+  if (missing.length) {
+    console.error(`Materialized runtime files must reference managed JS/CSS with ${cacheKeyValue}.`);
+    missing.forEach((entry) => console.error(`  ${entry}`));
+    process.exit(1);
+  }
+  writeRuntimeManifest(rootDir, tagValue, versionValue, cacheKeyValue);
+  console.log(`materialized runtime cache keys: ${cacheKeyValue}${changed.length ? ` (${changed.length} files updated)` : ''}`);
 }
 
-if (staleKeys.length) {
-  console.error(`Runtime cache keys must use ${cacheKey}:`);
-  staleKeys.forEach((entry) => console.error(`  ${entry}`));
-  process.exit(1);
+function collectRefsForVerification(rootDir, relPath, source) {
+  const refs = [];
+  source.replace(
+    /(\bfrom\s*|\bimport\s*(?:\(\s*)?|@import\s+)(['"`])([^'"`]+)(\2)/g,
+    (match, _prefix, _quote, rawRef) => {
+      if (isManagedRuntimeAsset(rootDir, relPath, rawRef)) refs.push({ rawRef, match });
+      return match;
+    }
+  );
+  source.replace(
+    /(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g,
+    (match, _prefix, _quote, rawRef) => {
+      if (isManagedRuntimeAsset(rootDir, relPath, rawRef)) refs.push({ rawRef, match });
+      return match;
+    }
+  );
+  if (relPath === LANGUAGE_MANIFEST) {
+    source.replace(/("module"\s*:\s*")([^"]+)(")/g, (match, _prefix, rawRef) => {
+      if (isManagedRuntimeAsset(rootDir, relPath, rawRef)) refs.push({ rawRef, match });
+      return match;
+    });
+  }
+  return refs;
 }
 
-console.log(`${write ? 'synced' : 'checked'} runtime cache keys: ${cacheKey}`);
+function findMaterializedGaps(rootDir, cacheKeyValue) {
+  const gaps = [];
+  rewriteTargetFiles(rootDir).forEach((file) => {
+    const source = readText(rootDir, file);
+    collectRefsForVerification(rootDir, file, source).forEach(({ rawRef, match }) => {
+      const { pathAndQuery } = splitHash(rawRef);
+      const { query } = splitQuery(pathAndQuery);
+      const params = query.split('&').filter(Boolean);
+      if (!params.includes(`v=${cacheKeyValue}`)) {
+        gaps.push(`${file}: ${match}`);
+      }
+    });
+    NATIVE_CACHE_CONSTANTS.forEach((name) => {
+      const match = source.match(new RegExp(`const\\s+${name}\\s*=\\s*'([^']*)'`));
+      if (match && match[1] !== cacheKeyValue) {
+        gaps.push(`${file}: ${name} is ${match[1] ? 'stale' : 'empty'}`);
+      }
+    });
+  });
+  return gaps;
+}
+
+function sha256File(file) {
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
+
+function writeRuntimeManifest(rootDir, tagValue, versionValue, cacheKeyValue) {
+  const files = manifestTargetFiles(rootDir);
+  const entries = files.map((file) => {
+    const absolute = path.join(rootDir, file);
+    const stat = fs.statSync(absolute);
+    return {
+      path: file,
+      size: stat.size,
+      sha256: sha256File(absolute)
+    };
+  });
+  const manifest = {
+    schemaVersion: 1,
+    type: 'press-runtime-assets',
+    version: versionValue,
+    tag: tagValue,
+    cacheKey: cacheKeyValue,
+    strategy: 'query-param',
+    entries
+  };
+  writeText(rootDir, RUNTIME_MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+}

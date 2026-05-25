@@ -10,11 +10,11 @@
 // - Friendly language names come from assets/i18n/languages.json (or the language module's metadata).
 
 import { parseFrontMatter } from './content.js';
-import { isEncryptedMarkdown } from './encrypted-content.js?v=press-system-v3.4.52';
+import { isEncryptedMarkdown } from './encrypted-content.js';
 import { getContentRoot } from './utils.js';
 import { parseYAML } from './yaml.js';
 import { getThemeRegion } from './theme-regions.js';
-import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js?v=press-system-v3.4.52';
+import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js';
 
 // Content fetch cache modes are normalized by cache-control.js.
 

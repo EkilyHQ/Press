@@ -299,25 +299,25 @@ assert.doesNotMatch(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-boot\.js\?v=[\w.-]+/,
+  /assets\/js\/editor-boot\.js/,
   'editor HTML should cache-bust editor boot when asset deletion i18n boundaries change'
 );
 
 assert.match(
   source,
-  /import \{ escapeHtml \} from '\.\/utils\.js\?v=[\w.-]+';/,
+  /import \{ escapeHtml \} from '\.\/utils\.js';/,
   'composer should import the shared HTML escaper before wiring UI controllers'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=[\w.-]+/,
+  /assets\/js\/editor-main\.js/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorSource,
-  /assets\/js\/composer\.js\?v=[\w.-]+/,
+  /assets\/js\/composer\.js/,
   'editor HTML should cache-bust composer.js when version compatibility changes'
 );
 
@@ -335,175 +335,175 @@ assert.match(
 
 assert.match(
   editorSource,
-  /assets\/js\/editor-main\.js\?v=[\w.-]+/,
+  /assets\/js\/editor-main\.js/,
   'editor HTML should cache-bust editor-main.js when block editor defaults change'
 );
 
 assert.match(
   editorMainBlocksSessionSource,
-  /from '\.\/editor-blocks\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks\.js'/,
   'editor main blocks session should cache-bust the Markdown blocks editor when math block handling changes'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-model\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-model\.js'/,
   'blocks editor should cache-bust the explicit blocks model boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,[\s\S]*\} from '\.\/editor-blocks-model\.js\?v=[\w.-]+'/,
+  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,[\s\S]*\} from '\.\/editor-blocks-model\.js'/,
   'blocks editor should import table model helpers from the explicit blocks model boundary before composing the table session'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-runtime\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-runtime\.js'/,
   'blocks editor should cache-bust the explicit blocks runtime boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-session-registry\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-session-registry\.js'/,
   'blocks editor should cache-bust the explicit blocks session registry boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-layout-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-layout-session\.js'/,
   'blocks editor should cache-bust the explicit blocks layout session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-body-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-body-session\.js'/,
   'blocks editor should cache-bust the explicit blocks body session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-state\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-state\.js'/,
   'blocks editor should cache-bust the explicit blocks state controller boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-menu-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-menu-session\.js'/,
   'blocks editor should cache-bust the explicit blocks menu session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-head-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-head-session\.js'/,
   'blocks editor should cache-bust the explicit blocks head session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-command-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-command-session\.js'/,
   'blocks editor should cache-bust the explicit blocks command session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-rich-text-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-rich-text-session\.js'/,
   'blocks editor should cache-bust the explicit blocks rich text session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-editable-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-editable-session\.js'/,
   'blocks editor should cache-bust the explicit blocks editable session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-selection-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-selection-session\.js'/,
   'blocks editor should cache-bust the explicit blocks selection session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-inline-dom-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-inline-dom-session\.js'/,
   'blocks editor should cache-bust the explicit blocks inline DOM session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-caret-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-caret-session\.js'/,
   'blocks editor should cache-bust the explicit blocks caret session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-focus-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-focus-session\.js'/,
   'blocks editor should cache-bust the explicit blocks focus session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-pointer-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-pointer-session\.js'/,
   'blocks editor should cache-bust the explicit blocks pointer session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-active-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-active-session\.js'/,
   'blocks editor should cache-bust the explicit blocks active session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-inline-toolbar-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-inline-toolbar-session\.js'/,
   'blocks editor should cache-bust the explicit blocks inline toolbar session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-link-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-link-session\.js'/,
   'blocks editor should cache-bust the explicit blocks link session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-math-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-math-session\.js'/,
   'blocks editor should cache-bust the explicit blocks math session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-table-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-table-session\.js'/,
   'blocks editor should cache-bust the explicit blocks table session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-card-picker-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-card-picker-session\.js'/,
   'blocks editor should cache-bust the explicit blocks card picker session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-image-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-image-session\.js'/,
   'blocks editor should cache-bust the explicit blocks image session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-code-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-code-session\.js'/,
   'blocks editor should cache-bust the explicit blocks code session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-source-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-source-session\.js'/,
   'blocks editor should cache-bust the explicit blocks source session boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-list-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-blocks-list-session\.js'/,
   'blocks editor should cache-bust the explicit blocks list session boundary'
 );
 
@@ -701,7 +701,7 @@ assert.match(
 
 assert.match(
   editorBlocksRuntimeSource,
-  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*const appRuntime = createEditorAppRuntime\(\{ documentRef, windowRef, storage: null \}\)[\s\S]*appRuntime\.browser\.getNavigator\(\)[\s\S]*appRuntime\.browser\.writeClipboardText\(text, blocksNavigatorRef\)[\s\S]*appRuntime\.globals\.get\(TRANSLATE_GLOBAL\)/,
+  /from '\.\/editor-app-runtime\.js'[\s\S]*const appRuntime = createEditorAppRuntime\(\{ documentRef, windowRef, storage: null \}\)[\s\S]*appRuntime\.browser\.getNavigator\(\)[\s\S]*appRuntime\.browser\.writeClipboardText\(text, blocksNavigatorRef\)[\s\S]*appRuntime\.globals\.get\(TRANSLATE_GLOBAL\)/,
   'blocks runtime should delegate browser globals and clipboard details to the shared editor app runtime facade'
 );
 
@@ -744,13 +744,13 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSource,
-  /from '\.\/safe-html\.js\?v=[\w.-]+'/,
+  /from '\.\/safe-html\.js'/,
   'editor preview should import the cache-busted safe HTML helper directly'
 );
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/math-render\.js\?v=[\w.-]+'/,
+  /from '\.\/math-render\.js'/,
   'editor blocks should cache-bust the math renderer when KaTeX support changes'
 );
 
@@ -774,19 +774,19 @@ assert.doesNotMatch(
 
 assert.match(
   composerSystemThemeBridgeSource,
-  /from '\.\/system-updates\.js\?v=[\w.-]+'/,
+  /from '\.\/system-updates\.js'/,
   'system/theme bridge should cache-bust system updates when version compatibility changes'
 );
 
 assert.match(
   source,
-  /from '\.\/encrypted-content\.js\?v=[\w.-]+'/,
+  /from '\.\/encrypted-content\.js'/,
   'composer should import encrypted article helpers through the encrypted-articles cache key'
 );
 
 assert.match(
   source,
-  /from '\.\/composer-index-tabs-model\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-index-tabs-model\.js'/,
   'composer should cache-bust the extracted index/tabs model boundary'
 );
 
@@ -804,7 +804,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-site-model\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-site-model\.js'/,
   'composer should cache-bust the extracted site model boundary'
 );
 
@@ -822,7 +822,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-diff-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-diff-ui\.js'/,
   'composer should cache-bust the extracted diff UI boundary'
 );
 
@@ -840,7 +840,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-order-diff-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-order-diff-ui\.js'/,
   'composer should cache-bust the extracted order diff UI boundary'
 );
 
@@ -875,7 +875,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-index-tabs-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-index-tabs-ui\.js'/,
   'composer should cache-bust the extracted index/tabs list UI boundary'
 );
 
@@ -905,7 +905,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-site-settings-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-site-settings-ui\.js'/,
   'composer should cache-bust the extracted Site Settings UI boundary'
 );
 
@@ -935,7 +935,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-assets\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-assets\.js'/,
   'composer should cache-bust the extracted Markdown asset manager boundary'
 );
 
@@ -977,7 +977,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-editor-shell\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-editor-shell\.js'/,
   'composer should cache-bust the extracted editor shell boundary'
 );
 
@@ -1010,7 +1010,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-path-tools\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-path-tools\.js'/,
   'composer should cache-bust the extracted path tools boundary'
 );
 
@@ -1040,7 +1040,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-content-mutations\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-content-mutations\.js'/,
   'composer should cache-bust the extracted content mutation controller boundary'
 );
 
@@ -1070,7 +1070,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-setup-verifier\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-setup-verifier\.js'/,
   'composer should cache-bust the extracted setup verifier boundary'
 );
 
@@ -1100,19 +1100,19 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-mode-controller\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-mode-controller\.js'/,
   'composer should cache-bust the extracted mode controller boundary'
 );
 
 assert.match(
   source,
-  /from '\.\/composer-service-registry\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-service-registry\.js'/,
   'composer should cache-bust the explicit composer service registry boundary'
 );
 
 assert.match(
   source,
-  /from '\.\/composer-file-panel-controller\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-file-panel-controller\.js'/,
   'composer should cache-bust the extracted file panel controller boundary'
 );
 
@@ -1142,7 +1142,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-editor-detail-panel-controller\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-editor-detail-panel-controller\.js'/,
   'composer should cache-bust the extracted editor detail panel controller boundary'
 );
 
@@ -1172,7 +1172,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-yaml-panels-controller\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-yaml-panels-controller\.js'/,
   'composer should cache-bust the extracted YAML panels controller boundary'
 );
 
@@ -1275,7 +1275,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-unsynced-summary\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-unsynced-summary\.js'/,
   'composer should cache-bust the extracted unsynced summary controller boundary'
 );
 
@@ -1299,7 +1299,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-runtime-styles\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-runtime-styles\.js'/,
   'composer should cache-bust the extracted runtime style boundary'
 );
 
@@ -1329,109 +1329,109 @@ assert.doesNotMatch(
 
 assert.match(
   composerRuntimeSource,
-  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-app-runtime\.js'/,
   'composer runtime should cache-bust the shared editor app runtime boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-runtime\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-runtime\.js'/,
   'editor main should cache-bust the editor main runtime boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-metadata-panel\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-metadata-panel\.js'/,
   'editor main should cache-bust the editor main metadata panel boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-preview-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-preview-session\.js'/,
   'editor main should cache-bust the editor preview session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-current-file-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-current-file-session\.js'/,
   'editor main should cache-bust the editor current-file session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-sidebar-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-sidebar-session\.js'/,
   'editor main should cache-bust the editor sidebar session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-toolbar-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-toolbar-session\.js'/,
   'editor main should cache-bust the editor toolbar session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-image-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-image-session\.js'/,
   'editor main should cache-bust the editor image session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-link-card-context\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-link-card-context\.js'/,
   'editor main should cache-bust the editor link-card context boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-workspace-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-workspace-session\.js'/,
   'editor main should cache-bust the editor workspace session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-blocks-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-blocks-session\.js'/,
   'editor main should cache-bust the editor blocks session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-document-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-document-session\.js'/,
   'editor main should cache-bust the editor document session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-content-service\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-content-service\.js'/,
   'editor main should cache-bust the editor content service boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-file-context-service\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-file-context-service\.js'/,
   'editor main should cache-bust the editor file context service boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-language-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-language-session\.js'/,
   'editor main should cache-bust the editor language session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-scroll-session\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-scroll-session\.js'/,
   'editor main should cache-bust the editor scroll session boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-shell-service\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-shell-service\.js'/,
   'editor main should cache-bust the editor shell service boundary'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/editor-main-service-registry\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-main-service-registry\.js'/,
   'editor main should cache-bust the editor service registry boundary'
 );
 
@@ -1664,13 +1664,13 @@ assert.match(
 
 assert.match(
   editorMainSource,
-  /import \{ resolveImageSrc \} from '\.\/safe-html\.js\?v=[\w.-]+';[\s\S]*const getContentRoot = \(\) => editorMainRuntime\.getContentRoot\(\);[\s\S]*const resolveEditorImageSrc = \(src, baseDir\) => resolveImageSrc\(src, baseDir, \{[\s\S]*contentRoot: editorMainRuntime\.getContentRoot\(\),[\s\S]*origin: editorMainRuntime\.getLocationOrigin\(\)[\s\S]*resolveImageSrc: resolveEditorImageSrc/,
+  /import \{ resolveImageSrc \} from '\.\/safe-html\.js';[\s\S]*const getContentRoot = \(\) => editorMainRuntime\.getContentRoot\(\);[\s\S]*const resolveEditorImageSrc = \(src, baseDir\) => resolveImageSrc\(src, baseDir, \{[\s\S]*contentRoot: editorMainRuntime\.getContentRoot\(\),[\s\S]*origin: editorMainRuntime\.getLocationOrigin\(\)[\s\S]*resolveImageSrc: resolveEditorImageSrc/,
   'editor main should route content-root and image resolution through the explicit runtime boundary'
 );
 
 assert.doesNotMatch(
   editorMainSource,
-  /import \{ getContentRoot, resolveImageSrc \} from '\.\/safe-html\.js\?v=[\w.-]+';|getContentRoot, resolveImageSrc/,
+  /import \{ getContentRoot, resolveImageSrc \} from '\.\/safe-html\.js';|getContentRoot, resolveImageSrc/,
   'editor main should not import ambient safe-html content-root reads into the editor app path'
 );
 
@@ -1748,7 +1748,7 @@ assert.match(
 
 assert.match(
   editorMainImageSessionSource,
-  /import \{ insertImageMarkdownAtSelection \} from '\.\/editor-markdown-ops\.js';[\s\S]*import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*runtime\.getFileReader\(\)[\s\S]*runtime\.createMouseEvent\(type, eventOptions\)[\s\S]*function error\(\.\.\.args\)[\s\S]*consoleRef\.error\(\.\.\.args\)[\s\S]*runtime\.emitAssetAdded\([\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
+  /import \{ insertImageMarkdownAtSelection \} from '\.\/editor-markdown-ops\.js';[\s\S]*import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js';[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*runtime\.getFileReader\(\)[\s\S]*runtime\.createMouseEvent\(type, eventOptions\)[\s\S]*function error\(\.\.\.args\)[\s\S]*consoleRef\.error\(\.\.\.args\)[\s\S]*runtime\.emitAssetAdded\([\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
   'editor image session should route markdown-image operations, picker effects, and asset events through explicit dependencies and runtime services'
 );
 
@@ -1784,7 +1784,7 @@ assert.match(
 
 assert.match(
   editorMainBlocksSessionSource,
-  /import \{ createMarkdownBlocksEditor \} from '\.\/editor-blocks\.js\?v=[\w.-]+';[\s\S]*import \{ hydrateInternalLinkCards \} from '\.\/link-cards\.js\?v=[\w.-]+';[\s\S]*const blockLabelFallbacks = \{/,
+  /import \{ createMarkdownBlocksEditor \} from '\.\/editor-blocks\.js';[\s\S]*import \{ hydrateInternalLinkCards \} from '\.\/link-cards\.js';[\s\S]*const blockLabelFallbacks = \{/,
   'editor blocks session should own block editor imports and local fallback labels'
 );
 
@@ -1814,7 +1814,7 @@ assert.match(
 
 assert.match(
   editorMainContentServiceSource,
-  /import \{ configureFetchCachePolicy as configureFetchCachePolicyDefault \} from '\.\/cache-control\.js';[\s\S]*import \{ loadContentJsonWithRaw as loadContentJsonWithRawDefault \} from '\.\/i18n\.js\?v=[\w.-]+';[\s\S]*fetchConfigWithYamlFallbackDefault,[\s\S]*fetchMergedSiteConfigDefault/,
+  /import \{ configureFetchCachePolicy as configureFetchCachePolicyDefault \} from '\.\/cache-control\.js';[\s\S]*import \{ loadContentJsonWithRaw as loadContentJsonWithRawDefault \} from '\.\/i18n\.js';[\s\S]*fetchConfigWithYamlFallbackDefault,[\s\S]*fetchMergedSiteConfigDefault/,
   'editor content service should own the site config and content loading imports'
 );
 
@@ -1910,7 +1910,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-runtime\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-runtime\.js'/,
   'composer should cache-bust the explicit composer runtime boundary'
 );
 
@@ -2006,7 +2006,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBootSource,
-  /from '\.\/editor-boot-runtime\.js\?v=[\w.-]+'[\s\S]*export function createEditorBootController\(bootRuntime = createEditorBootRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*bootRuntime\.setPopulateLanguageSelect\(populateLanguageSelect\)[\s\S]*bootRuntime\.onLanguageControlMounted\(populateLanguageSelect\)[\s\S]*bootRuntime\.onI18nBundleLoaded\(handleI18nBundleLoaded\)[\s\S]*bootRuntime\.onDocumentReady\(\(\) => \{ bootstrap\(\)\.catch\(\(\) => \{\}\); \}\)[\s\S]*createEditorBootController\(\)\.start\(\);/,
+  /from '\.\/editor-boot-runtime\.js'[\s\S]*export function createEditorBootController\(bootRuntime = createEditorBootRuntime\(\)\)[\s\S]*function start\(\) \{[\s\S]*bootRuntime\.setPopulateLanguageSelect\(populateLanguageSelect\)[\s\S]*bootRuntime\.onLanguageControlMounted\(populateLanguageSelect\)[\s\S]*bootRuntime\.onI18nBundleLoaded\(handleI18nBundleLoaded\)[\s\S]*bootRuntime\.onDocumentReady\(\(\) => \{ bootstrap\(\)\.catch\(\(\) => \{\}\); \}\)[\s\S]*createEditorBootController\(\)\.start\(\);/,
   'editor boot should initialize through an explicit editor boot controller boundary'
 );
 
@@ -2018,7 +2018,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBootRuntimeSource,
-  /from '\.\/editor-app-runtime\.js\?v=[\w.-]+'[\s\S]*createBrowserEditorAppRuntime\(options\)[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied[\s\S]*setPopulateLanguageSelect[\s\S]*setSoftResetLanguage/,
+  /from '\.\/editor-app-runtime\.js'[\s\S]*createBrowserEditorAppRuntime\(options\)[\s\S]*onLanguageControlMounted[\s\S]*onI18nBundleLoaded[\s\S]*emitLanguageApplied[\s\S]*setPopulateLanguageSelect[\s\S]*setSoftResetLanguage/,
   'editor boot runtime should wrap language boot globals and events through the shared app runtime facade'
 );
 
@@ -2078,13 +2078,13 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-system-theme-bridge\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-system-theme-bridge\.js'/,
   'composer should cache-bust the extracted system/theme bridge boundary'
 );
 
 assert.doesNotMatch(
   source,
-  /from '\.\/system-updates\.js\?v=|from '\.\/theme-manager\.js\?v=|initSystemUpdates|getSystemUpdateCommitFiles|clearSystemUpdateState|initThemeManager|getThemeManagerCommitFiles|clearThemeManagerState/,
+  /from '\.\/system-updates\.js'|from '\.\/theme-manager\.js'|initSystemUpdates|getSystemUpdateCommitFiles|clearSystemUpdateState|initThemeManager|getThemeManagerCommitFiles|clearThemeManagerState/,
   'composer should not import or initialize system/theme managers directly'
 );
 
@@ -2096,7 +2096,7 @@ assert.match(
 
 assert.match(
   composerSystemThemeBridgeSource,
-  /import \{ createSystemUpdatesController \} from '\.\/system-updates\.js\?v=[\w.-]+'[\s\S]*import \{ createThemeManagerController \} from '\.\/theme-manager\.js\?v=[\w.-]+'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*const systemUpdates = options\.systemUpdatesController \|\| createSystemUpdatesController\(\);[\s\S]*const themeManager = options\.themeManagerController \|\| createThemeManagerController\(\);[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*systemUpdates\.clear\(\{ keepStatus: false \}\)[\s\S]*id: 'themes'[\s\S]*themeManager\.clear\(\{ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true \}\)[\s\S]*function init\(\)[\s\S]*systemUpdates\.init\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*themeManager\.init\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
+  /import \{ createSystemUpdatesController \} from '\.\/system-updates\.js'[\s\S]*import \{ createThemeManagerController \} from '\.\/theme-manager\.js'[\s\S]*export function createComposerSystemThemeBridge\(options = \{\}\)[\s\S]*const systemUpdates = options\.systemUpdatesController \|\| createSystemUpdatesController\(\);[\s\S]*const themeManager = options\.themeManagerController \|\| createThemeManagerController\(\);[\s\S]*function registerStagingProviders\(stagingRegistry\)[\s\S]*id: 'system-updates'[\s\S]*systemUpdates\.clear\(\{ keepStatus: false \}\)[\s\S]*id: 'themes'[\s\S]*themeManager\.clear\(\{ keepStatus: false, keepRegistryCache: true, keepSiteThemeFallback: true \}\)[\s\S]*function init\(\)[\s\S]*systemUpdates\.init\(\{ onStateChange: refreshUnsyncedSummary \}\)[\s\S]*themeManager\.init\(\{[\s\S]*getCurrentThemePack,[\s\S]*setSiteThemePack/,
   'system/theme bridge should own explicit manager controllers, staging providers, and module initialization'
 );
 
@@ -2108,13 +2108,13 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-publish-state-service\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-publish-state-service\.js'/,
   'composer should cache-bust the extracted publish state service boundary'
 );
 
 assert.doesNotMatch(
   source,
-  /from '\.\/composer-staging\.js\?v=|from '\.\/composer-index-publish-metadata\.js\?v=|from '\.\/composer-content-staging\.js\?v=|from '\.\/composer-seo-staging\.js\?v=|from '\.\/composer-post-commit-state\.js\?v=|createStagingRegistry\(|createIndexPublishMetadataEnricher\(|createContentCommitStagingProvider\(|createSeoStagingProvider\(|createPostCommitStateApplier\(|stagingRegistry/,
+  /from '\.\/composer-staging\.js'|from '\.\/composer-index-publish-metadata\.js'|from '\.\/composer-content-staging\.js'|from '\.\/composer-seo-staging\.js'|from '\.\/composer-post-commit-state\.js'|createStagingRegistry\(|createIndexPublishMetadataEnricher\(|createContentCommitStagingProvider\(|createSeoStagingProvider\(|createPostCommitStateApplier\(|stagingRegistry/,
   'composer should not own publish staging registry, staging providers, or post-commit state applier wiring'
 );
 
@@ -2126,7 +2126,7 @@ assert.match(
 
 assert.match(
   composerPublishStateServiceSource,
-  /from '\.\/composer-staging\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-index-publish-metadata\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-content-staging\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-seo-staging\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-post-commit-state\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-staging\.js'[\s\S]*from '\.\/composer-index-publish-metadata\.js'[\s\S]*from '\.\/composer-content-staging\.js'[\s\S]*from '\.\/composer-seo-staging\.js'[\s\S]*from '\.\/composer-post-commit-state\.js'/,
   'publish state service should cache-bust the staging and post-commit modules it composes'
 );
 
@@ -2162,7 +2162,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-bootstrap\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-bootstrap\.js'/,
   'composer should cache-bust the extracted DOM bootstrap and workspace assembly boundary'
 );
 
@@ -2204,7 +2204,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-ui-motion\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-ui-motion\.js'/,
   'composer should cache-bust the extracted UI motion boundary'
 );
 
@@ -2258,7 +2258,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-site-config\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-site-config\.js'/,
   'composer should cache-bust the extracted site config boundary'
 );
 
@@ -2288,13 +2288,13 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/editor-content-tree-controller\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-content-tree-controller\.js'/,
   'composer should cache-bust the extracted editor content tree controller boundary'
 );
 
 assert.match(
   source,
-  /from '\.\/composer-yaml-actions\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-yaml-actions\.js'/,
   'composer should cache-bust the extracted YAML action boundary'
 );
 
@@ -2336,7 +2336,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-loader\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-loader\.js'/,
   'composer should cache-bust the extracted Markdown loader boundary'
 );
 
@@ -2360,7 +2360,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-actions-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-actions-ui\.js'/,
   'composer should cache-bust the extracted Markdown actions UI boundary'
 );
 
@@ -2378,13 +2378,13 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-actions\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-actions\.js'/,
   'composer should cache-bust the extracted Markdown actions controller boundary'
 );
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-workspace\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-workspace\.js'/,
   'composer should cache-bust the extracted Markdown workspace controller boundary'
 );
 
@@ -2426,7 +2426,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-state\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-state\.js'/,
   'composer should cache-bust the extracted Markdown state boundary'
 );
 
@@ -2438,13 +2438,13 @@ assert.doesNotMatch(
 
 assert.match(
   composerMarkdownStateSource,
-  /from '\.\/composer-markdown-save\.js\?v=[\w.-]+'[\s\S]*export function normalizeMarkdownContent\(text\)[\s\S]*export function computeTextSignature\(text\)[\s\S]*export function createMarkdownProtectionState\(overrides = \{\}\)[\s\S]*export function getMarkdownProtectionState\(tab\)[\s\S]*export function bumpMarkdownDraftSaveGeneration\(tab\)/,
+  /from '\.\/composer-markdown-save\.js'[\s\S]*export function normalizeMarkdownContent\(text\)[\s\S]*export function computeTextSignature\(text\)[\s\S]*export function createMarkdownProtectionState\(overrides = \{\}\)[\s\S]*export function getMarkdownProtectionState\(tab\)[\s\S]*export function bumpMarkdownDraftSaveGeneration\(tab\)/,
   'Markdown state boundary should own draft normalization, text signatures, protection state, and encrypted-draft save generations'
 );
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-drafts\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-drafts\.js'/,
   'composer should cache-bust the extracted Markdown drafts boundary'
 );
 
@@ -2484,7 +2484,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/editor-file-tree-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-file-tree-ui\.js'/,
   'composer should cache-bust the extracted editor file tree UI boundary'
 );
 
@@ -2502,7 +2502,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/editor-structure-panel-ui\.js\?v=[\w.-]+'/,
+  /from '\.\/editor-structure-panel-ui\.js'/,
   'composer should cache-bust the extracted editor structure panel UI boundary'
 );
 
@@ -2592,7 +2592,7 @@ assert.match(
 
 assert.match(
   readFileSync(resolve(here, '../assets/js/system-updates.js'), 'utf8'),
-  /from '\.\/markdown\.js\?v=[\w.-]+'[\s\S]*from '\.\/math-render\.js\?v=[\w.-]+'[\s\S]*from '\.\/safe-html\.js\?v=[\w.-]+'/,
+  /from '\.\/markdown\.js'[\s\S]*from '\.\/math-render\.js'[\s\S]*from '\.\/safe-html\.js'/,
   'system update notes should cache-bust Markdown, math renderer, and sanitizer when math rendering changes'
 );
 
@@ -3829,7 +3829,7 @@ assert.match(
 
 assert.match(
   editorMainImageSessionSource,
-  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*const canDeleteImageResource = \(src\) => !!resolveCurrentImageResource\(src\);[\s\S]*const requestBlocksImageDelete = \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*blocksEditor\.deleteImageBlock\(target\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
+  /import \{ resolveLocalMarkdownAssetReference \} from '\.\/repository-deletions\.js';[\s\S]*const canDeleteImageResource = \(src\) => !!resolveCurrentImageResource\(src\);[\s\S]*const requestBlocksImageDelete = \(\{ index, blockId, src \} = \{\}\) => \{[\s\S]*resolveLocalMarkdownAssetReference\(markdownPath, source \|\| src, getContentRoot\(\)\)[\s\S]*runtime\.requestAssetDelete\(detail\)[\s\S]*blocksEditor\.deleteImageBlock\(target\)[\s\S]*runtime\.emitAssetDeleteCanceled\(detail\)/,
   'visual image blocks should request explicit repository asset deletion before removing the block'
 );
 
@@ -4477,19 +4477,19 @@ assert.match(
 
 assert.doesNotMatch(
   editorPreviewRuntimeSource,
-  /import \{ getContentRoot, setSafeHtml \} from '\.\/safe-html\.js\?v=[\w.-]+';/,
+  /import \{ getContentRoot, setSafeHtml \} from '\.\/safe-html\.js';/,
   'editor preview runtime should not import ambient safe-html content-root reads'
 );
 
 assert.match(
   editorPreviewRuntimeSource,
-  /import \{ setSafeHtml \} from '\.\/safe-html\.js\?v=[\w.-]+';[\s\S]*function getContentRoot\(\) \{[\s\S]*previewRuntime\.getContentRoot\(\)[\s\S]*function applyPreviewContentRoot\(payload = \{\}\) \{[\s\S]*previewRuntime\.setContentRoot\(inferPayloadContentRoot\(payload\)\)[\s\S]*function getImageResolutionOptions\(\) \{[\s\S]*contentRoot: getContentRoot\(\),[\s\S]*origin: previewRuntime\.getLocationOrigin\(\)[\s\S]*function setPreviewSafeHtml\(target, html, baseDir, options = \{\}\)[\s\S]*mdParse\(markdown, baseDir, \{ imageResolution \}\)[\s\S]*setPreviewSafeHtml\(main, output\.post \|\| '', baseDir, \{ alreadySanitized: true, imageResolution \}\)/,
+  /import \{ setSafeHtml \} from '\.\/safe-html\.js';[\s\S]*function getContentRoot\(\) \{[\s\S]*previewRuntime\.getContentRoot\(\)[\s\S]*function applyPreviewContentRoot\(payload = \{\}\) \{[\s\S]*previewRuntime\.setContentRoot\(inferPayloadContentRoot\(payload\)\)[\s\S]*function getImageResolutionOptions\(\) \{[\s\S]*contentRoot: getContentRoot\(\),[\s\S]*origin: previewRuntime\.getLocationOrigin\(\)[\s\S]*function setPreviewSafeHtml\(target, html, baseDir, options = \{\}\)[\s\S]*mdParse\(markdown, baseDir, \{ imageResolution \}\)[\s\S]*setPreviewSafeHtml\(main, output\.post \|\| '', baseDir, \{ alreadySanitized: true, imageResolution \}\)/,
   'editor preview runtime should route content-root and rendered image resolution through its explicit app runtime'
 );
 
 assert.match(
   editorPreviewRuntimeSource,
-  /import \{ createThemeLayoutController, createThemeI18nContext \} from '\.\/theme-layout\.js\?v=[\w.-]+';[\s\S]*export function createEditorPreviewRuntimeController\(\s*previewRuntime = createEditorPreviewAppRuntime\(\),\s*themeLayout = createThemeLayoutController\(\)\s*\)[\s\S]*themeLayout\.getThemeLayoutContext\(\)[\s\S]*themeLayout\.getThemeApiHandler\(name\)[\s\S]*function getPreviewThemeRegion\(names\) \{[\s\S]*themeLayout\.getThemeRegion\(names\)[\s\S]*setupAnchors\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*setupTOC\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*renderTagSidebar\(indexMap, \{ getRegion: getPreviewThemeRegion \}\)[\s\S]*themeLayout\.ensureThemeLayout\(\{ pack: requestedPack, persist: false, reset \}\)[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
+  /import \{ createThemeLayoutController, createThemeI18nContext \} from '\.\/theme-layout\.js';[\s\S]*export function createEditorPreviewRuntimeController\(\s*previewRuntime = createEditorPreviewAppRuntime\(\),\s*themeLayout = createThemeLayoutController\(\)\s*\)[\s\S]*themeLayout\.getThemeLayoutContext\(\)[\s\S]*themeLayout\.getThemeApiHandler\(name\)[\s\S]*function getPreviewThemeRegion\(names\) \{[\s\S]*themeLayout\.getThemeRegion\(names\)[\s\S]*setupAnchors\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*setupTOC\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*renderTagSidebar\(indexMap, \{ getRegion: getPreviewThemeRegion \}\)[\s\S]*themeLayout\.ensureThemeLayout\(\{ pack: requestedPack, persist: false, reset \}\)[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
   'editor preview runtime should expose explicit preview and theme-layout controller boundaries before browser startup'
 );
 
@@ -4561,19 +4561,19 @@ assert.match(
 
 assert.match(
   [mainSource, editorMainSource, editorBlocksSource, hiEditorSource].join('\n'),
-  /syntax-highlight\.js\?v=[\w.-]+/,
+  /syntax-highlight\.js/,
   'runtime and editor entrypoints should cache-bust the Highlight.js-backed syntax highlighter'
 );
 
 assert.match(
   editorMainSource,
-  /from '\.\/hieditor\.js\?v=[\w.-]+';/,
+  /from '\.\/hieditor\.js';/,
   'editor main should cache-bust hi-editor when Highlight.js span output changes'
 );
 
 assert.doesNotMatch(
   [mainSource, editorMainSource, editorBlocksSource, hiEditorSource].join('\n'),
-  /syntax-highlight\.js(?:['"]|;)|syntax-highlight\.js\?v=blocks-code-gutter-20260505/,
+  /syntax-highlight\.js\?v=blocks-code-gutter-20260505/,
   'runtime and editor entrypoints should not keep stale syntax-highlight module URLs'
 );
 
@@ -4905,7 +4905,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-publish-service\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-publish-service\.js'/,
   'composer should cache-bust the explicit composer publish app-service boundary'
 );
 
@@ -4929,7 +4929,7 @@ assert.match(
 
 assert.match(
   composerPublishServiceSource,
-  /from '\.\/composer-sync-commit-controller\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-sync-overlay\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-settings-ui\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-summary\.js\?v=[\w.-]+'[\s\S]*from '\.\/composer-publish-flow\.js\?v=[\w.-]+'[\s\S]*from '\.\/publish\/settings-store\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-sync-commit-controller\.js'[\s\S]*from '\.\/composer-sync-overlay\.js'[\s\S]*from '\.\/composer-publish-settings-ui\.js'[\s\S]*from '\.\/composer-publish-summary\.js'[\s\S]*from '\.\/composer-publish-flow\.js'[\s\S]*from '\.\/publish\/settings-store\.js'/,
   'composer publish service should cache-bust the publish control-plane modules it composes'
 );
 
@@ -5036,13 +5036,13 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
   publishCommitServiceSource,
-  /import \{ createFineGrainedTokenCommit \} from '\.\/transports\/github-pat-transport\.js\?v=[\w.-]+'/,
+  /import \{ createFineGrainedTokenCommit \} from '\.\/transports\/github-pat-transport\.js'/,
   'publish commit service should not eagerly import the PAT transport on composer startup'
 );
 
 assert.match(
   publishCommitServiceSource,
-  /await import\('\.\/transports\/github-pat-transport\.js\?v=[\w.-]+'\)[\s\S]*createFineGrainedTokenCommit\(transport && transport\.token/,
+  /await import\('\.\/transports\/github-pat-transport\.js'\)[\s\S]*createFineGrainedTokenCommit\(transport && transport\.token/,
   'publish commit service should lazy-load the PAT transport only for PAT publishing'
 );
 
@@ -5090,7 +5090,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-notifications\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-notifications\.js'/,
   'composer should cache-bust the extracted notification and popup boundary'
 );
 
@@ -5126,7 +5126,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-dialogs\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-dialogs\.js'/,
   'composer should cache-bust the extracted dialog boundary'
 );
 
@@ -5178,7 +5178,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-remote-sync\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-remote-sync\.js'/,
   'composer should cache-bust the extracted remote sync boundary'
 );
 
@@ -5202,7 +5202,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /from '\.\/composer-yaml-drafts\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-yaml-drafts\.js'/,
   'composer should cache-bust the extracted YAML draft boundary'
 );
 
@@ -5238,7 +5238,7 @@ assert.match(
 
 assert.match(
   composerContentStagingSource,
-  /from '\.\/repository-deletions\.js\?v=[\w.-]+';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
+  /from '\.\/repository-deletions\.js';[\s\S]*planManagedContentDeletions\(\{[\s\S]*indexBaseline: remoteBaseline\.index[\s\S]*tabsBaseline: remoteBaseline\.tabs[\s\S]*contentDeletionPlan\.files\.forEach\(addFile\);/,
   'composer should stage repository markdown deletions from article/page tombstones'
 );
 
@@ -5327,19 +5327,19 @@ assert.match(
 
 assert.match(
   chtHkI18nSource,
-  /import chtTwTranslations from '\.\/cht-tw\.js\?v=[\w.-]+';/,
+  /import chtTwTranslations from '\.\/cht-tw\.js';/,
   'Hong Kong Traditional Chinese should inherit the cache-busted Traditional Chinese asset deletion strings'
 );
 
 assert.match(
   languagesManifestSource,
-  /"\.\/en\.js\?v=[\w.-]+"[\s\S]*"\.\/chs\.js\?v=[\w.-]+"[\s\S]*"\.\/cht-tw\.js\?v=[\w.-]+"[\s\S]*"\.\/cht-hk\.js\?v=[\w.-]+"[\s\S]*"\.\/ja\.js\?v=[\w.-]+"/,
+  /"\.\/en\.js"[\s\S]*"\.\/chs\.js"[\s\S]*"\.\/cht-tw\.js"[\s\S]*"\.\/cht-hk\.js"[\s\S]*"\.\/ja\.js"/,
   'language manifest should cache-bust language bundles changed by editor asset deletion labels'
 );
 
 assert.match(
   i18nSource,
-  /from '\.\.\/i18n\/en\.js\?v=[\w.-]+'/,
+  /from '\.\.\/i18n\/en\.js'/,
   'default English bundle import should be cache-busted when editor asset deletion labels change'
 );
 
@@ -5353,8 +5353,8 @@ assert.match(
 ].forEach((moduleSource) => {
   assert.doesNotMatch(
     moduleSource,
-    /from ['"]\.\/i18n\.js['"]/,
-    'runtime modules should import the cache-busted i18n module URL'
+    /i18n\.js\?v=20260506theme/,
+    'runtime modules should not keep the stale i18n module cache key'
   );
 });
 
@@ -5946,7 +5946,7 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js\?v=[\w.-]+';/,
+  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js';/,
   'composer should use the shared editor content tree model'
 );
 
@@ -5958,7 +5958,7 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-markdown-session\.js\?v=[\w.-]+'/,
+  /from '\.\/composer-markdown-session\.js'/,
   'composer should cache-bust the extracted Markdown session boundary'
 );
 

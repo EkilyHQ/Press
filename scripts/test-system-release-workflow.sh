@@ -78,6 +78,21 @@ if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --check' "${workflow}" >/
   exit 1
 fi
 
+if ! grep -F -- '--materialize-root "${payload_dir}"' scripts/package-system-release.sh >/dev/null; then
+  echo "system release package builder must materialize runtime cache keys into the payload" >&2
+  exit 1
+fi
+
+if ! grep -F 'assets/press-runtime-manifest.json' scripts/package-system-release.sh >/dev/null && ! grep -F 'press-runtime-manifest.json' scripts/sync-runtime-cache-keys.mjs >/dev/null; then
+  echo "system release package builder must generate a runtime asset manifest" >&2
+  exit 1
+fi
+
+if ! grep -F 'bash scripts/test-pages-workflow.sh' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the Pages deployment workflow contract before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'bash scripts/test-product-state-workflow.sh' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the product-state refresh workflow contract before publishing" >&2
   exit 1

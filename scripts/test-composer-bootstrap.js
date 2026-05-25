@@ -331,7 +331,7 @@ class FakeDocument {
   const bootstrapSource = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
   assert.doesNotMatch(composerSource, /document\.addEventListener\('DOMContentLoaded'/);
   assert.doesNotMatch(composerSource, /function bindComposerUI\(/);
-  assert.match(composerSource, /from '\.\/composer-bootstrap\.js\?v=[\w.-]+'/);
+  assert.match(composerSource, /from '\.\/composer-bootstrap\.js'/);
   assert.match(bootstrapSource, /const onDocumentReady = typeof options\.onDocumentReady === 'function'/);
   assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m);
   assert.doesNotMatch(

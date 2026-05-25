@@ -1,23 +1,33 @@
 import { t } from './i18n.js';
 import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js';
 import { getProductStateThemeEntry, loadProductState } from './product-state.js';
+import {
+  PRESS_THEME_CONTRACT,
+  getDefaultThemeStyles,
+  getRequiredThemeComponents,
+  getRequiredThemeContentShapes,
+  getRequiredThemeRegions,
+  getRequiredThemeViews,
+  getOptionalThemeViews,
+  getThemeArchiveAllowedExtensions,
+  getThemeTextExtensions,
+  isPressThemeContractVersionSupported
+} from './theme-contract-surface.mjs';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';
-const REQUIRED_CONTRACT_VERSION = 1;
+const REQUIRED_CONTRACT_VERSION = PRESS_THEME_CONTRACT.contractVersion;
 export const OFFICIAL_THEME_CATALOG_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Catalog/main/catalog.json';
 const THEME_SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const THEME_RELEASE_ASSET_PATTERN = /^press-theme-[a-z0-9_-]+-v\d+\.\d+\.\d+\.zip$/i;
-const THEME_ARCHIVE_ALLOWED_EXTENSIONS = new Set([
-  '.avif', '.css', '.gif', '.ico', '.jpeg', '.jpg', '.js', '.json', '.mjs', '.otf',
-  '.png', '.svg', '.ttf', '.txt', '.webp', '.woff', '.woff2'
-]);
-const THEME_TEXT_EXTENSIONS = new Set(['.css', '.js', '.json', '.mjs', '.svg', '.txt']);
-const REQUIRED_THEME_VIEWS = ['post', 'posts', 'search', 'tab'];
-const OPTIONAL_THEME_VIEWS = ['error', 'loading'];
-const REQUIRED_THEME_REGIONS = ['main', 'toc', 'search', 'nav', 'tags', 'footer'];
-const REQUIRED_THEME_COMPONENTS = ['press-search', 'press-toc', 'press-post-card'];
-const REQUIRED_THEME_CONTENT_SHAPES = ['rawMarkdown', 'html', 'blocks', 'tocTree', 'headings', 'metadata', 'assets', 'links'];
+const THEME_ARCHIVE_ALLOWED_EXTENSIONS = new Set(getThemeArchiveAllowedExtensions());
+const THEME_TEXT_EXTENSIONS = new Set(getThemeTextExtensions());
+const DEFAULT_THEME_STYLES = getDefaultThemeStyles();
+const REQUIRED_THEME_VIEWS = getRequiredThemeViews();
+const OPTIONAL_THEME_VIEWS = getOptionalThemeViews();
+const REQUIRED_THEME_REGIONS = getRequiredThemeRegions();
+const REQUIRED_THEME_COMPONENTS = getRequiredThemeComponents();
+const REQUIRED_THEME_CONTENT_SHAPES = getRequiredThemeContentShapes();
 
 function createThemeManagerElements() {
   return {
@@ -251,7 +261,7 @@ function validateThemeManifestFiles(themeManifest, availablePaths) {
   if (themeManifest.styles != null) {
     styles = requireThemeStringList(themeManifest, 'styles', 'styles');
   }
-  if (!styles.length) styles = ['theme.css'];
+  if (!styles.length) styles = DEFAULT_THEME_STYLES;
   const modules = requireThemeStringList(themeManifest, 'modules', 'modules');
   if (!modules.length) throw new Error('Theme manifest modules must not be empty.');
 
@@ -285,20 +295,18 @@ function validateThemeManifestContract(themeManifest, availablePaths) {
   requireThemeString(themeManifest.version, 'version');
   normalizeThemeEngines(themeManifest.engines, { required: true });
   const contractVersion = Number(themeManifest.contractVersion);
-  if (contractVersion !== REQUIRED_CONTRACT_VERSION) {
+  if (!isPressThemeContractVersionSupported(contractVersion)) {
     throw new Error(`Theme contractVersion ${contractVersion || '(missing)'} is not supported.`);
   }
 
   const modules = validateThemeManifestFiles(themeManifest, availablePaths);
-  if (themeManifest.views != null) {
-    const views = requireThemeObject(themeManifest.views, 'views');
-    REQUIRED_THEME_VIEWS.forEach((view) => {
-      validateThemeViewDeclaration(views, view, modules);
-    });
-    OPTIONAL_THEME_VIEWS.forEach((view) => {
-      if (views[view] != null) validateThemeViewDeclaration(views, view, modules);
-    });
-  }
+  const views = requireThemeObject(themeManifest.views, 'views');
+  REQUIRED_THEME_VIEWS.forEach((view) => {
+    validateThemeViewDeclaration(views, view, modules);
+  });
+  OPTIONAL_THEME_VIEWS.forEach((view) => {
+    if (views[view] != null) validateThemeViewDeclaration(views, view, modules);
+  });
 
   const regions = requireThemeObject(themeManifest.regions, 'regions');
   REQUIRED_THEME_REGIONS.forEach((region) => {
@@ -422,7 +430,7 @@ export function normalizeThemeReleaseManifest(input) {
   const version = safeString(input.version || '').trim();
   if (!version) throw new Error('Theme release manifest version is required.');
   const contractVersion = Number(input.contractVersion);
-  if (contractVersion !== REQUIRED_CONTRACT_VERSION) {
+  if (!isPressThemeContractVersionSupported(contractVersion)) {
     throw new Error(`Theme contractVersion ${contractVersion || '(missing)'} is not supported.`);
   }
   const engines = normalizeThemeEngines(input.engines, { required: true });
@@ -664,7 +672,7 @@ function themeFilesFromManifest(manifest) {
     ? manifest.styles.map((entry) => safeString(entry).trim()).filter(Boolean)
     : [];
   if (styles.length) addList(styles);
-  else add('theme.css');
+  else addList(DEFAULT_THEME_STYLES);
   addList(manifest && manifest.modules);
   addList(manifest && manifest.files);
 

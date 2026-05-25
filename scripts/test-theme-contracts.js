@@ -1,16 +1,28 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import {
+  PRESS_THEME_CONTRACT,
+  getDefaultThemeStyles,
+  getOptionalThemeViews,
+  getRequiredThemeComponents,
+  getRequiredThemeContentShapes,
+  getRequiredThemeManifestFields,
+  getRequiredThemeRegions,
+  getRequiredThemeViews
+} from '../assets/js/theme-contract-surface.mjs';
 
 const root = process.cwd();
 const themesDir = path.join(root, 'assets', 'themes');
 const schemaPath = path.join(root, 'assets', 'schema', 'theme.json');
 const failures = [];
 
-const REQUIRED_VIEWS = ['post', 'posts', 'search', 'tab', 'error', 'loading'];
-const REQUIRED_REGIONS = ['main', 'toc', 'search', 'nav', 'tags', 'footer'];
-const REQUIRED_CONTENT_SHAPES = ['rawMarkdown', 'html', 'blocks', 'tocTree', 'headings', 'metadata', 'assets', 'links'];
-const REQUIRED_COMPONENTS = ['press-search', 'press-toc', 'press-post-card'];
+const REQUIRED_VIEWS = [...getRequiredThemeViews(), ...getOptionalThemeViews()];
+const REQUIRED_REGIONS = getRequiredThemeRegions();
+const REQUIRED_CONTENT_SHAPES = getRequiredThemeContentShapes();
+const REQUIRED_COMPONENTS = getRequiredThemeComponents();
+const REQUIRED_MANIFEST_FIELDS = getRequiredThemeManifestFields();
+const DEFAULT_THEME_STYLES = getDefaultThemeStyles();
 const REQUIRED_STYLE_TOKENS = ['--press-color-text', '--press-color-surface', '--press-font-body', '--press-radius-card', '--press-space-page'];
 const FORMER_DOM_IDS = [
   ['main', 'view'],
@@ -146,9 +158,40 @@ if (!schema) fail('assets/schema/theme.json must be readable');
 const componentSource = read(path.join(root, 'assets', 'js', 'components.js'));
 const themeRegionsSource = read(path.join(root, 'assets', 'js', 'theme-regions.js'));
 const themeLayoutSource = read(path.join(root, 'assets', 'js', 'theme-layout.js'));
+const themeManagerSource = read(path.join(root, 'assets', 'js', 'theme-manager.js'));
 const mainSource = read(path.join(root, 'assets', 'main.js'));
 const contentModelSource = read(path.join(root, 'assets', 'js', 'content-model.js'));
 const themeContractSource = read(path.join(root, 'wwwroot', 'post', 'theme-contract', 'theme-contract_en.md'));
+
+if (PRESS_THEME_CONTRACT.schemaVersion !== 1 || PRESS_THEME_CONTRACT.type !== 'press-theme-contract') {
+  fail('assets/js/theme-contract-surface.mjs must declare the press-theme-contract surface');
+}
+if (PRESS_THEME_CONTRACT.manifestSchemaPath !== 'assets/schema/theme.json') {
+  fail('theme contract surface must point at assets/schema/theme.json');
+}
+if ((schema.properties && schema.properties.contractVersion && schema.properties.contractVersion.const) !== PRESS_THEME_CONTRACT.contractVersion) {
+  fail('assets/schema/theme.json contractVersion must match the shared theme contract surface');
+}
+if (JSON.stringify(schema.required || []) !== JSON.stringify(REQUIRED_MANIFEST_FIELDS)) {
+  fail('assets/schema/theme.json required fields must match the shared theme contract surface');
+}
+if (JSON.stringify(PRESS_THEME_CONTRACT.manifest.defaultStyles || []) !== JSON.stringify(DEFAULT_THEME_STYLES)) {
+  fail('theme contract surface default styles helper must match the declared manifest default styles');
+}
+const schemaRequiredViews = schema.properties && schema.properties.views && schema.properties.views.required;
+if (JSON.stringify(schemaRequiredViews || []) !== JSON.stringify(getRequiredThemeViews())) {
+  fail('assets/schema/theme.json required views must match the shared theme contract surface');
+}
+const schemaContentShapes = schema.$defs && schema.$defs.contentShapeList && schema.$defs.contentShapeList.items && schema.$defs.contentShapeList.items.enum;
+if (JSON.stringify(schemaContentShapes || []) !== JSON.stringify(REQUIRED_CONTENT_SHAPES)) {
+  fail('assets/schema/theme.json content shape enum must match the shared theme contract surface');
+}
+if (!themeLayoutSource.includes('theme-contract-surface.mjs') || !themeManagerSource.includes('theme-contract-surface.mjs')) {
+  fail('theme runtime and Theme Manager must import the shared theme contract surface');
+}
+if (!themeLayoutSource.includes('getDefaultThemeStyles') || !themeManagerSource.includes('getDefaultThemeStyles')) {
+  fail('theme runtime and Theme Manager must read default theme styles from the shared theme contract surface');
+}
 
 REQUIRED_COMPONENTS.forEach((component) => {
   const localName = component.replace(/^press-/, '');
@@ -252,7 +295,9 @@ themeNames.forEach((themeName) => {
   }
   if (!manifest.name) fail(`${relManifest} must declare name`);
   if (!manifest.version) fail(`${relManifest} must declare version`);
-  if (manifest.contractVersion !== 1) fail(`${relManifest} contractVersion must be 1`);
+  if (manifest.contractVersion !== PRESS_THEME_CONTRACT.contractVersion) {
+    fail(`${relManifest} contractVersion must be ${PRESS_THEME_CONTRACT.contractVersion}`);
+  }
   if (!manifest.engines || typeof manifest.engines.press !== 'string' || !manifest.engines.press.trim()) {
     fail(`${relManifest} must declare engines.press`);
   }

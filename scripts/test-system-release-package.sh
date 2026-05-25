@@ -78,6 +78,11 @@ if ! grep -qx "press-system-${version}/assets/js/press-system-surface.mjs" "${en
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/theme-contract-surface.mjs" "${entries_file}"; then
+  echo "expected package to include the shared Press theme contract surface" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/theme-manager.js" "${entries_file}"; then
   echo "expected package to include theme manager code" >&2
   exit 1

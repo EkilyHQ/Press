@@ -93,6 +93,11 @@ if ! grep -F 'node scripts/test-press-system-surface.mjs' "${workflow}" >/dev/nu
   exit 1
 fi
 
+if ! grep -F 'node --experimental-default-type=module scripts/test-theme-contracts.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the shared Press theme contract surface before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F -- '--materialize-root "${payload_dir}"' scripts/package-system-release.sh >/dev/null; then
   echo "system release package builder must materialize runtime cache keys into the payload" >&2
   exit 1

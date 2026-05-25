@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T09:54:37.856Z",
-  "status": "pending",
+  "generatedAt": "2026-05-25T09:56:11.674Z",
+  "status": "ok",
   "pressSystem": {
     "repository": "EkilyHQ/Press",
     "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
@@ -59,29 +59,29 @@
   },
   "themeDemos": {
     "arcus": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
       "expectedVersion": "3.4.54",
-      "observedVersion": "3.4.53",
-      "observedTag": "v3.4.53",
+      "observedVersion": "3.4.54",
+      "observedTag": "v3.4.54",
       "label": "Arcus demo runtime",
       "repository": "EkilyHQ/Press-Theme-Arcus"
     },
     "cartograph": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
       "expectedVersion": "3.4.54",
-      "observedVersion": "3.4.53",
-      "observedTag": "v3.4.53",
+      "observedVersion": "3.4.54",
+      "observedTag": "v3.4.54",
       "label": "Cartograph demo runtime",
       "repository": "EkilyHQ/Press-Theme-Cartograph"
     },
     "glasswing": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
       "expectedVersion": "3.4.54",
-      "observedVersion": "3.4.53",
-      "observedTag": "v3.4.53",
+      "observedVersion": "3.4.54",
+      "observedTag": "v3.4.54",
       "label": "Glasswing demo runtime",
       "repository": "EkilyHQ/Press-Theme-Glasswing"
     },
@@ -189,30 +189,5 @@
     "service": "ekily-connect",
     "version": "0.3.0"
   },
-  "problems": [
-    {
-      "severity": "warning",
-      "component": "themeDemos.arcus",
-      "code": "theme_demo_pending",
-      "message": "Arcus demo runtime is 3.4.53, expected 3.4.54",
-      "owner": "EkilyHQ/Press-Theme-Arcus",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.cartograph",
-      "code": "theme_demo_pending",
-      "message": "Cartograph demo runtime is 3.4.53, expected 3.4.54",
-      "owner": "EkilyHQ/Press-Theme-Cartograph",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.glasswing",
-      "code": "theme_demo_pending",
-      "message": "Glasswing demo runtime is 3.4.53, expected 3.4.54",
-      "owner": "EkilyHQ/Press-Theme-Glasswing",
-      "blocking": false
-    }
-  ]
+  "problems": []
 }

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T06:24:52.385Z",
+  "generatedAt": "2026-05-25T06:25:07.999Z",
   "status": "pending",
   "pressSystem": {
     "repository": "EkilyHQ/Press",
-    "source": "dist/system-release.json",
+    "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
     "status": "ok",
     "schemaVersion": 1,
     "name": "v3.4.52",

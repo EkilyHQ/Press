@@ -13,6 +13,38 @@ function sampleState(overrides = {}) {
     type: 'ekily-product-state',
     generatedAt: '2026-05-25T00:00:00Z',
     status: 'ok',
+    desired: {
+      pressSystem: {
+        repository: 'EkilyHQ/Press',
+        version: '3.4.52',
+        tag: 'v3.4.52'
+      },
+      downstream: {
+        yap: {
+          label: 'YAP starter runtime',
+          repository: 'EkilyHQ/YAP',
+          expectedVersion: '3.4.52',
+          expectedTag: 'v3.4.52',
+          reconciler: {
+            eventType: 'press-system-release',
+            kind: 'press-runtime-sync',
+            idempotent: true
+          }
+        }
+      },
+      themeDemos: {},
+      themes: {
+        entries: [
+          {
+            slug: 'arcus',
+            label: 'Arcus',
+            repository: 'EkilyHQ/Press-Theme-Arcus',
+            expectedPressVersion: '3.4.52',
+            expectedContractVersion: 1
+          }
+        ]
+      }
+    },
     pressSystem: {
       status: 'ok',
       version: '3.4.52',
@@ -50,6 +82,16 @@ function sampleState(overrides = {}) {
       ]
     },
     connect: { status: 'ok', service: 'ekily-connect' },
+    verdict: {
+      status: 'ok',
+      converged: true,
+      counts: { ok: 5, pending: 0, unknown: 0, drift: 0 },
+      problemCount: 0,
+      blockingProblemCount: 0,
+      nonBlockingProblemCount: 0,
+      blockingProblems: [],
+      nonBlockingProblems: []
+    },
     problems: [],
     ...overrides
   };
@@ -72,8 +114,12 @@ test('renderProductStateDashboard renders human-readable product status sections
   assert.match(html, /Ekily Product State/);
   assert.match(html, /Press System/);
   assert.match(html, /Runtime Graph/);
+  assert.match(html, /Desired Release Target/);
+  assert.match(html, /Converged/);
   assert.match(html, /125 files \/ 300 edges/);
   assert.match(html, /v3\.4\.52/);
+  assert.match(html, /press-runtime-sync/);
+  assert.match(html, /theme-release-compatibility/);
   assert.match(html, /YAP starter runtime/);
   assert.match(html, /Official Themes/);
   assert.match(html, /Arcus/);

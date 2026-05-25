@@ -15,6 +15,16 @@ if ! grep -F 'workflow_dispatch:' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'require_converged:' "${workflow}" >/dev/null || ! grep -F -- '--require-converged' "${workflow}" >/dev/null; then
+  echo "product-state workflow must support a manual converged-state gate" >&2
+  exit 1
+fi
+
+if ! grep -F 'github.event.inputs.require_converged' "${workflow}" >/dev/null || grep -F '${{ inputs.require_converged }}' "${workflow}" >/dev/null; then
+  echo "product-state workflow must not reference the workflow_dispatch-only inputs context on scheduled runs" >&2
+  exit 1
+fi
+
 if ! grep -F 'schedule:' "${workflow}" >/dev/null; then
   echo "product-state workflow must support scheduled refresh" >&2
   exit 1

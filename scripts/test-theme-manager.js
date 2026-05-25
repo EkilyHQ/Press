@@ -387,6 +387,14 @@ function makeProductState(overrides = {}) {
     type: 'ekily-product-state',
     generatedAt: '2026-05-25T00:00:00.000Z',
     status: 'ok',
+    desired: {
+      pressSystem: {
+        version: '3.4.52',
+        tag: 'v3.4.52',
+        runtime: { entryCount: 125, edgeCount: 300 },
+        asset: { name: 'press-system-v3.4.52.zip', size: 100, digest: 'sha256:test' }
+      }
+    },
     pressSystem: { status: 'ok', version: '3.4.52', tag: 'v3.4.52' },
     downstream: {},
     themeDemos: {},
@@ -395,6 +403,21 @@ function makeProductState(overrides = {}) {
       entries: []
     },
     connect: { status: 'ok' },
+    observed: {
+      checkedAt: '2026-05-25T00:00:00.000Z',
+      downstream: {},
+      themeDemos: {}
+    },
+    verdict: {
+      status: 'ok',
+      converged: true,
+      counts: { ok: 4, pending: 0, unknown: 0, drift: 0 },
+      problemCount: 0,
+      blockingProblemCount: 0,
+      nonBlockingProblemCount: 0,
+      blockingProblems: [],
+      nonBlockingProblems: []
+    },
     problems: [],
     ...overrides
   };
@@ -500,6 +523,9 @@ await run('loads and caches the product state ledger', async () => {
   mockFetchRegistry([{ value: 'native', label: 'Native' }], { productState });
   const loaded = await loadThemeManagerProductState({ force: true });
   assert.equal(loaded.status, 'ok');
+  assert.equal(loaded.desired.pressSystem.tag, 'v3.4.52');
+  assert.equal(loaded.observed.checkedAt, '2026-05-25T00:00:00.000Z');
+  assert.equal(loaded.verdict.converged, true);
   assert.equal(loaded.themes.entries[0].slug, 'arcus');
   assert.equal(getThemeManagerProductStateStatus().status, 'ok');
   const seen = [];

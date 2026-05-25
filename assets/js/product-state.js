@@ -77,6 +77,78 @@ function normalizeComponentMap(input) {
   }));
 }
 
+function normalizeDesired(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const pressSystem = source.pressSystem && typeof source.pressSystem === 'object' ? source.pressSystem : {};
+  return {
+    ...source,
+    pressSystem: {
+      ...pressSystem,
+      version: safeString(pressSystem.version).trim(),
+      tag: safeString(pressSystem.tag).trim(),
+      runtime: normalizeRuntime(pressSystem.runtime),
+      asset: normalizeArtifact(pressSystem.asset)
+    }
+  };
+}
+
+function normalizeObserved(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const themes = source.themes && typeof source.themes === 'object' ? source.themes : {};
+  const catalog = themes.catalog && typeof themes.catalog === 'object' ? themes.catalog : {};
+  const pressSystem = source.pressSystem && typeof source.pressSystem === 'object' ? source.pressSystem : {};
+  const connect = source.connect && typeof source.connect === 'object' ? source.connect : {};
+  return {
+    ...source,
+    checkedAt: safeString(source.checkedAt).trim(),
+    pressSystem: {
+      ...pressSystem,
+      status: normalizeStatus(pressSystem.status),
+      version: safeString(pressSystem.version).trim(),
+      tag: safeString(pressSystem.tag).trim(),
+      runtime: normalizeRuntime(pressSystem.runtime),
+      asset: normalizeArtifact(pressSystem.asset)
+    },
+    downstream: normalizeComponentMap(source.downstream),
+    themeDemos: normalizeComponentMap(source.themeDemos),
+    themes: {
+      catalog: {
+        ...catalog,
+        status: normalizeStatus(catalog.status),
+        count: Number(catalog.count || 0)
+      },
+      entries: Array.isArray(themes.entries) ? themes.entries.map(normalizeThemeEntry).filter((entry) => entry.slug) : []
+    },
+    connect: {
+      ...connect,
+      status: normalizeStatus(connect.status),
+      service: safeString(connect.service).trim(),
+      version: safeString(connect.version).trim()
+    }
+  };
+}
+
+function normalizeVerdict(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const counts = source.counts && typeof source.counts === 'object' ? source.counts : {};
+  return {
+    ...source,
+    status: normalizeStatus(source.status),
+    converged: source.converged === true,
+    counts: {
+      ok: Number(counts.ok || 0),
+      pending: Number(counts.pending || 0),
+      unknown: Number(counts.unknown || 0),
+      drift: Number(counts.drift || 0)
+    },
+    problemCount: Number(source.problemCount || 0),
+    blockingProblemCount: Number(source.blockingProblemCount || 0),
+    nonBlockingProblemCount: Number(source.nonBlockingProblemCount || 0),
+    blockingProblems: Array.isArray(source.blockingProblems) ? source.blockingProblems.map(normalizeProblem) : [],
+    nonBlockingProblems: Array.isArray(source.nonBlockingProblems) ? source.nonBlockingProblems.map(normalizeProblem) : []
+  };
+}
+
 export function normalizeProductState(input) {
   if (!input || typeof input !== 'object') throw new Error('Product state is missing.');
   if (Number(input.schemaVersion) !== 1 || input.type !== PRODUCT_STATE_TYPE) {
@@ -91,6 +163,7 @@ export function normalizeProductState(input) {
     type: PRODUCT_STATE_TYPE,
     generatedAt: safeString(input.generatedAt).trim(),
     status: normalizeStatus(input.status),
+    desired: normalizeDesired(input.desired),
     pressSystem: {
       ...pressSystem,
       status: normalizeStatus(pressSystem.status),
@@ -114,6 +187,8 @@ export function normalizeProductState(input) {
       service: safeString(connect.service).trim(),
       version: safeString(connect.version).trim()
     },
+    observed: normalizeObserved(input.observed),
+    verdict: normalizeVerdict(input.verdict),
     problems: Array.isArray(input.problems) ? input.problems.map(normalizeProblem) : []
   };
 }

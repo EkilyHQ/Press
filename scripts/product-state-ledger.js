@@ -400,6 +400,112 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
   return out;
 }
 
+function releaseTargetVersion(pressVersion) {
+  const version = normalizeSemver(pressVersion);
+  return {
+    version,
+    tag: semverToTag(version)
+  };
+}
+
+function downstreamTarget(source, pressVersion, reconcilerKind) {
+  const target = releaseTargetVersion(pressVersion);
+  return {
+    label: String(source.label || source.key || '').trim(),
+    repository: String(source.repository || '').trim(),
+    source: String(source.source || '').trim(),
+    expectedVersion: target.version,
+    expectedTag: target.tag,
+    reconciler: {
+      eventType: 'press-system-release',
+      kind: reconcilerKind,
+      idempotent: true
+    }
+  };
+}
+
+function buildDesiredState({ sources, systemRelease, systemSource }) {
+  const target = releaseTargetVersion(systemRelease.version);
+  return {
+    source: 'press-system-release',
+    generatedFrom: {
+      repository: DEFAULT_PRESS_REPOSITORY,
+      source: systemSource,
+      version: target.version,
+      tag: target.tag,
+      publishedAt: systemRelease.publishedAt
+    },
+    pressSystem: {
+      repository: DEFAULT_PRESS_REPOSITORY,
+      version: target.version,
+      tag: target.tag,
+      asset: systemRelease.asset,
+      runtime: systemRelease.runtime
+    },
+    downstream: Object.fromEntries((sources.downstream || []).map((source) => {
+      const kind = source.key === 'themeStarter'
+        ? 'theme-starter-marker-sync'
+        : 'press-runtime-sync';
+      return [source.key, downstreamTarget(source, target.version, kind)];
+    })),
+    themeDemos: Object.fromEntries((sources.themeDemos || []).map((source) => {
+      return [source.key, downstreamTarget(source, target.version, 'theme-demo-runtime-sync')];
+    })),
+    themes: {
+      catalog: {
+        repository: sources.catalog.repository,
+        source: sources.catalog.source
+      }
+    },
+    connect: sources.connect && sources.connect.source ? {
+      label: sources.connect.label,
+      source: sources.connect.source
+    } : null
+  };
+}
+
+function buildObservedState(state, checkedAt) {
+  return {
+    checkedAt,
+    pressSystem: {
+      repository: state.pressSystem.repository,
+      source: state.pressSystem.source,
+      status: state.pressSystem.status,
+      version: state.pressSystem.version,
+      tag: state.pressSystem.tag,
+      runtime: state.pressSystem.runtime,
+      asset: state.pressSystem.asset
+    },
+    downstream: clone(state.downstream),
+    themeDemos: clone(state.themeDemos),
+    themes: clone(state.themes),
+    connect: clone(state.connect)
+  };
+}
+
+function buildVerdict(state, statuses) {
+  const normalizedStatuses = statuses.map(normalizeStatus);
+  const blockingProblems = state.problems.filter((problem) => problem.blocking !== false);
+  const nonBlockingProblems = state.problems.filter((problem) => problem.blocking === false);
+  const counts = {
+    ok: normalizedStatuses.filter((status) => status === 'ok').length,
+    pending: normalizedStatuses.filter((status) => status === 'pending').length,
+    unknown: normalizedStatuses.filter((status) => status === 'unknown').length,
+    drift: normalizedStatuses.filter((status) => status === 'drift').length
+  };
+  const status = aggregateStatus(normalizedStatuses);
+  return {
+    status,
+    converged: status === 'ok' && blockingProblems.length === 0,
+    counts,
+    problemCount: state.problems.length,
+    blockingProblemCount: blockingProblems.length,
+    nonBlockingProblemCount: nonBlockingProblems.length,
+    blockingProblems,
+    nonBlockingProblems
+  };
+}
+
 async function buildProductState(options = {}) {
   const sources = clone(options.sources || DEFAULT_SOURCES);
   const loadJson = options.loadJson || ((source) => tryLoadJson(source, {
@@ -418,6 +524,7 @@ async function buildProductState(options = {}) {
     type: 'ekily-product-state',
     generatedAt,
     status: 'unknown',
+    desired: buildDesiredState({ sources, systemRelease, systemSource: systemResult.source }),
     pressSystem: {
       repository: DEFAULT_PRESS_REPOSITORY,
       source: systemResult.source,
@@ -561,6 +668,15 @@ async function buildProductState(options = {}) {
     state.themes.catalog.count = themes.length;
     state.themes.catalog.commit = String(catalog.commit || '').trim();
     state.themes.catalog.status = themes.length ? 'ok' : 'drift';
+    state.desired.themes.catalog.expectedCount = themes.length;
+    state.desired.themes.entries = themes.map((entry) => ({
+      slug: String(entry.value || '').trim(),
+      label: String(entry.label || entry.value || '').trim(),
+      repository: String(entry.repo || '').trim(),
+      manifestUrl: String(entry.manifestUrl || '').trim(),
+      expectedContractVersion: 1,
+      expectedPressVersion: pressVersion
+    }));
     if (!themes.length) {
       addProblem(state, {
         component: 'themes.catalog',
@@ -634,10 +750,13 @@ async function buildProductState(options = {}) {
     state.connect.status
   ];
   state.status = aggregateStatus(statuses);
+  state.observed = buildObservedState(state, generatedAt);
+  state.verdict = buildVerdict(state, statuses);
   return state;
 }
 
 function shouldFailCheck(state, options = {}) {
+  if (options.requireConverged && (!state.verdict || state.verdict.converged !== true)) return true;
   const statuses = collectStateStatuses(state);
   if (statuses.includes('drift')) return true;
   if (statuses.includes('unknown') && options.allowUnknown !== true) return true;
@@ -672,6 +791,7 @@ function parseArgs(argv) {
     if (arg === '--help' || arg === '-h') options.help = true;
     else if (arg === '--quiet') options.quiet = true;
     else if (arg === '--check') options.check = true;
+    else if (arg === '--require-converged') options.requireConverged = true;
     else if (arg === '--allow-pending') options.allowPending = true;
     else if (arg === '--allow-unknown') options.allowUnknown = true;
     else if (arg === '--out') options.out = argv[++i] || '';
@@ -702,6 +822,7 @@ function printHelp() {
     '  --state <path>                  Check an existing product-state JSON file',
     '  --quiet                         Suppress JSON stdout when no --out is provided',
     '  --check                         Exit non-zero when state is not acceptable',
+    '  --require-converged             Require desired and observed product state to fully agree',
     '  --allow-pending                 Allow pending downstream/demo state in --check',
     '  --allow-unknown                 Allow unknown external state in --check'
   ].join('\n'));
@@ -728,10 +849,12 @@ async function main(argv = process.argv.slice(2)) {
     process.stdout.write(json);
   }
   if (options.check && shouldFailCheck(state, options)) {
-    const blocking = state.problems.filter((problem) => problem.blocking !== false);
+    const blocking = state.verdict && Array.isArray(state.verdict.blockingProblems)
+      ? state.verdict.blockingProblems
+      : state.problems.filter((problem) => problem.blocking !== false);
     const summary = blocking.length
       ? blocking.map((problem) => `${problem.component}: ${problem.message}`).join('\n')
-      : `product state is ${state.status}`;
+      : `product state is ${state.verdict && state.verdict.status ? state.verdict.status : state.status}`;
     console.error(summary);
     return 1;
   }

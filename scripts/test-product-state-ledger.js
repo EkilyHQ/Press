@@ -403,12 +403,29 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.pressSystem.version, '3.4.51');
   assert.equal(state.pressSystem.runtime.type, 'press-runtime-assets');
   assert.equal(state.pressSystem.runtime.edgeCount, 300);
+  assert.equal(state.desired.pressSystem.tag, 'v3.4.51');
+  assert.equal(state.desired.pressSystem.asset.digest, 'sha256:abc123');
+  assert.equal(state.desired.downstream.yap.expectedVersion, '3.4.51');
+  assert.equal(state.desired.downstream.yap.reconciler.eventType, 'press-system-release');
+  assert.equal(state.desired.downstream.yap.reconciler.idempotent, true);
+  assert.equal(state.desired.downstream.themeStarter.reconciler.kind, 'theme-starter-marker-sync');
+  assert.equal(state.desired.themeDemos.arcus.reconciler.kind, 'theme-demo-runtime-sync');
+  assert.equal(state.desired.themes.catalog.expectedCount, 1);
+  assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.51');
+  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 1);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
   assert.equal(state.themes.catalog.status, 'ok');
   assert.equal(state.themes.entries[0].status, 'ok');
   assert.equal(state.connect.status, 'ok');
+  assert.equal(state.observed.checkedAt, '2026-05-25T00:00:00Z');
+  assert.equal(state.observed.downstream.yap.status, 'ok');
+  assert.equal(state.verdict.status, 'ok');
+  assert.equal(state.verdict.converged, true);
+  assert.equal(state.verdict.problemCount, 0);
+  assert.equal(state.verdict.counts.pending, 0);
   assert.equal(shouldFailCheck(state), false);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), false);
 });
 
 test('buildProductState marks a release without runtime asset graph metadata as drift', async () => {
@@ -441,8 +458,15 @@ test('buildProductState marks downstream version lag as pending, not a new sourc
   assert.equal(state.downstream.yap.status, 'pending');
   assert.equal(state.downstream.yap.expectedVersion, '3.4.51');
   assert.equal(state.downstream.yap.observedVersion, '3.4.50');
+  assert.equal(state.desired.downstream.yap.expectedTag, 'v3.4.51');
+  assert.equal(state.observed.downstream.yap.observedVersion, '3.4.50');
+  assert.equal(state.verdict.status, 'pending');
+  assert.equal(state.verdict.converged, false);
+  assert.equal(state.verdict.counts.pending, 1);
+  assert.equal(state.verdict.nonBlockingProblemCount, 1);
   assert.equal(shouldFailCheck(state), true);
   assert.equal(shouldFailCheck(state, { allowPending: true }), false);
+  assert.equal(shouldFailCheck(state, { allowPending: true, requireConverged: true }), true);
 });
 
 test('shouldFailCheck keeps pending and unknown allowances independent', async () => {

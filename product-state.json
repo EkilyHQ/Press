@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-05-25T09:54:22.291Z",
+  "generatedAt": "2026-05-25T09:54:37.856Z",
   "status": "pending",
   "pressSystem": {
     "repository": "EkilyHQ/Press",
-    "source": "dist/system-release.json",
+    "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json",
     "status": "ok",
     "schemaVersion": 1,
     "name": "v3.4.54",
@@ -37,21 +37,21 @@
   },
   "downstream": {
     "yap": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
       "expectedVersion": "3.4.54",
-      "observedVersion": "3.4.53",
-      "observedTag": "v3.4.53",
+      "observedVersion": "3.4.54",
+      "observedTag": "v3.4.54",
       "label": "YAP starter runtime",
       "repository": "EkilyHQ/YAP",
       "type": "press-system-manifest"
     },
     "themeStarter": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
       "expectedVersion": "3.4.54",
-      "observedVersion": "3.4.53",
-      "observedTag": "v3.4.53",
+      "observedVersion": "3.4.54",
+      "observedTag": "v3.4.54",
       "label": "Theme starter marker",
       "repository": "EkilyHQ/Press-Theme-Starter",
       "type": "press-release-marker"
@@ -86,11 +86,11 @@
       "repository": "EkilyHQ/Press-Theme-Glasswing"
     },
     "solstice": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
       "expectedVersion": "3.4.54",
-      "observedVersion": "3.4.53",
-      "observedTag": "v3.4.53",
+      "observedVersion": "3.4.54",
+      "observedTag": "v3.4.54",
       "label": "Solstice demo runtime",
       "repository": "EkilyHQ/Press-Theme-Solstice"
     }
@@ -192,22 +192,6 @@
   "problems": [
     {
       "severity": "warning",
-      "component": "downstream.yap",
-      "code": "downstream_pending",
-      "message": "YAP starter runtime is 3.4.53, expected 3.4.54",
-      "owner": "EkilyHQ/YAP",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "downstream.themeStarter",
-      "code": "downstream_pending",
-      "message": "Theme starter marker is 3.4.53, expected 3.4.54",
-      "owner": "EkilyHQ/Press-Theme-Starter",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
       "component": "themeDemos.arcus",
       "code": "theme_demo_pending",
       "message": "Arcus demo runtime is 3.4.53, expected 3.4.54",
@@ -228,14 +212,6 @@
       "code": "theme_demo_pending",
       "message": "Glasswing demo runtime is 3.4.53, expected 3.4.54",
       "owner": "EkilyHQ/Press-Theme-Glasswing",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.solstice",
-      "code": "theme_demo_pending",
-      "message": "Solstice demo runtime is 3.4.53, expected 3.4.54",
-      "owner": "EkilyHQ/Press-Theme-Solstice",
       "blocking": false
     }
   ]

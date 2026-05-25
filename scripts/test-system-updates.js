@@ -666,6 +666,7 @@ await run('normalizes a rooted system update archive to safe site-relative paths
     'press-system-v3.3.5/index.html': '<!doctype html>',
     'press-system-v3.3.5/assets/press-system.json': '{"schemaVersion":1,"type":"press-system","version":"3.3.5","tag":"v3.3.5","upgradeFrom":{"ranges":[">=3.3.0 <3.3.5"],"allowUnknownSource":true,"message":""}}',
     'press-system-v3.3.5/assets/press-runtime-manifest.json': '{"schemaVersion":1,"type":"press-runtime-assets","version":"3.3.5","tag":"v3.3.5","cacheKey":"press-system-v3.3.5","entries":[]}',
+    'press-system-v3.3.5/assets/js/press-system-surface.mjs': 'export {};',
     'press-system-v3.3.5/assets/js/system-updates.js': 'export {};',
     'press-system-v3.3.5/assets/themes/native/theme.json': '{"name":"Native","contractVersion":1}'
   });
@@ -673,6 +674,7 @@ await run('normalizes a rooted system update archive to safe site-relative paths
   const entries = collectSystemUpdateArchiveEntries(buffer);
 
   assert.deepEqual(entries.map((entry) => entry.path).sort(), [
+    'assets/js/press-system-surface.mjs',
     'assets/js/system-updates.js',
     'assets/press-runtime-manifest.json',
     'assets/press-system.json',

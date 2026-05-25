@@ -46,7 +46,20 @@ jobs:
 
           git fetch --no-tags --force --depth=1 origin "refs/tags/${latest_tag}:refs/tags/${latest_tag}"
 
-          changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native scripts/sync-runtime-cache-keys.mjs)"
+          pages_release_plan_paths_file="$(mktemp)"
+          if ! node scripts/print-press-system-surface.mjs pages-release-plan-paths > "${pages_release_plan_paths_file}"; then
+            echo "Failed to read Press system Pages release-plan paths" >&2
+            exit 1
+          fi
+          pages_release_plan_paths=()
+          while IFS= read -r pages_release_plan_path; do
+            pages_release_plan_paths+=("${pages_release_plan_path}")
+          done < "${pages_release_plan_paths_file}"
+          if [[ "${#pages_release_plan_paths[@]}" -eq 0 ]]; then
+            echo "Press system Pages release-plan path list is empty" >&2
+            exit 1
+          fi
+          changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- "${pages_release_plan_paths[@]}")"
           if [[ -z "${changed_system_files}" ]]; then
             echo "No unreleased Press system surface changes; Pages can reuse ${latest_tag}."
             exit 0

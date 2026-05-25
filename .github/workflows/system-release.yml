@@ -26,6 +26,7 @@ jobs:
       - name: Verify release package boundary
         run: |
           node scripts/sync-runtime-cache-keys.mjs --check
+          node scripts/test-press-system-surface.mjs
           bash scripts/test-system-release-package.sh
           bash scripts/test-system-release-workflow.sh
           bash scripts/test-pages-workflow.sh
@@ -49,10 +50,23 @@ jobs:
           source_version="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(version);")"
           next_tag="v${source_version}"
 
+          release_plan_paths_file="$(mktemp)"
+          if ! node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"; then
+            echo "Failed to read Press system release-plan paths" >&2
+            exit 1
+          fi
+          release_plan_paths=()
+          while IFS= read -r release_plan_path; do
+            release_plan_paths+=("${release_plan_path}")
+          done < "${release_plan_paths_file}"
+          if [[ "${#release_plan_paths[@]}" -eq 0 ]]; then
+            echo "Press system release-plan path list is empty" >&2
+            exit 1
+          fi
           if [[ -n "${latest_tag}" ]]; then
-            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
+            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- "${release_plan_paths[@]}")"
           else
-            changed_files="$(git ls-files -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native)"
+            changed_files="$(git ls-files -- "${release_plan_paths[@]}")"
           fi
 
           if [[ -z "${changed_files}" ]]; then

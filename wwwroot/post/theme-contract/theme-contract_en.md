@@ -181,6 +181,9 @@ stage deletions and removes the theme entry from `packs.json`.
 Press system releases may update runtime files, schemas, i18n, Theme Manager,
 and `assets/themes/native/**`. They must not overwrite `assets/themes/packs.json`,
 the external official theme catalog, or arbitrary external theme directories.
+The release package builder, Pages release gate, runtime cache-key materializer,
+and System Updates path validator share this boundary through
+`assets/js/press-system-surface.mjs`.
 Official theme source, checks, release ZIPs, checksums, and `theme-release.json`
 belong to each theme repository.
 

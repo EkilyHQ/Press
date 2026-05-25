@@ -60,8 +60,18 @@ if ! grep -F 'git fetch --no-tags --force --depth=1 origin "refs/tags/${latest_t
   exit 1
 fi
 
-if ! grep -F 'changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native scripts/sync-runtime-cache-keys.mjs)"' "${workflow}" >/dev/null; then
-  echo "Pages workflow must compare the Press system surface with the latest release before enforcing cache-key advancement" >&2
+if ! grep -F 'node scripts/print-press-system-surface.mjs pages-release-plan-paths' "${workflow}" >/dev/null; then
+  echo "Pages workflow must read the shared Press system surface before enforcing cache-key advancement" >&2
+  exit 1
+fi
+
+if ! grep -F 'pages_release_plan_paths_file="$(mktemp)"' "${workflow}" >/dev/null || ! grep -F 'Press system Pages release-plan path list is empty' "${workflow}" >/dev/null; then
+  echo "Pages workflow must fail if release-plan path generation fails or returns no paths" >&2
+  exit 1
+fi
+
+if grep -F 'changed_system_files="$(git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native scripts/sync-runtime-cache-keys.mjs)"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must not keep a hard-coded Press system surface path list" >&2
   exit 1
 fi
 

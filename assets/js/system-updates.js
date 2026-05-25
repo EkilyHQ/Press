@@ -11,6 +11,7 @@ import {
   normalizeUpgradeFrom,
   semverToTag
 } from './press-version.js';
+import { isPressSystemUpdatePath } from './press-system-surface.mjs';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const TEXT_EXTENSIONS = new Set([
@@ -23,8 +24,6 @@ export const SYSTEM_UPDATE_ASSET_NAME_PATTERN = /^press-system-v\d+\.\d+\.\d+\.z
 
 const RELEASE_API_URL = 'https://api.github.com/repos/EkilyHQ/Press/releases/latest';
 const RELEASE_MANIFEST_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json';
-const SYSTEM_UPDATE_ALLOWED_PATH_PATTERN = /^(?:index\.html|index_editor\.html|index_editor_preview\.html|assets\/(?:press-system\.json|press-runtime-manifest\.json|main\.js|js\/.+|i18n\/.+|schema\/.+|themes\/native\/.+))$/;
-const SYSTEM_UPDATE_BLOCKED_PATH_PATTERN = /^(?:\.git\/|\.github\/|wwwroot\/|site\.ya?ml$|site\.local\.ya?ml$|CNAME$|robots\.txt$|sitemap\.xml$|README(?:\.md)?$|BRANCHING\.md$|scripts\/|assets\/(?:avatar\.png|avatar\.jpe?g|hero\.jpeg)$)/i;
 
 function createSystemUpdateElements() {
   return {
@@ -279,7 +278,7 @@ function stripCommonArchiveRoot(entries) {
 
 export function isSystemUpdatePath(path) {
   const clean = String(path || '').replace(/\\+/g, '/').replace(/^\/+/, '');
-  return SYSTEM_UPDATE_ALLOWED_PATH_PATTERN.test(clean) && !SYSTEM_UPDATE_BLOCKED_PATH_PATTERN.test(clean);
+  return isPressSystemUpdatePath(clean);
 }
 
 export function collectSystemUpdateArchiveEntries(buffer) {

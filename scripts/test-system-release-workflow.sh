@@ -58,8 +58,18 @@ if awk '
   exit 1
 fi
 
-if ! grep -F 'assets/themes/native)' "${workflow}" >/dev/null && ! grep -F 'assets/themes/native"' "${workflow}" >/dev/null; then
-  echo "system release planning must include the native theme" >&2
+if ! grep -F 'node scripts/print-press-system-surface.mjs release-plan-paths' "${workflow}" >/dev/null; then
+  echo "system release planning must read the shared Press system surface" >&2
+  exit 1
+fi
+
+if ! grep -F 'release_plan_paths_file="$(mktemp)"' "${workflow}" >/dev/null || ! grep -F 'Press system release-plan path list is empty' "${workflow}" >/dev/null; then
+  echo "system release planning must fail if release-plan path generation fails or returns no paths" >&2
+  exit 1
+fi
+
+if grep -F 'git diff --name-only "${latest_tag}..HEAD" -- index.html index_editor.html index_editor_preview.html assets/press-system.json assets/main.js assets/js assets/i18n assets/schema assets/themes/native' "${workflow}" >/dev/null; then
+  echo "system release planning must not keep a hard-coded Press system surface path list" >&2
   exit 1
 fi
 
@@ -78,12 +88,32 @@ if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --check' "${workflow}" >/
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-press-system-surface.mjs' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the shared Press system surface before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F -- '--materialize-root "${payload_dir}"' scripts/package-system-release.sh >/dev/null; then
   echo "system release package builder must materialize runtime cache keys into the payload" >&2
   exit 1
 fi
 
-if ! grep -F 'assets/press-runtime-manifest.json' scripts/package-system-release.sh >/dev/null && ! grep -F 'press-runtime-manifest.json' scripts/sync-runtime-cache-keys.mjs >/dev/null; then
+if ! grep -F 'print-press-system-surface.mjs' scripts/package-system-release.sh >/dev/null || ! grep -F 'package-paths' scripts/package-system-release.sh >/dev/null; then
+  echo "system release package builder must read the shared Press system surface" >&2
+  exit 1
+fi
+
+if ! grep -F 'system_paths_file="${tmp_dir}/system-paths.txt"' scripts/package-system-release.sh >/dev/null || ! grep -F 'failed to read Press system package paths' scripts/package-system-release.sh >/dev/null; then
+  echo "system release package builder must fail if package path generation fails" >&2
+  exit 1
+fi
+
+if ! grep -F 'git archive --format=tar HEAD -- scripts/print-press-system-surface.mjs assets/js/press-system-surface.mjs' scripts/package-system-release.sh >/dev/null; then
+  echo "system release package builder must read HEAD surface paths in HEAD package mode" >&2
+  exit 1
+fi
+
+if ! grep -F 'runtimeManifestPath' assets/js/press-system-surface.mjs >/dev/null || ! grep -F 'PRESS_SYSTEM_SURFACE.runtimeManifestPath' scripts/sync-runtime-cache-keys.mjs >/dev/null; then
   echo "system release package builder must generate a runtime asset manifest" >&2
   exit 1
 fi

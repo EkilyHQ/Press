@@ -69,6 +69,8 @@ function sliceBetween(source, startNeedle, endNeedle) {
 assert.match(components, /class PressSearch extends HTMLElement[\s\S]*dispatchPressEvent\(this, 'press:search'/, 'press-search should own the search input and emit press:search');
 assert.match(components, /<input id="\$\{inputId\}" part="input"/, 'press-search should expose its input as a CSS part without a fixed DOM id');
 assert.match(components, /const icon = this\.hasAttribute\('icon'\)[\s\S]*const iconHtml = icon \? `<span class="\$\{iconClass\}" part="icon"/, 'press-search should render an icon only when a theme opts in');
+assert.doesNotMatch(components, /^let\s+pressSearchId\b/m, 'press-search should not keep generated input ids in a module-level counter');
+assert.match(components, /const PRESS_SEARCH_ID = Symbol\('pressSearchId'\)[\s\S]*function nextPressSearchInputId\(element\)[\s\S]*documentRef\[PRESS_SEARCH_ID\] = next/, 'press-search generated input ids should be scoped to the owning document');
 assert.match(components, /function ensureShadowRoot[\s\S]*attachShadow\(\{ mode: 'open' \}\)/, 'shared components should offer opt-in shadow roots for real ::part styling');
 assert.match(components, /class PressThemeControls extends HTMLElement[\s\S]*'press:theme-pack-change'[\s\S]*'press:language-change'/, 'press-theme-controls should own tool UI events');
 assert.match(components, /class PressToc extends HTMLElement[\s\S]*renderToc\(options = \{\}\)[\s\S]*part="toc"[\s\S]*_cleanupListeners/, 'press-toc should render exposed parts and clean up its own listeners');

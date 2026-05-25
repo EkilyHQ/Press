@@ -138,6 +138,11 @@ if ! grep -F 'bash scripts/test-pages-workflow.sh' "${workflow}" >/dev/null; the
   exit 1
 fi
 
+if ! grep -F 'bash scripts/test-pages-artifact.sh' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify materialized Pages artifacts before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'bash scripts/test-product-state-workflow.sh' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the product-state refresh workflow contract before publishing" >&2
   exit 1

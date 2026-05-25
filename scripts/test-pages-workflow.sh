@@ -45,8 +45,28 @@ if grep -E 'actions/(checkout@v4|configure-pages@v5|deploy-pages@v4|upload-artif
   exit 1
 fi
 
-if ! grep -F 'git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot' "${workflow}" >/dev/null; then
-  echo "Pages workflow must copy the tracked site surface, including docs content and site metadata" >&2
+if ! grep -F 'bash scripts/build-pages-artifact.sh "${site_dir}" "${tag}"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must build the materialized site through the shared Pages artifact builder" >&2
+  exit 1
+fi
+
+if ! grep -F 'archive_path="$(bash scripts/package-system-release.sh "${tag}" "${package_dir}")"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must build a system package for deployment artifact verification" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/verify-pages-artifact.mjs' "${workflow}" >/dev/null || ! grep -F -- '--pages-root "${site_dir}"' "${workflow}" >/dev/null || ! grep -F -- '--system-archive "${archive_path}"' "${workflow}" >/dev/null; then
+  echo "Pages workflow must verify the materialized Pages artifact before upload" >&2
+  exit 1
+fi
+
+if grep -F 'git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot' "${workflow}" >/dev/null; then
+  echo "Pages workflow must not duplicate tracked-site copy logic inline" >&2
+  exit 1
+fi
+
+if ! grep -F 'git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "Pages artifact builder must copy the tracked site surface, including docs content and site metadata" >&2
   exit 1
 fi
 
@@ -85,13 +105,18 @@ if ! grep -F 'Pages deploy cache key' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --materialize-root "${site_dir}" --tag "${tag}"' "${workflow}" >/dev/null; then
-  echo "Pages workflow must materialize runtime cache keys into the deployed site artifact" >&2
+if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --materialize-root "${output_dir}" --tag "${tag}"' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "Pages artifact builder must materialize runtime cache keys into the deployed site artifact" >&2
   exit 1
 fi
 
-if grep -F 'bash scripts/package-system-release.sh' "${workflow}" >/dev/null; then
-  echo "Pages workflow must not deploy the system update package alone because it excludes wwwroot site content" >&2
+if grep -F 'path: dist/system' "${workflow}" >/dev/null || grep -F 'path: dist/press-system' "${workflow}" >/dev/null; then
+  echo "Pages workflow must not deploy a system update package directory because it excludes wwwroot site content" >&2
+  exit 1
+fi
+
+if ! grep -F 'scripts/build-pages-artifact.sh' assets/js/press-system-surface.mjs >/dev/null; then
+  echo "Pages release-plan paths must include the shared Pages artifact builder" >&2
   exit 1
 fi
 

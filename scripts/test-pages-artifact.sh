@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+tmp_dir="$(mktemp -d)"
+untracked_paths=()
+
+cleanup() {
+  for untracked_path in "${untracked_paths[@]}"; do
+    rm -rf "${repo_root}/${untracked_path}"
+  done
+  rm -rf "${tmp_dir}"
+}
+trap cleanup EXIT
+
+cd "${repo_root}"
+
+version="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(tag);")"
+
+untracked_paths=(
+  "assets/js/__untracked-pages-artifact-probe.js"
+  "wwwroot/__untracked-pages-artifact-probe.md"
+)
+for untracked_path in "${untracked_paths[@]}"; do
+  if [[ -e "${repo_root}/${untracked_path}" ]]; then
+    echo "refusing to overwrite existing untracked probe path: ${untracked_path}" >&2
+    exit 1
+  fi
+done
+mkdir -p wwwroot
+printf 'export const probe = true;\n' > assets/js/__untracked-pages-artifact-probe.js
+printf 'local\n' > wwwroot/__untracked-pages-artifact-probe.md
+
+if bash scripts/build-pages-artifact.sh "${repo_root}" "${version}" >/dev/null 2>&1; then
+  echo "Pages artifact builder must reject the repository root as an output directory" >&2
+  exit 1
+fi
+
+if [[ -n "${HOME:-}" ]] && bash scripts/build-pages-artifact.sh "${HOME}" "${version}" >/dev/null 2>&1; then
+  echo "Pages artifact builder must reject the home directory as an output directory" >&2
+  exit 1
+fi
+
+pages_dir="${tmp_dir}/pages"
+bash scripts/build-pages-artifact.sh "${pages_dir}" "${version}" >/dev/null
+
+system_dir="${tmp_dir}/system"
+PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${version}" "${system_dir}" >/dev/null
+system_archive="${system_dir}/press-system-${version}.zip"
+
+node scripts/verify-pages-artifact.mjs \
+  --pages-root "${pages_dir}" \
+  --system-archive "${system_archive}" \
+  --tag "${version}"
+
+if [[ ! -f "${pages_dir}/.nojekyll" || ! -f "${pages_dir}/site.yaml" || ! -f "${pages_dir}/wwwroot/index.yaml" ]]; then
+  echo "Pages artifact must include site metadata and content" >&2
+  exit 1
+fi
+
+if [[ ! -f "${pages_dir}/assets/themes/packs.json" ]]; then
+  echo "Pages artifact must include installed-site theme state" >&2
+  exit 1
+fi
+
+for local_path in "${untracked_paths[@]}"; do
+  if [[ -e "${pages_dir}/${local_path}" ]]; then
+    echo "Pages artifact must not include untracked or local path: ${local_path}" >&2
+    exit 1
+  fi
+done
+
+for local_path in site.local.yaml site.local.yml assets/themes/packs.local.json wwwroot.local; do
+  if [[ -e "${pages_dir}/${local_path}" ]]; then
+    echo "Pages artifact must not include local-only path: ${local_path}" >&2
+    exit 1
+  fi
+done
+
+if unzip -Z1 "${system_archive}" | grep -Eq "^press-system-${version}/(site\.yaml$|wwwroot/|assets/themes/packs\.json$)"; then
+  echo "system archive must not include Pages-owned site state" >&2
+  exit 1
+fi
+
+unzipped_manifest="${tmp_dir}/system-runtime-manifest.json"
+unzip -p "${system_archive}" "press-system-${version}/assets/press-runtime-manifest.json" > "${unzipped_manifest}"
+if ! cmp -s "${pages_dir}/assets/press-runtime-manifest.json" "${unzipped_manifest}"; then
+  echo "Pages artifact and system archive runtime manifests must match" >&2
+  exit 1
+fi
+
+if ! grep -F "src=\"assets/main.js?v=press-system-${version}\"" "${pages_dir}/index.html" >/dev/null; then
+  echo "Pages artifact must materialize the public runtime cache key" >&2
+  exit 1
+fi
+
+corrupt_pages_dir="${tmp_dir}/corrupt-pages"
+cp -R "${pages_dir}" "${corrupt_pages_dir}"
+printf '\n/* stale after manifest */\n' >> "${corrupt_pages_dir}/assets/main.js"
+if node scripts/verify-pages-artifact.mjs --pages-root "${corrupt_pages_dir}" --system-archive "${system_archive}" --tag "${version}" >/dev/null 2>&1; then
+  echo "Pages artifact verifier must reject stale runtime manifest digests" >&2
+  exit 1
+fi

@@ -41,6 +41,8 @@ assert.deepEqual(
   execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'pages-release-plan-paths'], { encoding: 'utf8' }).trim().split('\n'),
   getPressSystemReleasePlanPaths({ includePagesMaterializer: true })
 );
+assert(!getPressSystemReleasePlanPaths().includes('scripts/build-pages-artifact.sh'));
+assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/build-pages-artifact.sh'));
 
 assert(getPressSystemRuntimeRoots({ includeRuntimeManifest: true }).includes('assets/press-runtime-manifest.json'));
 assert(isPressSystemManagedRuntimePath('assets/main.js'));

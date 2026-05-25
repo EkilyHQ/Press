@@ -28,12 +28,35 @@ function normalizeContentRoot(value) {
   return root || 'wwwroot';
 }
 
+function resolveAmbientFunction(name) {
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    const value = scope ? scope[name] : null;
+    return typeof value === 'function' ? value.bind(scope) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resolveFetch(fetchImpl) {
+  return typeof fetchImpl === 'function' ? fetchImpl : resolveAmbientFunction('fetch');
+}
+
+function defaultSleepMs(ms) {
+  return new Promise((resolve) => {
+    const timeout = Math.max(0, Number(ms) || 0);
+    const setTimeoutRef = resolveAmbientFunction('setTimeout');
+    if (setTimeoutRef) setTimeoutRef(resolve, timeout);
+    else resolve();
+  });
+}
+
 export async function waitForRemotePropagation(files = [], options = {}) {
   if (!Array.isArray(files) || !files.length) return { canceled: false };
-  const fetchImpl = typeof options.fetchImpl === 'function' ? options.fetchImpl : null;
+  const fetchImpl = resolveFetch(options.fetchImpl);
   const setStatus = typeof options.setStatus === 'function' ? options.setStatus : () => {};
   const setCancelHandler = typeof options.setCancelHandler === 'function' ? options.setCancelHandler : () => {};
-  const sleepMs = typeof options.sleepMs === 'function' ? options.sleepMs : async () => {};
+  const sleepMs = typeof options.sleepMs === 'function' ? options.sleepMs : defaultSleepMs;
   const now = typeof options.now === 'function' ? options.now : () => Date.now();
   const normalizedRoot = normalizeContentRoot(options.contentRoot);
 

@@ -82,6 +82,43 @@ function installAmbientGlobal(name, value) {
 }
 
 {
+  const urls = [];
+  const delays = [];
+  let now = 1000;
+  const restores = [
+    installAmbientGlobal('fetch', (url) => {
+      urls.push(url);
+      const text = urls.length <= 2 ? 'old body' : 'body';
+      return Promise.resolve({ ok: true, text: () => Promise.resolve(text) });
+    }),
+    installAmbientGlobal('setTimeout', (handler, delay) => {
+      delays.push(delay);
+      now += delay;
+      handler();
+      return delays.length;
+    })
+  ];
+  try {
+    const result = await waitForRemotePropagation([
+      { path: 'wwwroot/post/ambient/main_en.md', content: 'body' }
+    ], {
+      contentRoot: 'wwwroot',
+      now: () => now
+    });
+
+    assert.deepEqual(result, { canceled: false, timedOut: false });
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(urls.length, 3);
+  assert.equal(delays.length, 30);
+  assert.equal(delays[0], 1000);
+  assert.equal(urls[0], 'post/ambient/main_en.md?ts=1000');
+  assert.equal(urls[1], 'wwwroot/post/ambient/main_en.md?ts=1000');
+  assert.equal(urls[2], 'post/ambient/main_en.md?ts=31000');
+}
+
+{
   const ambientCalls = [];
   const restores = [
     installAmbientGlobal('window', {

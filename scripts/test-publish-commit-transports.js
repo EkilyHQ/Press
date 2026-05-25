@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 
 import { publishCommit } from '../assets/js/publish/commit-service.js';
 import {
-  createConnectPublishCommit
+  createConnectPublishCommit,
+  requestConnectPublishGrant
 } from '../assets/js/publish/transports/connect-transport.js';
 import {
   buildGithubFileChanges,
-  createFineGrainedTokenCommit
+  createFineGrainedTokenCommit,
+  githubGraphqlRequest
 } from '../assets/js/publish/transports/github-pat-transport.js';
 
 function installAmbientTrap(name, calls) {
@@ -24,12 +26,41 @@ function installAmbientTrap(name, calls) {
   };
 }
 
+function installAmbientGlobal(name, value) {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value
+  });
+  return () => {
+    if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+    else delete globalThis[name];
+  };
+}
+
 function okJson(payload) {
   return {
     ok: true,
     status: 200,
     json: () => Promise.resolve(payload)
   };
+}
+
+{
+  const requests = [];
+  const restore = installAmbientGlobal('fetch', async (url, options) => {
+    requests.push({ url, body: JSON.parse(options.body) });
+    return okJson({ data: { viewer: { login: 'deemoe404' } } });
+  });
+  try {
+    const result = await githubGraphqlRequest('pat-token', 'query Test { viewer { login } }');
+    assert.deepEqual(result, { viewer: { login: 'deemoe404' } });
+  } finally {
+    restore();
+  }
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://api.github.com/graphql');
 }
 
 function createGithubFetchRecorder(requests) {
@@ -71,6 +102,111 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
     { path: 'wwwroot/post/main.md', content: utf8Fixture }
   ]);
   assert.equal(changes.additions[0].contents, expectedBase64);
+}
+
+{
+  const requests = [];
+  const restores = [
+    installAmbientGlobal('fetch', async (url, options) => {
+      requests.push({ url, options, body: JSON.parse(options.body) });
+      return okJson({ ok: true, id: 'ambient-published' });
+    }),
+    installAmbientTrap('window', []),
+    installAmbientTrap('document', [])
+  ];
+  try {
+    const result = await createConnectPublishCommit({
+      connect: { baseUrl: 'https://connect.example' },
+      repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+      headline: 'Sync draft',
+      files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+      contentRoot: 'wwwroot',
+      grant: { token: 'grant-token' }
+    });
+    assert.deepEqual(result, { ok: true, id: 'ambient-published' });
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://connect.example/api/press/publish');
+}
+
+{
+  const listeners = {};
+  const popup = { closed: false, location: { href: '' } };
+  const links = [];
+  const fakeWindow = {
+    location: { origin: 'https://site.example' },
+    open(url, name, features) {
+      assert.equal(url, '');
+      assert.equal(name, 'pressConnectPublish');
+      assert.equal(features, 'popup,width=520,height=720');
+      return popup;
+    },
+    addEventListener(type, handler) {
+      listeners[type] = handler;
+    },
+    removeEventListener(type) {
+      delete listeners[type];
+    },
+    setInterval() {
+      return 1;
+    },
+    clearInterval() {},
+    setTimeout() {
+      return 2;
+    },
+    clearTimeout() {}
+  };
+  const fakeDocument = {
+    body: {
+      appendChild(link) {
+        links.push(link);
+      }
+    },
+    createElement(tagName) {
+      assert.equal(tagName, 'a');
+      return {
+        style: {},
+        click() {
+          this.clicked = true;
+        },
+        remove() {
+          this.removed = true;
+        }
+      };
+    }
+  };
+  const restores = [
+    installAmbientGlobal('window', fakeWindow),
+    installAmbientGlobal('document', fakeDocument)
+  ];
+  try {
+    const grantPromise = requestConnectPublishGrant({
+      connect: { baseUrl: 'https://connect.example' },
+      repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+      messageType: 'press:test-grant'
+    });
+    assert.equal(links.length, 1);
+    assert.equal(links[0].target, 'pressConnectPublish');
+    assert.equal(links[0].referrerPolicy, 'unsafe-url');
+    assert.equal(links[0].clicked, true);
+    assert.equal(links[0].removed, true);
+    assert.equal(new URL(links[0].href).searchParams.get('origin'), 'https://site.example');
+    listeners.message({
+      origin: 'https://connect.example',
+      data: {
+        type: 'press:test-grant',
+        ok: true,
+        grant: { token: 'grant-token' }
+      }
+    });
+    const grant = await grantPromise;
+    assert.equal(grant.token, 'grant-token');
+    assert.equal(grant.baseUrl, 'https://connect.example');
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
 }
 
 {

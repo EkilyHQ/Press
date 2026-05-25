@@ -50,6 +50,20 @@ function encodeContentToBase64(text) {
   return bytesToBase64(encodeUtf8Bytes(text));
 }
 
+function resolveAmbientFunction(name) {
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    const value = scope ? scope[name] : null;
+    return typeof value === 'function' ? value.bind(scope) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resolveFetch(fetchImpl) {
+  return typeof fetchImpl === 'function' ? fetchImpl : resolveAmbientFunction('fetch');
+}
+
 export function buildGithubFileChanges(files) {
   const additions = (Array.isArray(files) ? files : []).filter((file) => !file.deleted).map((file) => {
     const path = String(file.path || '').replace(/^\/+/, '');
@@ -69,6 +83,7 @@ export function buildGithubFileChanges(files) {
 }
 
 export async function githubGraphqlRequest(token, query, variables = {}, fetchImpl = null) {
+  const fetchRef = resolveFetch(fetchImpl);
   const trimmedToken = String(token || '').trim();
   if (!trimmedToken) throw new Error('GitHub token is required.');
   const headers = {
@@ -80,7 +95,7 @@ export async function githubGraphqlRequest(token, query, variables = {}, fetchIm
   const body = JSON.stringify({ query, variables });
   let response;
   try {
-    response = await fetchImpl('https://api.github.com/graphql', { method: 'POST', headers, body });
+    response = await fetchRef('https://api.github.com/graphql', { method: 'POST', headers, body });
   } catch (err) {
     const error = new Error('Network error while reaching GitHub.');
     error.cause = err;

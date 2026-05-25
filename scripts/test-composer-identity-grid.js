@@ -5018,7 +5018,7 @@ assert.match(
 
 assert.match(
   connectTransportSource,
-  /async function createConnectPublishCommit\([\s\S]*fetchImpl\(endpoint\.href, \{[\s\S]*referrerPolicy: 'unsafe-url'[\s\S]*Authorization/,
+  /async function createConnectPublishCommit\([\s\S]*const fetchRef = resolveFetch\(fetchImpl\);[\s\S]*fetchRef\(endpoint\.href, \{[\s\S]*referrerPolicy: 'unsafe-url'[\s\S]*Authorization/,
   'Connect publish POST should send a full browser Referrer so grants stay bound to the editor path'
 );
 

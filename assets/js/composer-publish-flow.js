@@ -1,6 +1,16 @@
 import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js?v=press-system-v3.4.50';
 import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js?v=press-system-v3.4.50';
 
+function resolveAmbientFunction(name) {
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    const value = scope ? scope[name] : null;
+    return typeof value === 'function' ? value.bind(scope) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 export function createComposerPublishFlow({
   windowRef = null,
   documentRef = null,
@@ -28,10 +38,13 @@ export function createComposerPublishFlow({
 } = {}) {
   const fetchRef = typeof fetchImpl === 'function'
     ? fetchImpl
-    : null;
+    : resolveAmbientFunction('fetch');
+  const timerRef = typeof setTimeoutRef === 'function'
+    ? setTimeoutRef
+    : resolveAmbientFunction('setTimeout');
   const sleepMs = (ms) => new Promise((resolve) => {
     const timeout = Math.max(0, Number(ms) || 0);
-    if (typeof setTimeoutRef === 'function') setTimeoutRef(resolve, timeout);
+    if (timerRef) timerRef(resolve, timeout);
     else resolve();
   });
 

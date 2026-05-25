@@ -154,7 +154,6 @@ function extractChunks(markdown) {
   while (index < lines.length) {
     const start = index;
     const first = lines[index] || '';
-    const trimmed = first.trimStart();
     const frontMatterEnd = !chunks.length && !leading && start === 0 ? findFrontMatterEndIndex(lines, start) : -1;
 
     if (frontMatterEnd >= 0) {

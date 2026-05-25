@@ -131,9 +131,41 @@ function makeFixtures(overrides = {}) {
     'fixture:connect': {
       ok: true,
       service: 'ekily-connect',
-      version: 'test'
+      version: 'test',
+      publishTelemetry: {
+        schemaVersion: 1,
+        status: 'ok',
+        window: {
+          since: 1779700000,
+          until: 1779786400,
+          seconds: 86400
+        },
+        totalEvents: 3,
+        grantsIssued: 1,
+        publishSuccess: 1,
+        publishFailure: 1,
+        lastEventAt: 1779780000,
+        upstreamFailures: [
+          {
+            errorCode: 'github_forbidden',
+            upstreamStatus: 403,
+            upstreamCode: 'github_forbidden',
+            count: 1,
+            lastAt: 1779780000
+          }
+        ]
+      }
     },
     ...overrides
+  };
+}
+
+function connectWithTelemetry(publishTelemetry) {
+  return {
+    ok: true,
+    service: 'ekily-connect',
+    version: 'test',
+    publishTelemetry
   };
 }
 
@@ -418,6 +450,10 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.themes.catalog.status, 'ok');
   assert.equal(state.themes.entries[0].status, 'ok');
   assert.equal(state.connect.status, 'ok');
+  assert.equal(state.desired.connect.requiresPublishTelemetry, true);
+  assert.equal(state.connect.publishTelemetry.status, 'ok');
+  assert.equal(state.connect.publishTelemetry.grantsIssued, 1);
+  assert.equal(state.connect.publishTelemetry.upstreamFailures[0].errorCode, 'github_forbidden');
   assert.equal(state.observed.checkedAt, '2026-05-25T00:00:00Z');
   assert.equal(state.observed.downstream.yap.status, 'ok');
   assert.equal(state.verdict.status, 'ok');
@@ -426,6 +462,132 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.verdict.counts.pending, 0);
   assert.equal(shouldFailCheck(state), false);
   assert.equal(shouldFailCheck(state, { requireConverged: true }), false);
+});
+
+test('buildProductState marks missing Connect publish telemetry as drift', async () => {
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:connect': {
+        ok: true,
+        service: 'ekily-connect',
+        version: 'test'
+      }
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.connect.status, 'drift');
+  assert.equal(state.connect.publishTelemetry.status, 'drift');
+  assert.match(state.problems.map((problem) => problem.code).join('\n'), /publish_telemetry_invalid/);
+  assert.equal(shouldFailCheck(state), true);
+});
+
+test('buildProductState marks Connect publish telemetry migration and unknown states as drift', async () => {
+  const baseTelemetry = makeFixtures()['fixture:connect'].publishTelemetry;
+  const cases = [
+    {
+      telemetry: {
+        ...clone(baseTelemetry),
+        status: 'unknown'
+      },
+      message: /status must be ok/
+    },
+    {
+      telemetry: {
+        schemaVersion: 0,
+        status: 'unknown',
+        migrationRequired: true,
+        window: {
+          since: 1779700000,
+          until: 1779786400,
+          seconds: 86400
+        },
+        totalEvents: 3,
+        lastEventAt: 1779780000,
+        reason: 'publish_telemetry_migration_required'
+      },
+      message: /migration must be applied/
+    }
+  ];
+
+  for (const scenario of cases) {
+    const state = await buildProductState({
+      sources: makeSources(),
+      loadJson: loader(makeFixtures({
+        'fixture:connect': connectWithTelemetry(scenario.telemetry)
+      })),
+      generatedAt: '2026-05-25T00:00:00Z'
+    });
+
+    assert.equal(state.status, 'drift');
+    assert.equal(state.connect.status, 'drift');
+    assert.match(state.problems.map((problem) => problem.message).join('\n'), scenario.message);
+  }
+});
+
+test('buildProductState rejects impossible Connect publish telemetry shapes', async () => {
+  const baseTelemetry = makeFixtures()['fixture:connect'].publishTelemetry;
+  const cases = [
+    {
+      telemetry: {
+        ...clone(baseTelemetry),
+        window: {
+          since: 1779700000,
+          until: 1779786400,
+          seconds: 10
+        }
+      },
+      message: /window/
+    },
+    {
+      telemetry: {
+        ...clone(baseTelemetry),
+        totalEvents: 2,
+        grantsIssued: 1,
+        publishSuccess: 1,
+        publishFailure: 1
+      },
+      message: /cannot exceed totalEvents/
+    },
+    {
+      telemetry: {
+        ...clone(baseTelemetry),
+        upstreamFailures: [
+          {
+            errorCode: 'github_forbidden',
+            upstreamStatus: 'not-a-status',
+            upstreamCode: 'github_forbidden',
+            count: 1,
+            lastAt: 1779780000
+          }
+        ]
+      },
+      message: /upstream failure entries/
+    },
+    {
+      telemetry: {
+        ...clone(baseTelemetry),
+        publishFailure: 0
+      },
+      message: /upstream failure counts/
+    }
+  ];
+
+  for (const scenario of cases) {
+    const state = await buildProductState({
+      sources: makeSources(),
+      loadJson: loader(makeFixtures({
+        'fixture:connect': connectWithTelemetry(scenario.telemetry)
+      })),
+      generatedAt: '2026-05-25T00:00:00Z'
+    });
+
+    assert.equal(state.status, 'drift');
+    assert.equal(state.connect.publishTelemetry.status, 'drift');
+    assert.match(state.problems.map((problem) => problem.message).join('\n'), scenario.message);
+  }
 });
 
 test('buildProductState marks a release without runtime asset graph metadata as drift', async () => {

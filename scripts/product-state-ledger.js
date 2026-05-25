@@ -259,6 +259,94 @@ function normalizeStatus(status) {
   return ['ok', 'pending', 'unknown', 'drift'].includes(value) ? value : 'unknown';
 }
 
+function normalizeConnectPublishTelemetry(input) {
+  const source = input && typeof input === 'object' ? input : null;
+  if (!source) {
+    return {
+      schemaVersion: 0,
+      status: 'drift',
+      error: 'Connect health is missing publishTelemetry'
+    };
+  }
+  const hasWindow = source.window && typeof source.window === 'object';
+  const telemetry = {
+    schemaVersion: Number(source.schemaVersion || 0),
+    status: normalizeStatus(source.status),
+    migrationRequired: source.migrationRequired === true,
+    window: hasWindow ? {
+      since: numberOrZero(source.window.since),
+      until: numberOrZero(source.window.until),
+      seconds: numberOrZero(source.window.seconds)
+    } : {},
+    totalEvents: numberOrZero(source.totalEvents),
+    grantsIssued: numberOrZero(source.grantsIssued),
+    publishSuccess: numberOrZero(source.publishSuccess),
+    publishFailure: numberOrZero(source.publishFailure),
+    lastEventAt: source.lastEventAt == null ? null : numberOrZero(source.lastEventAt),
+    upstreamFailures: Array.isArray(source.upstreamFailures)
+      ? source.upstreamFailures.map((entry) => ({
+        errorCode: String(entry && entry.errorCode || '').trim(),
+        upstreamStatus: entry && entry.upstreamStatus != null ? Number(entry.upstreamStatus) : null,
+        upstreamCode: String(entry && entry.upstreamCode || '').trim(),
+        count: numberOrZero(entry && entry.count),
+        lastAt: entry && entry.lastAt != null ? numberOrZero(entry.lastAt) : null
+      }))
+      : []
+  };
+  if (telemetry.migrationRequired) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry migration must be applied before product-state convergence';
+  } else if (telemetry.schemaVersion !== 1) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry must use schemaVersion 1';
+  } else if (telemetry.status !== 'ok') {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry status must be ok';
+  } else if (!isValidTelemetryWindow(telemetry.window)) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry window must contain finite seconds with until - since consistency';
+  } else if ([telemetry.totalEvents, telemetry.grantsIssued, telemetry.publishSuccess, telemetry.publishFailure].some((value) => !isNonNegativeInteger(value))) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry counters must be non-negative integers';
+  } else if (telemetry.lastEventAt != null && !isNonNegativeInteger(telemetry.lastEventAt)) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry lastEventAt must be a non-negative integer when present';
+  } else if (telemetry.grantsIssued + telemetry.publishSuccess + telemetry.publishFailure > telemetry.totalEvents) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry event counters cannot exceed totalEvents';
+  } else if (telemetry.upstreamFailures.some((entry) => !isValidUpstreamFailure(entry))) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry upstream failure entries must include valid errorCode, status, count, and timestamp fields';
+  } else if (telemetry.upstreamFailures.reduce((total, entry) => total + entry.count, 0) > telemetry.publishFailure) {
+    telemetry.status = 'drift';
+    telemetry.error = 'Connect publishTelemetry upstream failure counts cannot exceed publishFailure';
+  }
+  return telemetry;
+}
+
+function numberOrZero(value) {
+  return value == null || value === '' ? 0 : Number(value);
+}
+
+function isNonNegativeInteger(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
+function isValidTelemetryWindow(window) {
+  return window && isNonNegativeInteger(window.since)
+    && isNonNegativeInteger(window.until)
+    && isNonNegativeInteger(window.seconds)
+    && window.until >= window.since
+    && window.seconds === window.until - window.since;
+}
+
+function isValidUpstreamFailure(entry) {
+  if (!entry.errorCode || !isNonNegativeInteger(entry.count)) return false;
+  if (entry.upstreamStatus != null && (!Number.isInteger(entry.upstreamStatus) || entry.upstreamStatus < 100 || entry.upstreamStatus > 599)) return false;
+  if (entry.lastAt != null && !isNonNegativeInteger(entry.lastAt)) return false;
+  return true;
+}
+
 function aggregateStatus(statuses) {
   const values = statuses.map(normalizeStatus);
   if (values.includes('drift')) return 'drift';
@@ -459,7 +547,8 @@ function buildDesiredState({ sources, systemRelease, systemSource }) {
     },
     connect: sources.connect && sources.connect.source ? {
       label: sources.connect.label,
-      source: sources.connect.source
+      source: sources.connect.source,
+      requiresPublishTelemetry: true
     } : null
   };
 }
@@ -545,7 +634,8 @@ async function buildProductState(options = {}) {
     connect: {
       label: sources.connect.label,
       source: sources.connect.source,
-      status: 'unknown'
+      status: 'unknown',
+      publishTelemetry: null
     },
     problems: []
   };
@@ -727,14 +817,24 @@ async function buildProductState(options = {}) {
       });
     } else {
       const payload = connectResult.value && typeof connectResult.value === 'object' ? connectResult.value : {};
-      state.connect.status = payload.ok === true ? 'ok' : 'drift';
+      const telemetry = normalizeConnectPublishTelemetry(payload.publishTelemetry);
+      state.connect.publishTelemetry = telemetry;
+      state.connect.status = payload.ok === true && telemetry.status === 'ok' ? 'ok' : 'drift';
       state.connect.service = String(payload.service || '').trim();
       state.connect.version = String(payload.version || '').trim();
-      if (state.connect.status !== 'ok') {
+      if (payload.ok !== true) {
         addProblem(state, {
           component: 'connect',
           code: 'connect_unhealthy',
           message: 'Connect health endpoint did not return ok: true',
+          owner: 'Connect'
+        });
+      }
+      if (telemetry.status !== 'ok') {
+        addProblem(state, {
+          component: 'connect.publishTelemetry',
+          code: 'publish_telemetry_invalid',
+          message: telemetry.error || 'Connect health must expose publish telemetry with schemaVersion 1 and status ok',
           owner: 'Connect'
         });
       }

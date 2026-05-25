@@ -81,7 +81,15 @@ function sampleState(overrides = {}) {
         }
       ]
     },
-    connect: { status: 'ok', service: 'ekily-connect' },
+    connect: {
+      status: 'ok',
+      service: 'ekily-connect',
+      publishTelemetry: {
+        status: 'ok',
+        publishSuccess: 1,
+        publishFailure: 0
+      }
+    },
     verdict: {
       status: 'ok',
       converged: true,
@@ -124,6 +132,27 @@ test('renderProductStateDashboard renders human-readable product status sections
   assert.match(html, /Official Themes/);
   assert.match(html, /Arcus/);
   assert.match(html, /ekily-connect/);
+  assert.match(html, /Publish Telemetry/);
+  assert.match(html, /1 ok \/ 0 failed/);
+});
+
+test('renderProductStateDashboard surfaces Connect publish telemetry drift', () => {
+  const html = renderProductStateDashboard(sampleState({
+    status: 'drift',
+    connect: {
+      status: 'drift',
+      service: 'ekily-connect',
+      publishTelemetry: {
+        status: 'drift',
+        publishSuccess: 0,
+        publishFailure: 2
+      }
+    }
+  }));
+
+  assert.match(html, /Publish Telemetry/);
+  assert.match(html, /0 ok \/ 2 failed/);
+  assert.match(html, /class="status drift">drift/);
 });
 
 test('renderProductStateDashboard includes drift problems without trusting markup', () => {

@@ -28,6 +28,12 @@ into a site through Theme Manager. Press never executes a theme directly from a
 remote repository at runtime; a selected theme must exist locally under
 `assets/themes/<pack>/`.
 
+The shared machine-readable contract surface lives in
+`assets/js/theme-contract-surface.mjs`. Theme Manager, runtime development
+warnings, contract tests, and the JSON schema are expected to agree with that
+surface for the current `contractVersion`, required views, regions, components,
+content shapes, and archive file-type rules.
+
 ## Manifest
 
 ```json

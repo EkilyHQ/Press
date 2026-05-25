@@ -21,6 +21,11 @@ import {
   getDefaultThemeRegionController,
   mergeThemeRegions,
 } from './theme-regions.js';
+import {
+  PRESS_THEME_CONTRACT,
+  getDefaultThemeStyles,
+  getRequiredThemeContentShapes
+} from './theme-contract-surface.mjs';
 
 function createThemeLayoutState(options = {}) {
   return {
@@ -34,7 +39,9 @@ function createThemeLayoutState(options = {}) {
 const defaultThemeLayoutState = createThemeLayoutState();
 
 const DEFAULT_PACK = 'native';
-const CONTRACT_VERSION = 1;
+const CONTRACT_VERSION = PRESS_THEME_CONTRACT.contractVersion;
+const DEFAULT_THEME_STYLES = getDefaultThemeStyles();
+const REQUIRED_CONTENT_SHAPES = getRequiredThemeContentShapes();
 const NATIVE_MODULE_CACHE_KEY = '';
 const NATIVE_STYLE_CACHE_KEY = '';
 
@@ -137,7 +144,7 @@ function validateManifestContract(pack, manifest) {
   const content = manifest.content;
   if (content && typeof content === 'object') {
     const shapes = asStringList(content.shapes || content.provides || []);
-    ['html', 'blocks', 'tocTree'].forEach((shape) => {
+    REQUIRED_CONTENT_SHAPES.forEach((shape) => {
       if (shapes.length && !shapes.includes(shape)) {
         themeDevWarn(`Theme "${pack}" content.shapes should include "${shape}".`);
       }
@@ -176,7 +183,7 @@ function safeThemeAssetPath(pack, entry, extension, manifest) {
 
 function applyManifestStyles(pack, manifest) {
   const styles = asStringList(manifest && manifest.styles);
-  const declared = styles.length ? styles : ['theme.css'];
+  const declared = styles.length ? styles : DEFAULT_THEME_STYLES;
   const hrefs = declared.map((entry) => safeThemeAssetPath(pack, entry, '.css', manifest)).filter(Boolean);
   if (!hrefs.length) return;
   const primary = hrefs[0];

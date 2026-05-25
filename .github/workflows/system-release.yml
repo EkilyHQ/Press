@@ -27,6 +27,7 @@ jobs:
         run: |
           node scripts/sync-runtime-cache-keys.mjs --check
           node scripts/test-press-system-surface.mjs
+          node --experimental-default-type=module scripts/test-theme-contracts.js
           bash scripts/test-system-release-package.sh
           bash scripts/test-system-release-workflow.sh
           bash scripts/test-pages-workflow.sh

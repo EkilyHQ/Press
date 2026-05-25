@@ -1,4 +1,4 @@
-import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.50';
+import { createBrowserEditorAppRuntime } from './editor-app-runtime.js?v=press-system-v3.4.51';
 
 const CONTENT_ROOT_GLOBAL = '__press_content_root';
 const SITE_REPO_GLOBAL = '__press_site_repo';

@@ -85,6 +85,11 @@ if ! grep -F 'path: dist/pages' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'include-hidden-files: true' "${workflow}" >/dev/null; then
+  echo "Pages workflow must include dotfiles such as .nojekyll in the Pages artifact" >&2
+  exit 1
+fi
+
 if grep -Eq '^[[:space:]]+NODE$' "${workflow}"; then
   echo "Pages workflow must not use indented heredoc terminators inside shell blocks" >&2
   exit 1

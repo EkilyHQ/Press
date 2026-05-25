@@ -1,30 +1,30 @@
 {
   "schemaVersion": 1,
-  "name": "v3.4.56",
-  "tag": "v3.4.56",
-  "version": "3.4.56",
-  "publishedAt": "2026-05-25T11:40:15Z",
-  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.56.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.56.zip`\n- SHA-256: `d75d0197101e95b754d57bdb60a9b958d2c2cc026706e8acd442da44afb40c53`\n\n## Changed System Files\n\n- assets/press-system.json\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.55...v3.4.56\n",
+  "name": "v3.4.57",
+  "tag": "v3.4.57",
+  "version": "3.4.57",
+  "publishedAt": "2026-05-25T14:11:37Z",
+  "notes": "## Migration Guide\n\nUse the System Updates tool in Markdown Editor to download and apply `press-system-v3.4.57.zip`.\n\n## System Package\n\n- Asset: `press-system-v3.4.57.zip`\n- SHA-256: `7469c5c855181716afc4506dd9ba4e3d7e415b727c147ebf8c4cc3bd6a9e9175`\n\n## Changed System Files\n\n- assets/js/press-system-surface.mjs\n- assets/js/system-updates.js\n- assets/press-system.json\n\n**Full Changelog**: https://github.com/EkilyHQ/Press/compare/v3.4.56...v3.4.57\n",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.55 <3.4.56"
+      ">=3.4.56 <3.4.57"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.55 first."
+    "message": "Update to v3.4.56 first."
   },
   "runtime": {
     "manifestPath": "assets/press-runtime-manifest.json",
     "type": "press-runtime-assets",
     "strategy": "query-param",
-    "cacheKey": "press-system-v3.4.56",
-    "entryCount": 242,
-    "edgeCount": 291
+    "cacheKey": "press-system-v3.4.57",
+    "entryCount": 244,
+    "edgeCount": 292
   },
-  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.56",
+  "htmlUrl": "https://github.com/EkilyHQ/Press/releases/tag/v3.4.57",
   "asset": {
-    "name": "press-system-v3.4.56.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.56/press-system-v3.4.56.zip",
-    "size": 1759694,
-    "digest": "sha256:d75d0197101e95b754d57bdb60a9b958d2c2cc026706e8acd442da44afb40c53"
+    "name": "press-system-v3.4.57.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.57/press-system-v3.4.57.zip",
+    "size": 1760737,
+    "digest": "sha256:7469c5c855181716afc4506dd9ba4e3d7e415b727c147ebf8c4cc3bd6a9e9175"
   }
 }

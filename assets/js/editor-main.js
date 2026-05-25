@@ -1,5 +1,4 @@
 import { createHiEditor } from './hieditor.js?v=press-system-v3.4.51';
-import { normalizeLineEndings } from './frontmatter-document.js?v=press-system-v3.4.51';
 import { resolveImageSrc } from './safe-html.js?v=press-system-v3.4.51';
 import { t, withLangParam, getCurrentLang, normalizeLangKey } from './i18n.js?v=press-system-v3.4.51';
 import { createEditorMainMetadataPanel } from './editor-main-metadata-panel.js?v=press-system-v3.4.51';

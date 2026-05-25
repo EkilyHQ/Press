@@ -4,6 +4,19 @@ const path = require('node:path');
 
 const DEFAULT_PRESS_REPOSITORY = 'EkilyHQ/Press';
 const DEFAULT_RAW_ROOT = 'https://raw.githubusercontent.com';
+const RAW_GITHUB_CONTENTS_REFS = new Set(['main', 'demo', 'release-artifacts']);
+const SIGNED_URL_QUERY_KEYS = [
+  'awsaccesskeyid',
+  'expires',
+  'sig',
+  'signature',
+  'x-amz-algorithm',
+  'x-amz-credential',
+  'x-amz-signature',
+  'x-goog-algorithm',
+  'x-goog-credential',
+  'x-goog-signature'
+];
 const DEFAULT_SOURCES = {
   systemRelease: `${DEFAULT_RAW_ROOT}/${DEFAULT_PRESS_REPOSITORY}/release-artifacts/system-release.json`,
   downstream: [
@@ -70,12 +83,104 @@ function readJsonFile(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+function hasSignedUrlQuery(url) {
+  const keys = new Set(Array.from(url.searchParams.keys()).map((key) => key.toLowerCase()));
+  return SIGNED_URL_QUERY_KEYS.some((key) => keys.has(key));
+}
+
+function cacheBustJsonUrl(value, options = {}) {
+  if (options.cacheBust === false) return value;
+  const url = new URL(value);
+  if (hasSignedUrlQuery(url)) return value;
+  const token = options.cacheBustToken || `${Date.now()}`;
+  url.searchParams.set('press_state_cache', token);
+  return url.toString();
+}
+
+function decodeUrlPathParts(pathname) {
+  try {
+    return pathname.split('/').filter(Boolean).map((part) => decodeURIComponent(part));
+  } catch {
+    return null;
+  }
+}
+
+function shouldUseGithubContentsApi(ref) {
+  return RAW_GITHUB_CONTENTS_REFS.has(ref) || /^v\d+\.\d+\.\d+$/i.test(ref);
+}
+
+function rawGithubUrlToContentsApi(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return '';
+  }
+  if (url.hostname !== 'raw.githubusercontent.com') return '';
+  const parts = decodeUrlPathParts(url.pathname);
+  if (!parts || parts.length < 4) return '';
+  const [owner, repo, ref, ...fileParts] = parts;
+  if (!shouldUseGithubContentsApi(ref)) return '';
+  const encodedPath = fileParts.map(encodeURIComponent).join('/');
+  const apiUrl = new URL(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodedPath}`
+  );
+  apiUrl.searchParams.set('ref', ref);
+  return apiUrl.toString();
+}
+
+function buildJsonFetchInit({ accept, githubContentsUrl, options }) {
+  const headers = {
+    Accept: accept,
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache'
+  };
+  const githubToken = options.githubToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
+  if (githubContentsUrl && githubToken) {
+    headers.Authorization = `Bearer ${githubToken}`;
+    headers['X-GitHub-Api-Version'] = '2022-11-28';
+  }
+  return {
+    cache: 'no-store',
+    headers
+  };
+}
+
+function shouldFallbackToRawGithub(response) {
+  if (!response) return true;
+  return response.status === 401
+    || response.status === 403
+    || response.status === 429
+    || response.status >= 500;
+}
+
 async function loadJsonSource(source, options = {}) {
   const value = String(source || '').trim();
   if (!value) throw new Error('missing JSON source');
   if (isUrl(value)) {
     const fetchImpl = options.fetchImpl || fetch;
-    const response = await fetchImpl(value, { headers: { Accept: 'application/json' } });
+    const githubContentsUrl = options.githubRawContentsApi === false
+      ? ''
+      : rawGithubUrlToContentsApi(value);
+    const requestUrl = githubContentsUrl || cacheBustJsonUrl(value, options);
+    let response;
+    try {
+      response = await fetchImpl(requestUrl, buildJsonFetchInit({
+        accept: githubContentsUrl ? 'application/vnd.github.raw+json' : 'application/json',
+        githubContentsUrl,
+        options
+      }));
+    } catch (error) {
+      if (!githubContentsUrl) throw error;
+      response = null;
+    }
+    if (githubContentsUrl && (!response || !response.ok) && shouldFallbackToRawGithub(response)) {
+      response = await fetchImpl(cacheBustJsonUrl(value, options), buildJsonFetchInit({
+        accept: 'application/json',
+        githubContentsUrl: '',
+        options
+      }));
+    }
     if (!response || !response.ok) {
       const status = response && response.status ? response.status : 'network';
       throw new Error(`unable to fetch ${value}: ${status}`);
@@ -622,6 +727,8 @@ module.exports = {
   DEFAULT_SOURCES,
   aggregateStatus,
   buildProductState,
+  cacheBustJsonUrl,
+  loadJsonSource,
   normalizeSemver,
   satisfiesSemverRange,
   shouldFailCheck,

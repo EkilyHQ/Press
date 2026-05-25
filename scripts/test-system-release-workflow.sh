@@ -143,6 +143,16 @@ if ! grep -F 'bash scripts/test-product-state-workflow.sh' "${workflow}" >/dev/n
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-release-targets.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the release target registry before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-dispatch-system-release.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify release dispatch helpers before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-product-state-ledger.js' "${workflow}" >/dev/null; then
   echo "system release workflow must run product-state ledger tests before publishing" >&2
   exit 1
@@ -411,8 +421,8 @@ if ! grep -F 'process.exitCode = 1' scripts/dispatch-system-release.js >/dev/nul
   exit 1
 fi
 
-if ! grep -F "eventType: 'press-system-release'" scripts/dispatch-system-release.js >/dev/null; then
-  echo "system release workflow must dispatch the press-system-release event" >&2
+if ! grep -F "RELEASE_EVENT_TYPE = 'press-system-release'" scripts/release-targets.js >/dev/null; then
+  echo "release target registry must declare the press-system-release event" >&2
   exit 1
 fi
 
@@ -424,11 +434,21 @@ for target in \
   'EkilyHQ/Press-Theme-Glasswing' \
   'EkilyHQ/Press-Theme-Solstice'
 do
-  if ! grep -F "${target}" scripts/dispatch-system-release.js >/dev/null; then
-    echo "release dispatch orchestrator must include ${target}" >&2
+  if ! grep -F "${target}" scripts/release-targets.js >/dev/null; then
+    echo "release target registry must include ${target}" >&2
     exit 1
   fi
 done
+
+if ! grep -F "require('./release-targets.js')" scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must read the shared release target registry" >&2
+  exit 1
+fi
+
+if ! grep -F "require('./release-targets.js')" scripts/product-state-ledger.js >/dev/null; then
+  echo "product-state ledger must read the shared release target registry" >&2
+  exit 1
+fi
 
 if ! grep -F '/repos/${target.repository}/dispatches' scripts/dispatch-system-release.js >/dev/null; then
   echo "release dispatch orchestrator must call repository dispatch endpoints" >&2

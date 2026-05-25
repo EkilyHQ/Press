@@ -22,6 +22,9 @@ bash scripts/test-main-guard.sh
 bash scripts/test-frontmatter-roundtrip.sh
 bash scripts/test-system-release-package.sh
 bash scripts/test-system-release-workflow.sh
+node scripts/test-release-targets.js
+node scripts/test-dispatch-system-release.js
+node scripts/test-product-state-ledger.js
 node --experimental-default-type=module scripts/test-system-updates.js
 node --experimental-default-type=module scripts/test-theme-manager.js
 ```
@@ -35,7 +38,7 @@ node --experimental-default-type=module scripts/test-theme-manager.js
 
 When a runtime feature changes user-facing behavior, update the relevant documentation in `wwwroot/` in the same branch. This keeps the official site and the code versioned together.
 
-The minimal user starter will live in a separate repository named `Press-Starter`. Do not strip this repository's `wwwroot/` back to a minimal template.
+The minimal user starter lives in the separate `YAP` repository. Do not strip this repository's `wwwroot/` back to a minimal template.
 
 ## Theme Repository Boundary
 
@@ -45,13 +48,13 @@ Press sites load themes only from local `assets/themes/<slug>` directories. Them
 
 ## System Release Packages
 
-`main` publishes GitHub Pages directly from the repository root, but system updates use a separate release ZIP. After a push to `main`, the release workflow checks whether runtime files changed since the latest release tag. If only documentation or content changed under `wwwroot/`, no release is created.
+`main` deploys GitHub Pages from a materialized GitHub Actions artifact, while system updates use a separate release ZIP. After a push to `main`, the release workflow checks whether runtime files changed since the latest release tag. If only documentation or content changed under `wwwroot/`, no system release is created.
 
-When runtime files changed, the workflow bumps the patch version, creates a GitHub Release, and uploads exactly one package named `press-system-vX.Y.Z.zip`. That package is an allowlisted runtime bundle only: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`.
+When runtime files changed, `assets/press-system.json` must already declare the next release version and tag. The workflow creates a GitHub Release for that tag and uploads exactly one package named `press-system-vX.Y.Z.zip`. That package is an allowlisted runtime bundle only: `index.html`, `index_editor.html`, `assets/main.js`, `assets/js/`, `assets/i18n/`, `assets/schema/`, and `assets/themes/native/**`.
 
 The package must not include user-controlled content or site configuration such as `wwwroot/`, `site.yaml`, `CNAME`, `robots.txt`, `sitemap.xml`, repository policy files, scripts, workflow files, repo-specific root media, `assets/themes/packs.json`, or arbitrary `assets/themes/<slug>` directories outside `native`. Users who customize files under `assets/js/` are modifying the system namespace, and those files may be overwritten by system updates. Non-native themes should be managed through Theme Manager so their file inventory remains explicit in site-owned `packs.json`.
 
-After the release is published, the workflow sends a `press-system-release` repository dispatch to `Press-Starter` when `STARTER_SYNC_TOKEN` is configured. The starter repository then downloads the system package, overlays runtime files, regenerates its native-only `assets/themes/packs.json`, and opens a sync pull request. A scheduled Starter workflow is still used as a catch-up path if the dispatch is missed.
+After the release is published, the workflow sends `press-system-release` repository dispatch events through the Ekily Release GitHub App to the targets declared in `scripts/release-targets.js`: `YAP`, `Press-Theme-Starter`, and the four official theme demo repositories. YAP syncs runtime files directly to `main`, Press-Theme-Starter refreshes its marker, and official theme demo repositories refresh their `demo` branches. Scheduled downstream workflows remain catch-up paths if a dispatch is missed.
 
 ## Local Testing Data Isolation
 

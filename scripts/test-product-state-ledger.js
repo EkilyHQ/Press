@@ -16,30 +16,16 @@ function clone(value) {
 function makeSources() {
   const sources = clone(DEFAULT_SOURCES);
   sources.systemRelease = 'fixture:system';
-  sources.downstream = [
-    {
-      key: 'yap',
-      label: 'YAP starter runtime',
-      repository: 'EkilyHQ/YAP',
-      source: 'fixture:yap',
-      type: 'press-system-manifest'
-    },
-    {
-      key: 'themeStarter',
-      label: 'Theme starter marker',
-      repository: 'EkilyHQ/Press-Theme-Starter',
-      source: 'fixture:starter',
-      type: 'press-release-marker'
-    }
-  ];
-  sources.themeDemos = [
-    {
-      key: 'arcus',
-      label: 'Arcus demo runtime',
-      repository: 'EkilyHQ/Press-Theme-Arcus',
+  sources.downstream = sources.downstream.map((source) => ({
+    ...source,
+    source: source.key === 'themeStarter' ? 'fixture:starter' : 'fixture:yap'
+  }));
+  sources.themeDemos = sources.themeDemos
+    .filter((source) => source.key === 'arcus')
+    .map((source) => ({
+      ...source,
       source: 'fixture:arcus-demo'
-    }
-  ];
+    }));
   sources.catalog = {
     repository: 'EkilyHQ/Press-Theme-Catalog',
     source: 'fixture:catalog'
@@ -462,6 +448,20 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.verdict.counts.pending, 0);
   assert.equal(shouldFailCheck(state), false);
   assert.equal(shouldFailCheck(state, { requireConverged: true }), false);
+});
+
+test('buildProductState preserves legacy theme-starter reconciler fallback', async () => {
+  const sources = makeSources();
+  delete sources.downstream[1].eventType;
+  delete sources.downstream[1].reconciler;
+  const state = await buildProductState({
+    sources,
+    loadJson: loader(makeFixtures()),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.desired.downstream.themeStarter.reconciler.kind, 'theme-starter-marker-sync');
+  assert.equal(state.desired.downstream.themeStarter.reconciler.eventType, 'press-system-release');
 });
 
 test('buildProductState marks missing Connect publish telemetry as drift', async () => {

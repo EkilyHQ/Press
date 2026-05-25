@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 const fs = require('node:fs');
 const path = require('node:path');
+const {
+  getReleaseProductStateSources
+} = require('./release-targets.js');
 
 const DEFAULT_PRESS_REPOSITORY = 'EkilyHQ/Press';
 const DEFAULT_RAW_ROOT = 'https://raw.githubusercontent.com';
@@ -17,50 +20,11 @@ const SIGNED_URL_QUERY_KEYS = [
   'x-goog-credential',
   'x-goog-signature'
 ];
+const DEFAULT_RELEASE_SOURCES = getReleaseProductStateSources(DEFAULT_RAW_ROOT);
 const DEFAULT_SOURCES = {
   systemRelease: `${DEFAULT_RAW_ROOT}/${DEFAULT_PRESS_REPOSITORY}/release-artifacts/system-release.json`,
-  downstream: [
-    {
-      key: 'yap',
-      label: 'YAP starter runtime',
-      repository: 'EkilyHQ/YAP',
-      source: `${DEFAULT_RAW_ROOT}/EkilyHQ/YAP/main/assets/press-system.json`,
-      type: 'press-system-manifest'
-    },
-    {
-      key: 'themeStarter',
-      label: 'Theme starter marker',
-      repository: 'EkilyHQ/Press-Theme-Starter',
-      source: `${DEFAULT_RAW_ROOT}/EkilyHQ/Press-Theme-Starter/main/press-system-release.json`,
-      type: 'press-release-marker'
-    }
-  ],
-  themeDemos: [
-    {
-      key: 'arcus',
-      label: 'Arcus demo runtime',
-      repository: 'EkilyHQ/Press-Theme-Arcus',
-      source: `${DEFAULT_RAW_ROOT}/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json`
-    },
-    {
-      key: 'cartograph',
-      label: 'Cartograph demo runtime',
-      repository: 'EkilyHQ/Press-Theme-Cartograph',
-      source: `${DEFAULT_RAW_ROOT}/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json`
-    },
-    {
-      key: 'glasswing',
-      label: 'Glasswing demo runtime',
-      repository: 'EkilyHQ/Press-Theme-Glasswing',
-      source: `${DEFAULT_RAW_ROOT}/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json`
-    },
-    {
-      key: 'solstice',
-      label: 'Solstice demo runtime',
-      repository: 'EkilyHQ/Press-Theme-Solstice',
-      source: `${DEFAULT_RAW_ROOT}/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json`
-    }
-  ],
+  downstream: DEFAULT_RELEASE_SOURCES.downstream,
+  themeDemos: DEFAULT_RELEASE_SOURCES.themeDemos,
   catalog: {
     repository: 'EkilyHQ/Press-Theme-Catalog',
     source: `${DEFAULT_RAW_ROOT}/EkilyHQ/Press-Theme-Catalog/main/catalog.json`
@@ -496,8 +460,14 @@ function releaseTargetVersion(pressVersion) {
   };
 }
 
-function downstreamTarget(source, pressVersion, reconcilerKind) {
+function downstreamTarget(source, pressVersion, fallbackReconcilerKind) {
   const target = releaseTargetVersion(pressVersion);
+  const sourceReconciler = source.reconciler && typeof source.reconciler === 'object'
+    ? source.reconciler
+    : {};
+  const legacyKind = source.key === 'themeStarter'
+    ? 'theme-starter-marker-sync'
+    : '';
   return {
     label: String(source.label || source.key || '').trim(),
     repository: String(source.repository || '').trim(),
@@ -505,9 +475,9 @@ function downstreamTarget(source, pressVersion, reconcilerKind) {
     expectedVersion: target.version,
     expectedTag: target.tag,
     reconciler: {
-      eventType: 'press-system-release',
-      kind: reconcilerKind,
-      idempotent: true
+      eventType: String(sourceReconciler.eventType || source.eventType || 'press-system-release').trim(),
+      kind: String(sourceReconciler.kind || fallbackReconcilerKind || legacyKind || 'press-runtime-sync').trim(),
+      idempotent: sourceReconciler.idempotent !== false
     }
   };
 }
@@ -531,10 +501,7 @@ function buildDesiredState({ sources, systemRelease, systemSource }) {
       runtime: systemRelease.runtime
     },
     downstream: Object.fromEntries((sources.downstream || []).map((source) => {
-      const kind = source.key === 'themeStarter'
-        ? 'theme-starter-marker-sync'
-        : 'press-runtime-sync';
-      return [source.key, downstreamTarget(source, target.version, kind)];
+      return [source.key, downstreamTarget(source, target.version)];
     })),
     themeDemos: Object.fromEntries((sources.themeDemos || []).map((source) => {
       return [source.key, downstreamTarget(source, target.version, 'theme-demo-runtime-sync')];

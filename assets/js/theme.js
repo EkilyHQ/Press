@@ -8,22 +8,31 @@ const NATIVE_STYLE_CACHE_KEY = 'press-system-v3.4.50';
 const THEME_PACK_KEY = 'themePack';
 const THEME_PACK_PENDING_KEY = 'themePackPending';
 const suppressedThemePacks = new Set();
-let componentsReady = null;
+const COMPONENTS_READY = Symbol('pressComponentsReady');
 
 function ensurePressComponents() {
   if (typeof window === 'undefined' || typeof document === 'undefined' || typeof customElements === 'undefined') return null;
+  const registry = customElements;
   try {
-    if (customElements.get('press-theme-controls')) return null;
+    if (registry.get('press-theme-controls')) return null;
   } catch (_) {
     return null;
   }
-  if (!componentsReady) {
-    componentsReady = import('./components.js').catch((err) => {
+  try {
+    if (!registry[COMPONENTS_READY]) {
+      registry[COMPONENTS_READY] = import('./components.js').catch((err) => {
+        console.warn('[theme] Failed to load press components', err);
+        registry[COMPONENTS_READY] = null;
+        return null;
+      });
+    }
+    return registry[COMPONENTS_READY];
+  } catch (_) {
+    return import('./components.js').catch((err) => {
       console.warn('[theme] Failed to load press components', err);
       return null;
     });
   }
-  return componentsReady;
 }
 
 // Restrict theme pack names to safe slug format and default to 'native'.

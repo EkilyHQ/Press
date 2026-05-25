@@ -260,7 +260,8 @@ assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should 
 assert.match(theme, /mountThemeControls\(options = \{\}\)[\s\S]*document\.createElement\('press-theme-controls'\)/, 'core theme controls should mount press-theme-controls');
 assert.match(theme, /component\.addEventListener\('press:theme-toggle'[\s\S]*component\.addEventListener\('press:language-reset'/, 'theme control side effects should be event-driven');
 assert.doesNotMatch(theme, /import ['"]\.\/components\.js['"]/, 'theme helpers should not top-level import browser-only custom elements');
-assert.match(theme, /function ensurePressComponents\(\)[\s\S]*typeof customElements === 'undefined'[\s\S]*import\('\.\/components\.js'\)/, 'theme controls should lazy-load custom elements only in browser environments');
+assert.doesNotMatch(theme, /^let\s+componentsReady\b/m, 'theme controls should not keep component import state in a module-level promise');
+assert.match(theme, /const COMPONENTS_READY = Symbol\('pressComponentsReady'\)[\s\S]*function ensurePressComponents\(\)[\s\S]*typeof customElements === 'undefined'[\s\S]*registry\[COMPONENTS_READY\][\s\S]*import\('\.\/components\.js'\)/, 'theme controls should lazy-load custom elements through the active registry');
 assert.match(theme, /function refreshThemeControlsLanguages\(component\)[\s\S]*component\.setLanguages\(getLanguageOptions\(\), getCurrentLang\(\)\)/, 'theme controls should centralize language option refresh');
 assert.match(theme, /ns:i18n-bundle-loaded[\s\S]*refreshThemeControlsLanguages\(component\)/, 'theme controls should refresh language options after async i18n bundle updates');
 

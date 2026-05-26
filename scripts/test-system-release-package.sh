@@ -93,6 +93,11 @@ if ! grep -qx "press-system-${version}/assets/js/theme-manager.js" "${entries_fi
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/theme-manager-data.js" "${entries_file}"; then
+  echo "expected package to include theme manager data code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/theme-manager-view.js" "${entries_file}"; then
   echo "expected package to include theme manager view code" >&2
   exit 1

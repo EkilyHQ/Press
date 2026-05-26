@@ -1,7 +1,12 @@
 import { t } from './i18n.js';
-import { loadProductState } from './product-state.js';
-import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
 import { createThemeInstallService } from './theme-install-service.js';
+import {
+  getThemeManagerOfficialCatalogStatus as getOfficialCatalogStatusForRuntime,
+  getThemeManagerProductStateStatus as getProductStateStatusForRuntime,
+  loadThemeManagerOfficialCatalog as loadOfficialCatalogForRuntime,
+  loadThemeManagerProductState as loadProductStateForRuntime,
+  loadThemeManagerRegistry as loadRegistryForRuntime
+} from './theme-manager-data.js';
 import {
   createThemeManagerElements,
   renderThemeManagerAvailableThemes,
@@ -13,9 +18,7 @@ import {
 } from './theme-manager-view.js';
 import {
   collectThemeArchiveEntries,
-  normalizeThemeCatalog,
   normalizeThemeFilePath,
-  normalizeThemeRegistry,
   normalizeThemeReleaseManifest,
   sanitizeThemeSlug,
   verifyThemeAsset
@@ -30,8 +33,7 @@ export {
   sanitizeThemeSlug,
   verifyThemeAsset
 } from './theme-package-core.js';
-
-export const OFFICIAL_THEME_CATALOG_URL = PRESS_GITHUB_PROVIDER.themeCatalogUrl;
+export { OFFICIAL_THEME_CATALOG_URL } from './theme-manager-data.js';
 
 function createThemeManagerState() {
   return {
@@ -74,7 +76,7 @@ function createThemeManagerRuntime(options = {}) {
   };
   runtime.installService = createThemeInstallService({
     getFetch: () => runtime.getFetch(),
-    loadOfficialThemeCatalog: (loadOptions = {}) => loadOfficialThemeCatalogWithRuntime(runtime, loadOptions)
+    loadOfficialThemeCatalog: (loadOptions = {}) => loadOfficialCatalogForRuntime(runtime, loadOptions)
   });
   return runtime;
 }
@@ -130,70 +132,10 @@ function applySummary(runtime, summary, files, meta = {}) {
   notifyStateChange(runtime);
 }
 
-async function loadRegistry(runtime, options = {}) {
-  const state = runtime.state;
-  if (state.registryCache && !options.force) return state.registryCache.slice();
-  let data = null;
-  try {
-    const response = await runtime.getFetch()('assets/themes/packs.json', { cache: 'no-store' });
-    if (!response || !response.ok) throw new Error('Unable to load installed themes.');
-    data = await response.json();
-  } catch (err) {
-    if (options.allowFallback === false) {
-      const error = new Error('Unable to load installed theme registry. Theme changes were not staged.');
-      error.cause = err;
-      throw error;
-    }
-    data = [{ value: 'native', label: 'Native', builtIn: true, removable: false, source: { type: 'builtin' }, files: [] }];
-  }
-  state.registryCache = normalizeThemeRegistry(data);
-  return state.registryCache.slice();
-}
-
-function getOfficialThemeCatalogStatusWithRuntime(runtime) {
-  return { error: runtime.state.catalogLoadError };
-}
-
-function getProductStateStatusWithRuntime(runtime) {
-  const { productStateCache, productStateLoadError } = runtime.state;
-  return {
-    status: productStateCache ? productStateCache.status : '',
-    error: productStateLoadError
-  };
-}
-
-async function loadOfficialThemeCatalogWithRuntime(runtime, options = {}) {
-  const state = runtime.state;
-  if (state.catalogCache && !options.force) return state.catalogCache.slice();
-  state.catalogLoadError = '';
-  try {
-    const response = await runtime.getFetch()(OFFICIAL_THEME_CATALOG_URL, { cache: 'no-store' });
-    if (!response || !response.ok) throw new Error('Unable to load theme catalog.');
-    state.catalogCache = normalizeThemeCatalog(await response.json());
-  } catch (err) {
-    state.catalogCache = [];
-    state.catalogLoadError = err && err.message ? `Official theme catalog is unavailable: ${err.message}` : 'Official theme catalog is unavailable.';
-  }
-  return state.catalogCache.slice();
-}
-
-async function loadProductStateWithRuntime(runtime, options = {}) {
-  const state = runtime.state;
-  if (state.productStateCache && !options.force) return state.productStateCache;
-  state.productStateLoadError = '';
-  try {
-    state.productStateCache = await loadProductState({ fetchImpl: runtime.getFetch() });
-  } catch (err) {
-    state.productStateCache = null;
-    state.productStateLoadError = err && err.message ? `Product state is unavailable: ${err.message}` : 'Product state is unavailable.';
-  }
-  return state.productStateCache;
-}
-
 async function stageThemeArchiveWithRuntime(runtime, buffer, fileName, options = {}) {
   const state = runtime.state;
   const releaseManifest = options.releaseManifest || null;
-  const registry = await loadRegistry(runtime, { force: true, allowFallback: false });
+  const registry = await loadRegistryForRuntime(runtime, { force: true, allowFallback: false });
   const staged = await runtime.installService.stageThemeArchive({
     buffer,
     fileName,
@@ -219,7 +161,7 @@ async function stageThemeArchiveWithRuntime(runtime, buffer, fileName, options =
 
 async function stageCatalogThemeWithRuntime(runtime, catalogEntry, options = {}) {
   const state = runtime.state;
-  const registry = await loadRegistry(runtime, { force: true, allowFallback: false });
+  const registry = await loadRegistryForRuntime(runtime, { force: true, allowFallback: false });
   const staged = await runtime.installService.stageCatalogTheme({ catalogEntry, registry });
   state.registryCache = staged.registry;
   applySummary(runtime, staged.summary, staged.files, staged.meta);
@@ -240,7 +182,7 @@ async function stageThemeUninstallWithRuntime(runtime, slug) {
   const state = runtime.state;
   const { optionsRef } = state;
   clearPendingSiteThemeFallback(runtime);
-  const registry = await loadRegistry(runtime, { force: true, allowFallback: false });
+  const registry = await loadRegistryForRuntime(runtime, { force: true, allowFallback: false });
   const staged = await runtime.installService.stageUninstall({
     slug,
     registry,
@@ -271,9 +213,9 @@ function stageSiteThemePack(runtime, value, label) {
 async function renderThemeManager(runtime, options = {}) {
   if (!runtime.state.elements.root) return;
   const [registry, catalog, productState] = await Promise.all([
-    loadRegistry(runtime, options),
-    loadOfficialThemeCatalogWithRuntime(runtime, options),
-    loadProductStateWithRuntime(runtime, options)
+    loadRegistryForRuntime(runtime, options),
+    loadOfficialCatalogForRuntime(runtime, options),
+    loadProductStateForRuntime(runtime, options)
   ]);
   renderThemeManagerInstalledThemes(runtime, registry, catalog, productState, {
     getCurrentThemePack: () => getCurrentThemePackValue(runtime) || 'native',
@@ -481,16 +423,16 @@ export function createThemeManagerController(options = {}) {
       return handleImportFileWithRuntime(runtime, file);
     },
     loadOfficialCatalog(loadOptions = {}) {
-      return loadOfficialThemeCatalogWithRuntime(runtime, loadOptions);
+      return loadOfficialCatalogForRuntime(runtime, loadOptions);
     },
     getOfficialCatalogStatus() {
-      return getOfficialThemeCatalogStatusWithRuntime(runtime);
+      return getOfficialCatalogStatusForRuntime(runtime);
     },
     loadProductState(loadOptions = {}) {
-      return loadProductStateWithRuntime(runtime, loadOptions);
+      return loadProductStateForRuntime(runtime, loadOptions);
     },
     getProductStateStatus() {
-      return getProductStateStatusWithRuntime(runtime);
+      return getProductStateStatusForRuntime(runtime);
     },
     stageCatalogTheme(catalogEntry, stageOptions = {}) {
       return stageCatalogThemeWithRuntime(runtime, catalogEntry, stageOptions);

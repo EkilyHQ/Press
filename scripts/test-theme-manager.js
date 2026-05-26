@@ -51,6 +51,7 @@ const {
 } = await import('../assets/js/theme-manager.js?theme-manager-test');
 
 const themeManagerSource = readFileSync(new URL('../assets/js/theme-manager.js', import.meta.url), 'utf8');
+const themeManagerDataSource = readFileSync(new URL('../assets/js/theme-manager-data.js', import.meta.url), 'utf8');
 const themeManagerViewSource = readFileSync(new URL('../assets/js/theme-manager-view.js', import.meta.url), 'utf8');
 const themePackageCoreSource = readFileSync(new URL('../assets/js/theme-package-core.js', import.meta.url), 'utf8');
 const themeInstallServiceSource = readFileSync(new URL('../assets/js/theme-install-service.js', import.meta.url), 'utf8');
@@ -198,12 +199,18 @@ await run('exposes theme manager through an explicit controller facade', async (
 await run('keeps theme package and install responsibilities outside the UI controller', async () => {
   assert.match(themeManagerSource, /from '\.\/theme-package-core\.js';/, 'theme manager should consume package rules from the core module');
   assert.match(themeManagerSource, /from '\.\/theme-install-service\.js';/, 'theme manager should consume install staging through the service module');
+  assert.match(themeManagerSource, /from '\.\/theme-manager-data\.js';/, 'theme manager should consume registry, catalog, and product-state loading through the data module');
   assert.match(themePackageCoreSource, /export function collectThemeArchiveEntries/, 'theme package core should own ZIP analysis');
   assert.match(themePackageCoreSource, /export function normalizeThemeReleaseManifest/, 'theme package core should own release manifest normalization');
   assert.match(themeInstallServiceSource, /export function createThemeInstallService/, 'theme install service should expose an explicit service factory');
+  assert.match(themeManagerDataSource, /export async function loadThemeManagerRegistry/, 'theme manager data should own registry loading');
+  assert.match(themeManagerDataSource, /export async function loadThemeManagerOfficialCatalog/, 'theme manager data should own official catalog loading');
+  assert.match(themeManagerDataSource, /export async function loadThemeManagerProductState/, 'theme manager data should own product-state loading');
   assert.match(themeInstallServiceSource, /stageThemeArchive/, 'theme install service should own archive staging');
   assert.doesNotMatch(themeManagerSource, /function collectThemeArchiveEntries/, 'theme manager UI controller should not own ZIP analysis');
   assert.doesNotMatch(themeManagerSource, /function buildThemeFileChanges/, 'theme manager UI controller should not own theme file diffing');
+  assert.doesNotMatch(themeManagerSource, /assets\/themes\/packs\.json|Official theme catalog is unavailable|Product state is unavailable|from '\.\/product-state\.js'/,
+    'theme manager UI controller should not re-own registry, catalog, or product-state data loading details');
 });
 
 await run('keeps theme manager list rendering in a view boundary', async () => {

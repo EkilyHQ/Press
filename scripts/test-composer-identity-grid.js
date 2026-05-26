@@ -118,6 +118,7 @@ const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
 const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
+const editorBlocksControlFactoryPath = resolve(here, '../assets/js/editor-blocks-control-factory.js');
 const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
 const editorBlocksBodySessionPath = resolve(here, '../assets/js/editor-blocks-body-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
@@ -259,6 +260,7 @@ const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
+const editorBlocksControlFactorySource = readFileSync(editorBlocksControlFactoryPath, 'utf8');
 const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
 const editorBlocksBodySessionSource = readFileSync(editorBlocksBodySessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
@@ -419,6 +421,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-block-actions\.js'/,
   'blocks editor should cache-bust the explicit blocks action coordinator boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-control-factory\.js'/,
+  'blocks editor should cache-bust the explicit blocks control factory boundary'
 );
 
 assert.match(
@@ -589,10 +597,28 @@ assert.match(
   'blocks action coordinator should own block insertion, split, merge, deletion, and source autofix behavior'
 );
 
+assert.match(
+  editorBlocksSource,
+  /const blockControls = createEditorBlocksControlFactory\(\{[\s\S]*runtime,[\s\S]*text,[\s\S]*updateFromControl,[\s\S]*blockElements,[\s\S]*setActive,[\s\S]*openMathEditorForBlock[\s\S]*\}\);[\s\S]*const \{[\s\S]*autoSizeTextarea,[\s\S]*createBlockTypeIcon,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton[\s\S]*\} = blockControls;/,
+  'blocks editor should compose block control DOM factories through the explicit control factory boundary'
+);
+
+assert.match(
+  editorBlocksControlFactorySource,
+  /const BLOCK_TYPE_ICON_PATHS = \{[\s\S]*paragraph:[\s\S]*heading:[\s\S]*image:[\s\S]*list:[\s\S]*quote:[\s\S]*code:[\s\S]*source:[\s\S]*card:[\s\S]*blank:[\s\S]*export function createEditorBlocksControlFactory\(\{[\s\S]*const createBlockTypeIcon = \(blockType\) => \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*const createHeadingLevelSelect = \(block\) => \{[\s\S]*const createMathEditButton = \(block, index\) => \{[\s\S]*const autoSizeTextarea = \(area\) => \{/,
+  'blocks control factory should own block icons, heading select, math edit button, and textarea autosize DOM helpers'
+);
+
 assert.doesNotMatch(
   editorBlocksSource,
   /const splitTextBlockAfterCaret = \(event|const mergeTextBlockWithPreviousOnBackspace = \(event|const removeEmptyBlockWithBackspace = \(event|const applySourceAutofix = \(index\) => \{/,
   'blocks root should not own root-local block action implementations'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const BLOCK_TYPE_ICON_PATHS|function createBlockTypeIcon|const createHeadingLevelSelect = \(block\)|const createMathEditButton = \(block, index\)|const autoSizeTextarea = \(area\)|function button\(/,
+  'blocks root should not own block control factory implementations'
 );
 
 assert.doesNotMatch(
@@ -834,6 +860,7 @@ assert.doesNotMatch(
     editorBlocksSource,
     editorBlocksLayoutSessionSource,
     editorBlocksBodySessionSource,
+    editorBlocksControlFactorySource,
     editorBlocksMenuSessionSource,
     editorBlocksHeadSessionSource,
     editorBlocksCommandSessionSource,
@@ -3778,7 +3805,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon: createBlockTypeIconWithRuntime,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
+  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
   'blocks editor should compose block-head controls through an explicit head session service'
 );
 
@@ -4318,7 +4345,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*\};[\s\S]*const sourceSession = createEditorBlocksSourceSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: index => applySourceAutofix\(index\),/,
+  /const sourceSession = createEditorBlocksSourceSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: index => applySourceAutofix\(index\),/,
   'blocks editor root should compose source Markdown DOM/control behavior through the source session boundary'
 );
 
@@ -4425,9 +4452,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksControlFactorySource,
   /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = 'auto';[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*\};/,
-  'blocks editor root should provide the shared textarea autosize service'
+  'blocks control factory should provide the shared textarea autosize service'
 );
 
 assert.match(
@@ -4695,14 +4722,14 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksControlFactorySource,
   /const BLOCK_TYPE_ICON_PATHS = \{[\s\S]*paragraph:[\s\S]*heading:[\s\S]*image:[\s\S]*list:[\s\S]*quote:[\s\S]*code:[\s\S]*source:[\s\S]*card:[\s\S]*blank:/,
   'block type icon map should cover every block type shown in the floating toolbar'
 );
 
 assert.match(
-  editorBlocksSource,
-  /function createBlockTypeIcon\(blockType, runtime = null\) \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*svg\.setAttribute\('viewBox', '0 0 24 24'\)[\s\S]*svg\.setAttribute\('aria-hidden', 'true'\)[\s\S]*svg\.setAttribute\('focusable', 'false'\)[\s\S]*svg\.innerHTML = BLOCK_TYPE_ICON_PATHS\[blockType\] \|\| BLOCK_TYPE_ICON_PATHS\.paragraph;/,
+  editorBlocksControlFactorySource,
+  /const createBlockTypeIcon = \(blockType\) => \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*svg\.setAttribute\('viewBox', '0 0 24 24'\)[\s\S]*svg\.setAttribute\('aria-hidden', 'true'\)[\s\S]*svg\.setAttribute\('focusable', 'false'\)[\s\S]*svg\.innerHTML = BLOCK_TYPE_ICON_PATHS\[blockType\] \|\| BLOCK_TYPE_ICON_PATHS\.paragraph;/,
   'block type icon helper should create non-focusable inline SVG icons through the runtime with a paragraph fallback'
 );
 
@@ -5123,8 +5150,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*const select = runtime\.createElement\('select'\);[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*const option = runtime\.createElement\('option'\);[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
+  editorBlocksControlFactorySource,
+  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*runtime\.createElement\('select'\)[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*const option = runtime\.createElement\('option'\);[\s\S]*select\.value = String\(block\?\.data\?\.level \|\| 2\);[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
   'heading level select control should preserve its data update behavior'
 );
 

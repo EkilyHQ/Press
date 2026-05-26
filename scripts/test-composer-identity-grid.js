@@ -145,6 +145,7 @@ const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-c
 const editorBlocksInlineEditingBridgePath = resolve(here, '../assets/js/editor-blocks-inline-editing-bridge.js');
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
+const editorBlocksFocusPointerSessionsPath = resolve(here, '../assets/js/editor-blocks-focus-pointer-sessions.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksInlineCommandSessionPath = resolve(here, '../assets/js/editor-blocks-inline-command-session.js');
@@ -299,6 +300,7 @@ const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath
 const editorBlocksInlineEditingBridgeSource = readFileSync(editorBlocksInlineEditingBridgePath, 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
+const editorBlocksFocusPointerSessionsSource = readFileSync(editorBlocksFocusPointerSessionsPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
 const editorBlocksInlineCommandSessionSource = readFileSync(editorBlocksInlineCommandSessionPath, 'utf8');
@@ -529,14 +531,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-focus-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks focus session boundary'
+  /from '\.\/editor-blocks-focus-pointer-sessions\.js'/,
+  'blocks editor should cache-bust the explicit blocks focus/pointer wiring boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksFocusPointerSessionsSource,
+  /from '\.\/editor-blocks-focus-session\.js'/,
+  'blocks focus/pointer wiring should cache-bust the explicit blocks focus session boundary'
+);
+
+assert.match(
+  editorBlocksFocusPointerSessionsSource,
   /from '\.\/editor-blocks-pointer-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks pointer session boundary'
+  'blocks focus/pointer wiring should cache-bust the explicit blocks pointer session boundary'
 );
 
 assert.match(
@@ -709,14 +717,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const focusSession = blockSessions\.setFocusSession\(createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
-  'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
+  /const \{[\s\S]*blockNavigationTarget,[\s\S]*focusBlockNavigationTarget,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*isBlocksCaretInteractiveTarget,[\s\S]*routeBlocksCaretFromPointer,[\s\S]*routeDirectQuoteCaretFromPointer,[\s\S]*setContentEditableCaretFromPoint,[\s\S]*setTextareaCaretFromPoint,[\s\S]*shouldSuppressRoutedBlockContainerClick[\s\S]*\} = createEditorBlocksFocusPointerSessions\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*blockSessions,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,[\s\S]*autoSizeTextarea: area => autoSizeTextarea\(area\),[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*queueTask: task => queueMicrotask\(task\),[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT/,
+  'blocks editor should compose focus and pointer routing through the focus/pointer wiring boundary'
 );
 
 assert.match(
+  editorBlocksFocusPointerSessionsSource,
+  /export function createEditorBlocksFocusPointerSessions\(options = \{\}\)[\s\S]*createEditorBlocksFocusSession\(\{[\s\S]*blocksState,[\s\S]*editableListItems[\s\S]*activateNonTextBlockFromPointer[\s\S]*createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*selectionSession[\s\S]*activateEditableFromPointer[\s\S]*routeBlocksCaretFromPointer: \(\.\.\.args\) => callSession\(pointerSession, 'routeBlocksCaretFromPointer'/,
+  'blocks focus/pointer wiring boundary should own focus and pointer session construction plus routed caret proxies'
+);
+
+assert.doesNotMatch(
   editorBlocksSource,
-  /const pointerSession = blockSessions\.setPointerSession\(createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,/,
-  'blocks editor should compose blank-area pointer routing through the pointer session boundary'
+  /createEditorBlocksFocusSession\(|createEditorBlocksPointerSession\(|const shouldSuppressRoutedBlockContainerClick = \(\) =>|const routeBlocksCaretFromPointer = \(event\) =>/,
+  'blocks editor root should not re-own focus/pointer session construction or routed caret proxy internals'
 );
 
 assert.match(
@@ -792,15 +806,15 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*blockSessions\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
-  'blocks editor should delegate cross-block arrow navigation to the focus session'
+  editorBlocksFocusPointerSessionsSource,
+  /handleCrossBlockArrowNavigation: \(\.\.\.args\) => callSession\(focusSession, 'handleCrossBlockArrowNavigation', false, \.\.\.args\)/,
+  'blocks focus/pointer wiring should delegate cross-block arrow navigation to the registered focus session'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*blockSessions\.routeBlocksCaretFromPointer\(event\)/,
-  'blocks editor should delegate blank-area pointer caret routing to the pointer session'
+  editorBlocksFocusPointerSessionsSource,
+  /routeBlocksCaretFromPointer: \(\.\.\.args\) => callSession\(pointerSession, 'routeBlocksCaretFromPointer', false, \.\.\.args\)/,
+  'blocks focus/pointer wiring should delegate blank-area pointer caret routing to the registered pointer session'
 );
 
 assert.doesNotMatch(
@@ -4105,9 +4119,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*blocksState\.consumeRoutedBlockContainerClickSuppression\(Date\.now\(\)\);[\s\S]*\};/,
-  'routed caret pointerdowns should suppress the following container click from clearing activeEditable'
+  editorBlocksFocusPointerSessionsSource,
+  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*blocksState\.consumeRoutedBlockContainerClickSuppression\(Date\.now\(\)\)\);[\s\S]*\};/,
+  'routed caret pointerdowns should suppress the following container click from clearing activeEditable through the focus/pointer wiring boundary'
 );
 
 assert.match(

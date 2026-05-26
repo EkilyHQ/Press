@@ -518,6 +518,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-pointer-session.j
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-focus-pointer-sessions.js" "${entries_file}"; then
+  echo "expected package to include editor blocks focus/pointer wiring code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-active-session.js" "${entries_file}"; then
   echo "expected package to include editor blocks active session code" >&2
   exit 1

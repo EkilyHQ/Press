@@ -14,8 +14,7 @@ import { createEditorBlocksRichTextSession } from './editor-blocks-rich-text-ses
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js';
 import { CARET_POINT_MEASURE_LIMIT } from './editor-blocks-caret-session.js';
-import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js';
-import { createEditorBlocksPointerSession } from './editor-blocks-pointer-session.js';
+import { createEditorBlocksFocusPointerSessions } from './editor-blocks-focus-pointer-sessions.js';
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js';
 import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js';
 import { createEditorBlocksInlineCommandSession } from './editor-blocks-inline-command-session.js';
@@ -359,73 +358,35 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     createMathEditButton
   } = blockControls;
 
-  const focusSession = blockSessions.setFocusSession(createEditorBlocksFocusSession({
+  const {
+    blockNavigationTarget,
+    focusBlockNavigationTarget,
+    handleCrossBlockArrowNavigation,
+    isBlocksCaretInteractiveTarget,
+    routeBlocksCaretFromPointer,
+    routeDirectQuoteCaretFromPointer,
+    setContentEditableCaretFromPoint,
+    setTextareaCaretFromPoint,
+    shouldSuppressRoutedBlockContainerClick
+  } = createEditorBlocksFocusPointerSessions({
     state,
-    caretSession,
-    editableSession,
-    blockElements,
-    editableListItems,
-    setActive,
-    activateNonTextBlockFromPointer,
-    onInlineToolbarUpdate: () => {
-      try { updateInlineToolbarState(); } catch (_) {}
-    },
-    queueTask: task => queueMicrotask(task)
-  }));
-
-  const pointerSession = blockSessions.setPointerSession(createEditorBlocksPointerSession({
     blocksState,
+    blockSessions,
     caretSession,
-    selectionSession,
     editableSession,
+    selectionSession,
     blockElements,
     closestElement,
     containsNode: nodeContains,
+    editableListItems,
     setActive,
     activateEditableFromPointer,
     activateNonTextBlockFromPointer,
-    onInlineToolbarUpdate: () => {
-      try { updateInlineToolbarState(); } catch (_) {}
-    },
     autoSizeTextarea: area => autoSizeTextarea(area),
+    updateInlineToolbarState: () => updateInlineToolbarState(),
+    queueTask: task => queueMicrotask(task),
     measureLimit: CARET_POINT_MEASURE_LIMIT
-  }));
-
-  const shouldSuppressRoutedBlockContainerClick = () => {
-    return blocksState.consumeRoutedBlockContainerClickSuppression(Date.now());
-  };
-
-  const isBlocksCaretInteractiveTarget = (target) => {
-    return blockSessions.isBlocksCaretInteractiveTarget(target);
-  };
-
-  const blockNavigationTarget = (index, edge = 'first') => {
-    return blockSessions.blockNavigationTarget(index, edge);
-  };
-
-  const focusBlockNavigationTarget = (target, direction, x, fallbackOffset = 0) => {
-    return blockSessions.focusBlockNavigationTarget(target, direction, x, fallbackOffset);
-  };
-
-  const handleCrossBlockArrowNavigation = (event, index, editable = null) => {
-    return blockSessions.handleCrossBlockArrowNavigation(event, index, editable);
-  };
-
-  const setContentEditableCaretFromPoint = (editable, x, y, hitTarget = editable) => {
-    blockSessions.setContentEditableCaretFromPoint(editable, x, y, hitTarget);
-  };
-
-  const setTextareaCaretFromPoint = (area, x, y) => {
-    blockSessions.setTextareaCaretFromPoint(area, x, y);
-  };
-
-  const routeDirectQuoteCaretFromPointer = (editable, index, sync, event) => {
-    return blockSessions.routeDirectQuoteCaretFromPointer(editable, index, sync, event);
-  };
-
-  const routeBlocksCaretFromPointer = (event) => {
-    blockSessions.routeBlocksCaretFromPointer(event);
-  };
+  });
 
   list.addEventListener('pointerdown', routeBlocksCaretFromPointer);
   const layoutSession = blockSessions.setLayoutSession(createEditorBlocksLayoutSession({

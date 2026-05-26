@@ -303,6 +303,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-session.js"
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-assets.js" "${entries_file}"; then
+  echo "expected package to include editor main preview asset override code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-main-current-file-session.js" "${entries_file}"; then
   echo "expected package to include editor main current-file session boundary code" >&2
   exit 1

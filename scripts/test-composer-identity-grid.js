@@ -102,6 +102,7 @@ const editorMainFrontMatterLabelWidthPath = resolve(here, '../assets/js/editor-m
 const editorMainFrontMatterManagerPath = resolve(here, '../assets/js/editor-main-frontmatter-manager.js');
 const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-main-tabs-metadata-manager.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
+const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-preview-assets.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
@@ -247,6 +248,7 @@ const editorMainFrontMatterLabelWidthSource = readFileSync(editorMainFrontMatter
 const editorMainFrontMatterManagerSource = readFileSync(editorMainFrontMatterManagerPath, 'utf8');
 const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataManagerPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
+const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
@@ -1748,6 +1750,12 @@ assert.match(
 );
 
 assert.match(
+  editorMainPreviewSessionSource,
+  /from '\.\/editor-main-preview-assets\.js'/,
+  'editor preview session should cache-bust the preview asset override boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-current-file-session\.js'/,
   'editor main should cache-bust the editor current-file session boundary'
@@ -2015,6 +2023,7 @@ assert.doesNotMatch(
   [
     editorMainMetadataPanelSource,
     editorMainPreviewSessionSource,
+    editorMainPreviewAssetsSource,
     editorMainCurrentFileSessionSource,
     editorMainSidebarSessionSource,
     editorMainToolbarSessionSource,
@@ -2110,6 +2119,18 @@ assert.match(
   editorMainPreviewSessionSource,
   /const consoleRef = options\.consoleRef \|\| null[\s\S]*function warn\(\.\.\.args\)[\s\S]*consoleRef\.warn\(\.\.\.args\)[\s\S]*onWindow\('press-editor-asset-preview'[\s\S]*onWindow\('message'[\s\S]*onDocument\('keydown'/,
   'editor preview session should own preview logging, asset-preview, iframe message, and Escape-key event bindings through explicit dependencies and the runtime boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /const previewAssets = createEditorMainPreviewAssets\(\{[\s\S]*documentRef,[\s\S]*getContentRoot,[\s\S]*getLocationHref,[\s\S]*getElementById,[\s\S]*onCurrentAssetPreview: \(\) => renderCurrent\(\)[\s\S]*\}\);/,
+  'editor preview session should compose asset-preview overrides through the preview asset boundary'
+);
+
+assert.doesNotMatch(
+  editorMainPreviewSessionSource,
+  /const previewAssetBuckets = new Map|safePreviewMime|makePreviewDataUrl|normalizePreviewKey|buildPreviewKeysForAsset|updatePreviewAssetBucket|lookupPreviewAsset|collectPreviewAssetOverrides/,
+  'editor preview session should not own preview asset bucket, path, data URL, or DOM rewrite internals'
 );
 
 assert.doesNotMatch(
@@ -4260,9 +4281,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainPreviewSessionSource,
-  /const refreshAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*const target = getElementById\(id\);[\s\S]*applyAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*\};/,
-  'asset preview refresh should update WYSIWYG block images through the preview session'
+  editorMainPreviewAssetsSource,
+  /const previewAssetBuckets = new Map\(\);[\s\S]*const normalizeKey = \(value\) => \{[\s\S]*const applyAssetOverrides = \(container, markdownPath\) => \{[\s\S]*const refreshAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*const target = getElementById\(id\);[\s\S]*applyAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*const collectAssetOverrides = \(markdownPath\) => \{[\s\S]*const handleAssetPreviewEvent = \(event\) => \{/,
+  'preview asset boundary should own preview asset buckets, WYSIWYG rewrites, iframe override payloads, and asset-preview events'
 );
 
 assert.doesNotMatch(

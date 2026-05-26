@@ -49,6 +49,7 @@ const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-si
 const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
 const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
 const composerSiteSettingsLocalizedFieldsPath = resolve(here, '../assets/js/composer-site-settings-localized-fields.js');
+const composerSiteSettingsRepoSectionPath = resolve(here, '../assets/js/composer-site-settings-repo-section.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-site-settings-section-nav.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
@@ -201,6 +202,7 @@ const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsCont
 const composerSiteSettingsLanguageMenuSource = readFileSync(composerSiteSettingsLanguageMenuPath, 'utf8');
 const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
 const composerSiteSettingsLocalizedFieldsSource = readFileSync(composerSiteSettingsLocalizedFieldsPath, 'utf8');
+const composerSiteSettingsRepoSectionSource = readFileSync(composerSiteSettingsRepoSectionPath, 'utf8');
 const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
 const composerSiteSettingsSectionNavSource = readFileSync(composerSiteSettingsSectionNavPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
@@ -324,6 +326,7 @@ const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsLanguageMenuSource,
   composerSiteSettingsLinkListSource,
   composerSiteSettingsLocalizedFieldsSource,
+  composerSiteSettingsRepoSectionSource,
   composerSiteSettingsSchemaSource,
   composerSiteSettingsSectionNavSource
 ].join('\n');
@@ -1231,8 +1234,26 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteSettingsUiSource,
-  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*createComposerSiteSettingsLocalizedFields\([\s\S]*const repoSection = createSection\([\s\S]*renderIdentityLocalizedGrid\(identitySection\);[\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAnnotateGrid\(commentsSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
+  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*createComposerSiteSettingsLocalizedFields\([\s\S]*createComposerSiteSettingsRepoSection\(\{[\s\S]*renderIdentityLocalizedGrid\(identitySection\);[\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAnnotateGrid\(commentsSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
   'Site Settings UI boundary should own top-level section composition while wiring localized-field and configuration grid boundaries'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-repo-section\.js'/,
+  'Site Settings UI should cache-bust the repository settings section boundary'
+);
+
+assert.match(
+  composerSiteSettingsRepoSectionSource,
+  /export function ensureComposerSiteSettingsRepo[\s\S]*export function createComposerSiteSettingsRepoSection[\s\S]*repoInputs\.className = 'cs-repo-grid'[\s\S]*repoInputs\.dataset\.field = 'repo'[\s\S]*createRepoFieldGroup\('cs-repo-field-group--owner'[\s\S]*createRepoFieldGroup\('cs-repo-field-group--name'[\s\S]*createRepoFieldGroup\('cs-repo-field-group--branch'[\s\S]*repoSection\.appendChild\(repoInputs\);[\s\S]*renderPublishTransportSettings\(repoSection\);/,
+  'repository settings section should own repo field DOM, input bindings, and publish transport slot rendering'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /cs-repo-grid|createRepoFieldGroup|repoInputs\.dataset\.field|repoSection\.appendChild\(repoInputs\)|renderPublishTransportSettings\(repoSection\)/,
+  'Site Settings UI should delegate repository field DOM and publish transport slot rendering'
 );
 
 assert.doesNotMatch(
@@ -7223,8 +7244,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const repoSection = createSection\([\s\S]*sections\.repo\.title[\s\S]*sections\.repo\.description[\s\S]*const identitySection = createSection\(/,
+  composerSiteSettingsUiSource,
+  /createComposerSiteSettingsRepoSection\(\{[\s\S]*siteSettingsSchema,[\s\S]*createSection,[\s\S]*renderPublishTransportSettings,[\s\S]*\}\);[\s\S]*const identitySection = createSection\(/,
   'Repository should be the first site editor card before Identity'
 );
 
@@ -7259,13 +7280,13 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
+  composerSiteSettingsRepoSectionSource,
   /repoInputs\.className = 'cs-repo-grid';[\s\S]*repoInputs\.dataset\.field = 'repo';[\s\S]*createRepoFieldGroup\('cs-repo-field-group--owner', t\('editor\.composer\.site\.repoOwner'\), ownerWrap\)[\s\S]*createRepoFieldGroup\('cs-repo-field-group--name', t\('editor\.composer\.site\.repoName'\), repoWrap\)[\s\S]*createRepoFieldGroup\('cs-repo-field-group--branch', t\('editor\.composer\.site\.repoBranch'\), branchWrap\)[\s\S]*repoSection\.appendChild\(repoInputs\);/,
   'Repository inputs should remain diff-addressable while rendering labeled controls directly in the Repository card'
 );
 
 assert.match(
-  siteSettingsSource,
+  composerSiteSettingsRepoSectionSource,
   /repoSection\.appendChild\(repoInputs\);\s*renderPublishTransportSettings\(repoSection\);/,
   'Repository card should host the browser-local publish transport settings'
 );

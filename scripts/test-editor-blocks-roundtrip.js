@@ -41,6 +41,7 @@ const run = (name, fn) => {
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
 const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
+const editorBlocksBlockActionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-actions.js', import.meta.url), 'utf8');
 const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
@@ -353,7 +354,7 @@ run('text block split helper only supports editable text block types', () => {
 
 run('mid-enter split leaves end-of-block Enter on the blank block insertion path', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /offsets\.start >= currentText\.length[\s\S]*return false;[\s\S]*splitEditableTextAtSelection\(editable, selectionSession\)/,
     'split path should bail out before splitting when the caret is at the end'
   );
@@ -366,8 +367,8 @@ run('mid-enter split leaves end-of-block Enter on the blank block insertion path
 
 run('mid-enter split ignores modified Enter key chords', () => {
   assert.match(
-    editorBlocksSource,
-    /event\.key !== 'Enter' \|\| event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing/,
+    editorBlocksBlockActionsSource,
+    /const plainKey = \(event, key\) => event[\s\S]*event\.key === key[\s\S]*!event\.shiftKey[\s\S]*!event\.isComposing;[\s\S]*!plainKey\(event, 'Enter'\)/,
     'split path should only handle plain Enter'
   );
 });
@@ -534,7 +535,7 @@ run('backspace merge path runs after empty-block removal and before Enter handli
     'text block Backspace merge should run after empty-block removal and before Enter handling'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /if \(!Number\.isInteger\(index\) \|\| index <= 0\) return false;[\s\S]*mergeTextBlockIntoPrevious\(previous, block\) \|\| mergeTextBlockIntoPreviousList\(previous, block\)/,
     'text block Backspace merge should never apply to the first block'
   );
@@ -542,20 +543,20 @@ run('backspace merge path runs after empty-block removal and before Enter handli
 
 run('backspace merge ignores modified Backspace key chords', () => {
   assert.match(
-    editorBlocksSource,
-    /event\.key !== 'Backspace' \|\| event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing/,
+    editorBlocksBlockActionsSource,
+    /const plainKey = \(event, key\) => event[\s\S]*event\.key === key[\s\S]*!event\.shiftKey[\s\S]*!event\.isComposing;[\s\S]*!plainKey\(event, 'Backspace'\)/,
     'merge path should only handle plain Backspace'
   );
 });
 
 run('backspace merge focuses previous block at its rendered text length', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /focusBlockPrimaryEditable\(merged, merged\.focusCaretOffset\)/,
     'caret should land after any inserted separator after text block merge'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /blocksState\.replaceBlocks\(index - 1, 2, \[merged\],[\s\S]*caretOffset: merged\.focusCaretOffset[\s\S]*\}/,
     'caret should land after any inserted separator after text-to-list merge'
   );
@@ -743,7 +744,7 @@ run('blank blocks use existing removable and cross-block navigation paths', () =
     'empty-block Backspace detection should treat blank blocks as removable'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /if \(!Number\.isInteger\(index\) \|\| index <= 0\) return false;[\s\S]*if \(!isBlockEmptyForBackspace\(block\)\) return false;/,
     'blank Backspace removal should still skip the first block'
   );

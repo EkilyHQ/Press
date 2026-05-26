@@ -114,6 +114,7 @@ const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
+const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
 const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
 const editorBlocksBodySessionPath = resolve(here, '../assets/js/editor-blocks-body-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
@@ -250,6 +251,7 @@ const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
+const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
 const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
 const editorBlocksBodySessionSource = readFileSync(editorBlocksBodySessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
@@ -407,6 +409,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-block-actions\.js'/,
+  'blocks editor should cache-bust the explicit blocks action coordinator boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /from '\.\/editor-blocks-layout-session\.js'/,
   'blocks editor should cache-bust the explicit blocks layout session boundary'
 );
@@ -553,6 +561,24 @@ assert.match(
   editorBlocksSource,
   /const blockSessions = createEditorBlocksSessionRegistry\(\);/,
   'blocks editor should create an explicit late-bound session registry at the composition root'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const blockActions = createEditorBlocksBlockActions\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*blockSessions,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*getEditableSelectionOffsets,[\s\S]*focusBlockPrimaryEditable,[\s\S]*focusPreviousBlockEnd,[\s\S]*setActive,[\s\S]*emit,[\s\S]*\}\);[\s\S]*insertBlankBlock,[\s\S]*insertBlankBlockAfter,[\s\S]*splitTextBlockAfterCaret,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*deleteBlockAt,[\s\S]*makeSplitListBlock,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*applySourceAutofix/,
+  'blocks editor should compose root block mutations through the explicit block action coordinator'
+);
+
+assert.match(
+  editorBlocksBlockActionsSource,
+  /export function createEditorBlocksBlockActions\(\{[\s\S]*const insertBlankBlock = \(index = state\.blocks\.length, options = \{\}\) => \{[\s\S]*const insertBlankBlockAfter = \(index, editable = null, sync = null\) => \{[\s\S]*const splitTextBlockAfterCaret = \(event, block, index, editable = null\) => \{[\s\S]*const mergeTextBlockWithPreviousOnBackspace = \(event, block, index, editable = null\) => \{[\s\S]*const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*const applySourceAutofix = \(index\) => \{/,
+  'blocks action coordinator should own block insertion, split, merge, deletion, and source autofix behavior'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const splitTextBlockAfterCaret = \(event|const mergeTextBlockWithPreviousOnBackspace = \(event|const removeEmptyBlockWithBackspace = \(event|const applySourceAutofix = \(index\) => \{/,
+  'blocks root should not own root-local block action implementations'
 );
 
 assert.doesNotMatch(
@@ -3236,7 +3262,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockActionsSource,
   /const insertBlankBlockAfter = \(index, editable = null, sync = null\) => \{[\s\S]*if \(typeof sync === 'function'\) sync\(\);[\s\S]*insertBlankBlock\(Math\.max\(0, Math\.min\(\(Number\(index\) \|\| 0\) \+ 1, state\.blocks\.length\)\), \{ focus: true \}\);/,
   'Enter should create a focused real blank block after the current block'
 );
@@ -3266,8 +3292,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksStateSource}`,
-  /const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*event\.key !== 'Backspace'[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
+  `${editorBlocksBlockActionsSource}\n${editorBlocksStateSource}`,
+  /const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*!plainKey\(event, 'Backspace'\)[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
   'Backspace should remove empty non-first real blocks and delegate previous-end focus through the focus session'
 );
 
@@ -4391,7 +4417,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockActionsSource,
   /mergeTextBlockIntoPrevious\(previous, block\) \|\| mergeTextBlockIntoPreviousList\(previous, block\)[\s\S]*caretOffset: merged\.focusCaretOffset/,
   'Backspace at the start of a text block should support merging into a previous list tail item with safe caret placement'
 );

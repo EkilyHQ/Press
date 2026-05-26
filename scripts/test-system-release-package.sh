@@ -163,6 +163,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-link-lis
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-localized-fields.js" "${entries_file}"; then
+  echo "expected package to include composer Site Settings localized-fields code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-schema.js" "${entries_file}"; then
   echo "expected package to include composer Site Settings schema code" >&2
   exit 1

@@ -42,6 +42,7 @@ const composerSiteSettingsConfigGridsPath = resolve(here, '../assets/js/composer
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
 const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
 const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
+const composerSiteSettingsLocalizedFieldsPath = resolve(here, '../assets/js/composer-site-settings-localized-fields.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-site-settings-section-nav.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
@@ -173,6 +174,7 @@ const composerSiteSettingsConfigGridsSource = readFileSync(composerSiteSettingsC
 const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
 const composerSiteSettingsLanguageMenuSource = readFileSync(composerSiteSettingsLanguageMenuPath, 'utf8');
 const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
+const composerSiteSettingsLocalizedFieldsSource = readFileSync(composerSiteSettingsLocalizedFieldsPath, 'utf8');
 const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
 const composerSiteSettingsSectionNavSource = readFileSync(composerSiteSettingsSectionNavPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
@@ -281,6 +283,7 @@ const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsControlsSource,
   composerSiteSettingsLanguageMenuSource,
   composerSiteSettingsLinkListSource,
+  composerSiteSettingsLocalizedFieldsSource,
   composerSiteSettingsSchemaSource,
   composerSiteSettingsSectionNavSource
 ].join('\n');
@@ -966,15 +969,21 @@ assert.match(
 );
 
 assert.match(
-  composerSiteSettingsUiSource,
+  composerSiteSettingsLocalizedFieldsSource,
   /from '\.\/composer-site-settings-language-menu\.js'/,
-  'Site Settings UI should delegate add-language menu behavior and lifecycle cleanup'
+  'Site Settings localized-fields boundary should delegate add-language menu behavior and lifecycle cleanup'
 );
 
 assert.match(
   composerSiteSettingsUiSource,
   /from '\.\/composer-site-settings-link-list\.js'/,
   'Site Settings UI should delegate profile link list rendering and reordering'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-localized-fields\.js'/,
+  'Site Settings UI should delegate localized language-field rendering and language pool collection'
 );
 
 assert.match(
@@ -997,8 +1006,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteSettingsUiSource,
-  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>[\s\S]*const repoSection = createSection\([\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAnnotateGrid\(commentsSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
-  'Site Settings UI boundary should own top-level repository and identity composition while wiring configuration grid boundaries'
+  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*createComposerSiteSettingsLocalizedFields\([\s\S]*const repoSection = createSection\([\s\S]*renderIdentityLocalizedGrid\(identitySection\);[\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAnnotateGrid\(commentsSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
+  'Site Settings UI boundary should own top-level section composition while wiring localized-field and configuration grid boundaries'
 );
 
 assert.doesNotMatch(
@@ -1017,6 +1026,18 @@ assert.doesNotMatch(
   composerSiteSettingsUiSource,
   /const render(?:Behavior|Theme|Annotate|AssetWarnings)Grid = \(section\) =>/,
   'Site Settings UI should not re-own configuration subsection grid renderers after extraction'
+);
+
+assert.match(
+  composerSiteSettingsLocalizedFieldsSource,
+  /export function createComposerSiteSettingsLocalizedFields\(options = \{\}\)[\s\S]*const collectLanguageCodes = \(\) =>[\s\S]*const renderLocalizedField = \(section, key, fieldOptions = \{\}\) =>[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>/,
+  'Site Settings localized-fields boundary should own language collection, localized rows, and merged identity rendering'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const ensureLocalized = \(key|const collectLanguageCodes = \(\)|const renderLocalizedField = \(section, key|const renderIdentityLocalizedGrid = \(section\)|cs-localized-row--multiline|siteTitle\|siteSubtitle/,
+  'Site Settings UI should not re-own localized field state or identity grid internals after extraction'
 );
 
 assert.match(
@@ -6475,7 +6496,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const field = options\.subheading[\s\S]*createSubheadingField\(section, \{[\s\S]*dataKey: key,[\s\S]*label: options\.label,[\s\S]*description: options\.description[\s\S]*createField\(section, \{/,
+  /const field = fieldOptions\.subheading[\s\S]*createSubheadingField\(section, \{[\s\S]*dataKey: key,[\s\S]*label: fieldOptions\.label,[\s\S]*description: fieldOptions\.description[\s\S]*createField\(section, \{/,
   'localized fields should be able to reuse the shared subsection heading renderer'
 );
 
@@ -6535,7 +6556,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const useLocalizedGrid = !!\(options\.grid \|\| options\.multiline\);/,
+  /const useLocalizedGrid = !!\(fieldOptions\.grid \|\| fieldOptions\.multiline\);/,
   'localized fields should have an explicit grid option shared by keywords and multiline fields'
 );
 
@@ -6547,7 +6568,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /if \(useLocalizedGrid\) row\.classList\.add\('cs-localized-row--grid'\);[\s\S]*if \(options\.multiline\) row\.classList\.add\('cs-localized-row--multiline'\);/,
+  /if \(useLocalizedGrid\) row\.classList\.add\('cs-localized-row--grid'\);[\s\S]*if \(fieldOptions\.multiline\) row\.classList\.add\('cs-localized-row--multiline'\);/,
   'aligned localized fields should mark grid rows separately from multiline textarea behavior'
 );
 

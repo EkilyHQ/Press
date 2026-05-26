@@ -1,7 +1,7 @@
 import { createComposerSiteSettingsControls } from './composer-site-settings-controls.js';
 import { createComposerSiteSettingsConfigGrids } from './composer-site-settings-config-grids.js';
-import { createComposerSiteSettingsLanguageMenu } from './composer-site-settings-language-menu.js';
 import { createComposerSiteSettingsLinkList } from './composer-site-settings-link-list.js';
+import { createComposerSiteSettingsLocalizedFields } from './composer-site-settings-localized-fields.js';
 import { createComposerSiteSettingsSchema } from './composer-site-settings-schema.js';
 import {
   cleanupComposerSiteSettingsSectionNav,
@@ -36,7 +36,6 @@ export function createComposerSiteSettingsUi(options = {}) {
   const animateComposerViewportScroll = typeof options.animateComposerViewportScroll === 'function' ? options.animateComposerViewportScroll : () => false;
   const cancelComposerSiteScrollAnimation = typeof options.cancelComposerSiteScrollAnimation === 'function' ? options.cancelComposerSiteScrollAnimation : noop;
   const normalizeLangCode = typeof options.normalizeLangCode === 'function' ? options.normalizeLangCode : (code) => String(code || '').trim().toLowerCase();
-  const isLanguageCode = typeof options.isLanguageCode === 'function' ? options.isLanguageCode : (value) => LANG_CODE_PATTERN.test(String(value || '').trim());
   const getAvailableLangs = typeof options.getAvailableLangs === 'function' ? options.getAvailableLangs : () => [];
   const displayLangName = typeof options.displayLangName === 'function' ? options.displayLangName : (code) => String(code || '').toUpperCase();
   const escapeHtml = typeof options.escapeHtml === 'function'
@@ -168,14 +167,6 @@ export function createComposerSiteSettingsUi(options = {}) {
       refreshNavDiffState();
     };
 
-    const ensureLocalized = (key, ensureDefault = true) => {
-      if (!site[key] || typeof site[key] !== 'object') {
-        site[key] = ensureDefault ? { default: '' } : {};
-      }
-      if (ensureDefault && !Object.prototype.hasOwnProperty.call(site[key], 'default')) site[key].default = '';
-      return site[key];
-    };
-
     const ensureLinkList = (key) => {
       if (!Array.isArray(site[key])) site[key] = [];
       return site[key];
@@ -205,63 +196,6 @@ export function createComposerSiteSettingsUi(options = {}) {
       if (!Object.prototype.hasOwnProperty.call(largeImage, 'enabled')) largeImage.enabled = null;
       if (!Object.prototype.hasOwnProperty.call(largeImage, 'thresholdKB')) largeImage.thresholdKB = null;
       return site.assetWarnings;
-    };
-
-    const collectLanguageCodes = () => {
-      const codes = new Set();
-      const add = (value) => {
-        const normalized = normalizeLangCode(value);
-        if (!normalized) return;
-        codes.add(normalized);
-      };
-      const addFromEntry = (entry) => {
-        if (!entry || typeof entry !== 'object') return;
-        Object.keys(entry).forEach((key) => {
-          if (!isLanguageCode(key)) return;
-          add(key);
-        });
-      };
-
-      try {
-        const langs = typeof getAvailableLangs === 'function' ? getAvailableLangs() : [];
-        if (Array.isArray(langs)) langs.forEach(add);
-      } catch (_) {}
-      if (site && site.defaultLanguage) add(site.defaultLanguage);
-
-      if (state && state.index && typeof state.index === 'object') {
-        Object.keys(state.index).forEach((key) => {
-          if (key === '__order') return;
-          addFromEntry(state.index[key]);
-        });
-      }
-
-      if (state && state.tabs && typeof state.tabs === 'object') {
-        Object.keys(state.tabs).forEach((key) => {
-          if (key === '__order') return;
-          addFromEntry(state.tabs[key]);
-        });
-      }
-
-      if (site && typeof site === 'object') {
-        Object.keys(site).forEach((key) => {
-          const value = site[key];
-          if (!value || typeof value !== 'object' || Array.isArray(value)) return;
-          addFromEntry(value);
-        });
-      }
-
-      const ordered = Array.from(codes);
-      ordered.sort((a, b) => {
-        const ia = PREFERRED_LANG_ORDER.indexOf(a);
-        const ib = PREFERRED_LANG_ORDER.indexOf(b);
-        if (ia !== -1 || ib !== -1) {
-          const pa = ia === -1 ? PREFERRED_LANG_ORDER.length + 1 : ia;
-          const pb = ib === -1 ? PREFERRED_LANG_ORDER.length + 1 : ib;
-          return pa - pb;
-        }
-        return a.localeCompare(b);
-      });
-      return ordered;
     };
 
     const {
@@ -295,6 +229,29 @@ export function createComposerSiteSettingsUi(options = {}) {
       t
     });
     const {
+      collectLanguageCodes,
+      renderIdentityLocalizedGrid,
+      renderLocalizedField
+    } = createComposerSiteSettingsLocalizedFields({
+      documentRef,
+      site,
+      state,
+      createField,
+      createSubheadingField,
+      markDirty,
+      setTimer,
+      languagePoolChangedEvent: LANGUAGE_POOL_CHANGED_EVENT,
+      preferredLangOrder: PREFERRED_LANG_ORDER,
+      langCodePattern: LANG_CODE_PATTERN,
+      normalizeLangCode,
+      getAvailableLangs,
+      displayLangName,
+      escapeHtml,
+      broadcastLanguagePoolChange,
+      registerLanguageMenuCleanup,
+      t
+    });
+    const {
       renderAnnotateGrid,
       renderAssetWarningsGrid,
       renderBehaviorGrid,
@@ -320,307 +277,6 @@ export function createComposerSiteSettingsUi(options = {}) {
       annotateDiscussionCategoryPresets: ANNOTATE_DISCUSSION_CATEGORY_PRESETS,
       t
     });
-    const createLanguageMenu = (config = {}) => {
-      const languageMenu = createComposerSiteSettingsLanguageMenu({
-        documentRef,
-        setTimer,
-        languagePoolChangedEvent: LANGUAGE_POOL_CHANGED_EVENT,
-        preferredLangOrder: PREFERRED_LANG_ORDER,
-        langCodePattern: LANG_CODE_PATTERN,
-        normalizeLangCode,
-        getAvailableLangs,
-        collectLanguageCodes,
-        displayLangName,
-        escapeHtml,
-        t,
-        ...config
-      });
-      registerLanguageMenuCleanup(languageMenu.cleanup);
-      return languageMenu;
-    };
-
-    const renderLocalizedField = (section, key, options = {}) => {
-      ensureLocalized(key, options.ensureDefault !== false);
-      const useLocalizedGrid = !!(options.grid || options.multiline);
-      const field = options.subheading
-        ? createSubheadingField(section, {
-          dataKey: key,
-          label: options.label,
-          description: options.description
-        })
-        : createField(section, {
-          dataKey: key,
-          label: options.label,
-          description: options.description
-        });
-      const list = documentRef.createElement('div');
-      list.className = useLocalizedGrid
-        ? 'cs-localized-list cs-localized-list--grid'
-        : 'cs-localized-list';
-      field.appendChild(list);
-      const controls = documentRef.createElement('div');
-      controls.className = 'cs-field-controls';
-      field.appendChild(controls);
-      const languageMenu = createLanguageMenu({
-        getUsedLangs: () => Object.keys(ensureLocalized(key, options.ensureDefault !== false) || {}),
-        onSelectLanguage: (code) => {
-          const localized = ensureLocalized(key, options.ensureDefault !== false);
-          if (Object.prototype.hasOwnProperty.call(localized, code)) return false;
-          localized[code] = '';
-          markDirty();
-          renderRows();
-          broadcastLanguagePoolChange();
-          return true;
-        }
-      });
-      controls.appendChild(languageMenu.addWrap);
-
-      const renderRows = () => {
-        list.innerHTML = '';
-        const localized = ensureLocalized(key, options.ensureDefault !== false);
-        const langs = Object.keys(localized || {});
-        if (options.ensureDefault !== false && !langs.includes('default')) langs.push('default');
-        langs.sort((a, b) => {
-          if (a === 'default') return -1;
-          if (b === 'default') return 1;
-          return a.localeCompare(b);
-        });
-        langs.forEach((lang) => {
-          if (!localized && lang !== 'default') return;
-          if (options.ensureDefault !== false && !Object.prototype.hasOwnProperty.call(localized, lang)) localized[lang] = '';
-          const row = documentRef.createElement('div');
-          row.className = 'cs-localized-row';
-          if (useLocalizedGrid) row.classList.add('cs-localized-row--grid');
-          if (options.multiline) row.classList.add('cs-localized-row--multiline');
-          row.dataset.lang = lang;
-          const badge = documentRef.createElement('span');
-          badge.className = 'cs-lang-chip';
-          badge.textContent = lang === 'default'
-            ? t('editor.composer.site.languageDefault')
-            : lang.toUpperCase();
-          row.appendChild(badge);
-          const inputWrap = documentRef.createElement('div');
-          inputWrap.className = options.multiline
-            ? 'cs-localized-input cs-localized-input--multiline'
-            : 'cs-localized-input';
-          const input = documentRef.createElement(options.multiline ? 'textarea' : 'input');
-          if (!options.multiline) input.type = 'text';
-          else input.rows = options.rows || 3;
-          input.className = options.multiline ? 'cs-input cs-localized-textarea' : 'cs-input';
-          input.dataset.field = key;
-          input.dataset.lang = lang;
-          if (options.placeholder) input.placeholder = options.placeholder;
-          input.value = localized[lang] || '';
-          if (options.multiline) {
-            const expandMultiline = () => {
-              list.querySelectorAll('.cs-localized-row--multiline.is-expanded').forEach((expandedRow) => {
-                if (expandedRow !== row) expandedRow.classList.remove('is-expanded');
-              });
-              row.classList.add('is-expanded');
-            };
-            input.addEventListener('pointerdown', expandMultiline);
-            input.addEventListener('focus', expandMultiline);
-            input.addEventListener('focusin', expandMultiline);
-            input.addEventListener('blur', () => {
-              setTimer(() => {
-                if (documentRef.activeElement !== input) row.classList.remove('is-expanded');
-              }, 0);
-            });
-            input.addEventListener('keydown', (event) => {
-              if (event.key !== 'Escape') return;
-              event.preventDefault();
-              row.classList.remove('is-expanded');
-              input.blur();
-            });
-          }
-          input.addEventListener('input', () => {
-            ensureLocalized(key, options.ensureDefault !== false)[lang] = input.value;
-            markDirty();
-          });
-          inputWrap.appendChild(input);
-          row.appendChild(inputWrap);
-          if (lang !== 'default' || options.allowDefaultDelete) {
-            const removeBtn = documentRef.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn-tertiary cs-remove-lang';
-            removeBtn.textContent = t('editor.composer.site.removeLanguage');
-            removeBtn.addEventListener('click', () => {
-              const localizedMap = ensureLocalized(key, options.ensureDefault !== false);
-              delete localizedMap[lang];
-              markDirty();
-              renderRows();
-              broadcastLanguagePoolChange();
-            });
-            row.appendChild(removeBtn);
-          }
-          list.appendChild(row);
-        });
-        if (!list.children.length) {
-          const empty = documentRef.createElement('div');
-          empty.className = 'cs-empty';
-          empty.textContent = t('editor.composer.site.noLanguages');
-          list.appendChild(empty);
-        }
-        languageMenu.refreshMenu();
-      };
-
-      renderRows();
-    };
-
-    const renderIdentityLocalizedGrid = (section) => {
-      const titleLabel = t('editor.composer.site.fields.siteTitle');
-      const subtitleLabel = t('editor.composer.site.fields.siteSubtitle');
-      ensureLocalized('siteTitle', true);
-      ensureLocalized('siteSubtitle', true);
-      const field = documentRef.createElement('div');
-      field.className = 'cs-field cs-identity-fieldset';
-      field.dataset.field = 'siteTitle|siteSubtitle';
-      field.setAttribute('role', 'group');
-      field.setAttribute('aria-label', `${titleLabel} / ${subtitleLabel}`);
-      section.appendChild(field);
-      const grid = documentRef.createElement('div');
-      grid.className = 'cs-identity-grid';
-      field.appendChild(grid);
-      const controls = documentRef.createElement('div');
-      controls.className = 'cs-field-controls';
-      field.appendChild(controls);
-
-      const sortLangs = (langs) => {
-        const ordered = Array.from(new Set(langs.filter(Boolean)));
-        ordered.sort((a, b) => {
-          if (a === 'default') return -1;
-          if (b === 'default') return 1;
-          const ia = PREFERRED_LANG_ORDER.indexOf(a);
-          const ib = PREFERRED_LANG_ORDER.indexOf(b);
-          if (ia !== -1 || ib !== -1) {
-            const pa = ia === -1 ? PREFERRED_LANG_ORDER.length + 1 : ia;
-            const pb = ib === -1 ? PREFERRED_LANG_ORDER.length + 1 : ib;
-            return pa - pb;
-          }
-          return a.localeCompare(b);
-        });
-        return ordered;
-      };
-
-      const collectUsedLangs = () => {
-        const title = ensureLocalized('siteTitle', true);
-        const subtitle = ensureLocalized('siteSubtitle', true);
-        return sortLangs(['default', ...Object.keys(title || {}), ...Object.keys(subtitle || {})]);
-      };
-
-      const languageMenu = createLanguageMenu({
-        getUsedLangs: collectUsedLangs,
-        onSelectLanguage: (code) => {
-          const title = ensureLocalized('siteTitle', true);
-          const subtitle = ensureLocalized('siteSubtitle', true);
-          let changed = false;
-          if (!Object.prototype.hasOwnProperty.call(title, code)) {
-            title[code] = '';
-            changed = true;
-          }
-          if (!Object.prototype.hasOwnProperty.call(subtitle, code)) {
-            subtitle[code] = '';
-            changed = true;
-          }
-          if (!changed) return false;
-          markDirty();
-          renderRows();
-          broadcastLanguagePoolChange();
-          return true;
-        }
-      });
-      controls.appendChild(languageMenu.addWrap);
-
-      const appendHeader = () => {
-        const header = documentRef.createElement('div');
-        header.className = 'cs-identity-row cs-identity-head';
-        const langSpacer = documentRef.createElement('span');
-        langSpacer.className = 'cs-identity-head-spacer';
-        langSpacer.setAttribute('aria-hidden', 'true');
-        const titleHead = documentRef.createElement('span');
-        titleHead.className = 'cs-identity-column-title';
-        titleHead.textContent = titleLabel;
-        const subtitleHead = documentRef.createElement('span');
-        subtitleHead.className = 'cs-identity-column-title';
-        subtitleHead.textContent = subtitleLabel;
-        const actionSpacer = documentRef.createElement('span');
-        actionSpacer.className = 'cs-identity-head-spacer';
-        actionSpacer.setAttribute('aria-hidden', 'true');
-        header.append(langSpacer, titleHead, subtitleHead, actionSpacer);
-        grid.appendChild(header);
-      };
-
-      const appendInput = (row, lang, key, labelText, value) => {
-        const cell = documentRef.createElement('label');
-        cell.className = 'cs-identity-field';
-        const mobileLabel = documentRef.createElement('span');
-        mobileLabel.className = 'cs-identity-cell-label';
-        mobileLabel.textContent = labelText;
-        const input = documentRef.createElement('input');
-        input.type = 'text';
-        input.className = 'cs-input';
-        input.dataset.field = key;
-        input.dataset.lang = lang;
-        input.dataset.subfield = key;
-        input.dataset.siteIdentityField = key;
-        input.value = value || '';
-        input.addEventListener('input', () => {
-          ensureLocalized(key, true)[lang] = input.value;
-          markDirty();
-        });
-        cell.append(mobileLabel, input);
-        row.appendChild(cell);
-      };
-
-      const renderRows = () => {
-        grid.innerHTML = '';
-        appendHeader();
-        const title = ensureLocalized('siteTitle', true);
-        const subtitle = ensureLocalized('siteSubtitle', true);
-        const langs = collectUsedLangs();
-        langs.forEach((lang) => {
-          if (!Object.prototype.hasOwnProperty.call(title, lang)) title[lang] = '';
-          if (!Object.prototype.hasOwnProperty.call(subtitle, lang)) subtitle[lang] = '';
-          const row = documentRef.createElement('div');
-          row.className = 'cs-identity-row';
-          row.dataset.lang = lang;
-          const langCell = documentRef.createElement('div');
-          langCell.className = 'cs-identity-lang';
-          const badge = documentRef.createElement('span');
-          badge.className = 'cs-lang-chip';
-          badge.textContent = lang === 'default'
-            ? t('editor.composer.site.languageDefault')
-            : lang.toUpperCase();
-          langCell.appendChild(badge);
-          row.appendChild(langCell);
-          appendInput(row, lang, 'siteTitle', titleLabel, title[lang] || '');
-          appendInput(row, lang, 'siteSubtitle', subtitleLabel, subtitle[lang] || '');
-          const actions = documentRef.createElement('div');
-          actions.className = 'cs-identity-actions';
-          if (lang !== 'default') {
-            const removeBtn = documentRef.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn-tertiary cs-remove-lang cs-identity-remove';
-            removeBtn.textContent = t('editor.composer.site.removeLanguage');
-            removeBtn.addEventListener('click', () => {
-              const titleMapNext = ensureLocalized('siteTitle', true);
-              const subtitleMapNext = ensureLocalized('siteSubtitle', true);
-              delete titleMapNext[lang];
-              delete subtitleMapNext[lang];
-              markDirty();
-              renderRows();
-              broadcastLanguagePoolChange();
-            });
-            actions.appendChild(removeBtn);
-          }
-          row.appendChild(actions);
-          grid.appendChild(row);
-        });
-        languageMenu.refreshMenu();
-      };
-
-      renderRows();
-    };
 
     const renderIdentityPathGrid = (section) => {
       const items = siteSettingsSchema.fields.identityPaths.map((item) => ({

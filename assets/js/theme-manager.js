@@ -1,6 +1,7 @@
 import { t } from './i18n.js';
 import { loadPressSystemManifest, satisfiesSemverRange } from './press-version.js';
 import { getProductStateThemeEntry, loadProductState } from './product-state.js';
+import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
 import {
   PRESS_THEME_CONTRACT,
   getDefaultThemeStyles,
@@ -17,7 +18,7 @@ import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const THEME_ROOT = 'assets/themes';
 const REQUIRED_CONTRACT_VERSION = PRESS_THEME_CONTRACT.contractVersion;
-export const OFFICIAL_THEME_CATALOG_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Catalog/main/catalog.json';
+export const OFFICIAL_THEME_CATALOG_URL = PRESS_GITHUB_PROVIDER.themeCatalogUrl;
 const THEME_SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const THEME_RELEASE_ASSET_PATTERN = /^press-theme-[a-z0-9_-]+-v\d+\.\d+\.\d+\.zip$/i;
 const THEME_ARCHIVE_ALLOWED_EXTENSIONS = new Set(getThemeArchiveAllowedExtensions());

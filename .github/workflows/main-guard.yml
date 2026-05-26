@@ -28,6 +28,7 @@ jobs:
           node scripts/test-composer-service-registry.js
           node scripts/test-press-system-surface.mjs
           node scripts/test-editor-app-kernel.mjs
+          node scripts/test-provider-adapters.js
           node --experimental-default-type=module scripts/test-theme-contracts.js
           node scripts/test-release-targets.js
           node scripts/test-release-intent.js

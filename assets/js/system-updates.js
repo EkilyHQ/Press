@@ -3,6 +3,7 @@ import { renderPressMath } from './math-render.js';
 import { setSafeHtml } from './safe-html.js';
 import { t } from './i18n.js';
 import { buildConnectStatusUrl, CONNECT_SYSTEM_RELEASE_PATH } from './connect-status.js';
+import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
 import {
   isUpgradeAllowed,
   loadPressSystemManifest,
@@ -22,8 +23,8 @@ const TEXT_FILENAMES = new Set(['LICENSE', 'README', 'README.md', 'CHANGELOG', '
 
 export const SYSTEM_UPDATE_ASSET_NAME_PATTERN = /^press-system-v\d+\.\d+\.\d+\.zip$/i;
 
-const RELEASE_API_URL = 'https://api.github.com/repos/EkilyHQ/Press/releases/latest';
-const RELEASE_MANIFEST_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json';
+const RELEASE_API_URL = PRESS_GITHUB_PROVIDER.latestReleaseApiUrl;
+const RELEASE_MANIFEST_URL = PRESS_GITHUB_PROVIDER.systemReleaseUrl;
 
 function createSystemUpdateElements() {
   return {
@@ -331,8 +332,7 @@ export function selectSystemUpdateAsset(releaseData) {
 }
 
 function isFetchableSystemUpdateAssetUrl(url) {
-  return /^https:\/\/raw\.githubusercontent\.com\/EkilyHQ\/Press\/release-artifacts\/v\d+\.\d+\.\d+\/press-system-v\d+\.\d+\.\d+\.zip$/i
-    .test(String(url || '').trim());
+  return PRESS_GITHUB_PROVIDER.isCanonicalSystemUpdateAssetUrl(url);
 }
 
 function isObject(value) {
@@ -639,7 +639,7 @@ function updateDownloadLink(runtime) {
   const { elements, releaseCache } = runtime.state;
   const link = elements.downloadLink;
   if (!link) return;
-  let href = 'https://github.com/EkilyHQ/Press/releases/latest';
+  let href = PRESS_GITHUB_PROVIDER.latestReleasePageUrl;
   let label = t('editor.systemUpdates.openReleasePage');
   link.removeAttribute('download');
   if (releaseCache) {

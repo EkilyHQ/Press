@@ -3,6 +3,7 @@ import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { zipSync, strToU8 } from '../assets/js/vendor/fflate.browser.js';
 import { setPressSystemManifestForTests } from '../assets/js/press-version.js';
+import { buildConnectStatusUrl, CONNECT_PRODUCT_STATE_PATH } from '../assets/js/connect-status.js?connect-status-test';
 import { PRODUCT_STATE_URL } from '../assets/js/product-state.js?product-state-test';
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -536,7 +537,29 @@ await run('loads and caches the product state ledger', async () => {
   assert.equal((await loadThemeManagerProductState()).status, 'ok');
   assert.equal(seen.length, 0);
   assert.equal((await loadThemeManagerProductState({ force: true })).status, 'pending');
-  assert.deepEqual(seen, [PRODUCT_STATE_URL]);
+  assert.deepEqual(seen, [buildConnectStatusUrl(CONNECT_PRODUCT_STATE_PATH, { windowRef: globalThis.window })]);
+});
+
+await run('loads product state through the Connect read-through envelope before raw GitHub state', async () => {
+  const connectProductStateUrl = buildConnectStatusUrl(CONNECT_PRODUCT_STATE_PATH, { windowRef: globalThis.window });
+  const seen = [];
+  globalThis.fetch = async (input) => {
+    const url = String(input || '').split('?')[0];
+    seen.push(url);
+    if (url === connectProductStateUrl) {
+      return {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          productState: makeProductState({ status: 'ok' })
+        })
+      };
+    }
+    return { ok: false, json: async () => ({}) };
+  };
+  const loaded = await loadThemeManagerProductState({ force: true });
+  assert.equal(loaded.status, 'ok');
+  assert.deepEqual(seen, [connectProductStateUrl]);
 });
 
 await run('keeps theme manager usable when product state is unavailable', async () => {

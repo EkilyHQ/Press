@@ -123,6 +123,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-diff-ui.js" "${entries
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-diff-review-views.js" "${entries_file}"; then
+  echo "expected package to include composer diff review views code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-order-diff-ui.js" "${entries_file}"; then
   echo "expected package to include composer order diff UI code" >&2
   exit 1

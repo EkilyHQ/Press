@@ -1,4 +1,5 @@
 import { createComposerSiteSettingsControls } from './composer-site-settings-controls.js';
+import { createComposerSiteSettingsSchema } from './composer-site-settings-schema.js';
 
 export function createComposerSiteSettingsUi(options = {}) {
   const noop = () => {};
@@ -666,6 +667,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       onDirty: markDirty,
       requestFrame
     });
+    const siteSettingsSchema = createComposerSiteSettingsSchema({ t });
 
     const renderLocalizedField = (section, key, options = {}) => {
       ensureLocalized(key, options.ensureDefault !== false);
@@ -1207,39 +1209,21 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const renderIdentityPathGrid = (section) => {
-      const items = [
-        {
-          dataKey: 'avatar',
-          label: t('editor.composer.site.fields.avatar'),
-          description: t('editor.composer.site.fields.avatarHelp'),
-          placeholder: 'assets/avatar.png',
-          get: () => site.avatar,
-          set: (value) => { site.avatar = value; }
-        },
-        {
-          dataKey: 'contentRoot',
-          label: t('editor.composer.site.fields.contentRoot'),
-          description: t('editor.composer.site.fields.contentRootHelp'),
-          placeholder: 'wwwroot',
-          get: () => site.contentRoot,
-          set: (value) => { site.contentRoot = value; }
-        }
-      ];
+      const items = siteSettingsSchema.fields.identityPaths.map((item) => ({
+        ...item,
+        get: () => site[item.dataKey],
+        set: (value) => { site[item.dataKey] = value; }
+      }));
 
       renderSingleTextGrid(section, items);
     };
 
     const renderSeoResourceGrid = (section) => {
-      renderSingleTextGrid(section, [
-        {
-          dataKey: 'resourceURL',
-          label: t('editor.composer.site.fields.resourceURL'),
-          description: t('editor.composer.site.fields.resourceURLHelp'),
-          placeholder: 'https://example.com/',
-          get: () => site.resourceURL,
-          set: (value) => { site.resourceURL = value; }
-        }
-      ]);
+      renderSingleTextGrid(section, siteSettingsSchema.fields.seoResources.map((item) => ({
+        ...item,
+        get: () => site[item.dataKey],
+        set: (value) => { site[item.dataKey] = value; }
+      })));
     };
 
     const renderBehaviorGrid = (section) => {
@@ -1261,11 +1245,8 @@ export function createComposerSiteSettingsUi(options = {}) {
         return select;
       };
 
-      const defaultLanguageSelect = createSelectRow({
-        dataKey: 'defaultLanguage',
-        label: t('editor.composer.site.fields.defaultLanguage'),
-        description: t('editor.composer.site.fields.defaultLanguageHelp')
-      });
+      const behaviorSchema = siteSettingsSchema.fields.behavior;
+      const defaultLanguageSelect = createSelectRow(behaviorSchema.defaultLanguage);
 
       const applyDefaultLanguageOptions = () => {
         const codes = collectLanguageCodes();
@@ -1317,19 +1298,13 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
 
       createNumberRow({
-        dataKey: 'contentOutdatedDays',
-        label: t('editor.composer.site.fields.contentOutdatedDays'),
-        description: t('editor.composer.site.fields.contentOutdatedDaysHelp'),
-        min: 0,
+        ...behaviorSchema.contentOutdatedDays,
         get: () => site.contentOutdatedDays,
         set: (value) => { site.contentOutdatedDays = value == null || Number.isNaN(value) ? null : value; }
       });
 
       createNumberRow({
-        dataKey: 'pageSize',
-        label: t('editor.composer.site.fields.pageSize'),
-        description: t('editor.composer.site.fields.pageSizeHelp'),
-        min: 1,
+        ...behaviorSchema.pageSize,
         get: () => site.pageSize,
         set: (value) => { site.pageSize = value == null || Number.isNaN(value) ? null : value; }
       });
@@ -1354,19 +1329,12 @@ export function createComposerSiteSettingsUi(options = {}) {
       };
 
       const showAllPostsField = createToggleRow({
-        dataKey: 'showAllPosts',
-        label: t('editor.composer.site.fields.showAllPosts'),
-        description: t('editor.composer.site.fields.showAllPostsHelp'),
-        checkboxLabel: t('editor.composer.site.toggleEnabled'),
+        ...behaviorSchema.showAllPosts,
         get: () => site.showAllPosts === true,
         set: (value) => { site.showAllPosts = !!value; }
       });
 
-      const landingTabSelect = createSelectRow({
-        dataKey: 'landingTab',
-        label: t('editor.composer.site.fields.landingTab'),
-        description: t('editor.composer.site.fields.landingTabHelp')
-      });
+      const landingTabSelect = createSelectRow(behaviorSchema.landingTab);
 
       const getTabLabel = (slug) => {
         if (!state.tabs || typeof state.tabs !== 'object') return slug;
@@ -1441,19 +1409,13 @@ export function createComposerSiteSettingsUi(options = {}) {
       });
 
       createToggleRow({
-        dataKey: 'cardCoverFallback',
-        label: t('editor.composer.site.fields.cardCoverFallback'),
-        description: t('editor.composer.site.fields.cardCoverFallbackHelp'),
-        checkboxLabel: t('editor.composer.site.toggleEnabled'),
+        ...behaviorSchema.cardCoverFallback,
         get: () => site.cardCoverFallback,
         set: (value) => { site.cardCoverFallback = value; }
       }, true);
 
       createToggleRow({
-        dataKey: 'errorOverlay',
-        label: t('editor.composer.site.fields.errorOverlay'),
-        description: t('editor.composer.site.fields.errorOverlayHelp'),
-        checkboxLabel: t('editor.composer.site.toggleEnabled'),
+        ...behaviorSchema.errorOverlay,
         get: () => site.errorOverlay,
         set: (value) => { site.errorOverlay = value; }
       }, true);
@@ -2080,8 +2042,8 @@ export function createComposerSiteSettingsUi(options = {}) {
     };
 
     const repoSection = createSection(
-      t('editor.composer.site.sections.repo.title'),
-      t('editor.composer.site.sections.repo.description')
+      siteSettingsSchema.sections.repo.title,
+      siteSettingsSchema.sections.repo.description
     );
     const repo = ensureRepo();
     const repoInputs = documentRef.createElement('div');
@@ -2181,15 +2143,15 @@ export function createComposerSiteSettingsUi(options = {}) {
     renderPublishTransportSettings(repoSection);
 
     const identitySection = createSection(
-      t('editor.composer.site.sections.identity.title'),
-      t('editor.composer.site.sections.identity.description')
+      siteSettingsSchema.sections.identity.title,
+      siteSettingsSchema.sections.identity.description
     );
     renderIdentityLocalizedGrid(identitySection);
     renderIdentityPathGrid(identitySection);
 
     const seoSection = createSection(
-      t('editor.composer.site.sections.seo.title'),
-      t('editor.composer.site.sections.seo.description')
+      siteSettingsSchema.sections.seo.title,
+      siteSettingsSchema.sections.seo.description
     );
     renderLocalizedField(seoSection, 'siteDescription', {
       label: t('editor.composer.site.fields.siteDescription'),
@@ -2214,41 +2176,41 @@ export function createComposerSiteSettingsUi(options = {}) {
     renderSeoResourceGrid(seoSection);
 
     const siteConfigSection = createSection(
-      t('editor.composer.site.sections.configuration.title'),
-      t('editor.composer.site.sections.configuration.description')
+      siteSettingsSchema.sections.configuration.title,
+      siteSettingsSchema.sections.configuration.description
     );
     const behaviorSubsection = createConfigSubsection(
       siteConfigSection,
-      t('editor.composer.site.sections.behavior.title'),
-      t('editor.composer.site.sections.behavior.description')
+      siteSettingsSchema.subsections.behavior.title,
+      siteSettingsSchema.subsections.behavior.description
     );
     renderBehaviorGrid(behaviorSubsection);
 
     const themeSubsection = createConfigSubsection(
       siteConfigSection,
-      t('editor.composer.site.sections.theme.title'),
-      t('editor.composer.site.sections.theme.description')
+      siteSettingsSchema.subsections.theme.title,
+      siteSettingsSchema.subsections.theme.description
     );
     renderThemeGrid(themeSubsection);
 
     const commentsSubsection = createConfigSubsection(
       siteConfigSection,
-      t('editor.composer.site.sections.comments.title'),
-      t('editor.composer.site.sections.comments.description')
+      siteSettingsSchema.subsections.comments.title,
+      siteSettingsSchema.subsections.comments.description
     );
     renderAnnotateGrid(commentsSubsection);
 
     const assetsSubsection = createConfigSubsection(
       siteConfigSection,
-      t('editor.composer.site.sections.assets.title'),
-      t('editor.composer.site.sections.assets.description')
+      siteSettingsSchema.subsections.assets.title,
+      siteSettingsSchema.subsections.assets.description
     );
     renderAssetWarningsGrid(assetsSubsection);
 
     if (site.__extras && Object.keys(site.__extras).length) {
       const extrasSection = createSection(
-        t('editor.composer.site.sections.extras.title'),
-        t('editor.composer.site.sections.extras.description')
+        siteSettingsSchema.sections.extras.title,
+        siteSettingsSchema.sections.extras.description
       );
       const list = documentRef.createElement('ul');
       list.className = 'cs-extra-list';

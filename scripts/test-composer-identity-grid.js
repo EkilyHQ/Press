@@ -38,6 +38,7 @@ const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
+const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
@@ -163,6 +164,7 @@ const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
+const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
@@ -263,7 +265,7 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const composerSiteSettingsRuntimeSource = [composerSiteSettingsUiSource, composerSiteSettingsControlsSource].join('\n');
+const composerSiteSettingsRuntimeSource = [composerSiteSettingsUiSource, composerSiteSettingsControlsSource, composerSiteSettingsSchemaSource].join('\n');
 const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
 function extractFunctionBody(text, name) {
@@ -920,6 +922,12 @@ assert.match(
   'Site Settings UI should delegate reusable section, field, grid, and switch controls'
 );
 
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-schema\.js'/,
+  'Site Settings UI should consume section and simple-field metadata from a schema boundary'
+);
+
 assert.doesNotMatch(
   source,
   /function buildSiteUI/,
@@ -942,6 +950,18 @@ assert.match(
   composerSiteSettingsControlsSource,
   /export function createComposerSiteSettingsControls\(options = \{\}\)[\s\S]*const createSection = \(title, description\) =>[\s\S]*const createField = \(section, config = \{\}\) =>[\s\S]*const createSingleGridFieldset = \(section\) =>[\s\S]*const renderSingleTextGrid = \(section, items\) =>/,
   'Site Settings controls boundary should own reusable section, field, and compact grid factories'
+);
+
+assert.match(
+  composerSiteSettingsSchemaSource,
+  /export function createComposerSiteSettingsSchema\(options = \{\}\)[\s\S]*sections: \{[\s\S]*repo: section\('repo'\)[\s\S]*configuration: section\('configuration'\)[\s\S]*fields: \{[\s\S]*identityPaths: \[[\s\S]*field\('avatar', 'avatar', 'avatarHelp'[\s\S]*field\('contentRoot', 'contentRoot', 'contentRootHelp'[\s\S]*behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'/,
+  'Site Settings schema boundary should own stable section labels and simple field metadata'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /t\('editor\.composer\.site\.sections\.(?:repo|identity|seo|configuration|behavior|theme|comments|assets|extras)\.(?:title|description)'\)|t\('editor\.composer\.site\.fields\.(?:avatar|contentRoot|resourceURL|defaultLanguage|contentOutdatedDays|pageSize|showAllPosts|landingTab|cardCoverFallback|errorOverlay)(?:Help)?'\)/,
+  'Site Settings UI should not keep stable section and simple field label metadata inline'
 );
 
 assert.match(
@@ -6579,8 +6599,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const renderSeoResourceGrid = \(section\) => \{[\s\S]*dataKey: 'resourceURL'[\s\S]*fields\.resourceURLHelp/,
+  composerSiteSettingsSchemaSource,
+  /seoResources: \[[\s\S]*field\('resourceURL', 'resourceURL', 'resourceURLHelp'/,
   'SEO Resource URL compact grid should preserve the field key and help tooltip text'
 );
 
@@ -6621,8 +6641,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const renderBehaviorGrid = \(section\) => \{[\s\S]*dataKey: 'defaultLanguage'[\s\S]*dataKey: 'contentOutdatedDays'[\s\S]*dataKey: 'pageSize'[\s\S]*dataKey: 'showAllPosts'[\s\S]*dataKey: 'landingTab'[\s\S]*dataKey: 'cardCoverFallback'[\s\S]*dataKey: 'errorOverlay'/,
+  composerSiteSettingsSchemaSource,
+  /behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'[\s\S]*contentOutdatedDays: field\('contentOutdatedDays'[\s\S]*pageSize: field\('pageSize'[\s\S]*showAllPosts: field\('showAllPosts'[\s\S]*landingTab: field\('landingTab'[\s\S]*cardCoverFallback: field\('cardCoverFallback'[\s\S]*errorOverlay: field\('errorOverlay'/,
   'Behavior compact grid should include all single-value behavior fields'
 );
 

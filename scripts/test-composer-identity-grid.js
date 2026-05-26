@@ -37,6 +37,7 @@ const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerDiffReviewViewsPath = resolve(here, '../assets/js/composer-diff-review-views.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const composerOrderPreviewPath = resolve(here, '../assets/js/composer-order-preview.js');
+const composerOrderReviewViewPath = resolve(here, '../assets/js/composer-order-review-view.js');
 const composerOrderVisualPath = resolve(here, '../assets/js/composer-order-visual.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
@@ -171,6 +172,7 @@ const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerDiffReviewViewsSource = readFileSync(composerDiffReviewViewsPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerOrderPreviewSource = readFileSync(composerOrderPreviewPath, 'utf8');
+const composerOrderReviewViewSource = readFileSync(composerOrderReviewViewPath, 'utf8');
 const composerOrderVisualSource = readFileSync(composerOrderVisualPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
@@ -894,6 +896,12 @@ assert.match(
   'composer order diff UI should delegate inline order preview state and layout behavior'
 );
 
+assert.match(
+  composerOrderDiffUiSource,
+  /from '\.\/composer-order-review-view\.js'/,
+  'composer order diff UI should delegate order tab DOM and connector layout state'
+);
+
 assert.doesNotMatch(
   source,
   /function openComposerDiffModal|function ensureComposerDiffModal|function drawOrderDiffLines|function updateComposerOrderPreview|function applyComposerOrderHover|function bindComposerOrderHover|const ORDER_LINE_COLORS|let composerDiffModal|let composerOrderPreviewState/,
@@ -902,8 +910,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerOrderDiffUiSource,
-  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*const setTimeoutRef = typeof options\.setTimeoutRef === 'function'[\s\S]*const requestAnimationFrameRef = typeof options\.requestAnimationFrameRef === 'function'[\s\S]*const addWindowListener = typeof options\.addWindowListener === 'function'[\s\S]*const addDocumentListener = typeof options\.addDocumentListener === 'function'[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const composerOrderVisual = createComposerOrderVisual\([\s\S]*const composerOrderPreview = createComposerOrderPreview\([\s\S]*const composerDiffReviewViews = createComposerDiffReviewViews\([\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
-  'order diff UI boundary should own composer review modal shell while wiring review views, visual, and inline preview boundaries'
+  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*const setTimeoutRef = typeof options\.setTimeoutRef === 'function'[\s\S]*const requestAnimationFrameRef = typeof options\.requestAnimationFrameRef === 'function'[\s\S]*const addWindowListener = typeof options\.addWindowListener === 'function'[\s\S]*const addDocumentListener = typeof options\.addDocumentListener === 'function'[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const composerOrderVisual = createComposerOrderVisual\([\s\S]*const composerOrderPreview = createComposerOrderPreview\([\s\S]*const composerDiffReviewViews = createComposerDiffReviewViews\([\s\S]*const composerOrderReviewView = createComposerOrderReviewView\([\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
+  'order diff UI boundary should own composer review modal shell while wiring review views, order view, visual, and inline preview boundaries'
 );
 
 assert.match(
@@ -919,6 +927,12 @@ assert.match(
 );
 
 assert.match(
+  composerOrderReviewViewSource,
+  /export function createComposerOrderReviewView\(options = \{\}\)[\s\S]*function mount\(target\)[\s\S]*function drawLines\(state\)[\s\S]*function render\(kind, options = \{\}\)[\s\S]*function refreshLocale\(\)/,
+  'order review view boundary should own order tab DOM, stats, empty state, connector layout state, and locale refresh'
+);
+
+assert.match(
   composerOrderVisualSource,
   /export function createComposerOrderVisual\(options = \{\}\)[\s\S]*function applyComposerOrderHover\(container, key\)[\s\S]*function bindComposerOrderHover\(element, key\)[\s\S]*function buildOrderDiffItem\(entry, side\)[\s\S]*function drawOrderDiffLines\(state\)/,
   'order visual boundary should own connector line drawing, item rendering, and hover state'
@@ -926,8 +940,8 @@ assert.match(
 
 assert.doesNotMatch(
   composerOrderDiffUiSource,
-  /const ORDER_LINE_COLORS|function getComposerOrderHoverContainer|function applyComposerOrderHover\(container, key\)|function bindComposerOrderHover\(element, key\)|function buildOrderDiffItem\(entry, side\)[\s\S]*item\.appendChild\(badgeEl\);|function ensureComposerOrderPreview\(kind\)|function updateComposerOrderPreview\(kind, options = \{\}\)|let composerOrderPreviewState|const composerOrderPreviewRelayoutTimers|function renderOverview\(target, diff\)|function describeEntrySnapshot\(kind, key, source\)|function buildEntryDetails\(kind, key, info, sectionType\)|function renderEntries\(target, kind, diff\)/,
-  'order diff UI should not re-own visual connector, inline preview, or review-tab rendering internals'
+  /const ORDER_LINE_COLORS|function getComposerOrderHoverContainer|function applyComposerOrderHover\(container, key\)|function bindComposerOrderHover\(element, key\)|function buildOrderDiffItem\(entry, side\)[\s\S]*item\.appendChild\(badgeEl\);|function ensureComposerOrderPreview\(kind\)|function updateComposerOrderPreview\(kind, options = \{\}\)|let composerOrderPreviewState|const composerOrderPreviewRelayoutTimers|function renderOverview\(target, diff\)|function describeEntrySnapshot\(kind, key, source\)|function buildEntryDetails\(kind, key, info, sectionType\)|function renderEntries\(target, kind, diff\)|let composerOrderState|className = 'composer-order-stats'|className = 'composer-order-body'|className = 'composer-order-visual'|function renderOrder\(kind\)[\s\S]*const details = computeOrderDiffDetails\(kind\)/,
+  'order diff UI should not re-own visual connector, inline preview, review-tab, or order-tab view internals'
 );
 
 assert.match(
@@ -941,6 +955,7 @@ assert.doesNotMatch(
     composerOrderDiffUiSource,
     composerDiffReviewViewsSource,
     composerOrderPreviewSource,
+    composerOrderReviewViewSource,
     composerOrderVisualSource,
     composerEditorShellSource,
     composerSystemPanelSource,

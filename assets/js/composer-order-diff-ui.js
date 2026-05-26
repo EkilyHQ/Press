@@ -1,5 +1,6 @@
 import { createComposerDiffReviewViews } from './composer-diff-review-views.js';
 import { createComposerOrderPreview } from './composer-order-preview.js';
+import { createComposerOrderReviewView } from './composer-order-review-view.js';
 import { createComposerOrderVisual } from './composer-order-visual.js';
 
 function noop() {}
@@ -67,7 +68,6 @@ export function createComposerOrderDiffUi(options = {}) {
   }
 
   let composerDiffModal = null;
-  let composerOrderState = null;
   let composerDiffResizeHandler = null;
   let composerDiffResizeDispose = null;
 
@@ -89,12 +89,6 @@ export function createComposerOrderDiffUi(options = {}) {
     tComposerDiff,
     getComputedStyleRef
   });
-  const {
-    applyComposerOrderHover,
-    bindComposerOrderHover,
-    buildOrderDiffItem,
-    drawOrderDiffLines: drawOrderDiffLinesForState
-  } = composerOrderVisual;
   const composerOrderPreview = createComposerOrderPreview({
     documentRef,
     tComposer,
@@ -132,6 +126,15 @@ export function createComposerOrderDiffUi(options = {}) {
     renderOverview,
     renderEntries
   } = composerDiffReviewViews;
+  const composerOrderReviewView = createComposerOrderReviewView({
+    documentRef,
+    tComposerDiff,
+    computeOrderDiffDetails,
+    renderOrderStatsChips,
+    requestAnimationFrameRef,
+    setTimeoutRef,
+    orderVisual: composerOrderVisual
+  });
 
 
   function ensureComposerDiffModal() {
@@ -242,54 +245,7 @@ export function createComposerOrderDiffUi(options = {}) {
     const viewEntries = createView('entries', 'composer-diff-view-entries');
     const viewOrder = createView('order', 'composer-diff-view-order');
 
-    const statsWrap = documentRef.createElement('div');
-    statsWrap.className = 'composer-order-stats';
-
-    const body = documentRef.createElement('div');
-    body.className = 'composer-order-body';
-
-    const viz = documentRef.createElement('div');
-    viz.className = 'composer-order-visual';
-
-    const svg = documentRef.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.classList.add('composer-order-lines');
-    svg.setAttribute('aria-hidden', 'true');
-
-    const columns = documentRef.createElement('div');
-    columns.className = 'composer-order-columns';
-
-    const beforeCol = documentRef.createElement('div');
-    beforeCol.className = 'composer-order-column composer-order-before';
-    const beforeTitle = documentRef.createElement('div');
-    beforeTitle.className = 'composer-order-column-title';
-    beforeTitle.textContent = tComposerDiff('order.remoteTitle');
-    const beforeList = documentRef.createElement('div');
-    beforeList.className = 'composer-order-list';
-    beforeCol.appendChild(beforeTitle);
-    beforeCol.appendChild(beforeList);
-
-    const afterCol = documentRef.createElement('div');
-    afterCol.className = 'composer-order-column composer-order-after';
-    const afterTitle = documentRef.createElement('div');
-    afterTitle.className = 'composer-order-column-title';
-    afterTitle.textContent = tComposerDiff('order.currentTitle');
-    const afterList = documentRef.createElement('div');
-    afterList.className = 'composer-order-list';
-    afterCol.appendChild(afterTitle);
-    afterCol.appendChild(afterList);
-
-    const emptyNotice = documentRef.createElement('div');
-    emptyNotice.className = 'composer-order-empty';
-    emptyNotice.textContent = tComposerDiff('order.empty');
-
-    columns.appendChild(beforeCol);
-    columns.appendChild(afterCol);
-    viz.appendChild(svg);
-    viz.appendChild(columns);
-    viz.appendChild(emptyNotice);
-    body.appendChild(viz);
-    viewOrder.appendChild(statsWrap);
-    viewOrder.appendChild(body);
+    const orderViewElements = composerOrderReviewView.mount(viewOrder) || {};
 
     dialog.setAttribute('aria-labelledby', title.id);
     dialog.appendChild(head);
@@ -321,7 +277,7 @@ export function createComposerOrderDiffUi(options = {}) {
         composerDiffResizeHandler = null;
         composerDiffResizeDispose = null;
       }
-      composerOrderState = null;
+      composerOrderReviewView.clear();
       activeDiff = null;
       const reduce = prefersReducedMotion();
       if (reduce) {
@@ -383,70 +339,14 @@ export function createComposerOrderDiffUi(options = {}) {
         try { composerDiffResizeDispose && composerDiffResizeDispose(); } catch (_) {}
         composerDiffResizeHandler = null;
         composerDiffResizeDispose = null;
-        composerOrderState = null;
+        composerOrderReviewView.clear();
       }
     }
 
     function renderOrder(kind) {
       const label = kind === 'tabs' ? 'tabs.yaml' : 'index.yaml';
       title.textContent = tComposerDiff('title', { label });
-      const details = computeOrderDiffDetails(kind);
-      const { beforeEntries, afterEntries, connectors, stats } = details;
-
-      beforeList.innerHTML = '';
-      afterList.innerHTML = '';
-      while (svg.firstChild) svg.removeChild(svg.firstChild);
-
-      const leftMap = new Map();
-      beforeEntries.forEach(entry => {
-        const item = buildOrderDiffItem(entry, 'before');
-        leftMap.set(entry.key, item);
-        beforeList.appendChild(item);
-      });
-
-      const rightMap = new Map();
-      afterEntries.forEach(entry => {
-        const item = buildOrderDiffItem(entry, 'after');
-        rightMap.set(entry.key, item);
-        afterList.appendChild(item);
-      });
-
-      const hoverState = viz.__pressOrderHoverState || {};
-      if (hoverState.activeLeft && !hoverState.activeLeft.isConnected) {
-        try { hoverState.activeLeft.classList.remove('is-hovered'); } catch (_) {}
-        hoverState.activeLeft = null;
-      }
-      hoverState.leftMap = leftMap;
-      hoverState.rightMap = rightMap;
-      hoverState.svg = svg;
-      hoverState.pathMap = null;
-      viz.__pressOrderHoverState = hoverState;
-
-      const hasItems = beforeEntries.length || afterEntries.length;
-      if (hasItems) {
-        emptyNotice.hidden = true;
-        emptyNotice.style.display = 'none';
-        emptyNotice.setAttribute('aria-hidden', 'true');
-      } else {
-        emptyNotice.hidden = false;
-        emptyNotice.style.display = 'flex';
-        emptyNotice.setAttribute('aria-hidden', 'false');
-      }
-      viz.classList.toggle('is-empty', !hasItems);
-
-      renderOrderStatsChips(statsWrap, stats, { emptyLabel: tComposerDiff('orderStats.empty') });
-
-      composerOrderState = hasItems
-        ? { container: viz, svg, connectors, leftMap, rightMap }
-        : null;
-      if (!hasItems) {
-        applyComposerOrderHover(viz, '');
-      }
-      if (activeTab === 'order') {
-        drawOrderDiffLines();
-        requestAnimationFrameRef(drawOrderDiffLines);
-        setTimeoutRef(drawOrderDiffLines, 120);
-      }
+      composerOrderReviewView.render(kind, { layout: activeTab === 'order' });
     }
 
     function openModal(kind, initialTab = 'overview') {
@@ -504,11 +404,11 @@ export function createComposerOrderDiffUi(options = {}) {
       title,
       subtitle,
       views: { overview: viewOverview, entries: viewEntries, order: viewOrder },
-      statsWrap,
-      beforeList,
-      afterList,
-      svg,
-      emptyNotice,
+      statsWrap: orderViewElements.statsWrap || null,
+      beforeList: orderViewElements.beforeList || null,
+      afterList: orderViewElements.afterList || null,
+      svg: orderViewElements.svg || null,
+      emptyNotice: orderViewElements.emptyNotice || null,
       tabsWrap
     };
 
@@ -517,9 +417,7 @@ export function createComposerOrderDiffUi(options = {}) {
       subtitle.textContent = tComposerDiff(subtitleKeys[activeTab] || subtitleKeys.overview);
       closeBtn.textContent = tComposerDiff('close');
       closeBtn.setAttribute('aria-label', tComposerDiff('close'));
-      if (beforeTitle) beforeTitle.textContent = tComposerDiff('order.remoteTitle');
-      if (afterTitle) afterTitle.textContent = tComposerDiff('order.currentTitle');
-      if (emptyNotice) emptyNotice.textContent = tComposerDiff('order.empty');
+      composerOrderReviewView.refreshLocale();
       tabButtons.forEach((btn, id) => {
         const def = tabDefsById.get(id);
         if (!btn || !def) return;
@@ -535,8 +433,11 @@ export function createComposerOrderDiffUi(options = {}) {
   }
 
   function drawOrderDiffLines(state) {
-    const ctx = state && typeof state === 'object' && state.container ? state : composerOrderState;
-    drawOrderDiffLinesForState(ctx);
+    if (state && typeof state === 'object' && state.container) {
+      composerOrderVisual.drawOrderDiffLines(state);
+      return;
+    }
+    composerOrderReviewView.drawLines();
   }
 
   function closeComposerDiffModalForKind(kind) {

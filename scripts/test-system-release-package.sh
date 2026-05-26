@@ -138,6 +138,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-order-preview.js" "${e
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-order-review-view.js" "${entries_file}"; then
+  echo "expected package to include composer order review view code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-order-visual.js" "${entries_file}"; then
   echo "expected package to include composer order visual code" >&2
   exit 1

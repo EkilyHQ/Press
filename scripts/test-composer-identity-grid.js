@@ -105,6 +105,7 @@ const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-pre
 const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-preview-assets.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
+const editorMainSidebarFileTreePath = resolve(here, '../assets/js/editor-main-sidebar-file-tree.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
 const editorMainToolbarCardPickerPath = resolve(here, '../assets/js/editor-main-toolbar-card-picker.js');
 const editorMainToolbarTextActionsPath = resolve(here, '../assets/js/editor-main-toolbar-text-actions.js');
@@ -253,6 +254,7 @@ const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath
 const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
+const editorMainSidebarFileTreeSource = readFileSync(editorMainSidebarFileTreePath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
 const editorMainToolbarCardPickerSource = readFileSync(editorMainToolbarCardPickerPath, 'utf8');
 const editorMainToolbarTextActionsSource = readFileSync(editorMainToolbarTextActionsPath, 'utf8');
@@ -1772,6 +1774,12 @@ assert.match(
 );
 
 assert.match(
+  editorMainSidebarSessionSource,
+  /from '\.\/editor-main-sidebar-file-tree\.js'/,
+  'editor sidebar session should cache-bust the sidebar file tree boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-toolbar-session\.js'/,
   'editor main should cache-bust the editor toolbar session boundary'
@@ -2042,6 +2050,7 @@ assert.doesNotMatch(
     editorMainPreviewAssetsSource,
     editorMainCurrentFileSessionSource,
     editorMainSidebarSessionSource,
+    editorMainSidebarFileTreeSource,
     editorMainToolbarSessionSource,
     editorMainToolbarCardPickerSource,
     editorMainToolbarTextActionsSource,
@@ -2159,14 +2168,26 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSidebarSessionSource,
-  /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
-  'editor sidebar session should own file list active state, grouped rendering, filtering, group switching, and initialization'
+  /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*const fileTree = createEditorMainSidebarFileTree\(\{[\s\S]*runtime,[\s\S]*documentRef,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot: \(\) => contentRoot,[\s\S]*setStatus,[\s\S]*onOpenMarkdown,[\s\S]*onWarn,[\s\S]*alert: showAlert[\s\S]*\}\);[\s\S]*fileTree\.bind\(\{[\s\S]*listIndex,[\s\S]*listTabs,[\s\S]*searchInput,[\s\S]*sideTabs,[\s\S]*groupIndex,[\s\S]*groupTabs[\s\S]*\}\);[\s\S]*fileTree\.renderIndex\(rawIndex\);[\s\S]*fileTree\.renderTabs\(tabs\);[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
+  'editor sidebar session should compose file tree rendering and keep loading/current-file binding orchestration'
+);
+
+assert.match(
+  editorMainSidebarFileTreeSource,
+  /export function createEditorMainSidebarFileTree\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const makeLi = \(label, relPath\) => \{[\s\S]*await onOpenMarkdown\(\{ relPath, url, contentRoot: currentContentRoot\(\) \}\);[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const bind = \(elements = \{\}\) => \{/,
+  'editor sidebar file tree boundary should own active row state, grouped rendering, filtering, group switching, and item open behavior'
 );
 
 assert.doesNotMatch(
   editorMainSidebarSessionSource,
+  /let currentActive = null|let activeGroup = 'index'|const renderGroupedIndex = \(root, data\)|const renderGroupedTabs = \(root, data\)|const applyFilter = \(term\)|const switchGroup = \(name\)|const makeGroupHeader|const makeSubHeader|const compareVersionDesc|const makeLi = \(label, relPath\)/,
+  'editor sidebar session should not own file tree row state, grouped rendering, filtering, or row open internals'
+);
+
+assert.doesNotMatch(
+  [editorMainSidebarSessionSource, editorMainSidebarFileTreeSource].join('\n'),
   /\bwindowRef\b|options\.windowRef|defaultAlert/,
-  'editor sidebar session should receive alert behavior through explicit app-service injection instead of reading window refs'
+  'editor sidebar session and file tree should receive alert behavior through explicit app-service injection instead of reading window refs'
 );
 
 assert.match(

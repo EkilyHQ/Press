@@ -318,6 +318,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-main-sidebar-session.js"
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-main-sidebar-file-tree.js" "${entries_file}"; then
+  echo "expected package to include editor main sidebar file tree code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-main-toolbar-session.js" "${entries_file}"; then
   echo "expected package to include editor main toolbar session boundary code" >&2
   exit 1

@@ -94,15 +94,17 @@ import {
 } from './editor-blocks-list-model.js';
 import {
   editableTableData,
+  normalizeTableAlignment,
+  normalizeTableCellValue,
+  tableColumnCount
+} from './editor-blocks-table-model.js';
+import {
   makeBlankBlock,
   makeBlock,
   mergeFirstListItemIntoPreviousBlock,
-  normalizeTableAlignment,
-  normalizeTableCellValue,
   parseMarkdownBlocks,
   serializeMarkdownBlocks,
-  splitBlankLineUnits,
-  tableColumnCount
+  splitBlankLineUnits
 } from './editor-blocks-model.js';
 
 export {

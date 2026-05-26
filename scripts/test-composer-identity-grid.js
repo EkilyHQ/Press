@@ -129,6 +129,7 @@ const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksInlineModelPath = resolve(here, '../assets/js/editor-blocks-inline-model.js');
 const editorBlocksListModelPath = resolve(here, '../assets/js/editor-blocks-list-model.js');
+const editorBlocksTableModelPath = resolve(here, '../assets/js/editor-blocks-table-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
 const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
@@ -286,6 +287,7 @@ const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksInlineModelSource = readFileSync(editorBlocksInlineModelPath, 'utf8');
 const editorBlocksListModelSource = readFileSync(editorBlocksListModelPath, 'utf8');
+const editorBlocksTableModelSource = readFileSync(editorBlocksTableModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
@@ -444,6 +446,12 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-table-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks table model boundary'
+);
+
+assert.match(
   editorBlocksInlineEditingBridgeSource,
   /from '\.\/editor-blocks-inline-model\.js'/,
   'blocks inline editing bridge should consume inline run parsing and serialization through the inline model boundary'
@@ -467,6 +475,12 @@ assert.match(
   'blocks model should keep backward-compatible list exports while delegating list logic to the list model boundary'
 );
 
+assert.match(
+  editorBlocksModelSource,
+  /from '\.\/editor-blocks-table-model\.js'[\s\S]*export \{(?=[\s\S]*parseTableBlock,)(?=[\s\S]*serializeTable,)(?=[\s\S]*editableTableData,)[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/,
+  'blocks model should keep backward-compatible table exports while delegating table logic to the table model boundary'
+);
+
 assert.doesNotMatch(
   editorBlocksModelSource,
   /function parseInlineRunsInternal|function inlineMarkedRangeAtOffset|function escapeMarkdownInline|function serializeInlineRun/,
@@ -479,10 +493,22 @@ assert.doesNotMatch(
   'blocks model should not re-own visual-list parser, serializer, source autofix, or item merge internals'
 );
 
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function parseTableBlock|function serializeTable|function splitPipeTableRow|function parsePipeTableSeparatorCells|function tableSeparatorCell|function serializeTableRow/,
+  'blocks model should not re-own pipe-table parser, serializer, or formatting internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksTableModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement)\b/,
+  'blocks table model should stay DOM-free'
+);
+
 assert.match(
   editorBlocksSource,
-  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,?[\s\S]*\} from '\.\/editor-blocks-model\.js'/,
-  'blocks editor should import table model helpers from the explicit blocks model boundary before composing the table session'
+  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,?[\s\S]*\} from '\.\/editor-blocks-table-model\.js'/,
+  'blocks editor should import table model helpers from the explicit blocks table model boundary before composing the table session'
 );
 
 assert.match(

@@ -77,29 +77,31 @@ import {
   toggleInlineMarkOnRuns
 } from './editor-blocks-inline-model.js';
 import {
-  convertListTailItemAfterEmptyToParagraph,
   defaultListItems,
   editableListItems,
-  editableTableData,
   effectiveListItemType,
   itemIndentLevel,
   listVisualMarkerLabels,
-  makeBlankBlock,
-  makeBlock,
-  mergeFirstListItemIntoPreviousBlock,
   mergeListItemIntoPreviousItem,
-  normalizeTableAlignment,
-  normalizeTableCellValue,
   normalizeListItemType,
   normalizeSplitListStartItems,
   outdentEmptyListItemForEnter,
-  parseMarkdownBlocks,
   patchListItem,
   patchListItemType,
-  serializeMarkdownBlocks,
-  splitBlankLineUnits,
   splitListItemsAtEmptyItem,
   summarizeListType,
+  convertListTailItemAfterEmptyToParagraph
+} from './editor-blocks-list-model.js';
+import {
+  editableTableData,
+  makeBlankBlock,
+  makeBlock,
+  mergeFirstListItemIntoPreviousBlock,
+  normalizeTableAlignment,
+  normalizeTableCellValue,
+  parseMarkdownBlocks,
+  serializeMarkdownBlocks,
+  splitBlankLineUnits,
   tableColumnCount
 } from './editor-blocks-model.js';
 
@@ -115,22 +117,25 @@ export {
 } from './editor-blocks-inline-model.js';
 
 export {
-  autofixMarkdownSourceBlock,
   convertListTailItemAfterEmptyToParagraph,
-  isBlockEmptyForBackspace,
-  joinMergedEditableText,
   listVisualMarkerLabels,
-  mergeFirstListItemIntoPreviousBlock,
   mergeListItemIntoPreviousItem,
-  mergeTextBlockIntoPrevious,
-  mergeTextBlockIntoPreviousList,
   normalizeSplitListStartItems,
   outdentEmptyListItemForEnter,
-  parseMarkdownBlocks,
   patchListItem,
   patchListItemType,
+  splitListItemsAtEmptyItem
+} from './editor-blocks-list-model.js';
+
+export {
+  autofixMarkdownSourceBlock,
+  isBlockEmptyForBackspace,
+  joinMergedEditableText,
+  mergeFirstListItemIntoPreviousBlock,
+  mergeTextBlockIntoPrevious,
+  mergeTextBlockIntoPreviousList,
+  parseMarkdownBlocks,
   serializeMarkdownBlocks,
-  splitListItemsAtEmptyItem,
   splitTextBlockIntoParagraph
 } from './editor-blocks-model.js';
 

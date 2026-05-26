@@ -1,9 +1,11 @@
 import {
-  autofixMarkdownSourceBlock,
   editableListItems,
-  isBlockEmptyForBackspace,
   isMergeableListBlock,
-  listBlockItems,
+  listBlockItems
+} from './editor-blocks-list-model.js';
+import {
+  autofixMarkdownSourceBlock,
+  isBlockEmptyForBackspace,
   makeBlock,
   mergeTextBlockIntoPrevious,
   mergeTextBlockIntoPreviousList,

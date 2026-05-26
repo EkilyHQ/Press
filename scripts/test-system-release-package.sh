@@ -433,6 +433,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-inline-model.js" 
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-list-model.js" "${entries_file}"; then
+  echo "expected package to include editor blocks list model boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-runtime.js" "${entries_file}"; then
   echo "expected package to include editor blocks runtime boundary code" >&2
   exit 1

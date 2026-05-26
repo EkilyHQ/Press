@@ -128,6 +128,7 @@ const editorMainServiceRegistryPath = resolve(here, '../assets/js/editor-main-se
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
 const editorBlocksInlineModelPath = resolve(here, '../assets/js/editor-blocks-inline-model.js');
+const editorBlocksListModelPath = resolve(here, '../assets/js/editor-blocks-list-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
 const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
@@ -284,6 +285,7 @@ const editorMainServiceRegistrySource = readFileSync(editorMainServiceRegistryPa
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksInlineModelSource = readFileSync(editorBlocksInlineModelPath, 'utf8');
+const editorBlocksListModelSource = readFileSync(editorBlocksListModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
@@ -436,9 +438,21 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-list-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks list model boundary'
+);
+
+assert.match(
   editorBlocksInlineEditingBridgeSource,
   /from '\.\/editor-blocks-inline-model\.js'/,
   'blocks inline editing bridge should consume inline run parsing and serialization through the inline model boundary'
+);
+
+assert.match(
+  editorBlocksBlockActionsSource,
+  /from '\.\/editor-blocks-list-model\.js'/,
+  'blocks block actions should consume list block helpers through the list model boundary'
 );
 
 assert.match(
@@ -447,10 +461,22 @@ assert.match(
   'blocks model should keep backward-compatible inline exports while delegating inline logic to the inline model boundary'
 );
 
+assert.match(
+  editorBlocksModelSource,
+  /from '\.\/editor-blocks-list-model\.js'[\s\S]*export \{(?=[\s\S]*parseListBlock,)(?=[\s\S]*serializeList,)(?=[\s\S]*mergeListItemIntoPreviousItem,)[\s\S]*\} from '\.\/editor-blocks-list-model\.js';/,
+  'blocks model should keep backward-compatible list exports while delegating list logic to the list model boundary'
+);
+
 assert.doesNotMatch(
   editorBlocksModelSource,
   /function parseInlineRunsInternal|function inlineMarkedRangeAtOffset|function escapeMarkdownInline|function serializeInlineRun/,
   'blocks model should not re-own inline Markdown parser, serializer, or run mutation internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function parseListBlock|function serializeList|function parseListLineInfo|function dedentIndentedListSource|function mergeListItemIntoPreviousItem/,
+  'blocks model should not re-own visual-list parser, serializer, source autofix, or item merge internals'
 );
 
 assert.match(
@@ -4769,8 +4795,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksInlineModelSource}\n${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
-  /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
+  `${editorBlocksInlineModelSource}\n${editorBlocksListModelSource}\n${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
+  /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedListItemText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
   'Backspace or Delete at the start of a non-first visual list item should merge only structurally safe same-level items'
 );
 

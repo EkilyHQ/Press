@@ -1,14 +1,22 @@
 import { t } from './i18n.js';
-import { getProductStateThemeEntry, loadProductState } from './product-state.js';
+import { loadProductState } from './product-state.js';
 import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
 import { createThemeInstallService } from './theme-install-service.js';
+import {
+  createThemeManagerElements,
+  renderThemeManagerAvailableThemes,
+  renderThemeManagerInstalledThemes,
+  renderThemeManagerPendingFiles,
+  setActiveThemeManagerView,
+  setThemeManagerBusy as setBusy,
+  setThemeManagerStatus as setStatus
+} from './theme-manager-view.js';
 import {
   collectThemeArchiveEntries,
   normalizeThemeCatalog,
   normalizeThemeFilePath,
   normalizeThemeRegistry,
   normalizeThemeReleaseManifest,
-  safeString,
   sanitizeThemeSlug,
   verifyThemeAsset
 } from './theme-package-core.js';
@@ -24,24 +32,6 @@ export {
 } from './theme-package-core.js';
 
 export const OFFICIAL_THEME_CATALOG_URL = PRESS_GITHUB_PROVIDER.themeCatalogUrl;
-
-function createThemeManagerElements() {
-  return {
-    root: null,
-    status: null,
-    tabs: null,
-    views: null,
-    installedList: null,
-    availableList: null,
-    pendingSection: null,
-    pendingList: null,
-    fileInput: null,
-    headerImportButton: null,
-    inlineImportButton: null,
-    refreshCatalogButton: null,
-    clearButton: null
-  };
-}
 
 function createThemeManagerState() {
   return {
@@ -95,25 +85,6 @@ function notifyStateChange(runtime) {
   });
 }
 
-function setStatus(runtime, text, options = {}) {
-  const { elements } = runtime.state;
-  if (!elements.status) return;
-  elements.status.textContent = text ? safeString(text) : '';
-  elements.status.dataset.tone = options.tone || 'info';
-}
-
-function setBusy(runtime, value) {
-  const state = runtime.state;
-  const { elements } = state;
-  state.busy = !!value;
-  [elements.headerImportButton, elements.inlineImportButton, elements.refreshCatalogButton, elements.clearButton]
-    .forEach((button) => {
-      if (!button) return;
-      button.disabled = state.busy;
-      button.dataset.state = state.busy ? 'busy' : 'idle';
-    });
-}
-
 function getCurrentThemePackValue(runtime) {
   const { optionsRef } = runtime.state;
   try {
@@ -155,7 +126,7 @@ function applySummary(runtime, summary, files, meta = {}) {
   state.currentThemeDigest = meta.digest || '';
   state.currentThemeSize = Number.isFinite(meta.size) ? meta.size : 0;
   state.currentThemeAssetName = meta.assetName || '';
-  renderPendingFiles(runtime);
+  renderThemeManagerPendingFiles(runtime);
   notifyStateChange(runtime);
 }
 
@@ -288,21 +259,6 @@ async function stageThemeUninstallWithRuntime(runtime, slug) {
   return { registry: staged.registry, files: staged.files };
 }
 
-function clearElement(node) {
-  if (node) node.innerHTML = '';
-}
-
-function makeButton(runtime, label, className, onClick) {
-  const documentRef = runtime.getDocument();
-  if (!documentRef) return null;
-  const button = documentRef.createElement('button');
-  button.type = 'button';
-  button.className = className || 'btn-secondary';
-  button.textContent = label;
-  button.addEventListener('click', onClick);
-  return button;
-}
-
 function stageSiteThemePack(runtime, value, label) {
   const slug = sanitizeThemeSlug(value);
   clearPendingSiteThemeFallback(runtime);
@@ -312,181 +268,6 @@ function stageSiteThemePack(runtime, value, label) {
   renderThemeManager(runtime);
 }
 
-function renderPendingFiles(runtime) {
-  const { elements, currentFiles } = runtime.state;
-  const documentRef = runtime.getDocument();
-  if (!elements.pendingSection || !elements.pendingList) return;
-  clearElement(elements.pendingList);
-  const files = currentFiles.slice();
-  elements.pendingSection.hidden = !files.length;
-  elements.pendingSection.setAttribute('aria-hidden', files.length ? 'false' : 'true');
-  files.forEach((file) => {
-    if (!documentRef) return;
-    const item = documentRef.createElement('li');
-    item.className = 'updates-file-item';
-    const name = documentRef.createElement('span');
-    name.className = 'updates-file-name';
-    name.textContent = file.path || file.label || '';
-    const badge = documentRef.createElement('span');
-    badge.className = 'updates-file-badge';
-    badge.textContent = file.deleted ? 'deleted' : (file.state || 'modified');
-    item.appendChild(name);
-    item.appendChild(badge);
-    elements.pendingList.appendChild(item);
-  });
-}
-
-function formatThemeProductStateMeta(productState, slug) {
-  const entry = getProductStateThemeEntry(productState, slug);
-  if (!entry) return '';
-  return [
-    `release ${entry.status}`,
-    entry.version ? `v${entry.version}` : ''
-  ].filter(Boolean).join(' ');
-}
-
-function buildThemeManagerMeta(parts, productState, slug) {
-  return [
-    ...parts,
-    formatThemeProductStateMeta(productState, slug)
-  ].filter(Boolean).join(' · ');
-}
-
-function renderProductStateNotice(runtime, target, productState) {
-  const { productStateLoadError } = runtime.state;
-  const documentRef = runtime.getDocument();
-  if (!target || !documentRef) return;
-  const message = productStateLoadError || (productState && productState.status !== 'ok' ? `Product state: ${productState.status}` : '');
-  if (!message) return;
-  const notice = documentRef.createElement('p');
-  notice.className = 'muted';
-  notice.textContent = message;
-  target.appendChild(notice);
-}
-
-function renderInstalledThemes(runtime, registry, catalog, productState) {
-  const { elements } = runtime.state;
-  const documentRef = runtime.getDocument();
-  if (!elements.installedList) return;
-  clearElement(elements.installedList);
-  renderProductStateNotice(runtime, elements.installedList, productState);
-  const currentThemePack = getCurrentThemePackValue(runtime) || 'native';
-  registry.forEach((entry) => {
-    if (!documentRef) return;
-    const row = documentRef.createElement('div');
-    row.className = 'theme-manager-row';
-    const body = documentRef.createElement('div');
-    body.className = 'theme-manager-row-body';
-    const title = documentRef.createElement('strong');
-    title.textContent = entry.label || entry.value;
-    const meta = documentRef.createElement('span');
-    meta.className = 'muted';
-    meta.textContent = buildThemeManagerMeta([
-      entry.value,
-      entry.version ? `v${entry.version}` : '',
-      entry.builtIn ? 'built-in' : (entry.source && entry.source.type ? entry.source.type : '')
-    ], productState, entry.value);
-    body.appendChild(title);
-    body.appendChild(meta);
-    const actions = documentRef.createElement('div');
-    actions.className = 'theme-manager-row-actions';
-    if (entry.value !== currentThemePack) {
-      const button = makeButton(runtime, 'Use theme', 'btn-secondary', () => {
-        if (runtime.state.busy) return;
-        stageSiteThemePack(runtime, entry.value, entry.label || entry.value);
-      });
-      if (button) actions.appendChild(button);
-    }
-    const catalogEntry = catalog.find((item) => item.value === entry.value);
-    if (!entry.builtIn && catalogEntry) {
-      const button = makeButton(runtime, 'Update', 'btn-secondary', async () => {
-        if (runtime.state.busy) return;
-        setBusy(runtime, true);
-        try {
-          setStatus(runtime, `Downloading ${catalogEntry.label}...`);
-          await stageCatalogThemeWithRuntime(runtime, catalogEntry, { activate: getCurrentThemePackValue(runtime) === entry.value });
-        } catch (err) {
-          console.error('Theme update failed', err);
-          setStatus(runtime, err && err.message ? err.message : 'Theme update failed.', { tone: 'error' });
-        } finally {
-          setBusy(runtime, false);
-        }
-      });
-      if (button) actions.appendChild(button);
-    }
-    if (!entry.builtIn && entry.removable !== false) {
-      const button = makeButton(runtime, 'Uninstall', 'btn-secondary', async () => {
-        if (runtime.state.busy) return;
-        setBusy(runtime, true);
-        try {
-          await stageThemeUninstallWithRuntime(runtime, entry.value);
-        } catch (err) {
-          console.error('Theme uninstall failed', err);
-          setStatus(runtime, err && err.message ? err.message : 'Theme uninstall failed.', { tone: 'error' });
-        } finally {
-          setBusy(runtime, false);
-        }
-      });
-      if (button) actions.appendChild(button);
-    }
-    row.appendChild(body);
-    row.appendChild(actions);
-    elements.installedList.appendChild(row);
-  });
-}
-
-function renderAvailableThemes(runtime, registry, catalog, productState) {
-  const { elements, catalogLoadError } = runtime.state;
-  const documentRef = runtime.getDocument();
-  if (!elements.availableList) return;
-  clearElement(elements.availableList);
-  renderProductStateNotice(runtime, elements.availableList, productState);
-  if (!catalog.length) {
-    if (!documentRef) return;
-    const empty = documentRef.createElement('p');
-    empty.className = 'muted';
-    empty.textContent = catalogLoadError || 'No official themes are available.';
-    elements.availableList.appendChild(empty);
-    return;
-  }
-  const installed = new Set(registry.map((entry) => entry.value));
-  catalog.forEach((entry) => {
-    if (!documentRef) return;
-    const row = documentRef.createElement('div');
-    row.className = 'theme-manager-row';
-    const body = documentRef.createElement('div');
-    body.className = 'theme-manager-row-body';
-    const title = documentRef.createElement('strong');
-    title.textContent = entry.label || entry.value;
-    const meta = documentRef.createElement('span');
-    meta.className = 'muted';
-    meta.textContent = buildThemeManagerMeta([entry.value, entry.repo || '', entry.description || ''], productState, entry.value);
-    body.appendChild(title);
-    body.appendChild(meta);
-    const actions = documentRef.createElement('div');
-    actions.className = 'theme-manager-row-actions';
-    const button = makeButton(runtime, installed.has(entry.value) ? 'Update' : 'Install', 'btn-primary', async () => {
-      if (runtime.state.busy) return;
-      setBusy(runtime, true);
-      try {
-        setStatus(runtime, `Downloading ${entry.label}...`);
-        await stageCatalogThemeWithRuntime(runtime, entry, {
-          activate: !installed.has(entry.value) || getCurrentThemePackValue(runtime) === entry.value
-        });
-      } catch (err) {
-        console.error('Theme install failed', err);
-        setStatus(runtime, err && err.message ? err.message : 'Theme install failed.', { tone: 'error' });
-      } finally {
-        setBusy(runtime, false);
-      }
-    });
-    if (button) actions.appendChild(button);
-    row.appendChild(body);
-    row.appendChild(actions);
-    elements.availableList.appendChild(row);
-  });
-}
-
 async function renderThemeManager(runtime, options = {}) {
   if (!runtime.state.elements.root) return;
   const [registry, catalog, productState] = await Promise.all([
@@ -494,28 +275,50 @@ async function renderThemeManager(runtime, options = {}) {
     loadOfficialThemeCatalogWithRuntime(runtime, options),
     loadProductStateWithRuntime(runtime, options)
   ]);
-  renderInstalledThemes(runtime, registry, catalog, productState);
-  renderAvailableThemes(runtime, registry, catalog, productState);
-  renderPendingFiles(runtime);
-}
-
-function setActiveThemeManagerView(runtime, view) {
-  const { elements } = runtime.state;
-  const next = view === 'available' || view === 'import' ? view : 'installed';
-  if (elements.tabs) {
-    elements.tabs.forEach((button) => {
-      const active = button.dataset.themeManagerView === next;
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
-  }
-  if (elements.views) {
-    elements.views.forEach((panel) => {
-      const active = panel.dataset.themeManagerPanel === next;
-      panel.hidden = !active;
-      panel.setAttribute('aria-hidden', active ? 'false' : 'true');
-    });
-  }
+  renderThemeManagerInstalledThemes(runtime, registry, catalog, productState, {
+    getCurrentThemePack: () => getCurrentThemePackValue(runtime) || 'native',
+    onUseTheme: (entry) => stageSiteThemePack(runtime, entry.value, entry.label || entry.value),
+    onUpdateTheme: async (catalogEntry, entry) => {
+      setBusy(runtime, true);
+      try {
+        setStatus(runtime, `Downloading ${catalogEntry.label}...`);
+        await stageCatalogThemeWithRuntime(runtime, catalogEntry, { activate: getCurrentThemePackValue(runtime) === entry.value });
+      } catch (err) {
+        console.error('Theme update failed', err);
+        setStatus(runtime, err && err.message ? err.message : 'Theme update failed.', { tone: 'error' });
+      } finally {
+        setBusy(runtime, false);
+      }
+    },
+    onUninstallTheme: async (entry) => {
+      setBusy(runtime, true);
+      try {
+        await stageThemeUninstallWithRuntime(runtime, entry.value);
+      } catch (err) {
+        console.error('Theme uninstall failed', err);
+        setStatus(runtime, err && err.message ? err.message : 'Theme uninstall failed.', { tone: 'error' });
+      } finally {
+        setBusy(runtime, false);
+      }
+    }
+  });
+  renderThemeManagerAvailableThemes(runtime, registry, catalog, productState, {
+    onInstallTheme: async (entry, actionMeta = {}) => {
+      setBusy(runtime, true);
+      try {
+        setStatus(runtime, `Downloading ${entry.label}...`);
+        await stageCatalogThemeWithRuntime(runtime, entry, {
+          activate: !actionMeta.installed || getCurrentThemePackValue(runtime) === entry.value
+        });
+      } catch (err) {
+        console.error('Theme install failed', err);
+        setStatus(runtime, err && err.message ? err.message : 'Theme install failed.', { tone: 'error' });
+      } finally {
+        setBusy(runtime, false);
+      }
+    }
+  });
+  renderThemeManagerPendingFiles(runtime);
 }
 
 async function handleImportFileWithRuntime(runtime, file) {

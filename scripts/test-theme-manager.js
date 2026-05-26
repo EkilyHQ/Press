@@ -51,6 +51,7 @@ const {
 } = await import('../assets/js/theme-manager.js?theme-manager-test');
 
 const themeManagerSource = readFileSync(new URL('../assets/js/theme-manager.js', import.meta.url), 'utf8');
+const themeManagerViewSource = readFileSync(new URL('../assets/js/theme-manager-view.js', import.meta.url), 'utf8');
 const themePackageCoreSource = readFileSync(new URL('../assets/js/theme-package-core.js', import.meta.url), 'utf8');
 const themeInstallServiceSource = readFileSync(new URL('../assets/js/theme-install-service.js', import.meta.url), 'utf8');
 
@@ -203,6 +204,25 @@ await run('keeps theme package and install responsibilities outside the UI contr
   assert.match(themeInstallServiceSource, /stageThemeArchive/, 'theme install service should own archive staging');
   assert.doesNotMatch(themeManagerSource, /function collectThemeArchiveEntries/, 'theme manager UI controller should not own ZIP analysis');
   assert.doesNotMatch(themeManagerSource, /function buildThemeFileChanges/, 'theme manager UI controller should not own theme file diffing');
+});
+
+await run('keeps theme manager list rendering in a view boundary', async () => {
+  assert.match(themeManagerSource, /from '\.\/theme-manager-view\.js';/, 'theme manager should consume DOM rendering through the view module');
+  assert.match(
+    themeManagerViewSource,
+    /export function createThemeManagerElements\(\)[\s\S]*export function setThemeManagerStatus\(runtime, text, options = \{\}\)[\s\S]*export function setThemeManagerBusy\(runtime, value\)[\s\S]*export function renderThemeManagerPendingFiles\(runtime\)[\s\S]*export function renderThemeManagerInstalledThemes\(runtime, registry, catalog, productState, actions = \{\}\)[\s\S]*export function renderThemeManagerAvailableThemes\(runtime, registry, catalog, productState, actions = \{\}\)[\s\S]*export function setActiveThemeManagerView\(runtime, view\)/,
+    'theme manager view should own element slots, status/busy UI, pending files, list rows, and tabs'
+  );
+  assert.match(
+    themeManagerSource,
+    /renderThemeManagerInstalledThemes\(runtime, registry, catalog, productState, \{[\s\S]*onUpdateTheme: async \(catalogEntry, entry\) => \{[\s\S]*stageCatalogThemeWithRuntime\(runtime, catalogEntry[\s\S]*onUninstallTheme: async \(entry\) => \{[\s\S]*stageThemeUninstallWithRuntime\(runtime, entry\.value\)[\s\S]*renderThemeManagerAvailableThemes\(runtime, registry, catalog, productState, \{[\s\S]*onInstallTheme: async \(entry, actionMeta = \{\}\) => \{[\s\S]*stageCatalogThemeWithRuntime\(runtime, entry,/,
+    'theme manager controller should keep async theme staging behind view action callbacks'
+  );
+  assert.doesNotMatch(
+    themeManagerSource,
+    /function (?:clearElement|makeButton|renderPendingFiles|formatThemeProductStateMeta|buildThemeManagerMeta|renderProductStateNotice|renderInstalledThemes|renderAvailableThemes|setActiveThemeManagerView)\(/,
+    'theme manager controller should not re-own list rendering or tab DOM helpers'
+  );
 });
 
 await run('scopes theme manager state to controller instances', async () => {

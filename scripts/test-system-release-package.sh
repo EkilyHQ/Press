@@ -138,6 +138,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-ui.js" "
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-config-grids.js" "${entries_file}"; then
+  echo "expected package to include composer Site Settings config grids code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-controls.js" "${entries_file}"; then
   echo "expected package to include composer Site Settings controls code" >&2
   exit 1

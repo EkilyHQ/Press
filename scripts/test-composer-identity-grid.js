@@ -37,6 +37,7 @@ const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
+const composerSiteSettingsConfigGridsPath = resolve(here, '../assets/js/composer-site-settings-config-grids.js');
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
 const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
 const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
@@ -165,6 +166,7 @@ const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
+const composerSiteSettingsConfigGridsSource = readFileSync(composerSiteSettingsConfigGridsPath, 'utf8');
 const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
 const composerSiteSettingsLanguageMenuSource = readFileSync(composerSiteSettingsLanguageMenuPath, 'utf8');
 const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
@@ -271,6 +273,7 @@ const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
 const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsUiSource,
+  composerSiteSettingsConfigGridsSource,
   composerSiteSettingsControlsSource,
   composerSiteSettingsLanguageMenuSource,
   composerSiteSettingsLinkListSource,
@@ -934,6 +937,12 @@ assert.match(
 
 assert.match(
   composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-config-grids\.js'/,
+  'Site Settings UI should delegate configuration subsection grids'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
   /from '\.\/composer-site-settings-language-menu\.js'/,
   'Site Settings UI should delegate add-language menu behavior and lifecycle cleanup'
 );
@@ -958,8 +967,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteSettingsUiSource,
-  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
-  'Site Settings UI boundary should own repository, identity, theme, annotate, and asset warning rendering'
+  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>[\s\S]*const repoSection = createSection\([\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAnnotateGrid\(commentsSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
+  'Site Settings UI boundary should own top-level repository and identity composition while wiring configuration grid boundaries'
 );
 
 assert.doesNotMatch(
@@ -972,6 +981,18 @@ assert.doesNotMatch(
   composerSiteSettingsUiSource,
   /className = 'cs-add-lang has-menu'|documentRef\.addEventListener\(LANGUAGE_POOL_CHANGED_EVENT,\s*refreshMenu\)|documentRef\.addEventListener\('mousedown',\s*onDocDown,\s*true\)/,
   'Site Settings UI should not re-own add-language menu DOM or document-level menu listeners'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const render(?:Behavior|Theme|Annotate|AssetWarnings)Grid = \(section\) =>/,
+  'Site Settings UI should not re-own configuration subsection grid renderers after extraction'
+);
+
+assert.match(
+  composerSiteSettingsConfigGridsSource,
+  /export function createComposerSiteSettingsConfigGrids\(options = \{\}\)[\s\S]*const renderBehaviorGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAnnotateGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
+  'Site Settings config-grids boundary should own behavior, theme, annotate, and asset warning renderers'
 );
 
 assert.match(
@@ -6809,7 +6830,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: CONNECT_PUBLISH_PRESETS[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: ANNOTATE_DISCUSSION_CATEGORY_PRESETS/,
+  /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: connectPublishPresets[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: annotateDiscussionCategoryPresets/,
   'Annotate settings should expose editable datalist inputs for Connect URL and Discussion category'
 );
 

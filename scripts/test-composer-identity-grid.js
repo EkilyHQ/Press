@@ -42,6 +42,7 @@ const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-si
 const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
 const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
+const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-site-settings-section-nav.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
@@ -171,6 +172,7 @@ const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsCont
 const composerSiteSettingsLanguageMenuSource = readFileSync(composerSiteSettingsLanguageMenuPath, 'utf8');
 const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
 const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
+const composerSiteSettingsSectionNavSource = readFileSync(composerSiteSettingsSectionNavPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
@@ -277,7 +279,8 @@ const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsControlsSource,
   composerSiteSettingsLanguageMenuSource,
   composerSiteSettingsLinkListSource,
-  composerSiteSettingsSchemaSource
+  composerSiteSettingsSchemaSource,
+  composerSiteSettingsSectionNavSource
 ].join('\n');
 const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
@@ -959,6 +962,12 @@ assert.match(
   'Site Settings UI should consume section and simple-field metadata from a schema boundary'
 );
 
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-section-nav\.js'/,
+  'Site Settings UI should delegate active section, scroll sync, and field reveal behavior'
+);
+
 assert.doesNotMatch(
   source,
   /function buildSiteUI/,
@@ -1017,6 +1026,18 @@ assert.match(
   composerSiteSettingsSchemaSource,
   /export function createComposerSiteSettingsSchema\(options = \{\}\)[\s\S]*sections: \{[\s\S]*repo: section\('repo'\)[\s\S]*configuration: section\('configuration'\)[\s\S]*fields: \{[\s\S]*identityPaths: \[[\s\S]*field\('avatar', 'avatar', 'avatarHelp'[\s\S]*field\('contentRoot', 'contentRoot', 'contentRootHelp'[\s\S]*behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'/,
   'Site Settings schema boundary should own stable section labels and simple field metadata'
+);
+
+assert.match(
+  composerSiteSettingsSectionNavSource,
+  /export function createComposerSiteSettingsSectionNav\(options = \{\}\)[\s\S]*const resolveSiteScrollContainer = \(\) =>[\s\S]*function setActiveSection\(sectionId, methodOptions = \{\}\)[\s\S]*function scheduleScrollSync\(\)[\s\S]*const revealField = \(fieldKey, methodOptions = \{\}\) =>/,
+  'Site Settings section-nav boundary should own scroll container resolution, active state, scroll sync, and field reveal'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const resolveSiteScrollContainer = \(\)|function setActiveSection\(sectionId|function scheduleScrollSync\(\)|const revealField = \(fieldKey/,
+  'Site Settings UI should not re-own section navigation state after extraction'
 );
 
 assert.doesNotMatch(

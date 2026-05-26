@@ -163,6 +163,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-schema.j
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-section-nav.js" "${entries_file}"; then
+  echo "expected package to include composer Site Settings section-nav code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-markdown-assets.js" "${entries_file}"; then
   echo "expected package to include composer Markdown asset manager code" >&2
   exit 1

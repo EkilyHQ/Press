@@ -39,6 +39,7 @@ const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-
 const composerOrderPreviewPath = resolve(here, '../assets/js/composer-order-preview.js');
 const composerOrderReviewViewPath = resolve(here, '../assets/js/composer-order-review-view.js');
 const composerOrderVisualPath = resolve(here, '../assets/js/composer-order-visual.js');
+const composerDragListPath = resolve(here, '../assets/js/composer-drag-list.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerIndexTabsLanguageMenuPath = resolve(here, '../assets/js/composer-index-tabs-language-menu.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
@@ -177,6 +178,7 @@ const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerOrderPreviewSource = readFileSync(composerOrderPreviewPath, 'utf8');
 const composerOrderReviewViewSource = readFileSync(composerOrderReviewViewPath, 'utf8');
 const composerOrderVisualSource = readFileSync(composerOrderVisualPath, 'utf8');
+const composerDragListSource = readFileSync(composerDragListPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerIndexTabsLanguageMenuSource = readFileSync(composerIndexTabsLanguageMenuPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
@@ -1032,6 +1034,12 @@ assert.match(
   'index/tabs UI should cache-bust the shared language-menu lifecycle boundary'
 );
 
+assert.match(
+  composerIndexTabsUiSource,
+  /from '\.\/composer-drag-list\.js'/,
+  'index/tabs UI should cache-bust the shared drag-list lifecycle boundary'
+);
+
 assert.doesNotMatch(
   source,
   /function makeDragList|function buildIndexUI|function buildTabsUI/,
@@ -1040,8 +1048,20 @@ assert.doesNotMatch(
 
 assert.match(
   composerIndexTabsUiSource,
-  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*const languageMenu = createComposerIndexTabsLanguageMenu\(\{[\s\S]*documentRef,[\s\S]*setTimeoutRef,[\s\S]*addDocumentListener,[\s\S]*query,[\s\S]*escapeHtml,[\s\S]*displayLangName[\s\S]*\}\);[\s\S]*function makeDragList\(container, onReorder\)[\s\S]*function buildIndexUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ci-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);[\s\S]*function buildTabsUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ct-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);/,
-  'index/tabs list UI boundary should own list rendering while delegating shared add-language menu lifecycle'
+  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*const dragList = createComposerDragList\(\{[\s\S]*documentRef,[\s\S]*requestAnimationFrameRef,[\s\S]*addWindowListener,[\s\S]*getWindowScroll,[\s\S]*getComputedStyleRef,[\s\S]*cancelListTransition[\s\S]*\}\);[\s\S]*const \{ makeDragList \} = dragList;[\s\S]*function buildIndexUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ci-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);[\s\S]*function buildTabsUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ct-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);/,
+  'index/tabs list UI boundary should own list rendering while delegating shared add-language and drag-list lifecycles'
+);
+
+assert.match(
+  composerDragListSource,
+  /export function createComposerDragList\(options = \{\}\)[\s\S]*function makeDragList\(container, onReorder, dragOptions = \{\}\) \{[\s\S]*const handle = target\.closest\(handleSelector\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const item = handle\.closest\(keySelector\);[\s\S]*placeholder = documentRef\.createElement\('div'\);[\s\S]*disposePointerMove = addWindowListener\('pointermove', onPointerMove\);[\s\S]*disposePointerUp = addWindowListener\('pointerup', onPointerUp, \{ once: true \}\);/,
+  'shared drag-list helper should own handle-gated pointer drag, placeholder insertion, and window listener lifecycle'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /function makeDragList\(container, onReorder|disposePointerMove|disposePointerUp|drag-placeholder|press-noselect/,
+  'index/tabs list UI should not own drag-list pointer lifecycle implementation'
 );
 
 assert.match(
@@ -1063,7 +1083,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  `${composerIndexTabsUiSource}\n${composerIndexTabsLanguageMenuSource}`,
+  `${composerIndexTabsUiSource}\n${composerIndexTabsLanguageMenuSource}\n${composerDragListSource}`,
   /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|\bwindowRef\b|documentRef\.(?:addEventListener|removeEventListener)\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
   'index/tabs UI should receive browser refs, frames, timers, events, scroll, dialogs, and style access through explicit runtime wiring'
 );
@@ -6769,14 +6789,14 @@ assert.match(
 );
 
 assert.match(
-  composerIndexTabsUiSource,
-  /const handle = target\.closest\('\.ci-grip,\.ct-grip'\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const li = handle\.closest\(keySelector\);/,
+  composerDragListSource,
+  /const handleSelector = dragOptions\.handleSelector \|\| '\.ci-grip,\.ct-grip';[\s\S]*const handle = target\.closest\(handleSelector\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const item = handle\.closest\(keySelector\);/,
   'composer entry reordering should start only from the visible drag handle'
 );
 
 assert.doesNotMatch(
-  composerIndexTabsUiSource.match(/function makeDragList\(container, onReorder\) \{[\s\S]*?\n  function buildIndexUI\(root, state\) \{/)[0],
-  /const li = target\.closest\(keySelector\);/,
+  composerDragListSource.match(/function makeDragList\(container, onReorder, dragOptions = \{\}\) \{[\s\S]*?container\.addEventListener\('pointerdown', onPointerDown\);/)[0],
+  /const (?:li|item) = target\.closest\(keySelector\);/,
   'composer entry reordering should not treat the entire card as a drag source'
 );
 

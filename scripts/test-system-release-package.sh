@@ -158,6 +158,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-index-tabs-ui.js" "${e
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-drag-list.js" "${entries_file}"; then
+  echo "expected package to include composer drag list code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-index-tabs-language-menu.js" "${entries_file}"; then
   echo "expected package to include composer index/tabs language menu code" >&2
   exit 1

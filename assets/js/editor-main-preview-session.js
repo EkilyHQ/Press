@@ -1,4 +1,5 @@
 import { createEditorMainPreviewAssets } from './editor-main-preview-assets.js';
+import { createEditorMainPreviewViewport } from './editor-main-preview-viewport.js';
 
 const PREVIEW_RENDER_MESSAGE = 'press-editor-preview-render';
 const PREVIEW_READY_MESSAGE = 'press-editor-preview-ready';
@@ -120,6 +121,11 @@ export function createEditorMainPreviewSession(options = {}) {
     getElementById,
     onCurrentAssetPreview: () => renderCurrent()
   });
+  const previewViewport = createEditorMainPreviewViewport({
+    getElementById,
+    querySelectorAll,
+    onDocument
+  });
 
   const sanitizePreviewThemePack = (value) => {
     const clean = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
@@ -236,28 +242,6 @@ export function createEditorMainPreviewSession(options = {}) {
     }
   };
 
-  const resetPreviewViewportWidth = () => {
-    const previewFrameSizer = getElementById('previewFrameSizer');
-    const previewFrame = getElementById('previewFrame');
-    if (!previewFrameSizer) return;
-    previewFrameSizer.style.width = '';
-    previewFrameSizer.classList.remove('is-resizing');
-    if (previewFrame) previewFrame.style.pointerEvents = '';
-  };
-
-  const setPreviewViewportWidth = (width) => {
-    const previewFrameSizer = getElementById('previewFrameSizer');
-    const previewViewportShell = getElementById('previewViewportShell');
-    if (!previewFrameSizer || !previewViewportShell) return;
-    const shellRect = previewViewportShell.getBoundingClientRect();
-    const handleSpace = 36;
-    const maxWidth = Math.max(0, (shellRect.width || 0) - handleSpace);
-    if (!maxWidth) return;
-    const minWidth = Math.min(360, maxWidth);
-    const clamped = Math.max(minWidth, Math.min(maxWidth, width));
-    previewFrameSizer.style.width = `${Math.round(clamped)}px`;
-  };
-
   const clearPreviewOverlayAnimation = () => {
     if (previewOverlayFrame) {
       cancelFrame(previewOverlayFrame);
@@ -275,7 +259,7 @@ export function createEditorMainPreviewSession(options = {}) {
     clearPreviewOverlayAnimation();
     const previewPathLabel = getElementById('previewPathLabel');
     if (previewPathLabel) previewPathLabel.textContent = getPreviewPathText() || 'Preview';
-    resetPreviewViewportWidth();
+    previewViewport.reset();
     previewWrap.hidden = false;
     previewWrap.removeAttribute('aria-hidden');
     previewWrap.classList.remove('is-closing');
@@ -298,7 +282,7 @@ export function createEditorMainPreviewSession(options = {}) {
     if (prefersReducedMotion()) {
       previewWrap.classList.remove('is-closing');
       previewWrap.hidden = true;
-      resetPreviewViewportWidth();
+      previewViewport.reset();
       return;
     }
     previewWrap.classList.add('is-closing');
@@ -306,42 +290,8 @@ export function createEditorMainPreviewSession(options = {}) {
       previewOverlayCloseTimer = 0;
       previewWrap.hidden = true;
       previewWrap.classList.remove('is-closing');
-      resetPreviewViewportWidth();
+      previewViewport.reset();
     }, PREVIEW_OVERLAY_CLOSE_MS);
-  };
-
-  const startPreviewResize = (event, side) => {
-    const previewFrameSizer = getElementById('previewFrameSizer');
-    const previewViewportShell = getElementById('previewViewportShell');
-    const previewFrame = getElementById('previewFrame');
-    if (!previewFrameSizer || !previewViewportShell) return;
-    if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    const startX = event && Number.isFinite(event.clientX) ? event.clientX : 0;
-    const startRect = previewFrameSizer.getBoundingClientRect();
-    const startWidth = startRect.width || 0;
-    const direction = side === 'left' ? -1 : 1;
-    previewFrameSizer.classList.add('is-resizing');
-    if (previewFrame) previewFrame.style.pointerEvents = 'none';
-
-    const handleMove = (moveEvent) => {
-      const currentX = moveEvent && Number.isFinite(moveEvent.clientX) ? moveEvent.clientX : startX;
-      const delta = currentX - startX;
-      setPreviewViewportWidth(startWidth + (delta * direction * 2));
-    };
-    let detachMove = noop;
-    let detachUp = noop;
-    let detachCancel = noop;
-    const handleEnd = () => {
-      detachMove();
-      detachUp();
-      detachCancel();
-      previewFrameSizer.classList.remove('is-resizing');
-      if (previewFrame) previewFrame.style.pointerEvents = '';
-    };
-
-    detachMove = onDocument('pointermove', handleMove);
-    detachUp = onDocument('pointerup', handleEnd, { once: true });
-    detachCancel = onDocument('pointercancel', handleEnd, { once: true });
   };
 
   const flushPendingPreview = () => {
@@ -442,11 +392,7 @@ export function createEditorMainPreviewSession(options = {}) {
         close();
       });
     }
-    querySelectorAll('[data-preview-resize]').forEach((handle) => {
-      handle.addEventListener('pointerdown', (event) => {
-        startPreviewResize(event, handle.getAttribute('data-preview-resize') || 'right');
-      });
-    });
+    previewViewport.bind();
     onDocument('keydown', (event) => {
       const previewWrap = getElementById('preview-wrap');
       if (!event || event.key !== 'Escape') return;

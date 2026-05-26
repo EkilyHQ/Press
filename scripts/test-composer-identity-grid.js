@@ -103,6 +103,7 @@ const editorMainFrontMatterManagerPath = resolve(here, '../assets/js/editor-main
 const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-main-tabs-metadata-manager.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-preview-assets.js');
+const editorMainPreviewViewportPath = resolve(here, '../assets/js/editor-main-preview-viewport.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainCurrentFileViewPath = resolve(here, '../assets/js/editor-main-current-file-view.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
@@ -253,6 +254,7 @@ const editorMainFrontMatterManagerSource = readFileSync(editorMainFrontMatterMan
 const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataManagerPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 'utf8');
+const editorMainPreviewViewportSource = readFileSync(editorMainPreviewViewportPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainCurrentFileViewSource = readFileSync(editorMainCurrentFileViewPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
@@ -1761,6 +1763,24 @@ assert.match(
   editorMainPreviewSessionSource,
   /from '\.\/editor-main-preview-assets\.js'/,
   'editor preview session should cache-bust the preview asset override boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /from '\.\/editor-main-preview-viewport\.js'/,
+  'editor preview session should cache-bust the preview viewport boundary'
+);
+
+assert.match(
+  editorMainPreviewViewportSource,
+  /PREVIEW_RESIZE_HANDLE_SPACE = 36[\s\S]*export function createEditorMainPreviewViewport[\s\S]*onDocument\('pointermove'[\s\S]*onDocument\('pointerup'[\s\S]*onDocument\('pointercancel'[\s\S]*querySelectorAll\('\[data-preview-resize\]'\)/,
+  'editor preview viewport should own resize handles, clamp rules, and document pointer cleanup'
+);
+
+assert.doesNotMatch(
+  editorMainPreviewSessionSource,
+  /PREVIEW_RESIZE_HANDLE_SPACE|pointermove|pointercancel/,
+  'editor preview session should delegate viewport resize mechanics to the preview viewport boundary'
 );
 
 assert.match(

@@ -98,6 +98,7 @@ const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
+const editorMainFrontMatterLabelWidthPath = resolve(here, '../assets/js/editor-main-frontmatter-label-width.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
@@ -240,6 +241,7 @@ const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
+const editorMainFrontMatterLabelWidthSource = readFileSync(editorMainFrontMatterLabelWidthPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
@@ -1715,6 +1717,12 @@ assert.match(
   editorMainSource,
   /from '\.\/editor-main-metadata-panel\.js'/,
   'editor main should cache-bust the editor main metadata panel boundary'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /from '\.\/editor-main-frontmatter-label-width\.js'/,
+  'metadata panel should cache-bust the front matter label-width sync boundary'
 );
 
 assert.match(
@@ -5845,8 +5853,8 @@ assert.match(
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
-  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
+  editorMainFrontMatterLabelWidthSource,
+  /const syncFrontMatterLabelWidth = \(root\) => \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
   'front matter labels should be measured after render and shared through a CSS variable'
 );
 
@@ -5857,6 +5865,12 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
+  editorMainFrontMatterLabelWidthSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|typeof document|requestAnimationFrame === 'function'|cancelAnimationFrame === 'function'|getComputedStyle\.bind|windowRef\.ResizeObserver/,
+  'front matter label-width sync should stay bound to explicit document and browser adapters'
+);
+
+assert.doesNotMatch(
   editorMainMetadataPanelSource,
   /ownerDocument|defaultView|typeof document\b/,
   'metadata panel should use its injected documentRef instead of deriving document APIs from DOM nodes'
@@ -5864,18 +5878,30 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainMetadataPanelSource,
-  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*root\.style\.setProperty\('--frontmatter-single-label-width'/,
+  /createFrontMatterLabelWidthSync\(\{[\s\S]*documentRef,[\s\S]*requestFrame,[\s\S]*cancelFrame,[\s\S]*getComputedStyle: getComputedStyleRef,[\s\S]*ResizeObserver: ResizeObserverRef[\s\S]*\}\);[\s\S]*const \{ syncFrontMatterLabelWidth \} = frontMatterLabelWidthSync;/,
+  'metadata panel should compose front matter label-width sync from an explicit layout helper'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /const measureLabelText|doc\.createElement\('span'\)|__pressFrontMatterLabelWidthCleanup = \(\) =>/,
+  'metadata panel should not own front matter label-width measurement lifecycle internals'
+);
+
+assert.match(
+  editorMainFrontMatterLabelWidthSource,
+  /const syncFrontMatterLabelWidth = \(root\) => \{[\s\S]*root\.style\.setProperty\('--frontmatter-single-label-width'/,
   'front matter label measurement should write the shared label width CSS variable'
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterLabelWidthSource,
   /const measureLabelText = \(label\) => \{[\s\S]*label\.scrollWidth[\s\S]*probe\.textContent = label\.textContent \|\| '';[\s\S]*probe\.style\.whiteSpace = 'nowrap';/,
   'front matter label measurement should probe intrinsic text width when current layout is constrained'
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterLabelWidthSource,
   /querySelector\('\.frontmatter-help-tooltip'\)[\s\S]*measureLabelText\(label\)[\s\S]*getComputedStyleRef\(target \|\| label\)[\s\S]*gap/,
   'front matter label measurement should use intrinsic label width plus the visible help button and gap'
 );

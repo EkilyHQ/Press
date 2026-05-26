@@ -8,6 +8,9 @@ const {
   satisfiesSemverRange,
   shouldFailCheck
 } = require('./product-state-ledger.js');
+const {
+  buildReleaseIntent
+} = require('./release-intent.js');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -62,6 +65,13 @@ function systemRelease(version = '3.4.51') {
       url: `https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v${version}/press-system-v${version}.zip`,
       size: 100,
       digest: 'sha256:abc123'
+    },
+    intent: {
+      type: 'press-release-intent',
+      path: `v${version}/release-intent.json`,
+      url: 'fixture:intent',
+      latestPath: 'release-intent.json',
+      latestUrl: 'fixture:intent'
     }
   };
 }
@@ -96,12 +106,33 @@ function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0') {
   };
 }
 
+function releaseIntentFixture(release) {
+  const intent = buildReleaseIntent({
+    systemRelease: release,
+    source: 'fixture:intent',
+    latestSource: 'fixture:intent',
+    systemReleaseSource: 'fixture:system',
+    systemReleaseDigest: 'sha256:system'
+  });
+  intent.targets.forEach((target) => {
+    if (target.key === 'yap') target.observed.source = 'fixture:yap';
+    else if (target.key === 'themeStarter') target.observed.source = 'fixture:starter';
+    else target.observed.source = `fixture:${target.key}-demo`;
+  });
+  return intent;
+}
+
 function makeFixtures(overrides = {}) {
+  const release = systemRelease();
   return {
-    'fixture:system': systemRelease(),
+    'fixture:system': release,
+    'fixture:intent': releaseIntentFixture(release),
     'fixture:yap': pressManifest(),
     'fixture:starter': systemRelease(),
     'fixture:arcus-demo': pressManifest(),
+    'fixture:cartograph-demo': pressManifest(),
+    'fixture:glasswing-demo': pressManifest(),
+    'fixture:solstice-demo': pressManifest(),
     'fixture:catalog': {
       schemaVersion: 1,
       themes: [
@@ -421,6 +452,10 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.pressSystem.version, '3.4.51');
   assert.equal(state.pressSystem.runtime.type, 'press-runtime-assets');
   assert.equal(state.pressSystem.runtime.edgeCount, 300);
+  assert.equal(state.releaseIntent.status, 'ok');
+  assert.equal(state.releaseIntent.targetCount, 6);
+  assert.equal(state.desired.source, 'press-release-intent');
+  assert.equal(state.desired.releaseIntent.source, 'fixture:intent');
   assert.equal(state.desired.pressSystem.tag, 'v3.4.51');
   assert.equal(state.desired.pressSystem.asset.digest, 'sha256:abc123');
   assert.equal(state.desired.downstream.yap.expectedVersion, '3.4.51');
@@ -454,14 +489,61 @@ test('buildProductState preserves legacy theme-starter reconciler fallback', asy
   const sources = makeSources();
   delete sources.downstream[1].eventType;
   delete sources.downstream[1].reconciler;
+  const release = systemRelease();
+  delete release.intent;
   const state = await buildProductState({
     sources,
-    loadJson: loader(makeFixtures()),
+    loadJson: loader(makeFixtures({
+      'fixture:system': release
+    })),
     generatedAt: '2026-05-25T00:00:00Z'
   });
 
+  assert.equal(state.desired.source, 'press-system-release');
+  assert.equal(state.releaseIntent.required, false);
   assert.equal(state.desired.downstream.themeStarter.reconciler.kind, 'theme-starter-marker-sync');
   assert.equal(state.desired.downstream.themeStarter.reconciler.eventType, 'press-system-release');
+});
+
+test('buildProductState marks invalid release intent as drift', async () => {
+  const intent = releaseIntentFixture(systemRelease());
+  intent.targets[0].expected.version = '3.4.50';
+
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:intent': intent
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.releaseIntent.status, 'drift');
+  assert.match(state.releaseIntent.problems.join('\n'), /expected must match release intent version and tag/u);
+  assert.equal(shouldFailCheck(state, { allowPending: true, allowUnknown: true }), true);
+});
+
+test('buildProductState records canonical release intent source even when loaded from a local file', async () => {
+  const intent = releaseIntentFixture(systemRelease());
+  intent.source = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.51/release-intent.json';
+  intent.latestSource = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json';
+  intent.systemRelease.source = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.51/system-release.json';
+
+  const state = await buildProductState({
+    sources: makeSources(),
+    releaseIntentSource: 'fixture:intent-local',
+    loadJson: loader(makeFixtures({
+      'fixture:intent-local': intent
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.releaseIntent.source, intent.source);
+  assert.equal(state.desired.generatedFrom.source, intent.source);
+  assert.equal(state.desired.releaseIntent.source, intent.source);
+  assert.equal(state.desired.releaseIntent.latestSource, intent.latestSource);
+  assert.equal(state.pressSystem.source, intent.systemRelease.source);
+  assert.equal(state.observed.pressSystem.source, intent.systemRelease.source);
 });
 
 test('buildProductState marks missing Connect publish telemetry as drift', async () => {

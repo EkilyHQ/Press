@@ -4,6 +4,11 @@ const path = require('node:path');
 const {
   getReleaseProductStateSources
 } = require('./release-targets.js');
+const {
+  normalizeReleaseIntent,
+  releaseIntentToProductStateSources,
+  validateReleaseIntent
+} = require('./release-intent.js');
 
 const DEFAULT_PRESS_REPOSITORY = 'EkilyHQ/Press';
 const DEFAULT_RAW_ROOT = 'https://raw.githubusercontent.com';
@@ -352,12 +357,24 @@ function normalizeSystemRelease(input) {
       edgeCount: Number(runtime.edgeCount || 0)
     },
     htmlUrl: String(source.htmlUrl || source.html_url || source.releaseUrl || '').trim(),
+    intent: normalizeSystemReleaseIntent(source.intent),
     asset: {
       name: String(asset.name || '').trim(),
       url: String(asset.url || asset.browser_download_url || '').trim(),
       size: Number(asset.size || 0),
       digest: String(asset.digest || asset.sha256 || '').trim()
     }
+  };
+}
+
+function normalizeSystemReleaseIntent(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  return {
+    type: String(source.type || '').trim(),
+    path: String(source.path || '').trim(),
+    url: String(source.url || source.immutableUrl || '').trim(),
+    latestPath: String(source.latestPath || '').trim(),
+    latestUrl: String(source.latestUrl || '').trim()
   };
 }
 
@@ -482,17 +499,26 @@ function downstreamTarget(source, pressVersion, fallbackReconcilerKind) {
   };
 }
 
-function buildDesiredState({ sources, systemRelease, systemSource }) {
+function buildDesiredState({ sources, systemRelease, systemSource, releaseIntent, releaseIntentSource }) {
   const target = releaseTargetVersion(systemRelease.version);
+  const intent = releaseIntent ? normalizeReleaseIntent(releaseIntent) : null;
   return {
-    source: 'press-system-release',
+    source: intent ? 'press-release-intent' : 'press-system-release',
     generatedFrom: {
       repository: DEFAULT_PRESS_REPOSITORY,
-      source: systemSource,
+      source: intent ? releaseIntentSource : systemSource,
       version: target.version,
       tag: target.tag,
       publishedAt: systemRelease.publishedAt
     },
+    releaseIntent: intent ? {
+      source: releaseIntentSource,
+      immutableSource: intent.source,
+      latestSource: intent.latestSource,
+      version: intent.version,
+      tag: intent.tag,
+      targetCount: intent.targets.length
+    } : null,
     pressSystem: {
       repository: DEFAULT_PRESS_REPOSITORY,
       version: target.version,
@@ -532,6 +558,7 @@ function buildObservedState(state, checkedAt) {
       runtime: state.pressSystem.runtime,
       asset: state.pressSystem.asset
     },
+    releaseIntent: clone(state.releaseIntent),
     downstream: clone(state.downstream),
     themeDemos: clone(state.themeDemos),
     themes: clone(state.themes),
@@ -574,33 +601,76 @@ async function buildProductState(options = {}) {
     ? { ok: true, source: systemSource || 'inline', value: options.systemRelease }
     : await loadJson(systemSource);
   const systemRelease = normalizeSystemRelease(systemResult.value || {});
+  const configuredReleaseIntentSource = options.releaseIntentSource
+    || systemRelease.intent.url
+    || systemRelease.intent.latestUrl
+    || '';
+  const releaseIntentResult = options.releaseIntent
+    ? { ok: true, source: configuredReleaseIntentSource || 'inline', value: options.releaseIntent }
+    : configuredReleaseIntentSource
+      ? await loadJson(configuredReleaseIntentSource)
+      : null;
+  const normalizedReleaseIntent = releaseIntentResult && releaseIntentResult.ok
+    ? normalizeReleaseIntent(releaseIntentResult.value)
+    : null;
+  const canonicalSystemSource = normalizedReleaseIntent && normalizedReleaseIntent.systemRelease.source
+    ? normalizedReleaseIntent.systemRelease.source
+    : systemResult.source;
+  const canonicalReleaseIntentSource = normalizedReleaseIntent && normalizedReleaseIntent.source
+    ? normalizedReleaseIntent.source
+    : releaseIntentResult && releaseIntentResult.source
+      ? releaseIntentResult.source
+      : '';
+  const releaseIntentFailures = normalizedReleaseIntent
+    ? validateReleaseIntent(normalizedReleaseIntent, { systemRelease })
+    : [];
+  const effectiveSources = clone(sources);
+  if (normalizedReleaseIntent && !releaseIntentFailures.length) {
+    const intentSources = releaseIntentToProductStateSources(normalizedReleaseIntent);
+    effectiveSources.downstream = intentSources.downstream;
+    effectiveSources.themeDemos = intentSources.themeDemos;
+  }
 
   const state = {
     schemaVersion: 1,
     type: 'ekily-product-state',
     generatedAt,
     status: 'unknown',
-    desired: buildDesiredState({ sources, systemRelease, systemSource: systemResult.source }),
+    desired: buildDesiredState({
+      sources: effectiveSources,
+      systemRelease,
+      systemSource: canonicalSystemSource,
+      releaseIntent: normalizedReleaseIntent && !releaseIntentFailures.length ? normalizedReleaseIntent : null,
+      releaseIntentSource: canonicalReleaseIntentSource
+    }),
     pressSystem: {
       repository: DEFAULT_PRESS_REPOSITORY,
-      source: systemResult.source,
+      source: canonicalSystemSource,
       status: 'unknown',
       ...systemRelease
+    },
+    releaseIntent: {
+      source: canonicalReleaseIntentSource,
+      status: configuredReleaseIntentSource ? 'unknown' : 'ok',
+      required: Boolean(configuredReleaseIntentSource),
+      version: normalizedReleaseIntent ? normalizedReleaseIntent.version : '',
+      tag: normalizedReleaseIntent ? normalizedReleaseIntent.tag : '',
+      targetCount: normalizedReleaseIntent ? normalizedReleaseIntent.targets.length : 0
     },
     downstream: {},
     themeDemos: {},
     themes: {
       catalog: {
-        repository: sources.catalog.repository,
-        source: sources.catalog.source,
+        repository: effectiveSources.catalog.repository,
+        source: effectiveSources.catalog.source,
         status: 'unknown',
         count: 0
       },
       entries: []
     },
     connect: {
-      label: sources.connect.label,
-      source: sources.connect.source,
+      label: effectiveSources.connect.label,
+      source: effectiveSources.connect.source,
       status: 'unknown',
       publishTelemetry: null
     },
@@ -652,7 +722,34 @@ async function buildProductState(options = {}) {
     state.pressSystem.status = 'ok';
   }
 
-  for (const source of sources.downstream || []) {
+  if (configuredReleaseIntentSource) {
+    if (!releaseIntentResult || !releaseIntentResult.ok) {
+      state.releaseIntent.status = 'unknown';
+      addProblem(state, {
+        component: 'releaseIntent',
+        code: 'release_intent_unreachable',
+        message: releaseIntentResult && releaseIntentResult.error
+          ? releaseIntentResult.error
+          : 'release intent could not be loaded',
+        owner: DEFAULT_PRESS_REPOSITORY
+      });
+    } else if (releaseIntentFailures.length) {
+      state.releaseIntent.status = 'drift';
+      state.releaseIntent.problems = releaseIntentFailures;
+      addProblem(state, {
+        component: 'releaseIntent',
+        code: 'release_intent_invalid',
+        message: releaseIntentFailures.join('; '),
+        owner: DEFAULT_PRESS_REPOSITORY
+      });
+    } else {
+      state.releaseIntent.status = 'ok';
+      state.releaseIntent.immutableSource = normalizedReleaseIntent.source;
+      state.releaseIntent.latestSource = normalizedReleaseIntent.latestSource;
+    }
+  }
+
+  for (const source of effectiveSources.downstream || []) {
     const result = await loadJson(source.source);
     const entry = pressSystemEntry(result, pressVersion);
     entry.label = source.label;
@@ -680,7 +777,7 @@ async function buildProductState(options = {}) {
     }
   }
 
-  for (const source of sources.themeDemos || []) {
+  for (const source of effectiveSources.themeDemos || []) {
     const result = await loadJson(source.source);
     const entry = pressSystemEntry(result, pressVersion);
     entry.label = source.label;
@@ -707,7 +804,7 @@ async function buildProductState(options = {}) {
     }
   }
 
-  const catalogResult = await loadJson(sources.catalog.source);
+  const catalogResult = await loadJson(effectiveSources.catalog.source);
   if (!catalogResult.ok) {
     state.themes.catalog.status = 'unknown';
     state.themes.catalog.error = catalogResult.error;
@@ -716,7 +813,7 @@ async function buildProductState(options = {}) {
       component: 'themes.catalog',
       code: 'catalog_unreachable',
       message: catalogResult.error,
-      owner: sources.catalog.repository,
+      owner: effectiveSources.catalog.repository,
       blocking: false
     });
   } else {
@@ -739,7 +836,7 @@ async function buildProductState(options = {}) {
         component: 'themes.catalog',
         code: 'catalog_empty',
         message: 'official theme catalog must contain at least one theme',
-        owner: sources.catalog.repository
+        owner: effectiveSources.catalog.repository
       });
     }
     for (const entry of themes) {
@@ -769,8 +866,8 @@ async function buildProductState(options = {}) {
     }
   }
 
-  if (sources.connect && sources.connect.source) {
-    const connectResult = await loadJson(sources.connect.source);
+  if (effectiveSources.connect && effectiveSources.connect.source) {
+    const connectResult = await loadJson(effectiveSources.connect.source);
     if (!connectResult.ok) {
       state.connect.status = 'unknown';
       state.connect.error = connectResult.error;
@@ -810,6 +907,7 @@ async function buildProductState(options = {}) {
 
   const statuses = [
     state.pressSystem.status,
+    ...(state.releaseIntent.required ? [state.releaseIntent.status] : []),
     ...Object.values(state.downstream).map((entry) => entry.status),
     ...Object.values(state.themeDemos).map((entry) => entry.status),
     state.themes.catalog.status,
@@ -864,6 +962,7 @@ function parseArgs(argv) {
     else if (arg === '--out') options.out = argv[++i] || '';
     else if (arg === '--state') options.state = argv[++i] || '';
     else if (arg === '--system-release') options.systemReleaseSource = argv[++i] || '';
+    else if (arg === '--release-intent') options.releaseIntentSource = argv[++i] || '';
     else if (arg === '--catalog') {
       options.sources = options.sources || clone(DEFAULT_SOURCES);
       options.sources.catalog.source = argv[++i] || '';
@@ -883,6 +982,7 @@ function printHelp() {
     '',
     'Options:',
     '  --system-release <path-or-url>  System release manifest source',
+    '  --release-intent <path-or-url>  Press release intent source',
     '  --catalog <path-or-url>         Official theme catalog source',
     '  --connect <url>                 Connect health endpoint',
     '  --out <path>                    Write product-state JSON to path',
@@ -906,6 +1006,7 @@ async function main(argv = process.argv.slice(2)) {
     : await buildProductState({
       sources: options.sources || DEFAULT_SOURCES,
       systemReleaseSource: options.systemReleaseSource || DEFAULT_SOURCES.systemRelease,
+      releaseIntentSource: options.releaseIntentSource || '',
       baseDir: process.cwd()
     });
   const json = `${JSON.stringify(state, null, 2)}\n`;
@@ -943,6 +1044,7 @@ module.exports = {
   buildProductState,
   cacheBustJsonUrl,
   loadJsonSource,
+  normalizeReleaseIntent,
   normalizeSemver,
   satisfiesSemverRange,
   shouldFailCheck,

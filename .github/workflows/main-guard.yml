@@ -30,6 +30,7 @@ jobs:
           node scripts/test-editor-app-kernel.mjs
           node --experimental-default-type=module scripts/test-theme-contracts.js
           node scripts/test-release-targets.js
+          node scripts/test-release-intent.js
           node scripts/test-dispatch-system-release.js
           node scripts/test-product-state-ledger.js
           bash scripts/test-pages-workflow.sh

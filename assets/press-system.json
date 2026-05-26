@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "type": "press-system",
-  "version": "3.4.71",
-  "tag": "v3.4.71",
+  "version": "3.4.72",
+  "tag": "v3.4.72",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.70 <3.4.71"
+      ">=3.4.71 <3.4.72"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.70 first."
+    "message": "Update to v3.4.71 first."
   }
 }

@@ -35,6 +35,7 @@ const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-ta
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
+const composerOrderVisualPath = resolve(here, '../assets/js/composer-order-visual.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerSiteSettingsConfigGridsPath = resolve(here, '../assets/js/composer-site-settings-config-grids.js');
@@ -165,6 +166,7 @@ const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'u
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
+const composerOrderVisualSource = readFileSync(composerOrderVisualPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerSiteSettingsConfigGridsSource = readFileSync(composerSiteSettingsConfigGridsPath, 'utf8');
@@ -867,6 +869,12 @@ assert.match(
   'composer should cache-bust the extracted order diff UI boundary'
 );
 
+assert.match(
+  composerOrderDiffUiSource,
+  /from '\.\/composer-order-visual\.js'/,
+  'composer order diff UI should delegate visual connector and hover behavior'
+);
+
 assert.doesNotMatch(
   source,
   /function openComposerDiffModal|function ensureComposerDiffModal|function drawOrderDiffLines|function updateComposerOrderPreview|function applyComposerOrderHover|function bindComposerOrderHover|const ORDER_LINE_COLORS|let composerDiffModal|let composerOrderPreviewState/,
@@ -875,8 +883,20 @@ assert.doesNotMatch(
 
 assert.match(
   composerOrderDiffUiSource,
-  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*const setTimeoutRef = typeof options\.setTimeoutRef === 'function'[\s\S]*const requestAnimationFrameRef = typeof options\.requestAnimationFrameRef === 'function'[\s\S]*const addWindowListener = typeof options\.addWindowListener === 'function'[\s\S]*const addDocumentListener = typeof options\.addDocumentListener === 'function'[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function drawOrderDiffLines\(state\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
-  'order diff UI boundary should own composer review modal, order visual connectors, and order preview state'
+  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*const setTimeoutRef = typeof options\.setTimeoutRef === 'function'[\s\S]*const requestAnimationFrameRef = typeof options\.requestAnimationFrameRef === 'function'[\s\S]*const addWindowListener = typeof options\.addWindowListener === 'function'[\s\S]*const addDocumentListener = typeof options\.addDocumentListener === 'function'[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const \{[\s\S]*buildOrderDiffItem,[\s\S]*drawOrderDiffLines: drawOrderDiffLinesForState[\s\S]*\} = createComposerOrderVisual\([\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
+  'order diff UI boundary should own composer review modal and order preview state while delegating visual connectors'
+);
+
+assert.match(
+  composerOrderVisualSource,
+  /export function createComposerOrderVisual\(options = \{\}\)[\s\S]*function applyComposerOrderHover\(container, key\)[\s\S]*function bindComposerOrderHover\(element, key\)[\s\S]*function buildOrderDiffItem\(entry, side\)[\s\S]*function drawOrderDiffLines\(state\)/,
+  'order visual boundary should own connector line drawing, item rendering, and hover state'
+);
+
+assert.doesNotMatch(
+  composerOrderDiffUiSource,
+  /const ORDER_LINE_COLORS|function getComposerOrderHoverContainer|function applyComposerOrderHover\(container, key\)|function bindComposerOrderHover\(element, key\)|function buildOrderDiffItem\(entry, side\)[\s\S]*item\.appendChild\(badgeEl\);/,
+  'order diff UI should not re-own visual connector color, hover, or item rendering internals'
 );
 
 assert.match(
@@ -888,6 +908,7 @@ assert.match(
 assert.doesNotMatch(
   [
     composerOrderDiffUiSource,
+    composerOrderVisualSource,
     composerEditorShellSource,
     composerSystemPanelSource,
     composerSyncPanelSource

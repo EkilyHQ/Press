@@ -1,6 +1,7 @@
 import { buildConnectStatusUrl, CONNECT_PRODUCT_STATE_PATH } from './connect-status.js';
+import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
 
-export const PRODUCT_STATE_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/product-state.json';
+export const PRODUCT_STATE_URL = PRESS_GITHUB_PROVIDER.productStateUrl;
 
 const PRODUCT_STATE_TYPE = 'ekily-product-state';
 const STATUS_VALUES = new Set(['ok', 'pending', 'unknown', 'drift']);

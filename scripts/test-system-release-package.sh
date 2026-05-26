@@ -73,6 +73,11 @@ if ! grep -qx "press-system-${version}/assets/js/system-updates.js" "${entries_f
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/provider-adapters.js" "${entries_file}"; then
+  echo "expected package to include provider adapter code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/press-system-surface.mjs" "${entries_file}"; then
   echo "expected package to include the shared Press system surface contract" >&2
   exit 1

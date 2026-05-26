@@ -41,6 +41,7 @@ for command in \
   'node scripts/test-product-state-ledger.js' \
   'node scripts/test-composer-app-services.js' \
   'node scripts/test-composer-service-registry.js' \
+  'node scripts/test-provider-adapters.js' \
   'bash scripts/test-pages-artifact.sh'
 do
   if ! grep -F "${command}" "${workflow}" >/dev/null; then

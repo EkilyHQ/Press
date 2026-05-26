@@ -106,6 +106,7 @@ const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-prev
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
+const editorMainToolbarTextActionsPath = resolve(here, '../assets/js/editor-main-toolbar-text-actions.js');
 const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
 const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
 const editorMainWorkspaceSessionPath = resolve(here, '../assets/js/editor-main-workspace-session.js');
@@ -252,6 +253,7 @@ const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
+const editorMainToolbarTextActionsSource = readFileSync(editorMainToolbarTextActionsPath, 'utf8');
 const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
 const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
 const editorMainWorkspaceSessionSource = readFileSync(editorMainWorkspaceSessionPath, 'utf8');
@@ -1774,6 +1776,12 @@ assert.match(
 );
 
 assert.match(
+  editorMainToolbarSessionSource,
+  /from '\.\/editor-main-toolbar-text-actions\.js'/,
+  'editor toolbar session should cache-bust the toolbar text action boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-image-session\.js'/,
   'editor main should cache-bust the editor image session boundary'
@@ -2027,6 +2035,7 @@ assert.doesNotMatch(
     editorMainCurrentFileSessionSource,
     editorMainSidebarSessionSource,
     editorMainToolbarSessionSource,
+    editorMainToolbarTextActionsSource,
     editorMainImageSessionSource,
     editorMainWorkspaceSessionSource,
     editorContentTreeControllerSource,
@@ -2153,8 +2162,20 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainToolbarSessionSource,
-  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*let lastSelectionRange = \{ start: 0, end: 0 \};[\s\S]*let suppressSelectionTracking = false;[\s\S]*let formattingButtons = \[\];[\s\S]*let cardPopoverOpen = false;[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const applyInlineFormat = \(prefix, suffix\) => \{[\s\S]*const toggleLinePrefix = \(prefix\) => \{[\s\S]*const applyCodeBlockFormat = \(\) => \{[\s\S]*const insertCardLink = \(entry\) => \{[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*const openCardPopover = \(\) => \{[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
-  'editor toolbar session should own selection tracking, markdown formatting actions, and article-card picker lifecycle'
+  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*const textActions = createEditorMainToolbarTextActions\(\{[\s\S]*getEditorTextarea,[\s\S]*createInputEvent[\s\S]*\}\);[\s\S]*let formattingButtons = \[\];[\s\S]*let cardPopoverOpen = false;[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*runTextAction\(\(\) => textActions\.insertCardLink\(entry\)\);[\s\S]*const openCardPopover = \(\) => \{[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
+  'editor toolbar session should compose text actions while owning button tooltip state and article-card picker lifecycle'
+);
+
+assert.match(
+  editorMainToolbarTextActionsSource,
+  /export function createEditorMainToolbarTextActions\(options = \{\}\) \{[\s\S]*let lastSelectionRange = \{ start: 0, end: 0 \};[\s\S]*let suppressSelectionTracking = false;[\s\S]*const applyInlineFormat = \(prefix, suffix\) => \{[\s\S]*const toggleLinePrefix = \(prefix\) => \{[\s\S]*const applyCodeBlockFormat = \(\) => \{[\s\S]*const insertCardLink = \(entry\) => \{/,
+  'editor toolbar text action boundary should own selection tracking and Markdown textarea mutation rules'
+);
+
+assert.doesNotMatch(
+  editorMainToolbarSessionSource,
+  /let lastSelectionRange|let suppressSelectionTracking|const applyInlineFormat = \(prefix, suffix\)|const toggleLinePrefix = \(prefix\)|const applyCodeBlockFormat = \(\)|const insertCardLink = \(entry\)|const dispatchInputEvent = \(textarea\)|const getNormalizedSelection = \(\)/,
+  'editor toolbar session should not own Markdown textarea mutation or selection-state internals'
 );
 
 assert.match(

@@ -2,8 +2,8 @@ import { mdParse } from './markdown.js';
 import { renderPressMath } from './math-render.js';
 import { setSafeHtml } from './safe-html.js';
 import { t } from './i18n.js';
+import { buildConnectStatusUrl, CONNECT_SYSTEM_RELEASE_PATH } from './connect-status.js';
 import {
-  compareSemver,
   isUpgradeAllowed,
   loadPressSystemManifest,
   normalizePressSystemManifest,
@@ -65,6 +65,14 @@ function createSystemUpdatesRuntime(options = {}) {
   const state = createSystemUpdatesState();
   const documentRef = options.documentRef || null;
   const fetchImpl = typeof options.fetchImpl === 'function' ? options.fetchImpl : null;
+  const connectStatusOptions = {
+    connectBaseUrl: options.connectBaseUrl || '',
+    defaultConnect: options.defaultConnect,
+    localStorageRef: options.localStorageRef || null,
+    locationRef: options.locationRef || null,
+    storageScope: options.storageScope || '',
+    windowRef: options.windowRef || null
+  };
 
   return {
     state,
@@ -75,6 +83,9 @@ function createSystemUpdatesRuntime(options = {}) {
       if (fetchImpl) return fetchImpl;
       if (typeof fetch === 'function') return fetch;
       throw new Error('System update fetch is unavailable.');
+    },
+    getConnectStatusOptions() {
+      return connectStatusOptions;
     }
   };
 }
@@ -319,12 +330,8 @@ export function selectSystemUpdateAsset(releaseData) {
   };
 }
 
-function compareReleaseTags(a, b) {
-  return compareSemver(a, b);
-}
-
 function isFetchableSystemUpdateAssetUrl(url) {
-  return /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/Press\/release-artifacts\/v\d+\.\d+\.\d+\/press-system-v\d+\.\d+\.\d+\.zip$/i
+  return /^https:\/\/raw\.githubusercontent\.com\/EkilyHQ\/Press\/release-artifacts\/v\d+\.\d+\.\d+\/press-system-v\d+\.\d+\.\d+\.zip$/i
     .test(String(url || '').trim());
 }
 
@@ -525,14 +532,15 @@ async function fetchLatestReleaseFromApi(runtime) {
   return normalizeReleaseCache(data);
 }
 
-function getManifestUrls() {
-  return [RELEASE_MANIFEST_URL];
+function getManifestUrls(runtime) {
+  const connectUrl = buildConnectStatusUrl(CONNECT_SYSTEM_RELEASE_PATH, runtime.getConnectStatusOptions());
+  return Array.from(new Set([connectUrl, RELEASE_MANIFEST_URL].filter(Boolean)));
 }
 
 async function fetchLatestReleaseFromManifest(runtime) {
   const fetchImpl = runtime.getFetch();
   let lastError = null;
-  const urls = getManifestUrls();
+  const urls = getManifestUrls(runtime);
   for (const url of urls) {
     try {
       const response = await fetchImpl(url, {
@@ -555,38 +563,29 @@ async function fetchLatestReleaseFromManifest(runtime) {
 async function fetchLatestRelease(runtime) {
   const state = runtime.state;
   if (state.releaseCache) return state.releaseCache;
-  let apiRelease = null;
   let apiError = null;
   let manifestRelease = null;
   let manifestError = null;
-  try {
-    apiRelease = await fetchLatestReleaseFromApi(runtime);
-  } catch (err) {
-    apiError = err;
-  }
   try {
     manifestRelease = await fetchLatestReleaseFromManifest(runtime);
   } catch (err) {
     manifestError = err;
   }
-
-  const manifestComparison = apiRelease && manifestRelease
-    ? compareReleaseTags(manifestRelease.tag, apiRelease.tag)
-    : null;
-  if (apiRelease && manifestRelease && manifestComparison !== null && manifestComparison >= 0) {
-    state.releaseCache = manifestRelease;
-  } else if (apiRelease) {
-    state.releaseCache = apiRelease;
-  } else if (manifestRelease) {
+  if (manifestRelease) {
     state.releaseCache = manifestRelease;
   } else {
-    const message = apiError && apiError.rateLimited
-      ? t('editor.systemUpdates.errors.releaseRateLimited')
-      : t('editor.systemUpdates.errors.releaseFetch');
-    const error = new Error(message);
-    error.apiError = apiError;
-    error.manifestError = manifestError;
-    throw error;
+    try {
+      state.releaseCache = await fetchLatestReleaseFromApi(runtime);
+    } catch (err) {
+      apiError = err;
+      const message = apiError && apiError.rateLimited
+        ? t('editor.systemUpdates.errors.releaseRateLimited')
+        : t('editor.systemUpdates.errors.releaseFetch');
+      const error = new Error(message);
+      error.apiError = apiError;
+      error.manifestError = manifestError;
+      throw error;
+    }
   }
 
   renderRelease(runtime);

@@ -1,3 +1,5 @@
+import { buildConnectStatusUrl, CONNECT_PRODUCT_STATE_PATH } from './connect-status.js';
+
 export const PRODUCT_STATE_URL = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/product-state.json';
 
 const PRODUCT_STATE_TYPE = 'ekily-product-state';
@@ -199,13 +201,41 @@ export function getProductStateThemeEntry(productState, slug) {
   return productState.themes.entries.find((entry) => entry.slug === value) || null;
 }
 
+function productStateUrls(options = {}) {
+  if (options.url) return [String(options.url)];
+  const urls = [];
+  const connectUrl = buildConnectStatusUrl(CONNECT_PRODUCT_STATE_PATH, options);
+  if (connectUrl) urls.push(connectUrl);
+  urls.push(PRODUCT_STATE_URL);
+  return Array.from(new Set(urls.filter(Boolean)));
+}
+
+function unwrapProductStatePayload(input) {
+  if (input && typeof input === 'object' && input.ok === true && input.productState) {
+    return input.productState;
+  }
+  return input;
+}
+
 export async function loadProductState(options = {}) {
   const fetchImpl = typeof options.fetchImpl === 'function'
     ? options.fetchImpl
     : (typeof fetch === 'function' ? fetch : null);
   if (typeof fetchImpl !== 'function') throw new Error('Product state fetch is unavailable.');
-  const url = options.url || PRODUCT_STATE_URL;
-  const response = await fetchImpl(url, { cache: 'no-store' });
-  if (!response || !response.ok) throw new Error('Unable to load product state.');
-  return normalizeProductState(await response.json());
+  const urls = productStateUrls(options);
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const response = await fetchImpl(url, {
+        headers: { accept: 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response || !response.ok) throw new Error('Unable to load product state.');
+      return normalizeProductState(unwrapProductStatePayload(await response.json()));
+    } catch (err) {
+      lastError = err;
+      if (options.url) break;
+    }
+  }
+  throw lastError || new Error('Unable to load product state.');
 }

@@ -1,4 +1,7 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const test = require('node:test');
 
 const {
@@ -61,12 +64,24 @@ test('normalizeTargets accepts overrides but rejects invalid repositories', () =
 
 test('buildPayload includes release artifact and compatibility metadata', () => {
   const system = require('../assets/press-system.json');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'press-dispatch-test-'));
+  const intentPath = path.join(tmpDir, 'release-intent.json');
+  fs.writeFileSync(intentPath, JSON.stringify({
+    schemaVersion: 1,
+    type: 'press-release-intent',
+    version: system.version,
+    tag: system.tag,
+    source: `https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/${system.tag}/release-intent.json`,
+    latestSource: 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json',
+    targets: [{ key: 'yap' }]
+  }));
   const payload = withEnv({
     NEXT_TAG: system.tag,
     ASSET_NAME: `press-system-${system.tag}.zip`,
     ASSET_SIZE: '1234',
     ASSET_SHA256: 'abc123',
-    GITHUB_REPOSITORY: 'EkilyHQ/Press'
+    GITHUB_REPOSITORY: 'EkilyHQ/Press',
+    PRESS_RELEASE_INTENT_JSON: intentPath
   }, () => buildPayload({
     html_url: `https://github.com/EkilyHQ/Press/releases/tag/${system.tag}`
   }));
@@ -78,6 +93,9 @@ test('buildPayload includes release artifact and compatibility metadata', () => 
   assert.equal(payload.asset_size, 1234);
   assert.equal(payload.asset_sha256, 'abc123');
   assert.deepEqual(payload.upgrade_from, system.upgradeFrom);
+  assert.equal(payload.release_intent.type, 'press-release-intent');
+  assert.equal(payload.release_intent.source, `https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/${system.tag}/release-intent.json`);
+  assert.equal(payload.release_intent.target_count, 1);
 });
 
 test('installationTokenForTargets rejects mixed installation owners before network calls', async () => {

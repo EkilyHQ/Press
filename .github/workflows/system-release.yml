@@ -37,6 +37,7 @@ jobs:
           bash scripts/test-pages-artifact.sh
           bash scripts/test-product-state-workflow.sh
           node scripts/test-release-targets.js
+          node scripts/test-release-intent.js
           node scripts/test-dispatch-system-release.js
           node scripts/test-product-state-ledger.js
           node scripts/test-product-state-dashboard.js
@@ -299,10 +300,18 @@ jobs:
           artifact_branch="release-artifacts"
           artifact_path="${tag}/${asset}"
           manifest_path="system-release.json"
+          immutable_manifest_path="${tag}/system-release.json"
+          release_intent_path="release-intent.json"
+          immutable_release_intent_path="${tag}/release-intent.json"
           product_state_path="product-state.json"
           product_state_dashboard_path="product-state.html"
           artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"
+          system_release_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${immutable_manifest_path}"
+          release_intent_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${immutable_release_intent_path}"
+          latest_release_intent_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${release_intent_path}"
           export FETCHABLE_ASSET_URL="${artifact_url}"
+          export RELEASE_INTENT_URL="${release_intent_url}"
+          export LATEST_RELEASE_INTENT_URL="${latest_release_intent_url}"
 
           gh api "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" > dist/release-published.json
           python3 - <<'PY'
@@ -370,6 +379,13 @@ jobs:
                   "url": os.environ["FETCHABLE_ASSET_URL"],
                   "size": int(asset.get("size") or expected_size),
                   "digest": digest
+              },
+              "intent": {
+                  "type": "press-release-intent",
+                  "path": f"{tag}/release-intent.json",
+                  "url": os.environ["RELEASE_INTENT_URL"],
+                  "latestPath": "release-intent.json",
+                  "latestUrl": os.environ["LATEST_RELEASE_INTENT_URL"]
               }
           }
           Path("dist/system-release.json").write_text(
@@ -377,8 +393,18 @@ jobs:
               encoding="utf-8"
           )
           PY
+          node scripts/release-intent.js \
+            --system-release dist/system-release.json \
+            --system-release-path "${immutable_manifest_path}" \
+            --system-release-source "${system_release_url}" \
+            --source "${release_intent_url}" \
+            --latest-source "${latest_release_intent_url}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --out dist/release-intent.json \
+            --check
           node scripts/product-state-ledger.js \
             --system-release dist/system-release.json \
+            --release-intent dist/release-intent.json \
             --out dist/product-state.json \
             --allow-pending \
             --allow-unknown
@@ -401,11 +427,14 @@ jobs:
           mkdir -p "artifacts-worktree/${tag}"
           cp "${{ steps.package.outputs.archive_path }}" "artifacts-worktree/${artifact_path}"
           cp dist/system-release.json "artifacts-worktree/${manifest_path}"
+          cp dist/system-release.json "artifacts-worktree/${immutable_manifest_path}"
+          cp dist/release-intent.json "artifacts-worktree/${immutable_release_intent_path}"
+          cp dist/release-intent.json "artifacts-worktree/${release_intent_path}"
           cp dist/product-state.json "artifacts-worktree/${product_state_path}"
           cp dist/product-state.html "artifacts-worktree/${product_state_dashboard_path}"
-          git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${product_state_path}" "${product_state_dashboard_path}"
+          git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${immutable_manifest_path}" "${immutable_release_intent_path}" "${release_intent_path}" "${product_state_path}" "${product_state_dashboard_path}"
           if git -C artifacts-worktree diff --cached --quiet; then
-            echo "Artifact ${artifact_path}, ${manifest_path}, ${product_state_path}, and ${product_state_dashboard_path} are already published."
+            echo "Artifact ${artifact_path}, ${manifest_path}, release intent, ${product_state_path}, and ${product_state_dashboard_path} are already published."
           else
             git -C artifacts-worktree commit -m "Publish ${asset}"
             git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
@@ -423,6 +452,7 @@ jobs:
           ASSET_NAME: ${{ steps.plan.outputs.asset_name }}
           ASSET_SIZE: ${{ steps.package.outputs.archive_size }}
           ASSET_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+          PRESS_RELEASE_INTENT_JSON: dist/release-intent.json
         run: |
           set -euo pipefail
           node scripts/dispatch-system-release.js

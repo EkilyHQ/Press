@@ -87,6 +87,12 @@ function readRelease() {
   return JSON.parse(fs.readFileSync(releasePath, 'utf8'));
 }
 
+function readReleaseIntent() {
+  const intentPath = env('PRESS_RELEASE_INTENT_JSON', 'dist/release-intent.json');
+  if (!fs.existsSync(intentPath)) return null;
+  return JSON.parse(fs.readFileSync(intentPath, 'utf8'));
+}
+
 function buildPayload(release) {
   const tag = env('NEXT_TAG');
   const assetName = env('ASSET_NAME');
@@ -98,7 +104,7 @@ function buildPayload(release) {
   const system = fs.existsSync(PRESS_SYSTEM_MANIFEST)
     ? JSON.parse(fs.readFileSync(PRESS_SYSTEM_MANIFEST, 'utf8'))
     : {};
-  return {
+  const payload = {
     press_repository: env('GITHUB_REPOSITORY', 'EkilyHQ/Press'),
     tag,
     version: String(system.version || '').trim(),
@@ -108,6 +114,18 @@ function buildPayload(release) {
     asset_sha256: assetSha256,
     release_url: release.html_url || env('RELEASE_URL')
   };
+  const intent = readReleaseIntent();
+  if (intent && intent.type === 'press-release-intent') {
+    payload.release_intent = {
+      type: intent.type,
+      version: String(intent.version || '').trim(),
+      tag: String(intent.tag || '').trim(),
+      source: String(intent.source || '').trim(),
+      latest_source: String(intent.latestSource || '').trim(),
+      target_count: Array.isArray(intent.targets) ? intent.targets.length : 0
+    };
+  }
+  return payload;
 }
 
 async function installationTokenForTargets(jwt, targets) {

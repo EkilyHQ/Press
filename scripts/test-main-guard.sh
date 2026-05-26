@@ -36,6 +36,7 @@ fi
 workflow="${repo_root}/.github/workflows/main-guard.yml"
 for command in \
   'node scripts/test-release-targets.js' \
+  'node scripts/test-release-intent.js' \
   'node scripts/test-dispatch-system-release.js' \
   'node scripts/test-product-state-ledger.js' \
   'node scripts/test-composer-app-services.js' \

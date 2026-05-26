@@ -163,6 +163,11 @@ if ! grep -F 'node scripts/test-release-targets.js' "${workflow}" >/dev/null; th
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-release-intent.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify release intent helpers before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-dispatch-system-release.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify release dispatch helpers before publishing" >&2
   exit 1
@@ -288,6 +293,16 @@ if ! grep -F 'manifest_path="system-release.json"' "${workflow}" >/dev/null; the
   exit 1
 fi
 
+if ! grep -F 'immutable_manifest_path="${tag}/system-release.json"' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish an immutable tag-scoped system-release manifest" >&2
+  exit 1
+fi
+
+if ! grep -F 'release_intent_path="release-intent.json"' "${workflow}" >/dev/null || ! grep -F 'immutable_release_intent_path="${tag}/release-intent.json"' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish latest and immutable release intent manifests" >&2
+  exit 1
+fi
+
 if ! grep -F 'product_state_path="product-state.json"' "${workflow}" >/dev/null; then
   echo "system release workflow must publish the product-state ledger at the release-artifacts root" >&2
   exit 1
@@ -300,6 +315,11 @@ fi
 
 if ! grep -F 'export FETCHABLE_ASSET_URL="${artifact_url}"' "${workflow}" >/dev/null; then
   echo "system release manifest must receive the fetchable artifact URL" >&2
+  exit 1
+fi
+
+if ! grep -F 'export RELEASE_INTENT_URL="${release_intent_url}"' "${workflow}" >/dev/null; then
+  echo "system release manifest must receive the immutable release intent URL" >&2
   exit 1
 fi
 
@@ -328,6 +348,21 @@ if ! grep -F 'Path("dist/system-release.json").write_text' "${workflow}" >/dev/n
   exit 1
 fi
 
+if ! grep -F 'node scripts/release-intent.js' "${workflow}" >/dev/null || ! grep -F -- '--out dist/release-intent.json' "${workflow}" >/dev/null; then
+  echo "system release workflow must generate a release intent manifest from system-release.json" >&2
+  exit 1
+fi
+
+if ! grep -F 'system_release_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${immutable_manifest_path}"' "${workflow}" >/dev/null; then
+  echo "release intent generation must use the immutable system-release manifest URL" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--system-release-path "${immutable_manifest_path}"' "${workflow}" >/dev/null || ! grep -F -- '--system-release-source "${system_release_url}"' "${workflow}" >/dev/null; then
+  echo "release intent generation must record the browser-readable system release URL" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/product-state-ledger.js' "${workflow}" >/dev/null; then
   echo "system release workflow must generate the product-state ledger from the release manifest" >&2
   exit 1
@@ -335,6 +370,11 @@ fi
 
 if ! grep -F -- '--system-release dist/system-release.json' "${workflow}" >/dev/null; then
   echo "product-state ledger generation must use the freshly generated system-release manifest" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--release-intent dist/release-intent.json' "${workflow}" >/dev/null; then
+  echo "product-state ledger generation must use the freshly generated release intent manifest" >&2
   exit 1
 fi
 
@@ -363,6 +403,16 @@ if ! grep -F 'cp dist/system-release.json "artifacts-worktree/${manifest_path}"'
   exit 1
 fi
 
+if ! grep -F 'cp dist/system-release.json "artifacts-worktree/${immutable_manifest_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must copy the immutable system release manifest into release-artifacts" >&2
+  exit 1
+fi
+
+if ! grep -F 'cp dist/release-intent.json "artifacts-worktree/${immutable_release_intent_path}"' "${workflow}" >/dev/null || ! grep -F 'cp dist/release-intent.json "artifacts-worktree/${release_intent_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must copy immutable and latest release intent manifests into release-artifacts" >&2
+  exit 1
+fi
+
 if ! grep -F 'cp dist/product-state.json "artifacts-worktree/${product_state_path}"' "${workflow}" >/dev/null; then
   echo "system release workflow must copy the product-state ledger into release-artifacts" >&2
   exit 1
@@ -373,8 +423,8 @@ if ! grep -F 'cp dist/product-state.html "artifacts-worktree/${product_state_das
   exit 1
 fi
 
-if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${product_state_path}" "${product_state_dashboard_path}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must commit the ZIP, manifest, product-state ledger, and dashboard together on release-artifacts" >&2
+if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${immutable_manifest_path}" "${immutable_release_intent_path}" "${release_intent_path}" "${product_state_path}" "${product_state_dashboard_path}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must commit the ZIP, manifest, release intent, product-state ledger, and dashboard together on release-artifacts" >&2
   exit 1
 fi
 

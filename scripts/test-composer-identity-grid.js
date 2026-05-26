@@ -38,6 +38,7 @@ const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
+const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
@@ -164,6 +165,7 @@ const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
+const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
 const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
@@ -265,7 +267,12 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const composerSiteSettingsRuntimeSource = [composerSiteSettingsUiSource, composerSiteSettingsControlsSource, composerSiteSettingsSchemaSource].join('\n');
+const composerSiteSettingsRuntimeSource = [
+  composerSiteSettingsUiSource,
+  composerSiteSettingsControlsSource,
+  composerSiteSettingsLinkListSource,
+  composerSiteSettingsSchemaSource
+].join('\n');
 const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
 function extractFunctionBody(text, name) {
@@ -924,6 +931,12 @@ assert.match(
 
 assert.match(
   composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-link-list\.js'/,
+  'Site Settings UI should delegate profile link list rendering and reordering'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
   /from '\.\/composer-site-settings-schema\.js'/,
   'Site Settings UI should consume section and simple-field metadata from a schema boundary'
 );
@@ -942,14 +955,20 @@ assert.match(
 
 assert.doesNotMatch(
   composerSiteSettingsUiSource,
-  /const create(?:Section|Field|SubheadingField|ConfigSubsection|SingleGridFieldset|SwitchControl) = /,
-  'Site Settings UI should not re-own reusable control factories after extracting the controls module'
+  /const create(?:Section|Field|SubheadingField|ConfigSubsection|SingleGridFieldset|SwitchControl|LinkListField) = /,
+  'Site Settings UI should not re-own reusable control or link-list factories after extraction'
 );
 
 assert.match(
   composerSiteSettingsControlsSource,
   /export function createComposerSiteSettingsControls\(options = \{\}\)[\s\S]*const createSection = \(title, description\) =>[\s\S]*const createField = \(section, config = \{\}\) =>[\s\S]*const createSingleGridFieldset = \(section\) =>[\s\S]*const renderSingleTextGrid = \(section, items\) =>/,
   'Site Settings controls boundary should own reusable section, field, and compact grid factories'
+);
+
+assert.match(
+  composerSiteSettingsLinkListSource,
+  /export function createComposerSiteSettingsLinkList\(options = \{\}\)[\s\S]*const createLinkListField = \(section, key, config = \{\}\) =>[\s\S]*const renderRowsAndRefreshDiff = \(\) =>[\s\S]*const createDragHandle = \(index\) =>[\s\S]*function renderRows\(\)/,
+  'Site Settings link-list boundary should own profile link rows, diff refresh, and drag handles'
 );
 
 assert.match(

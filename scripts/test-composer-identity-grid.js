@@ -99,6 +99,7 @@ const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
 const editorMainFrontMatterLabelWidthPath = resolve(here, '../assets/js/editor-main-frontmatter-label-width.js');
+const editorMainFrontMatterManagerPath = resolve(here, '../assets/js/editor-main-frontmatter-manager.js');
 const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-main-tabs-metadata-manager.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
@@ -243,6 +244,7 @@ const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
 const editorMainFrontMatterLabelWidthSource = readFileSync(editorMainFrontMatterLabelWidthPath, 'utf8');
+const editorMainFrontMatterManagerSource = readFileSync(editorMainFrontMatterManagerPath, 'utf8');
 const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataManagerPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
@@ -1725,6 +1727,12 @@ assert.match(
   editorMainMetadataPanelSource,
   /from '\.\/editor-main-frontmatter-label-width\.js'/,
   'metadata panel should cache-bust the front matter label-width sync boundary'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /from '\.\/editor-main-frontmatter-manager\.js'/,
+  'metadata panel should cache-bust the article front matter manager boundary'
 );
 
 assert.match(
@@ -5843,15 +5851,27 @@ assert.match(
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterManagerSource,
   /head\.className = 'frontmatter-field-head';[\s\S]*labelWrap\.className = 'frontmatter-field-label-wrap';[\s\S]*labelSpan\.className = 'frontmatter-field-title';[\s\S]*controls\.className = 'frontmatter-field-controls';[\s\S]*controls\.appendChild\([\s\S]*entry\.container\.appendChild\(controls\);/,
   'front matter field DOM should include field head, label wrap, and controls wrapper'
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterManagerSource,
   /const clear = \(\) => \{[\s\S]*state = \{[\s\S]*data:\s*\{\}[\s\S]*hasFrontMatter:\s*false[\s\S]*rebuildBindings\(\);[\s\S]*\};[\s\S]*return \{[\s\S]*clear,/,
   'front matter manager should expose a clear helper to reset stale article metadata state'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /const createFrontMatterManager = \(\) => createEditorMainFrontMatterManager\(\{[\s\S]*documentRef,[\s\S]*getElementById,[\s\S]*querySelector,[\s\S]*translate,[\s\S]*translateWithLocaleFallback,[\s\S]*syncLabelWidth: syncFrontMatterLabelWidth[\s\S]*\}\);/,
+  'metadata panel session should compose article front matter through an explicit manager boundary'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /FRONT_MATTER_FIELD_DEFS|buildMarkdownWithFrontMatter|parseMarkdownFrontMatter|resolveFrontMatterBindings|normalizeDateInputValue|head\.className = 'frontmatter-field-head'|input\.addEventListener\(entry\.type === 'boolean'/,
+  'metadata panel session should not own article front matter document parsing or field DOM internals'
 );
 
 assert.match(
@@ -5882,6 +5902,12 @@ assert.doesNotMatch(
   editorMainMetadataPanelSource,
   /ownerDocument|defaultView|typeof document\b/,
   'metadata panel should use its injected documentRef instead of deriving document APIs from DOM nodes'
+);
+
+assert.doesNotMatch(
+  editorMainFrontMatterManagerSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|typeof document\b|ownerDocument|defaultView/,
+  'article front matter manager should stay bound to injected document and translation adapters'
 );
 
 assert.match(
@@ -5969,7 +5995,7 @@ assert.match(
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterManagerSource,
   /const syncBooleanControl = \(entry, value\) => \{[\s\S]*entry\.input\.setAttribute\('aria-checked', checked \? 'true' : 'false'\);[\s\S]*wrap\.className = 'frontmatter-switch';[\s\S]*checkbox\.setAttribute\('role', 'switch'\);[\s\S]*entry\.switchEl = wrap;/,
   'front matter boolean fields should sync switch state through the existing input binding'
 );

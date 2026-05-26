@@ -125,6 +125,7 @@ const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-block
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
 const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
+const editorBlocksInlineEditingBridgePath = resolve(here, '../assets/js/editor-blocks-inline-editing-bridge.js');
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
@@ -260,6 +261,7 @@ const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessi
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
+const editorBlocksInlineEditingBridgeSource = readFileSync(editorBlocksInlineEditingBridgePath, 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
@@ -459,8 +461,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-inline-editing-bridge\.js'/,
+  'blocks editor should cache-bust the explicit blocks inline editing bridge boundary'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
   /from '\.\/editor-blocks-inline-dom-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks inline DOM session boundary'
+  'blocks inline editing bridge should cache-bust the explicit blocks inline DOM session boundary'
 );
 
 assert.match(
@@ -561,8 +569,26 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /function createFallbackSelectionSession\(\) \{[\s\S]*return createEditorBlocksSelectionSession\(\);[\s\S]*function normalizeSelectionSession\(selectionSession\) \{[\s\S]*: createFallbackSelectionSession\(\);[\s\S]*function normalizeInlineDomSession\(inlineDomSession\) \{[\s\S]*: createInlineDomSession\(\);[\s\S]*function normalizeCaretSession\(caretSessionOrSelectionSession\) \{[\s\S]*return createCaretSession\(\);/,
-  'blocks editor should create temporary fallback sessions at call time instead of retaining hidden module state'
+  /from '\.\/editor-blocks-inline-editing-bridge\.js'/,
+  'blocks editor should import the inline editing bridge boundary'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
+  /function createFallbackSelectionSession\(documentRef = null\) \{[\s\S]*return createEditorBlocksSelectionSession\(\{ documentRef, windowRef \}\);[\s\S]*function normalizeSelectionSession\(selectionSession, documentRef = null\) \{[\s\S]*: createFallbackSelectionSession\(documentRef\);[\s\S]*function normalizeInlineDomSession\(inlineDomSession\) \{[\s\S]*: createInlineDomSession\(\);[\s\S]*function normalizeCaretSession\(caretSessionOrSelectionSession\) \{[\s\S]*return createCaretSession\(\);/,
+  'blocks inline editing bridge should create document-aware temporary fallback sessions at call time instead of retaining hidden module state'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
+  /export function createInlineDomSession\(selectionSession = null, documentRef = null, renderMath = null\)[\s\S]*export function createCaretSession\(selectionSession = null, documentRef = null\)[\s\S]*export function inlineRunsFromDom\(root\)[\s\S]*export function splitEditableTextAtSelection\(el, selectionSession = null\)[\s\S]*export function insertCodeEditableTextAtSelection\(el, value, selectionSession = null\)[\s\S]*export function selectionLinkInEditable\(editable, selectionSession = null\)[\s\S]*export function selectionMathInEditable\(editable, selectionSession = null\)/,
+  'blocks inline editing bridge should own inline DOM conversion, caret wrappers, code insertion, and active link/math lookup'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /function inlineRunsFromDom|function serializeInlineDom|function splitEditableTextAtSelection|function selectionLinkInEditable|function selectionMathInEditable|function insertCodeEditableTextAtSelection|function nodeContains|function closestElement/,
+  'blocks editor root should not own inline DOM, caret, selection, or code-editing helper implementations'
 );
 
 assert.match(
@@ -762,6 +788,7 @@ assert.doesNotMatch(
     editorBlocksRichTextSessionSource,
     editorBlocksSelectionSessionSource,
     editorBlocksInlineDomSessionSource,
+    editorBlocksInlineEditingBridgeSource,
     editorBlocksInlineToolbarSessionSource,
     editorBlocksLinkSessionSource,
     editorBlocksMathSessionSource,
@@ -3350,7 +3377,7 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksSource}\n${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
   /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\?\.registerEditable\?\.\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
   'blocks editor should provide registered editables and a browser-selection lookup for inline toolbar recovery'
 );
@@ -3446,7 +3473,7 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineMarksFromDomNode\(node, editable\)[\s\S]*tag === 'strong' \|\| tag === 'b'[\s\S]*function inlineMarksFromPointerEvent\(event, editable, selectionSession = null\)[\s\S]*selectionTools\.nodeFromPoint\(event, editable, event && event\.target, \{ containsNode: nodeContains \}\)[\s\S]*fallbackMarks && fallbackMarks\[mark\]/,
   'inline toolbar state should fall back to marks from the clicked rich-text DOM path when selection offsets are unavailable or ambiguous'
 );
@@ -4124,13 +4151,13 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineEditingBridgeSource,
   /function normalizeCodeEditablePlainText\(value\) \{[\s\S]*\.replace\(\/\\r\\n\/g, '\\n'\)[\s\S]*\.replace\(\/\\r\/g, '\\n'\);[\s\S]*function codeEditableText\(el\) \{[\s\S]*normalizeCodeEditablePlainText\(el\.innerText \|\| el\.textContent \|\| ''\)\.replace\(\/\\n\$\/, ''\);/,
   'code block text extraction should normalize browser Enter separators before syncing'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineEditingBridgeSource,
   /function insertCodeEditableTextAtSelection\(el, value, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*const offsets = codeEditableSelectionOffsets\(el, selectionTools\);[\s\S]*el\.textContent = next;[\s\S]*placeCaretAtTextOffset\(el, start \+ insert\.length, selectionTools\);[\s\S]*return next;/,
   'code block controlled text insertion should restore the caret after rewriting Enter text'
 );
@@ -4328,19 +4355,19 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
-  extractFunctionBody(editorBlocksSource, 'editableText'),
+  extractFunctionBody(editorBlocksInlineEditingBridgeSource, 'editableText'),
   /\.trim\(/,
   'editable text sync should preserve leading and trailing markdown whitespace'
 );
 
 assert.doesNotMatch(
-  extractFunctionBody(editorBlocksSource, 'splitEditableTextAtSelection'),
+  extractFunctionBody(editorBlocksInlineEditingBridgeSource, 'splitEditableTextAtSelection'),
   /\.trim\(/,
   'splitting editable text should preserve leading and trailing markdown whitespace'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksListSessionSource}`,
   /function splitEditableTextAtSelection\(el, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)[\s\S]*afterRange\.cloneContents\(\)[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);[\s\S]*next\[itemIndex\] = \{ \.\.\.next\[itemIndex\], text: split\.before \};[\s\S]*next\.splice\(itemIndex \+ 1, 0, \{[\s\S]*text: split\.after,[\s\S]*checked: false,[\s\S]*indent: currentIndent,[\s\S]*indentText:[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
   'pressing Enter in a visual list item should keep the caret semantic position by focusing the after item'
 );
@@ -4382,7 +4409,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksListSessionSource}`,
   /function getEditableCaretTextOffset\(el, caretSession = null\) \{[\s\S]*getTextOffset\(el\)[\s\S]*function placeCaretAtVisualLine\(el, x, edge, fallbackOffset = 0, caretSession = null\) \{[\s\S]*placeAtVisualLine\(el, x, edge, fallbackOffset\)[\s\S]*event\.key === 'ArrowUp' \|\| event\.key === 'ArrowDown'[\s\S]*const nextIndex = event\.key === 'ArrowUp' \? itemIndex - 1 : itemIndex \+ 1;[\s\S]*if \(!isEditableCaretOnEdgeLine\(span, event\.key === 'ArrowUp' \? 'up' : 'down', caretSession\)\) return;[\s\S]*placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, caretSession\);/,
   'ArrowUp and ArrowDown should cross items only from edge lines and enter multiline targets from the correct visual edge'
 );

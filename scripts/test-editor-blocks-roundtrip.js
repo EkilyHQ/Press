@@ -47,6 +47,7 @@ const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-
 const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
 const editorBlocksRichTextSessionSource = readFileSync(new URL('../assets/js/editor-blocks-rich-text-session.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
+const editorBlocksInlineEditingBridgeSource = readFileSync(new URL('../assets/js/editor-blocks-inline-editing-bridge.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
 const editorBlocksSourceSessionSource = readFileSync(new URL('../assets/js/editor-blocks-source-session.js', import.meta.url), 'utf8');
@@ -132,6 +133,11 @@ run('rich text and list initialization render through the runtime inline DOM ses
     editorBlocksSource,
     /const setPlainContentEditableValueWithRuntime = \(el, value\) => setPlainContentEditableValue\(el, value, inlineDomSession\);/,
     'the blocks editor should bind plain contenteditable rendering to the runtime inline-DOM session'
+  );
+  assert.match(
+    editorBlocksInlineEditingBridgeSource,
+    /createEditorBlocksInlineDomSession[\s\S]*createEditorBlocksCaretSession[\s\S]*export function inlineRunsFromDom\(root\)[\s\S]*export function setPlainContentEditableValue\(el, value, inlineDomSession = null\)/,
+    'the inline editing bridge should own runtime inline DOM and caret session adapters'
   );
   assert.match(
     editorBlocksSource,

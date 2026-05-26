@@ -1,3 +1,5 @@
+import { createComposerIndexTabsLanguageMenu } from './composer-index-tabs-language-menu.js';
+
 export function createComposerIndexTabsUi(options = {}) {
   const documentRef = options.documentRef || null;
   const requestAnimationFrameRef = typeof options.requestAnimationFrameRef === 'function' ? options.requestAnimationFrameRef : null;
@@ -40,6 +42,14 @@ export function createComposerIndexTabsUi(options = {}) {
     el.style.display = open ? 'block' : 'none';
     el.dataset.open = open ? '1' : '0';
   };
+  const languageMenu = createComposerIndexTabsLanguageMenu({
+    documentRef,
+    setTimeoutRef,
+    addDocumentListener,
+    query,
+    escapeHtml,
+    displayLangName
+  });
 
   function requestFrame(callback) {
     if (typeof callback !== 'function') return null;
@@ -47,15 +57,6 @@ export function createComposerIndexTabsUi(options = {}) {
       try { return requestAnimationFrameRef(callback); } catch (_) {}
     }
     callback();
-    return null;
-  }
-
-  function scheduleTimer(callback, delay) {
-    if (typeof callback !== 'function') return null;
-    if (setTimeoutRef) {
-      try { return setTimeoutRef(callback, delay); } catch (_) {}
-    }
-    if ((Number(delay) || 0) <= 0) callback();
     return null;
   }
 
@@ -501,88 +502,26 @@ export function createComposerIndexTabsUi(options = {}) {
         const available = preferredLangOrder.filter(l => !entry[l]);
         if (available.length > 0) {
           const addLangLabel = tComposerLang('addLanguage');
-          const addLangWrap = documentRef.createElement('span');
-          addLangWrap.className = 'ci-add-lang has-menu';
-          addLangWrap.innerHTML = `
-            <button type="button" class="btn-secondary ci-add-lang-btn" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(addLangLabel)}</button>
-            <div class="ci-lang-menu press-menu" role="listbox" hidden>
-              ${available.map(l => `<button type="button" role="option" class="press-menu-item" data-lang="${escapeHtml(l)}">${escapeHtml(displayLangName(l))}</button>`).join('')}
-            </div>
-          `;
-          const btn = query('.ci-add-lang-btn', addLangWrap);
-          const menu = query('.ci-lang-menu', addLangWrap);
-          let disposeDocDown = null;
-          let disposeKeyDown = null;
-          if (btn) {
-            btn.setAttribute('title', addLangLabel);
-            btn.setAttribute('aria-label', addLangLabel);
-          }
-          function closeMenu() {
-            if (menu.hidden) return;
-            const finish = () => {
-              menu.hidden = true;
-              btn.classList.remove('is-open');
-              addLangWrap.classList.remove('is-open');
-              btn.setAttribute('aria-expanded', 'false');
-              if (typeof disposeDocDown === 'function') disposeDocDown();
-              if (typeof disposeKeyDown === 'function') disposeKeyDown();
-              disposeDocDown = null;
-              disposeKeyDown = null;
-              menu.classList.remove('is-closing');
-            };
-            try {
-              menu.classList.add('is-closing');
-              const onEnd = () => {
-                menu.removeEventListener('animationend', onEnd);
-                finish();
-              };
-              menu.addEventListener('animationend', onEnd, { once: true });
-              scheduleTimer(finish, 180);
-            } catch (_) {
-              finish();
-            }
-          }
-          function openMenu() {
-            if (!menu.hidden) return;
-            menu.hidden = false;
-            try { menu.classList.remove('is-closing'); } catch (_) {}
-            btn.classList.add('is-open');
-            addLangWrap.classList.add('is-open');
-            btn.setAttribute('aria-expanded', 'true');
-            try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-            if (typeof disposeDocDown === 'function') disposeDocDown();
-            if (typeof disposeKeyDown === 'function') disposeKeyDown();
-            disposeDocDown = addDocumentListener('mousedown', onDocDown, true);
-            disposeKeyDown = addDocumentListener('keydown', onKeyDown, true);
-          }
-          function onDocDown(event) {
-            if (!addLangWrap.contains(event.target)) closeMenu();
-          }
-          function onKeyDown(event) {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              closeMenu();
-            }
-          }
-          btn.addEventListener('click', () => {
-            if (btn.classList.contains('is-open')) closeMenu();
-            else openMenu();
-          });
-          menu.querySelectorAll('.press-menu-item').forEach((it) => {
-            it.addEventListener('click', () => {
-              const code = String(it.getAttribute('data-lang') || '').trim();
+          const addLangWrap = languageMenu.createLanguageMenu({
+            tagName: 'span',
+            wrapperClass: 'ci-add-lang',
+            buttonClass: 'ci-add-lang-btn',
+            menuClass: 'ci-lang-menu',
+            label: addLangLabel,
+            available,
+            onSelect: (code, menuApi) => {
               if (!code || entry[code]) return;
               const defaultPath = buildDefaultLanguagePathFromEntry('index', key, code, entry);
               entry[code] = defaultPath ? [defaultPath] : [''];
               const meta = row.querySelector('.ci-meta');
               if (meta) meta.textContent = tComposerLang('count', { count: Object.keys(entry).length });
-              closeMenu();
+              menuApi.closeMenu();
               renderBody();
               broadcastLanguagePoolChange();
               markDirty();
-            });
+            }
           });
-          (headAddLangSlot || bodyInner).appendChild(addLangWrap);
+          if (addLangWrap) (headAddLangSlot || bodyInner).appendChild(addLangWrap);
         }
         updateComposerDraftContainerState(row);
       };
@@ -729,76 +668,14 @@ export function createComposerIndexTabsUi(options = {}) {
 
         const available = preferredLangOrder.filter(l => !entry[l]);
         if (available.length > 0) {
-          const addLangWrap = documentRef.createElement('div');
-          addLangWrap.className = 'ct-add-lang has-menu';
-          addLangWrap.innerHTML = `
-            <button type="button" class="btn-secondary ct-add-lang-btn" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(addLangLabel)}</button>
-            <div class="ct-lang-menu press-menu" role="listbox" hidden>
-              ${available.map(l => `<button type="button" role="option" class="press-menu-item" data-lang="${escapeHtml(l)}">${escapeHtml(displayLangName(l))}</button>`).join('')}
-            </div>
-          `;
-          const btn = query('.ct-add-lang-btn', addLangWrap);
-          const menu = query('.ct-lang-menu', addLangWrap);
-          let disposeDocDown = null;
-          let disposeKeyDown = null;
-          if (btn) {
-            btn.setAttribute('title', addLangLabel);
-            btn.setAttribute('aria-label', addLangLabel);
-          }
-          function closeMenu() {
-            if (menu.hidden) return;
-            const finish = () => {
-              menu.hidden = true;
-              btn.classList.remove('is-open');
-              addLangWrap.classList.remove('is-open');
-              btn.setAttribute('aria-expanded', 'false');
-              if (typeof disposeDocDown === 'function') disposeDocDown();
-              if (typeof disposeKeyDown === 'function') disposeKeyDown();
-              disposeDocDown = null;
-              disposeKeyDown = null;
-              menu.classList.remove('is-closing');
-            };
-            try {
-              menu.classList.add('is-closing');
-              const onEnd = () => {
-                menu.removeEventListener('animationend', onEnd);
-                finish();
-              };
-              menu.addEventListener('animationend', onEnd, { once: true });
-              scheduleTimer(finish, 180);
-            } catch (_) {
-              finish();
-            }
-          }
-          function openMenu() {
-            if (!menu.hidden) return;
-            menu.hidden = false;
-            try { menu.classList.remove('is-closing'); } catch (_) {}
-            btn.classList.add('is-open');
-            addLangWrap.classList.add('is-open');
-            btn.setAttribute('aria-expanded', 'true');
-            try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-            if (typeof disposeDocDown === 'function') disposeDocDown();
-            if (typeof disposeKeyDown === 'function') disposeKeyDown();
-            disposeDocDown = addDocumentListener('mousedown', onDocDown, true);
-            disposeKeyDown = addDocumentListener('keydown', onKeyDown, true);
-          }
-          function onDocDown(event) {
-            if (!addLangWrap.contains(event.target)) closeMenu();
-          }
-          function onKeyDown(event) {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              closeMenu();
-            }
-          }
-          btn.addEventListener('click', () => {
-            if (btn.classList.contains('is-open')) closeMenu();
-            else openMenu();
-          });
-          menu.querySelectorAll('.press-menu-item').forEach((it) => {
-            it.addEventListener('click', () => {
-              const code = String(it.getAttribute('data-lang') || '').trim();
+          const addLangWrap = languageMenu.createLanguageMenu({
+            tagName: 'div',
+            wrapperClass: 'ct-add-lang',
+            buttonClass: 'ct-add-lang-btn',
+            menuClass: 'ct-lang-menu',
+            label: addLangLabel,
+            available,
+            onSelect: (code, menuApi) => {
               if (!code || entry[code]) return;
               const defaultLocation = buildDefaultLanguagePathFromEntry('tabs', tab, code, entry);
               entry[code] = {
@@ -807,13 +684,13 @@ export function createComposerIndexTabsUi(options = {}) {
               };
               const meta = row.querySelector('.ct-meta');
               if (meta) meta.textContent = tComposerLang('count', { count: Object.keys(entry).length });
-              closeMenu();
+              menuApi.closeMenu();
               renderBody();
               broadcastLanguagePoolChange();
               markDirty();
-            });
+            }
           });
-          bodyInner.appendChild(addLangWrap);
+          if (addLangWrap) bodyInner.appendChild(addLangWrap);
         }
         updateComposerDraftContainerState(row);
       };

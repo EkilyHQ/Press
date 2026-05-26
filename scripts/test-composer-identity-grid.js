@@ -40,6 +40,7 @@ const composerOrderPreviewPath = resolve(here, '../assets/js/composer-order-prev
 const composerOrderReviewViewPath = resolve(here, '../assets/js/composer-order-review-view.js');
 const composerOrderVisualPath = resolve(here, '../assets/js/composer-order-visual.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
+const composerIndexTabsLanguageMenuPath = resolve(here, '../assets/js/composer-index-tabs-language-menu.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerSiteSettingsConfigGridsPath = resolve(here, '../assets/js/composer-site-settings-config-grids.js');
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
@@ -177,6 +178,7 @@ const composerOrderPreviewSource = readFileSync(composerOrderPreviewPath, 'utf8'
 const composerOrderReviewViewSource = readFileSync(composerOrderReviewViewPath, 'utf8');
 const composerOrderVisualSource = readFileSync(composerOrderVisualPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
+const composerIndexTabsLanguageMenuSource = readFileSync(composerIndexTabsLanguageMenuPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerSiteSettingsConfigGridsSource = readFileSync(composerSiteSettingsConfigGridsPath, 'utf8');
 const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
@@ -1024,6 +1026,12 @@ assert.match(
   'composer should cache-bust the extracted index/tabs list UI boundary'
 );
 
+assert.match(
+  composerIndexTabsUiSource,
+  /from '\.\/composer-index-tabs-language-menu\.js'/,
+  'index/tabs UI should cache-bust the shared language-menu lifecycle boundary'
+);
+
 assert.doesNotMatch(
   source,
   /function makeDragList|function buildIndexUI|function buildTabsUI/,
@@ -1032,8 +1040,20 @@ assert.doesNotMatch(
 
 assert.match(
   composerIndexTabsUiSource,
-  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*function makeDragList\(container, onReorder\)[\s\S]*function buildIndexUI\(root, state\)[\s\S]*function buildTabsUI\(root, state\)/,
-  'index/tabs list UI boundary should own legacy composer list rendering and drag controls'
+  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*const languageMenu = createComposerIndexTabsLanguageMenu\(\{[\s\S]*documentRef,[\s\S]*setTimeoutRef,[\s\S]*addDocumentListener,[\s\S]*query,[\s\S]*escapeHtml,[\s\S]*displayLangName[\s\S]*\}\);[\s\S]*function makeDragList\(container, onReorder\)[\s\S]*function buildIndexUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ci-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);[\s\S]*function buildTabsUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ct-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);/,
+  'index/tabs list UI boundary should own list rendering while delegating shared add-language menu lifecycle'
+);
+
+assert.match(
+  composerIndexTabsLanguageMenuSource,
+  /export function createComposerIndexTabsLanguageMenu\(options = \{\}\)[\s\S]*function createLanguageMenu\(\{[\s\S]*wrapperClass = '',[\s\S]*buttonClass = '',[\s\S]*menuClass = '',[\s\S]*available = \[\],[\s\S]*onSelect[\s\S]*function closeMenu\(\)[\s\S]*menu\.classList\.add\('is-closing'\)[\s\S]*addDocumentListener\('mousedown', onDocDown, true\)[\s\S]*addDocumentListener\('keydown', onKeyDown, true\)[\s\S]*onSelect\(code, \{ closeMenu, item, wrap, button: btn, menu \}\);/,
+  'index/tabs language-menu helper should own open, close, outside-click, Escape, and select callback lifecycle'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /let disposeDocDown = null|let disposeKeyDown = null|function closeMenu\(\)|function openMenu\(\)|function onDocDown\(event\)|function onKeyDown\(event\)/,
+  'index/tabs list UI should not duplicate add-language menu lifecycle in both index and tabs renderers'
 );
 
 assert.match(
@@ -1043,7 +1063,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  composerIndexTabsUiSource,
+  `${composerIndexTabsUiSource}\n${composerIndexTabsLanguageMenuSource}`,
   /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|\bwindowRef\b|documentRef\.(?:addEventListener|removeEventListener)\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
   'index/tabs UI should receive browser refs, frames, timers, events, scroll, dialogs, and style access through explicit runtime wiring'
 );

@@ -1,5 +1,6 @@
 import { normalizeDateInputValue } from './editor-markdown-ops.js';
 import { createFrontMatterLabelWidthSync } from './editor-main-frontmatter-label-width.js';
+import { createEditorMainTabsMetadataManager } from './editor-main-tabs-metadata-manager.js';
 import {
   FRONT_MATTER_FIELD_DEFS,
   buildMarkdownWithFrontMatter,
@@ -463,106 +464,12 @@ export function createEditorMainMetadataPanel(options = {}) {
   };
 
   const createTabsMetadataManager = () => {
-    const panel = getElementById('frontMatterPanel');
-    const body = getElementById('frontMatterBody');
-    if (!panel || !body) return null;
-
-    const section = createElement(documentRef, 'div');
-    section.className = 'frontmatter-section';
-    section.id = 'tabsMetadataSection';
-    section.hidden = true;
-
-    const head = createElement(documentRef, 'div');
-    head.className = 'frontmatter-section-head';
-    const title = createElement(documentRef, 'h3');
-    title.className = 'frontmatter-section-title';
-    title.textContent = translateWithLocaleFallback('editor.tabsMetadata.title', {
-      en: 'Page attributes',
-      chs: '页面属性',
-      'cht-tw': '頁面屬性',
-      'cht-hk': '頁面屬性',
-      ja: 'ページ属性'
+    return createEditorMainTabsMetadataManager({
+      documentRef,
+      getElementById,
+      translateWithLocaleFallback,
+      syncLabelWidth: syncFrontMatterLabelWidth
     });
-    const description = createElement(documentRef, 'p');
-    description.className = 'frontmatter-section-description';
-    description.textContent = translateWithLocaleFallback('editor.tabsMetadata.description', {
-      en: 'Metadata stored in tabs.yaml for the current page language.',
-      chs: '当前页面语言在 tabs.yaml 中保存的元数据。',
-      'cht-tw': '目前頁面語言在 tabs.yaml 中儲存的中繼資料。',
-      'cht-hk': '目前頁面語言在 tabs.yaml 中儲存的中繼資料。',
-      ja: '現在のページ言語について tabs.yaml に保存されるメタデータ。'
-    });
-    head.append(title, description);
-
-    const grid = createElement(documentRef, 'div');
-    grid.className = 'frontmatter-grid';
-    const field = createElement(documentRef, 'div');
-    field.className = 'frontmatter-field frontmatter-field-text';
-    field.dataset.fieldId = 'tabs-title';
-    const fieldHead = createElement(documentRef, 'div');
-    fieldHead.className = 'frontmatter-field-head';
-    const labelWrap = createElement(documentRef, 'div');
-    labelWrap.className = 'frontmatter-field-label-wrap';
-    const label = createElement(documentRef, 'span');
-    label.className = 'frontmatter-field-title';
-    label.textContent = translateWithLocaleFallback('editor.tabsMetadata.fields.title', {
-      en: 'Title',
-      chs: '标题',
-      'cht-tw': '標題',
-      'cht-hk': '標題',
-      ja: 'タイトル'
-    });
-    labelWrap.appendChild(label);
-    fieldHead.appendChild(labelWrap);
-
-    const controls = createElement(documentRef, 'div');
-    controls.className = 'frontmatter-field-controls';
-    const input = createElement(documentRef, 'input');
-    input.type = 'text';
-    controls.appendChild(input);
-    field.append(fieldHead, controls);
-    grid.appendChild(field);
-    section.append(head, grid);
-    body.appendChild(section);
-    syncFrontMatterLabelWidth(panel);
-
-    let suppressEvents = false;
-    let changeHandler = () => {};
-    let state = { title: '' };
-    const getState = () => ({ title: state.title || '' });
-    const emitChange = () => {
-      try { changeHandler(getState()); } catch (_) {}
-    };
-
-    input.addEventListener('input', () => {
-      if (suppressEvents) return;
-      state = { title: input.value };
-      emitChange();
-    });
-
-    return {
-      panel,
-      section,
-      setVisible: (visible) => {
-        section.hidden = !visible;
-      },
-      setChangeHandler: (fn) => {
-        changeHandler = typeof fn === 'function' ? fn : () => {};
-      },
-      setValue: (value, opts = {}) => {
-        const nextTitle = value && typeof value === 'object'
-          ? String(value.title || '')
-          : String(value || '');
-        state = { title: nextTitle };
-        suppressEvents = true;
-        try {
-          input.value = nextTitle;
-        } finally {
-          suppressEvents = false;
-        }
-        if (!opts.silent) emitChange();
-      }
-    };
   };
 
   const frontMatterManager = createFrontMatterManager();

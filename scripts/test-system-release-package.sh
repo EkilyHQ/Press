@@ -288,6 +288,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-main-frontmatter-label-w
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-main-tabs-metadata-manager.js" "${entries_file}"; then
+  echo "expected package to include editor main tabs metadata manager code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-session.js" "${entries_file}"; then
   echo "expected package to include editor main preview session boundary code" >&2
   exit 1

@@ -99,6 +99,7 @@ const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
 const editorMainFrontMatterLabelWidthPath = resolve(here, '../assets/js/editor-main-frontmatter-label-width.js');
+const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-main-tabs-metadata-manager.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
@@ -242,6 +243,7 @@ const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
 const editorMainFrontMatterLabelWidthSource = readFileSync(editorMainFrontMatterLabelWidthPath, 'utf8');
+const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataManagerPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
@@ -1723,6 +1725,12 @@ assert.match(
   editorMainMetadataPanelSource,
   /from '\.\/editor-main-frontmatter-label-width\.js'/,
   'metadata panel should cache-bust the front matter label-width sync boundary'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /from '\.\/editor-main-tabs-metadata-manager\.js'/,
+  'metadata panel should cache-bust the tabs metadata manager boundary'
 );
 
 assert.match(
@@ -6004,8 +6012,26 @@ assert.match(
 
 assert.match(
   editorMainMetadataPanelSource,
-  /const createTabsMetadataManager = \(\) => \{[\s\S]*section\.className = 'frontmatter-section';[\s\S]*grid\.className = 'frontmatter-grid';[\s\S]*field\.className = 'frontmatter-field frontmatter-field-text';[\s\S]*field\.dataset\.fieldId = 'tabs-title';[\s\S]*setChangeHandler: \(fn\) => \{[\s\S]*setValue: \(value, opts = \{\}\) => \{[\s\S]*emitChange\(\);/,
+  /const createTabsMetadataManager = \(\) => \{[\s\S]*createEditorMainTabsMetadataManager\(\{[\s\S]*documentRef,[\s\S]*getElementById,[\s\S]*translateWithLocaleFallback,[\s\S]*syncLabelWidth: syncFrontMatterLabelWidth[\s\S]*\}\);[\s\S]*\};/,
+  'metadata panel session should compose tabs metadata through an explicit manager boundary'
+);
+
+assert.match(
+  editorMainTabsMetadataManagerSource,
+  /export function createEditorMainTabsMetadataManager\(options = \{\}\) \{[\s\S]*section\.className = 'frontmatter-section';[\s\S]*grid\.className = 'frontmatter-grid';[\s\S]*field\.className = 'frontmatter-field frontmatter-field-text';[\s\S]*field\.dataset\.fieldId = 'tabs-title';[\s\S]*setChangeHandler: \(fn\) => \{[\s\S]*setValue: \(value, opts = \{\}\) => \{[\s\S]*emitChange\(\);/,
   'metadata panel session should define a tabs metadata manager that reuses the frontmatter panel shell and field styling'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /section\.id = 'tabsMetadataSection'|field\.dataset\.fieldId = 'tabs-title'|input\.addEventListener\('input'/,
+  'metadata panel session should not own tabs metadata DOM construction or input event handling'
+);
+
+assert.doesNotMatch(
+  editorMainTabsMetadataManagerSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|typeof document\b|ownerDocument|defaultView/,
+  'tabs metadata manager should stay bound to injected document and translation adapters'
 );
 
 assert.match(

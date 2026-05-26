@@ -130,6 +130,7 @@ const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js
 const editorBlocksInlineModelPath = resolve(here, '../assets/js/editor-blocks-inline-model.js');
 const editorBlocksListModelPath = resolve(here, '../assets/js/editor-blocks-list-model.js');
 const editorBlocksTableModelPath = resolve(here, '../assets/js/editor-blocks-table-model.js');
+const editorBlocksBlockFlowModelPath = resolve(here, '../assets/js/editor-blocks-block-flow-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
 const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
@@ -288,6 +289,7 @@ const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
 const editorBlocksInlineModelSource = readFileSync(editorBlocksInlineModelPath, 'utf8');
 const editorBlocksListModelSource = readFileSync(editorBlocksListModelPath, 'utf8');
 const editorBlocksTableModelSource = readFileSync(editorBlocksTableModelPath, 'utf8');
+const editorBlocksBlockFlowModelSource = readFileSync(editorBlocksBlockFlowModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
@@ -452,6 +454,12 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-block-flow-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks block-flow model boundary'
+);
+
+assert.match(
   editorBlocksInlineEditingBridgeSource,
   /from '\.\/editor-blocks-inline-model\.js'/,
   'blocks inline editing bridge should consume inline run parsing and serialization through the inline model boundary'
@@ -464,8 +472,14 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksBlockActionsSource,
+  /from '\.\/editor-blocks-block-flow-model\.js'/,
+  'blocks block actions should consume Backspace and Enter flow helpers through the block-flow model boundary'
+);
+
+assert.match(
   editorBlocksModelSource,
-  /from '\.\/editor-blocks-inline-model\.js'[\s\S]*export \{[\s\S]*applyInlineLinkToRuns,[\s\S]*parseInlineRuns,[\s\S]*serializeInlineRuns,[\s\S]*toggleInlineMarkOnRuns[\s\S]*\} from '\.\/editor-blocks-inline-model\.js';/,
+  /export \{[\s\S]*applyInlineLinkToRuns,[\s\S]*parseInlineRuns,[\s\S]*serializeInlineRuns,[\s\S]*toggleInlineMarkOnRuns[\s\S]*\} from '\.\/editor-blocks-inline-model\.js';/,
   'blocks model should keep backward-compatible inline exports while delegating inline logic to the inline model boundary'
 );
 
@@ -479,6 +493,12 @@ assert.match(
   editorBlocksModelSource,
   /from '\.\/editor-blocks-table-model\.js'[\s\S]*export \{(?=[\s\S]*parseTableBlock,)(?=[\s\S]*serializeTable,)(?=[\s\S]*editableTableData,)[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/,
   'blocks model should keep backward-compatible table exports while delegating table logic to the table model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*isBlockEmptyForBackspace)(?=[\s\S]*splitTextBlockIntoParagraph)(?=[\s\S]*mergeTextBlockIntoPrevious)(?=[\s\S]*mergeFirstListItemIntoPreviousBlock)[\s\S]*\} from '\.\/editor-blocks-block-flow-model\.js';/,
+  'blocks model should keep backward-compatible block-flow exports while delegating Enter and Backspace editing logic to the block-flow model boundary'
 );
 
 assert.doesNotMatch(
@@ -500,9 +520,21 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function isBlockEmptyForBackspace|function splitTextBlockIntoParagraph|function joinMergedEditableText|function mergeTextBlockIntoPrevious|function mergeTextBlockIntoPreviousList|function mergeFirstListItemIntoPreviousBlock/,
+  'blocks model should not re-own block-flow Backspace, Enter, split, or cross-block merge internals'
+);
+
+assert.doesNotMatch(
   editorBlocksTableModelSource,
   /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement)\b/,
   'blocks table model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksBlockFlowModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks block-flow model should stay DOM-free'
 );
 
 assert.match(
@@ -3696,7 +3728,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksModelSource,
+  editorBlocksBlockFlowModelSource,
   /export function isBlockEmptyForBackspace\(block\) \{[\s\S]*block\.type === 'blank'[\s\S]*block\.type === 'paragraph'[\s\S]*block\.type === 'heading'[\s\S]*block\.type === 'quote'[\s\S]*block\.type === 'code'[\s\S]*block\.type === 'source'[\s\S]*block\.type === 'image'[\s\S]*block\.type === 'card'[\s\S]*block\.type === 'list'[\s\S]*editableListItems\(data\.items\)\.every\(item => blank\(item && item\.text\) && !item\.checked\);/,
   'empty block backspace detection should cover blank, text, media, card, and list user-authored content'
 );
@@ -4839,13 +4871,13 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksBlockFlowModelSource}`,
   /text: `\$\{(?:previousText|listItemText\(previous\))\}\$\{(?:currentText|listItemText\(current\))\}`/,
   'Backspace merge helpers should not directly concatenate merged text without the safe join helper'
 );
 
 assert.doesNotMatch(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksBlockFlowModelSource}`,
   /previousText\.length \+ mergedText\.separator\.length/,
   'Backspace merge caret offsets should use rendered inline text length instead of markdown source length'
 );

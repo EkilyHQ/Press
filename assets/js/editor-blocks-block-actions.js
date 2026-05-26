@@ -4,12 +4,14 @@ import {
   listBlockItems
 } from './editor-blocks-list-model.js';
 import {
-  autofixMarkdownSourceBlock,
   isBlockEmptyForBackspace,
-  makeBlock,
   mergeTextBlockIntoPrevious,
   mergeTextBlockIntoPreviousList,
   splitTextBlockIntoParagraph
+} from './editor-blocks-block-flow-model.js';
+import {
+  autofixMarkdownSourceBlock,
+  makeBlock
 } from './editor-blocks-model.js';
 import {
   editableVisibleText,

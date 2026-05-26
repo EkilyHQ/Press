@@ -99,9 +99,16 @@ import {
   tableColumnCount
 } from './editor-blocks-table-model.js';
 import {
+  mergeFirstListItemIntoPreviousBlock,
+  isBlockEmptyForBackspace,
+  joinMergedEditableText,
+  mergeTextBlockIntoPrevious,
+  mergeTextBlockIntoPreviousList,
+  splitTextBlockIntoParagraph
+} from './editor-blocks-block-flow-model.js';
+import {
   makeBlankBlock,
   makeBlock,
-  mergeFirstListItemIntoPreviousBlock,
   parseMarkdownBlocks,
   serializeMarkdownBlocks,
   splitBlankLineUnits
@@ -130,15 +137,18 @@ export {
 } from './editor-blocks-list-model.js';
 
 export {
-  autofixMarkdownSourceBlock,
   isBlockEmptyForBackspace,
   joinMergedEditableText,
   mergeFirstListItemIntoPreviousBlock,
   mergeTextBlockIntoPrevious,
   mergeTextBlockIntoPreviousList,
+  splitTextBlockIntoParagraph
+} from './editor-blocks-block-flow-model.js';
+
+export {
+  autofixMarkdownSourceBlock,
   parseMarkdownBlocks,
   serializeMarkdownBlocks,
-  splitTextBlockIntoParagraph
 } from './editor-blocks-model.js';
 
 export function createMarkdownBlocksEditor(root, options = {}) {

@@ -41,6 +41,7 @@ const run = (name, fn) => {
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
 const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
+const editorBlocksBlockFlowModelSource = readFileSync(new URL('../assets/js/editor-blocks-block-flow-model.js', import.meta.url), 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-actions.js', import.meta.url), 'utf8');
 const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
@@ -739,7 +740,7 @@ run('typing or slash command on blank blocks replaces the blank block', () => {
 
 run('blank blocks use existing removable and cross-block navigation paths', () => {
   assert.match(
-    editorBlocksModelSource,
+    editorBlocksBlockFlowModelSource,
     /if \(block\.type === 'blank'\) return true;/,
     'empty-block Backspace detection should treat blank blocks as removable'
   );

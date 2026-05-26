@@ -51,6 +51,8 @@ const {
 } = await import('../assets/js/theme-manager.js?theme-manager-test');
 
 const themeManagerSource = readFileSync(new URL('../assets/js/theme-manager.js', import.meta.url), 'utf8');
+const themePackageCoreSource = readFileSync(new URL('../assets/js/theme-package-core.js', import.meta.url), 'utf8');
+const themeInstallServiceSource = readFileSync(new URL('../assets/js/theme-install-service.js', import.meta.url), 'utf8');
 
 function makeZip(files) {
   const entries = {};
@@ -190,6 +192,17 @@ await run('exposes theme manager through an explicit controller facade', async (
   assert.equal(typeof controller.getProductStateStatus, 'function');
   assert.equal(typeof controller.stageCatalogTheme, 'function');
   assert.equal(typeof controller.stageUninstall, 'function');
+});
+
+await run('keeps theme package and install responsibilities outside the UI controller', async () => {
+  assert.match(themeManagerSource, /from '\.\/theme-package-core\.js';/, 'theme manager should consume package rules from the core module');
+  assert.match(themeManagerSource, /from '\.\/theme-install-service\.js';/, 'theme manager should consume install staging through the service module');
+  assert.match(themePackageCoreSource, /export function collectThemeArchiveEntries/, 'theme package core should own ZIP analysis');
+  assert.match(themePackageCoreSource, /export function normalizeThemeReleaseManifest/, 'theme package core should own release manifest normalization');
+  assert.match(themeInstallServiceSource, /export function createThemeInstallService/, 'theme install service should expose an explicit service factory');
+  assert.match(themeInstallServiceSource, /stageThemeArchive/, 'theme install service should own archive staging');
+  assert.doesNotMatch(themeManagerSource, /function collectThemeArchiveEntries/, 'theme manager UI controller should not own ZIP analysis');
+  assert.doesNotMatch(themeManagerSource, /function buildThemeFileChanges/, 'theme manager UI controller should not own theme file diffing');
 });
 
 await run('scopes theme manager state to controller instances', async () => {

@@ -93,6 +93,16 @@ if ! grep -qx "press-system-${version}/assets/js/theme-manager.js" "${entries_fi
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/theme-package-core.js" "${entries_file}"; then
+  echo "expected package to include theme package core code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/theme-install-service.js" "${entries_file}"; then
+  echo "expected package to include theme install service code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/encrypted-content.js" "${entries_file}"; then
   echo "expected package to include encrypted article runtime code" >&2
   exit 1

@@ -62,24 +62,32 @@ import {
 import {
   applyInlineLinkToRuns,
   applyInlineMathToRuns,
-  convertListTailItemAfterEmptyToParagraph,
-  defaultListItems,
-  editableListItems,
-  editableTableData,
-  effectiveListItemType,
   inlineMarksAtOffset,
   inlineRangeAnyMarked,
   inlineRangeFullyMarked,
   inlineRangeText,
   inlineRun,
   insertInlineRunsAtRange,
+  normalizeEditableMarkdownText,
+  rangeHasInlineText,
+  removeInlineMarkAroundOffset,
+  removeInlineMarkInRange,
+  sanitizeEditorLinkHref,
+  sanitizeEditorLinkTitle,
+  toggleInlineMarkOnRuns
+} from './editor-blocks-inline-model.js';
+import {
+  convertListTailItemAfterEmptyToParagraph,
+  defaultListItems,
+  editableListItems,
+  editableTableData,
+  effectiveListItemType,
   itemIndentLevel,
   listVisualMarkerLabels,
   makeBlankBlock,
   makeBlock,
   mergeFirstListItemIntoPreviousBlock,
   mergeListItemIntoPreviousItem,
-  normalizeEditableMarkdownText,
   normalizeTableAlignment,
   normalizeTableCellValue,
   normalizeListItemType,
@@ -88,26 +96,27 @@ import {
   parseMarkdownBlocks,
   patchListItem,
   patchListItemType,
-  rangeHasInlineText,
-  removeInlineMarkAroundOffset,
-  removeInlineMarkInRange,
-  sanitizeEditorLinkHref,
-  sanitizeEditorLinkTitle,
   serializeMarkdownBlocks,
   splitBlankLineUnits,
   splitListItemsAtEmptyItem,
   summarizeListType,
-  tableColumnCount,
-  toggleInlineMarkOnRuns
+  tableColumnCount
 } from './editor-blocks-model.js';
 
 export {
   applyInlineLinkToRuns,
   applyInlineMathToRuns,
-  autofixMarkdownSourceBlock,
-  convertListTailItemAfterEmptyToParagraph,
   inlineRenderedTextLength,
   insertInlineRunsAtRange,
+  parseInlineRuns,
+  removeInlineMarkAroundOffset,
+  serializeInlineRuns,
+  toggleInlineMarkOnRuns
+} from './editor-blocks-inline-model.js';
+
+export {
+  autofixMarkdownSourceBlock,
+  convertListTailItemAfterEmptyToParagraph,
   isBlockEmptyForBackspace,
   joinMergedEditableText,
   listVisualMarkerLabels,
@@ -117,16 +126,12 @@ export {
   mergeTextBlockIntoPreviousList,
   normalizeSplitListStartItems,
   outdentEmptyListItemForEnter,
-  parseInlineRuns,
   parseMarkdownBlocks,
   patchListItem,
   patchListItemType,
-  removeInlineMarkAroundOffset,
-  serializeInlineRuns,
   serializeMarkdownBlocks,
   splitListItemsAtEmptyItem,
-  splitTextBlockIntoParagraph,
-  toggleInlineMarkOnRuns
+  splitTextBlockIntoParagraph
 } from './editor-blocks-model.js';
 
 export function createMarkdownBlocksEditor(root, options = {}) {

@@ -9,7 +9,7 @@ import {
   parseInlineRuns,
   sanitizeEditorLinkHref,
   serializeInlineRuns
-} from './editor-blocks-model.js';
+} from './editor-blocks-inline-model.js';
 
 function createFallbackSelectionSession(documentRef = null) {
   let windowRef = null;

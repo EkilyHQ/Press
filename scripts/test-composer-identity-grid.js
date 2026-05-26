@@ -127,6 +127,7 @@ const editorMainShellServicePath = resolve(here, '../assets/js/editor-main-shell
 const editorMainServiceRegistryPath = resolve(here, '../assets/js/editor-main-service-registry.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
+const editorBlocksInlineModelPath = resolve(here, '../assets/js/editor-blocks-inline-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
 const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
@@ -282,6 +283,7 @@ const editorMainShellServiceSource = readFileSync(editorMainShellServicePath, 'u
 const editorMainServiceRegistrySource = readFileSync(editorMainServiceRegistryPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
+const editorBlocksInlineModelSource = readFileSync(editorBlocksInlineModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
@@ -429,7 +431,31 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,[\s\S]*\} from '\.\/editor-blocks-model\.js'/,
+  /from '\.\/editor-blocks-inline-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks inline model boundary'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
+  /from '\.\/editor-blocks-inline-model\.js'/,
+  'blocks inline editing bridge should consume inline run parsing and serialization through the inline model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /from '\.\/editor-blocks-inline-model\.js'[\s\S]*export \{[\s\S]*applyInlineLinkToRuns,[\s\S]*parseInlineRuns,[\s\S]*serializeInlineRuns,[\s\S]*toggleInlineMarkOnRuns[\s\S]*\} from '\.\/editor-blocks-inline-model\.js';/,
+  'blocks model should keep backward-compatible inline exports while delegating inline logic to the inline model boundary'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function parseInlineRunsInternal|function inlineMarkedRangeAtOffset|function escapeMarkdownInline|function serializeInlineRun/,
+  'blocks model should not re-own inline Markdown parser, serializer, or run mutation internals'
+);
+
+assert.match(
+  editorBlocksSource,
+  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,?[\s\S]*\} from '\.\/editor-blocks-model\.js'/,
   'blocks editor should import table model helpers from the explicit blocks model boundary before composing the table session'
 );
 
@@ -3729,13 +3755,13 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksModelSource}\n${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
+  `${editorBlocksInlineModelSource}\n${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineRangeAnyMarked\(runs, start, end, mark\)[\s\S]*next > safeStart && cursor < safeEnd && !!run\[mark\][\s\S]*const shouldApply = command === 'code'[\s\S]*inlineRangeAnyMarked\(runs, start, end, command\)[\s\S]*inlineRangeAnyMarked\(runs, offsets\.start, offsets\.end, mark\)/,
   'B/I/S inline formatting should treat mixed selected ranges as active when any selected text has the mark'
 );
 
 assert.match(
-  editorBlocksModelSource,
+  editorBlocksInlineModelSource,
   /function inlineMarksAtOffset\(runs, offset\)[\s\S]*let previous = null;[\s\S]*target === cursor \|\| \(target > cursor && target < next\)[\s\S]*if \(target === next\) previous = run;[\s\S]*previous \|\| safeRuns\[safeRuns\.length - 1\]/,
   'collapsed caret inline formatting should prefer the right-hand run at mark boundaries and only fall back to the previous run at the end'
 );
@@ -4743,7 +4769,7 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
+  `${editorBlocksInlineModelSource}\n${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
   /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
   'Backspace or Delete at the start of a non-first visual list item should merge only structurally safe same-level items'
 );

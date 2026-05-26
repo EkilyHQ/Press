@@ -1,3 +1,5 @@
+import { createComposerSiteSettingsControls } from './composer-site-settings-controls.js';
+
 export function createComposerSiteSettingsUi(options = {}) {
   const noop = () => {};
   const documentRef = options.documentRef || null;
@@ -427,50 +429,6 @@ export function createComposerSiteSettingsUi(options = {}) {
       }
     }
 
-    const createSection = (title, description) => {
-      const section = documentRef.createElement('section');
-      section.className = 'cs-section';
-      section.setAttribute('role', 'tabpanel');
-      section.setAttribute('aria-hidden', 'false');
-      const sectionId = `cs-section-${sectionsMeta.length + 1}`;
-      section.id = sectionId;
-      if (title || description) {
-        const head = documentRef.createElement('div');
-        head.className = 'cs-section-head';
-        let heading = null;
-        if (title) {
-          heading = documentRef.createElement('h3');
-          heading.className = 'cs-section-title';
-          heading.textContent = title;
-          head.appendChild(heading);
-        }
-        if (description) {
-          const desc = documentRef.createElement('p');
-          desc.className = 'cs-section-description';
-          desc.textContent = description;
-          head.appendChild(desc);
-        }
-        section.appendChild(head);
-      }
-      viewport.appendChild(section);
-
-      const labelText = (() => {
-        if (title && String(title).trim()) return String(title).trim();
-        const fromHeading = section.querySelector('.cs-section-title');
-        return fromHeading && fromHeading.textContent ? fromHeading.textContent.trim() : `Section ${sectionsMeta.length + 1}`;
-      })();
-
-      const meta = { id: sectionId, section, label: labelText };
-      sectionsMeta.push(meta);
-
-      const shouldRestore = preservedActiveLabel && labelText === preservedActiveLabel;
-      if (!activeSectionId || shouldRestore) {
-        setActiveSection(sectionId, { scrollViewport: false });
-      }
-
-      return section;
-    };
-
     const revealField = (fieldKey, options = {}) => {
       if (!fieldKey) return null;
       const selector = `[data-field="${escapeFieldKey(fieldKey)}"]`;
@@ -689,92 +647,25 @@ export function createComposerSiteSettingsUi(options = {}) {
       return ordered;
     };
 
-    const createField = (section, config) => {
-      const field = documentRef.createElement('div');
-      field.className = 'cs-field';
-      if (config.dataKey) field.dataset.field = config.dataKey;
-      const head = documentRef.createElement('div');
-      head.className = 'cs-field-head';
-      const labelWrap = documentRef.createElement('div');
-      labelWrap.className = 'cs-field-label-wrap';
-      head.appendChild(labelWrap);
-      const labelEl = documentRef.createElement('label');
-      labelEl.className = 'cs-field-label';
-      labelEl.textContent = config.label || '';
-      labelWrap.appendChild(labelEl);
-      if (config.action) {
-        config.action.classList.add('cs-field-action');
-        head.appendChild(config.action);
-      }
-      field.appendChild(head);
-      field.__csHead = head;
-      field.__csLabel = labelEl;
-      field.__csLabelWrap = labelWrap;
-      const inlineDescription = config.inlineDescription !== false;
-      if (config.description) {
-        const desc = documentRef.createElement('p');
-        desc.className = 'cs-field-help';
-        desc.textContent = config.description;
-        field.__csHelp = desc;
-        if (inlineDescription && labelWrap) {
-          field.classList.add('cs-field-inline-help');
-          labelWrap.appendChild(desc);
-        } else {
-          field.appendChild(desc);
-        }
-      }
-      section.appendChild(field);
-      return field;
-    };
-
-    const createSubheadingField = (section, config) => {
-      const field = documentRef.createElement('div');
-      field.className = 'cs-field cs-subheading-field';
-      if (config.dataKey) field.dataset.field = config.dataKey;
-      if (config.label || config.description) {
-        const head = documentRef.createElement('div');
-        head.className = 'cs-config-subsection-head';
-        if (config.label) {
-          const title = documentRef.createElement('div');
-          title.className = 'cs-config-subsection-title';
-          title.textContent = config.label;
-          head.appendChild(title);
-        }
-        if (config.description) {
-          const description = documentRef.createElement('p');
-          description.className = 'cs-config-subsection-description';
-          description.textContent = config.description;
-          head.appendChild(description);
-        }
-        field.appendChild(head);
-      }
-      section.appendChild(field);
-      return field;
-    };
-
-    const createConfigSubsection = (section, title, description) => {
-      const block = documentRef.createElement('div');
-      block.className = 'cs-config-subsection';
-      if (title || description) {
-        const head = documentRef.createElement('div');
-        head.className = 'cs-config-subsection-head';
-        if (title) {
-          const heading = documentRef.createElement('div');
-          heading.className = 'cs-config-subsection-title';
-          heading.textContent = title;
-          head.appendChild(heading);
-        }
-        if (description) {
-          const desc = documentRef.createElement('p');
-          desc.className = 'cs-config-subsection-description';
-          desc.textContent = description;
-          head.appendChild(desc);
-        }
-        block.appendChild(head);
-      }
-      section.appendChild(block);
-      return block;
-    };
+    const {
+      createConfigSubsection,
+      createField,
+      createSection,
+      createSingleGridFieldset,
+      createSubheadingField,
+      createSwitchControl,
+      renderSingleTextGrid,
+      syncSwitchState
+    } = createComposerSiteSettingsControls({
+      documentRef,
+      viewport,
+      sectionsMeta,
+      getActiveSectionId: () => activeSectionId,
+      getPreservedActiveLabel: () => preservedActiveLabel,
+      setActiveSection,
+      onDirty: markDirty,
+      requestFrame
+    });
 
     const renderLocalizedField = (section, key, options = {}) => {
       ensureLocalized(key, options.ensureDefault !== false);
@@ -1315,103 +1206,6 @@ export function createComposerSiteSettingsUi(options = {}) {
       renderRows();
     };
 
-    const createTextField = (section, config) => {
-      const field = createField(section, {
-        dataKey: config.dataKey,
-        label: config.label,
-        description: config.description
-      });
-      const control = documentRef.createElement('div');
-      control.className = 'cs-field-controls';
-      const input = documentRef.createElement(config.multiline ? 'textarea' : 'input');
-      if (!config.multiline) input.type = config.type || 'text';
-      else input.rows = config.rows || 3;
-      input.className = 'cs-input';
-      input.dataset.field = config.dataKey;
-      input.value = config.get() || '';
-      if (config.placeholder) input.placeholder = config.placeholder;
-      input.addEventListener('input', () => {
-        config.set(config.multiline ? input.value : input.value);
-        markDirty();
-      });
-      control.appendChild(input);
-      if (config.trailing) control.appendChild(config.trailing);
-      field.appendChild(control);
-      return input;
-    };
-
-    const createSingleGridFieldset = (section) => {
-      const field = documentRef.createElement('div');
-      field.className = 'cs-field cs-single-grid-fieldset';
-      const grid = documentRef.createElement('div');
-      grid.className = 'cs-single-grid';
-      field.appendChild(grid);
-      section.appendChild(field);
-
-      const addRow = (item, index = grid.children.length) => {
-        const row = documentRef.createElement('div');
-        row.className = 'cs-single-grid-row';
-        row.dataset.field = item.dataKey;
-
-        const controlId = `cs-single-grid-${item.dataKey}-${index}`;
-        const tooltipId = `cs-single-grid-help-${item.dataKey}-${index}`;
-
-        const labelCell = documentRef.createElement('div');
-        labelCell.className = 'cs-single-grid-label';
-
-        const tooltipWrap = documentRef.createElement('span');
-        tooltipWrap.className = 'cs-help-tooltip-wrap';
-        const tooltip = documentRef.createElement('button');
-        tooltip.type = 'button';
-        tooltip.className = 'cs-help-tooltip';
-        tooltip.textContent = '?';
-        tooltip.setAttribute('aria-label', `${item.label}: ${item.description}`);
-        tooltip.setAttribute('aria-describedby', tooltipId);
-        const tooltipBubble = documentRef.createElement('span');
-        tooltipBubble.id = tooltipId;
-        tooltipBubble.className = 'cs-help-tooltip-bubble';
-        tooltipBubble.setAttribute('role', 'tooltip');
-        tooltipBubble.textContent = item.description;
-        const label = documentRef.createElement('label');
-        label.className = 'cs-single-grid-title';
-        label.htmlFor = controlId;
-        label.textContent = item.label;
-        labelCell.appendChild(label);
-        tooltipWrap.appendChild(tooltip);
-        tooltipWrap.appendChild(tooltipBubble);
-        labelCell.appendChild(tooltipWrap);
-        row.appendChild(labelCell);
-
-        const controlCell = documentRef.createElement('div');
-        controlCell.className = 'cs-single-grid-control';
-        row.appendChild(controlCell);
-        grid.appendChild(row);
-
-        return { row, controlCell, controlId, label };
-      };
-
-      return { field, grid, addRow };
-    };
-
-    const renderSingleTextGrid = (section, items) => {
-      const { addRow } = createSingleGridFieldset(section);
-      items.forEach((item, index) => {
-        const { controlCell, controlId } = addRow(item, index);
-        const input = documentRef.createElement('input');
-        input.id = controlId;
-        input.type = item.type || 'text';
-        input.className = 'cs-input';
-        input.dataset.field = item.dataKey;
-        input.value = item.get() || '';
-        input.placeholder = item.placeholder || '';
-        input.addEventListener('input', () => {
-          item.set(input.value);
-          markDirty();
-        });
-        controlCell.appendChild(input);
-      });
-    };
-
     const renderIdentityPathGrid = (section) => {
       const items = [
         {
@@ -1446,204 +1240,6 @@ export function createComposerSiteSettingsUi(options = {}) {
           set: (value) => { site.resourceURL = value; }
         }
       ]);
-    };
-
-    const createNumberField = (section, config) => {
-      const field = createField(section, {
-        dataKey: config.dataKey,
-        label: config.label,
-        description: config.description
-      });
-      const control = documentRef.createElement('div');
-      control.className = 'cs-field-controls';
-      const input = documentRef.createElement('input');
-      input.type = 'number';
-      input.className = 'cs-input cs-input-small';
-      input.dataset.field = config.dataKey;
-      if (config.min != null) input.min = String(config.min);
-      if (config.max != null) input.max = String(config.max);
-      if (config.step != null) input.step = String(config.step);
-      const value = config.get();
-      input.value = value != null && !Number.isNaN(value) ? String(value) : '';
-      input.placeholder = config.placeholder || '';
-      input.addEventListener('input', () => {
-        const raw = input.value.trim();
-        if (!raw) config.set(null);
-        else config.set(Number(raw));
-        markDirty();
-      });
-      control.appendChild(input);
-      if (config.trailing) control.appendChild(config.trailing);
-      field.appendChild(control);
-      return input;
-    };
-
-    const createSwitchControl = (field, labelText, options = {}) => {
-      const controls = documentRef.createElement('div');
-      controls.className = 'cs-field-controls cs-field-controls-inline';
-      if (Array.isArray(options.classes)) controls.classList.add(...options.classes);
-      const target = options.target || field;
-      const toggle = documentRef.createElement('label');
-      toggle.className = 'cs-switch';
-      toggle.dataset.state = 'off';
-      const checkbox = documentRef.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.className = 'cs-switch-input';
-      checkbox.setAttribute('role', 'switch');
-      checkbox.setAttribute('aria-checked', 'false');
-      const track = documentRef.createElement('span');
-      track.className = 'cs-switch-track';
-      const thumb = documentRef.createElement('span');
-      thumb.className = 'cs-switch-thumb';
-      track.appendChild(thumb);
-      toggle.appendChild(checkbox);
-      toggle.appendChild(track);
-      const accessibleLabel = labelText || (field && field.__csLabel ? field.__csLabel.textContent : '');
-      if (accessibleLabel) checkbox.setAttribute('aria-label', accessibleLabel);
-      controls.appendChild(toggle);
-      target.appendChild(controls);
-      return { controls, toggle, checkbox };
-    };
-
-    const syncSwitchState = (checkbox, toggle, value, allowMixed = false) => {
-      if (allowMixed && (value === null || value === undefined)) {
-        checkbox.indeterminate = true;
-        checkbox.checked = false;
-        checkbox.setAttribute('aria-checked', 'mixed');
-        toggle.dataset.state = 'mixed';
-        return;
-      }
-      checkbox.indeterminate = false;
-      const isOn = allowMixed ? value === true : !!value;
-      checkbox.checked = isOn;
-      checkbox.setAttribute('aria-checked', isOn ? 'true' : 'false');
-      toggle.dataset.state = isOn ? 'on' : 'off';
-    };
-
-    const createTriStateCheckbox = (section, config) => {
-      const field = createField(section, {
-        dataKey: config.dataKey,
-        label: config.label,
-        description: config.description,
-        inlineDescription: false
-      });
-      const head = field.__csHead || field.querySelector('.cs-field-head');
-      const labelWrap = field.__csLabelWrap || head;
-      if (labelWrap) labelWrap.classList.add('cs-field-label-with-switch');
-      const { toggle, checkbox } = createSwitchControl(field, config.checkboxLabel || config.label, {
-        target: labelWrap || head || field,
-        classes: ['cs-field-head-switch']
-      });
-      toggle.dataset.field = config.dataKey;
-
-      const sync = () => {
-        const value = config.get();
-        syncSwitchState(checkbox, toggle, value, true);
-      };
-
-      checkbox.addEventListener('change', () => {
-        config.set(checkbox.checked);
-        syncSwitchState(checkbox, toggle, checkbox.checked, true);
-        markDirty();
-      });
-      sync();
-    };
-
-    const createToggleField = (section, config) => {
-      const field = createField(section, {
-        dataKey: config.dataKey,
-        label: config.label,
-        description: config.description,
-        inlineDescription: false
-      });
-      const head = field.__csHead || field.querySelector('.cs-field-head');
-      const labelWrap = field.__csLabelWrap || head;
-      if (labelWrap) labelWrap.classList.add('cs-field-label-with-switch');
-      const { toggle, checkbox } = createSwitchControl(field, config.checkboxLabel || config.label, {
-        target: labelWrap || head || field,
-        classes: ['cs-field-head-switch']
-      });
-      toggle.dataset.field = config.dataKey;
-
-      const sync = () => {
-        syncSwitchState(checkbox, toggle, config.get(), false);
-      };
-
-      checkbox.addEventListener('change', () => {
-        config.set(checkbox.checked);
-        syncSwitchState(checkbox, toggle, checkbox.checked, false);
-        markDirty();
-      });
-
-      sync();
-      return {
-        checkbox,
-        field,
-        control: toggle
-      };
-    };
-
-    const createSelectField = (section, config) => {
-      const field = createField(section, {
-        dataKey: config.dataKey,
-        label: config.label,
-        description: config.description
-      });
-      const control = documentRef.createElement('div');
-      control.className = 'cs-field-controls';
-      const select = documentRef.createElement('select');
-      select.className = 'cs-select';
-      select.dataset.field = config.dataKey;
-      (config.options || []).forEach((opt) => {
-        const option = documentRef.createElement('option');
-        option.value = opt.value;
-        option.textContent = opt.label;
-        select.appendChild(option);
-      });
-      const ensureSelection = () => {
-        const options = Array.from(select.options);
-        if (!options.length) {
-          const currentRaw = config.get();
-          const current = currentRaw == null ? '' : String(currentRaw);
-          if (current) {
-            select.value = current;
-          }
-          return current;
-        }
-        const available = new Set(options.map((opt) => opt.value));
-        const currentRaw = config.get();
-        const current = currentRaw == null ? '' : String(currentRaw);
-        if (current && available.has(current)) {
-          select.value = current;
-          return current;
-        }
-        const fallback = (() => {
-          if (config.defaultValue != null && available.has(config.defaultValue)) {
-            return config.defaultValue;
-          }
-          return options.length ? options[0].value : '';
-        })();
-        select.value = fallback;
-        if (fallback && fallback !== current) {
-          config.set(fallback);
-          markDirty();
-          return fallback;
-        }
-        if (!fallback && current) {
-          config.set('');
-          markDirty();
-        }
-        return fallback;
-      };
-      ensureSelection();
-      select.addEventListener('change', () => {
-        const next = select.value;
-        config.set(next);
-        markDirty();
-      });
-      control.appendChild(select);
-      field.appendChild(control);
-      return select;
     };
 
     const renderBehaviorGrid = (section) => {

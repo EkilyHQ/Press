@@ -37,6 +37,7 @@ const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
+const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
@@ -161,6 +162,7 @@ const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
+const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
@@ -261,7 +263,8 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
+const composerSiteSettingsRuntimeSource = [composerSiteSettingsUiSource, composerSiteSettingsControlsSource].join('\n');
+const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -911,6 +914,12 @@ assert.match(
   'composer should cache-bust the extracted Site Settings UI boundary'
 );
 
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-controls\.js'/,
+  'Site Settings UI should delegate reusable section, field, grid, and switch controls'
+);
+
 assert.doesNotMatch(
   source,
   /function buildSiteUI/,
@@ -923,6 +932,18 @@ assert.match(
   'Site Settings UI boundary should own repository, identity, theme, annotate, and asset warning rendering'
 );
 
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const create(?:Section|Field|SubheadingField|ConfigSubsection|SingleGridFieldset|SwitchControl) = /,
+  'Site Settings UI should not re-own reusable control factories after extracting the controls module'
+);
+
+assert.match(
+  composerSiteSettingsControlsSource,
+  /export function createComposerSiteSettingsControls\(options = \{\}\)[\s\S]*const createSection = \(title, description\) =>[\s\S]*const createField = \(section, config = \{\}\) =>[\s\S]*const createSingleGridFieldset = \(section\) =>[\s\S]*const renderSingleTextGrid = \(section, items\) =>/,
+  'Site Settings controls boundary should own reusable section, field, and compact grid factories'
+);
+
 assert.match(
   source,
   /const composerSiteSettingsUi = createComposerSiteSettingsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*cssRef: editorRuntime\.getCss\(\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
@@ -930,7 +951,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  composerSiteSettingsUiSource,
+  composerSiteSettingsRuntimeSource,
   /options\.(?:documentRef|windowRef|performanceRef|cssRef)\s*\|\|\s*\(typeof globalThis|const\s+(?:document|window|performance|CSS)\s*=|typeof (?:document|window|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|fetch|CSS|performance)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|fetch)\s*\(/m,
   'Site Settings UI should receive browser refs, frames, timers, style, CSS, and fetch through explicit runtime wiring instead of rediscovering globals'
 );
@@ -6336,8 +6357,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const createSubheadingField = \(section, config\) => \{[\s\S]*head\.className = 'cs-config-subsection-head'[\s\S]*title\.className = 'cs-config-subsection-title'[\s\S]*description\.className = 'cs-config-subsection-description'/,
+  composerSiteSettingsControlsSource,
+  /const createSubheadingField = \(section, config = \{\}\) => \{[\s\S]*head\.className = 'cs-config-subsection-head'[\s\S]*title\.className = 'cs-config-subsection-title'[\s\S]*description\.className = 'cs-config-subsection-description'/,
   'subheading fields should reuse the same title and description classes as combined configuration subsections'
 );
 

@@ -104,6 +104,7 @@ const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-mai
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-preview-assets.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
+const editorMainCurrentFileViewPath = resolve(here, '../assets/js/editor-main-current-file-view.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorMainSidebarFileTreePath = resolve(here, '../assets/js/editor-main-sidebar-file-tree.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
@@ -253,6 +254,7 @@ const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataM
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
+const editorMainCurrentFileViewSource = readFileSync(editorMainCurrentFileViewPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorMainSidebarFileTreeSource = readFileSync(editorMainSidebarFileTreePath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
@@ -1768,6 +1770,12 @@ assert.match(
 );
 
 assert.match(
+  editorMainCurrentFileSessionSource,
+  /from '\.\/editor-main-current-file-view\.js'/,
+  'editor current-file session should cache-bust the current-file view boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-sidebar-session\.js'/,
   'editor main should cache-bust the editor sidebar session boundary'
@@ -1942,6 +1950,24 @@ assert.match(
 );
 
 assert.match(
+  editorMainCurrentFileSessionSource,
+  /export function createEditorMainCurrentFileSession\(options = \{\}\) \{[\s\S]*const inferSource = typeof options\.inferCurrentFileSource === 'function'[\s\S]*let currentFileInfo = \{ path: '', source: '', breadcrumb: \[\], status: null, dirty: false, draft: null, draftState: '', loaded: false \};[\s\S]*const currentFileView = createEditorMainCurrentFileView\(\{[\s\S]*runtime,[\s\S]*documentRef,[\s\S]*translate: options\.translate,[\s\S]*getCurrentLang: options\.getCurrentLang,[\s\S]*normalizeLangKey: options\.normalizeLangKey,[\s\S]*applyEditorEmptyState: options\.applyEditorEmptyState,[\s\S]*onRendered: options\.onRendered[\s\S]*\}\);[\s\S]*const normalizeStatusPayload = \(value\) => \{[\s\S]*const normalizeCurrentFilePayload = \(input\) => \{[\s\S]*const render = \(\) => \{[\s\S]*currentFileView\.render\(currentFileInfo\);/,
+  'current-file session should own payload normalization and compose header rendering through the view boundary'
+);
+
+assert.match(
+  editorMainCurrentFileViewSource,
+  /export function createEditorMainCurrentFileView\(options = \{\}\) \{[\s\S]*const formatRelativeTime = \(ms\) => \{[\s\S]*const describeStatusLabel = \(status\) => \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>[\s\S]*const bindCurrentFileBreadcrumbEvents = \(el\) => \{[\s\S]*const render = \(info = latestInfo\) => \{/,
+  'current-file view should own status/draft formatting, static breadcrumb markup, DOM binding, and render attributes'
+);
+
+assert.doesNotMatch(
+  editorMainCurrentFileSessionSource,
+  /let currentFileElRef|const formatRelativeTime = \(ms\)|const describeStatusLabel = \(status\)|const renderCurrentFileBreadcrumb = \(items, fullPath\)|const bindCurrentFileBreadcrumbEvents = \(el\)|getPlainText|escapeHtml/,
+  'current-file session should not own header DOM rendering, draft label formatting, or breadcrumb event internals'
+);
+
+assert.match(
   editorMainSource,
   /name: 'editorMain\.previewSession'[\s\S]*requires: \[[^\]]*'linkCardContext'[\s\S]*'fileContextService'[\s\S]*provides: \['previewSession'\][\s\S]*context\.previewSession = context\.appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*getEditorValue: context\.appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: context\.fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: context\.appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => context\.linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => context\.linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => context\.linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => context\.linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => context\.linkCardContext\.getLocationAliases\(\),[\s\S]*warn: \(\.\.\.args\) => context\.runtime\.warn\(\.\.\.args\)[\s\S]*fetch: \(url, options\) => context\.runtime\.fetchContent\(url, options\)[\s\S]*name: 'editorMain\.previewBinding'[\s\S]*requires: \[[^\]]*'workspaceBinding'[\s\S]*context\.previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
@@ -2049,6 +2075,7 @@ assert.doesNotMatch(
     editorMainPreviewSessionSource,
     editorMainPreviewAssetsSource,
     editorMainCurrentFileSessionSource,
+    editorMainCurrentFileViewSource,
     editorMainSidebarSessionSource,
     editorMainSidebarFileTreeSource,
     editorMainToolbarSessionSource,
@@ -6585,20 +6612,20 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  `${editorMainSource}\n${editorMainCurrentFileSessionSource}`,
+  `${editorMainSource}\n${editorMainCurrentFileSessionSource}\n${editorMainCurrentFileViewSource}`,
   /<button type="button" class="cf-breadcrumb-item/,
   'current file breadcrumb should not use native buttons that inherit the bordered toolbar style'
 );
 
 assert.doesNotMatch(
-  `${editorMainSource}\n${editorMainCurrentFileSessionSource}`,
+  `${editorMainSource}\n${editorMainCurrentFileSessionSource}\n${editorMainCurrentFileViewSource}`,
   /<a href="#" class="cf-breadcrumb-item\$\{currentClass\}"[\s\S]*data-current-file-node-id=/,
   'current file breadcrumb should no longer render clickable links'
 );
 
 assert.match(
-  editorMainCurrentFileSessionSource,
-  /const normalizeCurrentFileBreadcrumb = \(value, fallbackPath = ''\) => \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>/,
+  editorMainCurrentFileViewSource,
+  /export function normalizeCurrentFileBreadcrumb\(value, fallbackPath = ''\) \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>/,
   'current file indicator should normalize and emit static breadcrumb entries'
 );
 

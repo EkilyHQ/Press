@@ -106,6 +106,7 @@ const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-prev
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
+const editorMainToolbarCardPickerPath = resolve(here, '../assets/js/editor-main-toolbar-card-picker.js');
 const editorMainToolbarTextActionsPath = resolve(here, '../assets/js/editor-main-toolbar-text-actions.js');
 const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
 const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
@@ -253,6 +254,7 @@ const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
+const editorMainToolbarCardPickerSource = readFileSync(editorMainToolbarCardPickerPath, 'utf8');
 const editorMainToolbarTextActionsSource = readFileSync(editorMainToolbarTextActionsPath, 'utf8');
 const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
 const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
@@ -1782,6 +1784,12 @@ assert.match(
 );
 
 assert.match(
+  editorMainToolbarSessionSource,
+  /from '\.\/editor-main-toolbar-card-picker\.js'/,
+  'editor toolbar session should cache-bust the toolbar card picker boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-image-session\.js'/,
   'editor main should cache-bust the editor image session boundary'
@@ -2035,6 +2043,7 @@ assert.doesNotMatch(
     editorMainCurrentFileSessionSource,
     editorMainSidebarSessionSource,
     editorMainToolbarSessionSource,
+    editorMainToolbarCardPickerSource,
     editorMainToolbarTextActionsSource,
     editorMainImageSessionSource,
     editorMainWorkspaceSessionSource,
@@ -2162,8 +2171,14 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainToolbarSessionSource,
-  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*const textActions = createEditorMainToolbarTextActions\(\{[\s\S]*getEditorTextarea,[\s\S]*createInputEvent[\s\S]*\}\);[\s\S]*let formattingButtons = \[\];[\s\S]*let cardPopoverOpen = false;[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*runTextAction\(\(\) => textActions\.insertCardLink\(entry\)\);[\s\S]*const openCardPopover = \(\) => \{[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
-  'editor toolbar session should compose text actions while owning button tooltip state and article-card picker lifecycle'
+  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*const textActions = createEditorMainToolbarTextActions\(\{[\s\S]*getEditorTextarea,[\s\S]*createInputEvent[\s\S]*\}\);[\s\S]*let formattingButtons = \[\];[\s\S]*let cardInsertionAllowed = false;[\s\S]*const cardPicker = createEditorMainToolbarCardPicker\(\{[\s\S]*runtime,[\s\S]*documentRef,[\s\S]*getEntries: readCardEntries,[\s\S]*canOpen: \(\) => cardInsertionAllowed,[\s\S]*onSelectEntry: \(entry\) => runTextAction\(\(\) => textActions\.insertCardLink\(entry\)\),[\s\S]*onEscapeClose: \(\) => textActions\.restoreSelection\(\)[\s\S]*\}\);[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
+  'editor toolbar session should compose text actions and card picker while owning button tooltip and enabled-state coordination'
+);
+
+assert.match(
+  editorMainToolbarCardPickerSource,
+  /export function createEditorMainToolbarCardPicker\(options = \{\}\) \{[\s\S]*let cardPopoverOpen = false;[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*const position = \(anchor = cardButton\) => \{[\s\S]*function handleOutsideClick\(event\)[\s\S]*function handleKeydown\(event\)[\s\S]*function close\(\)[\s\S]*const open = \(\) => \{[\s\S]*const update = \(\) => \{[\s\S]*const bind = \(\) => \{/,
+  'editor toolbar card picker boundary should own card picker DOM rendering, popover lifecycle, and watcher binding'
 );
 
 assert.match(
@@ -2178,16 +2193,22 @@ assert.doesNotMatch(
   'editor toolbar session should not own Markdown textarea mutation or selection-state internals'
 );
 
-assert.match(
+assert.doesNotMatch(
   editorMainToolbarSessionSource,
-  /const onDocument = typeof runtime\.onDocument === 'function'[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*const clearTimer = typeof runtime\.clearTimer === 'function'[\s\S]*const createInputEvent = typeof options\.createInputEvent === 'function'[\s\S]*runtime\.createEvent\('input', \{ bubbles: true, cancelable: true \}\)[\s\S]*detachCardMouseDown = onDocument\('mousedown', handleCardOutsideClick, true\);[\s\S]*detachCardResize = onWindow\('resize', handleCardRelayout, true\);/,
-  'editor toolbar session should route popover document/window/timer and input-event effects through the runtime boundary'
+  /let cardPopoverOpen|let cardPopoverClosing|let cardPopoverCloseTimer|let cardPopoverTransitionHandler|detachCardMouseDown|detachCardKeydown|detachCardResize|detachCardScroll|const renderCardPickerList = \(term = ''\)|const positionCardPopover|function closeCardPopover|const openCardPopover|function handleCardOutsideClick|function handleCardKeydown/,
+  'editor toolbar session should not own article-card picker DOM, popover, or watcher internals'
+);
+
+assert.match(
+  editorMainToolbarCardPickerSource,
+  /const onDocument = typeof runtime\.onDocument === 'function'[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*const clearTimer = typeof runtime\.clearTimer === 'function'[\s\S]*detachCardMouseDown = onDocument\('mousedown', handleOutsideClick, true\);[\s\S]*detachCardResize = onWindow\('resize', handleRelayout, true\);/,
+  'editor toolbar card picker should route popover document/window/timer effects through the runtime boundary'
 );
 
 assert.doesNotMatch(
-  editorMainToolbarSessionSource,
+  [editorMainToolbarSessionSource, editorMainToolbarCardPickerSource].join('\n'),
   /\bwindowRef\b|options\.windowRef|documentRef\.defaultView|windowRef\.|new Event/,
-  'editor toolbar session should not retain direct window refs for timers or input event construction'
+  'editor toolbar session and card picker should not retain direct window refs for timers or input event construction'
 );
 
 assert.match(

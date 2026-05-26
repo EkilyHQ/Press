@@ -40,6 +40,7 @@ const composerOrderPreviewPath = resolve(here, '../assets/js/composer-order-prev
 const composerOrderReviewViewPath = resolve(here, '../assets/js/composer-order-review-view.js');
 const composerOrderVisualPath = resolve(here, '../assets/js/composer-order-visual.js');
 const composerDragListPath = resolve(here, '../assets/js/composer-drag-list.js');
+const composerIndexVersionListPath = resolve(here, '../assets/js/composer-index-version-list.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerIndexTabsLanguageMenuPath = resolve(here, '../assets/js/composer-index-tabs-language-menu.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
@@ -179,6 +180,7 @@ const composerOrderPreviewSource = readFileSync(composerOrderPreviewPath, 'utf8'
 const composerOrderReviewViewSource = readFileSync(composerOrderReviewViewPath, 'utf8');
 const composerOrderVisualSource = readFileSync(composerOrderVisualPath, 'utf8');
 const composerDragListSource = readFileSync(composerDragListPath, 'utf8');
+const composerIndexVersionListSource = readFileSync(composerIndexVersionListPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerIndexTabsLanguageMenuSource = readFileSync(composerIndexTabsLanguageMenuPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
@@ -1040,6 +1042,12 @@ assert.match(
   'index/tabs UI should cache-bust the shared drag-list lifecycle boundary'
 );
 
+assert.match(
+  composerIndexTabsUiSource,
+  /from '\.\/composer-index-version-list\.js'/,
+  'index/tabs UI should cache-bust the index version-list lifecycle boundary'
+);
+
 assert.doesNotMatch(
   source,
   /function makeDragList|function buildIndexUI|function buildTabsUI/,
@@ -1048,8 +1056,20 @@ assert.doesNotMatch(
 
 assert.match(
   composerIndexTabsUiSource,
-  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*const dragList = createComposerDragList\(\{[\s\S]*documentRef,[\s\S]*requestAnimationFrameRef,[\s\S]*addWindowListener,[\s\S]*getWindowScroll,[\s\S]*getComputedStyleRef,[\s\S]*cancelListTransition[\s\S]*\}\);[\s\S]*const \{ makeDragList \} = dragList;[\s\S]*function buildIndexUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ci-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);[\s\S]*function buildTabsUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ct-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);/,
-  'index/tabs list UI boundary should own list rendering while delegating shared add-language and drag-list lifecycles'
+  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*const dragList = createComposerDragList\(\{[\s\S]*documentRef,[\s\S]*requestAnimationFrameRef,[\s\S]*addWindowListener,[\s\S]*getWindowScroll,[\s\S]*getComputedStyleRef,[\s\S]*cancelListTransition[\s\S]*\}\);[\s\S]*const \{ makeDragList \} = dragList;[\s\S]*const indexVersionList = createComposerIndexVersionList\(\{[\s\S]*documentRef,[\s\S]*requestAnimationFrameRef,[\s\S]*normalizeIndexVariantList,[\s\S]*getIndexVariantLocation,[\s\S]*promptArticleVersionValue,[\s\S]*showMarkdownOpenAlert,[\s\S]*\}\);[\s\S]*function buildIndexUI\(root, state\)[\s\S]*indexVersionList\.mountIndexVersionList\(\{[\s\S]*block,[\s\S]*row,[\s\S]*entry,[\s\S]*lang,[\s\S]*key,[\s\S]*value: entry\[lang\],[\s\S]*markDirty[\s\S]*\}\);[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ci-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);[\s\S]*function buildTabsUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ct-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);/,
+  'index/tabs list UI boundary should own list rendering while delegating shared add-language, drag-list, and index version-list lifecycles'
+);
+
+assert.match(
+  composerIndexVersionListSource,
+  /export function createComposerIndexVersionList\(options = \{\}\)[\s\S]*function requestFrame\(callback\)[\s\S]*function mountIndexVersionList\(options = \{\}\) \{[\s\S]*const arr = normalizeIndexVariantList\(value\);[\s\S]*const snapRects = \(\) => \{[\s\S]*const renderVersions = \(prevRects = null\) => \{[\s\S]*versionRow\.className = 'ci-ver-item';[\s\S]*query\('\.ci-edit', versionRow\)\.addEventListener\('click', \(\) => \{[\s\S]*openMarkdownInEditor\(rel\);[\s\S]*down\.addEventListener\('click', \(\) => \{[\s\S]*entry\[lang\] = arr\.slice\(\);[\s\S]*const addVersionButton = query\('\.ci-lang-addver', block\);[\s\S]*arr\.push\(buildArticleVersionPath\(key, lang, version, entry\)\);/,
+  'index version-list helper should own version row rendering, reorder animation, edit opening, removal, and add-version mutations'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /function requestFrame\(callback\)|const snapRects = \(\)|const renderVers|const renderVersions|versionRow\.className = 'ci-ver-item'|query\('\.ci-edit'/,
+  'index/tabs list UI should not own index version-row animation, edit, and mutation internals'
 );
 
 assert.match(
@@ -1083,7 +1103,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  `${composerIndexTabsUiSource}\n${composerIndexTabsLanguageMenuSource}\n${composerDragListSource}`,
+  `${composerIndexTabsUiSource}\n${composerIndexTabsLanguageMenuSource}\n${composerDragListSource}\n${composerIndexVersionListSource}`,
   /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|\bwindowRef\b|documentRef\.(?:addEventListener|removeEventListener)\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
   'index/tabs UI should receive browser refs, frames, timers, events, scroll, dialogs, and style access through explicit runtime wiring'
 );

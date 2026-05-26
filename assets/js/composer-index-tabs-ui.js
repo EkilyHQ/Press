@@ -1,5 +1,6 @@
 import { createComposerDragList } from './composer-drag-list.js';
 import { createComposerIndexTabsLanguageMenu } from './composer-index-tabs-language-menu.js';
+import { createComposerIndexVersionList } from './composer-index-version-list.js';
 
 export function createComposerIndexTabsUi(options = {}) {
   const documentRef = options.documentRef || null;
@@ -60,15 +61,23 @@ export function createComposerIndexTabsUi(options = {}) {
     cancelListTransition
   });
   const { makeDragList } = dragList;
-
-  function requestFrame(callback) {
-    if (typeof callback !== 'function') return null;
-    if (requestAnimationFrameRef) {
-      try { return requestAnimationFrameRef(callback); } catch (_) {}
-    }
-    callback();
-    return null;
-  }
+  const indexVersionList = createComposerIndexVersionList({
+    documentRef,
+    requestAnimationFrameRef,
+    query,
+    escapeHtml,
+    tComposerLang,
+    treeText,
+    normalizeIndexVariantList,
+    getIndexVariantLocation,
+    extractVersionFromPath,
+    buildArticleVersionPath,
+    promptArticleVersionValue,
+    openMarkdownInEditor,
+    showMarkdownOpenAlert,
+    updateComposerMarkdownDraftIndicators,
+    updateComposerDraftContainerState
+  });
 
   function showMarkdownOpenAlert() {
     const message = tComposer('markdown.openBeforeEditor');
@@ -134,11 +143,6 @@ export function createComposerIndexTabsUi(options = {}) {
         const langs = sortLangKeys(entry);
         const addVersionLabel = tComposerLang('addVersion');
         const removeLangLabel = tComposerLang('removeLanguage');
-        const editLabel = tComposerLang('actions.edit');
-        const openLabel = tComposerLang('actions.open');
-        const moveUpLabel = tComposerLang('actions.moveUp');
-        const moveDownLabel = tComposerLang('actions.moveDown');
-        const removeLabel = tComposerLang('actions.remove');
         langs.forEach((lang) => {
           const block = documentRef.createElement('div');
           block.className = 'ci-lang';
@@ -147,8 +151,6 @@ export function createComposerIndexTabsUi(options = {}) {
           const langLabel = displayLangName(lang);
           const safeLabel = escapeHtml(langLabel || '');
           const flagSpan = flag ? `<span class="ci-lang-flag" aria-hidden="true">${escapeHtml(flag)}</span>` : '';
-          const val = entry[lang];
-          const arr = normalizeIndexVariantList(val);
           block.innerHTML = `
             <div class="ci-lang-head">
               <strong class="ci-lang-label" aria-label="${safeLabel}" title="${safeLabel}">
@@ -163,129 +165,14 @@ export function createComposerIndexTabsUi(options = {}) {
             <div class="ci-ver-list"></div>
             <div class="ci-ver-removed" data-role="removed" hidden></div>
           `;
-          const verList = query('.ci-ver-list', block);
-          let verIds = arr.map(() => Math.random().toString(36).slice(2));
-
-          const snapRects = () => {
-            const map = new Map();
-            verList.querySelectorAll('.ci-ver-item').forEach((el) => {
-              const id = el.getAttribute('data-id');
-              if (!id) return;
-              map.set(id, el.getBoundingClientRect());
-            });
-            return map;
-          };
-
-          const animateFrom = (prev) => {
-            if (!prev) return;
-            verList.querySelectorAll('.ci-ver-item').forEach((el) => {
-              const id = el.getAttribute('data-id');
-              const r0 = id && prev.get(id);
-              if (!r0) return;
-              const r1 = el.getBoundingClientRect();
-              const dx = r0.left - r1.left;
-              const dy = r0.top - r1.top;
-              if (!dx && !dy) return;
-              try {
-                el.animate([
-                  { transform: `translate(${dx}px, ${dy}px)` },
-                  { transform: 'translate(0, 0)' }
-                ], { duration: 360, easing: 'ease', composite: 'replace' });
-              } catch (_) {
-                el.style.transition = 'none';
-                el.style.transform = `translate(${dx}px, ${dy}px)`;
-                requestFrame(() => {
-                  el.style.transition = 'transform 360ms ease';
-                  el.style.transform = '';
-                  const clear = () => {
-                    el.style.transition = '';
-                    el.removeEventListener('transitionend', clear);
-                  };
-                  el.addEventListener('transitionend', clear);
-                });
-              }
-            });
-          };
-
-          const renderVers = (prevRects = null) => {
-            verList.innerHTML = '';
-            arr.forEach((p, i) => {
-              const id = verIds[i] || (verIds[i] = Math.random().toString(36).slice(2));
-              const row = documentRef.createElement('div');
-              row.className = 'ci-ver-item';
-              row.setAttribute('data-id', id);
-              row.dataset.lang = lang;
-              row.dataset.index = String(i);
-              const normalizedPath = getIndexVariantLocation(p);
-              row.dataset.value = normalizedPath || '';
-              if (normalizedPath) row.dataset.mdPath = normalizedPath;
-              else delete row.dataset.mdPath;
-              row.innerHTML = `
-                <span class="ci-draft-indicator" aria-hidden="true" hidden></span>
-                <span class="ci-ver-label">${escapeHtml(extractVersionFromPath(normalizedPath) || `${treeText('version', 'Version')} ${i + 1}`)}</span>
-                <span class="ci-ver-actions">
-                  <button type="button" class="btn-secondary ci-edit" title="${escapeHtml(openLabel)}">${escapeHtml(editLabel)}</button>
-                  <button type="button" class="btn-secondary ci-up" title="${escapeHtml(moveUpLabel)}" aria-label="${escapeHtml(moveUpLabel)}"><span aria-hidden="true">↑</span></button>
-                  <button type="button" class="btn-secondary ci-down" title="${escapeHtml(moveDownLabel)}" aria-label="${escapeHtml(moveDownLabel)}"><span aria-hidden="true">↓</span></button>
-                  <button type="button" class="btn-secondary ci-remove" title="${escapeHtml(removeLabel)}" aria-label="${escapeHtml(removeLabel)}"><span aria-hidden="true">✕</span></button>
-                </span>
-              `;
-              const up = query('.ci-up', row);
-              const down = query('.ci-down', row);
-              if (i === 0) up.setAttribute('disabled', '');
-              else up.removeAttribute('disabled');
-              if (i === arr.length - 1) down.setAttribute('disabled', '');
-              else down.removeAttribute('disabled');
-              updateComposerMarkdownDraftIndicators({ element: row, path: normalizedPath });
-              query('.ci-edit', row).addEventListener('click', () => {
-                const rel = getIndexVariantLocation(arr[i]);
-                if (!rel) {
-                  showMarkdownOpenAlert();
-                  return;
-                }
-                openMarkdownInEditor(rel);
-              });
-              up.addEventListener('click', () => {
-                if (i <= 0) return;
-                const prev = snapRects();
-                [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
-                [verIds[i - 1], verIds[i]] = [verIds[i], verIds[i - 1]];
-                entry[lang] = arr.slice();
-                renderVers(prev);
-                markDirty();
-              });
-              down.addEventListener('click', () => {
-                if (i >= arr.length - 1) return;
-                const prev = snapRects();
-                [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]];
-                [verIds[i + 1], verIds[i]] = [verIds[i], verIds[i + 1]];
-                entry[lang] = arr.slice();
-                renderVers(prev);
-                markDirty();
-              });
-              query('.ci-remove', row).addEventListener('click', () => {
-                const prev = snapRects();
-                arr.splice(i, 1);
-                verIds.splice(i, 1);
-                entry[lang] = arr.slice();
-                renderVers(prev);
-                markDirty();
-              });
-              verList.appendChild(row);
-            });
-            animateFrom(prevRects);
-            updateComposerDraftContainerState(verList.closest('.ci-item'));
-          };
-          renderVers();
-          query('.ci-lang-addver', block).addEventListener('click', async (event) => {
-            const version = await promptArticleVersionValue(key, lang, entry, event.currentTarget);
-            if (!version) return;
-            const prev = snapRects();
-            arr.push(buildArticleVersionPath(key, lang, version, entry));
-            verIds.push(Math.random().toString(36).slice(2));
-            entry[lang] = arr.slice();
-            renderVers(prev);
-            markDirty();
+          indexVersionList.mountIndexVersionList({
+            block,
+            row,
+            entry,
+            lang,
+            key,
+            value: entry[lang],
+            markDirty
           });
           query('.ci-lang-del', block).addEventListener('click', () => {
             delete entry[lang];

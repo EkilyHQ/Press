@@ -17,6 +17,7 @@ import { createEditorBlocksFocusSession } from './editor-blocks-focus-session.js
 import { createEditorBlocksPointerSession } from './editor-blocks-pointer-session.js';
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js';
 import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js';
+import { createEditorBlocksInlineCommandSession } from './editor-blocks-inline-command-session.js';
 import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js';
 import { createEditorBlocksMathSession } from './editor-blocks-math-session.js';
 import { createEditorBlocksTableSession } from './editor-blocks-table-session.js';
@@ -551,64 +552,33 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
   if (cardPickerSession) root.appendChild(cardPickerSession.element);
 
-  const inlineCommandMark = (kind) => (kind === 'strikeThrough' ? 'strike' : kind);
-  const hasPendingInlineMarks = () => blocksState.hasPendingInlineMarks();
-
-  const applyRunsToEditable = (editable, runs, caretOffset = null) => {
-    renderInlineRunsInto(editable, runs, inlineDomSession);
-    if (caretOffset != null) placeCaretAtTextOffset(editable, caretOffset, caretSession);
-    syncActiveEditable();
-    updateInlineToolbarState();
-  };
-
-  const togglePendingInlineMark = (kind) => {
-    const mark = inlineCommandMark(kind);
-    blocksState.togglePendingInlineMark(mark);
-    updateInlineToolbarState();
-  };
-
-  const applyInlineCommand = (kind) => {
-    const editable = blocksState.getActiveEditable();
-    if (!editable || !nodeContains(root, editable)) return;
-    try { editable.focus(); } catch (_) {}
-    if (kind === 'link') {
-      openLinkEditorForSelection();
-      return;
-    }
-    if (kind === 'math') {
-      openMathEditorForSelection();
-      return;
-    }
-    const offsets = getEditableSelectionOffsets(editable, caretSession);
-    const runs = inlineRunsFromDom(editable);
-    const mark = inlineCommandMark(kind);
-    if (mark === 'code') {
-      const selectedCodeRange = inlineMarkedDomRangeFromSelection(editable, mark, selectionSession, inlineDomSession);
-      const rememberedCodeRange = blocksState.rememberedInlineRangeFor(editable, mark);
-      const codeRange = selectedCodeRange || rememberedCodeRange;
-      if ((!offsets || offsets.collapsed) && codeRange) {
-        blocksState.clearInlineState();
-        const nextRuns = removeInlineMarkInRange(runs, codeRange.start, codeRange.end, mark);
-        applyRunsToEditable(editable, nextRuns, offsets ? offsets.start : codeRange.start);
-        return;
-      }
-    }
-    if (!offsets) return;
-    if (offsets.collapsed) {
-      if (mark === 'code' && inlineMarksAtOffset(runs, offsets.start).code) {
-        blocksState.clearInlineState();
-        const nextRuns = removeInlineMarkAroundOffset(runs, offsets.start, mark);
-        applyRunsToEditable(editable, nextRuns, offsets.start);
-        return;
-      }
-      if (mark === 'code') return;
-      togglePendingInlineMark(kind);
-      return;
-    }
-    blocksState.clearPendingInline();
-    const nextRuns = toggleInlineMarkOnRuns(runs, offsets.start, offsets.end, inlineCommandMark(kind));
-    applyRunsToEditable(editable, nextRuns, offsets.end);
-  };
+  const inlineCommandSession = createEditorBlocksInlineCommandSession({
+    root,
+    blocksState,
+    selectionSession,
+    caretSession,
+    inlineDomSession,
+    containsNode: nodeContains,
+    renderInlineRunsInto,
+    inlineRunsFromDom,
+    getEditableSelectionOffsets,
+    inlineMarkedDomRangeFromSelection,
+    removeInlineMarkAroundOffset,
+    removeInlineMarkInRange,
+    inlineMarksAtOffset,
+    toggleInlineMarkOnRuns,
+    placeCaretAtTextOffset,
+    syncActiveEditable,
+    updateInlineToolbarState,
+    openLinkEditorForSelection,
+    openMathEditorForSelection
+  });
+  const {
+    applyInlineCommand,
+    applyRunsToEditable,
+    hasPendingInlineMarks,
+    inlineCommandMark
+  } = inlineCommandSession;
 
   const linkSession = blockSessions.setLinkSession(createEditorBlocksLinkSession({
     documentRef: blocksDocument,

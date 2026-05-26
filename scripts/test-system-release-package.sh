@@ -458,6 +458,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-inline-toolbar-se
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-inline-command-session.js" "${entries_file}"; then
+  echo "expected package to include editor blocks inline command session code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-link-session.js" "${entries_file}"; then
   echo "expected package to include editor blocks link session code" >&2
   exit 1

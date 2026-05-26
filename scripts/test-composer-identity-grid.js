@@ -134,6 +134,7 @@ const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-f
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
+const editorBlocksInlineCommandSessionPath = resolve(here, '../assets/js/editor-blocks-inline-command-session.js');
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
 const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-math-session.js');
 const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-table-session.js');
@@ -274,6 +275,7 @@ const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
+const editorBlocksInlineCommandSessionSource = readFileSync(editorBlocksInlineCommandSessionPath, 'utf8');
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
 const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 'utf8');
 const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath, 'utf8');
@@ -517,6 +519,12 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-inline-command-session\.js'/,
+  'blocks editor should cache-bust the explicit blocks inline command session boundary'
+);
+
+assert.match(
+  editorBlocksSource,
   /from '\.\/editor-blocks-link-session\.js'/,
   'blocks editor should cache-bust the explicit blocks link session boundary'
 );
@@ -673,8 +681,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const updateInlineToolbarState = \(\) => \{[\s\S]*blockSessions\.updateInlineToolbarState\(\);[\s\S]*\};[\s\S]*const inlineToolbarSession = blockSessions\.setInlineToolbarSession\(createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\)\);/,
-  'blocks editor should compose inline toolbar DOM controls and state through the inline toolbar session boundary'
+  /const updateInlineToolbarState = \(\) => \{[\s\S]*blockSessions\.updateInlineToolbarState\(\);[\s\S]*\};[\s\S]*const inlineCommandSession = createEditorBlocksInlineCommandSession\(\{[\s\S]*root,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*renderInlineRunsInto,[\s\S]*inlineRunsFromDom,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineMarkedDomRangeFromSelection,[\s\S]*removeInlineMarkAroundOffset,[\s\S]*removeInlineMarkInRange,[\s\S]*inlineMarksAtOffset,[\s\S]*toggleInlineMarkOnRuns,[\s\S]*placeCaretAtTextOffset,[\s\S]*syncActiveEditable,[\s\S]*updateInlineToolbarState,[\s\S]*openLinkEditorForSelection,[\s\S]*openMathEditorForSelection[\s\S]*\}\);[\s\S]*const \{[\s\S]*applyInlineCommand,[\s\S]*applyRunsToEditable,[\s\S]*hasPendingInlineMarks,[\s\S]*inlineCommandMark[\s\S]*\} = inlineCommandSession;[\s\S]*const inlineToolbarSession = blockSessions\.setInlineToolbarSession\(createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\)\);/,
+  'blocks editor should compose inline command execution separately from inline toolbar DOM controls'
+);
+
+assert.match(
+  editorBlocksInlineCommandSessionSource,
+  /function defaultInlineCommandMark\(kind\)[\s\S]*export function createEditorBlocksInlineCommandSession\(\{[\s\S]*const applyRunsToEditable = \(editable, runs, caretOffset = null\) => \{[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\);[\s\S]*syncActiveEditable\(\);[\s\S]*updateInlineToolbarState\(\);[\s\S]*const applyInlineCommand = \(kind\) => \{[\s\S]*if \(kind === 'link'\) \{[\s\S]*openLinkEditorForSelection\(\);[\s\S]*if \(kind === 'math'\) \{[\s\S]*openMathEditorForSelection\(\);[\s\S]*removeInlineMarkInRange\(runs, codeRange\.start, codeRange\.end, mark\);[\s\S]*removeInlineMarkAroundOffset\(runs, offsets\.start, mark\);[\s\S]*toggleInlineMarkOnRuns\(runs, offsets\.start, offsets\.end, inlineCommandMark\(kind\)\);/,
+  'inline command session should own command-to-inline-run mutation, pending mark, and link/math delegation behavior'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const togglePendingInlineMark = \(kind\)|const applyInlineCommand = \(kind\) => \{[\s\S]*toggleInlineMarkOnRuns|const applyRunsToEditable = \(editable, runs, caretOffset = null\) => \{/,
+  'blocks editor root should not own inline command mutation internals'
 );
 
 assert.match(
@@ -738,7 +758,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksMathSessionSource}`,
+  `${editorBlocksSource}\n${editorBlocksInlineCommandSessionSource}\n${editorBlocksMathSessionSource}`,
   /const inlineDomSession = createInlineDomSession\(selectionSession, blocksDocument, renderMathWithRuntime\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(editable, mathNode, inlineDomSession\)/,
   'blocks editor should route inline run rendering plus math DOM range mapping through explicit inline DOM session dependencies'
 );
@@ -762,7 +782,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksPointerSessionSource}\n${editorBlocksFocusSessionSource}`,
+  `${editorBlocksSource}\n${editorBlocksInlineCommandSessionSource}\n${editorBlocksPointerSessionSource}\n${editorBlocksFocusSessionSource}`,
   /const caretSession = createCaretSession\(selectionSession, blocksDocument\);[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*caretSession\.measuredTextOffsetDetailsFromPoint\(editable, x, y, measureLimit\)[\s\S]*caretSession\.placeAtTextOffset\(editable, measuredDetails\.offset\)[\s\S]*caretSession\.textareaTextOffsetFromPoint\(area, x, y, measureLimit\)[\s\S]*caretSession\.placeAtVisualLine\(editable, x, edge, fallbackOffset\)/,
   'blocks editor should route caret offsets, visual-line placement, and textarea mirror measurement through the caret session'
 );
@@ -3589,20 +3609,20 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineCommandSessionSource,
   /if \(\(!offsets \|\| offsets\.collapsed\) && codeRange\) \{[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*removeInlineMarkInRange/,
   'removing remembered inline code should clear stale toolbar mark fallback state'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineCommandSessionSource,
   /if \(mark === 'code' && inlineMarksAtOffset\(runs, offsets\.start\)\.code\) \{[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*removeInlineMarkAroundOffset/,
   'removing inline code at a collapsed caret should clear stale toolbar mark fallback state'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const hasPendingInlineMarks = \(\) => blocksState\.hasPendingInlineMarks\(\);[\s\S]*const togglePendingInlineMark = \(kind\) => \{[\s\S]*blocksState\.togglePendingInlineMark\(mark\);[\s\S]*if \(mark === 'code'\) return;[\s\S]*togglePendingInlineMark\(kind\);/,
+  editorBlocksInlineCommandSessionSource,
+  /const hasPendingInlineMarks = \(\) => \([\s\S]*hasBlocksState\('hasPendingInlineMarks'\) \? blocksState\.hasPendingInlineMarks\(\) : false[\s\S]*const togglePendingInlineMark = \(kind\) => \{[\s\S]*const mark = inlineCommandMark\(kind\);[\s\S]*hasBlocksState\('togglePendingInlineMark'\)[\s\S]*blocksState\.togglePendingInlineMark\(mark\);[\s\S]*if \(mark === 'code'\) return;[\s\S]*togglePendingInlineMark\(kind\);/,
   'inline code should not be stored as pending formatting for future text input'
 );
 

@@ -1,4 +1,5 @@
 import { createEditorMainPreviewAssets } from './editor-main-preview-assets.js';
+import { createEditorMainPreviewThemePicker } from './editor-main-preview-theme-picker.js';
 import { createEditorMainPreviewViewport } from './editor-main-preview-viewport.js';
 
 const PREVIEW_RENDER_MESSAGE = 'press-editor-preview-render';
@@ -110,8 +111,6 @@ export function createEditorMainPreviewSession(options = {}) {
 
   let previewFrameReady = false;
   let previewRenderRequestId = 0;
-  let previewThemeOverride = '';
-  let previewThemeOptions = [{ value: 'native', label: 'Native' }];
   let previewOverlayFrame = 0;
   let previewOverlayCloseTimer = 0;
   const previewAssets = createEditorMainPreviewAssets({
@@ -126,49 +125,16 @@ export function createEditorMainPreviewSession(options = {}) {
     querySelectorAll,
     onDocument
   });
-
-  const sanitizePreviewThemePack = (value) => {
-    const clean = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-    return clean || 'native';
-  };
-
-  const getSitePreviewThemePack = () => {
-    const siteConfig = getSiteConfig() || {};
-    return sanitizePreviewThemePack(siteConfig && siteConfig.themePack ? siteConfig.themePack : 'native');
-  };
-
-  const getActivePreviewThemePack = () => {
-    return sanitizePreviewThemePack(previewThemeOverride || getSitePreviewThemePack());
-  };
-
-  const updatePreviewThemeSelect = () => {
-    try {
-      const select = getElementById('previewThemeSelect');
-      if (!select) return;
-      const active = getActivePreviewThemePack();
-      const options = Array.isArray(previewThemeOptions) && previewThemeOptions.length
-        ? previewThemeOptions
-        : [{ value: 'native', label: 'Native' }];
-      const seen = new Set();
-      select.innerHTML = '';
-      options.forEach((item) => {
-        const value = sanitizePreviewThemePack(item && item.value);
-        if (!value || seen.has(value)) return;
-        seen.add(value);
-        const option = documentRef.createElement('option');
-        option.value = value;
-        option.textContent = String((item && item.label) || value);
-        select.appendChild(option);
-      });
-      if (!seen.has(active)) {
-        const option = documentRef.createElement('option');
-        option.value = active;
-        option.textContent = active;
-        select.appendChild(option);
-      }
-      select.value = active;
-    } catch (_) {}
-  };
+  const previewThemePicker = createEditorMainPreviewThemePicker({
+    documentRef,
+    getElementById,
+    fetch: fetchImpl,
+    getSiteThemePack: () => {
+      const siteConfig = getSiteConfig() || {};
+      return siteConfig && siteConfig.themePack ? siteConfig.themePack : 'native';
+    },
+    onChange: () => renderCurrent()
+  });
 
   const safeList = (value) => {
     if (value instanceof Set) return Array.from(value);
@@ -188,7 +154,7 @@ export function createEditorMainPreviewSession(options = {}) {
     return {
       type: PREVIEW_RENDER_MESSAGE,
       requestId: ++previewRenderRequestId,
-      themePack: getActivePreviewThemePack(),
+      themePack: previewThemePicker.getActiveThemePack(),
       markdown: mdText == null ? '' : String(mdText),
       contentRoot: getContentRoot(),
       baseDir: getEditorBaseDir(),
@@ -205,7 +171,7 @@ export function createEditorMainPreviewSession(options = {}) {
 
   const render = (mdText) => {
     try {
-      updatePreviewThemeSelect();
+      previewThemePicker.updateSelect();
       const previewWrap = getElementById('preview-wrap');
       if (!previewWrap || previewWrap.hidden) return;
       const frame = getElementById('previewFrame');
@@ -268,7 +234,7 @@ export function createEditorMainPreviewSession(options = {}) {
       previewOverlayFrame = 0;
       previewWrap.classList.add('is-open');
     });
-    updatePreviewThemeSelect();
+    previewThemePicker.updateSelect();
     renderCurrent();
     try { previewWrap.focus && previewWrap.focus(); } catch (_) {}
   };
@@ -303,46 +269,6 @@ export function createEditorMainPreviewSession(options = {}) {
     } catch (_) {}
   };
 
-  const loadPreviewThemeOptions = () => {
-    if (!fetchImpl) {
-      updatePreviewThemeSelect();
-      return;
-    }
-    const normalizeThemeOptions = (lists) => {
-      const normalized = [];
-      const seen = new Set();
-      lists.forEach((list) => {
-        (Array.isArray(list) ? list : []).forEach((item) => {
-          const value = sanitizePreviewThemePack(item && item.value);
-          if (!value || seen.has(value)) return;
-          seen.add(value);
-          normalized.push({ value, label: String((item && item.label) || value) });
-        });
-      });
-      return normalized;
-    };
-    const fetchThemeList = (path, optional = false) => fetchImpl(path, { cache: 'no-store' })
-      .then((response) => {
-        if (response && response.ok) return response.json();
-        if (optional) return [];
-        return Promise.reject(new Error(`Unable to load ${path}`));
-      })
-      .catch((err) => {
-        if (optional) return [];
-        throw err;
-      });
-    Promise.all([
-      fetchThemeList('assets/themes/packs.json'),
-      fetchThemeList('assets/themes/packs.local.json', true)
-    ])
-      .then((lists) => {
-        const normalized = normalizeThemeOptions(lists);
-        if (normalized.length) previewThemeOptions = normalized;
-        updatePreviewThemeSelect();
-      })
-      .catch(() => { updatePreviewThemeSelect(); });
-  };
-
   const handlePreviewMessage = (event) => {
     if (event.origin !== getLocationOrigin()) return;
     const previewFrame = getElementById('previewFrame');
@@ -363,13 +289,12 @@ export function createEditorMainPreviewSession(options = {}) {
   const handleAssetPreviewEvent = (event) => previewAssets.handleAssetPreviewEvent(event);
 
   const handleSiteConfigChange = () => {
-    if (!previewThemeOverride) updatePreviewThemeSelect();
+    previewThemePicker.handleSiteConfigChange();
     renderCurrent();
   };
 
   const bind = () => {
     const previewFrame = getElementById('previewFrame');
-    const previewThemeSelect = getElementById('previewThemeSelect');
     const closePreviewButton = getElementById('btnClosePreview');
     if (previewFrame) {
       previewFrame.addEventListener('load', () => {
@@ -380,13 +305,7 @@ export function createEditorMainPreviewSession(options = {}) {
 
     onWindow('press-editor-asset-preview', handleAssetPreviewEvent);
     onWindow('message', handlePreviewMessage);
-    if (previewThemeSelect) {
-      previewThemeSelect.addEventListener('change', () => {
-        previewThemeOverride = sanitizePreviewThemePack(previewThemeSelect.value || 'native');
-        updatePreviewThemeSelect();
-        renderCurrent();
-      });
-    }
+    previewThemePicker.bind();
     if (closePreviewButton) {
       closePreviewButton.addEventListener('click', () => {
         close();
@@ -400,7 +319,6 @@ export function createEditorMainPreviewSession(options = {}) {
       event.preventDefault();
       close();
     });
-    loadPreviewThemeOptions();
   };
 
   return {
@@ -412,9 +330,9 @@ export function createEditorMainPreviewSession(options = {}) {
     refreshAssetOverrides,
     handleAssetPreviewEvent,
     handleSiteConfigChange,
-    updateThemeSelect: updatePreviewThemeSelect,
+    updateThemeSelect: previewThemePicker.updateSelect,
     updatePathLabel,
-    hasThemeOverride: () => !!previewThemeOverride,
+    hasThemeOverride: previewThemePicker.hasOverride,
     normalizePath: previewAssets.normalizePath,
     setCurrentFileInfo: (info) => {
       previewAssets.setCurrentFileInfo(info);

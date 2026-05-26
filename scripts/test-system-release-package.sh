@@ -308,6 +308,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-assets.js" 
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-theme-picker.js" "${entries_file}"; then
+  echo "expected package to include editor main preview theme picker code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-main-preview-viewport.js" "${entries_file}"; then
   echo "expected package to include editor main preview viewport code" >&2
   exit 1

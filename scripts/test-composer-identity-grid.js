@@ -103,6 +103,7 @@ const editorMainFrontMatterManagerPath = resolve(here, '../assets/js/editor-main
 const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-main-tabs-metadata-manager.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
 const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-preview-assets.js');
+const editorMainPreviewThemePickerPath = resolve(here, '../assets/js/editor-main-preview-theme-picker.js');
 const editorMainPreviewViewportPath = resolve(here, '../assets/js/editor-main-preview-viewport.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
 const editorMainCurrentFileViewPath = resolve(here, '../assets/js/editor-main-current-file-view.js');
@@ -254,6 +255,7 @@ const editorMainFrontMatterManagerSource = readFileSync(editorMainFrontMatterMan
 const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataManagerPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
 const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 'utf8');
+const editorMainPreviewThemePickerSource = readFileSync(editorMainPreviewThemePickerPath, 'utf8');
 const editorMainPreviewViewportSource = readFileSync(editorMainPreviewViewportPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
 const editorMainCurrentFileViewSource = readFileSync(editorMainCurrentFileViewPath, 'utf8');
@@ -1763,6 +1765,24 @@ assert.match(
   editorMainPreviewSessionSource,
   /from '\.\/editor-main-preview-assets\.js'/,
   'editor preview session should cache-bust the preview asset override boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /from '\.\/editor-main-preview-theme-picker\.js'/,
+  'editor preview session should cache-bust the preview theme picker boundary'
+);
+
+assert.match(
+  editorMainPreviewThemePickerSource,
+  /export function sanitizePreviewThemePack[\s\S]*let themeOverride = ''[\s\S]*fetchThemeList\('assets\/themes\/packs\.json'\)[\s\S]*fetchThemeList\('assets\/themes\/packs\.local\.json', true\)[\s\S]*select\.addEventListener\('change'[\s\S]*themeOverride = sanitizePreviewThemePack\(select\.value \|\| 'native'\)/,
+  'editor preview theme picker should own theme sanitization, option loading, local overlays, and selector override state'
+);
+
+assert.doesNotMatch(
+  editorMainPreviewSessionSource,
+  /themeOverride|function sanitizePreviewThemePack|loadPreviewThemeOptions|assets\/themes\/packs\.local\.json/,
+  'editor preview session should delegate theme selector state and pack loading to the preview theme picker boundary'
 );
 
 assert.match(

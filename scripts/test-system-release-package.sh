@@ -143,6 +143,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-controls
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-language-menu.js" "${entries_file}"; then
+  echo "expected package to include composer Site Settings language-menu code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-site-settings-link-list.js" "${entries_file}"; then
   echo "expected package to include composer Site Settings link-list code" >&2
   exit 1

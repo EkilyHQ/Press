@@ -38,6 +38,7 @@ const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
+const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
 const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
@@ -165,6 +166,7 @@ const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
 const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
+const composerSiteSettingsLanguageMenuSource = readFileSync(composerSiteSettingsLanguageMenuPath, 'utf8');
 const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
 const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
@@ -270,6 +272,7 @@ const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
 const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsUiSource,
   composerSiteSettingsControlsSource,
+  composerSiteSettingsLanguageMenuSource,
   composerSiteSettingsLinkListSource,
   composerSiteSettingsSchemaSource
 ].join('\n');
@@ -931,6 +934,12 @@ assert.match(
 
 assert.match(
   composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-language-menu\.js'/,
+  'Site Settings UI should delegate add-language menu behavior and lifecycle cleanup'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
   /from '\.\/composer-site-settings-link-list\.js'/,
   'Site Settings UI should delegate profile link list rendering and reordering'
 );
@@ -959,10 +968,22 @@ assert.doesNotMatch(
   'Site Settings UI should not re-own reusable control or link-list factories after extraction'
 );
 
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /className = 'cs-add-lang has-menu'|documentRef\.addEventListener\(LANGUAGE_POOL_CHANGED_EVENT,\s*refreshMenu\)|documentRef\.addEventListener\('mousedown',\s*onDocDown,\s*true\)/,
+  'Site Settings UI should not re-own add-language menu DOM or document-level menu listeners'
+);
+
 assert.match(
   composerSiteSettingsControlsSource,
   /export function createComposerSiteSettingsControls\(options = \{\}\)[\s\S]*const createSection = \(title, description\) =>[\s\S]*const createField = \(section, config = \{\}\) =>[\s\S]*const createSingleGridFieldset = \(section\) =>[\s\S]*const renderSingleTextGrid = \(section, items\) =>/,
   'Site Settings controls boundary should own reusable section, field, and compact grid factories'
+);
+
+assert.match(
+  composerSiteSettingsLanguageMenuSource,
+  /export function createComposerSiteSettingsLanguageMenu\(options = \{\}\)[\s\S]*const collectSupportedLangs = \(\) =>[\s\S]*const refreshMenu = \(\) =>[\s\S]*function openMenu\(\)[\s\S]*function onButtonClick\(\)[\s\S]*const cleanup = \(\) =>/,
+  'Site Settings language-menu boundary should own add-language choices, open/close behavior, and cleanup'
 );
 
 assert.match(

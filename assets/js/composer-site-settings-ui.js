@@ -1,4 +1,5 @@
 import { createComposerSiteSettingsControls } from './composer-site-settings-controls.js';
+import { createComposerSiteSettingsLanguageMenu } from './composer-site-settings-language-menu.js';
 import { createComposerSiteSettingsLinkList } from './composer-site-settings-link-list.js';
 import { createComposerSiteSettingsSchema } from './composer-site-settings-schema.js';
 
@@ -87,6 +88,10 @@ export function createComposerSiteSettingsUi(options = {}) {
 
   function buildSiteUI(root, state) {
     if (!root || !documentRef || typeof documentRef.createElement !== 'function') return;
+    try {
+      if (typeof root.__pressSiteLanguageMenuCleanup === 'function') root.__pressSiteLanguageMenuCleanup();
+    } catch (_) {}
+    try { root.__pressSiteLanguageMenuCleanup = null; } catch (_) {}
     root.innerHTML = '';
     try {
       if (typeof root.__pressSiteCompactNavCleanup === 'function') root.__pressSiteCompactNavCleanup();
@@ -125,6 +130,17 @@ export function createComposerSiteSettingsUi(options = {}) {
     root.appendChild(container);
 
     const sectionsMeta = [];
+    const languageMenuCleanups = [];
+    const cleanupLanguageMenus = () => {
+      while (languageMenuCleanups.length) {
+        const cleanup = languageMenuCleanups.pop();
+        try { cleanup(); } catch (_) {}
+      }
+    };
+    const registerLanguageMenuCleanup = (cleanup) => {
+      if (typeof cleanup === 'function') languageMenuCleanups.push(cleanup);
+    };
+    try { root.__pressSiteLanguageMenuCleanup = cleanupLanguageMenus; } catch (_) {}
     let activeSectionId = '';
     const rootHadVisibleLayout = (() => {
       try { return !!(root.getClientRects && root.getClientRects().length); }
@@ -679,6 +695,24 @@ export function createComposerSiteSettingsUi(options = {}) {
       requestFrame,
       t
     });
+    const createLanguageMenu = (config = {}) => {
+      const languageMenu = createComposerSiteSettingsLanguageMenu({
+        documentRef,
+        setTimer,
+        languagePoolChangedEvent: LANGUAGE_POOL_CHANGED_EVENT,
+        preferredLangOrder: PREFERRED_LANG_ORDER,
+        langCodePattern: LANG_CODE_PATTERN,
+        normalizeLangCode,
+        getAvailableLangs,
+        collectLanguageCodes,
+        displayLangName,
+        escapeHtml,
+        t,
+        ...config
+      });
+      registerLanguageMenuCleanup(languageMenu.cleanup);
+      return languageMenu;
+    };
 
     const renderLocalizedField = (section, key, options = {}) => {
       ensureLocalized(key, options.ensureDefault !== false);
@@ -702,158 +736,19 @@ export function createComposerSiteSettingsUi(options = {}) {
       const controls = documentRef.createElement('div');
       controls.className = 'cs-field-controls';
       field.appendChild(controls);
-      const addWrap = documentRef.createElement('div');
-      addWrap.className = 'cs-add-lang has-menu';
-      controls.appendChild(addWrap);
-
-      const addBtn = documentRef.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className = 'btn-secondary cs-add-lang';
-      addBtn.textContent = t('editor.composer.site.addLanguage');
-      addBtn.setAttribute('aria-haspopup', 'listbox');
-      addBtn.setAttribute('aria-expanded', 'false');
-      addWrap.appendChild(addBtn);
-
-      const menu = documentRef.createElement('div');
-      menu.className = 'press-menu';
-      menu.setAttribute('role', 'listbox');
-      menu.hidden = true;
-      addWrap.appendChild(menu);
-
-      const refreshMenu = () => {
-        const localized = ensureLocalized(key, options.ensureDefault !== false);
-        const used = new Set(Object.keys(localized || {}));
-        used.add('default');
-
-        const supportedSet = new Set();
-        const addSupported = (code) => {
-          const normalized = normalizeLangCode(code);
-          if (!normalized) return;
-          supportedSet.add(normalized);
-        };
-
-        try {
-          const availableLangs = getAvailableLangs();
-          if (Array.isArray(availableLangs)) availableLangs.forEach(addSupported);
-        } catch (_) {}
-
-        if (Array.isArray(PREFERRED_LANG_ORDER)) {
-          PREFERRED_LANG_ORDER.forEach(addSupported);
+      const languageMenu = createLanguageMenu({
+        getUsedLangs: () => Object.keys(ensureLocalized(key, options.ensureDefault !== false) || {}),
+        onSelectLanguage: (code) => {
+          const localized = ensureLocalized(key, options.ensureDefault !== false);
+          if (Object.prototype.hasOwnProperty.call(localized, code)) return false;
+          localized[code] = '';
+          markDirty();
+          renderRows();
+          broadcastLanguagePoolChange();
+          return true;
         }
-
-        try {
-          collectLanguageCodes().forEach(addSupported);
-        } catch (_) {}
-
-        const supported = Array.from(supportedSet);
-        supported.sort((a, b) => {
-          const ia = PREFERRED_LANG_ORDER.indexOf(a);
-          const ib = PREFERRED_LANG_ORDER.indexOf(b);
-          if (ia !== -1 || ib !== -1) {
-            const pa = ia === -1 ? PREFERRED_LANG_ORDER.length + 1 : ia;
-            const pb = ib === -1 ? PREFERRED_LANG_ORDER.length + 1 : ib;
-            return pa - pb;
-          }
-          return a.localeCompare(b);
-        });
-
-        // Filter only valid language codes that match LANG_CODE_PATTERN
-        const available = supported.filter((code) => !used.has(code) && LANG_CODE_PATTERN.test(code));
-
-        menu.innerHTML = available
-          .map((code) =>
-            `<button type="button" role="option" class="press-menu-item" data-lang="${escapeHtml(code)}">${escapeHtml(displayLangName(code))}</button>`
-          )
-          .join('');
-        if (!available.length) {
-          addBtn.setAttribute('disabled', '');
-          addWrap.classList.add('is-disabled');
-          addWrap.hidden = true;
-          addWrap.setAttribute('aria-hidden', 'true');
-          addWrap.style.display = 'none';
-          if (!menu.hidden) closeMenu();
-          return;
-        }
-
-        addBtn.removeAttribute('disabled');
-        addWrap.classList.remove('is-disabled');
-        addWrap.hidden = false;
-        addWrap.removeAttribute('aria-hidden');
-        addWrap.style.removeProperty('display');
-      };
-
-      if (documentRef && documentRef.addEventListener) {
-        documentRef.addEventListener(LANGUAGE_POOL_CHANGED_EVENT, refreshMenu);
-      }
-
-      const closeMenu = () => {
-        if (menu.hidden) return;
-        const finish = () => {
-          menu.hidden = true;
-          addBtn.classList.remove('is-open');
-          addWrap.classList.remove('is-open');
-          addBtn.setAttribute('aria-expanded', 'false');
-          if (documentRef && typeof documentRef.removeEventListener === 'function') {
-            documentRef.removeEventListener('mousedown', onDocDown, true);
-            documentRef.removeEventListener('keydown', onKeyDown, true);
-          }
-          menu.classList.remove('is-closing');
-        };
-        try {
-          menu.classList.add('is-closing');
-          const onEnd = () => { menu.removeEventListener('animationend', onEnd); finish(); };
-          menu.addEventListener('animationend', onEnd, { once: true });
-          setTimer(finish, 180);
-        } catch (_) {
-          finish();
-        }
-      };
-
-      const openMenu = () => {
-        refreshMenu();
-        if (!menu.innerHTML.trim() || addWrap.hidden) return;
-        if (!menu.hidden) return;
-        menu.hidden = false;
-        try { menu.classList.remove('is-closing'); } catch (_) {}
-        addBtn.classList.add('is-open');
-        addWrap.classList.add('is-open');
-        addBtn.setAttribute('aria-expanded', 'true');
-        try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-        if (documentRef && typeof documentRef.addEventListener === 'function') {
-          documentRef.addEventListener('mousedown', onDocDown, true);
-          documentRef.addEventListener('keydown', onKeyDown, true);
-        }
-        menu.querySelectorAll('.press-menu-item').forEach((item) => {
-          item.addEventListener('click', () => {
-            const code = normalizeLangCode(item.getAttribute('data-lang'));
-            if (!code) return;
-            const localized = ensureLocalized(key, options.ensureDefault !== false);
-            if (Object.prototype.hasOwnProperty.call(localized, code)) return;
-            localized[code] = '';
-            markDirty();
-            closeMenu();
-            renderRows();
-            broadcastLanguagePoolChange();
-          });
-        });
-      };
-
-      const onDocDown = (event) => {
-        if (!addWrap.contains(event.target)) closeMenu();
-      };
-
-      const onKeyDown = (event) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeMenu();
-        }
-      };
-
-      addBtn.addEventListener('click', () => {
-        if (addBtn.hasAttribute('disabled')) return;
-        if (addBtn.classList.contains('is-open')) closeMenu();
-        else openMenu();
       });
+      controls.appendChild(languageMenu.addWrap);
 
       const renderRows = () => {
         list.innerHTML = '';
@@ -941,7 +836,7 @@ export function createComposerSiteSettingsUi(options = {}) {
           empty.textContent = t('editor.composer.site.noLanguages');
           list.appendChild(empty);
         }
-        refreshMenu();
+        languageMenu.refreshMenu();
       };
 
       renderRows();
@@ -964,23 +859,6 @@ export function createComposerSiteSettingsUi(options = {}) {
       const controls = documentRef.createElement('div');
       controls.className = 'cs-field-controls';
       field.appendChild(controls);
-      const addWrap = documentRef.createElement('div');
-      addWrap.className = 'cs-add-lang has-menu';
-      controls.appendChild(addWrap);
-
-      const addBtn = documentRef.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className = 'btn-secondary cs-add-lang';
-      addBtn.textContent = t('editor.composer.site.addLanguage');
-      addBtn.setAttribute('aria-haspopup', 'listbox');
-      addBtn.setAttribute('aria-expanded', 'false');
-      addWrap.appendChild(addBtn);
-
-      const menu = documentRef.createElement('div');
-      menu.className = 'press-menu';
-      menu.setAttribute('role', 'listbox');
-      menu.hidden = true;
-      addWrap.appendChild(menu);
 
       const sortLangs = (langs) => {
         const ordered = Array.from(new Set(langs.filter(Boolean)));
@@ -1005,128 +883,28 @@ export function createComposerSiteSettingsUi(options = {}) {
         return sortLangs(['default', ...Object.keys(title || {}), ...Object.keys(subtitle || {})]);
       };
 
-      const refreshMenu = () => {
-        const used = new Set(collectUsedLangs());
-        used.add('default');
-
-        const supportedSet = new Set();
-        const addSupported = (code) => {
-          const normalized = normalizeLangCode(code);
-          if (!normalized) return;
-          supportedSet.add(normalized);
-        };
-
-        try {
-          const availableLangs = getAvailableLangs();
-          if (Array.isArray(availableLangs)) availableLangs.forEach(addSupported);
-        } catch (_) {}
-
-        if (Array.isArray(PREFERRED_LANG_ORDER)) {
-          PREFERRED_LANG_ORDER.forEach(addSupported);
-        }
-
-        try {
-          collectLanguageCodes().forEach(addSupported);
-        } catch (_) {}
-
-        const available = sortLangs(Array.from(supportedSet))
-          .filter((code) => !used.has(code) && LANG_CODE_PATTERN.test(code));
-
-        menu.innerHTML = available
-          .map((code) =>
-            `<button type="button" role="option" class="press-menu-item" data-lang="${escapeHtml(code)}">${escapeHtml(displayLangName(code))}</button>`
-          )
-          .join('');
-        if (!available.length) {
-          addBtn.setAttribute('disabled', '');
-          addWrap.classList.add('is-disabled');
-          addWrap.hidden = true;
-          addWrap.setAttribute('aria-hidden', 'true');
-          addWrap.style.display = 'none';
-          if (!menu.hidden) closeMenu();
-          return;
-        }
-
-        addBtn.removeAttribute('disabled');
-        addWrap.classList.remove('is-disabled');
-        addWrap.hidden = false;
-        addWrap.removeAttribute('aria-hidden');
-        addWrap.style.removeProperty('display');
-      };
-
-      if (documentRef && documentRef.addEventListener) {
-        documentRef.addEventListener(LANGUAGE_POOL_CHANGED_EVENT, refreshMenu);
-      }
-
-      const closeMenu = () => {
-        if (menu.hidden) return;
-        const finish = () => {
-          menu.hidden = true;
-          addBtn.classList.remove('is-open');
-          addWrap.classList.remove('is-open');
-          addBtn.setAttribute('aria-expanded', 'false');
-          if (documentRef && typeof documentRef.removeEventListener === 'function') {
-            documentRef.removeEventListener('mousedown', onDocDown, true);
-            documentRef.removeEventListener('keydown', onKeyDown, true);
+      const languageMenu = createLanguageMenu({
+        getUsedLangs: collectUsedLangs,
+        onSelectLanguage: (code) => {
+          const title = ensureLocalized('siteTitle', true);
+          const subtitle = ensureLocalized('siteSubtitle', true);
+          let changed = false;
+          if (!Object.prototype.hasOwnProperty.call(title, code)) {
+            title[code] = '';
+            changed = true;
           }
-          menu.classList.remove('is-closing');
-        };
-        try {
-          menu.classList.add('is-closing');
-          const onEnd = () => { menu.removeEventListener('animationend', onEnd); finish(); };
-          menu.addEventListener('animationend', onEnd, { once: true });
-          setTimer(finish, 180);
-        } catch (_) {
-          finish();
+          if (!Object.prototype.hasOwnProperty.call(subtitle, code)) {
+            subtitle[code] = '';
+            changed = true;
+          }
+          if (!changed) return false;
+          markDirty();
+          renderRows();
+          broadcastLanguagePoolChange();
+          return true;
         }
-      };
-
-      const openMenu = () => {
-        refreshMenu();
-        if (!menu.innerHTML.trim() || addWrap.hidden) return;
-        if (!menu.hidden) return;
-        menu.hidden = false;
-        try { menu.classList.remove('is-closing'); } catch (_) {}
-        addBtn.classList.add('is-open');
-        addWrap.classList.add('is-open');
-        addBtn.setAttribute('aria-expanded', 'true');
-        try { menu.querySelector('.press-menu-item')?.focus(); } catch (_) {}
-        if (documentRef && typeof documentRef.addEventListener === 'function') {
-          documentRef.addEventListener('mousedown', onDocDown, true);
-          documentRef.addEventListener('keydown', onKeyDown, true);
-        }
-        menu.querySelectorAll('.press-menu-item').forEach((item) => {
-          item.addEventListener('click', () => {
-            const code = normalizeLangCode(item.getAttribute('data-lang'));
-            if (!code) return;
-            const title = ensureLocalized('siteTitle', true);
-            const subtitle = ensureLocalized('siteSubtitle', true);
-            if (!Object.prototype.hasOwnProperty.call(title, code)) title[code] = '';
-            if (!Object.prototype.hasOwnProperty.call(subtitle, code)) subtitle[code] = '';
-            markDirty();
-            closeMenu();
-            renderRows();
-            broadcastLanguagePoolChange();
-          });
-        });
-      };
-
-      const onDocDown = (event) => {
-        if (!addWrap.contains(event.target)) closeMenu();
-      };
-
-      const onKeyDown = (event) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeMenu();
-        }
-      };
-
-      addBtn.addEventListener('click', () => {
-        if (addBtn.hasAttribute('disabled')) return;
-        if (addBtn.classList.contains('is-open')) closeMenu();
-        else openMenu();
       });
+      controls.appendChild(languageMenu.addWrap);
 
       const appendHeader = () => {
         const header = documentRef.createElement('div');
@@ -1213,7 +991,7 @@ export function createComposerSiteSettingsUi(options = {}) {
           row.appendChild(actions);
           grid.appendChild(row);
         });
-        refreshMenu();
+        languageMenu.refreshMenu();
       };
 
       renderRows();

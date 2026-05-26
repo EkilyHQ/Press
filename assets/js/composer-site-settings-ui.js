@@ -4,6 +4,7 @@ import { createComposerSiteSettingsLinkList } from './composer-site-settings-lin
 import { createComposerSiteSettingsLocalizedFields } from './composer-site-settings-localized-fields.js';
 import { createComposerSiteSettingsRepoSection } from './composer-site-settings-repo-section.js';
 import { createComposerSiteSettingsSchema } from './composer-site-settings-schema.js';
+import { createComposerSiteSettingsSingleGrids } from './composer-site-settings-single-grids.js';
 import {
   cleanupComposerSiteSettingsSectionNav,
   createComposerSiteSettingsSectionNav
@@ -274,23 +275,14 @@ export function createComposerSiteSettingsUi(options = {}) {
       t
     });
 
-    const renderIdentityPathGrid = (section) => {
-      const items = siteSettingsSchema.fields.identityPaths.map((item) => ({
-        ...item,
-        get: () => site[item.dataKey],
-        set: (value) => { site[item.dataKey] = value; }
-      }));
-
-      renderSingleTextGrid(section, items);
-    };
-
-    const renderSeoResourceGrid = (section) => {
-      renderSingleTextGrid(section, siteSettingsSchema.fields.seoResources.map((item) => ({
-        ...item,
-        get: () => site[item.dataKey],
-        set: (value) => { site[item.dataKey] = value; }
-      })));
-    };
+    const {
+      renderIdentityPathGrid,
+      renderSeoResourceGrid
+    } = createComposerSiteSettingsSingleGrids({
+      site,
+      siteSettingsSchema,
+      renderSingleTextGrid
+    });
 
     createComposerSiteSettingsRepoSection({
       documentRef,

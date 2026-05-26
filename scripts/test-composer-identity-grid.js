@@ -52,6 +52,7 @@ const composerSiteSettingsLocalizedFieldsPath = resolve(here, '../assets/js/comp
 const composerSiteSettingsRepoSectionPath = resolve(here, '../assets/js/composer-site-settings-repo-section.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-site-settings-section-nav.js');
+const composerSiteSettingsSingleGridsPath = resolve(here, '../assets/js/composer-site-settings-single-grids.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
@@ -205,6 +206,7 @@ const composerSiteSettingsLocalizedFieldsSource = readFileSync(composerSiteSetti
 const composerSiteSettingsRepoSectionSource = readFileSync(composerSiteSettingsRepoSectionPath, 'utf8');
 const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
 const composerSiteSettingsSectionNavSource = readFileSync(composerSiteSettingsSectionNavPath, 'utf8');
+const composerSiteSettingsSingleGridsSource = readFileSync(composerSiteSettingsSingleGridsPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
@@ -328,7 +330,8 @@ const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsLocalizedFieldsSource,
   composerSiteSettingsRepoSectionSource,
   composerSiteSettingsSchemaSource,
-  composerSiteSettingsSectionNavSource
+  composerSiteSettingsSectionNavSource,
+  composerSiteSettingsSingleGridsSource
 ].join('\n');
 const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
@@ -1210,6 +1213,12 @@ assert.match(
 
 assert.match(
   composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-single-grids\.js'/,
+  'Site Settings UI should cache-bust the compact single-grid renderer boundary'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
   /from '\.\/composer-site-settings-localized-fields\.js'/,
   'Site Settings UI should delegate localized language-field rendering and language pool collection'
 );
@@ -1290,6 +1299,18 @@ assert.match(
   composerSiteSettingsConfigGridsSource,
   /export function createComposerSiteSettingsConfigGrids\(options = \{\}\)[\s\S]*const renderBehaviorGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAnnotateGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
   'Site Settings config-grids boundary should own behavior, theme, annotate, and asset warning renderers'
+);
+
+assert.match(
+  composerSiteSettingsSingleGridsSource,
+  /export function createComposerSiteSettingsSingleGrids\(options = \{\}\)[\s\S]*const schemaFields = siteSettingsSchema\.fields \|\| \{\};[\s\S]*const renderSchemaTextGrid = \(section, fieldGroup = \[\]\) =>[\s\S]*get: \(\) => site\[item\.dataKey\][\s\S]*set: \(value\) => \{ site\[item\.dataKey\] = value; \}[\s\S]*renderIdentityPathGrid: \(section\) => renderSchemaTextGrid\(section, schemaFields\.identityPaths\)[\s\S]*renderSeoResourceGrid: \(section\) => renderSchemaTextGrid\(section, schemaFields\.seoResources\)/,
+  'Site Settings single-grids boundary should own schema field binding for identity paths and SEO resource URLs'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const render(?:IdentityPath|SeoResource)Grid = \(section\) =>|siteSettingsSchema\.fields\.(?:identityPaths|seoResources)\.map/,
+  'Site Settings UI should not re-own compact identity or SEO single-grid item binding after extraction'
 );
 
 assert.match(
@@ -7124,9 +7145,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const renderIdentityPathGrid = \(section\) => \{/,
-  'composer site editor should define a compact identity path grid renderer'
+  composerSiteSettingsSingleGridsSource,
+  /renderIdentityPathGrid: \(section\) => renderSchemaTextGrid\(section, schemaFields\.identityPaths\)/,
+  'composer site editor should define compact identity path grid rendering in the single-grids boundary'
 );
 
 assert.match(

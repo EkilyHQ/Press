@@ -98,6 +98,11 @@ if ! grep -F 'node scripts/test-composer-action-contract.js' "${workflow}" >/dev
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-composer-root-contract.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the composer root import contract before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-composer-root-boundaries.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify composer root boundaries before publishing" >&2
   exit 1

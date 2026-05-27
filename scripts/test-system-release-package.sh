@@ -238,6 +238,26 @@ if ! grep -qx "press-system-${version}/assets/js/composer-markdown-assets.js" "$
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-action-effects.js" "${entries_file}"; then
+  echo "expected package to include composer action effects boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-markdown-workspace-facade.js" "${entries_file}"; then
+  echo "expected package to include composer Markdown workspace facade code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-yaml-serialization.js" "${entries_file}"; then
+  echo "expected package to include composer YAML serialization boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-editor-tree-state.js" "${entries_file}"; then
+  echo "expected package to include composer editor tree state boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-editor-shell.js" "${entries_file}"; then
   echo "expected package to include composer editor shell code" >&2
   exit 1

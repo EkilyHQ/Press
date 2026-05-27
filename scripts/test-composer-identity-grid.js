@@ -67,6 +67,7 @@ const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js'
 const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
 const composerServiceRegistryPath = resolve(here, '../assets/js/composer-service-registry.js');
 const composerAppServicesPath = resolve(here, '../assets/js/composer-app-services.js');
+const composerEditorTreeStatePath = resolve(here, '../assets/js/composer-editor-tree-state.js');
 const composerFilePanelControllerPath = resolve(here, '../assets/js/composer-file-panel-controller.js');
 const composerEditorDetailPanelControllerPath = resolve(here, '../assets/js/composer-editor-detail-panel-controller.js');
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
@@ -232,6 +233,7 @@ const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
 const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
 const composerServiceRegistrySource = readFileSync(composerServiceRegistryPath, 'utf8');
 const composerAppServicesSource = readFileSync(composerAppServicesPath, 'utf8');
+const composerEditorTreeStateSource = readFileSync(composerEditorTreeStatePath, 'utf8');
 const composerFilePanelControllerSource = readFileSync(composerFilePanelControllerPath, 'utf8');
 const composerEditorDetailPanelControllerSource = readFileSync(composerEditorDetailPanelControllerPath, 'utf8');
 const composerUiMotionSource = readFileSync(composerUiMotionPath, 'utf8');
@@ -1900,7 +1902,7 @@ assert.match(
 
 assert.match(
   source,
-  /function rawApplyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}[\s\S]*function applyMode\(mode, options = \{\}\) \{\s*return composerActions\.dispatch\('composer\.mode\.apply', \{ mode, options \}\);[\s\S]*\}/,
+  /function rawApplyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}[\s\S]*function applyMode\(mode, options = \{\}\) \{\s*return composerActions\.applyMode\(mode, options\);[\s\S]*\}/,
   'composer applyMode should delegate through the explicit action contract into the service registry'
 );
 
@@ -1936,7 +1938,7 @@ assert.match(
 
 assert.match(
   source,
-  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function rawUpdateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return composerActions\.dispatch\('composer\.summary\.refresh', \{ options \}\);[\s\S]*\}/,
+  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function rawUpdateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return composerActions\.updateUnsyncedSummary\(options\);[\s\S]*\}/,
   'composer unsynced summary helpers should route public refreshes through the action contract and keep raw updates on the extracted controller'
 );
 
@@ -2912,7 +2914,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary: \(\) => composerActions\.dispatch\('composer\.system-theme\.changed'[\s\S]*refreshEditorContentTree: \(options\) => composerActions\.dispatch\('editor\.tree\.refresh'[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary: \(\) => composerActions\.refreshSystemThemeState\(\{ preserveStructure: true \}\)[\s\S]*refreshEditorContentTree: \(options\) => composerActions\.refreshEditorContentTree\(options\)[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
   'composer should delegate system/theme staging, status, and initialization through explicit action callbacks'
 );
 
@@ -2942,7 +2944,7 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerActions\.dispatch\('publish\.completed'[\s\S]*function rawApplyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerActions\.applyLocalPostCommitState\(files\);[\s\S]*function rawApplyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
   'composer should reduce publish persistence to explicit app-service and action-contract callbacks'
 );
 
@@ -3736,8 +3738,8 @@ assert.match(
 
 assert.match(
   source,
-  /function restorePrimaryEditorMarkdownView\(editorApi\) \{ getMarkdownWorkspaceController\(\)\.restorePrimaryEditorMarkdownView\(editorApi\); \}/,
-  'composer should route markdown view restoration through the workspace controller'
+  /const markdownWorkspace = createComposerMarkdownWorkspaceFacade\(\{ services: composerServices \}\);[\s\S]*restorePrimaryEditorMarkdownView,[\s\S]*= markdownWorkspace;/,
+  'composer should route markdown view restoration through the workspace facade'
 );
 
 assert.match(
@@ -5690,7 +5692,7 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerEditorTreeStateSource,
   /themesLabel: treeText\('themes', 'Themes'\),[\s\S]*syncLabel: treeText\('sync', 'Publish'\),/,
   'System tree should expose the Themes and Publish leaves'
 );
@@ -6822,8 +6824,14 @@ assert.match(
 
 assert.match(
   source,
-  /import \{ buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js';/,
-  'composer should use the shared editor content tree model'
+  /import \{ findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js';/,
+  'composer should use the shared editor content tree navigation helpers'
+);
+
+assert.match(
+  composerEditorTreeStateSource,
+  /import \{ buildEditorContentTree \} from '\.\/editor-content-tree\.js';/,
+  'composer editor tree state should own shared tree construction'
 );
 
 assert.match(

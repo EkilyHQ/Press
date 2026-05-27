@@ -50,6 +50,7 @@ const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-
 const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
 const editorBlocksRichTextSessionSource = readFileSync(new URL('../assets/js/editor-blocks-rich-text-session.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
+const editorBlocksCaretMeasurementSource = readFileSync(new URL('../assets/js/editor-blocks-caret-measurement.js', import.meta.url), 'utf8');
 const editorBlocksInlineEditingBridgeSource = readFileSync(new URL('../assets/js/editor-blocks-inline-editing-bridge.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
@@ -593,8 +594,8 @@ run('cross-block arrows only leave text editables from edge lines', () => {
 run('cross-block arrows detect wrapped contenteditable visual lines from text ranges', () => {
   const edgeLineSource = editorBlocksCaretSessionSource;
   assert.match(
-    editorBlocksCaretSessionSource,
-    /function visualLineRects\(el\)[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
+    editorBlocksCaretMeasurementSource,
+    /export function visualLineRects\(el, options = \{\}\)[\s\S]*selectionTools\.createTreeWalker\(el, CARET_TEXT_NODE_FILTER\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
     'visual line detection should be based on per-character text range rectangles'
   );
   assert.match(

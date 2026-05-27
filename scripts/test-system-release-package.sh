@@ -538,6 +538,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-caret-session.js"
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-caret-measurement.js" "${entries_file}"; then
+  echo "expected package to include editor blocks caret measurement code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-focus-session.js" "${entries_file}"; then
   echo "expected package to include editor blocks focus session code" >&2
   exit 1

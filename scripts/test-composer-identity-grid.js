@@ -149,6 +149,7 @@ const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-block
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
 const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
+const editorBlocksCaretMeasurementPath = resolve(here, '../assets/js/editor-blocks-caret-measurement.js');
 const editorBlocksInlineEditingBridgePath = resolve(here, '../assets/js/editor-blocks-inline-editing-bridge.js');
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
@@ -312,6 +313,7 @@ const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessi
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
+const editorBlocksCaretMeasurementSource = readFileSync(editorBlocksCaretMeasurementPath, 'utf8');
 const editorBlocksInlineEditingBridgeSource = readFileSync(editorBlocksInlineEditingBridgePath, 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
@@ -708,6 +710,12 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksCaretSessionSource,
+  /from '\.\/editor-blocks-caret-measurement\.js'/,
+  'blocks caret session should cache-bust the explicit blocks caret measurement boundary'
+);
+
+assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-focus-pointer-sessions\.js'/,
   'blocks editor should cache-bust the explicit blocks focus/pointer wiring boundary'
@@ -882,6 +890,12 @@ assert.doesNotMatch(
 );
 
 assert.match(
+  editorBlocksCaretMeasurementSource,
+  /export function measuredTextOffsetDetailsFromPoint[\s\S]*export function textareaTextOffsetDetailsFromPoint[\s\S]*export function visualLineRects/,
+  'blocks caret measurement boundary should own point-to-text, textarea mirror, and visual-line geometry'
+);
+
+assert.match(
   editorBlocksSessionRegistrySource,
   /const SERVICE_NAMES = \[[\s\S]*'activeSession'[\s\S]*'bodySession'[\s\S]*'cardPickerSession'[\s\S]*'commandSession'[\s\S]*'focusSession'[\s\S]*'inlineToolbarSession'[\s\S]*'layoutSession'[\s\S]*'linkSession'[\s\S]*'listSession'[\s\S]*'mathSession'[\s\S]*'pointerSession'[\s\S]*\];/,
   'blocks session registry should name every allowed late-bound editor blocks dependency'
@@ -1039,8 +1053,8 @@ assert.match(
 
 assert.match(
   editorBlocksCaretSessionSource,
-  /export function createEditorBlocksCaretSession\([\s\S]*function selectionOffsets\(el\)[\s\S]*function isSelectionOnBlankLine\(el\)[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*function placeAtVisualLine\(el, x, edge, fallbackOffset = 0\)[\s\S]*return \{[\s\S]*selectionOffsets,[\s\S]*isSelectionOnBlankLine,[\s\S]*measuredTextOffsetDetailsFromPoint,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*placeAtVisualLine/,
-  'blocks caret session should own selection offsets, blank visual line detection, text-point measurement, textarea mirror measurement, and visual-line placement'
+  /export function createEditorBlocksCaretSession\([\s\S]*function selectionOffsets\(el\)[\s\S]*function isSelectionOnBlankLine\(el\)[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*measureTextOffsetDetailsFromPoint\(el, x, y, \{ selectionTools, limit \}\)[\s\S]*function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*measureTextareaTextOffsetDetailsFromPoint\(area, x, y,[\s\S]*function placeAtVisualLine\(el, x, edge, fallbackOffset = 0\)[\s\S]*return \{[\s\S]*selectionOffsets,[\s\S]*isSelectionOnBlankLine,[\s\S]*measuredTextOffsetDetailsFromPoint,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*placeAtVisualLine/,
+  'blocks caret session should own selection offsets and visual-line placement while delegating low-level measurement geometry'
 );
 
 assert.match(
@@ -3767,7 +3781,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksCaretSessionSource,
-  /function isSelectionOnBlankLine\(el\) \{[\s\S]*const offsets = selectionOffsets\(el\);[\s\S]*!offsets\.collapsed[\s\S]*if \(text\.slice\(lineStart, lineEnd\)\.trim\(\) === ''\) return true;[\s\S]*const caretRect = rectForEditable\(el\);[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*range\.selectNodeContents\(node\);[\s\S]*const hasTextOnCaretLine = rects\.some[\s\S]*if \(hasTextOnCaretLine\)[\s\S]*return true;/,
+  /function isSelectionOnBlankLine\(el\) \{[\s\S]*const offsets = selectionOffsets\(el\);[\s\S]*!offsets\.collapsed[\s\S]*if \(text\.slice\(lineStart, lineEnd\)\.trim\(\) === ''\) return true;[\s\S]*const caretRect = rectForEditable\(el\);[\s\S]*selectionTools\.createTreeWalker\(el, CARET_TEXT_NODE_FILTER\)[\s\S]*range\.selectNodeContents\(node\);[\s\S]*const hasTextOnCaretLine = rects\.some[\s\S]*if \(hasTextOnCaretLine\)[\s\S]*return true;/,
   'rich text blocks should detect empty visual lines even when DOM line breaks are not counted by Range.toString offsets'
 );
 
@@ -4339,19 +4353,19 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksCaretSessionSource,
-  /export const CARET_POINT_MEASURE_LIMIT = 12000;[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*let insideTextRect = false;[\s\S]*range\.setStart\(node, i\);[\s\S]*range\.setEnd\(node, i \+ 1\);[\s\S]*x >= rect\.left && x <= rect\.right && y >= rect\.top && y <= rect\.bottom[\s\S]*caretBoundaryDistance\(rect, rect\.left, x, y\)[\s\S]*bestOffset = offset \+ i;[\s\S]*caretBoundaryDistance\(rect, rect\.right, x, y\)[\s\S]*bestOffset = offset \+ i \+ 1;[\s\S]*return \{ offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount \};[\s\S]*function measuredTextOffsetFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*return details \? details\.offset : null;/,
+  editorBlocksCaretMeasurementSource,
+  /export const CARET_POINT_MEASURE_LIMIT = 12000;[\s\S]*export function measuredTextOffsetDetailsFromPoint\(el, x, y, options = \{\}\)[\s\S]*selectionTools\.createTreeWalker\(el, CARET_TEXT_NODE_FILTER\)[\s\S]*let insideTextRect = false;[\s\S]*range\.setStart\(node, i\);[\s\S]*range\.setEnd\(node, i \+ 1\);[\s\S]*x >= rect\.left && x <= rect\.right && y >= rect\.top && y <= rect\.bottom[\s\S]*caretBoundaryDistance\(rect, rect\.left, x, y\)[\s\S]*bestOffset = offset \+ i;[\s\S]*caretBoundaryDistance\(rect, rect\.right, x, y\)[\s\S]*bestOffset = offset \+ i \+ 1;[\s\S]*return \{ offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount \};[\s\S]*export function measuredTextOffsetFromPoint\(el, x, y, options = \{\}\)[\s\S]*return details \? details\.offset : null;/,
   'routed caret fallback should measure text-node character boundaries and report nearest offsets plus text-rect hits'
 );
 
 assert.match(
-  editorBlocksCaretSessionSource,
-  /function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*const body = getSessionBody\(\);[\s\S]*const mirror = createSessionElement\('div'\);[\s\S]*mirror\.style\.whiteSpace = 'pre-wrap';[\s\S]*mirror\.style\.overflowWrap = 'break-word';[\s\S]*'tabSize'[\s\S]*mirror\.textContent = value;[\s\S]*const details = measuredTextOffsetDetailsFromPoint\(mirror, x, y, limit\);[\s\S]*return \{[\s\S]*\.\.\.details,[\s\S]*offset: Math\.max\(0, Math\.min\(value\.length, details\.offset\)\)[\s\S]*function textareaTextOffsetFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*return details \? details\.offset : null;/,
+  editorBlocksCaretMeasurementSource,
+  /export function textareaTextOffsetDetailsFromPoint\(area, x, y, options = \{\}\)[\s\S]*const body = typeof getSessionBody === 'function'[\s\S]*const mirror = typeof createSessionElement === 'function'[\s\S]*mirror\.style\.whiteSpace = 'pre-wrap';[\s\S]*mirror\.style\.overflowWrap = 'break-word';[\s\S]*TEXTAREA_MIRROR_STYLE_PROPS\.forEach[\s\S]*mirror\.textContent = value;[\s\S]*const details = measuredTextOffsetDetailsFromPoint\(mirror, x, y, \{ selectionTools, limit \}\);[\s\S]*return \{[\s\S]*\.\.\.details,[\s\S]*offset: Math\.max\(0, Math\.min\(value\.length, details\.offset\)\)[\s\S]*export function textareaTextOffsetFromPoint\(area, x, y, options = \{\}\)[\s\S]*return details \? details\.offset : null;/,
   'routed source markdown textarea focus should use a styled mirror to measure nearest offsets and text-rect hits'
 );
 
 assert.doesNotMatch(
-  editorBlocksCaretSessionSource,
+  `${editorBlocksCaretSessionSource}\n${editorBlocksCaretMeasurementSource}`,
   /ownerDocument\.createElement/,
   'blocks caret session should use its explicit documentRef for temporary DOM measurement nodes'
 );

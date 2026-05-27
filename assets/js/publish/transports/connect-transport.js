@@ -1,4 +1,5 @@
 import { CONNECT_PUBLISH_MESSAGE_TYPE } from '../settings-store.js';
+import { createEventEffects } from '../../editor-effects.js';
 
 function resolveAmbientValue(name) {
   try {
@@ -151,6 +152,7 @@ export function requestConnectPublishGrant({
 } = {}) {
   windowRef = resolveWindow(windowRef);
   documentRef = resolveDocument(documentRef, windowRef);
+  const eventEffects = createEventEffects({ documentRef, windowRef });
   const startUrl = new URL('/github/press/start', connect.baseUrl);
   startUrl.searchParams.set('origin', windowRef && windowRef.location ? windowRef.location.origin || '' : '');
   startUrl.searchParams.set('owner', repo.owner);
@@ -184,10 +186,9 @@ export function requestConnectPublishGrant({
   return new Promise((resolve, reject) => {
     let timer = 0;
     let closeTimer = 0;
+    let unbindMessage = null;
     const cleanup = () => {
-      if (windowRef && typeof windowRef.removeEventListener === 'function') {
-        windowRef.removeEventListener('message', onMessage);
-      }
+      if (typeof unbindMessage === 'function') unbindMessage();
       if (timer && windowRef && typeof windowRef.clearTimeout === 'function') windowRef.clearTimeout(timer);
       if (closeTimer && windowRef && typeof windowRef.clearInterval === 'function') windowRef.clearInterval(closeTimer);
     };
@@ -210,13 +211,12 @@ export function requestConnectPublishGrant({
       if (typeof setCachedGrant === 'function') setCachedGrant(grant);
       resolve(grant);
     };
-    if (windowRef && typeof windowRef.addEventListener === 'function') {
-      windowRef.addEventListener('message', onMessage);
-    } else {
+    if (!windowRef || typeof windowRef.addEventListener !== 'function') {
       cleanup();
       reject(new Error(translate('editor.composer.github.modal.connectAuthorizationFailed')));
       return;
     }
+    unbindMessage = eventEffects.onWindow('message', onMessage);
     if (typeof windowRef.setInterval === 'function') {
       closeTimer = windowRef.setInterval(() => {
         try {

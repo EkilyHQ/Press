@@ -1,3 +1,8 @@
+import {
+  createStorageEffects,
+  resolveStorageEffect
+} from '../editor-effects.js';
+
 export const GITHUB_PAT_STORAGE_KEY = 'press_fg_pat_cache';
 export const CONNECT_PUBLISH_GRANT_STORAGE_KEY = 'press_connect_publish_grant_cache';
 export const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';
@@ -43,14 +48,14 @@ export function createPublishSettingsStore(options = {}) {
   let cachedConnectPublishGrantMemory = null;
   let cachedConnectPublishSettingsMemory = null;
 
-  const session = () => windowRef && windowRef.sessionStorage ? windowRef.sessionStorage : null;
-  const local = () => windowRef && windowRef.localStorage ? windowRef.localStorage : null;
+  const session = () => createStorageEffects(resolveStorageEffect(windowRef, 'sessionStorage'));
+  const local = () => createStorageEffects(resolveStorageEffect(windowRef, 'localStorage'));
   const scopedKey = (key) => scopeKey(key);
 
   function getCachedFineGrainedToken() {
     try {
       const storage = session();
-      const value = storage ? storage.getItem(scopedKey(GITHUB_PAT_STORAGE_KEY)) : '';
+      const value = storage.getItem(scopedKey(GITHUB_PAT_STORAGE_KEY));
       if (typeof value === 'string' && value) {
         cachedFineGrainedTokenMemory = value;
         return value;
@@ -66,7 +71,6 @@ export function createPublishSettingsStore(options = {}) {
     cachedFineGrainedTokenMemory = trimmed;
     try {
       const storage = session();
-      if (!storage) return;
       if (trimmed) storage.setItem(scopedKey(GITHUB_PAT_STORAGE_KEY), trimmed);
       else storage.removeItem(scopedKey(GITHUB_PAT_STORAGE_KEY));
     } catch (_) {
@@ -78,7 +82,7 @@ export function createPublishSettingsStore(options = {}) {
     cachedFineGrainedTokenMemory = '';
     try {
       const storage = session();
-      if (storage) storage.removeItem(scopedKey(GITHUB_PAT_STORAGE_KEY));
+      storage.removeItem(scopedKey(GITHUB_PAT_STORAGE_KEY));
     } catch (_) {
       /* ignore */
     }
@@ -95,24 +99,22 @@ export function createPublishSettingsStore(options = {}) {
     };
     try {
       const storage = local();
-      if (storage) {
-        const modeRaw = storage.getItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY));
-        if (modeRaw === 'connect' || modeRaw === 'pat') {
-          settings.mode = modeRaw;
-          settings.enabled = modeRaw === 'connect';
-        } else {
-          const enabledRaw = storage.getItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY));
-          if (enabledRaw === '0') {
-            settings.mode = 'pat';
-            settings.enabled = false;
-          } else if (enabledRaw === '1') {
-            settings.mode = 'connect';
-            settings.enabled = true;
-          }
+      const modeRaw = storage.getItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY));
+      if (modeRaw === 'connect' || modeRaw === 'pat') {
+        settings.mode = modeRaw;
+        settings.enabled = modeRaw === 'connect';
+      } else {
+        const enabledRaw = storage.getItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY));
+        if (enabledRaw === '0') {
+          settings.mode = 'pat';
+          settings.enabled = false;
+        } else if (enabledRaw === '1') {
+          settings.mode = 'connect';
+          settings.enabled = true;
         }
-        const baseUrlRaw = storage.getItem(scopedKey(CONNECT_PUBLISH_BASE_URL_STORAGE_KEY));
-        if (typeof baseUrlRaw === 'string' && baseUrlRaw.trim()) settings.baseUrl = baseUrlRaw.trim();
       }
+      const baseUrlRaw = storage.getItem(scopedKey(CONNECT_PUBLISH_BASE_URL_STORAGE_KEY));
+      if (typeof baseUrlRaw === 'string' && baseUrlRaw.trim()) settings.baseUrl = baseUrlRaw.trim();
     } catch (_) {
       /* ignore unavailable storage */
     }
@@ -137,11 +139,9 @@ export function createPublishSettingsStore(options = {}) {
     cachedConnectPublishSettingsMemory = { ...settings };
     try {
       const storage = local();
-      if (storage) {
-        storage.setItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY), settings.mode);
-        storage.setItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY), settings.enabled ? '1' : '0');
-        storage.setItem(scopedKey(CONNECT_PUBLISH_BASE_URL_STORAGE_KEY), settings.baseUrl);
-      }
+      storage.setItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY), settings.mode);
+      storage.setItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY), settings.enabled ? '1' : '0');
+      storage.setItem(scopedKey(CONNECT_PUBLISH_BASE_URL_STORAGE_KEY), settings.baseUrl);
     } catch (_) {
       /* ignore storage errors */
     }
@@ -155,7 +155,7 @@ export function createPublishSettingsStore(options = {}) {
     }
     try {
       const storage = session();
-      const raw = storage ? storage.getItem(scopedKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY)) : '';
+      const raw = storage.getItem(scopedKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY));
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (isUsableConnectPublishGrant(parsed)) {
@@ -172,7 +172,6 @@ export function createPublishSettingsStore(options = {}) {
     cachedConnectPublishGrantMemory = grant && typeof grant === 'object' ? { ...grant } : null;
     try {
       const storage = session();
-      if (!storage) return;
       if (cachedConnectPublishGrantMemory) {
         storage.setItem(scopedKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY), JSON.stringify(cachedConnectPublishGrantMemory));
       } else {
@@ -187,7 +186,7 @@ export function createPublishSettingsStore(options = {}) {
     cachedConnectPublishGrantMemory = null;
     try {
       const storage = session();
-      if (storage) storage.removeItem(scopedKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY));
+      storage.removeItem(scopedKey(CONNECT_PUBLISH_GRANT_STORAGE_KEY));
     } catch (_) {
       /* ignore */
     }

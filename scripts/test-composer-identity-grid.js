@@ -3666,7 +3666,7 @@ assert.match(
 
 assert.match(
   composerBootstrapSource,
-  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(getLocation\(\)\)[\s\S]*applyEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(getElement\(documentRef, 'composerSite'\), state\);[\s\S]*notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
+  /const restoredDrafts = loadDraftSnapshotsIntoState\(state\);[\s\S]*applyInferredRepoConfig\([\s\S]*inferRepoConfigFromGitHubPagesUrl\(getLocation\(\)\)[\s\S]*applyEffectiveSiteConfig\(state\.site\);[\s\S]*buildSiteUI\(effects\.getElementById\('composerSite'\), state\);[\s\S]*notifyComposerChange\('site', inferredSiteRepoApplied \? \{\} : \{ skipAutoSave: true \}\);/,
   'composer should mark inferred site repo changes dirty while preserving normal initialization behavior'
 );
 

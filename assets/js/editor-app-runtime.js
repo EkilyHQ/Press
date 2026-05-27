@@ -1,3 +1,9 @@
+import {
+  createEventEffects,
+  createStorageEffects,
+  resolveStorageEffect
+} from './editor-effects.js';
+
 function noop() {}
 
 function normalizeKind(kind, allowedKinds, defaultKind) {
@@ -67,83 +73,6 @@ export function createEditorStateStore({
       const diff = diffCache[normalize(kind)];
       return !!(diff && diff.hasChanges);
     }
-  };
-}
-
-function createRuntimeStorage(storage) {
-  return {
-    get native() {
-      return storage || null;
-    },
-    getItem(key) {
-      try {
-        return storage && typeof storage.getItem === 'function'
-          ? storage.getItem(key)
-          : null;
-      } catch (_) {
-        return null;
-      }
-    },
-    setItem(key, value) {
-      try {
-        if (!storage || typeof storage.setItem !== 'function') return false;
-        storage.setItem(key, String(value));
-        return true;
-      } catch (_) {
-        return false;
-      }
-    },
-    removeItem(key) {
-      try {
-        if (!storage || typeof storage.removeItem !== 'function') return false;
-        storage.removeItem(key);
-        return true;
-      } catch (_) {
-        return false;
-      }
-    }
-  };
-}
-
-function createRuntimeEvents({ documentRef, windowRef } = {}) {
-  function createRuntimeEvent(type, detail, eventOptions = {}) {
-    const CustomEventCtor = windowRef && typeof windowRef.CustomEvent === 'function'
-      ? windowRef.CustomEvent
-      : null;
-    if (CustomEventCtor) return new CustomEventCtor(type, { ...eventOptions, detail });
-    return { type, detail };
-  }
-
-  function on(target, type, handler, options) {
-    try {
-      if (!target || typeof target.addEventListener !== 'function') return noop;
-      target.addEventListener(type, handler, options);
-      return () => {
-        try {
-          if (typeof target.removeEventListener === 'function') {
-            target.removeEventListener(type, handler, options);
-          }
-        } catch (_) {}
-      };
-    } catch (_) {
-      return noop;
-    }
-  }
-
-  function emit(target, type, detail, eventOptions) {
-    try {
-      if (!target || typeof target.dispatchEvent !== 'function') return false;
-      return target.dispatchEvent(createRuntimeEvent(type, detail, eventOptions));
-    } catch (_) {
-      return false;
-    }
-  }
-
-  return {
-    onDocument: (type, handler, options) => on(documentRef, type, handler, options),
-    onWindow: (type, handler, options) => on(windowRef, type, handler, options),
-    emitDocument: (type, detail, options) => emit(documentRef, type, detail, options),
-    emitWindow: (type, detail, options) => emit(windowRef, type, detail, options)
   };
 }
 
@@ -673,25 +602,17 @@ function createRuntimeBrowser({ documentRef, windowRef } = {}) {
   };
 }
 
-function resolveWindowStorage(windowRef) {
-  try {
-    return windowRef && windowRef.localStorage ? windowRef.localStorage : null;
-  } catch (_) {
-    return null;
-  }
-}
-
 export function createEditorAppRuntime({
   windowRef = null,
   documentRef = null,
   storage = undefined
 } = {}) {
-  const runtimeStorage = storage === undefined ? resolveWindowStorage(windowRef) : storage;
+  const runtimeStorage = storage === undefined ? resolveStorageEffect(windowRef, 'localStorage') : storage;
   return {
     windowRef,
     documentRef,
-    storage: createRuntimeStorage(runtimeStorage),
-    events: createRuntimeEvents({ documentRef, windowRef }),
+    storage: createStorageEffects(runtimeStorage),
+    events: createEventEffects({ documentRef, windowRef }),
     browser: createRuntimeBrowser({ documentRef, windowRef }),
     globals: createRuntimeGlobals(windowRef),
     createStateStore: createEditorStateStore

@@ -308,6 +308,11 @@ if ! grep -qx "press-system-${version}/assets/js/editor-app-runtime.js" "${entri
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-effects.js" "${entries_file}"; then
+  echo "expected package to include shared editor effects boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-boot-runtime.js" "${entries_file}"; then
   echo "expected package to include editor boot runtime boundary code" >&2
   exit 1

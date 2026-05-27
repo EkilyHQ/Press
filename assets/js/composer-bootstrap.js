@@ -1,26 +1,7 @@
 import { createEditorAppKernel } from './editor-app-kernel.js';
+import { createDomEffects } from './editor-effects.js';
 
 function noop() {}
-
-function getElement(documentRef, id) {
-  try {
-    return documentRef && typeof documentRef.getElementById === 'function'
-      ? documentRef.getElementById(id)
-      : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function queryAll(documentRef, selector) {
-  try {
-    return documentRef && typeof documentRef.querySelectorAll === 'function'
-      ? Array.from(documentRef.querySelectorAll(selector))
-      : [];
-  } catch (_) {
-    return [];
-  }
-}
 
 function setToolbarBusyState(button, busy, text, setButtonLabel = noop) {
   if (!button) return;
@@ -61,10 +42,11 @@ export function bindComposerMarkdownToolbar({
   updateMarkdownSaveButton = noop,
   updateMarkdownDiscardButton = noop
 } = {}) {
-  const pushBtn = getElement(documentRef, 'btnPushMarkdown');
+  const effects = createDomEffects({ documentRef });
+  const pushBtn = effects.getElementById('btnPushMarkdown');
   if (pushBtn) {
     setMarkdownPushButton(pushBtn);
-    pushBtn.addEventListener('click', async (event) => {
+    effects.on(pushBtn, 'click', async (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       const active = getActiveDynamicTab();
       if (!active) {
@@ -86,30 +68,30 @@ export function bindComposerMarkdownToolbar({
     updateMarkdownPushButton(getActiveDynamicTab());
   }
 
-  const saveBtn = getElement(documentRef, 'btnSaveMarkdown');
+  const saveBtn = effects.getElementById('btnSaveMarkdown');
   if (saveBtn) {
     setMarkdownSaveButton(saveBtn);
-    saveBtn.addEventListener('click', (event) => {
+    effects.on(saveBtn, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       manualSaveActiveMarkdown(saveBtn);
     });
     updateMarkdownSaveButton(getActiveDynamicTab());
   }
 
-  const protectBtn = getElement(documentRef, 'btnProtectMarkdown');
+  const protectBtn = effects.getElementById('btnProtectMarkdown');
   if (protectBtn) {
     setMarkdownProtectionButton(protectBtn);
-    protectBtn.addEventListener('click', (event) => {
+    effects.on(protectBtn, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       handleMarkdownProtectionButton(protectBtn);
     });
     updateMarkdownProtectionButton(getActiveDynamicTab());
   }
 
-  const discardBtn = getElement(documentRef, 'btnDiscardMarkdown');
+  const discardBtn = effects.getElementById('btnDiscardMarkdown');
   if (discardBtn) {
     setMarkdownDiscardButton(discardBtn);
-    discardBtn.addEventListener('click', (event) => {
+    effects.on(discardBtn, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       discardMarkdownLocalChanges(null, discardBtn);
     });
@@ -138,14 +120,15 @@ export function bindComposerWorkspaceUi({
   openComposerDiffModal = noop,
   bindVerifySetup = noop
 } = {}) {
+  const effects = createDomEffects({ documentRef });
   mountEditorSystemPanels();
   initEditorOverlay();
   initEditorRailResize();
   initMobileEditorRail();
   bindEditorStatePersistenceListeners();
 
-  queryAll(documentRef, '.mode-tab').forEach((btn) => {
-    btn.addEventListener('click', (event) => {
+  effects.querySelectorAll('.mode-tab').forEach((btn) => {
+    effects.on(btn, 'click', (event) => {
       const mode = btn.dataset && btn.dataset.mode;
       if (mode === 'composer' || mode === 'themes' || mode === 'updates' || mode === 'sync') {
         if (event && typeof event.preventDefault === 'function') event.preventDefault();
@@ -157,17 +140,17 @@ export function bindComposerWorkspaceUi({
   });
   initSystemThemeBridge();
 
-  queryAll(documentRef, 'a.vt-btn[data-cfile]').forEach((link) => {
-    link.addEventListener('click', (event) => {
+  effects.querySelectorAll('a.vt-btn[data-cfile]').forEach((link) => {
+    effects.on(link, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       setComposerFile(link.dataset && link.dataset.cfile);
     });
   });
   setComposerFile(getInitialComposerFile(), { immediate: true });
 
-  const btnAddItem = getElement(documentRef, 'btnAddItem');
+  const btnAddItem = effects.getElementById('btnAddItem');
   if (btnAddItem) {
-    btnAddItem.addEventListener('click', (event) => {
+    effects.on(btnAddItem, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       const kind = getActiveComposerFile();
       const anchor = event && event.currentTarget ? event.currentTarget : btnAddItem;
@@ -179,15 +162,15 @@ export function bindComposerWorkspaceUi({
     });
   }
 
-  const btnDiscard = getElement(documentRef, 'btnDiscard');
-  if (btnDiscard) btnDiscard.addEventListener('click', () => handleComposerDiscard(btnDiscard));
+  const btnDiscard = effects.getElementById('btnDiscard');
+  if (btnDiscard) effects.on(btnDiscard, 'click', () => handleComposerDiscard(btnDiscard));
 
-  const btnRefresh = getElement(documentRef, 'btnRefresh');
-  if (btnRefresh) btnRefresh.addEventListener('click', () => handleComposerRefresh(btnRefresh));
+  const btnRefresh = effects.getElementById('btnRefresh');
+  if (btnRefresh) effects.on(btnRefresh, 'click', () => handleComposerRefresh(btnRefresh));
 
-  const btnReview = getElement(documentRef, 'btnReview');
+  const btnReview = effects.getElementById('btnReview');
   if (btnReview) {
-    btnReview.addEventListener('click', () => {
+    effects.on(btnReview, 'click', () => {
       const datasetKind = btnReview.dataset && btnReview.dataset.kind;
       const preferred = datasetKind === 'tabs' ? 'tabs' : datasetKind === 'index' ? 'index' : null;
       if (preferred) {
@@ -286,6 +269,7 @@ export function assembleComposerWorkspace({
   persistDynamicEditorState,
   setTimeoutRef = null
 } = {}) {
+  const effects = createDomEffects({ documentRef });
   const scheduleTimer = (handler, delay) => {
     if (typeof setTimeoutRef !== 'function') return false;
     try {
@@ -320,9 +304,9 @@ export function assembleComposerWorkspace({
   }
 
   bindWorkspaceUi(state);
-  buildIndexUI(getElement(documentRef, 'composerIndex'), state);
-  buildTabsUI(getElement(documentRef, 'composerTabs'), state);
-  buildSiteUI(getElement(documentRef, 'composerSite'), state);
+  buildIndexUI(effects.getElementById('composerIndex'), state);
+  buildTabsUI(effects.getElementById('composerTabs'), state);
+  buildSiteUI(effects.getElementById('composerSite'), state);
 
   notifyComposerChange('index', { skipAutoSave: true });
   notifyComposerChange('tabs', { skipAutoSave: true });

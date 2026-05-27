@@ -42,6 +42,7 @@ for command in \
   'node scripts/test-composer-action-contract.js' \
   'node scripts/test-composer-root-contract.js' \
   'node scripts/test-composer-root-boundaries.js' \
+  'node scripts/test-editor-effects-boundary.js' \
   'node scripts/test-composer-app-services.js' \
   'node scripts/test-composer-service-registry.js' \
   'node scripts/test-provider-adapters.js' \

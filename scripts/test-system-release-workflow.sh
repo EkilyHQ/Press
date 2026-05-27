@@ -108,6 +108,11 @@ if ! grep -F 'node scripts/test-composer-root-boundaries.js' "${workflow}" >/dev
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-editor-effects-boundary.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the shared editor effects boundary before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-composer-service-registry.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the composer service registry before publishing" >&2
   exit 1

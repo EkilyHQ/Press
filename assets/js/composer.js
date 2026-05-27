@@ -6,7 +6,7 @@ import {
 } from './yaml.js';
 import { escapeHtml } from './utils.js';
 import { t, getAvailableLangs, getLanguageLabel } from './i18n.js';
-import { buildEditorContentTree, findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js';
+import { findEditorContentTreeNode, flattenEditorContentTree } from './editor-content-tree.js';
 import {
   decryptMarkdownDocument,
   encryptMarkdownDocument,
@@ -47,7 +47,10 @@ import {
 } from './composer-runtime.js';
 import { createComposerServiceRegistry } from './composer-service-registry.js';
 import { createComposerServiceLifecycle } from './composer-app-services.js';
-import { createComposerActionDispatcher } from './composer-action-dispatcher.js';
+import { createComposerActionEffects } from './composer-action-effects.js';
+import { createComposerMarkdownWorkspaceFacade } from './composer-markdown-workspace-facade.js';
+import { createComposerYamlSerialization } from './composer-yaml-serialization.js';
+import { createComposerEditorTreeState } from './composer-editor-tree-state.js';
 import { createComposerFilePanelController } from './composer-file-panel-controller.js';
 import { createComposerPublishService } from './composer-publish-service.js';
 import { createComposerNotificationController } from './composer-notifications.js';
@@ -209,6 +212,20 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   const tComposerDiff = (suffix, params) => t(`editor.composer.diff.${suffix}`, params);
   const tComposerLang = (suffix, params) => t(`editor.composer.languages.${suffix}`, params);
   const tComposerEntryRow = (suffix, params) => t(`editor.composer.entryRow.${suffix}`, params);
+  const composerYamlSerialization = createComposerYamlSerialization({
+    preferredLangOrder: PREFERRED_LANG_ORDER,
+    normalizeLangCode,
+    getLanguageLabel,
+    isIndexMetadataObject,
+    writeYamlValue
+  });
+  const {
+    displayLangName,
+    langFlag,
+    sortLangKeys,
+    toIndexYaml,
+    toTabsYaml
+  } = composerYamlSerialization;
 
   // --- Persisted UI state keys ---
   const LS_KEYS = {
@@ -308,6 +325,53 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     storageKey: MARKDOWN_DRAFT_STORAGE_KEY,
     scopeKey: scopedEditorStorageKey
   });
+  const composerServices = createComposerServiceRegistry();
+  const composerServiceLifecycle = createComposerServiceLifecycle(composerServices);
+  const markdownWorkspace = createComposerMarkdownWorkspaceFacade({ services: composerServices });
+  const {
+    getMarkdownActionsUi,
+    getMarkdownDraftController,
+    getMarkdownLoader,
+    getMarkdownSessionController,
+    getPrimaryEditorApi,
+    restorePrimaryEditorMarkdownView,
+    ensurePrimaryEditorListener,
+    ensurePrimaryEditorTabsMetadataListener,
+    getDynamicEditorTabs,
+    getDynamicTabByMode,
+    isDynamicMode,
+    getFirstDynamicModeId,
+    getActiveDynamicTab,
+    activateDynamicMode,
+    clearActiveDynamicMode,
+    persistDynamicEditorState,
+    restoreDynamicEditorState,
+    setTabLoadingState,
+    detachPrimaryEditorListeners,
+    updateMarkdownActionsForTab,
+    getMarkdownPushButton,
+    getMarkdownDiscardButton,
+    getMarkdownSaveButton,
+    setMarkdownPushButton,
+    setMarkdownDiscardButton,
+    setMarkdownSaveButton,
+    setMarkdownProtectionButton,
+    getMarkdownPushLabel,
+    getMarkdownDiscardLabel,
+    getMarkdownDiscardBusyLabel,
+    getMarkdownSaveLabel,
+    getMarkdownSaveBusyLabel,
+    getMarkdownSaveTooltip,
+    updateMarkdownPushButton,
+    updateMarkdownDiscardButton,
+    updateMarkdownSaveButton,
+    updateMarkdownProtectionButton,
+    pushEditorCurrentFileInfo,
+    setDynamicTabStatus,
+    loadDynamicTabContent,
+    openMarkdownInEditor,
+    findDynamicTabByPath
+  } = markdownWorkspace;
   const markdownAssetManager = createComposerMarkdownAssetManager({
     t,
     normalizeRelPath,
@@ -353,10 +417,8 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getStateSlice,
     setStateSlice,
     notifyComposerChange,
-    updateUnsyncedSummary: () => composerActions.dispatch('composer.system-theme.changed', {
-      options: { preserveStructure: true }
-    }),
-    refreshEditorContentTree: (options) => composerActions.dispatch('editor.tree.refresh', { options })
+    updateUnsyncedSummary: () => composerActions.refreshSystemThemeState({ preserveStructure: true }),
+    refreshEditorContentTree: (options) => composerActions.refreshEditorContentTree(options)
   });
   const composerPublishStateService = createComposerPublishStateService({
     safeString,
@@ -427,8 +489,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     updateUnsyncedSummary,
     registerExternalStagingProviders: (registry) => composerSystemThemeBridge.registerStagingProviders(registry)
   });
-  const composerServices = createComposerServiceRegistry();
-  const composerServiceLifecycle = createComposerServiceLifecycle(composerServices);
   const editorSessionStateStore = createEditorSessionStateStore({
     storage: editorRuntime.storage,
     scopeKey: scopedEditorStorageKey,
@@ -460,9 +520,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     updateMarkdownPushButton,
     updateComposerMarkdownDraftIndicators,
     refreshEditorContentTree: () => {},
-    updateUnsyncedSummary: () => composerActions.dispatch('markdown.draft.changed', {
-      options: { preserveStructure: true }
-    }),
+    updateUnsyncedSummary: () => composerActions.refreshMarkdownDraftState({ preserveStructure: true }),
     showToast,
     t,
     consoleRef: composerLogger,
@@ -1015,10 +1073,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     };
   }
 
-  function getMarkdownDraftController() {
-    return composerServices.getMarkdownDraftController();
-  }
-
   function readMarkdownDraftStore() {
     return getMarkdownDraftController().readDraftStore();
   }
@@ -1263,11 +1317,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function updateUnsyncedSummary(options = {}) {
-    return composerActions.dispatch('composer.summary.refresh', { options });
-  }
-
-  function findDynamicTabByPath(path) {
-    return getMarkdownWorkspaceController().findDynamicTabByPath(path);
+    return composerActions.updateUnsyncedSummary(options);
   }
 
   async function gatherCommitPayload(options = {}) {
@@ -1282,7 +1332,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function applyLocalPostCommitState(files = []) {
-    return composerActions.dispatch('publish.completed', { files });
+    return composerActions.applyLocalPostCommitState(files);
   }
 
   function rawApplyLocalPostCommitState(files = []) {
@@ -1580,110 +1630,30 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     handleRefresh: handleComposerRefresh
   } = composerYamlActions;
 
-  const composerActions = createComposerActionDispatcher({
-    handlers: {
-      applyMode: ({ mode, options = {} }) => rawApplyMode(mode, options),
-      selectComposerFile: ({ name, options = {} }) => rawSelectComposerFile(name, options),
-      recomputeYamlDiff: ({ kind }) => rawRecomputeYamlDiff(kind),
-      applyYamlDiffMarkers: ({ kind }) => rawApplyYamlDiffMarkers(kind),
-      refreshFileDirtyBadges: () => refreshFileDirtyBadges(),
-      scheduleYamlAutoDraft: ({ kind, options = {} }) => {
-        if (!options.skipAutoSave) rawScheduleYamlAutoDraft(kind);
-      },
-      applySiteConfig: ({ kind }) => rawApplySiteConfigForYamlChange(kind),
-      refreshUnsyncedSummary: ({ options = {} }) => rawUpdateUnsyncedSummary(options),
-      refreshOrderPreview: ({ kind }) => rawRefreshOrderPreviewForYamlChange(kind),
-      refreshEditorTree: (payload, context) => {
-        if (context && context.action && context.action.type === 'composer.yaml.changed') {
-          rawRefreshEditorContentTree({
-            preserveStructure: shouldPreserveEditorStructureForMode(getCurrentComposerMode())
-          });
-          return;
-        }
-        rawRefreshEditorContentTree(payload && payload.options ? payload.options : {});
-      },
-      clearYamlDraftStorage: ({ kind }) => rawClearDraftStorage(kind),
-      applyLocalPostCommitState: ({ files = [] }) => rawApplyLocalPostCommitState(files)
-    },
-    availableServices: [
-      'modeController',
-      'filePanelController',
-      'stateStore',
-      'yamlDraftController',
-      'diffUi',
-      'siteConfigController',
-      'unsyncedSummaryController',
-      'orderPreview',
-      'editorTree',
-      'systemThemeBridge',
-      'markdownDraftController',
-      'publishStateService'
-    ]
+  const composerActions = createComposerActionEffects({
+    applyMode: rawApplyMode,
+    selectComposerFile: rawSelectComposerFile,
+    recomputeYamlDiff: rawRecomputeYamlDiff,
+    applyYamlDiffMarkers: rawApplyYamlDiffMarkers,
+    refreshFileDirtyBadges,
+    scheduleYamlAutoDraft: rawScheduleYamlAutoDraft,
+    applySiteConfigForYamlChange: rawApplySiteConfigForYamlChange,
+    refreshUnsyncedSummary: rawUpdateUnsyncedSummary,
+    refreshOrderPreviewForYamlChange: rawRefreshOrderPreviewForYamlChange,
+    refreshEditorTree: rawRefreshEditorContentTree,
+    clearYamlDraftStorage: rawClearDraftStorage,
+    applyLocalPostCommitState: rawApplyLocalPostCommitState,
+    getCurrentMode: getCurrentComposerMode,
+    shouldPreserveEditorStructureForMode
   });
 
   function clearDraftStorage(kind) {
-    return composerActions.dispatch('composer.yaml.draft.cleared', { kind });
+    return composerActions.clearDraftStorage(kind);
   }
 
   function notifyComposerChange(kind, options = {}) {
-    return composerActions.dispatch('composer.yaml.changed', { kind, options });
+    return composerActions.notifyComposerChange(kind, options);
   }
-
-  function getMarkdownSessionController() {
-    return composerServices.getMarkdownSessionController();
-  }
-
-  function getMarkdownActionsUi() {
-    return composerServices.getMarkdownActionsUi();
-  }
-
-  function getMarkdownLoader() {
-    return composerServices.getMarkdownLoader();
-  }
-
-  function getMarkdownWorkspaceController() {
-    return composerServices.getMarkdownWorkspaceController();
-  }
-
-  function getPrimaryEditorApi() { return getMarkdownWorkspaceController().getPrimaryEditorApi(); }
-  function restorePrimaryEditorMarkdownView(editorApi) { getMarkdownWorkspaceController().restorePrimaryEditorMarkdownView(editorApi); }
-  function ensurePrimaryEditorListener() { getMarkdownWorkspaceController().ensurePrimaryEditorListener(); }
-  function ensurePrimaryEditorTabsMetadataListener() { getMarkdownWorkspaceController().ensurePrimaryEditorTabsMetadataListener(); }
-  function getDynamicEditorTabs() { return getMarkdownWorkspaceController().getDynamicEditorTabs(); }
-  function getDynamicTabByMode(mode) { return getMarkdownWorkspaceController().getDynamicTabByMode(mode); }
-  function isDynamicMode(mode) { return getMarkdownWorkspaceController().isDynamicMode(mode); }
-  function getFirstDynamicModeId() { return getMarkdownWorkspaceController().getFirstDynamicModeId(); }
-  function getActiveDynamicTab() { return getMarkdownWorkspaceController().getActiveDynamicTab(); }
-  function activateDynamicMode(mode) { return getMarkdownWorkspaceController().activateDynamicMode(mode); }
-  function clearActiveDynamicMode(mode = null) { getMarkdownWorkspaceController().clearActiveDynamicMode(mode); }
-  function persistDynamicEditorState() { return getMarkdownWorkspaceController().persistDynamicEditorState(); }
-  function restoreDynamicEditorState() { return getMarkdownWorkspaceController().restoreDynamicEditorState(); }
-  function setTabLoadingState(tab, isLoading) { getMarkdownWorkspaceController().setTabLoadingState(tab, isLoading); }
-  function detachPrimaryEditorListeners() { getMarkdownWorkspaceController().detachPrimaryEditorListeners(); }
-  function updateMarkdownActionsForTab(tab) { getMarkdownWorkspaceController().updateMarkdownActionsForTab(tab); }
-  function getMarkdownPushButton() { return getMarkdownWorkspaceController().getMarkdownPushButton(); }
-  function getMarkdownDiscardButton() { return getMarkdownWorkspaceController().getMarkdownDiscardButton(); }
-  function getMarkdownSaveButton() { return getMarkdownWorkspaceController().getMarkdownSaveButton(); }
-  function setMarkdownPushButton(button) { getMarkdownWorkspaceController().setMarkdownPushButton(button); }
-  function setMarkdownDiscardButton(button) { getMarkdownWorkspaceController().setMarkdownDiscardButton(button); }
-  function setMarkdownSaveButton(button) { getMarkdownWorkspaceController().setMarkdownSaveButton(button); }
-  function setMarkdownProtectionButton(button) { getMarkdownWorkspaceController().setMarkdownProtectionButton(button); }
-  function getMarkdownPushLabel(kind) { return getMarkdownWorkspaceController().getMarkdownPushLabel(kind); }
-  function getMarkdownDiscardLabel() { return getMarkdownWorkspaceController().getMarkdownDiscardLabel(); }
-  function getMarkdownDiscardBusyLabel() { return getMarkdownWorkspaceController().getMarkdownDiscardBusyLabel(); }
-  function getMarkdownSaveLabel() { return getMarkdownWorkspaceController().getMarkdownSaveLabel(); }
-  function getMarkdownSaveBusyLabel() { return getMarkdownWorkspaceController().getMarkdownSaveBusyLabel(); }
-  function getMarkdownSaveTooltip(kind) { return getMarkdownWorkspaceController().getMarkdownSaveTooltip(kind); }
-  function updateMarkdownPushButton(tab) { getMarkdownWorkspaceController().updateMarkdownPushButton(tab); }
-  function updateMarkdownDiscardButton(tab) { getMarkdownWorkspaceController().updateMarkdownDiscardButton(tab); }
-  function updateMarkdownSaveButton(tab) { getMarkdownWorkspaceController().updateMarkdownSaveButton(tab); }
-  function updateMarkdownProtectionButton(tab) { getMarkdownWorkspaceController().updateMarkdownProtectionButton(tab); }
-  function pushEditorCurrentFileInfo(tab) { getMarkdownWorkspaceController().pushEditorCurrentFileInfo(tab); }
-  function setDynamicTabStatus(tab, status) { return getMarkdownWorkspaceController().setDynamicTabStatus(tab, status); }
-  async function closeDynamicTab(modeId, options = {}) { return getMarkdownWorkspaceController().closeDynamicTab(modeId, options); }
-  function getOrCreateDynamicMode(path, options = {}) { return getMarkdownWorkspaceController().getOrCreateDynamicMode(path, options); }
-  async function loadDynamicTabContent(tab) { return getMarkdownWorkspaceController().loadDynamicTabContent(tab); }
-  function openMarkdownInEditor(path, options = {}) { return getMarkdownWorkspaceController().openMarkdownInEditor(path, options); }
 
   function getTrackedPublishContentRoot() {
     return composerPublishStateService.getTrackedPublishContentRoot();
@@ -1694,7 +1664,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function applyMode(mode, options = {}) {
-    return composerActions.dispatch('composer.mode.apply', { mode, options });
+    return composerActions.applyMode(mode, options);
   }
 
   function getInitialComposerFile() {
@@ -1709,10 +1679,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function applyComposerFile(name, options = {}) {
-    return composerActions.dispatch('composer.file.select', {
-      name,
-      options: { ...options, persist: false }
-    });
+    return composerActions.applyComposerFile(name, options);
   }
 
   // Apply initial state as early as possible to avoid flash on reload
@@ -1727,112 +1694,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     return editorRuntime.writeClipboardText(text);
   }
 
-  function sortLangKeys(obj) {
-    const keys = Object.keys(obj || {});
-    return keys.sort((a, b) => {
-      const ia = PREFERRED_LANG_ORDER.indexOf(normalizeLangCode(a));
-      const ib = PREFERRED_LANG_ORDER.indexOf(normalizeLangCode(b));
-      if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      return a.localeCompare(b);
-    });
-  }
-
-  // Localized display names for languages in UI menus
-  function displayLangName(code) {
-    const normalized = normalizeLangCode(code);
-    if (!normalized) return '';
-    try {
-      const label = getLanguageLabel(normalized);
-      if (label && String(label).trim()) return String(label).trim();
-    } catch (_) {}
-    return normalized.toUpperCase();
-  }
-
-  function langFlag(code) {
-    const c = normalizeLangCode(code);
-    if (c === 'en') return '🇺🇸';
-    if (c === 'chs') return '🇨🇳';
-    if (c === 'cht-tw') return '🇹🇼';
-    if (c === 'cht-hk') return '🇭🇰';
-    if (c === 'ja') return '🇯🇵';
-    return '';
-  }
-
-  function q(s) {
-    // Double-quoted YAML scalar with basic escapes
-    const str = String(s ?? '');
-    return '"' + str
-      .replace(/\\/g, '\\\\')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t')
-      .replace(/\"/g, '\\"') + '"';
-  }
-
-  function toIndexYaml(data) {
-    const lines = [
-      '# yaml-language-server: $schema=../assets/schema/index.json',
-      ''
-    ];
-    const keys = data.__order && Array.isArray(data.__order) ? data.__order.slice() : Object.keys(data).filter(k => k !== '__order');
-    keys.forEach(key => {
-      const entry = data[key];
-      if (!entry || typeof entry !== 'object') return;
-      lines.push(`${key}:`);
-      const langs = sortLangKeys(entry);
-      langs.forEach(lang => {
-        const v = entry[lang];
-        if (Array.isArray(v)) {
-          const hasMetadata = v.some(item => isIndexMetadataObject(item));
-          if (hasMetadata) {
-            lines.push(`  ${lang}:`);
-            writeYamlValue(lines, 2, v);
-          } else if (v.length <= 1) {
-            const one = v[0] ?? '';
-            lines.push(`  ${lang}: ${one ? one : '""'}`);
-          } else {
-            lines.push(`  ${lang}:`);
-            v.forEach(p => lines.push(`    - ${p}`));
-          }
-        } else if (typeof v === 'string') {
-          lines.push(`  ${lang}: ${v}`);
-        } else if (isIndexMetadataObject(v)) {
-          lines.push(`  ${lang}:`);
-          writeYamlValue(lines, 2, v);
-        }
-      });
-    });
-    return lines.join('\n') + '\n';
-  }
-
-  function toTabsYaml(data) {
-    const lines = [
-      '# yaml-language-server: $schema=../assets/schema/tabs.json',
-      ''
-    ];
-    const keys = data.__order && Array.isArray(data.__order) ? data.__order.slice() : Object.keys(data).filter(k => k !== '__order');
-    keys.forEach(tab => {
-      const entry = data[tab];
-      if (!entry || typeof entry !== 'object') return;
-      lines.push(`${tab}:`);
-      const langs = sortLangKeys(entry);
-      langs.forEach(lang => {
-        const v = entry[lang];
-        if (v && typeof v === 'object') {
-          const title = v.title ?? '';
-          const loc = v.location ?? '';
-          lines.push(`  ${lang}:`);
-          lines.push(`    title: ${q(title)}`);
-          lines.push(`    location: ${loc ? loc : '""'}`);
-        }
-      });
-      lines.push('');
-    });
-    // Remove extra trailing blank line
-    while (lines.length && lines[lines.length - 1] === '') lines.pop();
-    return lines.join('\n') + '\n';
-  }
-
   function treeText(key, fallback, params) {
     const fullKey = `editor.tree.${key}`;
     const value = t(fullKey, params);
@@ -1844,6 +1705,25 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     const value = t(fullKey, params);
     return value && value !== fullKey ? value : fallback;
   }
+
+  const composerEditorTreeState = createComposerEditorTreeState({
+    preferredLangs: PREFERRED_LANG_ORDER,
+    normalizeRelPath,
+    treeText,
+    getStateSlice,
+    readMarkdownDraftStore,
+    collectDynamicMarkdownDraftStates,
+    getMarkdownSessionController,
+    getComposerDiff: (kind) => composerStateStore.getDiff(kind),
+    getRemoteBaseline: (kind) => composerStateStore.getRemoteBaseline(kind),
+    recomputeDiff,
+    getComposerDraftMeta,
+    hasSystemUpdateEntries: () => composerSystemThemeBridge.hasSystemUpdateEntries(),
+    hasThemeEntries: () => composerSystemThemeBridge.hasThemeEntries()
+  });
+  const {
+    buildCurrentEditorTree
+  } = composerEditorTreeState;
 
   const editorFileTreeUi = createEditorFileTreeUi({
     documentRef: composerDocument,
@@ -1900,89 +1780,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     restoreDeletedEditorTreeNode: (node) => restoreDeletedEditorTreeNode(node)
   });
 
-  function collectEditorDraftStatusMap() {
-    const map = new Map();
-    try {
-      const store = readMarkdownDraftStore();
-      Object.keys(store || {}).forEach((key) => {
-        const path = normalizeRelPath(key);
-        if (path && store[key] && store[key].content) map.set(path, 'saved');
-      });
-    } catch (_) {}
-    try {
-      collectDynamicMarkdownDraftStates().forEach((value, key) => {
-        if (key && value) map.set(key, value);
-      });
-    } catch (_) {}
-    return map;
-  }
-
-  function collectEditorFileStatusMap() {
-    return getMarkdownSessionController().collectFileStatusMap();
-  }
-
-  function collectEditorDiffStatusMap() {
-    const map = new Map();
-    const add = (id, value) => {
-      if (id && value) map.set(id, value);
-    };
-    const applyDiff = (source, diff) => {
-      if (!diff) return;
-      (diff.addedKeys || []).forEach(key => add(`${source}:${key}`, 'added'));
-      (diff.removedKeys || []).forEach(key => add(`${source}:${key}`, 'removed'));
-      Object.keys(diff.keys || {}).forEach((key) => {
-        const info = diff.keys[key] || {};
-        add(`${source}:${key}`, info.state || 'modified');
-        Object.keys(info.langs || {}).forEach((lang) => {
-          const detail = info.langs[lang] || {};
-          add(`${source}:${key}:${lang}`, detail.state || 'modified');
-        });
-      });
-    };
-    applyDiff('index', composerStateStore.getDiff('index'));
-    applyDiff('tabs', composerStateStore.getDiff('tabs'));
-    try {
-      const siteDiff = composerStateStore.getDiff('site') || recomputeDiff('site');
-      if (siteDiff && siteDiff.hasChanges) add('system:site-settings', 'modified');
-      else if (getComposerDraftMeta('site')) add('system:site-settings', 'saved');
-    } catch (_) {
-      try {
-        if (getComposerDraftMeta('site')) add('system:site-settings', 'saved');
-      } catch (__) {}
-    }
-    try {
-      if (composerSystemThemeBridge.hasSystemUpdateEntries()) add('system:updates', 'modified');
-    } catch (_) {}
-    try {
-      if (composerSystemThemeBridge.hasThemeEntries()) add('system:themes', 'modified');
-    } catch (_) {}
-    return map;
-  }
-
-  function buildCurrentEditorTree() {
-    return buildEditorContentTree({
-      index: getStateSlice('index') || { __order: [] },
-      tabs: getStateSlice('tabs') || { __order: [] }
-    }, {
-      preferredLangs: PREFERRED_LANG_ORDER,
-      welcomeLabel: treeText('welcome', 'Welcome'),
-      systemLabel: treeText('system', 'System'),
-      siteSettingsLabel: treeText('siteSettings', 'Site Settings'),
-      themesLabel: treeText('themes', 'Themes'),
-      updatesLabel: treeText('pressUpdates', 'Press Updates'),
-      syncLabel: treeText('sync', 'Publish'),
-      articlesLabel: treeText('articles', 'Articles'),
-      pagesLabel: treeText('pages', 'Pages'),
-      draftStates: collectEditorDraftStatusMap(),
-      diffStates: collectEditorDiffStatusMap(),
-      fileStates: collectEditorFileStatusMap(),
-      indexDiff: composerStateStore.getDiff('index') || null,
-      tabsDiff: composerStateStore.getDiff('tabs') || null,
-      indexBaseline: composerStateStore.getRemoteBaseline('index') || null,
-      tabsBaseline: composerStateStore.getRemoteBaseline('tabs') || null
-    });
-  }
-
   function getActiveEditorTreeNode() {
     return editorContentTreeController.getActiveNode();
   }
@@ -2024,7 +1821,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function refreshEditorContentTree(options = {}) {
-    return composerActions.dispatch('editor.tree.refresh', { options });
+    return composerActions.refreshEditorContentTree(options);
   }
 
   function handleEditorTreeSelection(nodeId) {
@@ -2136,7 +1933,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
           applyMode,
           initSystemThemeBridge: () => composerSystemThemeBridge.init(),
           setComposerFile: (name, options = {}) => {
-            composerActions.dispatch('composer.file.select', { name, options });
+            composerActions.selectComposerFile(name, options);
           },
           getInitialComposerFile,
           getActiveComposerFile,

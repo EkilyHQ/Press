@@ -10,9 +10,11 @@ import {
   splitTextBlockIntoParagraph
 } from './editor-blocks-block-flow-model.js';
 import {
-  autofixMarkdownSourceBlock,
   makeBlock
-} from './editor-blocks-model.js';
+} from './editor-blocks-block-core-model.js';
+import {
+  autofixMarkdownSourceBlock
+} from './editor-blocks-markdown-parse-model.js';
 import {
   editableVisibleText,
   isEditableBackspaceAtEmptyStart,

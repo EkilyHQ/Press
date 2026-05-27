@@ -428,6 +428,21 @@ if ! grep -qx "press-system-${version}/assets/js/editor-blocks-model.js" "${entr
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-block-core-model.js" "${entries_file}"; then
+  echo "expected package to include editor blocks core model boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-markdown-parse-model.js" "${entries_file}"; then
+  echo "expected package to include editor blocks Markdown parse model boundary code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-blocks-markdown-serialize-model.js" "${entries_file}"; then
+  echo "expected package to include editor blocks Markdown serialize model boundary code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-blocks-block-flow-model.js" "${entries_file}"; then
   echo "expected package to include editor blocks block-flow model boundary code" >&2
   exit 1

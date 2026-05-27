@@ -44,6 +44,7 @@ const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
 const editorBlocksModel = read('assets/js/editor-blocks-model.js');
+const editorBlocksBlockCoreModel = read('assets/js/editor-blocks-block-core-model.js');
 const editorBlocksTableModel = read('assets/js/editor-blocks-table-model.js');
 const editorBlocksBodySession = read('assets/js/editor-blocks-body-session.js');
 const editorBlocksHeadSession = read('assets/js/editor-blocks-head-session.js');
@@ -134,7 +135,8 @@ assert.match(main, /import\('\.\/js\/syntax-highlight\.js'\)/, 'main should lazy
 assert.match(syntaxHighlight, /vendor\/highlightjs\/highlight\.min\.js/, 'syntax highlighter should load the vendored Highlight.js common bundle');
 assert.match(highlightJsBundle, /Highlight\.js v11\.11\.1/, 'vendored Highlight.js bundle should stay pinned to the reviewed common browser build');
 assert.match(editorBlocks, /from '\.\/math-render\.js';/, 'block editor should reuse the vendored KaTeX math renderer');
-assert.match(editorBlocksModel, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block model should register a math block type');
+assert.match(editorBlocksModel, /from '\.\/editor-blocks-block-core-model\.js';/, 'block model facade should delegate block type registration to the core model');
+assert.match(editorBlocksBlockCoreModel, /const BLOCK_TYPES = new Set\(\[[^\]]*'math'/, 'block core model should register a math block type');
 assert.match(editorBlocksInlineToolbarSession, /\['\\u2211', 'math', 'inlineMath', 'Math'\]/, 'block editor should expose an inline math command through the inline toolbar session');
 assert.match(indexEditorHtml, /blocks-math-editor[\s\S]*blocks-math-editor textarea/, 'block editor should include math source popover styling');
 assert.match(editorBlocksMathSession, /mathSource\.className = 'blocks-math-source'/, 'block editor math session should create a math source popover field');
@@ -316,9 +318,9 @@ assert.match(linkCards, /function createLinkCardState\(\) \{[\s\S]*mdCache: new 
 assert.match(nativeCss, /press-search\.box,[\s\S]*press-theme-controls\.box,[\s\S]*press-toc\.box\s*\{\s*display: block;/, 'native component hosts should preserve block layout');
 assert.match(nativeCss, /\.protected-post-excerpt[\s\S]*color: var\(--text\);/, 'native locked article panel should style the public excerpt separately from the generic unlock copy');
 
-assert.match(editorBlocksModel, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*\]\);/, 'block model should register a visual table block type');
+assert.match(editorBlocksBlockCoreModel, /const BLOCK_TYPES = new Set\(\[[\s\S]*'table'[\s\S]*\]\);/, 'block core model should register a visual table block type');
 assert.match(editorBlocksTableModel, /export function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'table model should parse supported pipe tables into structured table data');
-assert.match(editorBlocksModel, /from '\.\/editor-blocks-table-model\.js'[\s\S]*parseTableBlock[\s\S]*serializeTable/, 'block model should delegate visual table parsing and serialization through the table model boundary');
+assert.match(editorBlocksModel, /export \{[\s\S]*parseTableBlock[\s\S]*serializeTable[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/, 'block model should delegate visual table parsing and serialization through the table model boundary');
 assert.match(editorBlocksTableSession, /const renderBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'table session should render editable table cell inputs with alignment hooks');
 assert.match(editorBlocks, /table: \(body, block, index\) => tableSession\?\.renderBlock\(body, block, index\)/, 'block editor root should pass table rendering through the body-session renderer map');
 assert.match(editorBlocksBodySession, /type === 'table'[\s\S]*callRenderer\(renderers, 'table', body, block, index\)/, 'block body session should delegate visual table bodies through the table session boundary');

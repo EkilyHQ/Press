@@ -127,6 +127,9 @@ const editorMainShellServicePath = resolve(here, '../assets/js/editor-main-shell
 const editorMainServiceRegistryPath = resolve(here, '../assets/js/editor-main-service-registry.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
+const editorBlocksBlockCoreModelPath = resolve(here, '../assets/js/editor-blocks-block-core-model.js');
+const editorBlocksMarkdownParseModelPath = resolve(here, '../assets/js/editor-blocks-markdown-parse-model.js');
+const editorBlocksMarkdownSerializeModelPath = resolve(here, '../assets/js/editor-blocks-markdown-serialize-model.js');
 const editorBlocksInlineModelPath = resolve(here, '../assets/js/editor-blocks-inline-model.js');
 const editorBlocksListModelPath = resolve(here, '../assets/js/editor-blocks-list-model.js');
 const editorBlocksTableModelPath = resolve(here, '../assets/js/editor-blocks-table-model.js');
@@ -286,6 +289,9 @@ const editorMainShellServiceSource = readFileSync(editorMainShellServicePath, 'u
 const editorMainServiceRegistrySource = readFileSync(editorMainServiceRegistryPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
+const editorBlocksBlockCoreModelSource = readFileSync(editorBlocksBlockCoreModelPath, 'utf8');
+const editorBlocksMarkdownParseModelSource = readFileSync(editorBlocksMarkdownParseModelPath, 'utf8');
+const editorBlocksMarkdownSerializeModelSource = readFileSync(editorBlocksMarkdownSerializeModelPath, 'utf8');
 const editorBlocksInlineModelSource = readFileSync(editorBlocksInlineModelPath, 'utf8');
 const editorBlocksListModelSource = readFileSync(editorBlocksListModelPath, 'utf8');
 const editorBlocksTableModelSource = readFileSync(editorBlocksTableModelPath, 'utf8');
@@ -431,8 +437,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-model\.js'/,
-  'blocks editor should cache-bust the explicit blocks model boundary'
+  /from '\.\/editor-blocks-block-core-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks core model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-markdown-parse-model\.js'/,
+  'blocks editor should cache-bust the explicit Markdown parse model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-markdown-serialize-model\.js'/,
+  'blocks editor should cache-bust the explicit Markdown serialize model boundary'
 );
 
 assert.match(
@@ -478,6 +496,12 @@ assert.match(
 );
 
 assert.match(
+  editorBlocksBlockActionsSource,
+  /from '\.\/editor-blocks-block-core-model\.js'[\s\S]*from '\.\/editor-blocks-markdown-parse-model\.js'/,
+  'blocks block actions should consume block creation and source autofix through explicit model boundaries'
+);
+
+assert.match(
   editorBlocksModelSource,
   /export \{[\s\S]*applyInlineLinkToRuns,[\s\S]*parseInlineRuns,[\s\S]*serializeInlineRuns,[\s\S]*toggleInlineMarkOnRuns[\s\S]*\} from '\.\/editor-blocks-inline-model\.js';/,
   'blocks model should keep backward-compatible inline exports while delegating inline logic to the inline model boundary'
@@ -485,13 +509,13 @@ assert.match(
 
 assert.match(
   editorBlocksModelSource,
-  /from '\.\/editor-blocks-list-model\.js'[\s\S]*export \{(?=[\s\S]*parseListBlock,)(?=[\s\S]*serializeList,)(?=[\s\S]*mergeListItemIntoPreviousItem,)[\s\S]*\} from '\.\/editor-blocks-list-model\.js';/,
+  /export \{(?=[\s\S]*parseListBlock)(?=[\s\S]*serializeList)(?=[\s\S]*mergeListItemIntoPreviousItem)[\s\S]*\} from '\.\/editor-blocks-list-model\.js';/,
   'blocks model should keep backward-compatible list exports while delegating list logic to the list model boundary'
 );
 
 assert.match(
   editorBlocksModelSource,
-  /from '\.\/editor-blocks-table-model\.js'[\s\S]*export \{(?=[\s\S]*parseTableBlock,)(?=[\s\S]*serializeTable,)(?=[\s\S]*editableTableData,)[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/,
+  /export \{(?=[\s\S]*parseTableBlock)(?=[\s\S]*serializeTable)(?=[\s\S]*editableTableData)[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/,
   'blocks model should keep backward-compatible table exports while delegating table logic to the table model boundary'
 );
 
@@ -499,6 +523,18 @@ assert.match(
   editorBlocksModelSource,
   /export \{(?=[\s\S]*isBlockEmptyForBackspace)(?=[\s\S]*splitTextBlockIntoParagraph)(?=[\s\S]*mergeTextBlockIntoPrevious)(?=[\s\S]*mergeFirstListItemIntoPreviousBlock)[\s\S]*\} from '\.\/editor-blocks-block-flow-model\.js';/,
   'blocks model should keep backward-compatible block-flow exports while delegating Enter and Backspace editing logic to the block-flow model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*BLOCK_TYPES)(?=[\s\S]*makeBlock)(?=[\s\S]*makeBlankBlock)(?=[\s\S]*splitBlankLineUnits)[\s\S]*\} from '\.\/editor-blocks-block-core-model\.js';/,
+  'blocks model should keep backward-compatible block core exports while delegating block object shape to the core boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*autofixMarkdownSourceBlock)(?=[\s\S]*parseMarkdownBlocks)[\s\S]*\} from '\.\/editor-blocks-markdown-parse-model\.js';[\s\S]*export \{(?=[\s\S]*serializeMarkdownBlocks)[\s\S]*\} from '\.\/editor-blocks-markdown-serialize-model\.js';/,
+  'blocks model should keep backward-compatible Markdown parse and serialize exports while delegating those internals'
 );
 
 assert.doesNotMatch(
@@ -523,6 +559,30 @@ assert.doesNotMatch(
   editorBlocksModelSource,
   /function isBlockEmptyForBackspace|function splitTextBlockIntoParagraph|function joinMergedEditableText|function mergeTextBlockIntoPrevious|function mergeTextBlockIntoPreviousList|function mergeFirstListItemIntoPreviousBlock/,
   'blocks model should not re-own block-flow Backspace, Enter, split, or cross-block merge internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function makeBlock|function makeBlankBlock|function parseMarkdownBlocks|function classifyChunk|function riskyParagraphReason|function autofixMarkdownSourceBlock|function serializeMarkdownBlocks|function serializeBlock/,
+  'blocks model facade should not re-own block core, Markdown parsing, source autofix, or serialization internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksBlockCoreModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks core model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksMarkdownParseModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks Markdown parse model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksMarkdownSerializeModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks Markdown serialize model should stay DOM-free'
 );
 
 assert.doesNotMatch(
@@ -3650,9 +3710,9 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksModelSource}\n${editorBlocksSource}`,
+  `${editorBlocksMarkdownParseModelSource}\n${editorBlocksMarkdownSerializeModelSource}\n${editorBlocksSource}`,
   /export function parseMarkdownBlocks\(markdown\)[\s\S]*export function serializeMarkdownBlocks\(blocks\)[\s\S]*export function createMarkdownBlocksEditor\(root, options = \{\}\)/,
-  'blocks mode should provide model parser/serializer and DOM controller entrypoints'
+  'blocks mode should provide delegated parser/serializer and DOM controller entrypoints'
 );
 
 assert.doesNotMatch(

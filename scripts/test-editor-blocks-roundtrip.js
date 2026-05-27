@@ -40,7 +40,7 @@ const run = (name, fn) => {
 };
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
-const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
+const editorBlocksBlockCoreModelSource = readFileSync(new URL('../assets/js/editor-blocks-block-core-model.js', import.meta.url), 'utf8');
 const editorBlocksBlockFlowModelSource = readFileSync(new URL('../assets/js/editor-blocks-block-flow-model.js', import.meta.url), 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-actions.js', import.meta.url), 'utf8');
 const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
@@ -680,12 +680,12 @@ run('blank blocks replace the inline virtual insertion state', () => {
     'blank blocks should not depend on persistent inline virtual block state'
   );
   assert.match(
-    editorBlocksModelSource,
+    editorBlocksBlockCoreModelSource,
     /const BLOCK_TYPES = new Set\(\[[^\]]*'blank'[^\]]*\]\)/,
     'blank should be an internal block type'
   );
   assert.match(
-    editorBlocksModelSource,
+    editorBlocksBlockCoreModelSource,
     /function makeBlankBlock\(after = '\\n', data = \{\}\)[\s\S]*makeBlock\('blank', '', \{ \.\.\.data, after: after \|\| '\\n' \}\)/,
     'blank blocks should serialize as newline whitespace only'
   );

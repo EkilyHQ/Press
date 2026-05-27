@@ -109,10 +109,14 @@ import {
 import {
   makeBlankBlock,
   makeBlock,
-  parseMarkdownBlocks,
-  serializeMarkdownBlocks,
   splitBlankLineUnits
-} from './editor-blocks-model.js';
+} from './editor-blocks-block-core-model.js';
+import {
+  parseMarkdownBlocks
+} from './editor-blocks-markdown-parse-model.js';
+import {
+  serializeMarkdownBlocks
+} from './editor-blocks-markdown-serialize-model.js';
 
 export {
   applyInlineLinkToRuns,
@@ -147,9 +151,12 @@ export {
 
 export {
   autofixMarkdownSourceBlock,
-  parseMarkdownBlocks,
-  serializeMarkdownBlocks,
-} from './editor-blocks-model.js';
+  parseMarkdownBlocks
+} from './editor-blocks-markdown-parse-model.js';
+
+export {
+  serializeMarkdownBlocks
+} from './editor-blocks-markdown-serialize-model.js';
 
 export function createMarkdownBlocksEditor(root, options = {}) {
   if (!root) return null;

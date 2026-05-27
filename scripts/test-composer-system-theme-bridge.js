@@ -9,8 +9,8 @@ const bridgeSource = readFileSync(resolve(here, '../assets/js/composer-system-th
 
 assert.match(
   composerSource,
-  /from '\.\/composer-system-theme-bridge\.js\?v=[\w.-]+'/,
-  'composer should import the system/theme bridge through a cache-busted module'
+  /from '\.\/composer-system-theme-bridge\.js'/,
+  'composer should import the system/theme bridge through a managed runtime module'
 );
 
 assert.doesNotMatch(
@@ -45,13 +45,13 @@ assert.match(
 
 assert.match(
   bridgeSource,
-  /import \{ createSystemUpdatesController \} from '\.\/system-updates\.js\?v=[\w.-]+';/,
+  /import \{ createSystemUpdatesController \} from '\.\/system-updates\.js';/,
   'bridge should own the system updates controller factory import'
 );
 
 assert.match(
   bridgeSource,
-  /import \{ createThemeManagerController \} from '\.\/theme-manager\.js\?v=[\w.-]+';/,
+  /import \{ createThemeManagerController \} from '\.\/theme-manager\.js';/,
   'bridge should own the theme manager controller factory import'
 );
 

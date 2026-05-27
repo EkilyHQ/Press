@@ -8,6 +8,15 @@ import {
   loadThemeManagerRegistry as loadRegistryForRuntime
 } from './theme-manager-data.js';
 import {
+  applyThemeManagerSummary,
+  clearPendingSiteThemeFallback,
+  getCurrentThemePackValue,
+  stageCatalogThemeWithRuntime,
+  stageSiteThemePack,
+  stageThemeArchiveWithRuntime,
+  stageThemeUninstallWithRuntime
+} from './theme-manager-staging.js';
+import {
   createThemeManagerElements,
   renderThemeManagerAvailableThemes,
   renderThemeManagerInstalledThemes,
@@ -16,13 +25,6 @@ import {
   setThemeManagerBusy as setBusy,
   setThemeManagerStatus as setStatus
 } from './theme-manager-view.js';
-import {
-  collectThemeArchiveEntries,
-  normalizeThemeFilePath,
-  normalizeThemeReleaseManifest,
-  sanitizeThemeSlug,
-  verifyThemeAsset
-} from './theme-package-core.js';
 
 export {
   collectThemeArchiveEntries,
@@ -81,133 +83,11 @@ function createThemeManagerRuntime(options = {}) {
   return runtime;
 }
 
-function notifyStateChange(runtime) {
-  runtime.state.listeners.forEach((listener) => {
-    try { listener(); } catch (_) {}
-  });
-}
-
-function getCurrentThemePackValue(runtime) {
-  const { optionsRef } = runtime.state;
-  try {
-    return optionsRef.getCurrentThemePack ? sanitizeThemeSlug(optionsRef.getCurrentThemePack()) : '';
-  } catch (_) {
-    return '';
-  }
-}
-
-function clearPendingSiteThemeFallback(runtime, options = {}) {
-  const state = runtime.state;
-  const { optionsRef } = state;
-  const pending = state.pendingSiteThemeFallback;
-  state.pendingSiteThemeFallback = null;
-  if (!pending || options.keep === true) return;
-  if (typeof optionsRef.setSiteThemePack !== 'function') return;
-  const current = getCurrentThemePackValue(runtime);
-  if (!current || current === pending.to) {
-    try { optionsRef.setSiteThemePack(pending.from); } catch (_) {}
-  }
-}
-
-function setActiveSiteThemePack(runtime, value) {
-  const { optionsRef } = runtime.state;
-  if (typeof optionsRef.setSiteThemePack !== 'function') return false;
-  const slug = sanitizeThemeSlug(value);
-  try {
-    optionsRef.setSiteThemePack(slug);
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function applySummary(runtime, summary, files, meta = {}) {
-  const state = runtime.state;
-  state.currentSummary = Array.isArray(summary) ? summary.slice() : [];
-  state.currentFiles = Array.isArray(files) ? files.slice() : [];
-  state.currentThemeDigest = meta.digest || '';
-  state.currentThemeSize = Number.isFinite(meta.size) ? meta.size : 0;
-  state.currentThemeAssetName = meta.assetName || '';
-  renderThemeManagerPendingFiles(runtime);
-  notifyStateChange(runtime);
-}
-
-async function stageThemeArchiveWithRuntime(runtime, buffer, fileName, options = {}) {
-  const state = runtime.state;
-  const releaseManifest = options.releaseManifest || null;
-  const registry = await loadRegistryForRuntime(runtime, { force: true, allowFallback: false });
-  const staged = await runtime.installService.stageThemeArchive({
-    buffer,
-    fileName,
-    registry,
-    releaseManifest,
-    source: options.source,
-    allowBuiltInUpdate: options.allowBuiltInUpdate
-  });
-  state.registryCache = staged.registry;
-  applySummary(runtime, staged.summary, staged.files, staged.meta);
-  const hadPendingSiteThemeFallback = !!state.pendingSiteThemeFallback;
-  clearPendingSiteThemeFallback(runtime);
-  const shouldActivate = options.activate !== false;
-  const activated = shouldActivate && !hadPendingSiteThemeFallback && setActiveSiteThemePack(runtime, staged.archive.slug);
-  setStatus(
-    runtime,
-    `${staged.previous ? 'Updated' : 'Installed'} ${staged.nextEntry.label}. Review and publish the staged theme files${activated ? ' and site.yaml theme setting' : ''}.`,
-    { tone: 'success' }
-  );
-  renderThemeManager(runtime);
-  return { archive: staged.archive, registry: staged.registry, files: staged.files };
-}
-
-async function stageCatalogThemeWithRuntime(runtime, catalogEntry, options = {}) {
-  const state = runtime.state;
-  const registry = await loadRegistryForRuntime(runtime, { force: true, allowFallback: false });
-  const staged = await runtime.installService.stageCatalogTheme({ catalogEntry, registry });
-  state.registryCache = staged.registry;
-  applySummary(runtime, staged.summary, staged.files, staged.meta);
-  const hadPendingSiteThemeFallback = !!state.pendingSiteThemeFallback;
-  clearPendingSiteThemeFallback(runtime);
-  const shouldActivate = options.activate !== false;
-  const activated = shouldActivate && !hadPendingSiteThemeFallback && setActiveSiteThemePack(runtime, staged.archive.slug);
-  setStatus(
-    runtime,
-    `${staged.previous ? 'Updated' : 'Installed'} ${staged.nextEntry.label}. Review and publish the staged theme files${activated ? ' and site.yaml theme setting' : ''}.`,
-    { tone: 'success' }
-  );
-  renderThemeManager(runtime);
-  return { archive: staged.archive, registry: staged.registry, files: staged.files };
-}
-
-async function stageThemeUninstallWithRuntime(runtime, slug) {
-  const state = runtime.state;
-  const { optionsRef } = state;
-  clearPendingSiteThemeFallback(runtime);
-  const registry = await loadRegistryForRuntime(runtime, { force: true, allowFallback: false });
-  const staged = await runtime.installService.stageUninstall({
-    slug,
-    registry,
-    currentThemePack: getCurrentThemePackValue(runtime)
-  });
-  try {
-    if (staged.siteThemeFallback && typeof optionsRef.setSiteThemePack === 'function') {
-      state.pendingSiteThemeFallback = staged.siteThemeFallback;
-      optionsRef.setSiteThemePack('native');
-    }
-  } catch (_) {}
-  state.registryCache = staged.registry;
-  applySummary(runtime, staged.summary, staged.files);
-  setStatus(runtime, `Uninstalled ${staged.entry.label}. Publish to delete the theme files.`, { tone: 'success' });
-  renderThemeManager(runtime);
-  return { registry: staged.registry, files: staged.files };
-}
-
-function stageSiteThemePack(runtime, value, label) {
-  const slug = sanitizeThemeSlug(value);
-  clearPendingSiteThemeFallback(runtime);
-  if (!setActiveSiteThemePack(runtime, slug)) return;
-  setStatus(runtime, `Using ${label || slug}. Review and publish site.yaml.`, { tone: 'success' });
-  notifyStateChange(runtime);
-  renderThemeManager(runtime);
+function withThemeManagerRender(runtime, options = {}) {
+  return {
+    ...options,
+    requestRender: () => { renderThemeManager(runtime); }
+  };
 }
 
 async function renderThemeManager(runtime, options = {}) {
@@ -219,12 +99,12 @@ async function renderThemeManager(runtime, options = {}) {
   ]);
   renderThemeManagerInstalledThemes(runtime, registry, catalog, productState, {
     getCurrentThemePack: () => getCurrentThemePackValue(runtime) || 'native',
-    onUseTheme: (entry) => stageSiteThemePack(runtime, entry.value, entry.label || entry.value),
+    onUseTheme: (entry) => stageSiteThemePack(runtime, entry.value, entry.label || entry.value, withThemeManagerRender(runtime)),
     onUpdateTheme: async (catalogEntry, entry) => {
       setBusy(runtime, true);
       try {
         setStatus(runtime, `Downloading ${catalogEntry.label}...`);
-        await stageCatalogThemeWithRuntime(runtime, catalogEntry, { activate: getCurrentThemePackValue(runtime) === entry.value });
+        await stageCatalogThemeWithRuntime(runtime, catalogEntry, withThemeManagerRender(runtime, { activate: getCurrentThemePackValue(runtime) === entry.value }));
       } catch (err) {
         console.error('Theme update failed', err);
         setStatus(runtime, err && err.message ? err.message : 'Theme update failed.', { tone: 'error' });
@@ -235,7 +115,7 @@ async function renderThemeManager(runtime, options = {}) {
     onUninstallTheme: async (entry) => {
       setBusy(runtime, true);
       try {
-        await stageThemeUninstallWithRuntime(runtime, entry.value);
+        await stageThemeUninstallWithRuntime(runtime, entry.value, withThemeManagerRender(runtime));
       } catch (err) {
         console.error('Theme uninstall failed', err);
         setStatus(runtime, err && err.message ? err.message : 'Theme uninstall failed.', { tone: 'error' });
@@ -249,9 +129,9 @@ async function renderThemeManager(runtime, options = {}) {
       setBusy(runtime, true);
       try {
         setStatus(runtime, `Downloading ${entry.label}...`);
-        await stageCatalogThemeWithRuntime(runtime, entry, {
+        await stageCatalogThemeWithRuntime(runtime, entry, withThemeManagerRender(runtime, {
           activate: !actionMeta.installed || getCurrentThemePackValue(runtime) === entry.value
-        });
+        }));
       } catch (err) {
         console.error('Theme install failed', err);
         setStatus(runtime, err && err.message ? err.message : 'Theme install failed.', { tone: 'error' });
@@ -269,7 +149,7 @@ async function handleImportFileWithRuntime(runtime, file) {
   try {
     setStatus(runtime, `Reading ${file.name}...`);
     const buffer = await file.arrayBuffer();
-    await stageThemeArchiveWithRuntime(runtime, buffer, file.name);
+    await stageThemeArchiveWithRuntime(runtime, buffer, file.name, withThemeManagerRender(runtime));
     setActiveThemeManagerView(runtime, 'installed');
   } catch (err) {
     console.error('Theme import failed', err);
@@ -370,7 +250,7 @@ function getThemeManagerCommitFilesWithRuntime(runtime) {
 function clearThemeManagerStateWithRuntime(runtime, options = {}) {
   const state = runtime.state;
   clearPendingSiteThemeFallback(runtime, { keep: options && options.keepSiteThemeFallback === true });
-  applySummary(runtime, [], []);
+  applyThemeManagerSummary(runtime, [], []);
   state.currentThemeDigest = '';
   state.currentThemeSize = 0;
   state.currentThemeAssetName = '';
@@ -398,7 +278,7 @@ function clearThemeManagerStateWithRuntime(runtime, options = {}) {
 }
 
 function analyzeThemeArchiveWithRuntime(runtime, buffer, fileName = '', options = {}) {
-  return stageThemeArchiveWithRuntime(runtime, buffer, fileName, options);
+  return stageThemeArchiveWithRuntime(runtime, buffer, fileName, withThemeManagerRender(runtime, options));
 }
 
 export function createThemeManagerController(options = {}) {
@@ -435,10 +315,10 @@ export function createThemeManagerController(options = {}) {
       return getProductStateStatusForRuntime(runtime);
     },
     stageCatalogTheme(catalogEntry, stageOptions = {}) {
-      return stageCatalogThemeWithRuntime(runtime, catalogEntry, stageOptions);
+      return stageCatalogThemeWithRuntime(runtime, catalogEntry, withThemeManagerRender(runtime, stageOptions));
     },
     stageUninstall(slug) {
-      return stageThemeUninstallWithRuntime(runtime, slug);
+      return stageThemeUninstallWithRuntime(runtime, slug, withThemeManagerRender(runtime));
     }
   };
 }

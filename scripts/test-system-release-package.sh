@@ -901,9 +901,11 @@ while IFS= read -r entry; do
   fi
 done < "${entries_file}"
 
-runtime_manifest_json="$(unzip -p "${zip_path}" "press-system-${version}/assets/press-runtime-manifest.json")"
-RUNTIME_MANIFEST_JSON="${runtime_manifest_json}" EXPECTED_VERSION="${version#v}" EXPECTED_TAG="${version}" node <<'NODE'
-const manifest = JSON.parse(process.env.RUNTIME_MANIFEST_JSON || '{}');
+runtime_manifest_file="${tmp_dir}/press-runtime-manifest.json"
+unzip -p "${zip_path}" "press-system-${version}/assets/press-runtime-manifest.json" > "${runtime_manifest_file}"
+RUNTIME_MANIFEST_FILE="${runtime_manifest_file}" EXPECTED_VERSION="${version#v}" EXPECTED_TAG="${version}" node <<'NODE'
+const fs = require('node:fs');
+const manifest = JSON.parse(fs.readFileSync(process.env.RUNTIME_MANIFEST_FILE, 'utf8') || '{}');
 if (manifest.schemaVersion !== 1 || manifest.type !== 'press-runtime-assets') {
   throw new Error('runtime manifest must use the press-runtime-assets schema');
 }

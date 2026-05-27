@@ -333,7 +333,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getMarkdownDraftController,
     getMarkdownLoader,
     getMarkdownSessionController,
-    getMarkdownWorkspaceController,
     getPrimaryEditorApi,
     restorePrimaryEditorMarkdownView,
     ensurePrimaryEditorListener,
@@ -369,8 +368,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     updateMarkdownProtectionButton,
     pushEditorCurrentFileInfo,
     setDynamicTabStatus,
-    closeDynamicTab,
-    getOrCreateDynamicMode,
     loadDynamicTabContent,
     openMarkdownInEditor,
     findDynamicTabByPath

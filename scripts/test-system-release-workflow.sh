@@ -128,6 +128,11 @@ if ! grep -F 'node scripts/test-editor-app-kernel.mjs' "${workflow}" >/dev/null;
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-publish-flow-smoke.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must run the publish flow smoke before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node --experimental-default-type=module scripts/test-theme-contracts.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the shared Press theme contract surface before publishing" >&2
   exit 1

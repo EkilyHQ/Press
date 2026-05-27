@@ -663,6 +663,16 @@ if ! grep -qx "press-system-${version}/assets/js/composer-app-services.js" "${en
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-action-contract.js" "${entries_file}"; then
+  echo "expected package to include composer action contract code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-action-dispatcher.js" "${entries_file}"; then
+  echo "expected package to include composer action dispatcher code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-file-panel-controller.js" "${entries_file}"; then
   echo "expected package to include composer file panel controller code" >&2
   exit 1

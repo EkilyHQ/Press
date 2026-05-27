@@ -47,6 +47,7 @@ import {
 } from './composer-runtime.js';
 import { createComposerServiceRegistry } from './composer-service-registry.js';
 import { createComposerServiceLifecycle } from './composer-app-services.js';
+import { createComposerActionDispatcher } from './composer-action-dispatcher.js';
 import { createComposerFilePanelController } from './composer-file-panel-controller.js';
 import { createComposerPublishService } from './composer-publish-service.js';
 import { createComposerNotificationController } from './composer-notifications.js';
@@ -352,8 +353,10 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getStateSlice,
     setStateSlice,
     notifyComposerChange,
-    updateUnsyncedSummary,
-    refreshEditorContentTree
+    updateUnsyncedSummary: () => composerActions.dispatch('composer.system-theme.changed', {
+      options: { preserveStructure: true }
+    }),
+    refreshEditorContentTree: (options) => composerActions.dispatch('editor.tree.refresh', { options })
   });
   const composerPublishStateService = createComposerPublishStateService({
     safeString,
@@ -456,8 +459,10 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     pushEditorCurrentFileInfo,
     updateMarkdownPushButton,
     updateComposerMarkdownDraftIndicators,
-    refreshEditorContentTree,
-    updateUnsyncedSummary,
+    refreshEditorContentTree: () => {},
+    updateUnsyncedSummary: () => composerActions.dispatch('markdown.draft.changed', {
+      options: { preserveStructure: true }
+    }),
     showToast,
     t,
     consoleRef: composerLogger,
@@ -1253,8 +1258,12 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getUnsyncedSummaryController().updateModeDirtyIndicators(summaryEntries);
   }
 
-  function updateUnsyncedSummary(options = {}) {
+  function rawUpdateUnsyncedSummary(options = {}) {
     return getUnsyncedSummaryController().updateUnsyncedSummary(options);
+  }
+
+  function updateUnsyncedSummary(options = {}) {
+    return composerActions.dispatch('composer.summary.refresh', { options });
   }
 
   function findDynamicTabByPath(path) {
@@ -1273,6 +1282,10 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function applyLocalPostCommitState(files = []) {
+    return composerActions.dispatch('publish.completed', { files });
+  }
+
+  function rawApplyLocalPostCommitState(files = []) {
     return composerPublishStateService.applyLocalPostCommitState(files);
   }
 
@@ -1490,30 +1503,34 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   });
   const { bindVerifySetup } = composerSetupVerifier;
 
-  function scheduleAutoDraft(kind) {
+  function rawScheduleYamlAutoDraft(kind) {
     composerYamlDraftController.scheduleAutoDraft(kind);
   }
 
-  function clearDraftStorage(kind) {
+  function rawClearDraftStorage(kind) {
     composerYamlDraftController.clearDraftStorage(kind);
   }
 
-  function notifyComposerChange(kind, options = {}) {
-    const diff = recomputeDiff(kind);
+  function rawRecomputeYamlDiff(kind) {
+    return recomputeDiff(kind);
+  }
+
+  function rawApplyYamlDiffMarkers(kind) {
+    const diff = composerStateStore.getDiff(kind) || recomputeDiff(kind);
     if (kind === 'tabs') applyTabsDiffMarkers(diff);
     else if (kind === 'site') applySiteDiffMarkers(diff);
     else applyIndexDiffMarkers(diff);
-    refreshFileDirtyBadges();
-    if (!options.skipAutoSave) scheduleAutoDraft(kind);
+    return diff;
+  }
+
+  function rawApplySiteConfigForYamlChange(kind) {
     if (kind === 'site') {
       try { applyComposerEffectiveSiteConfig(getStateSlice('site') || {}); } catch (_) {}
     }
+  }
 
-    updateUnsyncedSummary();
+  function rawRefreshOrderPreviewForYamlChange(kind) {
     if ((kind === 'index' || kind === 'tabs') && getComposerOrderPreviewActiveKind() === kind) updateComposerOrderPreview(kind);
-    refreshEditorContentTree({
-      preserveStructure: shouldPreserveEditorStructureForMode(getCurrentComposerMode())
-    });
   }
 
   function rebuildIndexUI(preserveOpen = true) {
@@ -1562,6 +1579,59 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     handleDiscard: handleComposerDiscard,
     handleRefresh: handleComposerRefresh
   } = composerYamlActions;
+
+  const composerActions = createComposerActionDispatcher({
+    handlers: {
+      applyMode: ({ mode, options = {} }) => rawApplyMode(mode, options),
+      selectComposerFile: ({ name, options = {} }) => rawSelectComposerFile(name, options),
+      recomputeYamlDiff: ({ kind }) => rawRecomputeYamlDiff(kind),
+      applyYamlDiffMarkers: ({ kind }) => rawApplyYamlDiffMarkers(kind),
+      refreshFileDirtyBadges: () => refreshFileDirtyBadges(),
+      scheduleYamlAutoDraft: ({ kind, options = {} }) => {
+        if (!options.skipAutoSave) rawScheduleYamlAutoDraft(kind);
+      },
+      applySiteConfig: ({ kind }) => rawApplySiteConfigForYamlChange(kind),
+      refreshUnsyncedSummary: ({ options = {} }) => rawUpdateUnsyncedSummary(options),
+      refreshOrderPreview: ({ kind }) => rawRefreshOrderPreviewForYamlChange(kind),
+      refreshEditorTree: (payload, context) => {
+        if (context && context.action && context.action.type === 'composer.yaml.changed') {
+          rawRefreshEditorContentTree({
+            preserveStructure: shouldPreserveEditorStructureForMode(getCurrentComposerMode())
+          });
+          return;
+        }
+        rawRefreshEditorContentTree(payload && payload.options ? payload.options : {});
+      },
+      clearYamlDraftStorage: ({ kind }) => rawClearDraftStorage(kind),
+      applyLocalPostCommitState: ({ files = [] }) => rawApplyLocalPostCommitState(files)
+    },
+    availableServices: [
+      'modeController',
+      'filePanelController',
+      'stateStore',
+      'yamlDraftController',
+      'diffUi',
+      'siteConfigController',
+      'unsyncedSummaryController',
+      'orderPreview',
+      'editorTree',
+      'systemThemeBridge',
+      'markdownDraftController',
+      'publishStateService'
+    ]
+  });
+
+  function scheduleAutoDraft(kind) {
+    return rawScheduleYamlAutoDraft(kind);
+  }
+
+  function clearDraftStorage(kind) {
+    return composerActions.dispatch('composer.yaml.draft.cleared', { kind });
+  }
+
+  function notifyComposerChange(kind, options = {}) {
+    return composerActions.dispatch('composer.yaml.changed', { kind, options });
+  }
 
   function getMarkdownSessionController() {
     return composerServices.getMarkdownSessionController();
@@ -1623,16 +1693,30 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     return composerPublishStateService.getTrackedPublishContentRoot();
   }
 
-  function applyMode(mode, options = {}) {
+  function rawApplyMode(mode, options = {}) {
     composerServices.applyMode(mode, options);
+  }
+
+  function applyMode(mode, options = {}) {
+    return composerActions.dispatch('composer.mode.apply', { mode, options });
   }
 
   function getInitialComposerFile() {
     return composerFilePanelController.getInitialComposerFile();
   }
 
+  function rawSelectComposerFile(name, options = {}) {
+    if (options && options.persist === false) {
+      return composerFilePanelController.applyComposerFile(name, options);
+    }
+    return composerFilePanelController.setComposerFile(name, options);
+  }
+
   function applyComposerFile(name, options = {}) {
-    return composerFilePanelController.applyComposerFile(name, options);
+    return composerActions.dispatch('composer.file.select', {
+      name,
+      options: { ...options, persist: false }
+    });
   }
 
   // Apply initial state as early as possible to avoid flash on reload
@@ -1939,8 +2023,12 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     return editorContentTreeController.selectNodeForTab(tab, options);
   }
 
-  function refreshEditorContentTree(options = {}) {
+  function rawRefreshEditorContentTree(options = {}) {
     editorContentTreeController.refresh(options);
+  }
+
+  function refreshEditorContentTree(options = {}) {
+    return composerActions.dispatch('editor.tree.refresh', { options });
   }
 
   function handleEditorTreeSelection(nodeId) {
@@ -1980,6 +2068,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
 
   function start() {
     composerServiceLifecycle.assertReady();
+    composerActions.assertReady();
     initializeComposerApp({
       documentRef: composerDocument,
       onDocumentReady: editorRuntime.onDocumentReady,
@@ -2051,7 +2140,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
           applyMode,
           initSystemThemeBridge: () => composerSystemThemeBridge.init(),
           setComposerFile: (name, options = {}) => {
-            composerFilePanelController.setComposerFile(name, options);
+            composerActions.dispatch('composer.file.select', { name, options });
           },
           getInitialComposerFile,
           getActiveComposerFile,

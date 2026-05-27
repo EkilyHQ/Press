@@ -1900,8 +1900,8 @@ assert.match(
 
 assert.match(
   source,
-  /function applyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}/,
-  'composer applyMode should delegate through the composer service registry'
+  /function rawApplyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}[\s\S]*function applyMode\(mode, options = \{\}\) \{\s*return composerActions\.dispatch\('composer\.mode\.apply', \{ mode, options \}\);[\s\S]*\}/,
+  'composer applyMode should delegate through the explicit action contract into the service registry'
 );
 
 assert.match(
@@ -1936,8 +1936,8 @@ assert.match(
 
 assert.match(
   source,
-  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}/,
-  'composer unsynced summary helpers should delegate to the extracted controller'
+  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function rawUpdateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return composerActions\.dispatch\('composer\.summary\.refresh', \{ options \}\);[\s\S]*\}/,
+  'composer unsynced summary helpers should route public refreshes through the action contract and keep raw updates on the extracted controller'
 );
 
 assert.doesNotMatch(
@@ -2912,8 +2912,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
-  'composer should delegate system/theme staging, status, and initialization through app-service callbacks'
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary: \(\) => composerActions\.dispatch\('composer\.system-theme\.changed'[\s\S]*refreshEditorContentTree: \(options\) => composerActions\.dispatch\('editor\.tree\.refresh'[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
+  'composer should delegate system/theme staging, status, and initialization through explicit action callbacks'
 );
 
 assert.match(
@@ -2942,8 +2942,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
-  'composer should reduce publish persistence to explicit app-service callbacks'
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerActions\.dispatch\('publish\.completed'[\s\S]*function rawApplyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  'composer should reduce publish persistence to explicit app-service and action-contract callbacks'
 );
 
 assert.match(

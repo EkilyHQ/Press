@@ -154,6 +154,7 @@ const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-f
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
 const editorBlocksFocusPointerSessionsPath = resolve(here, '../assets/js/editor-blocks-focus-pointer-sessions.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
+const editorBlocksInlineSessionsPath = resolve(here, '../assets/js/editor-blocks-inline-sessions.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksInlineCommandSessionPath = resolve(here, '../assets/js/editor-blocks-inline-command-session.js');
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
@@ -316,6 +317,7 @@ const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
 const editorBlocksFocusPointerSessionsSource = readFileSync(editorBlocksFocusPointerSessionsPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
+const editorBlocksInlineSessionsSource = readFileSync(editorBlocksInlineSessionsPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
 const editorBlocksInlineCommandSessionSource = readFileSync(editorBlocksInlineCommandSessionPath, 'utf8');
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
@@ -475,6 +477,12 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-block-flow-model\.js'/,
   'blocks editor should cache-bust the explicit blocks block-flow model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-inline-sessions\.js'/,
+  'blocks editor should cache-bust the explicit inline sessions assembly boundary'
 );
 
 assert.match(
@@ -664,9 +672,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-rich-text-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks rich text session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks rich text session boundary'
 );
 
 assert.match(
@@ -724,27 +732,27 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-inline-toolbar-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks inline toolbar session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks inline toolbar session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-inline-command-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks inline command session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks inline command session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-link-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks link session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks link session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-math-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks math session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks math session boundary'
 );
 
 assert.match(
@@ -917,8 +925,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const updateInlineToolbarState = \(\) => \{[\s\S]*blockSessions\.updateInlineToolbarState\(\);[\s\S]*\};[\s\S]*const inlineCommandSession = createEditorBlocksInlineCommandSession\(\{[\s\S]*root,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*renderInlineRunsInto,[\s\S]*inlineRunsFromDom,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineMarkedDomRangeFromSelection,[\s\S]*removeInlineMarkAroundOffset,[\s\S]*removeInlineMarkInRange,[\s\S]*inlineMarksAtOffset,[\s\S]*toggleInlineMarkOnRuns,[\s\S]*placeCaretAtTextOffset,[\s\S]*syncActiveEditable,[\s\S]*updateInlineToolbarState,[\s\S]*openLinkEditorForSelection,[\s\S]*openMathEditorForSelection[\s\S]*\}\);[\s\S]*const \{[\s\S]*applyInlineCommand,[\s\S]*applyRunsToEditable,[\s\S]*hasPendingInlineMarks,[\s\S]*inlineCommandMark[\s\S]*\} = inlineCommandSession;[\s\S]*const inlineToolbarSession = blockSessions\.setInlineToolbarSession\(createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\)\);/,
-  'blocks editor should compose inline command execution separately from inline toolbar DOM controls'
+  /const \{[\s\S]*inlineToolbarSession,[\s\S]*createRichEditable,[\s\S]*wireInlineEditable[\s\S]*\} = createEditorBlocksInlineSessions\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*state,[\s\S]*blocksState,[\s\S]*blockSessions,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*menuSession,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\),[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*insertBlankBlockAfter,[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\);/,
+  'blocks editor should compose inline command, popover, toolbar, and rich text sessions through the inline sessions boundary'
+);
+
+assert.match(
+  editorBlocksInlineSessionsSource,
+  /const inlineCommandSession = createInlineCommandSession\(\{[\s\S]*openLinkEditorForSelection: openLinkForSelection,[\s\S]*openMathEditorForSelection: openMathForSelection[\s\S]*const linkSession = blockSessions\?\.setLinkSession\?\.\(createLinkSession\(\{[\s\S]*selectionLinkInEditable[\s\S]*const mathSession = blockSessions\?\.setMathSession\?\.\(createMathSession\(\{[\s\S]*selectionMathInEditable[\s\S]*const inlineToolbarSession = blockSessions\?\.setInlineToolbarSession\?\.\(createInlineToolbarSession\(\{[\s\S]*applyInlineCommand[\s\S]*const richTextSession = createRichTextSession\(\{[\s\S]*applyRunsToEditable/,
+  'inline sessions boundary should own inline command, link, math, toolbar, and rich text session construction'
 );
 
 assert.match(
@@ -934,8 +948,8 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const richTextSession = createEditorBlocksRichTextSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\)[\s\S]*\}\);[\s\S]*const createRichEditable = \(\.\.\.args\) => richTextSession\?\.createRichEditable\(\.\.\.args\);[\s\S]*const wireInlineEditable = \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\(\.\.\.args\);/,
+  editorBlocksInlineSessionsSource,
+  /const richTextSession = createRichTextSession\(\{[\s\S]*documentRef,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: refreshToolbar,[\s\S]*refreshLinkEditor: refreshLink,[\s\S]*openMathEditorForNode: openMathForNode[\s\S]*\}\);[\s\S]*createRichEditable: \(\.\.\.args\) => richTextSession\?\.createRichEditable\?\.\(\.\.\.args\),[\s\S]*wireInlineEditable: \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\?\.\(\.\.\.args\)/,
   'blocks editor should compose rich text editable DOM and input events through the rich text session boundary'
 );
 
@@ -946,14 +960,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*blockSessions\.refreshLinkEditor\(explicitLink\);[\s\S]*\};[\s\S]*const openLinkEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openLinkEditorForSelection\(\);[\s\S]*\};[\s\S]*const linkSession = blockSessions\.setLinkSession\(createEditorBlocksLinkSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\)\);/,
+  editorBlocksInlineSessionsSource,
+  /const refreshLink = refreshLinkEditor \|\| \(link => blockSessions\?\.refreshLinkEditor\?\.\(link\)\);[\s\S]*const linkSession = blockSessions\?\.setLinkSession\?\.\(createLinkSession\(\{[\s\S]*documentRef,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: refreshToolbar,[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\)\);/,
   'blocks editor should compose inline link overlay behavior through the link session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const openMathEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openMathEditorForSelection\(\);[\s\S]*\};[\s\S]*const openMathEditorForNode = \(mathNode\) => \{[\s\S]*blockSessions\.openMathEditorForNode\(mathNode\);[\s\S]*\};[\s\S]*const openMathEditorForBlock = \(block, blockEl = null\) => \{[\s\S]*blockSessions\.openMathEditorForBlock\(block, blockEl\);[\s\S]*\};[\s\S]*const mathSession = blockSessions\.setMathSession\(createEditorBlocksMathSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
+  editorBlocksInlineSessionsSource,
+  /const openMathForSelection = openMathEditorForSelection \|\| \(\(\) => blockSessions\?\.openMathEditorForSelection\?\.\(\)\);[\s\S]*const openMathForNode = openMathEditorForNode \|\| \(node => blockSessions\?\.openMathEditorForNode\?\.\(node\)\);[\s\S]*const mathSession = blockSessions\?\.setMathSession\?\.\(createMathSession\(\{[\s\S]*documentRef,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode,[\s\S]*closestElement,[\s\S]*renderMath,[\s\S]*getMathBlockById: id => \(Array\.isArray\(state\.blocks\)[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: refreshToolbar,[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
   'blocks editor should compose inline and display math overlay behavior through the math session boundary'
 );
 

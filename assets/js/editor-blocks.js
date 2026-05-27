@@ -10,16 +10,12 @@ import { createEditorBlocksStateController } from './editor-blocks-state.js';
 import { createEditorBlocksMenuSession } from './editor-blocks-menu-session.js';
 import { createEditorBlocksHeadSession } from './editor-blocks-head-session.js';
 import { createEditorBlocksCommandSession } from './editor-blocks-command-session.js';
-import { createEditorBlocksRichTextSession } from './editor-blocks-rich-text-session.js';
 import { createEditorBlocksEditableSession } from './editor-blocks-editable-session.js';
 import { createEditorBlocksSelectionSession } from './editor-blocks-selection-session.js';
 import { CARET_POINT_MEASURE_LIMIT } from './editor-blocks-caret-session.js';
 import { createEditorBlocksFocusPointerSessions } from './editor-blocks-focus-pointer-sessions.js';
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js';
-import { createEditorBlocksInlineToolbarSession } from './editor-blocks-inline-toolbar-session.js';
-import { createEditorBlocksInlineCommandSession } from './editor-blocks-inline-command-session.js';
-import { createEditorBlocksLinkSession } from './editor-blocks-link-session.js';
-import { createEditorBlocksMathSession } from './editor-blocks-math-session.js';
+import { createEditorBlocksInlineSessions } from './editor-blocks-inline-sessions.js';
 import { createEditorBlocksTableSession } from './editor-blocks-table-session.js';
 import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker-session.js';
 import { createEditorBlocksImageSession } from './editor-blocks-image-session.js';
@@ -36,45 +32,22 @@ import {
   getEditableCaretTextOffset,
   getEditableSelectionOffsets,
   inlineMarkedDomRangeFromPointerEvent,
-  inlineMarkedDomRangeFromSelection,
   inlineMarksFromPointerEvent,
-  inlineRunsFromDom,
   insertCodeEditableTextAtSelection,
   insertPlainTextIntoEditable,
   isEditableCaretOnEdgeLine,
   isEditableSelectionAtStart,
-  linkForTextRange,
   nodeContains,
   placeCaretAtEnd,
   placeCaretAtStart,
   placeCaretAtTextOffset,
   placeCaretAtVisualLine,
-  renderInlineRunsInto,
-  selectionEditableInRoot,
-  selectionLinkInEditable,
-  selectionMathInEditable,
   setPlainContentEditableValue,
-  shouldInsertBlankBlockOnEnter,
   splitEditableTextAtSelection,
-  textareaTextOffsetDetailsFromPoint,
-  textRangeForDomNode
+  textareaTextOffsetDetailsFromPoint
 } from './editor-blocks-inline-editing-bridge.js';
 import {
-  applyInlineLinkToRuns,
-  applyInlineMathToRuns,
-  inlineMarksAtOffset,
-  inlineRangeAnyMarked,
-  inlineRangeFullyMarked,
-  inlineRangeText,
-  inlineRun,
-  insertInlineRunsAtRange,
-  normalizeEditableMarkdownText,
-  rangeHasInlineText,
-  removeInlineMarkAroundOffset,
-  removeInlineMarkInRange,
-  sanitizeEditorLinkHref,
-  sanitizeEditorLinkTitle,
-  toggleInlineMarkOnRuns
+  normalizeEditableMarkdownText
 } from './editor-blocks-inline-model.js';
 import {
   defaultListItems,
@@ -338,22 +311,12 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     } catch (_) {}
   };
 
-  const syncActiveEditable = () => {
-    try {
-      blocksState.invokeActiveSync();
-    } catch (_) {}
-  };
-
   const syncActiveListTypeSelect = (blockNodes = null) => {
     blockSessions.syncActiveTypeSelect(blockNodes);
   };
 
   const refreshLinkEditor = (explicitLink = null) => {
     blockSessions.refreshLinkEditor(explicitLink);
-  };
-
-  const openMathEditorForSelection = () => {
-    blockSessions.openMathEditorForSelection();
   };
 
   const openMathEditorForNode = (mathNode) => {
@@ -479,10 +442,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     blockSessions.updateInlineToolbarState();
   };
 
-  const openLinkEditorForSelection = () => {
-    blockSessions.openLinkEditorForSelection();
-  };
-
   const commandSession = blockSessions.setCommandSession(createEditorBlocksCommandSession({
     documentRef: blocksDocument,
     state,
@@ -519,159 +478,45 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   }));
   if (cardPickerSession) root.appendChild(cardPickerSession.element);
 
-  const inlineCommandSession = createEditorBlocksInlineCommandSession({
-    root,
-    blocksState,
-    selectionSession,
-    caretSession,
-    inlineDomSession,
-    containsNode: nodeContains,
-    renderInlineRunsInto,
-    inlineRunsFromDom,
-    getEditableSelectionOffsets,
-    inlineMarkedDomRangeFromSelection,
-    removeInlineMarkAroundOffset,
-    removeInlineMarkInRange,
-    inlineMarksAtOffset,
-    toggleInlineMarkOnRuns,
-    placeCaretAtTextOffset,
-    syncActiveEditable,
-    updateInlineToolbarState,
-    openLinkEditorForSelection,
-    openMathEditorForSelection
-  });
   const {
-    applyInlineCommand,
-    applyRunsToEditable,
-    hasPendingInlineMarks,
-    inlineCommandMark
-  } = inlineCommandSession;
-
-  const linkSession = blockSessions.setLinkSession(createEditorBlocksLinkSession({
-    documentRef: blocksDocument,
-    root,
-    runtime,
-    blocksState,
-    selectionSession,
-    caretSession,
-    inlineDomSession,
-    containsNode: nodeContains,
-    closestElement,
-    text,
-    sanitizeLinkHref: sanitizeEditorLinkHref,
-    sanitizeLinkTitle: sanitizeEditorLinkTitle,
-    selectionLinkInEditable,
-    getEditableSelectionOffsets,
-    caretRectForEditable,
-    inlineRunsFromDom,
-    inlineRangeText,
-    applyInlineLinkToRuns,
-    renderInlineRunsInto,
-    textRangeForDomNode,
-    linkForTextRange,
-    placeCaretAtTextOffset,
-    syncActiveEditable,
-    updateInlineToolbarState: () => updateInlineToolbarState(),
-    onDocument,
-    onWindow
-  }));
-
-  const mathSession = blockSessions.setMathSession(createEditorBlocksMathSession({
+    inlineToolbarSession,
+    createRichEditable,
+    wireInlineEditable
+  } = createEditorBlocksInlineSessions({
     documentRef: blocksDocument,
     root,
     list,
     runtime,
-    blocksState,
-    selectionSession,
-    caretSession,
-    inlineDomSession,
-    containsNode: nodeContains,
-    closestElement,
-    text,
-    renderMath: renderMathWithRuntime,
-    getMathBlockById: id => state.blocks.find(block => block && block.id === id && block.type === 'math') || null,
-    getEditableSelectionOffsets,
-    caretRectForEditable,
-    selectionMathInEditable,
-    inlineRunsFromDom,
-    applyInlineMathToRuns,
-    renderInlineRunsInto,
-    textRangeForDomNode,
-    syncActiveEditable,
-    updateInlineToolbarState: () => updateInlineToolbarState(),
-    updateFromControl,
-    onDocument
-  }));
-
-  const inlineToolbarSession = blockSessions.setInlineToolbarSession(createEditorBlocksInlineToolbarSession({
-    documentRef: blocksDocument,
     state,
     blocksState,
+    blockSessions,
     editableSession,
-    root,
-    list,
-    menuSession,
     selectionSession,
     caretSession,
+    inlineDomSession,
+    menuSession,
     text,
-    setActive,
-    applyInlineCommand,
+    renderMath: renderMathWithRuntime,
     containsNode: nodeContains,
     closestElement,
-    selectionEditableInRoot,
-    getEditableSelectionOffsets,
-    inlineRunsFromDom,
-    hasPendingInlineMarks,
-    selectionLinkInEditable,
-    selectionMathInEditable,
-    inlineRangeFullyMarked,
-    inlineRangeAnyMarked,
-    inlineMarksAtOffset,
-    rangeHasInlineText,
-    inlineCommandMark
-  }));
-  if (linkSession) {
-    root.appendChild(linkSession.element);
-    linkSession.bind();
-  }
-  if (mathSession) {
-    root.appendChild(mathSession.element);
-    mathSession.bind();
-  }
-
-  const richTextSession = createEditorBlocksRichTextSession({
-    documentRef: blocksDocument,
-    blocksState,
-    editableSession,
-    selectionSession,
-    inlineDomSession,
-    caretSession,
+    setActive,
     setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,
     editableText,
-    inlineRunsFromDom,
-    inlineRun,
-    insertInlineRunsAtRange,
     getEditableSelectionOffsets,
-    applyRunsToEditable,
+    placeCaretAtTextOffset,
+    updateInlineToolbarState: () => updateInlineToolbarState(),
+    refreshLinkEditor: link => refreshLinkEditor(link),
+    openMathEditorForNode: node => openMathEditorForNode(node),
     updateFromControl,
     removeEmptyBlockWithBackspace,
     mergeTextBlockWithPreviousOnBackspace,
     handleCrossBlockArrowNavigation,
     splitTextBlockAfterCaret,
-    shouldInsertBlankBlockOnEnter,
     insertBlankBlockAfter,
-    setActive,
     activateEditableFromPointer,
-    routeDirectQuoteCaretFromPointer,
-    inlineMarksFromPointerEvent,
-    inlineMarkedDomRangeFromPointerEvent,
-    updateInlineToolbarState: () => updateInlineToolbarState(),
-    refreshLinkEditor: link => refreshLinkEditor(link),
-    openMathEditorForNode: node => openMathEditorForNode(node)
+    onDocument,
+    onWindow
   });
-
-  const createRichEditable = (...args) => richTextSession?.createRichEditable(...args);
-  const wireInlineEditable = (...args) => richTextSession?.wireInlineEditable(...args);
 
   const imageSession = createEditorBlocksImageSession({
     documentRef: blocksDocument,

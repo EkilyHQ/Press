@@ -305,14 +305,8 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   } = blockControls;
 
   const {
-    blockNavigationTarget,
-    focusBlockNavigationTarget,
     handleCrossBlockArrowNavigation,
-    isBlocksCaretInteractiveTarget,
     routeBlocksCaretFromPointer,
-    routeDirectQuoteCaretFromPointer,
-    setContentEditableCaretFromPoint,
-    setTextareaCaretFromPoint,
     shouldSuppressRoutedBlockContainerClick
   } = createEditorBlocksFocusPointerSessions({
     state,

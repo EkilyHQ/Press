@@ -1621,10 +1621,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     ]
   });
 
-  function scheduleAutoDraft(kind) {
-    return rawScheduleYamlAutoDraft(kind);
-  }
-
   function clearDraftStorage(kind) {
     return composerActions.dispatch('composer.yaml.draft.cleared', { kind });
   }

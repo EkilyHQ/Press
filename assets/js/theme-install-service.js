@@ -5,7 +5,6 @@ import {
   digestSha256,
   normalizeFileList,
   normalizeRegistryRelease,
-  normalizeThemeFilePath,
   normalizeThemeReleaseManifest,
   safeString,
   sanitizeThemeSlug,

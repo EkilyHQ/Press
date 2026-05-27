@@ -43,6 +43,7 @@ const themeRegions = read('assets/js/theme-regions.js');
 const postCardHtml = read('assets/js/post-card-html.js');
 const mathRender = read('assets/js/math-render.js');
 const editorBlocks = read('assets/js/editor-blocks.js');
+const editorBlocksBlockTypeSessions = read('assets/js/editor-blocks-block-type-sessions.js');
 const editorBlocksModel = read('assets/js/editor-blocks-model.js');
 const editorBlocksBlockCoreModel = read('assets/js/editor-blocks-block-core-model.js');
 const editorBlocksTableModel = read('assets/js/editor-blocks-table-model.js');
@@ -322,7 +323,7 @@ assert.match(editorBlocksBlockCoreModel, /const BLOCK_TYPES = new Set\(\[[\s\S]*
 assert.match(editorBlocksTableModel, /export function parseTableBlock\(raw\)[\s\S]*parsePipeTableSeparatorCells[\s\S]*headers[\s\S]*alignments[\s\S]*rows/, 'table model should parse supported pipe tables into structured table data');
 assert.match(editorBlocksModel, /export \{[\s\S]*parseTableBlock[\s\S]*serializeTable[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/, 'block model should delegate visual table parsing and serialization through the table model boundary');
 assert.match(editorBlocksTableSession, /const renderBlock = \(body, block, index\) => \{[\s\S]*blocks-table-cell-input[\s\S]*blocks-table-align-\$\{align \|\| 'default'\}/, 'table session should render editable table cell inputs with alignment hooks');
-assert.match(editorBlocks, /table: \(body, block, index\) => tableSession\?\.renderBlock\(body, block, index\)/, 'block editor root should pass table rendering through the body-session renderer map');
+assert.match(editorBlocksBlockTypeSessions, /table: \(body, block, index\) => tableSession\?\.renderBlock\?\.\(body, block, index\)/, 'block type session assembly should pass table rendering through the body-session renderer map');
 assert.match(editorBlocksBodySession, /type === 'table'[\s\S]*callRenderer\(renderers, 'table', body, block, index\)/, 'block body session should delegate visual table bodies through the table session boundary');
 assert.match(editorBlocksTableSession, /const createControls = \(block, index\) => \{[\s\S]*blocks-table-align-select[\s\S]*blocks-table-add-row[\s\S]*blocks-table-add-column[\s\S]*blocks-table-delete-row[\s\S]*blocks-table-delete-column/, 'table session should expose table row, column, and alignment controls');
 assert.match(editorBlocksHeadSession, /if \(block\.type === 'table'\) appendIf\(head, tableSession\?\.createControls\?\.\(block, index\)\);/, 'block head session should delegate table toolbar controls through the table session boundary');

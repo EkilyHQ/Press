@@ -156,6 +156,7 @@ const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks
 const editorBlocksFocusPointerSessionsPath = resolve(here, '../assets/js/editor-blocks-focus-pointer-sessions.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
 const editorBlocksInlineSessionsPath = resolve(here, '../assets/js/editor-blocks-inline-sessions.js');
+const editorBlocksBlockTypeSessionsPath = resolve(here, '../assets/js/editor-blocks-block-type-sessions.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
 const editorBlocksInlineCommandSessionPath = resolve(here, '../assets/js/editor-blocks-inline-command-session.js');
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
@@ -320,6 +321,7 @@ const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSession
 const editorBlocksFocusPointerSessionsSource = readFileSync(editorBlocksFocusPointerSessionsPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
 const editorBlocksInlineSessionsSource = readFileSync(editorBlocksInlineSessionsPath, 'utf8');
+const editorBlocksBlockTypeSessionsSource = readFileSync(editorBlocksBlockTypeSessionsPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
 const editorBlocksInlineCommandSessionSource = readFileSync(editorBlocksInlineCommandSessionPath, 'utf8');
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
@@ -470,9 +472,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-table-model\.js'/,
-  'blocks editor should cache-bust the explicit blocks table model boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks table model boundary'
 );
 
 assert.match(
@@ -608,9 +610,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,?[\s\S]*\} from '\.\/editor-blocks-table-model\.js'/,
-  'blocks editor should import table model helpers from the explicit blocks table model boundary before composing the table session'
+  'blocks block-type session assembly should import table model helpers from the explicit blocks table model boundary before composing the table session'
 );
 
 assert.match(
@@ -765,38 +767,44 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-block-type-sessions\.js'/,
+  'blocks editor should cache-bust the explicit block type sessions assembly boundary'
+);
+
+assert.match(
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-table-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks table session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks table session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-card-picker-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks card picker session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks card picker session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-image-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks image session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks image session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-code-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks code session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks code session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-source-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks source session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks source session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-list-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks list session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks list session boundary'
 );
 
 assert.match(
@@ -986,21 +994,21 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const tableSession = createEditorBlocksTableSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\(activeBlock, editable, state\.blocks\);/,
-  'blocks editor should compose table DOM, active-cell, and control behavior through the table session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const tableSession = createTableSession\(\{[\s\S]*documentRef,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\?\.\(activeBlock, editable, Array\.isArray\(state\.blocks\) \? state\.blocks : \[\]\);/,
+  'blocks block-type session assembly should compose table DOM, active-cell, and control behavior through the table session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const codeSession = createEditorBlocksCodeSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*createHighlightFragment: \(code, language\) => createRuntimeSafeHighlightFragment\(code, language, \{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow,[\s\S]*allowAmbient: false[\s\S]*\}\)[\s\S]*\}\);/,
-  'blocks editor should compose code block DOM and control behavior through the code session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const codeSession = createCodeSession\(\{[\s\S]*documentRef,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*createHighlightFragment: \(code, language\) => createHighlightFragment\(code, language, \{[\s\S]*documentRef,[\s\S]*windowRef,[\s\S]*allowAmbient: false[\s\S]*\}\)[\s\S]*\}\);/,
+  'blocks block-type session assembly should compose code block DOM and control behavior through the code session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const cardPickerSession = blockSessions\.setCardPickerSession\(createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => blockSessions\.insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\)\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
-  'blocks editor should compose article-card picker DOM and result selection through the card picker session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const cardPickerSession = registerSession\(blockSessions, 'setCardPickerSession', createCardPickerSession\(\{[\s\S]*documentRef,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => blockSessions\?\.insertCommandBlock\?\.\('card', data, \{ index \}\) \|\| null,[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\)\);[\s\S]*if \(cardPickerSession\?\.element\) root\?\.appendChild\?\.\(cardPickerSession\.element\);/,
+  'blocks block-type session assembly should compose article-card picker DOM and result selection through the card picker session boundary'
 );
 
 assert.match(
@@ -1109,6 +1117,7 @@ assert.doesNotMatch(
     editorBlocksInlineToolbarSessionSource,
     editorBlocksLinkSessionSource,
     editorBlocksMathSessionSource,
+    editorBlocksBlockTypeSessionsSource,
     editorBlocksTableSessionSource,
     editorBlocksCardPickerSessionSource,
     editorBlocksImageSessionSource,
@@ -3756,8 +3765,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksCommandSessionSource}`,
-  /const commandSession = blockSessions\.setCommandSession\(createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => blockSessions\.getCardPickerSession\(\),[\s\S]*insertCardBlock: \(data, index\) => blockSessions\.insertCommandBlock\('card', data, \{ index \}\)[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
+  `${editorBlocksSource}\n${editorBlocksBlockTypeSessionsSource}\n${editorBlocksCommandSessionSource}`,
+  /const commandSession = blockSessions\.setCommandSession\(createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => blockSessions\.getCardPickerSession\(\),[\s\S]*insertCardBlock: \(data, index\) => blockSessions\?\.insertCommandBlock\?\.\('card', data, \{ index \}\) \|\| null[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
   'blank block commands should live behind the command session, replace active blanks, and reuse the article-card picker at that position'
 );
 
@@ -4270,7 +4279,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\)\);/,
+  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*\.\.\.blockTypeRenderers[\s\S]*\}[\s\S]*\}\)\);/,
   'blocks editor root should compose block body rendering through the body session boundary'
 );
 
@@ -4557,9 +4566,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const imageSession = createEditorBlocksImageSession\(\{[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*selectionSession,[\s\S]*insertPlainTextIntoEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateInlineToolbarState,[\s\S]*updateFromControl,[\s\S]*insertBlock,[\s\S]*deleteBlockAt,[\s\S]*setActive,[\s\S]*resolveAssetSrc,[\s\S]*hydrateImages,[\s\S]*requestImageUpload: options\.requestImageUpload,[\s\S]*canDeleteImageResource: options\.canDeleteImageResource,[\s\S]*requestImageDelete: options\.requestImageDelete/,
-  'blocks editor root should compose image DOM/control behavior through the image session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const imageSession = createImageSession\(\{[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*selectionSession,[\s\S]*insertPlainTextIntoEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateInlineToolbarState,[\s\S]*updateFromControl,[\s\S]*insertBlock,[\s\S]*deleteBlockAt,[\s\S]*setActive,[\s\S]*resolveAssetSrc,[\s\S]*hydrateImages,[\s\S]*requestImageUpload,[\s\S]*canDeleteImageResource,[\s\S]*requestImageDelete/,
+  'blocks block-type session assembly should compose image DOM/control behavior through the image session boundary'
 );
 
 assert.match(
@@ -4773,9 +4782,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const sourceSession = createEditorBlocksSourceSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: index => applySourceAutofix\(index\),/,
-  'blocks editor root should compose source Markdown DOM/control behavior through the source session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const sourceSession = createSourceSession\(\{[\s\S]*documentRef,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: applySourceAutofix,/,
+  'blocks block-type session assembly should compose source Markdown DOM/control behavior through the source session boundary'
 );
 
 assert.match(
@@ -4803,8 +4812,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksBodySessionSource}`,
-  /source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*callRenderer\(renderers, 'source', body, block, index\)/,
+  `${editorBlocksBlockTypeSessionsSource}\n${editorBlocksBodySessionSource}`,
+  /source: \(body, block, index\) => sourceSession\?\.renderBlock\?\.\(body, block, index\)[\s\S]*callRenderer\(renderers, 'source', body, block, index\)/,
   'source block body rendering should delegate to the source session'
 );
 
@@ -4815,14 +4824,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const listSession = blockSessions\.setListSession\(createEditorBlocksListSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\)\);/,
-  'blocks editor root should compose list DOM, toolbar, and input behavior through the list session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const listSession = registerSession\(blockSessions, 'setListSession', createListSession\(\{[\s\S]*documentRef,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement: options\.closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask[\s\S]*\}\)\);/,
+  'blocks block-type session assembly should compose list DOM, toolbar, and input behavior through the list session boundary'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksBodySessionSource}`,
-  /list: \(body, block, index\) => listSession\?\.renderBlock\(body, block, index\)[\s\S]*type === 'list'[\s\S]*callRenderer\(renderers, 'list', body, block, index\)/,
+  `${editorBlocksBlockTypeSessionsSource}\n${editorBlocksBodySessionSource}`,
+  /list: \(body, block, index\) => listSession\?\.renderBlock\?\.\(body, block, index\)[\s\S]*type === 'list'[\s\S]*callRenderer\(renderers, 'list', body, block, index\)/,
   'list block body rendering should delegate to the list session'
 );
 

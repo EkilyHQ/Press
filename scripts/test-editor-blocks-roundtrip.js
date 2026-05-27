@@ -44,6 +44,7 @@ const editorBlocksBlockCoreModelSource = readFileSync(new URL('../assets/js/edit
 const editorBlocksBlockFlowModelSource = readFileSync(new URL('../assets/js/editor-blocks-block-flow-model.js', import.meta.url), 'utf8');
 const editorBlocksBlockActionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-actions.js', import.meta.url), 'utf8');
 const editorBlocksInlineSessionsSource = readFileSync(new URL('../assets/js/editor-blocks-inline-sessions.js', import.meta.url), 'utf8');
+const editorBlocksBlockTypeSessionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-type-sessions.js', import.meta.url), 'utf8');
 const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
@@ -149,8 +150,8 @@ run('rich text and list initialization render through the runtime inline DOM ses
     'rich text blocks should use the runtime-bound contenteditable renderer'
   );
   assert.match(
-    editorBlocksSource,
-    /createEditorBlocksListSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    editorBlocksBlockTypeSessionsSource,
+    /createListSession\(\{[\s\S]*setPlainContentEditableValue,/,
     'list items should use the runtime-bound contenteditable renderer'
   );
   assert.doesNotMatch(

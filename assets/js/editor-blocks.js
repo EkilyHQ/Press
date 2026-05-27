@@ -1,5 +1,4 @@
 import { createPressMathRenderer } from './math-render.js';
-import { createSafeHighlightFragment as createRuntimeSafeHighlightFragment } from './syntax-highlight.js';
 import { createEditorBlocksRuntime } from './editor-blocks-runtime.js';
 import { createEditorBlocksSessionRegistry } from './editor-blocks-session-registry.js';
 import { createEditorBlocksBlockActions } from './editor-blocks-block-actions.js';
@@ -16,69 +15,24 @@ import { CARET_POINT_MEASURE_LIMIT } from './editor-blocks-caret-session.js';
 import { createEditorBlocksFocusPointerSessions } from './editor-blocks-focus-pointer-sessions.js';
 import { createEditorBlocksActiveSession } from './editor-blocks-active-session.js';
 import { createEditorBlocksInlineSessions } from './editor-blocks-inline-sessions.js';
-import { createEditorBlocksTableSession } from './editor-blocks-table-session.js';
-import { createEditorBlocksCardPickerSession } from './editor-blocks-card-picker-session.js';
-import { createEditorBlocksImageSession } from './editor-blocks-image-session.js';
-import { createEditorBlocksCodeSession } from './editor-blocks-code-session.js';
-import { createEditorBlocksSourceSession } from './editor-blocks-source-session.js';
-import { createEditorBlocksListSession } from './editor-blocks-list-session.js';
+import { createEditorBlocksBlockTypeSessions } from './editor-blocks-block-type-sessions.js';
 import {
-  caretRectForEditable,
   closestElement,
-  codeEditableText,
   createCaretSession,
   createInlineDomSession,
   editableText,
-  getEditableCaretTextOffset,
   getEditableSelectionOffsets,
-  inlineMarkedDomRangeFromPointerEvent,
-  inlineMarksFromPointerEvent,
-  insertCodeEditableTextAtSelection,
-  insertPlainTextIntoEditable,
-  isEditableCaretOnEdgeLine,
-  isEditableSelectionAtStart,
   nodeContains,
-  placeCaretAtEnd,
-  placeCaretAtStart,
   placeCaretAtTextOffset,
-  placeCaretAtVisualLine,
-  setPlainContentEditableValue,
-  splitEditableTextAtSelection,
-  textareaTextOffsetDetailsFromPoint
+  setPlainContentEditableValue
 } from './editor-blocks-inline-editing-bridge.js';
 import {
   normalizeEditableMarkdownText
 } from './editor-blocks-inline-model.js';
 import {
   defaultListItems,
-  editableListItems,
-  effectiveListItemType,
-  itemIndentLevel,
-  listVisualMarkerLabels,
-  mergeListItemIntoPreviousItem,
-  normalizeListItemType,
-  normalizeSplitListStartItems,
-  outdentEmptyListItemForEnter,
-  patchListItem,
-  patchListItemType,
-  splitListItemsAtEmptyItem,
-  summarizeListType,
-  convertListTailItemAfterEmptyToParagraph
+  editableListItems
 } from './editor-blocks-list-model.js';
-import {
-  editableTableData,
-  normalizeTableAlignment,
-  normalizeTableCellValue,
-  tableColumnCount
-} from './editor-blocks-table-model.js';
-import {
-  mergeFirstListItemIntoPreviousBlock,
-  isBlockEmptyForBackspace,
-  joinMergedEditableText,
-  mergeTextBlockIntoPrevious,
-  mergeTextBlockIntoPreviousList,
-  splitTextBlockIntoParagraph
-} from './editor-blocks-block-flow-model.js';
 import {
   makeBlankBlock,
   makeBlock,
@@ -468,16 +422,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     queueTask: task => queueMicrotask(task)
   }));
 
-  const cardPickerSession = blockSessions.setCardPickerSession(createEditorBlocksCardPickerSession({
-    documentRef: blocksDocument,
-    runtime,
-    blocksState,
-    text,
-    insertCardBlock: (data, index) => blockSessions.insertCommandBlock('card', data, { index }),
-    requestRender: () => render()
-  }));
-  if (cardPickerSession) root.appendChild(cardPickerSession.element);
-
   const {
     inlineToolbarSession,
     createRichEditable,
@@ -518,69 +462,63 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     onWindow
   });
 
-  const imageSession = createEditorBlocksImageSession({
+  const {
+    imageSession,
+    codeSession,
+    tableSession,
+    sourceSession,
+    listSession,
+    syncActiveTableAlignmentFromEditable,
+    renderers: blockTypeRenderers
+  } = createEditorBlocksBlockTypeSessions({
     documentRef: blocksDocument,
+    windowRef: blocksWindow,
+    runtime,
+    root,
+    list,
+    state,
     blocksState,
+    blockSessions,
     editableSession,
-    blockElements,
-    text,
     selectionSession,
-    insertPlainTextIntoEditable,
-    removeEmptyBlockWithBackspace,
-    handleCrossBlockArrowNavigation,
-    updateInlineToolbarState,
+    caretSession,
+    inlineDomSession,
+    containsNode: nodeContains,
+    closestElement,
+    text,
+    blockElements,
     updateFromControl,
     insertBlock,
     deleteBlockAt,
     setActive,
+    activateEditableFromPointer,
+    handleCrossBlockArrowNavigation,
+    removeEmptyBlockWithBackspace,
+    applySourceAutofix: index => applySourceAutofix(index),
+    autoSizeTextarea,
     resolveAssetSrc,
     hydrateImages,
     requestImageUpload: options.requestImageUpload,
     canDeleteImageResource: options.canDeleteImageResource,
-    requestImageDelete: options.requestImageDelete
-  });
-
-  const codeSession = createEditorBlocksCodeSession({
-    documentRef: blocksDocument,
-    runtime,
-    editableSession,
-    text,
-    selectionSession,
-    codeEditableText,
-    insertCodeEditableTextAtSelection,
-    removeEmptyBlockWithBackspace,
-    handleCrossBlockArrowNavigation,
-    updateFromControl,
-    setActive,
-    activateEditableFromPointer,
-    createHighlightFragment: (code, language) => createRuntimeSafeHighlightFragment(code, language, {
-      documentRef: blocksDocument,
-      windowRef: blocksWindow,
-      allowAmbient: false
-    })
-  });
-
-  const tableSession = createEditorBlocksTableSession({
-    documentRef: blocksDocument,
-    runtime,
-    blocksState,
-    editableSession,
-    blockElements,
-    text,
-    editableTableData,
-    tableColumnCount,
-    normalizeTableAlignment,
-    normalizeTableCellValue,
-    setActive,
-    activateEditableFromPointer,
-    handleCrossBlockArrowNavigation,
-    updateFromControl,
+    requestImageDelete: options.requestImageDelete,
+    render,
+    emit,
+    focusBlockPrimaryEditable,
+    defaultListItems,
+    setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,
+    editableText,
+    makeBlock,
+    makeBlankBlock,
+    makeSplitListBlock,
+    markDirty,
+    insertBlankBlock,
+    updateInlineToolbarState,
+    refreshLinkEditor,
+    openMathEditorForNode,
+    wireInlineEditable,
+    measureLimit: CARET_POINT_MEASURE_LIMIT,
     queueTask: task => queueMicrotask(task)
   });
-
-  const syncActiveTableAlignmentFromEditable = (activeBlock, editable) => {
-    tableSession?.syncActiveAlignmentFromEditable(activeBlock, editable, state.blocks);
-  };
 
   const activeSession = blockSessions.setActiveSession(createEditorBlocksActiveSession({
     state,
@@ -594,84 +532,6 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     syncActiveTableAlignmentFromEditable,
     requestStickyBlockHeadUpdate,
     clearNativeSelection
-  }));
-
-  const sourceSession = createEditorBlocksSourceSession({
-    documentRef: blocksDocument,
-    editableSession,
-    text,
-    caretSession,
-    measureLimit: CARET_POINT_MEASURE_LIMIT,
-    textareaTextOffsetDetailsFromPoint,
-    autoSizeTextarea,
-    removeEmptyBlockWithBackspace,
-    handleCrossBlockArrowNavigation,
-    updateFromControl,
-    setActive,
-    activateEditableFromPointer,
-    applyAutofix: index => applySourceAutofix(index),
-    queueTask: task => queueMicrotask(task)
-  });
-
-  const listSession = blockSessions.setListSession(createEditorBlocksListSession({
-    documentRef: blocksDocument,
-    root,
-    list,
-    state,
-    blocksState,
-    editableSession,
-    selectionSession,
-    caretSession,
-    inlineDomSession,
-    containsNode: nodeContains,
-    closestElement,
-    text,
-    editableListItems,
-    defaultListItems,
-    summarizeListType,
-    listVisualMarkerLabels,
-    effectiveListItemType,
-    itemIndentLevel,
-    normalizeListItemType,
-    patchListItemType,
-    patchListItem,
-    setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,
-    editableText,
-    splitEditableTextAtSelection,
-    outdentEmptyListItemForEnter,
-    convertListTailItemAfterEmptyToParagraph,
-    splitListItemsAtEmptyItem,
-    normalizeSplitListStartItems,
-    mergeListItemIntoPreviousItem,
-    mergeFirstListItemIntoPreviousBlock,
-    makeBlock,
-    makeSplitListBlock,
-    makeBlankBlock,
-    markDirty,
-    render,
-    emit,
-    updateFromControl,
-    insertBlankBlock,
-    focusBlockPrimaryEditable,
-    removeEmptyBlockWithBackspace,
-    handleCrossBlockArrowNavigation,
-    isEditableSelectionAtStart,
-    isEditableCaretOnEdgeLine,
-    getEditableCaretTextOffset,
-    caretRectForEditable,
-    placeCaretAtVisualLine,
-    placeCaretAtTextOffset,
-    placeCaretAtStart,
-    placeCaretAtEnd,
-    setActive,
-    activateEditableFromPointer,
-    inlineMarksFromPointerEvent,
-    inlineMarkedDomRangeFromPointerEvent,
-    updateInlineToolbarState,
-    refreshLinkEditor,
-    openMathEditorForNode,
-    wireInlineEditable,
-    queueTask: task => queueMicrotask(task)
   }));
 
   const headSession = createEditorBlocksHeadSession({
@@ -714,11 +574,7 @@ export function createMarkdownBlocksEditor(root, options = {}) {
     handleCrossBlockArrowNavigation,
     renderers: {
       blank: (body, block, index) => blockSessions.renderBlankBlock(body, block, index),
-      image: (body, block, index) => imageSession?.renderBlock(body, block, index),
-      table: (body, block, index) => tableSession?.renderBlock(body, block, index),
-      list: (body, block, index) => listSession?.renderBlock(body, block, index),
-      code: (body, block, index) => codeSession?.renderBlock(body, block, index),
-      source: (body, block, index) => sourceSession?.renderBlock(body, block, index)
+      ...blockTypeRenderers
     }
   }));
 

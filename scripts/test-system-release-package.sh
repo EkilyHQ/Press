@@ -243,6 +243,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-action-effects.js" "${
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-root-contract.js" "${entries_file}"; then
+  echo "expected package to include composer root contract code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-markdown-workspace-facade.js" "${entries_file}"; then
   echo "expected package to include composer Markdown workspace facade code" >&2
   exit 1

@@ -93,6 +93,11 @@ if ! grep -F 'node scripts/test-composer-app-services.js' "${workflow}" >/dev/nu
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-composer-action-contract.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the composer action contract before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-composer-service-registry.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify the composer service registry before publishing" >&2
   exit 1

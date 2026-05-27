@@ -26,6 +26,7 @@ jobs:
       - name: Verify release package boundary
         run: |
           node scripts/sync-runtime-cache-keys.mjs --check
+          node scripts/test-composer-action-contract.js
           node scripts/test-composer-app-services.js
           node scripts/test-composer-service-registry.js
           node scripts/test-press-system-surface.mjs

@@ -303,6 +303,7 @@ assert.equal(caretSession.isTextareaOnEdgeLine(textarea, 'up'), false);
 {
   const here = dirname(fileURLToPath(import.meta.url));
   const caretSessionSource = readFileSync(resolve(here, '../assets/js/editor-blocks-caret-session.js'), 'utf8');
+  const caretMeasurementSource = readFileSync(resolve(here, '../assets/js/editor-blocks-caret-measurement.js'), 'utf8');
   assert.match(
     caretSessionSource,
     /function createFallbackSelectionSession\(\) \{[\s\S]*return createEditorBlocksSelectionSession\(\);[\s\S]*function normalizeSelectionSession\(selectionSession\) \{[\s\S]*: createFallbackSelectionSession\(\);/,
@@ -312,6 +313,21 @@ assert.equal(caretSession.isTextareaOnEdgeLine(textarea, 'up'), false);
     caretSessionSource,
     /const\s+fallbackSelectionSession\s*=/,
     'caret session should not keep a module-level fallback selection singleton'
+  );
+  assert.match(
+    caretSessionSource,
+    /from '\.\/editor-blocks-caret-measurement\.js'/,
+    'caret session should delegate point and visual-line measurement to the caret measurement boundary'
+  );
+  assert.match(
+    caretMeasurementSource,
+    /export function measuredTextOffsetDetailsFromPoint[\s\S]*export function textareaTextOffsetDetailsFromPoint[\s\S]*export function visualLineRects/,
+    'caret measurement boundary should own point-to-text, textarea mirror, and visual-line geometry'
+  );
+  assert.doesNotMatch(
+    caretSessionSource,
+    /function caretBoundaryDistance|TEXTAREA_MIRROR_STYLE_PROPS/,
+    'caret session should not retain low-level measurement geometry internals'
   );
 }
 

@@ -159,6 +159,7 @@ const componentSource = read(path.join(root, 'assets', 'js', 'components.js'));
 const themeRegionsSource = read(path.join(root, 'assets', 'js', 'theme-regions.js'));
 const themeLayoutSource = read(path.join(root, 'assets', 'js', 'theme-layout.js'));
 const themeManagerSource = read(path.join(root, 'assets', 'js', 'theme-manager.js'));
+const themePackageCoreSource = read(path.join(root, 'assets', 'js', 'theme-package-core.js'));
 const mainSource = read(path.join(root, 'assets', 'main.js'));
 const contentModelSource = read(path.join(root, 'assets', 'js', 'content-model.js'));
 const themeContractSource = read(path.join(root, 'wwwroot', 'post', 'theme-contract', 'theme-contract_en.md'));
@@ -186,11 +187,14 @@ const schemaContentShapes = schema.$defs && schema.$defs.contentShapeList && sch
 if (JSON.stringify(schemaContentShapes || []) !== JSON.stringify(REQUIRED_CONTENT_SHAPES)) {
   fail('assets/schema/theme.json content shape enum must match the shared theme contract surface');
 }
-if (!themeLayoutSource.includes('theme-contract-surface.mjs') || !themeManagerSource.includes('theme-contract-surface.mjs')) {
-  fail('theme runtime and Theme Manager must import the shared theme contract surface');
+if (!themeLayoutSource.includes('theme-contract-surface.mjs') || !themePackageCoreSource.includes('theme-contract-surface.mjs')) {
+  fail('theme runtime and Theme Manager package core must import the shared theme contract surface');
 }
-if (!themeLayoutSource.includes('getDefaultThemeStyles') || !themeManagerSource.includes('getDefaultThemeStyles')) {
-  fail('theme runtime and Theme Manager must read default theme styles from the shared theme contract surface');
+if (!themeManagerSource.includes('theme-package-core.js')) {
+  fail('Theme Manager must consume theme contract rules through the shared package core');
+}
+if (!themeLayoutSource.includes('getDefaultThemeStyles') || !themePackageCoreSource.includes('getDefaultThemeStyles')) {
+  fail('theme runtime and Theme Manager package core must read default theme styles from the shared theme contract surface');
 }
 
 REQUIRED_COMPONENTS.forEach((component) => {

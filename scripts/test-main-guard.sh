@@ -39,6 +39,7 @@ for command in \
   'node scripts/test-release-intent.js' \
   'node scripts/test-dispatch-system-release.js' \
   'node scripts/test-product-state-ledger.js' \
+  'node scripts/test-composer-action-contract.js' \
   'node scripts/test-composer-app-services.js' \
   'node scripts/test-composer-service-registry.js' \
   'node scripts/test-provider-adapters.js' \

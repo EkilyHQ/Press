@@ -40,13 +40,19 @@ const run = (name, fn) => {
 };
 
 const editorBlocksSource = readFileSync(new URL('../assets/js/editor-blocks.js', import.meta.url), 'utf8');
-const editorBlocksModelSource = readFileSync(new URL('../assets/js/editor-blocks-model.js', import.meta.url), 'utf8');
+const editorBlocksBlockCoreModelSource = readFileSync(new URL('../assets/js/editor-blocks-block-core-model.js', import.meta.url), 'utf8');
+const editorBlocksBlockFlowModelSource = readFileSync(new URL('../assets/js/editor-blocks-block-flow-model.js', import.meta.url), 'utf8');
+const editorBlocksBlockActionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-actions.js', import.meta.url), 'utf8');
+const editorBlocksInlineSessionsSource = readFileSync(new URL('../assets/js/editor-blocks-inline-sessions.js', import.meta.url), 'utf8');
+const editorBlocksBlockTypeSessionsSource = readFileSync(new URL('../assets/js/editor-blocks-block-type-sessions.js', import.meta.url), 'utf8');
 const editorBlocksBodySessionSource = readFileSync(new URL('../assets/js/editor-blocks-body-session.js', import.meta.url), 'utf8');
 const editorBlocksStateSource = readFileSync(new URL('../assets/js/editor-blocks-state.js', import.meta.url), 'utf8');
 const editorBlocksHeadSessionSource = readFileSync(new URL('../assets/js/editor-blocks-head-session.js', import.meta.url), 'utf8');
 const editorBlocksCommandSessionSource = readFileSync(new URL('../assets/js/editor-blocks-command-session.js', import.meta.url), 'utf8');
 const editorBlocksRichTextSessionSource = readFileSync(new URL('../assets/js/editor-blocks-rich-text-session.js', import.meta.url), 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(new URL('../assets/js/editor-blocks-caret-session.js', import.meta.url), 'utf8');
+const editorBlocksCaretMeasurementSource = readFileSync(new URL('../assets/js/editor-blocks-caret-measurement.js', import.meta.url), 'utf8');
+const editorBlocksInlineEditingBridgeSource = readFileSync(new URL('../assets/js/editor-blocks-inline-editing-bridge.js', import.meta.url), 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(new URL('../assets/js/editor-blocks-focus-session.js', import.meta.url), 'utf8');
 const editorBlocksCodeSessionSource = readFileSync(new URL('../assets/js/editor-blocks-code-session.js', import.meta.url), 'utf8');
 const editorBlocksSourceSessionSource = readFileSync(new URL('../assets/js/editor-blocks-source-session.js', import.meta.url), 'utf8');
@@ -134,13 +140,18 @@ run('rich text and list initialization render through the runtime inline DOM ses
     'the blocks editor should bind plain contenteditable rendering to the runtime inline-DOM session'
   );
   assert.match(
-    editorBlocksSource,
-    /createEditorBlocksRichTextSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    editorBlocksInlineEditingBridgeSource,
+    /createEditorBlocksInlineDomSession[\s\S]*createEditorBlocksCaretSession[\s\S]*export function inlineRunsFromDom\(root\)[\s\S]*export function setPlainContentEditableValue\(el, value, inlineDomSession = null\)/,
+    'the inline editing bridge should own runtime inline DOM and caret session adapters'
+  );
+  assert.match(
+    editorBlocksInlineSessionsSource,
+    /createRichTextSession\(\{[\s\S]*setPlainContentEditableValue,/,
     'rich text blocks should use the runtime-bound contenteditable renderer'
   );
   assert.match(
-    editorBlocksSource,
-    /createEditorBlocksListSession\(\{[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,/,
+    editorBlocksBlockTypeSessionsSource,
+    /createListSession\(\{[\s\S]*setPlainContentEditableValue,/,
     'list items should use the runtime-bound contenteditable renderer'
   );
   assert.doesNotMatch(
@@ -347,7 +358,7 @@ run('text block split helper only supports editable text block types', () => {
 
 run('mid-enter split leaves end-of-block Enter on the blank block insertion path', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /offsets\.start >= currentText\.length[\s\S]*return false;[\s\S]*splitEditableTextAtSelection\(editable, selectionSession\)/,
     'split path should bail out before splitting when the caret is at the end'
   );
@@ -360,8 +371,8 @@ run('mid-enter split leaves end-of-block Enter on the blank block insertion path
 
 run('mid-enter split ignores modified Enter key chords', () => {
   assert.match(
-    editorBlocksSource,
-    /event\.key !== 'Enter' \|\| event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing/,
+    editorBlocksBlockActionsSource,
+    /const plainKey = \(event, key\) => event[\s\S]*event\.key === key[\s\S]*!event\.shiftKey[\s\S]*!event\.isComposing;[\s\S]*!plainKey\(event, 'Enter'\)/,
     'split path should only handle plain Enter'
   );
 });
@@ -528,7 +539,7 @@ run('backspace merge path runs after empty-block removal and before Enter handli
     'text block Backspace merge should run after empty-block removal and before Enter handling'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /if \(!Number\.isInteger\(index\) \|\| index <= 0\) return false;[\s\S]*mergeTextBlockIntoPrevious\(previous, block\) \|\| mergeTextBlockIntoPreviousList\(previous, block\)/,
     'text block Backspace merge should never apply to the first block'
   );
@@ -536,20 +547,20 @@ run('backspace merge path runs after empty-block removal and before Enter handli
 
 run('backspace merge ignores modified Backspace key chords', () => {
   assert.match(
-    editorBlocksSource,
-    /event\.key !== 'Backspace' \|\| event\.shiftKey \|\| event\.altKey \|\| event\.ctrlKey \|\| event\.metaKey \|\| event\.isComposing/,
+    editorBlocksBlockActionsSource,
+    /const plainKey = \(event, key\) => event[\s\S]*event\.key === key[\s\S]*!event\.shiftKey[\s\S]*!event\.isComposing;[\s\S]*!plainKey\(event, 'Backspace'\)/,
     'merge path should only handle plain Backspace'
   );
 });
 
 run('backspace merge focuses previous block at its rendered text length', () => {
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /focusBlockPrimaryEditable\(merged, merged\.focusCaretOffset\)/,
     'caret should land after any inserted separator after text block merge'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /blocksState\.replaceBlocks\(index - 1, 2, \[merged\],[\s\S]*caretOffset: merged\.focusCaretOffset[\s\S]*\}/,
     'caret should land after any inserted separator after text-to-list merge'
   );
@@ -584,8 +595,8 @@ run('cross-block arrows only leave text editables from edge lines', () => {
 run('cross-block arrows detect wrapped contenteditable visual lines from text ranges', () => {
   const edgeLineSource = editorBlocksCaretSessionSource;
   assert.match(
-    editorBlocksCaretSessionSource,
-    /function visualLineRects\(el\)[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
+    editorBlocksCaretMeasurementSource,
+    /export function visualLineRects\(el, options = \{\}\)[\s\S]*selectionTools\.createTreeWalker\(el, CARET_TEXT_NODE_FILTER\)[\s\S]*range\.setStart\(node, i\)[\s\S]*range\.getClientRects/,
     'visual line detection should be based on per-character text range rectangles'
   );
   assert.match(
@@ -672,12 +683,12 @@ run('blank blocks replace the inline virtual insertion state', () => {
     'blank blocks should not depend on persistent inline virtual block state'
   );
   assert.match(
-    editorBlocksModelSource,
+    editorBlocksBlockCoreModelSource,
     /const BLOCK_TYPES = new Set\(\[[^\]]*'blank'[^\]]*\]\)/,
     'blank should be an internal block type'
   );
   assert.match(
-    editorBlocksModelSource,
+    editorBlocksBlockCoreModelSource,
     /function makeBlankBlock\(after = '\\n', data = \{\}\)[\s\S]*makeBlock\('blank', '', \{ \.\.\.data, after: after \|\| '\\n' \}\)/,
     'blank blocks should serialize as newline whitespace only'
   );
@@ -732,12 +743,12 @@ run('typing or slash command on blank blocks replaces the blank block', () => {
 
 run('blank blocks use existing removable and cross-block navigation paths', () => {
   assert.match(
-    editorBlocksModelSource,
+    editorBlocksBlockFlowModelSource,
     /if \(block\.type === 'blank'\) return true;/,
     'empty-block Backspace detection should treat blank blocks as removable'
   );
   assert.match(
-    editorBlocksSource,
+    editorBlocksBlockActionsSource,
     /if \(!Number\.isInteger\(index\) \|\| index <= 0\) return false;[\s\S]*if \(!isBlockEmptyForBackspace\(block\)\) return false;/,
     'blank Backspace removal should still skip the first block'
   );

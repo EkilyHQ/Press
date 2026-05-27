@@ -34,9 +34,25 @@ const composerSeoStagingPath = resolve(here, '../assets/js/composer-seo-staging.
 const composerIndexTabsModelPath = resolve(here, '../assets/js/composer-index-tabs-model.js');
 const composerSiteModelPath = resolve(here, '../assets/js/composer-site-model.js');
 const composerDiffUiPath = resolve(here, '../assets/js/composer-diff-ui.js');
+const composerDiffReviewViewsPath = resolve(here, '../assets/js/composer-diff-review-views.js');
 const composerOrderDiffUiPath = resolve(here, '../assets/js/composer-order-diff-ui.js');
+const composerOrderPreviewPath = resolve(here, '../assets/js/composer-order-preview.js');
+const composerOrderReviewViewPath = resolve(here, '../assets/js/composer-order-review-view.js');
+const composerOrderVisualPath = resolve(here, '../assets/js/composer-order-visual.js');
+const composerDragListPath = resolve(here, '../assets/js/composer-drag-list.js');
+const composerIndexVersionListPath = resolve(here, '../assets/js/composer-index-version-list.js');
 const composerIndexTabsUiPath = resolve(here, '../assets/js/composer-index-tabs-ui.js');
+const composerIndexTabsLanguageMenuPath = resolve(here, '../assets/js/composer-index-tabs-language-menu.js');
 const composerSiteSettingsUiPath = resolve(here, '../assets/js/composer-site-settings-ui.js');
+const composerSiteSettingsConfigGridsPath = resolve(here, '../assets/js/composer-site-settings-config-grids.js');
+const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
+const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
+const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
+const composerSiteSettingsLocalizedFieldsPath = resolve(here, '../assets/js/composer-site-settings-localized-fields.js');
+const composerSiteSettingsRepoSectionPath = resolve(here, '../assets/js/composer-site-settings-repo-section.js');
+const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
+const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-site-settings-section-nav.js');
+const composerSiteSettingsSingleGridsPath = resolve(here, '../assets/js/composer-site-settings-single-grids.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
@@ -84,10 +100,20 @@ const hiEditorPath = resolve(here, '../assets/js/hieditor.js');
 const editorMainPath = resolve(here, '../assets/js/editor-main.js');
 const editorMainRuntimePath = resolve(here, '../assets/js/editor-main-runtime.js');
 const editorMainMetadataPanelPath = resolve(here, '../assets/js/editor-main-metadata-panel.js');
+const editorMainFrontMatterLabelWidthPath = resolve(here, '../assets/js/editor-main-frontmatter-label-width.js');
+const editorMainFrontMatterManagerPath = resolve(here, '../assets/js/editor-main-frontmatter-manager.js');
+const editorMainTabsMetadataManagerPath = resolve(here, '../assets/js/editor-main-tabs-metadata-manager.js');
 const editorMainPreviewSessionPath = resolve(here, '../assets/js/editor-main-preview-session.js');
+const editorMainPreviewAssetsPath = resolve(here, '../assets/js/editor-main-preview-assets.js');
+const editorMainPreviewThemePickerPath = resolve(here, '../assets/js/editor-main-preview-theme-picker.js');
+const editorMainPreviewViewportPath = resolve(here, '../assets/js/editor-main-preview-viewport.js');
 const editorMainCurrentFileSessionPath = resolve(here, '../assets/js/editor-main-current-file-session.js');
+const editorMainCurrentFileViewPath = resolve(here, '../assets/js/editor-main-current-file-view.js');
 const editorMainSidebarSessionPath = resolve(here, '../assets/js/editor-main-sidebar-session.js');
+const editorMainSidebarFileTreePath = resolve(here, '../assets/js/editor-main-sidebar-file-tree.js');
 const editorMainToolbarSessionPath = resolve(here, '../assets/js/editor-main-toolbar-session.js');
+const editorMainToolbarCardPickerPath = resolve(here, '../assets/js/editor-main-toolbar-card-picker.js');
+const editorMainToolbarTextActionsPath = resolve(here, '../assets/js/editor-main-toolbar-text-actions.js');
 const editorMainImageSessionPath = resolve(here, '../assets/js/editor-main-image-session.js');
 const editorMainLinkCardContextPath = resolve(here, '../assets/js/editor-main-link-card-context.js');
 const editorMainWorkspaceSessionPath = resolve(here, '../assets/js/editor-main-workspace-session.js');
@@ -101,8 +127,17 @@ const editorMainShellServicePath = resolve(here, '../assets/js/editor-main-shell
 const editorMainServiceRegistryPath = resolve(here, '../assets/js/editor-main-service-registry.js');
 const editorBlocksPath = resolve(here, '../assets/js/editor-blocks.js');
 const editorBlocksModelPath = resolve(here, '../assets/js/editor-blocks-model.js');
+const editorBlocksBlockCoreModelPath = resolve(here, '../assets/js/editor-blocks-block-core-model.js');
+const editorBlocksMarkdownParseModelPath = resolve(here, '../assets/js/editor-blocks-markdown-parse-model.js');
+const editorBlocksMarkdownSerializeModelPath = resolve(here, '../assets/js/editor-blocks-markdown-serialize-model.js');
+const editorBlocksInlineModelPath = resolve(here, '../assets/js/editor-blocks-inline-model.js');
+const editorBlocksListModelPath = resolve(here, '../assets/js/editor-blocks-list-model.js');
+const editorBlocksTableModelPath = resolve(here, '../assets/js/editor-blocks-table-model.js');
+const editorBlocksBlockFlowModelPath = resolve(here, '../assets/js/editor-blocks-block-flow-model.js');
 const editorBlocksRuntimePath = resolve(here, '../assets/js/editor-blocks-runtime.js');
 const editorBlocksSessionRegistryPath = resolve(here, '../assets/js/editor-blocks-session-registry.js');
+const editorBlocksBlockActionsPath = resolve(here, '../assets/js/editor-blocks-block-actions.js');
+const editorBlocksControlFactoryPath = resolve(here, '../assets/js/editor-blocks-control-factory.js');
 const editorBlocksLayoutSessionPath = resolve(here, '../assets/js/editor-blocks-layout-session.js');
 const editorBlocksBodySessionPath = resolve(here, '../assets/js/editor-blocks-body-session.js');
 const editorBlocksStatePath = resolve(here, '../assets/js/editor-blocks-state.js');
@@ -114,10 +149,16 @@ const editorBlocksEditableSessionPath = resolve(here, '../assets/js/editor-block
 const editorBlocksSelectionSessionPath = resolve(here, '../assets/js/editor-blocks-selection-session.js');
 const editorBlocksInlineDomSessionPath = resolve(here, '../assets/js/editor-blocks-inline-dom-session.js');
 const editorBlocksCaretSessionPath = resolve(here, '../assets/js/editor-blocks-caret-session.js');
+const editorBlocksCaretMeasurementPath = resolve(here, '../assets/js/editor-blocks-caret-measurement.js');
+const editorBlocksInlineEditingBridgePath = resolve(here, '../assets/js/editor-blocks-inline-editing-bridge.js');
 const editorBlocksFocusSessionPath = resolve(here, '../assets/js/editor-blocks-focus-session.js');
 const editorBlocksPointerSessionPath = resolve(here, '../assets/js/editor-blocks-pointer-session.js');
+const editorBlocksFocusPointerSessionsPath = resolve(here, '../assets/js/editor-blocks-focus-pointer-sessions.js');
 const editorBlocksActiveSessionPath = resolve(here, '../assets/js/editor-blocks-active-session.js');
+const editorBlocksInlineSessionsPath = resolve(here, '../assets/js/editor-blocks-inline-sessions.js');
+const editorBlocksBlockTypeSessionsPath = resolve(here, '../assets/js/editor-blocks-block-type-sessions.js');
 const editorBlocksInlineToolbarSessionPath = resolve(here, '../assets/js/editor-blocks-inline-toolbar-session.js');
+const editorBlocksInlineCommandSessionPath = resolve(here, '../assets/js/editor-blocks-inline-command-session.js');
 const editorBlocksLinkSessionPath = resolve(here, '../assets/js/editor-blocks-link-session.js');
 const editorBlocksMathSessionPath = resolve(here, '../assets/js/editor-blocks-math-session.js');
 const editorBlocksTableSessionPath = resolve(here, '../assets/js/editor-blocks-table-session.js');
@@ -158,9 +199,25 @@ const composerSeoStagingSource = readFileSync(composerSeoStagingPath, 'utf8');
 const composerIndexTabsModelSource = readFileSync(composerIndexTabsModelPath, 'utf8');
 const composerSiteModelSource = readFileSync(composerSiteModelPath, 'utf8');
 const composerDiffUiSource = readFileSync(composerDiffUiPath, 'utf8');
+const composerDiffReviewViewsSource = readFileSync(composerDiffReviewViewsPath, 'utf8');
 const composerOrderDiffUiSource = readFileSync(composerOrderDiffUiPath, 'utf8');
+const composerOrderPreviewSource = readFileSync(composerOrderPreviewPath, 'utf8');
+const composerOrderReviewViewSource = readFileSync(composerOrderReviewViewPath, 'utf8');
+const composerOrderVisualSource = readFileSync(composerOrderVisualPath, 'utf8');
+const composerDragListSource = readFileSync(composerDragListPath, 'utf8');
+const composerIndexVersionListSource = readFileSync(composerIndexVersionListPath, 'utf8');
 const composerIndexTabsUiSource = readFileSync(composerIndexTabsUiPath, 'utf8');
+const composerIndexTabsLanguageMenuSource = readFileSync(composerIndexTabsLanguageMenuPath, 'utf8');
 const composerSiteSettingsUiSource = readFileSync(composerSiteSettingsUiPath, 'utf8');
+const composerSiteSettingsConfigGridsSource = readFileSync(composerSiteSettingsConfigGridsPath, 'utf8');
+const composerSiteSettingsControlsSource = readFileSync(composerSiteSettingsControlsPath, 'utf8');
+const composerSiteSettingsLanguageMenuSource = readFileSync(composerSiteSettingsLanguageMenuPath, 'utf8');
+const composerSiteSettingsLinkListSource = readFileSync(composerSiteSettingsLinkListPath, 'utf8');
+const composerSiteSettingsLocalizedFieldsSource = readFileSync(composerSiteSettingsLocalizedFieldsPath, 'utf8');
+const composerSiteSettingsRepoSectionSource = readFileSync(composerSiteSettingsRepoSectionPath, 'utf8');
+const composerSiteSettingsSchemaSource = readFileSync(composerSiteSettingsSchemaPath, 'utf8');
+const composerSiteSettingsSectionNavSource = readFileSync(composerSiteSettingsSectionNavPath, 'utf8');
+const composerSiteSettingsSingleGridsSource = readFileSync(composerSiteSettingsSingleGridsPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
@@ -208,10 +265,20 @@ const hiEditorSource = readFileSync(hiEditorPath, 'utf8');
 const editorMainSource = readFileSync(editorMainPath, 'utf8');
 const editorMainRuntimeSource = readFileSync(editorMainRuntimePath, 'utf8');
 const editorMainMetadataPanelSource = readFileSync(editorMainMetadataPanelPath, 'utf8');
+const editorMainFrontMatterLabelWidthSource = readFileSync(editorMainFrontMatterLabelWidthPath, 'utf8');
+const editorMainFrontMatterManagerSource = readFileSync(editorMainFrontMatterManagerPath, 'utf8');
+const editorMainTabsMetadataManagerSource = readFileSync(editorMainTabsMetadataManagerPath, 'utf8');
 const editorMainPreviewSessionSource = readFileSync(editorMainPreviewSessionPath, 'utf8');
+const editorMainPreviewAssetsSource = readFileSync(editorMainPreviewAssetsPath, 'utf8');
+const editorMainPreviewThemePickerSource = readFileSync(editorMainPreviewThemePickerPath, 'utf8');
+const editorMainPreviewViewportSource = readFileSync(editorMainPreviewViewportPath, 'utf8');
 const editorMainCurrentFileSessionSource = readFileSync(editorMainCurrentFileSessionPath, 'utf8');
+const editorMainCurrentFileViewSource = readFileSync(editorMainCurrentFileViewPath, 'utf8');
 const editorMainSidebarSessionSource = readFileSync(editorMainSidebarSessionPath, 'utf8');
+const editorMainSidebarFileTreeSource = readFileSync(editorMainSidebarFileTreePath, 'utf8');
 const editorMainToolbarSessionSource = readFileSync(editorMainToolbarSessionPath, 'utf8');
+const editorMainToolbarCardPickerSource = readFileSync(editorMainToolbarCardPickerPath, 'utf8');
+const editorMainToolbarTextActionsSource = readFileSync(editorMainToolbarTextActionsPath, 'utf8');
 const editorMainImageSessionSource = readFileSync(editorMainImageSessionPath, 'utf8');
 const editorMainLinkCardContextSource = readFileSync(editorMainLinkCardContextPath, 'utf8');
 const editorMainWorkspaceSessionSource = readFileSync(editorMainWorkspaceSessionPath, 'utf8');
@@ -225,8 +292,17 @@ const editorMainShellServiceSource = readFileSync(editorMainShellServicePath, 'u
 const editorMainServiceRegistrySource = readFileSync(editorMainServiceRegistryPath, 'utf8');
 const editorBlocksSource = readFileSync(editorBlocksPath, 'utf8');
 const editorBlocksModelSource = readFileSync(editorBlocksModelPath, 'utf8');
+const editorBlocksBlockCoreModelSource = readFileSync(editorBlocksBlockCoreModelPath, 'utf8');
+const editorBlocksMarkdownParseModelSource = readFileSync(editorBlocksMarkdownParseModelPath, 'utf8');
+const editorBlocksMarkdownSerializeModelSource = readFileSync(editorBlocksMarkdownSerializeModelPath, 'utf8');
+const editorBlocksInlineModelSource = readFileSync(editorBlocksInlineModelPath, 'utf8');
+const editorBlocksListModelSource = readFileSync(editorBlocksListModelPath, 'utf8');
+const editorBlocksTableModelSource = readFileSync(editorBlocksTableModelPath, 'utf8');
+const editorBlocksBlockFlowModelSource = readFileSync(editorBlocksBlockFlowModelPath, 'utf8');
 const editorBlocksRuntimeSource = readFileSync(editorBlocksRuntimePath, 'utf8');
 const editorBlocksSessionRegistrySource = readFileSync(editorBlocksSessionRegistryPath, 'utf8');
+const editorBlocksBlockActionsSource = readFileSync(editorBlocksBlockActionsPath, 'utf8');
+const editorBlocksControlFactorySource = readFileSync(editorBlocksControlFactoryPath, 'utf8');
 const editorBlocksLayoutSessionSource = readFileSync(editorBlocksLayoutSessionPath, 'utf8');
 const editorBlocksBodySessionSource = readFileSync(editorBlocksBodySessionPath, 'utf8');
 const editorBlocksStateSource = readFileSync(editorBlocksStatePath, 'utf8');
@@ -238,10 +314,16 @@ const editorBlocksEditableSessionSource = readFileSync(editorBlocksEditableSessi
 const editorBlocksSelectionSessionSource = readFileSync(editorBlocksSelectionSessionPath, 'utf8');
 const editorBlocksInlineDomSessionSource = readFileSync(editorBlocksInlineDomSessionPath, 'utf8');
 const editorBlocksCaretSessionSource = readFileSync(editorBlocksCaretSessionPath, 'utf8');
+const editorBlocksCaretMeasurementSource = readFileSync(editorBlocksCaretMeasurementPath, 'utf8');
+const editorBlocksInlineEditingBridgeSource = readFileSync(editorBlocksInlineEditingBridgePath, 'utf8');
 const editorBlocksFocusSessionSource = readFileSync(editorBlocksFocusSessionPath, 'utf8');
 const editorBlocksPointerSessionSource = readFileSync(editorBlocksPointerSessionPath, 'utf8');
+const editorBlocksFocusPointerSessionsSource = readFileSync(editorBlocksFocusPointerSessionsPath, 'utf8');
 const editorBlocksActiveSessionSource = readFileSync(editorBlocksActiveSessionPath, 'utf8');
+const editorBlocksInlineSessionsSource = readFileSync(editorBlocksInlineSessionsPath, 'utf8');
+const editorBlocksBlockTypeSessionsSource = readFileSync(editorBlocksBlockTypeSessionsPath, 'utf8');
 const editorBlocksInlineToolbarSessionSource = readFileSync(editorBlocksInlineToolbarSessionPath, 'utf8');
+const editorBlocksInlineCommandSessionSource = readFileSync(editorBlocksInlineCommandSessionPath, 'utf8');
 const editorBlocksLinkSessionSource = readFileSync(editorBlocksLinkSessionPath, 'utf8');
 const editorBlocksMathSessionSource = readFileSync(editorBlocksMathSessionPath, 'utf8');
 const editorBlocksTableSessionSource = readFileSync(editorBlocksTableSessionPath, 'utf8');
@@ -261,7 +343,19 @@ const chtTwI18nSource = readFileSync(chtTwI18nPath, 'utf8');
 const chtHkI18nSource = readFileSync(chtHkI18nPath, 'utf8');
 const jaI18nSource = readFileSync(jaI18nPath, 'utf8');
 const languagesManifestSource = readFileSync(languagesManifestPath, 'utf8');
-const siteSettingsSource = [source, composerSiteSettingsUiSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
+const composerSiteSettingsRuntimeSource = [
+  composerSiteSettingsUiSource,
+  composerSiteSettingsConfigGridsSource,
+  composerSiteSettingsControlsSource,
+  composerSiteSettingsLanguageMenuSource,
+  composerSiteSettingsLinkListSource,
+  composerSiteSettingsLocalizedFieldsSource,
+  composerSiteSettingsRepoSectionSource,
+  composerSiteSettingsSchemaSource,
+  composerSiteSettingsSectionNavSource,
+  composerSiteSettingsSingleGridsSource
+].join('\n');
+const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -349,14 +443,176 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /from '\.\/editor-blocks-model\.js'/,
-  'blocks editor should cache-bust the explicit blocks model boundary'
+  /from '\.\/editor-blocks-block-core-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks core model boundary'
 );
 
 assert.match(
   editorBlocksSource,
-  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,[\s\S]*\} from '\.\/editor-blocks-model\.js'/,
-  'blocks editor should import table model helpers from the explicit blocks model boundary before composing the table session'
+  /from '\.\/editor-blocks-markdown-parse-model\.js'/,
+  'blocks editor should cache-bust the explicit Markdown parse model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-markdown-serialize-model\.js'/,
+  'blocks editor should cache-bust the explicit Markdown serialize model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-inline-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks inline model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-list-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks list model boundary'
+);
+
+assert.match(
+  editorBlocksBlockTypeSessionsSource,
+  /from '\.\/editor-blocks-table-model\.js'/,
+  'blocks block-type session assembly should cache-bust the explicit blocks table model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-block-flow-model\.js'/,
+  'blocks editor should cache-bust the explicit blocks block-flow model boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-inline-sessions\.js'/,
+  'blocks editor should cache-bust the explicit inline sessions assembly boundary'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
+  /from '\.\/editor-blocks-inline-model\.js'/,
+  'blocks inline editing bridge should consume inline run parsing and serialization through the inline model boundary'
+);
+
+assert.match(
+  editorBlocksBlockActionsSource,
+  /from '\.\/editor-blocks-list-model\.js'/,
+  'blocks block actions should consume list block helpers through the list model boundary'
+);
+
+assert.match(
+  editorBlocksBlockActionsSource,
+  /from '\.\/editor-blocks-block-flow-model\.js'/,
+  'blocks block actions should consume Backspace and Enter flow helpers through the block-flow model boundary'
+);
+
+assert.match(
+  editorBlocksBlockActionsSource,
+  /from '\.\/editor-blocks-block-core-model\.js'[\s\S]*from '\.\/editor-blocks-markdown-parse-model\.js'/,
+  'blocks block actions should consume block creation and source autofix through explicit model boundaries'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{[\s\S]*applyInlineLinkToRuns,[\s\S]*parseInlineRuns,[\s\S]*serializeInlineRuns,[\s\S]*toggleInlineMarkOnRuns[\s\S]*\} from '\.\/editor-blocks-inline-model\.js';/,
+  'blocks model should keep backward-compatible inline exports while delegating inline logic to the inline model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*parseListBlock)(?=[\s\S]*serializeList)(?=[\s\S]*mergeListItemIntoPreviousItem)[\s\S]*\} from '\.\/editor-blocks-list-model\.js';/,
+  'blocks model should keep backward-compatible list exports while delegating list logic to the list model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*parseTableBlock)(?=[\s\S]*serializeTable)(?=[\s\S]*editableTableData)[\s\S]*\} from '\.\/editor-blocks-table-model\.js';/,
+  'blocks model should keep backward-compatible table exports while delegating table logic to the table model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*isBlockEmptyForBackspace)(?=[\s\S]*splitTextBlockIntoParagraph)(?=[\s\S]*mergeTextBlockIntoPrevious)(?=[\s\S]*mergeFirstListItemIntoPreviousBlock)[\s\S]*\} from '\.\/editor-blocks-block-flow-model\.js';/,
+  'blocks model should keep backward-compatible block-flow exports while delegating Enter and Backspace editing logic to the block-flow model boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*BLOCK_TYPES)(?=[\s\S]*makeBlock)(?=[\s\S]*makeBlankBlock)(?=[\s\S]*splitBlankLineUnits)[\s\S]*\} from '\.\/editor-blocks-block-core-model\.js';/,
+  'blocks model should keep backward-compatible block core exports while delegating block object shape to the core boundary'
+);
+
+assert.match(
+  editorBlocksModelSource,
+  /export \{(?=[\s\S]*autofixMarkdownSourceBlock)(?=[\s\S]*parseMarkdownBlocks)[\s\S]*\} from '\.\/editor-blocks-markdown-parse-model\.js';[\s\S]*export \{(?=[\s\S]*serializeMarkdownBlocks)[\s\S]*\} from '\.\/editor-blocks-markdown-serialize-model\.js';/,
+  'blocks model should keep backward-compatible Markdown parse and serialize exports while delegating those internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function parseInlineRunsInternal|function inlineMarkedRangeAtOffset|function escapeMarkdownInline|function serializeInlineRun/,
+  'blocks model should not re-own inline Markdown parser, serializer, or run mutation internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function parseListBlock|function serializeList|function parseListLineInfo|function dedentIndentedListSource|function mergeListItemIntoPreviousItem/,
+  'blocks model should not re-own visual-list parser, serializer, source autofix, or item merge internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function parseTableBlock|function serializeTable|function splitPipeTableRow|function parsePipeTableSeparatorCells|function tableSeparatorCell|function serializeTableRow/,
+  'blocks model should not re-own pipe-table parser, serializer, or formatting internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function isBlockEmptyForBackspace|function splitTextBlockIntoParagraph|function joinMergedEditableText|function mergeTextBlockIntoPrevious|function mergeTextBlockIntoPreviousList|function mergeFirstListItemIntoPreviousBlock/,
+  'blocks model should not re-own block-flow Backspace, Enter, split, or cross-block merge internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksModelSource,
+  /function makeBlock|function makeBlankBlock|function parseMarkdownBlocks|function classifyChunk|function riskyParagraphReason|function autofixMarkdownSourceBlock|function serializeMarkdownBlocks|function serializeBlock/,
+  'blocks model facade should not re-own block core, Markdown parsing, source autofix, or serialization internals'
+);
+
+assert.doesNotMatch(
+  editorBlocksBlockCoreModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks core model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksMarkdownParseModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks Markdown parse model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksMarkdownSerializeModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks Markdown serialize model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksTableModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement)\b/,
+  'blocks table model should stay DOM-free'
+);
+
+assert.doesNotMatch(
+  editorBlocksBlockFlowModelSource,
+  /\b(?:document|window|localStorage|CustomEvent|addEventListener|querySelector|createElement|ownerDocument)\b/,
+  'blocks block-flow model should stay DOM-free'
+);
+
+assert.match(
+  editorBlocksBlockTypeSessionsSource,
+  /import \{[\s\S]*editableTableData,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*tableColumnCount,?[\s\S]*\} from '\.\/editor-blocks-table-model\.js'/,
+  'blocks block-type session assembly should import table model helpers from the explicit blocks table model boundary before composing the table session'
 );
 
 assert.match(
@@ -369,6 +625,18 @@ assert.match(
   editorBlocksSource,
   /from '\.\/editor-blocks-session-registry\.js'/,
   'blocks editor should cache-bust the explicit blocks session registry boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-block-actions\.js'/,
+  'blocks editor should cache-bust the explicit blocks action coordinator boundary'
+);
+
+assert.match(
+  editorBlocksSource,
+  /from '\.\/editor-blocks-control-factory\.js'/,
+  'blocks editor should cache-bust the explicit blocks control factory boundary'
 );
 
 assert.match(
@@ -408,9 +676,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-rich-text-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks rich text session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks rich text session boundary'
 );
 
 assert.match(
@@ -427,8 +695,14 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-inline-editing-bridge\.js'/,
+  'blocks editor should cache-bust the explicit blocks inline editing bridge boundary'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
   /from '\.\/editor-blocks-inline-dom-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks inline DOM session boundary'
+  'blocks inline editing bridge should cache-bust the explicit blocks inline DOM session boundary'
 );
 
 assert.match(
@@ -438,15 +712,27 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /from '\.\/editor-blocks-focus-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks focus session boundary'
+  editorBlocksCaretSessionSource,
+  /from '\.\/editor-blocks-caret-measurement\.js'/,
+  'blocks caret session should cache-bust the explicit blocks caret measurement boundary'
 );
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-focus-pointer-sessions\.js'/,
+  'blocks editor should cache-bust the explicit blocks focus/pointer wiring boundary'
+);
+
+assert.match(
+  editorBlocksFocusPointerSessionsSource,
+  /from '\.\/editor-blocks-focus-session\.js'/,
+  'blocks focus/pointer wiring should cache-bust the explicit blocks focus session boundary'
+);
+
+assert.match(
+  editorBlocksFocusPointerSessionsSource,
   /from '\.\/editor-blocks-pointer-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks pointer session boundary'
+  'blocks focus/pointer wiring should cache-bust the explicit blocks pointer session boundary'
 );
 
 assert.match(
@@ -456,63 +742,111 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-inline-toolbar-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks inline toolbar session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks inline toolbar session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
+  /from '\.\/editor-blocks-inline-command-session\.js'/,
+  'blocks inline sessions assembly should cache-bust the explicit blocks inline command session boundary'
+);
+
+assert.match(
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-link-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks link session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks link session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineSessionsSource,
   /from '\.\/editor-blocks-math-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks math session boundary'
+  'blocks inline sessions assembly should cache-bust the explicit blocks math session boundary'
 );
 
 assert.match(
   editorBlocksSource,
+  /from '\.\/editor-blocks-block-type-sessions\.js'/,
+  'blocks editor should cache-bust the explicit block type sessions assembly boundary'
+);
+
+assert.match(
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-table-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks table session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks table session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-card-picker-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks card picker session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks card picker session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-image-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks image session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks image session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-code-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks code session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks code session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-source-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks source session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks source session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockTypeSessionsSource,
   /from '\.\/editor-blocks-list-session\.js'/,
-  'blocks editor should cache-bust the explicit blocks list session boundary'
+  'blocks block-type session assembly should cache-bust the explicit blocks list session boundary'
 );
 
 assert.match(
   editorBlocksSource,
   /const blockSessions = createEditorBlocksSessionRegistry\(\);/,
   'blocks editor should create an explicit late-bound session registry at the composition root'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const blockActions = createEditorBlocksBlockActions\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*blockSessions,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*getEditableSelectionOffsets,[\s\S]*focusBlockPrimaryEditable,[\s\S]*focusPreviousBlockEnd,[\s\S]*setActive,[\s\S]*emit,[\s\S]*\}\);[\s\S]*insertBlankBlock,[\s\S]*insertBlankBlockAfter,[\s\S]*splitTextBlockAfterCaret,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*deleteBlockAt,[\s\S]*makeSplitListBlock,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*applySourceAutofix/,
+  'blocks editor should compose root block mutations through the explicit block action coordinator'
+);
+
+assert.match(
+  editorBlocksBlockActionsSource,
+  /export function createEditorBlocksBlockActions\(\{[\s\S]*const insertBlankBlock = \(index = state\.blocks\.length, options = \{\}\) => \{[\s\S]*const insertBlankBlockAfter = \(index, editable = null, sync = null\) => \{[\s\S]*const splitTextBlockAfterCaret = \(event, block, index, editable = null\) => \{[\s\S]*const mergeTextBlockWithPreviousOnBackspace = \(event, block, index, editable = null\) => \{[\s\S]*const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*const applySourceAutofix = \(index\) => \{/,
+  'blocks action coordinator should own block insertion, split, merge, deletion, and source autofix behavior'
+);
+
+assert.match(
+  editorBlocksSource,
+  /const blockControls = createEditorBlocksControlFactory\(\{[\s\S]*runtime,[\s\S]*text,[\s\S]*updateFromControl,[\s\S]*blockElements,[\s\S]*setActive,[\s\S]*openMathEditorForBlock[\s\S]*\}\);[\s\S]*const \{[\s\S]*autoSizeTextarea,[\s\S]*createBlockTypeIcon,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton[\s\S]*\} = blockControls;/,
+  'blocks editor should compose block control DOM factories through the explicit control factory boundary'
+);
+
+assert.match(
+  editorBlocksControlFactorySource,
+  /const BLOCK_TYPE_ICON_PATHS = \{[\s\S]*paragraph:[\s\S]*heading:[\s\S]*image:[\s\S]*list:[\s\S]*quote:[\s\S]*code:[\s\S]*source:[\s\S]*card:[\s\S]*blank:[\s\S]*export function createEditorBlocksControlFactory\(\{[\s\S]*const createBlockTypeIcon = \(blockType\) => \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*const createHeadingLevelSelect = \(block\) => \{[\s\S]*const createMathEditButton = \(block, index\) => \{[\s\S]*const autoSizeTextarea = \(area\) => \{/,
+  'blocks control factory should own block icons, heading select, math edit button, and textarea autosize DOM helpers'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const splitTextBlockAfterCaret = \(event|const mergeTextBlockWithPreviousOnBackspace = \(event|const removeEmptyBlockWithBackspace = \(event|const applySourceAutofix = \(index\) => \{/,
+  'blocks root should not own root-local block action implementations'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /const BLOCK_TYPE_ICON_PATHS|function createBlockTypeIcon|const createHeadingLevelSelect = \(block\)|const createMathEditButton = \(block, index\)|const autoSizeTextarea = \(area\)|function button\(/,
+  'blocks root should not own block control factory implementations'
 );
 
 assert.doesNotMatch(
@@ -529,8 +863,26 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksSource,
-  /function createFallbackSelectionSession\(\) \{[\s\S]*return createEditorBlocksSelectionSession\(\);[\s\S]*function normalizeSelectionSession\(selectionSession\) \{[\s\S]*: createFallbackSelectionSession\(\);[\s\S]*function normalizeInlineDomSession\(inlineDomSession\) \{[\s\S]*: createInlineDomSession\(\);[\s\S]*function normalizeCaretSession\(caretSessionOrSelectionSession\) \{[\s\S]*return createCaretSession\(\);/,
-  'blocks editor should create temporary fallback sessions at call time instead of retaining hidden module state'
+  /from '\.\/editor-blocks-inline-editing-bridge\.js'/,
+  'blocks editor should import the inline editing bridge boundary'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
+  /function createFallbackSelectionSession\(documentRef = null\) \{[\s\S]*return createEditorBlocksSelectionSession\(\{ documentRef, windowRef \}\);[\s\S]*function normalizeSelectionSession\(selectionSession, documentRef = null\) \{[\s\S]*: createFallbackSelectionSession\(documentRef\);[\s\S]*function normalizeInlineDomSession\(inlineDomSession\) \{[\s\S]*: createInlineDomSession\(\);[\s\S]*function normalizeCaretSession\(caretSessionOrSelectionSession\) \{[\s\S]*return createCaretSession\(\);/,
+  'blocks inline editing bridge should create document-aware temporary fallback sessions at call time instead of retaining hidden module state'
+);
+
+assert.match(
+  editorBlocksInlineEditingBridgeSource,
+  /export function createInlineDomSession\(selectionSession = null, documentRef = null, renderMath = null\)[\s\S]*export function createCaretSession\(selectionSession = null, documentRef = null\)[\s\S]*export function inlineRunsFromDom\(root\)[\s\S]*export function splitEditableTextAtSelection\(el, selectionSession = null\)[\s\S]*export function insertCodeEditableTextAtSelection\(el, value, selectionSession = null\)[\s\S]*export function selectionLinkInEditable\(editable, selectionSession = null\)[\s\S]*export function selectionMathInEditable\(editable, selectionSession = null\)/,
+  'blocks inline editing bridge should own inline DOM conversion, caret wrappers, code insertion, and active link/math lookup'
+);
+
+assert.doesNotMatch(
+  editorBlocksSource,
+  /function inlineRunsFromDom|function serializeInlineDom|function splitEditableTextAtSelection|function selectionLinkInEditable|function selectionMathInEditable|function insertCodeEditableTextAtSelection|function nodeContains|function closestElement/,
+  'blocks editor root should not own inline DOM, caret, selection, or code-editing helper implementations'
 );
 
 assert.match(
@@ -543,6 +895,12 @@ assert.doesNotMatch(
   editorBlocksCaretSessionSource,
   /const\s+fallbackSelectionSession\s*=/,
   'blocks caret session should not keep a module-level fallback selection singleton'
+);
+
+assert.match(
+  editorBlocksCaretMeasurementSource,
+  /export function measuredTextOffsetDetailsFromPoint[\s\S]*export function textareaTextOffsetDetailsFromPoint[\s\S]*export function visualLineRects/,
+  'blocks caret measurement boundary should own point-to-text, textarea mirror, and visual-line geometry'
 );
 
 assert.match(
@@ -559,14 +917,20 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const focusSession = blockSessions\.setFocusSession\(createEditorBlocksFocusSession\(\{[\s\S]*state,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateNonTextBlockFromPointer,/,
-  'blocks editor should compose focus, list-item, and cross-block navigation through the focus session boundary'
+  /const \{[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*routeBlocksCaretFromPointer,[\s\S]*shouldSuppressRoutedBlockContainerClick[\s\S]*\} = createEditorBlocksFocusPointerSessions\(\{[\s\S]*state,[\s\S]*blocksState,[\s\S]*blockSessions,[\s\S]*caretSession,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*editableListItems,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,[\s\S]*autoSizeTextarea: area => autoSizeTextarea\(area\),[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*queueTask: task => queueMicrotask\(task\),[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT/,
+  'blocks editor should compose focus and pointer routing through the focus/pointer wiring boundary'
 );
 
 assert.match(
+  editorBlocksFocusPointerSessionsSource,
+  /export function createEditorBlocksFocusPointerSessions\(options = \{\}\)[\s\S]*createEditorBlocksFocusSession\(\{[\s\S]*blocksState,[\s\S]*editableListItems[\s\S]*activateNonTextBlockFromPointer[\s\S]*createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*selectionSession[\s\S]*activateEditableFromPointer[\s\S]*routeBlocksCaretFromPointer: \(\.\.\.args\) => callSession\(pointerSession, 'routeBlocksCaretFromPointer'/,
+  'blocks focus/pointer wiring boundary should own focus and pointer session construction plus routed caret proxies'
+);
+
+assert.doesNotMatch(
   editorBlocksSource,
-  /const pointerSession = blockSessions\.setPointerSession\(createEditorBlocksPointerSession\(\{[\s\S]*blocksState,[\s\S]*caretSession,[\s\S]*selectionSession,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*closestElement,[\s\S]*containsNode: nodeContains,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*activateNonTextBlockFromPointer,/,
-  'blocks editor should compose blank-area pointer routing through the pointer session boundary'
+  /createEditorBlocksFocusSession\(|createEditorBlocksPointerSession\(|const shouldSuppressRoutedBlockContainerClick = \(\) =>|const routeBlocksCaretFromPointer = \(event\) =>/,
+  'blocks editor root should not re-own focus/pointer session construction or routed caret proxy internals'
 );
 
 assert.match(
@@ -583,13 +947,31 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const updateInlineToolbarState = \(\) => \{[\s\S]*blockSessions\.updateInlineToolbarState\(\);[\s\S]*\};[\s\S]*const inlineToolbarSession = blockSessions\.setInlineToolbarSession\(createEditorBlocksInlineToolbarSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*root,[\s\S]*list,[\s\S]*menuSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*text,[\s\S]*setActive,[\s\S]*applyInlineCommand,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*selectionEditableInRoot,[\s\S]*getEditableSelectionOffsets,[\s\S]*inlineRunsFromDom,[\s\S]*hasPendingInlineMarks,[\s\S]*selectionLinkInEditable,[\s\S]*selectionMathInEditable,[\s\S]*inlineRangeFullyMarked,[\s\S]*inlineRangeAnyMarked,[\s\S]*inlineMarksAtOffset,[\s\S]*rangeHasInlineText,[\s\S]*inlineCommandMark[\s\S]*\}\)\);/,
-  'blocks editor should compose inline toolbar DOM controls and state through the inline toolbar session boundary'
+  /const \{[\s\S]*inlineToolbarSession,[\s\S]*createRichEditable,[\s\S]*wireInlineEditable[\s\S]*\} = createEditorBlocksInlineSessions\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*state,[\s\S]*blocksState,[\s\S]*blockSessions,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*menuSession,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\),[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*insertBlankBlockAfter,[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\);/,
+  'blocks editor should compose inline command, popover, toolbar, and rich text sessions through the inline sessions boundary'
 );
 
 assert.match(
+  editorBlocksInlineSessionsSource,
+  /const inlineCommandSession = createInlineCommandSession\(\{[\s\S]*openLinkEditorForSelection: openLinkForSelection,[\s\S]*openMathEditorForSelection: openMathForSelection[\s\S]*const linkSession = blockSessions\?\.setLinkSession\?\.\(createLinkSession\(\{[\s\S]*selectionLinkInEditable[\s\S]*const mathSession = blockSessions\?\.setMathSession\?\.\(createMathSession\(\{[\s\S]*selectionMathInEditable[\s\S]*const inlineToolbarSession = blockSessions\?\.setInlineToolbarSession\?\.\(createInlineToolbarSession\(\{[\s\S]*applyInlineCommand[\s\S]*const richTextSession = createRichTextSession\(\{[\s\S]*applyRunsToEditable/,
+  'inline sessions boundary should own inline command, link, math, toolbar, and rich text session construction'
+);
+
+assert.match(
+  editorBlocksInlineCommandSessionSource,
+  /function defaultInlineCommandMark\(kind\)[\s\S]*export function createEditorBlocksInlineCommandSession\(\{[\s\S]*const applyRunsToEditable = \(editable, runs, caretOffset = null\) => \{[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\);[\s\S]*syncActiveEditable\(\);[\s\S]*updateInlineToolbarState\(\);[\s\S]*const applyInlineCommand = \(kind\) => \{[\s\S]*if \(kind === 'link'\) \{[\s\S]*openLinkEditorForSelection\(\);[\s\S]*if \(kind === 'math'\) \{[\s\S]*openMathEditorForSelection\(\);[\s\S]*removeInlineMarkInRange\(runs, codeRange\.start, codeRange\.end, mark\);[\s\S]*removeInlineMarkAroundOffset\(runs, offsets\.start, mark\);[\s\S]*toggleInlineMarkOnRuns\(runs, offsets\.start, offsets\.end, inlineCommandMark\(kind\)\);/,
+  'inline command session should own command-to-inline-run mutation, pending mark, and link/math delegation behavior'
+);
+
+assert.doesNotMatch(
   editorBlocksSource,
-  /const richTextSession = createEditorBlocksRichTextSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue: setPlainContentEditableValueWithRuntime,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*refreshLinkEditor: link => refreshLinkEditor\(link\),[\s\S]*openMathEditorForNode: node => openMathEditorForNode\(node\)[\s\S]*\}\);[\s\S]*const createRichEditable = \(\.\.\.args\) => richTextSession\?\.createRichEditable\(\.\.\.args\);[\s\S]*const wireInlineEditable = \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\(\.\.\.args\);/,
+  /const togglePendingInlineMark = \(kind\)|const applyInlineCommand = \(kind\) => \{[\s\S]*toggleInlineMarkOnRuns|const applyRunsToEditable = \(editable, runs, caretOffset = null\) => \{/,
+  'blocks editor root should not own inline command mutation internals'
+);
+
+assert.match(
+  editorBlocksInlineSessionsSource,
+  /const richTextSession = createRichTextSession\(\{[\s\S]*documentRef,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*inlineDomSession,[\s\S]*caretSession,[\s\S]*setPlainContentEditableValue,[\s\S]*inlineRunsFromDom,[\s\S]*inlineRun,[\s\S]*insertInlineRunsAtRange,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyRunsToEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*mergeTextBlockWithPreviousOnBackspace,[\s\S]*splitTextBlockAfterCaret,[\s\S]*inlineMarksFromPointerEvent,[\s\S]*inlineMarkedDomRangeFromPointerEvent,[\s\S]*updateInlineToolbarState: refreshToolbar,[\s\S]*refreshLinkEditor: refreshLink,[\s\S]*openMathEditorForNode: openMathForNode[\s\S]*\}\);[\s\S]*createRichEditable: \(\.\.\.args\) => richTextSession\?\.createRichEditable\?\.\(\.\.\.args\),[\s\S]*wireInlineEditable: \(\.\.\.args\) => richTextSession\?\.wireInlineEditable\?\.\(\.\.\.args\)/,
   'blocks editor should compose rich text editable DOM and input events through the rich text session boundary'
 );
 
@@ -600,45 +982,45 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const refreshLinkEditor = \(explicitLink = null\) => \{[\s\S]*blockSessions\.refreshLinkEditor\(explicitLink\);[\s\S]*\};[\s\S]*const openLinkEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openLinkEditorForSelection\(\);[\s\S]*\};[\s\S]*const linkSession = blockSessions\.setLinkSession\(createEditorBlocksLinkSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\)\);/,
+  editorBlocksInlineSessionsSource,
+  /const refreshLink = refreshLinkEditor \|\| \(link => blockSessions\?\.refreshLinkEditor\?\.\(link\)\);[\s\S]*const linkSession = blockSessions\?\.setLinkSession\?\.\(createLinkSession\(\{[\s\S]*documentRef,[\s\S]*root,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode,[\s\S]*closestElement,[\s\S]*sanitizeLinkHref: sanitizeEditorLinkHref,[\s\S]*sanitizeLinkTitle: sanitizeEditorLinkTitle,[\s\S]*selectionLinkInEditable,[\s\S]*getEditableSelectionOffsets,[\s\S]*applyInlineLinkToRuns,[\s\S]*textRangeForDomNode,[\s\S]*linkForTextRange,[\s\S]*updateInlineToolbarState: refreshToolbar,[\s\S]*onDocument,[\s\S]*onWindow[\s\S]*\}\)\);/,
   'blocks editor should compose inline link overlay behavior through the link session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const openMathEditorForSelection = \(\) => \{[\s\S]*blockSessions\.openMathEditorForSelection\(\);[\s\S]*\};[\s\S]*const openMathEditorForNode = \(mathNode\) => \{[\s\S]*blockSessions\.openMathEditorForNode\(mathNode\);[\s\S]*\};[\s\S]*const openMathEditorForBlock = \(block, blockEl = null\) => \{[\s\S]*blockSessions\.openMathEditorForBlock\(block, blockEl\);[\s\S]*\};[\s\S]*const mathSession = blockSessions\.setMathSession\(createEditorBlocksMathSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode: nodeContains,[\s\S]*closestElement,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*getMathBlockById: id => state\.blocks\.find[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: \(\) => updateInlineToolbarState\(\),[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
+  editorBlocksInlineSessionsSource,
+  /const openMathForSelection = openMathEditorForSelection \|\| \(\(\) => blockSessions\?\.openMathEditorForSelection\?\.\(\)\);[\s\S]*const openMathForNode = openMathEditorForNode \|\| \(node => blockSessions\?\.openMathEditorForNode\?\.\(node\)\);[\s\S]*const mathSession = blockSessions\?\.setMathSession\?\.\(createMathSession\(\{[\s\S]*documentRef,[\s\S]*root,[\s\S]*list,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*containsNode,[\s\S]*closestElement,[\s\S]*renderMath,[\s\S]*getMathBlockById: id => \(Array\.isArray\(state\.blocks\)[\s\S]*getEditableSelectionOffsets,[\s\S]*caretRectForEditable,[\s\S]*selectionMathInEditable,[\s\S]*applyInlineMathToRuns,[\s\S]*textRangeForDomNode,[\s\S]*updateInlineToolbarState: refreshToolbar,[\s\S]*updateFromControl,[\s\S]*onDocument[\s\S]*\}\)\);/,
   'blocks editor should compose inline and display math overlay behavior through the math session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const tableSession = createEditorBlocksTableSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\(activeBlock, editable, state\.blocks\);/,
-  'blocks editor should compose table DOM, active-cell, and control behavior through the table session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const tableSession = createTableSession\(\{[\s\S]*documentRef,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*text,[\s\S]*editableTableData,[\s\S]*tableColumnCount,[\s\S]*normalizeTableAlignment,[\s\S]*normalizeTableCellValue,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*queueTask[\s\S]*\}\);[\s\S]*syncActiveTableAlignmentFromEditable = \(activeBlock, editable\) => \{[\s\S]*tableSession\?\.syncActiveAlignmentFromEditable\?\.\(activeBlock, editable, Array\.isArray\(state\.blocks\) \? state\.blocks : \[\]\);/,
+  'blocks block-type session assembly should compose table DOM, active-cell, and control behavior through the table session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const codeSession = createEditorBlocksCodeSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*createHighlightFragment: \(code, language\) => createRuntimeSafeHighlightFragment\(code, language, \{[\s\S]*documentRef: blocksDocument,[\s\S]*windowRef: blocksWindow,[\s\S]*allowAmbient: false[\s\S]*\}\)[\s\S]*\}\);/,
-  'blocks editor should compose code block DOM and control behavior through the code session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const codeSession = createCodeSession\(\{[\s\S]*documentRef,[\s\S]*runtime,[\s\S]*editableSession,[\s\S]*text,[\s\S]*selectionSession,[\s\S]*codeEditableText,[\s\S]*insertCodeEditableTextAtSelection,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*createHighlightFragment: \(code, language\) => createHighlightFragment\(code, language, \{[\s\S]*documentRef,[\s\S]*windowRef,[\s\S]*allowAmbient: false[\s\S]*\}\)[\s\S]*\}\);/,
+  'blocks block-type session assembly should compose code block DOM and control behavior through the code session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const cardPickerSession = blockSessions\.setCardPickerSession\(createEditorBlocksCardPickerSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => blockSessions\.insertCommandBlock\('card', data, \{ index \}\),[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\)\);[\s\S]*if \(cardPickerSession\) root\.appendChild\(cardPickerSession\.element\);/,
-  'blocks editor should compose article-card picker DOM and result selection through the card picker session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const cardPickerSession = registerSession\(blockSessions, 'setCardPickerSession', createCardPickerSession\(\{[\s\S]*documentRef,[\s\S]*runtime,[\s\S]*blocksState,[\s\S]*text,[\s\S]*insertCardBlock: \(data, index\) => blockSessions\?\.insertCommandBlock\?\.\('card', data, \{ index \}\) \|\| null,[\s\S]*requestRender: \(\) => render\(\)[\s\S]*\}\)\);[\s\S]*if \(cardPickerSession\?\.element\) root\?\.appendChild\?\.\(cardPickerSession\.element\);/,
+  'blocks block-type session assembly should compose article-card picker DOM and result selection through the card picker session boundary'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const handleCrossBlockArrowNavigation = \(event, index, editable = null\) => \{[\s\S]*blockSessions\.handleCrossBlockArrowNavigation\(event, index, editable\)/,
-  'blocks editor should delegate cross-block arrow navigation to the focus session'
+  editorBlocksFocusPointerSessionsSource,
+  /handleCrossBlockArrowNavigation: \(\.\.\.args\) => callSession\(focusSession, 'handleCrossBlockArrowNavigation', false, \.\.\.args\)/,
+  'blocks focus/pointer wiring should delegate cross-block arrow navigation to the registered focus session'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const routeBlocksCaretFromPointer = \(event\) => \{[\s\S]*blockSessions\.routeBlocksCaretFromPointer\(event\)/,
-  'blocks editor should delegate blank-area pointer caret routing to the pointer session'
+  editorBlocksFocusPointerSessionsSource,
+  /routeBlocksCaretFromPointer: \(\.\.\.args\) => callSession\(pointerSession, 'routeBlocksCaretFromPointer', false, \.\.\.args\)/,
+  'blocks focus/pointer wiring should delegate blank-area pointer caret routing to the registered pointer session'
 );
 
 assert.doesNotMatch(
@@ -648,7 +1030,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksMathSessionSource}`,
+  `${editorBlocksSource}\n${editorBlocksInlineCommandSessionSource}\n${editorBlocksMathSessionSource}`,
   /const inlineDomSession = createInlineDomSession\(selectionSession, blocksDocument, renderMathWithRuntime\);[\s\S]*renderInlineRunsInto\(editable, runs, inlineDomSession\)[\s\S]*textRangeForDomNode\(editable, mathNode, inlineDomSession\)/,
   'blocks editor should route inline run rendering plus math DOM range mapping through explicit inline DOM session dependencies'
 );
@@ -672,15 +1054,15 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksPointerSessionSource}\n${editorBlocksFocusSessionSource}`,
+  `${editorBlocksSource}\n${editorBlocksInlineCommandSessionSource}\n${editorBlocksPointerSessionSource}\n${editorBlocksFocusSessionSource}`,
   /const caretSession = createCaretSession\(selectionSession, blocksDocument\);[\s\S]*getEditableSelectionOffsets\(editable, caretSession\)[\s\S]*caretSession\.measuredTextOffsetDetailsFromPoint\(editable, x, y, measureLimit\)[\s\S]*caretSession\.placeAtTextOffset\(editable, measuredDetails\.offset\)[\s\S]*caretSession\.textareaTextOffsetFromPoint\(area, x, y, measureLimit\)[\s\S]*caretSession\.placeAtVisualLine\(editable, x, edge, fallbackOffset\)/,
   'blocks editor should route caret offsets, visual-line placement, and textarea mirror measurement through the caret session'
 );
 
 assert.match(
   editorBlocksCaretSessionSource,
-  /export function createEditorBlocksCaretSession\([\s\S]*function selectionOffsets\(el\)[\s\S]*function isSelectionOnBlankLine\(el\)[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*function placeAtVisualLine\(el, x, edge, fallbackOffset = 0\)[\s\S]*return \{[\s\S]*selectionOffsets,[\s\S]*isSelectionOnBlankLine,[\s\S]*measuredTextOffsetDetailsFromPoint,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*placeAtVisualLine/,
-  'blocks caret session should own selection offsets, blank visual line detection, text-point measurement, textarea mirror measurement, and visual-line placement'
+  /export function createEditorBlocksCaretSession\([\s\S]*function selectionOffsets\(el\)[\s\S]*function isSelectionOnBlankLine\(el\)[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*measureTextOffsetDetailsFromPoint\(el, x, y, \{ selectionTools, limit \}\)[\s\S]*function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*measureTextareaTextOffsetDetailsFromPoint\(area, x, y,[\s\S]*function placeAtVisualLine\(el, x, edge, fallbackOffset = 0\)[\s\S]*return \{[\s\S]*selectionOffsets,[\s\S]*isSelectionOnBlankLine,[\s\S]*measuredTextOffsetDetailsFromPoint,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*placeAtVisualLine/,
+  'blocks caret session should own selection offsets and visual-line placement while delegating low-level measurement geometry'
 );
 
 assert.match(
@@ -724,15 +1106,18 @@ assert.doesNotMatch(
     editorBlocksSource,
     editorBlocksLayoutSessionSource,
     editorBlocksBodySessionSource,
+    editorBlocksControlFactorySource,
     editorBlocksMenuSessionSource,
     editorBlocksHeadSessionSource,
     editorBlocksCommandSessionSource,
     editorBlocksRichTextSessionSource,
     editorBlocksSelectionSessionSource,
     editorBlocksInlineDomSessionSource,
+    editorBlocksInlineEditingBridgeSource,
     editorBlocksInlineToolbarSessionSource,
     editorBlocksLinkSessionSource,
     editorBlocksMathSessionSource,
+    editorBlocksBlockTypeSessionsSource,
     editorBlocksTableSessionSource,
     editorBlocksCardPickerSessionSource,
     editorBlocksImageSessionSource,
@@ -846,6 +1231,30 @@ assert.match(
   'composer should cache-bust the extracted order diff UI boundary'
 );
 
+assert.match(
+  composerOrderDiffUiSource,
+  /from '\.\/composer-diff-review-views\.js'/,
+  'composer order diff UI should delegate overview and entries review rendering'
+);
+
+assert.match(
+  composerOrderDiffUiSource,
+  /from '\.\/composer-order-visual\.js'/,
+  'composer order diff UI should delegate visual connector and hover behavior'
+);
+
+assert.match(
+  composerOrderDiffUiSource,
+  /from '\.\/composer-order-preview\.js'/,
+  'composer order diff UI should delegate inline order preview state and layout behavior'
+);
+
+assert.match(
+  composerOrderDiffUiSource,
+  /from '\.\/composer-order-review-view\.js'/,
+  'composer order diff UI should delegate order tab DOM and connector layout state'
+);
+
 assert.doesNotMatch(
   source,
   /function openComposerDiffModal|function ensureComposerDiffModal|function drawOrderDiffLines|function updateComposerOrderPreview|function applyComposerOrderHover|function bindComposerOrderHover|const ORDER_LINE_COLORS|let composerDiffModal|let composerOrderPreviewState/,
@@ -854,8 +1263,38 @@ assert.doesNotMatch(
 
 assert.match(
   composerOrderDiffUiSource,
-  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*const setTimeoutRef = typeof options\.setTimeoutRef === 'function'[\s\S]*const requestAnimationFrameRef = typeof options\.requestAnimationFrameRef === 'function'[\s\S]*const addWindowListener = typeof options\.addWindowListener === 'function'[\s\S]*const addDocumentListener = typeof options\.addDocumentListener === 'function'[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function drawOrderDiffLines\(state\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
-  'order diff UI boundary should own composer review modal, order visual connectors, and order preview state'
+  /export function createComposerOrderDiffUi\(options = \{\}\)[\s\S]*const setTimeoutRef = typeof options\.setTimeoutRef === 'function'[\s\S]*const requestAnimationFrameRef = typeof options\.requestAnimationFrameRef === 'function'[\s\S]*const addWindowListener = typeof options\.addWindowListener === 'function'[\s\S]*const addDocumentListener = typeof options\.addDocumentListener === 'function'[\s\S]*const consoleRef = options\.consoleRef \|\| null[\s\S]*const composerOrderVisual = createComposerOrderVisual\([\s\S]*const composerOrderPreview = createComposerOrderPreview\([\s\S]*const composerDiffReviewViews = createComposerDiffReviewViews\([\s\S]*const composerOrderReviewView = createComposerOrderReviewView\([\s\S]*function ensureComposerDiffModal\(\)[\s\S]*function closeComposerDiffModalForKind\(kind\)/,
+  'order diff UI boundary should own composer review modal shell while wiring review views, order view, visual, and inline preview boundaries'
+);
+
+assert.match(
+  composerDiffReviewViewsSource,
+  /export function createComposerDiffReviewViews\(options = \{\}\)[\s\S]*function renderOverview\(target, diff\)[\s\S]*function describeEntrySnapshot\(kind, key, source\)[\s\S]*function buildEntryDetails\(kind, key, info, sectionType\)[\s\S]*function renderEntries\(target, kind, diff\)/,
+  'diff review views boundary should own overview and entries tab DOM rendering'
+);
+
+assert.match(
+  composerOrderPreviewSource,
+  /export function createComposerOrderPreview\(options = \{\}\)[\s\S]*function scheduleComposerOrderPreviewRelayout\(kind\)[\s\S]*function ensureComposerOrderPreview\(kind\)[\s\S]*function observeComposerOrderRow\(row, kind\)[\s\S]*function updateComposerOrderPreview\(kind, options = \{\}\)[\s\S]*function setComposerOrderPreviewActiveKind\(kind\)/,
+  'order preview boundary should own inline preview state, row observers, relayout timers, and active-kind switching'
+);
+
+assert.match(
+  composerOrderReviewViewSource,
+  /export function createComposerOrderReviewView\(options = \{\}\)[\s\S]*function mount\(target\)[\s\S]*function drawLines\(state\)[\s\S]*function render\(kind, options = \{\}\)[\s\S]*function refreshLocale\(\)/,
+  'order review view boundary should own order tab DOM, stats, empty state, connector layout state, and locale refresh'
+);
+
+assert.match(
+  composerOrderVisualSource,
+  /export function createComposerOrderVisual\(options = \{\}\)[\s\S]*function applyComposerOrderHover\(container, key\)[\s\S]*function bindComposerOrderHover\(element, key\)[\s\S]*function buildOrderDiffItem\(entry, side\)[\s\S]*function drawOrderDiffLines\(state\)/,
+  'order visual boundary should own connector line drawing, item rendering, and hover state'
+);
+
+assert.doesNotMatch(
+  composerOrderDiffUiSource,
+  /const ORDER_LINE_COLORS|function getComposerOrderHoverContainer|function applyComposerOrderHover\(container, key\)|function bindComposerOrderHover\(element, key\)|function buildOrderDiffItem\(entry, side\)[\s\S]*item\.appendChild\(badgeEl\);|function ensureComposerOrderPreview\(kind\)|function updateComposerOrderPreview\(kind, options = \{\}\)|let composerOrderPreviewState|const composerOrderPreviewRelayoutTimers|function renderOverview\(target, diff\)|function describeEntrySnapshot\(kind, key, source\)|function buildEntryDetails\(kind, key, info, sectionType\)|function renderEntries\(target, kind, diff\)|let composerOrderState|className = 'composer-order-stats'|className = 'composer-order-body'|className = 'composer-order-visual'|function renderOrder\(kind\)[\s\S]*const details = computeOrderDiffDetails\(kind\)/,
+  'order diff UI should not re-own visual connector, inline preview, review-tab, or order-tab view internals'
 );
 
 assert.match(
@@ -867,6 +1306,10 @@ assert.match(
 assert.doesNotMatch(
   [
     composerOrderDiffUiSource,
+    composerDiffReviewViewsSource,
+    composerOrderPreviewSource,
+    composerOrderReviewViewSource,
+    composerOrderVisualSource,
     composerEditorShellSource,
     composerSystemPanelSource,
     composerSyncPanelSource
@@ -881,6 +1324,24 @@ assert.match(
   'composer should cache-bust the extracted index/tabs list UI boundary'
 );
 
+assert.match(
+  composerIndexTabsUiSource,
+  /from '\.\/composer-index-tabs-language-menu\.js'/,
+  'index/tabs UI should cache-bust the shared language-menu lifecycle boundary'
+);
+
+assert.match(
+  composerIndexTabsUiSource,
+  /from '\.\/composer-drag-list\.js'/,
+  'index/tabs UI should cache-bust the shared drag-list lifecycle boundary'
+);
+
+assert.match(
+  composerIndexTabsUiSource,
+  /from '\.\/composer-index-version-list\.js'/,
+  'index/tabs UI should cache-bust the index version-list lifecycle boundary'
+);
+
 assert.doesNotMatch(
   source,
   /function makeDragList|function buildIndexUI|function buildTabsUI/,
@@ -889,8 +1350,44 @@ assert.doesNotMatch(
 
 assert.match(
   composerIndexTabsUiSource,
-  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*function makeDragList\(container, onReorder\)[\s\S]*function buildIndexUI\(root, state\)[\s\S]*function buildTabsUI\(root, state\)/,
-  'index/tabs list UI boundary should own legacy composer list rendering and drag controls'
+  /export function createComposerIndexTabsUi\(options = \{\}\)[\s\S]*const dragList = createComposerDragList\(\{[\s\S]*documentRef,[\s\S]*requestAnimationFrameRef,[\s\S]*addWindowListener,[\s\S]*getWindowScroll,[\s\S]*getComputedStyleRef,[\s\S]*cancelListTransition[\s\S]*\}\);[\s\S]*const \{ makeDragList \} = dragList;[\s\S]*const indexVersionList = createComposerIndexVersionList\(\{[\s\S]*documentRef,[\s\S]*requestAnimationFrameRef,[\s\S]*normalizeIndexVariantList,[\s\S]*getIndexVariantLocation,[\s\S]*promptArticleVersionValue,[\s\S]*showMarkdownOpenAlert,[\s\S]*\}\);[\s\S]*function buildIndexUI\(root, state\)[\s\S]*indexVersionList\.mountIndexVersionList\(\{[\s\S]*block,[\s\S]*row,[\s\S]*entry,[\s\S]*lang,[\s\S]*key,[\s\S]*value: entry\[lang\],[\s\S]*markDirty[\s\S]*\}\);[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ci-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);[\s\S]*function buildTabsUI\(root, state\)[\s\S]*languageMenu\.createLanguageMenu\(\{[\s\S]*wrapperClass: 'ct-add-lang'[\s\S]*onSelect: \(code, menuApi\) => \{[\s\S]*menuApi\.closeMenu\(\);/,
+  'index/tabs list UI boundary should own list rendering while delegating shared add-language, drag-list, and index version-list lifecycles'
+);
+
+assert.match(
+  composerIndexVersionListSource,
+  /export function createComposerIndexVersionList\(options = \{\}\)[\s\S]*function requestFrame\(callback\)[\s\S]*function mountIndexVersionList\(options = \{\}\) \{[\s\S]*const arr = normalizeIndexVariantList\(value\);[\s\S]*const snapRects = \(\) => \{[\s\S]*const renderVersions = \(prevRects = null\) => \{[\s\S]*versionRow\.className = 'ci-ver-item';[\s\S]*query\('\.ci-edit', versionRow\)\.addEventListener\('click', \(\) => \{[\s\S]*openMarkdownInEditor\(rel\);[\s\S]*down\.addEventListener\('click', \(\) => \{[\s\S]*entry\[lang\] = arr\.slice\(\);[\s\S]*const addVersionButton = query\('\.ci-lang-addver', block\);[\s\S]*arr\.push\(buildArticleVersionPath\(key, lang, version, entry\)\);/,
+  'index version-list helper should own version row rendering, reorder animation, edit opening, removal, and add-version mutations'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /function requestFrame\(callback\)|const snapRects = \(\)|const renderVers|const renderVersions|versionRow\.className = 'ci-ver-item'|query\('\.ci-edit'/,
+  'index/tabs list UI should not own index version-row animation, edit, and mutation internals'
+);
+
+assert.match(
+  composerDragListSource,
+  /export function createComposerDragList\(options = \{\}\)[\s\S]*function makeDragList\(container, onReorder, dragOptions = \{\}\) \{[\s\S]*const handle = target\.closest\(handleSelector\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const item = handle\.closest\(keySelector\);[\s\S]*placeholder = documentRef\.createElement\('div'\);[\s\S]*disposePointerMove = addWindowListener\('pointermove', onPointerMove\);[\s\S]*disposePointerUp = addWindowListener\('pointerup', onPointerUp, \{ once: true \}\);/,
+  'shared drag-list helper should own handle-gated pointer drag, placeholder insertion, and window listener lifecycle'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /function makeDragList\(container, onReorder|disposePointerMove|disposePointerUp|drag-placeholder|press-noselect/,
+  'index/tabs list UI should not own drag-list pointer lifecycle implementation'
+);
+
+assert.match(
+  composerIndexTabsLanguageMenuSource,
+  /export function createComposerIndexTabsLanguageMenu\(options = \{\}\)[\s\S]*function createLanguageMenu\(\{[\s\S]*wrapperClass = '',[\s\S]*buttonClass = '',[\s\S]*menuClass = '',[\s\S]*available = \[\],[\s\S]*onSelect[\s\S]*function closeMenu\(\)[\s\S]*menu\.classList\.add\('is-closing'\)[\s\S]*addDocumentListener\('mousedown', onDocDown, true\)[\s\S]*addDocumentListener\('keydown', onKeyDown, true\)[\s\S]*onSelect\(code, \{ closeMenu, item, wrap, button: btn, menu \}\);/,
+  'index/tabs language-menu helper should own open, close, outside-click, Escape, and select callback lifecycle'
+);
+
+assert.doesNotMatch(
+  composerIndexTabsUiSource,
+  /let disposeDocDown = null|let disposeKeyDown = null|function closeMenu\(\)|function openMenu\(\)|function onDocDown\(event\)|function onKeyDown\(event\)/,
+  'index/tabs list UI should not duplicate add-language menu lifecycle in both index and tabs renderers'
 );
 
 assert.match(
@@ -900,7 +1397,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  composerIndexTabsUiSource,
+  `${composerIndexTabsUiSource}\n${composerIndexTabsLanguageMenuSource}\n${composerDragListSource}\n${composerIndexVersionListSource}`,
   /options\.(?:documentRef|windowRef)\s*\|\|\s*\(typeof globalThis|typeof (?:document|window|requestAnimationFrame|setTimeout|clearTimeout|CustomEvent)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame|CustomEvent)\s*\(|\bwindowRef\b|documentRef\.(?:addEventListener|removeEventListener)\(|windowRef\.setTimeout|windowRef\.requestAnimationFrame|windowRef\.alert/m,
   'index/tabs UI should receive browser refs, frames, timers, events, scroll, dialogs, and style access through explicit runtime wiring'
 );
@@ -911,6 +1408,54 @@ assert.match(
   'composer should cache-bust the extracted Site Settings UI boundary'
 );
 
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-controls\.js'/,
+  'Site Settings UI should delegate reusable section, field, grid, and switch controls'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-config-grids\.js'/,
+  'Site Settings UI should delegate configuration subsection grids'
+);
+
+assert.match(
+  composerSiteSettingsLocalizedFieldsSource,
+  /from '\.\/composer-site-settings-language-menu\.js'/,
+  'Site Settings localized-fields boundary should delegate add-language menu behavior and lifecycle cleanup'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-link-list\.js'/,
+  'Site Settings UI should delegate profile link list rendering and reordering'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-single-grids\.js'/,
+  'Site Settings UI should cache-bust the compact single-grid renderer boundary'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-localized-fields\.js'/,
+  'Site Settings UI should delegate localized language-field rendering and language pool collection'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-schema\.js'/,
+  'Site Settings UI should consume section and simple-field metadata from a schema boundary'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-section-nav\.js'/,
+  'Site Settings UI should delegate active section, scroll sync, and field reveal behavior'
+);
+
 assert.doesNotMatch(
   source,
   /function buildSiteUI/,
@@ -919,8 +1464,116 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteSettingsUiSource,
-  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
-  'Site Settings UI boundary should own repository, identity, theme, annotate, and asset warning rendering'
+  /export function createComposerSiteSettingsUi\(options = \{\}\)[\s\S]*function buildSiteUI\(root, state\)[\s\S]*createComposerSiteSettingsLocalizedFields\([\s\S]*createComposerSiteSettingsRepoSection\(\{[\s\S]*renderIdentityLocalizedGrid\(identitySection\);[\s\S]*renderBehaviorGrid\(behaviorSubsection\);[\s\S]*renderThemeGrid\(themeSubsection\);[\s\S]*renderAnnotateGrid\(commentsSubsection\);[\s\S]*renderAssetWarningsGrid\(assetsSubsection\);/,
+  'Site Settings UI boundary should own top-level section composition while wiring localized-field and configuration grid boundaries'
+);
+
+assert.match(
+  composerSiteSettingsUiSource,
+  /from '\.\/composer-site-settings-repo-section\.js'/,
+  'Site Settings UI should cache-bust the repository settings section boundary'
+);
+
+assert.match(
+  composerSiteSettingsRepoSectionSource,
+  /export function ensureComposerSiteSettingsRepo[\s\S]*export function createComposerSiteSettingsRepoSection[\s\S]*repoInputs\.className = 'cs-repo-grid'[\s\S]*repoInputs\.dataset\.field = 'repo'[\s\S]*createRepoFieldGroup\('cs-repo-field-group--owner'[\s\S]*createRepoFieldGroup\('cs-repo-field-group--name'[\s\S]*createRepoFieldGroup\('cs-repo-field-group--branch'[\s\S]*repoSection\.appendChild\(repoInputs\);[\s\S]*renderPublishTransportSettings\(repoSection\);/,
+  'repository settings section should own repo field DOM, input bindings, and publish transport slot rendering'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /cs-repo-grid|createRepoFieldGroup|repoInputs\.dataset\.field|repoSection\.appendChild\(repoInputs\)|renderPublishTransportSettings\(repoSection\)/,
+  'Site Settings UI should delegate repository field DOM and publish transport slot rendering'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const create(?:Section|Field|SubheadingField|ConfigSubsection|SingleGridFieldset|SwitchControl|LinkListField) = /,
+  'Site Settings UI should not re-own reusable control or link-list factories after extraction'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /className = 'cs-add-lang has-menu'|documentRef\.addEventListener\(LANGUAGE_POOL_CHANGED_EVENT,\s*refreshMenu\)|documentRef\.addEventListener\('mousedown',\s*onDocDown,\s*true\)/,
+  'Site Settings UI should not re-own add-language menu DOM or document-level menu listeners'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const render(?:Behavior|Theme|Annotate|AssetWarnings)Grid = \(section\) =>/,
+  'Site Settings UI should not re-own configuration subsection grid renderers after extraction'
+);
+
+assert.match(
+  composerSiteSettingsLocalizedFieldsSource,
+  /export function createComposerSiteSettingsLocalizedFields\(options = \{\}\)[\s\S]*const collectLanguageCodes = \(\) =>[\s\S]*const renderLocalizedField = \(section, key, fieldOptions = \{\}\) =>[\s\S]*const renderIdentityLocalizedGrid = \(section\) =>/,
+  'Site Settings localized-fields boundary should own language collection, localized rows, and merged identity rendering'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const ensureLocalized = \(key|const collectLanguageCodes = \(\)|const renderLocalizedField = \(section, key|const renderIdentityLocalizedGrid = \(section\)|cs-localized-row--multiline|siteTitle\|siteSubtitle/,
+  'Site Settings UI should not re-own localized field state or identity grid internals after extraction'
+);
+
+assert.match(
+  composerSiteSettingsConfigGridsSource,
+  /export function createComposerSiteSettingsConfigGrids\(options = \{\}\)[\s\S]*const renderBehaviorGrid = \(section\) =>[\s\S]*const renderThemeGrid = \(section\) =>[\s\S]*const renderAnnotateGrid = \(section\) =>[\s\S]*const renderAssetWarningsGrid = \(section\) =>/,
+  'Site Settings config-grids boundary should own behavior, theme, annotate, and asset warning renderers'
+);
+
+assert.match(
+  composerSiteSettingsSingleGridsSource,
+  /export function createComposerSiteSettingsSingleGrids\(options = \{\}\)[\s\S]*const schemaFields = siteSettingsSchema\.fields \|\| \{\};[\s\S]*const renderSchemaTextGrid = \(section, fieldGroup = \[\]\) =>[\s\S]*get: \(\) => site\[item\.dataKey\][\s\S]*set: \(value\) => \{ site\[item\.dataKey\] = value; \}[\s\S]*renderIdentityPathGrid: \(section\) => renderSchemaTextGrid\(section, schemaFields\.identityPaths\)[\s\S]*renderSeoResourceGrid: \(section\) => renderSchemaTextGrid\(section, schemaFields\.seoResources\)/,
+  'Site Settings single-grids boundary should own schema field binding for identity paths and SEO resource URLs'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const render(?:IdentityPath|SeoResource)Grid = \(section\) =>|siteSettingsSchema\.fields\.(?:identityPaths|seoResources)\.map/,
+  'Site Settings UI should not re-own compact identity or SEO single-grid item binding after extraction'
+);
+
+assert.match(
+  composerSiteSettingsControlsSource,
+  /export function createComposerSiteSettingsControls\(options = \{\}\)[\s\S]*const createSection = \(title, description\) =>[\s\S]*const createField = \(section, config = \{\}\) =>[\s\S]*const createSingleGridFieldset = \(section\) =>[\s\S]*const renderSingleTextGrid = \(section, items\) =>/,
+  'Site Settings controls boundary should own reusable section, field, and compact grid factories'
+);
+
+assert.match(
+  composerSiteSettingsLanguageMenuSource,
+  /export function createComposerSiteSettingsLanguageMenu\(options = \{\}\)[\s\S]*const collectSupportedLangs = \(\) =>[\s\S]*const refreshMenu = \(\) =>[\s\S]*function openMenu\(\)[\s\S]*function onButtonClick\(\)[\s\S]*const cleanup = \(\) =>/,
+  'Site Settings language-menu boundary should own add-language choices, open/close behavior, and cleanup'
+);
+
+assert.match(
+  composerSiteSettingsLinkListSource,
+  /export function createComposerSiteSettingsLinkList\(options = \{\}\)[\s\S]*const createLinkListField = \(section, key, config = \{\}\) =>[\s\S]*const renderRowsAndRefreshDiff = \(\) =>[\s\S]*const createDragHandle = \(index\) =>[\s\S]*function renderRows\(\)/,
+  'Site Settings link-list boundary should own profile link rows, diff refresh, and drag handles'
+);
+
+assert.match(
+  composerSiteSettingsSchemaSource,
+  /export function createComposerSiteSettingsSchema\(options = \{\}\)[\s\S]*sections: \{[\s\S]*repo: section\('repo'\)[\s\S]*configuration: section\('configuration'\)[\s\S]*fields: \{[\s\S]*identityPaths: \[[\s\S]*field\('avatar', 'avatar', 'avatarHelp'[\s\S]*field\('contentRoot', 'contentRoot', 'contentRootHelp'[\s\S]*behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'/,
+  'Site Settings schema boundary should own stable section labels and simple field metadata'
+);
+
+assert.match(
+  composerSiteSettingsSectionNavSource,
+  /export function createComposerSiteSettingsSectionNav\(options = \{\}\)[\s\S]*const resolveSiteScrollContainer = \(\) =>[\s\S]*function setActiveSection\(sectionId, methodOptions = \{\}\)[\s\S]*function scheduleScrollSync\(\)[\s\S]*const revealField = \(fieldKey, methodOptions = \{\}\) =>/,
+  'Site Settings section-nav boundary should own scroll container resolution, active state, scroll sync, and field reveal'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /const resolveSiteScrollContainer = \(\)|function setActiveSection\(sectionId|function scheduleScrollSync\(\)|const revealField = \(fieldKey/,
+  'Site Settings UI should not re-own section navigation state after extraction'
+);
+
+assert.doesNotMatch(
+  composerSiteSettingsUiSource,
+  /t\('editor\.composer\.site\.sections\.(?:repo|identity|seo|configuration|behavior|theme|comments|assets|extras)\.(?:title|description)'\)|t\('editor\.composer\.site\.fields\.(?:avatar|contentRoot|resourceURL|defaultLanguage|contentOutdatedDays|pageSize|showAllPosts|landingTab|cardCoverFallback|errorOverlay)(?:Help)?'\)/,
+  'Site Settings UI should not keep stable section and simple field label metadata inline'
 );
 
 assert.match(
@@ -930,7 +1583,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  composerSiteSettingsUiSource,
+  composerSiteSettingsRuntimeSource,
   /options\.(?:documentRef|windowRef|performanceRef|cssRef)\s*\|\|\s*\(typeof globalThis|const\s+(?:document|window|performance|CSS)\s*=|typeof (?:document|window|requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|fetch|CSS|performance)\b|(^|[^.])\b(?:requestAnimationFrame|cancelAnimationFrame|setTimeout|clearTimeout|fetch)\s*\(/m,
   'Site Settings UI should receive browser refs, frames, timers, style, CSS, and fetch through explicit runtime wiring instead of rediscovering globals'
 );
@@ -1247,8 +1900,8 @@ assert.match(
 
 assert.match(
   source,
-  /function applyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}/,
-  'composer applyMode should delegate through the composer service registry'
+  /function rawApplyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}[\s\S]*function applyMode\(mode, options = \{\}\) \{\s*return composerActions\.dispatch\('composer\.mode\.apply', \{ mode, options \}\);[\s\S]*\}/,
+  'composer applyMode should delegate through the explicit action contract into the service registry'
 );
 
 assert.match(
@@ -1283,8 +1936,8 @@ assert.match(
 
 assert.match(
   source,
-  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}/,
-  'composer unsynced summary helpers should delegate to the extracted controller'
+  /function collectUnsyncedMarkdownEntries\(\) \{\s*return getUnsyncedSummaryController\(\)\.collectUnsyncedMarkdownEntries\(\);\s*\}[\s\S]*function computeUnsyncedSummary\(\) \{\s*return getUnsyncedSummaryController\(\)\.computeUnsyncedSummary\(\);\s*\}[\s\S]*function updateModeDirtyIndicators\(summaryEntries\) \{\s*getUnsyncedSummaryController\(\)\.updateModeDirtyIndicators\(summaryEntries\);\s*\}[\s\S]*function rawUpdateUnsyncedSummary\(options = \{\}\) \{\s*return getUnsyncedSummaryController\(\)\.updateUnsyncedSummary\(options\);\s*\}[\s\S]*function updateUnsyncedSummary\(options = \{\}\) \{\s*return composerActions\.dispatch\('composer\.summary\.refresh', \{ options \}\);[\s\S]*\}/,
+  'composer unsynced summary helpers should route public refreshes through the action contract and keep raw updates on the extracted controller'
 );
 
 assert.doesNotMatch(
@@ -1348,9 +2001,69 @@ assert.match(
 );
 
 assert.match(
+  editorMainMetadataPanelSource,
+  /from '\.\/editor-main-frontmatter-label-width\.js'/,
+  'metadata panel should cache-bust the front matter label-width sync boundary'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /from '\.\/editor-main-frontmatter-manager\.js'/,
+  'metadata panel should cache-bust the article front matter manager boundary'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /from '\.\/editor-main-tabs-metadata-manager\.js'/,
+  'metadata panel should cache-bust the tabs metadata manager boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-preview-session\.js'/,
   'editor main should cache-bust the editor preview session boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /from '\.\/editor-main-preview-assets\.js'/,
+  'editor preview session should cache-bust the preview asset override boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /from '\.\/editor-main-preview-theme-picker\.js'/,
+  'editor preview session should cache-bust the preview theme picker boundary'
+);
+
+assert.match(
+  editorMainPreviewThemePickerSource,
+  /export function sanitizePreviewThemePack[\s\S]*let themeOverride = ''[\s\S]*fetchThemeList\('assets\/themes\/packs\.json'\)[\s\S]*fetchThemeList\('assets\/themes\/packs\.local\.json', true\)[\s\S]*select\.addEventListener\('change'[\s\S]*themeOverride = sanitizePreviewThemePack\(select\.value \|\| 'native'\)/,
+  'editor preview theme picker should own theme sanitization, option loading, local overlays, and selector override state'
+);
+
+assert.doesNotMatch(
+  editorMainPreviewSessionSource,
+  /themeOverride|function sanitizePreviewThemePack|loadPreviewThemeOptions|assets\/themes\/packs\.local\.json/,
+  'editor preview session should delegate theme selector state and pack loading to the preview theme picker boundary'
+);
+
+assert.match(
+  editorMainPreviewSessionSource,
+  /from '\.\/editor-main-preview-viewport\.js'/,
+  'editor preview session should cache-bust the preview viewport boundary'
+);
+
+assert.match(
+  editorMainPreviewViewportSource,
+  /PREVIEW_RESIZE_HANDLE_SPACE = 36[\s\S]*export function createEditorMainPreviewViewport[\s\S]*onDocument\('pointermove'[\s\S]*onDocument\('pointerup'[\s\S]*onDocument\('pointercancel'[\s\S]*querySelectorAll\('\[data-preview-resize\]'\)/,
+  'editor preview viewport should own resize handles, clamp rules, and document pointer cleanup'
+);
+
+assert.doesNotMatch(
+  editorMainPreviewSessionSource,
+  /PREVIEW_RESIZE_HANDLE_SPACE|pointermove|pointercancel/,
+  'editor preview session should delegate viewport resize mechanics to the preview viewport boundary'
 );
 
 assert.match(
@@ -1360,15 +2073,39 @@ assert.match(
 );
 
 assert.match(
+  editorMainCurrentFileSessionSource,
+  /from '\.\/editor-main-current-file-view\.js'/,
+  'editor current-file session should cache-bust the current-file view boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-sidebar-session\.js'/,
   'editor main should cache-bust the editor sidebar session boundary'
 );
 
 assert.match(
+  editorMainSidebarSessionSource,
+  /from '\.\/editor-main-sidebar-file-tree\.js'/,
+  'editor sidebar session should cache-bust the sidebar file tree boundary'
+);
+
+assert.match(
   editorMainSource,
   /from '\.\/editor-main-toolbar-session\.js'/,
   'editor main should cache-bust the editor toolbar session boundary'
+);
+
+assert.match(
+  editorMainToolbarSessionSource,
+  /from '\.\/editor-main-toolbar-text-actions\.js'/,
+  'editor toolbar session should cache-bust the toolbar text action boundary'
+);
+
+assert.match(
+  editorMainToolbarSessionSource,
+  /from '\.\/editor-main-toolbar-card-picker\.js'/,
+  'editor toolbar session should cache-bust the toolbar card picker boundary'
 );
 
 assert.match(
@@ -1516,6 +2253,24 @@ assert.match(
 );
 
 assert.match(
+  editorMainCurrentFileSessionSource,
+  /export function createEditorMainCurrentFileSession\(options = \{\}\) \{[\s\S]*const inferSource = typeof options\.inferCurrentFileSource === 'function'[\s\S]*let currentFileInfo = \{ path: '', source: '', breadcrumb: \[\], status: null, dirty: false, draft: null, draftState: '', loaded: false \};[\s\S]*const currentFileView = createEditorMainCurrentFileView\(\{[\s\S]*runtime,[\s\S]*documentRef,[\s\S]*translate: options\.translate,[\s\S]*getCurrentLang: options\.getCurrentLang,[\s\S]*normalizeLangKey: options\.normalizeLangKey,[\s\S]*applyEditorEmptyState: options\.applyEditorEmptyState,[\s\S]*onRendered: options\.onRendered[\s\S]*\}\);[\s\S]*const normalizeStatusPayload = \(value\) => \{[\s\S]*const normalizeCurrentFilePayload = \(input\) => \{[\s\S]*const render = \(\) => \{[\s\S]*currentFileView\.render\(currentFileInfo\);/,
+  'current-file session should own payload normalization and compose header rendering through the view boundary'
+);
+
+assert.match(
+  editorMainCurrentFileViewSource,
+  /export function createEditorMainCurrentFileView\(options = \{\}\) \{[\s\S]*const formatRelativeTime = \(ms\) => \{[\s\S]*const describeStatusLabel = \(status\) => \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>[\s\S]*const bindCurrentFileBreadcrumbEvents = \(el\) => \{[\s\S]*const render = \(info = latestInfo\) => \{/,
+  'current-file view should own status/draft formatting, static breadcrumb markup, DOM binding, and render attributes'
+);
+
+assert.doesNotMatch(
+  editorMainCurrentFileSessionSource,
+  /let currentFileElRef|const formatRelativeTime = \(ms\)|const describeStatusLabel = \(status\)|const renderCurrentFileBreadcrumb = \(items, fullPath\)|const bindCurrentFileBreadcrumbEvents = \(el\)|getPlainText|escapeHtml/,
+  'current-file session should not own header DOM rendering, draft label formatting, or breadcrumb event internals'
+);
+
+assert.match(
   editorMainSource,
   /name: 'editorMain\.previewSession'[\s\S]*requires: \[[^\]]*'linkCardContext'[\s\S]*'fileContextService'[\s\S]*provides: \['previewSession'\][\s\S]*context\.previewSession = context\.appServices\.setPreviewSession\(createEditorMainPreviewSession\(\{[\s\S]*runtime: context\.runtime,[\s\S]*documentRef: context\.documentRef,[\s\S]*getContentRoot: context\.getContentRoot,[\s\S]*getEditorValue: context\.appServices\.getEditorValue,[\s\S]*getCurrentFileInfo: context\.fileContextService\.getCurrentFileInfo,[\s\S]*getSiteConfig: context\.appServices\.getSiteConfig,[\s\S]*getPostsIndex: \(\) => context\.linkCardContext\.getPostsIndex\(\),[\s\S]*getPostsByLocationTitle: \(\) => context\.linkCardContext\.getPostsByLocationTitle\(\),[\s\S]*isLinkCardReady: \(\) => context\.linkCardContext\.isReady\(\),[\s\S]*getAllowedLocations: \(\) => context\.linkCardContext\.getAllowedLocations\(\),[\s\S]*getLocationAliases: \(\) => context\.linkCardContext\.getLocationAliases\(\),[\s\S]*warn: \(\.\.\.args\) => context\.runtime\.warn\(\.\.\.args\)[\s\S]*fetch: \(url, options\) => context\.runtime\.fetchContent\(url, options\)[\s\S]*name: 'editorMain\.previewBinding'[\s\S]*requires: \[[^\]]*'workspaceBinding'[\s\S]*context\.previewSession\.bind\(\);/,
   'editor main should compose preview overlay, iframe messaging, and asset-preview state through the preview session'
@@ -1621,9 +2376,14 @@ assert.doesNotMatch(
   [
     editorMainMetadataPanelSource,
     editorMainPreviewSessionSource,
+    editorMainPreviewAssetsSource,
     editorMainCurrentFileSessionSource,
+    editorMainCurrentFileViewSource,
     editorMainSidebarSessionSource,
+    editorMainSidebarFileTreeSource,
     editorMainToolbarSessionSource,
+    editorMainToolbarCardPickerSource,
+    editorMainToolbarTextActionsSource,
     editorMainImageSessionSource,
     editorMainWorkspaceSessionSource,
     editorContentTreeControllerSource,
@@ -1718,6 +2478,18 @@ assert.match(
   'editor preview session should own preview logging, asset-preview, iframe message, and Escape-key event bindings through explicit dependencies and the runtime boundary'
 );
 
+assert.match(
+  editorMainPreviewSessionSource,
+  /const previewAssets = createEditorMainPreviewAssets\(\{[\s\S]*documentRef,[\s\S]*getContentRoot,[\s\S]*getLocationHref,[\s\S]*getElementById,[\s\S]*onCurrentAssetPreview: \(\) => renderCurrent\(\)[\s\S]*\}\);/,
+  'editor preview session should compose asset-preview overrides through the preview asset boundary'
+);
+
+assert.doesNotMatch(
+  editorMainPreviewSessionSource,
+  /const previewAssetBuckets = new Map|safePreviewMime|makePreviewDataUrl|normalizePreviewKey|buildPreviewKeysForAsset|updatePreviewAssetBucket|lookupPreviewAsset|collectPreviewAssetOverrides/,
+  'editor preview session should not own preview asset bucket, path, data URL, or DOM rewrite internals'
+);
+
 assert.doesNotMatch(
   editorMainPreviewSessionSource,
   /\bwindowRef\b|options\.windowRef|windowRef\.|windowRef &&|typeof window|requestAnimationFrame === 'function'|setTimeout === 'function'|windowRef\.location|console\.warn/,
@@ -1726,32 +2498,68 @@ assert.doesNotMatch(
 
 assert.match(
   editorMainSidebarSessionSource,
-  /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
-  'editor sidebar session should own file list active state, grouped rendering, filtering, group switching, and initialization'
+  /export function createEditorMainSidebarSession\(options = \{\}\) \{[\s\S]*const fileTree = createEditorMainSidebarFileTree\(\{[\s\S]*runtime,[\s\S]*documentRef,[\s\S]*normalizeLangKey,[\s\S]*getContentRoot: \(\) => contentRoot,[\s\S]*setStatus,[\s\S]*onOpenMarkdown,[\s\S]*onWarn,[\s\S]*alert: showAlert[\s\S]*\}\);[\s\S]*fileTree\.bind\(\{[\s\S]*listIndex,[\s\S]*listTabs,[\s\S]*searchInput,[\s\S]*sideTabs,[\s\S]*groupIndex,[\s\S]*groupTabs[\s\S]*\}\);[\s\S]*fileTree\.renderIndex\(rawIndex\);[\s\S]*fileTree\.renderTabs\(tabs\);[\s\S]*const initialize = \(\) => \{[\s\S]*bind\(\);[\s\S]*return load\(\);/,
+  'editor sidebar session should compose file tree rendering and keep loading/current-file binding orchestration'
+);
+
+assert.match(
+  editorMainSidebarFileTreeSource,
+  /export function createEditorMainSidebarFileTree\(options = \{\}\) \{[\s\S]*let currentActive = null;[\s\S]*let activeGroup = 'index';[\s\S]*const makeLi = \(label, relPath\) => \{[\s\S]*await onOpenMarkdown\(\{ relPath, url, contentRoot: currentContentRoot\(\) \}\);[\s\S]*const renderGroupedIndex = \(root, data\) => \{[\s\S]*const renderGroupedTabs = \(root, data\) => \{[\s\S]*const applyFilter = \(term\) => \{[\s\S]*const switchGroup = \(name\) => \{[\s\S]*const bind = \(elements = \{\}\) => \{/,
+  'editor sidebar file tree boundary should own active row state, grouped rendering, filtering, group switching, and item open behavior'
 );
 
 assert.doesNotMatch(
   editorMainSidebarSessionSource,
+  /let currentActive = null|let activeGroup = 'index'|const renderGroupedIndex = \(root, data\)|const renderGroupedTabs = \(root, data\)|const applyFilter = \(term\)|const switchGroup = \(name\)|const makeGroupHeader|const makeSubHeader|const compareVersionDesc|const makeLi = \(label, relPath\)/,
+  'editor sidebar session should not own file tree row state, grouped rendering, filtering, or row open internals'
+);
+
+assert.doesNotMatch(
+  [editorMainSidebarSessionSource, editorMainSidebarFileTreeSource].join('\n'),
   /\bwindowRef\b|options\.windowRef|defaultAlert/,
-  'editor sidebar session should receive alert behavior through explicit app-service injection instead of reading window refs'
+  'editor sidebar session and file tree should receive alert behavior through explicit app-service injection instead of reading window refs'
 );
 
 assert.match(
   editorMainToolbarSessionSource,
-  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*let lastSelectionRange = \{ start: 0, end: 0 \};[\s\S]*let suppressSelectionTracking = false;[\s\S]*let formattingButtons = \[\];[\s\S]*let cardPopoverOpen = false;[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const applyInlineFormat = \(prefix, suffix\) => \{[\s\S]*const toggleLinePrefix = \(prefix\) => \{[\s\S]*const applyCodeBlockFormat = \(\) => \{[\s\S]*const insertCardLink = \(entry\) => \{[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*const openCardPopover = \(\) => \{[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
-  'editor toolbar session should own selection tracking, markdown formatting actions, and article-card picker lifecycle'
+  /export function createEditorMainToolbarSession\(options = \{\}\) \{[\s\S]*const textActions = createEditorMainToolbarTextActions\(\{[\s\S]*getEditorTextarea,[\s\S]*createInputEvent[\s\S]*\}\);[\s\S]*let formattingButtons = \[\];[\s\S]*let cardInsertionAllowed = false;[\s\S]*const cardPicker = createEditorMainToolbarCardPicker\(\{[\s\S]*runtime,[\s\S]*documentRef,[\s\S]*getEntries: readCardEntries,[\s\S]*canOpen: \(\) => cardInsertionAllowed,[\s\S]*onSelectEntry: \(entry\) => runTextAction\(\(\) => textActions\.insertCardLink\(entry\)\),[\s\S]*onEscapeClose: \(\) => textActions\.restoreSelection\(\)[\s\S]*\}\);[\s\S]*function applyButtonTooltipState\(button, disabled\)[\s\S]*const bind = \(\) => \{[\s\S]*bindCardPicker\(\);[\s\S]*bindFormattingButtons\(\);[\s\S]*bindSelectionTracking\(\);/,
+  'editor toolbar session should compose text actions and card picker while owning button tooltip and enabled-state coordination'
 );
 
 assert.match(
-  editorMainToolbarSessionSource,
-  /const onDocument = typeof runtime\.onDocument === 'function'[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*const clearTimer = typeof runtime\.clearTimer === 'function'[\s\S]*const createInputEvent = typeof options\.createInputEvent === 'function'[\s\S]*runtime\.createEvent\('input', \{ bubbles: true, cancelable: true \}\)[\s\S]*detachCardMouseDown = onDocument\('mousedown', handleCardOutsideClick, true\);[\s\S]*detachCardResize = onWindow\('resize', handleCardRelayout, true\);/,
-  'editor toolbar session should route popover document/window/timer and input-event effects through the runtime boundary'
+  editorMainToolbarCardPickerSource,
+  /export function createEditorMainToolbarCardPicker\(options = \{\}\) \{[\s\S]*let cardPopoverOpen = false;[\s\S]*const renderCardPickerList = \(term = ''\) => \{[\s\S]*const position = \(anchor = cardButton\) => \{[\s\S]*function handleOutsideClick\(event\)[\s\S]*function handleKeydown\(event\)[\s\S]*function close\(\)[\s\S]*const open = \(\) => \{[\s\S]*const update = \(\) => \{[\s\S]*const bind = \(\) => \{/,
+  'editor toolbar card picker boundary should own card picker DOM rendering, popover lifecycle, and watcher binding'
+);
+
+assert.match(
+  editorMainToolbarTextActionsSource,
+  /export function createEditorMainToolbarTextActions\(options = \{\}\) \{[\s\S]*let lastSelectionRange = \{ start: 0, end: 0 \};[\s\S]*let suppressSelectionTracking = false;[\s\S]*const applyInlineFormat = \(prefix, suffix\) => \{[\s\S]*const toggleLinePrefix = \(prefix\) => \{[\s\S]*const applyCodeBlockFormat = \(\) => \{[\s\S]*const insertCardLink = \(entry\) => \{/,
+  'editor toolbar text action boundary should own selection tracking and Markdown textarea mutation rules'
 );
 
 assert.doesNotMatch(
   editorMainToolbarSessionSource,
+  /let lastSelectionRange|let suppressSelectionTracking|const applyInlineFormat = \(prefix, suffix\)|const toggleLinePrefix = \(prefix\)|const applyCodeBlockFormat = \(\)|const insertCardLink = \(entry\)|const dispatchInputEvent = \(textarea\)|const getNormalizedSelection = \(\)/,
+  'editor toolbar session should not own Markdown textarea mutation or selection-state internals'
+);
+
+assert.doesNotMatch(
+  editorMainToolbarSessionSource,
+  /let cardPopoverOpen|let cardPopoverClosing|let cardPopoverCloseTimer|let cardPopoverTransitionHandler|detachCardMouseDown|detachCardKeydown|detachCardResize|detachCardScroll|const renderCardPickerList = \(term = ''\)|const positionCardPopover|function closeCardPopover|const openCardPopover|function handleCardOutsideClick|function handleCardKeydown/,
+  'editor toolbar session should not own article-card picker DOM, popover, or watcher internals'
+);
+
+assert.match(
+  editorMainToolbarCardPickerSource,
+  /const onDocument = typeof runtime\.onDocument === 'function'[\s\S]*const onWindow = typeof runtime\.onWindow === 'function'[\s\S]*const setTimer = typeof runtime\.setTimer === 'function'[\s\S]*const clearTimer = typeof runtime\.clearTimer === 'function'[\s\S]*detachCardMouseDown = onDocument\('mousedown', handleOutsideClick, true\);[\s\S]*detachCardResize = onWindow\('resize', handleRelayout, true\);/,
+  'editor toolbar card picker should route popover document/window/timer effects through the runtime boundary'
+);
+
+assert.doesNotMatch(
+  [editorMainToolbarSessionSource, editorMainToolbarCardPickerSource].join('\n'),
   /\bwindowRef\b|options\.windowRef|documentRef\.defaultView|windowRef\.|new Event/,
-  'editor toolbar session should not retain direct window refs for timers or input event construction'
+  'editor toolbar session and card picker should not retain direct window refs for timers or input event construction'
 );
 
 assert.match(
@@ -2104,8 +2912,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary,[\s\S]*refreshEditorContentTree[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
-  'composer should delegate system/theme staging, status, and initialization through app-service callbacks'
+  /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary: \(\) => composerActions\.dispatch\('composer\.system-theme\.changed'[\s\S]*refreshEditorContentTree: \(options\) => composerActions\.dispatch\('editor\.tree\.refresh'[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
+  'composer should delegate system/theme staging, status, and initialization through explicit action callbacks'
 );
 
 assert.match(
@@ -2134,8 +2942,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
-  'composer should reduce publish persistence to explicit app-service callbacks'
+  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerActions\.dispatch\('publish\.completed'[\s\S]*function rawApplyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
+  'composer should reduce publish persistence to explicit app-service and action-contract callbacks'
 );
 
 assert.match(
@@ -2939,9 +3747,9 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksModelSource}\n${editorBlocksSource}`,
+  `${editorBlocksMarkdownParseModelSource}\n${editorBlocksMarkdownSerializeModelSource}\n${editorBlocksSource}`,
   /export function parseMarkdownBlocks\(markdown\)[\s\S]*export function serializeMarkdownBlocks\(blocks\)[\s\S]*export function createMarkdownBlocksEditor\(root, options = \{\}\)/,
-  'blocks mode should provide model parser/serializer and DOM controller entrypoints'
+  'blocks mode should provide delegated parser/serializer and DOM controller entrypoints'
 );
 
 assert.doesNotMatch(
@@ -2957,8 +3765,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksCommandSessionSource}`,
-  /const commandSession = blockSessions\.setCommandSession\(createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => blockSessions\.getCardPickerSession\(\),[\s\S]*insertCardBlock: \(data, index\) => blockSessions\.insertCommandBlock\('card', data, \{ index \}\)[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
+  `${editorBlocksSource}\n${editorBlocksBlockTypeSessionsSource}\n${editorBlocksCommandSessionSource}`,
+  /const commandSession = blockSessions\.setCommandSession\(createEditorBlocksCommandSession\(\{[\s\S]*placeCommandBlock,[\s\S]*getCardPickerSession: \(\) => blockSessions\.getCardPickerSession\(\),[\s\S]*insertCardBlock: \(data, index\) => blockSessions\?\.insertCommandBlock\?\.\('card', data, \{ index \}\) \|\| null[\s\S]*const insertCommandBlock = \(type, data = \{\}, options = \{\}\) => \{[\s\S]*blocksState\.beginCommandBlockInsert\(options\)[\s\S]*placeCommandBlock\(type, cloneCommandData\(data\), insertIndex\)[\s\S]*const openArticleCardCommand = \(\) => \{[\s\S]*const insertIndex = commandInsertIndex\(\);[\s\S]*cardPickerSession\.open\(insertIndex\);/,
   'blank block commands should live behind the command session, replace active blanks, and reuse the article-card picker at that position'
 );
 
@@ -2982,7 +3790,7 @@ assert.doesNotMatch(
 
 assert.match(
   editorBlocksCaretSessionSource,
-  /function isSelectionOnBlankLine\(el\) \{[\s\S]*const offsets = selectionOffsets\(el\);[\s\S]*!offsets\.collapsed[\s\S]*if \(text\.slice\(lineStart, lineEnd\)\.trim\(\) === ''\) return true;[\s\S]*const caretRect = rectForEditable\(el\);[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*range\.selectNodeContents\(node\);[\s\S]*const hasTextOnCaretLine = rects\.some[\s\S]*if \(hasTextOnCaretLine\)[\s\S]*return true;/,
+  /function isSelectionOnBlankLine\(el\) \{[\s\S]*const offsets = selectionOffsets\(el\);[\s\S]*!offsets\.collapsed[\s\S]*if \(text\.slice\(lineStart, lineEnd\)\.trim\(\) === ''\) return true;[\s\S]*const caretRect = rectForEditable\(el\);[\s\S]*selectionTools\.createTreeWalker\(el, CARET_TEXT_NODE_FILTER\)[\s\S]*range\.selectNodeContents\(node\);[\s\S]*const hasTextOnCaretLine = rects\.some[\s\S]*if \(hasTextOnCaretLine\)[\s\S]*return true;/,
   'rich text blocks should detect empty visual lines even when DOM line breaks are not counted by Range.toString offsets'
 );
 
@@ -2999,7 +3807,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockActionsSource,
   /const insertBlankBlockAfter = \(index, editable = null, sync = null\) => \{[\s\S]*if \(typeof sync === 'function'\) sync\(\);[\s\S]*insertBlankBlock\(Math\.max\(0, Math\.min\(\(Number\(index\) \|\| 0\) \+ 1, state\.blocks\.length\)\), \{ focus: true \}\);/,
   'Enter should create a focused real blank block after the current block'
 );
@@ -3017,7 +3825,7 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksModelSource,
+  editorBlocksBlockFlowModelSource,
   /export function isBlockEmptyForBackspace\(block\) \{[\s\S]*block\.type === 'blank'[\s\S]*block\.type === 'paragraph'[\s\S]*block\.type === 'heading'[\s\S]*block\.type === 'quote'[\s\S]*block\.type === 'code'[\s\S]*block\.type === 'source'[\s\S]*block\.type === 'image'[\s\S]*block\.type === 'card'[\s\S]*block\.type === 'list'[\s\S]*editableListItems\(data\.items\)\.every\(item => blank\(item && item\.text\) && !item\.checked\);/,
   'empty block backspace detection should cover blank, text, media, card, and list user-authored content'
 );
@@ -3029,8 +3837,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksStateSource}`,
-  /const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*event\.key !== 'Backspace'[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
+  `${editorBlocksBlockActionsSource}\n${editorBlocksStateSource}`,
+  /const removeEmptyBlockWithBackspace = \(event, block, index, editable = null, sync = null\) => \{[\s\S]*!plainKey\(event, 'Backspace'\)[\s\S]*index <= 0[\s\S]*isEditableBackspaceAtEmptyStart\(editable, selectionSession\)[\s\S]*isBlockEmptyForBackspace\(block\)[\s\S]*blocksState\.removeBlock\(index\);[\s\S]*render\(\);[\s\S]*focusPreviousBlockEnd\(index\);[\s\S]*emit\(\);[\s\S]*function removeBlock\(index, options = \{\}\) \{[\s\S]*replaceBlocks\(index, 1, \[\], options\)/,
   'Backspace should remove empty non-first real blocks and delegate previous-end focus through the focus session'
 );
 
@@ -3128,19 +3936,19 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksModelSource}\n${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
+  `${editorBlocksInlineModelSource}\n${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineRangeAnyMarked\(runs, start, end, mark\)[\s\S]*next > safeStart && cursor < safeEnd && !!run\[mark\][\s\S]*const shouldApply = command === 'code'[\s\S]*inlineRangeAnyMarked\(runs, start, end, command\)[\s\S]*inlineRangeAnyMarked\(runs, offsets\.start, offsets\.end, mark\)/,
   'B/I/S inline formatting should treat mixed selected ranges as active when any selected text has the mark'
 );
 
 assert.match(
-  editorBlocksModelSource,
+  editorBlocksInlineModelSource,
   /function inlineMarksAtOffset\(runs, offset\)[\s\S]*let previous = null;[\s\S]*target === cursor \|\| \(target > cursor && target < next\)[\s\S]*if \(target === next\) previous = run;[\s\S]*previous \|\| safeRuns\[safeRuns\.length - 1\]/,
   'collapsed caret inline formatting should prefer the right-hand run at mark boundaries and only fall back to the previous run at the end'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksSource}\n${editorBlocksRichTextSessionSource}\n${editorBlocksListSessionSource}`,
   /function selectionEditableInRoot\(root, selectionSession = null\)[\s\S]*selectionTools\.getSelectionRange\(root\)[\s\S]*closestElement\(candidate, '\.blocks-rich-editable'\)[\s\S]*const editableSession = createEditorBlocksEditableSession\(\);[\s\S]*const selectionSession = createEditorBlocksSelectionSession\(\{[\s\S]*editableSession\?\.registerEditable\?\.\(editable, sync\);[\s\S]*editableSession\.registerEditable\(span, sync\);/,
   'blocks editor should provide registered editables and a browser-selection lookup for inline toolbar recovery'
 );
@@ -3236,7 +4044,7 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksInlineToolbarSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksInlineToolbarSessionSource}`,
   /function inlineMarksFromDomNode\(node, editable\)[\s\S]*tag === 'strong' \|\| tag === 'b'[\s\S]*function inlineMarksFromPointerEvent\(event, editable, selectionSession = null\)[\s\S]*selectionTools\.nodeFromPoint\(event, editable, event && event\.target, \{ containsNode: nodeContains \}\)[\s\S]*fallbackMarks && fallbackMarks\[mark\]/,
   'inline toolbar state should fall back to marks from the clicked rich-text DOM path when selection offsets are unavailable or ambiguous'
 );
@@ -3266,20 +4074,20 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineCommandSessionSource,
   /if \(\(!offsets \|\| offsets\.collapsed\) && codeRange\) \{[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*removeInlineMarkInRange/,
   'removing remembered inline code should clear stale toolbar mark fallback state'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineCommandSessionSource,
   /if \(mark === 'code' && inlineMarksAtOffset\(runs, offsets\.start\)\.code\) \{[\s\S]*blocksState\.clearInlineState\(\);[\s\S]*removeInlineMarkAroundOffset/,
   'removing inline code at a collapsed caret should clear stale toolbar mark fallback state'
 );
 
 assert.match(
-  editorBlocksSource,
-  /const hasPendingInlineMarks = \(\) => blocksState\.hasPendingInlineMarks\(\);[\s\S]*const togglePendingInlineMark = \(kind\) => \{[\s\S]*blocksState\.togglePendingInlineMark\(mark\);[\s\S]*if \(mark === 'code'\) return;[\s\S]*togglePendingInlineMark\(kind\);/,
+  editorBlocksInlineCommandSessionSource,
+  /const hasPendingInlineMarks = \(\) => \([\s\S]*hasBlocksState\('hasPendingInlineMarks'\) \? blocksState\.hasPendingInlineMarks\(\) : false[\s\S]*const togglePendingInlineMark = \(kind\) => \{[\s\S]*const mark = inlineCommandMark\(kind\);[\s\S]*hasBlocksState\('togglePendingInlineMark'\)[\s\S]*blocksState\.togglePendingInlineMark\(mark\);[\s\S]*if \(mark === 'code'\) return;[\s\S]*togglePendingInlineMark\(kind\);/,
   'inline code should not be stored as pending formatting for future text input'
 );
 
@@ -3435,7 +4243,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon: createBlockTypeIconWithRuntime,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
+  /const headSession = createEditorBlocksHeadSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*text,[\s\S]*createBlockTypeIcon,[\s\S]*menuSession,[\s\S]*sourceSession,[\s\S]*listSession,[\s\S]*codeSession,[\s\S]*imageSession,[\s\S]*tableSession,[\s\S]*inlineToolbarSession,[\s\S]*createHeadingLevelSelect,[\s\S]*createMathEditButton,[\s\S]*forwardBlockHeadWheel,[\s\S]*alignBlockActionMenu,[\s\S]*setActive,[\s\S]*moveBlock,[\s\S]*insertBlankBlock,[\s\S]*deleteBlockAt[\s\S]*\}\);/,
   'blocks editor should compose block-head controls through an explicit head session service'
 );
 
@@ -3471,7 +4279,7 @@ assert.match(
 
 assert.match(
   editorBlocksSource,
-  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*image: \(body, block, index\) => imageSession\?\.renderBlock\(body, block, index\),[\s\S]*source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*\}[\s\S]*\}\)\);/,
+  /const bodySession = blockSessions\.setBodySession\(createEditorBlocksBodySession\(\{[\s\S]*headSession,[\s\S]*blockElements,[\s\S]*createRichEditable,[\s\S]*renderMath: renderMathWithRuntime,[\s\S]*hydrateCard,[\s\S]*openMathEditorForBlock,[\s\S]*renderers: \{[\s\S]*blank: \(body, block, index\) => blockSessions\.renderBlankBlock\(body, block, index\),[\s\S]*\.\.\.blockTypeRenderers[\s\S]*\}[\s\S]*\}\)\);/,
   'blocks editor root should compose block body rendering through the body session boundary'
 );
 
@@ -3518,9 +4326,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*blocksState\.consumeRoutedBlockContainerClickSuppression\(Date\.now\(\)\);[\s\S]*\};/,
-  'routed caret pointerdowns should suppress the following container click from clearing activeEditable'
+  editorBlocksFocusPointerSessionsSource,
+  /const shouldSuppressRoutedBlockContainerClick = \(\) => \{[\s\S]*blocksState\.consumeRoutedBlockContainerClickSuppression\(Date\.now\(\)\)\);[\s\S]*\};/,
+  'routed caret pointerdowns should suppress the following container click from clearing activeEditable through the focus/pointer wiring boundary'
 );
 
 assert.match(
@@ -3554,19 +4362,19 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksCaretSessionSource,
-  /export const CARET_POINT_MEASURE_LIMIT = 12000;[\s\S]*function measuredTextOffsetDetailsFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*selectionTools\.createTreeWalker\(el, SHOW_TEXT\)[\s\S]*let insideTextRect = false;[\s\S]*range\.setStart\(node, i\);[\s\S]*range\.setEnd\(node, i \+ 1\);[\s\S]*x >= rect\.left && x <= rect\.right && y >= rect\.top && y <= rect\.bottom[\s\S]*caretBoundaryDistance\(rect, rect\.left, x, y\)[\s\S]*bestOffset = offset \+ i;[\s\S]*caretBoundaryDistance\(rect, rect\.right, x, y\)[\s\S]*bestOffset = offset \+ i \+ 1;[\s\S]*return \{ offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount \};[\s\S]*function measuredTextOffsetFromPoint\(el, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*return details \? details\.offset : null;/,
+  editorBlocksCaretMeasurementSource,
+  /export const CARET_POINT_MEASURE_LIMIT = 12000;[\s\S]*export function measuredTextOffsetDetailsFromPoint\(el, x, y, options = \{\}\)[\s\S]*selectionTools\.createTreeWalker\(el, CARET_TEXT_NODE_FILTER\)[\s\S]*let insideTextRect = false;[\s\S]*range\.setStart\(node, i\);[\s\S]*range\.setEnd\(node, i \+ 1\);[\s\S]*x >= rect\.left && x <= rect\.right && y >= rect\.top && y <= rect\.bottom[\s\S]*caretBoundaryDistance\(rect, rect\.left, x, y\)[\s\S]*bestOffset = offset \+ i;[\s\S]*caretBoundaryDistance\(rect, rect\.right, x, y\)[\s\S]*bestOffset = offset \+ i \+ 1;[\s\S]*return \{ offset: bestOffset, distance: bestDistance, insideTextRect, textRectCount \};[\s\S]*export function measuredTextOffsetFromPoint\(el, x, y, options = \{\}\)[\s\S]*return details \? details\.offset : null;/,
   'routed caret fallback should measure text-node character boundaries and report nearest offsets plus text-rect hits'
 );
 
 assert.match(
-  editorBlocksCaretSessionSource,
-  /function textareaTextOffsetDetailsFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*const body = getSessionBody\(\);[\s\S]*const mirror = createSessionElement\('div'\);[\s\S]*mirror\.style\.whiteSpace = 'pre-wrap';[\s\S]*mirror\.style\.overflowWrap = 'break-word';[\s\S]*'tabSize'[\s\S]*mirror\.textContent = value;[\s\S]*const details = measuredTextOffsetDetailsFromPoint\(mirror, x, y, limit\);[\s\S]*return \{[\s\S]*\.\.\.details,[\s\S]*offset: Math\.max\(0, Math\.min\(value\.length, details\.offset\)\)[\s\S]*function textareaTextOffsetFromPoint\(area, x, y, limit = CARET_POINT_MEASURE_LIMIT\)[\s\S]*return details \? details\.offset : null;/,
+  editorBlocksCaretMeasurementSource,
+  /export function textareaTextOffsetDetailsFromPoint\(area, x, y, options = \{\}\)[\s\S]*const body = typeof getSessionBody === 'function'[\s\S]*const mirror = typeof createSessionElement === 'function'[\s\S]*mirror\.style\.whiteSpace = 'pre-wrap';[\s\S]*mirror\.style\.overflowWrap = 'break-word';[\s\S]*TEXTAREA_MIRROR_STYLE_PROPS\.forEach[\s\S]*mirror\.textContent = value;[\s\S]*const details = measuredTextOffsetDetailsFromPoint\(mirror, x, y, \{ selectionTools, limit \}\);[\s\S]*return \{[\s\S]*\.\.\.details,[\s\S]*offset: Math\.max\(0, Math\.min\(value\.length, details\.offset\)\)[\s\S]*export function textareaTextOffsetFromPoint\(area, x, y, options = \{\}\)[\s\S]*return details \? details\.offset : null;/,
   'routed source markdown textarea focus should use a styled mirror to measure nearest offsets and text-rect hits'
 );
 
 assert.doesNotMatch(
-  editorBlocksCaretSessionSource,
+  `${editorBlocksCaretSessionSource}\n${editorBlocksCaretMeasurementSource}`,
   /ownerDocument\.createElement/,
   'blocks caret session should use its explicit documentRef for temporary DOM measurement nodes'
 );
@@ -3758,9 +4566,9 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const imageSession = createEditorBlocksImageSession\(\{[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*selectionSession,[\s\S]*insertPlainTextIntoEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateInlineToolbarState,[\s\S]*updateFromControl,[\s\S]*insertBlock,[\s\S]*deleteBlockAt,[\s\S]*setActive,[\s\S]*resolveAssetSrc,[\s\S]*hydrateImages,[\s\S]*requestImageUpload: options\.requestImageUpload,[\s\S]*canDeleteImageResource: options\.canDeleteImageResource,[\s\S]*requestImageDelete: options\.requestImageDelete/,
-  'blocks editor root should compose image DOM/control behavior through the image session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const imageSession = createImageSession\(\{[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*blockElements,[\s\S]*selectionSession,[\s\S]*insertPlainTextIntoEditable,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateInlineToolbarState,[\s\S]*updateFromControl,[\s\S]*insertBlock,[\s\S]*deleteBlockAt,[\s\S]*setActive,[\s\S]*resolveAssetSrc,[\s\S]*hydrateImages,[\s\S]*requestImageUpload,[\s\S]*canDeleteImageResource,[\s\S]*requestImageDelete/,
+  'blocks block-type session assembly should compose image DOM/control behavior through the image session boundary'
 );
 
 assert.match(
@@ -3866,9 +4674,9 @@ assert.match(
 );
 
 assert.match(
-  editorMainPreviewSessionSource,
-  /const refreshAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*const target = getElementById\(id\);[\s\S]*applyAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*\};/,
-  'asset preview refresh should update WYSIWYG block images through the preview session'
+  editorMainPreviewAssetsSource,
+  /const previewAssetBuckets = new Map\(\);[\s\S]*const normalizeKey = \(value\) => \{[\s\S]*const applyAssetOverrides = \(container, markdownPath\) => \{[\s\S]*const refreshAssetOverrides = \(\) => \{[\s\S]*\['blocks-wrap'\]\.forEach\(\(id\) => \{[\s\S]*const target = getElementById\(id\);[\s\S]*applyAssetOverrides\(target, previewAssetCurrentPath\);[\s\S]*\}\);[\s\S]*const collectAssetOverrides = \(markdownPath\) => \{[\s\S]*const handleAssetPreviewEvent = \(event\) => \{/,
+  'preview asset boundary should own preview asset buckets, WYSIWYG rewrites, iframe override payloads, and asset-preview events'
 );
 
 assert.doesNotMatch(
@@ -3914,13 +4722,13 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineEditingBridgeSource,
   /function normalizeCodeEditablePlainText\(value\) \{[\s\S]*\.replace\(\/\\r\\n\/g, '\\n'\)[\s\S]*\.replace\(\/\\r\/g, '\\n'\);[\s\S]*function codeEditableText\(el\) \{[\s\S]*normalizeCodeEditablePlainText\(el\.innerText \|\| el\.textContent \|\| ''\)\.replace\(\/\\n\$\/, ''\);/,
   'code block text extraction should normalize browser Enter separators before syncing'
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksInlineEditingBridgeSource,
   /function insertCodeEditableTextAtSelection\(el, value, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*const offsets = codeEditableSelectionOffsets\(el, selectionTools\);[\s\S]*el\.textContent = next;[\s\S]*placeCaretAtTextOffset\(el, start \+ insert\.length, selectionTools\);[\s\S]*return next;/,
   'code block controlled text insertion should restore the caret after rewriting Enter text'
 );
@@ -3974,9 +4782,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*\};[\s\S]*const sourceSession = createEditorBlocksSourceSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit: CARET_POINT_MEASURE_LIMIT,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: index => applySourceAutofix\(index\),/,
-  'blocks editor root should compose source Markdown DOM/control behavior through the source session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const sourceSession = createSourceSession\(\{[\s\S]*documentRef,[\s\S]*editableSession,[\s\S]*text,[\s\S]*caretSession,[\s\S]*measureLimit,[\s\S]*textareaTextOffsetDetailsFromPoint,[\s\S]*autoSizeTextarea,[\s\S]*removeEmptyBlockWithBackspace,[\s\S]*handleCrossBlockArrowNavigation,[\s\S]*updateFromControl,[\s\S]*setActive,[\s\S]*activateEditableFromPointer,[\s\S]*applyAutofix: applySourceAutofix,/,
+  'blocks block-type session assembly should compose source Markdown DOM/control behavior through the source session boundary'
 );
 
 assert.match(
@@ -4004,8 +4812,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksBodySessionSource}`,
-  /source: \(body, block, index\) => sourceSession\?\.renderBlock\(body, block, index\)[\s\S]*callRenderer\(renderers, 'source', body, block, index\)/,
+  `${editorBlocksBlockTypeSessionsSource}\n${editorBlocksBodySessionSource}`,
+  /source: \(body, block, index\) => sourceSession\?\.renderBlock\?\.\(body, block, index\)[\s\S]*callRenderer\(renderers, 'source', body, block, index\)/,
   'source block body rendering should delegate to the source session'
 );
 
@@ -4016,14 +4824,14 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const listSession = blockSessions\.setListSession\(createEditorBlocksListSession\(\{[\s\S]*documentRef: blocksDocument,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask: task => queueMicrotask\(task\)[\s\S]*\}\)\);/,
-  'blocks editor root should compose list DOM, toolbar, and input behavior through the list session boundary'
+  editorBlocksBlockTypeSessionsSource,
+  /const listSession = registerSession\(blockSessions, 'setListSession', createListSession\(\{[\s\S]*documentRef,[\s\S]*root,[\s\S]*list,[\s\S]*state,[\s\S]*blocksState,[\s\S]*editableSession,[\s\S]*selectionSession,[\s\S]*caretSession,[\s\S]*inlineDomSession,[\s\S]*closestElement: options\.closestElement,[\s\S]*text,[\s\S]*editableListItems,[\s\S]*defaultListItems,[\s\S]*normalizeListItemType,[\s\S]*patchListItemType,[\s\S]*splitEditableTextAtSelection,[\s\S]*mergeFirstListItemIntoPreviousBlock,[\s\S]*wireInlineEditable,[\s\S]*queueTask[\s\S]*\}\)\);/,
+  'blocks block-type session assembly should compose list DOM, toolbar, and input behavior through the list session boundary'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksBodySessionSource}`,
-  /list: \(body, block, index\) => listSession\?\.renderBlock\(body, block, index\)[\s\S]*type === 'list'[\s\S]*callRenderer\(renderers, 'list', body, block, index\)/,
+  `${editorBlocksBlockTypeSessionsSource}\n${editorBlocksBodySessionSource}`,
+  /list: \(body, block, index\) => listSession\?\.renderBlock\?\.\(body, block, index\)[\s\S]*type === 'list'[\s\S]*callRenderer\(renderers, 'list', body, block, index\)/,
   'list block body rendering should delegate to the list session'
 );
 
@@ -4082,9 +4890,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksControlFactorySource,
   /const autoSizeTextarea = \(area\) => \{[\s\S]*area\.style\.height = 'auto';[\s\S]*area\.style\.height = `\$\{area\.scrollHeight\}px`;[\s\S]*\};/,
-  'blocks editor root should provide the shared textarea autosize service'
+  'blocks control factory should provide the shared textarea autosize service'
 );
 
 assert.match(
@@ -4118,19 +4926,19 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
-  extractFunctionBody(editorBlocksSource, 'editableText'),
+  extractFunctionBody(editorBlocksInlineEditingBridgeSource, 'editableText'),
   /\.trim\(/,
   'editable text sync should preserve leading and trailing markdown whitespace'
 );
 
 assert.doesNotMatch(
-  extractFunctionBody(editorBlocksSource, 'splitEditableTextAtSelection'),
+  extractFunctionBody(editorBlocksInlineEditingBridgeSource, 'splitEditableTextAtSelection'),
   /\.trim\(/,
   'splitting editable text should preserve leading and trailing markdown whitespace'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksListSessionSource}`,
   /function splitEditableTextAtSelection\(el, selectionSession = null\) \{[\s\S]*const selectionTools = normalizeSelectionSession\(selectionSession\);[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)[\s\S]*afterRange\.cloneContents\(\)[\s\S]*span\.addEventListener\('keydown', \(event\) => \{[\s\S]*const split = splitEditableTextAtSelection\(span, selectionSession\);[\s\S]*next\[itemIndex\] = \{ \.\.\.next\[itemIndex\], text: split\.before \};[\s\S]*next\.splice\(itemIndex \+ 1, 0, \{[\s\S]*text: split\.after,[\s\S]*checked: false,[\s\S]*indent: currentIndent,[\s\S]*indentText:[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: itemIndex \+ 1, caretOffset: 0 \}\);/,
   'pressing Enter in a visual list item should keep the caret semantic position by focusing the after item'
 );
@@ -4142,8 +4950,8 @@ assert.match(
 );
 
 assert.match(
-  `${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
-  /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedEditableText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
+  `${editorBlocksInlineModelSource}\n${editorBlocksListModelSource}\n${editorBlocksModelSource}\n${editorBlocksListSessionSource}\n${editorBlocksCaretSessionSource}`,
+  /export function inlineRenderedTextLength\(markdownText\) \{[\s\S]*parseInlineRuns\(normalizeEditableMarkdownText\(markdownText\)\)[\s\S]*export function mergeListItemIntoPreviousItem\(items, itemIndex\) \{[\s\S]*itemIndentLevel\(previous\) !== itemIndentLevel\(current\)[\s\S]*listItemHasNestedChildren\(source, safeIndex\)[\s\S]*joinMergedListItemText\(previousText, listItemText\(current\)\)[\s\S]*inlineRenderedTextLength\(previousText\) \+ mergedText\.separator\.length[\s\S]*event\.key === 'Backspace' \|\| event\.key === 'Delete'[\s\S]*itemIndex > 0[\s\S]*isEditableSelectionAtStart\(span, caretSession\)[\s\S]*mergeListItemIntoPreviousItem\(next, itemIndex\)[\s\S]*if \(!mergedItem\) return;[\s\S]*blocksState\.setPendingListFocus\(\{ blockId: block\.id, itemIndex: mergedItem\.focusItemIndex, caretOffset: mergedItem\.caretOffset \}\)[\s\S]*function isSelectionAtStart\(el\) \{[\s\S]*selectionTools\.getSelectionRange\(el\)[\s\S]*beforeRange\.cloneContents\(\)/,
   'Backspace or Delete at the start of a non-first visual list item should merge only structurally safe same-level items'
 );
 
@@ -4154,25 +4962,25 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksBlockActionsSource,
   /mergeTextBlockIntoPrevious\(previous, block\) \|\| mergeTextBlockIntoPreviousList\(previous, block\)[\s\S]*caretOffset: merged\.focusCaretOffset/,
   'Backspace at the start of a text block should support merging into a previous list tail item with safe caret placement'
 );
 
 assert.doesNotMatch(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksBlockFlowModelSource}`,
   /text: `\$\{(?:previousText|listItemText\(previous\))\}\$\{(?:currentText|listItemText\(current\))\}`/,
   'Backspace merge helpers should not directly concatenate merged text without the safe join helper'
 );
 
 assert.doesNotMatch(
-  editorBlocksSource,
+  `${editorBlocksSource}\n${editorBlocksBlockFlowModelSource}`,
   /previousText\.length \+ mergedText\.separator\.length/,
   'Backspace merge caret offsets should use rendered inline text length instead of markdown source length'
 );
 
 assert.match(
-  `${editorBlocksSource}\n${editorBlocksListSessionSource}`,
+  `${editorBlocksInlineEditingBridgeSource}\n${editorBlocksListSessionSource}`,
   /function getEditableCaretTextOffset\(el, caretSession = null\) \{[\s\S]*getTextOffset\(el\)[\s\S]*function placeCaretAtVisualLine\(el, x, edge, fallbackOffset = 0, caretSession = null\) \{[\s\S]*placeAtVisualLine\(el, x, edge, fallbackOffset\)[\s\S]*event\.key === 'ArrowUp' \|\| event\.key === 'ArrowDown'[\s\S]*const nextIndex = event\.key === 'ArrowUp' \? itemIndex - 1 : itemIndex \+ 1;[\s\S]*if \(!isEditableCaretOnEdgeLine\(span, event\.key === 'ArrowUp' \? 'up' : 'down', caretSession\)\) return;[\s\S]*placeCaretAtVisualLine\(target, caretRect \? caretRect\.left : 0, event\.key === 'ArrowUp' \? 'last' : 'first', caretOffset, caretSession\);/,
   'ArrowUp and ArrowDown should cross items only from edge lines and enter multiline targets from the correct visual edge'
 );
@@ -4352,14 +5160,14 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
+  editorBlocksControlFactorySource,
   /const BLOCK_TYPE_ICON_PATHS = \{[\s\S]*paragraph:[\s\S]*heading:[\s\S]*image:[\s\S]*list:[\s\S]*quote:[\s\S]*code:[\s\S]*source:[\s\S]*card:[\s\S]*blank:/,
   'block type icon map should cover every block type shown in the floating toolbar'
 );
 
 assert.match(
-  editorBlocksSource,
-  /function createBlockTypeIcon\(blockType, runtime = null\) \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*svg\.setAttribute\('viewBox', '0 0 24 24'\)[\s\S]*svg\.setAttribute\('aria-hidden', 'true'\)[\s\S]*svg\.setAttribute\('focusable', 'false'\)[\s\S]*svg\.innerHTML = BLOCK_TYPE_ICON_PATHS\[blockType\] \|\| BLOCK_TYPE_ICON_PATHS\.paragraph;/,
+  editorBlocksControlFactorySource,
+  /const createBlockTypeIcon = \(blockType\) => \{[\s\S]*runtime\.createElementNS\('http:\/\/www\.w3\.org\/2000\/svg', 'svg'\)[\s\S]*svg\.setAttribute\('viewBox', '0 0 24 24'\)[\s\S]*svg\.setAttribute\('aria-hidden', 'true'\)[\s\S]*svg\.setAttribute\('focusable', 'false'\)[\s\S]*svg\.innerHTML = BLOCK_TYPE_ICON_PATHS\[blockType\] \|\| BLOCK_TYPE_ICON_PATHS\.paragraph;/,
   'block type icon helper should create non-focusable inline SVG icons through the runtime with a paragraph fallback'
 );
 
@@ -4780,8 +5588,8 @@ assert.match(
 );
 
 assert.match(
-  editorBlocksSource,
-  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*const select = runtime\.createElement\('select'\);[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*const option = runtime\.createElement\('option'\);[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
+  editorBlocksControlFactorySource,
+  /const createHeadingLevelSelect = \(block\) => \{[\s\S]*runtime\.createElement\('select'\)[\s\S]*select\.className = 'blocks-heading-level'[\s\S]*const option = runtime\.createElement\('option'\);[\s\S]*select\.value = String\(block\?\.data\?\.level \|\| 2\);[\s\S]*select\.addEventListener\('change', \(\) => updateFromControl\(block, \{ level: Number\(select\.value\) \|\| 2 \}, true\)\);/,
   'heading level select control should preserve its data update behavior'
 );
 
@@ -5457,15 +6265,27 @@ assert.match(
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterManagerSource,
   /head\.className = 'frontmatter-field-head';[\s\S]*labelWrap\.className = 'frontmatter-field-label-wrap';[\s\S]*labelSpan\.className = 'frontmatter-field-title';[\s\S]*controls\.className = 'frontmatter-field-controls';[\s\S]*controls\.appendChild\([\s\S]*entry\.container\.appendChild\(controls\);/,
   'front matter field DOM should include field head, label wrap, and controls wrapper'
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterManagerSource,
   /const clear = \(\) => \{[\s\S]*state = \{[\s\S]*data:\s*\{\}[\s\S]*hasFrontMatter:\s*false[\s\S]*rebuildBindings\(\);[\s\S]*\};[\s\S]*return \{[\s\S]*clear,/,
   'front matter manager should expose a clear helper to reset stale article metadata state'
+);
+
+assert.match(
+  editorMainMetadataPanelSource,
+  /const createFrontMatterManager = \(\) => createEditorMainFrontMatterManager\(\{[\s\S]*documentRef,[\s\S]*getElementById,[\s\S]*querySelector,[\s\S]*translate,[\s\S]*translateWithLocaleFallback,[\s\S]*syncLabelWidth: syncFrontMatterLabelWidth[\s\S]*\}\);/,
+  'metadata panel session should compose article front matter through an explicit manager boundary'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /FRONT_MATTER_FIELD_DEFS|buildMarkdownWithFrontMatter|parseMarkdownFrontMatter|resolveFrontMatterBindings|normalizeDateInputValue|head\.className = 'frontmatter-field-head'|input\.addEventListener\(entry\.type === 'boolean'/,
+  'metadata panel session should not own article front matter document parsing or field DOM internals'
 );
 
 assert.match(
@@ -5475,8 +6295,8 @@ assert.match(
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
-  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
+  editorMainFrontMatterLabelWidthSource,
+  /const syncFrontMatterLabelWidth = \(root\) => \{[\s\S]*querySelectorAll\('\.frontmatter-field-title'\)[\s\S]*requestFrame\(measure\)[\s\S]*ResizeObserverRef/,
   'front matter labels should be measured after render and shared through a CSS variable'
 );
 
@@ -5487,25 +6307,49 @@ assert.doesNotMatch(
 );
 
 assert.doesNotMatch(
+  editorMainFrontMatterLabelWidthSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|typeof document|requestAnimationFrame === 'function'|cancelAnimationFrame === 'function'|getComputedStyle\.bind|windowRef\.ResizeObserver/,
+  'front matter label-width sync should stay bound to explicit document and browser adapters'
+);
+
+assert.doesNotMatch(
   editorMainMetadataPanelSource,
   /ownerDocument|defaultView|typeof document\b/,
   'metadata panel should use its injected documentRef instead of deriving document APIs from DOM nodes'
 );
 
-assert.match(
-  editorMainMetadataPanelSource,
-  /function syncFrontMatterLabelWidth\(root\) \{[\s\S]*root\.style\.setProperty\('--frontmatter-single-label-width'/,
-  'front matter label measurement should write the shared label width CSS variable'
+assert.doesNotMatch(
+  editorMainFrontMatterManagerSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|typeof document\b|ownerDocument|defaultView/,
+  'article front matter manager should stay bound to injected document and translation adapters'
 );
 
 assert.match(
   editorMainMetadataPanelSource,
+  /createFrontMatterLabelWidthSync\(\{[\s\S]*documentRef,[\s\S]*requestFrame,[\s\S]*cancelFrame,[\s\S]*getComputedStyle: getComputedStyleRef,[\s\S]*ResizeObserver: ResizeObserverRef[\s\S]*\}\);[\s\S]*const \{ syncFrontMatterLabelWidth \} = frontMatterLabelWidthSync;/,
+  'metadata panel should compose front matter label-width sync from an explicit layout helper'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /const measureLabelText|doc\.createElement\('span'\)|__pressFrontMatterLabelWidthCleanup = \(\) =>/,
+  'metadata panel should not own front matter label-width measurement lifecycle internals'
+);
+
+assert.match(
+  editorMainFrontMatterLabelWidthSource,
+  /const syncFrontMatterLabelWidth = \(root\) => \{[\s\S]*root\.style\.setProperty\('--frontmatter-single-label-width'/,
+  'front matter label measurement should write the shared label width CSS variable'
+);
+
+assert.match(
+  editorMainFrontMatterLabelWidthSource,
   /const measureLabelText = \(label\) => \{[\s\S]*label\.scrollWidth[\s\S]*probe\.textContent = label\.textContent \|\| '';[\s\S]*probe\.style\.whiteSpace = 'nowrap';/,
   'front matter label measurement should probe intrinsic text width when current layout is constrained'
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterLabelWidthSource,
   /querySelector\('\.frontmatter-help-tooltip'\)[\s\S]*measureLabelText\(label\)[\s\S]*getComputedStyleRef\(target \|\| label\)[\s\S]*gap/,
   'front matter label measurement should use intrinsic label width plus the visible help button and gap'
 );
@@ -5565,7 +6409,7 @@ assert.match(
 );
 
 assert.match(
-  editorMainMetadataPanelSource,
+  editorMainFrontMatterManagerSource,
   /const syncBooleanControl = \(entry, value\) => \{[\s\S]*entry\.input\.setAttribute\('aria-checked', checked \? 'true' : 'false'\);[\s\S]*wrap\.className = 'frontmatter-switch';[\s\S]*checkbox\.setAttribute\('role', 'switch'\);[\s\S]*entry\.switchEl = wrap;/,
   'front matter boolean fields should sync switch state through the existing input binding'
 );
@@ -5608,8 +6452,26 @@ assert.match(
 
 assert.match(
   editorMainMetadataPanelSource,
-  /const createTabsMetadataManager = \(\) => \{[\s\S]*section\.className = 'frontmatter-section';[\s\S]*grid\.className = 'frontmatter-grid';[\s\S]*field\.className = 'frontmatter-field frontmatter-field-text';[\s\S]*field\.dataset\.fieldId = 'tabs-title';[\s\S]*setChangeHandler: \(fn\) => \{[\s\S]*setValue: \(value, opts = \{\}\) => \{[\s\S]*emitChange\(\);/,
+  /const createTabsMetadataManager = \(\) => \{[\s\S]*createEditorMainTabsMetadataManager\(\{[\s\S]*documentRef,[\s\S]*getElementById,[\s\S]*translateWithLocaleFallback,[\s\S]*syncLabelWidth: syncFrontMatterLabelWidth[\s\S]*\}\);[\s\S]*\};/,
+  'metadata panel session should compose tabs metadata through an explicit manager boundary'
+);
+
+assert.match(
+  editorMainTabsMetadataManagerSource,
+  /export function createEditorMainTabsMetadataManager\(options = \{\}\) \{[\s\S]*section\.className = 'frontmatter-section';[\s\S]*grid\.className = 'frontmatter-grid';[\s\S]*field\.className = 'frontmatter-field frontmatter-field-text';[\s\S]*field\.dataset\.fieldId = 'tabs-title';[\s\S]*setChangeHandler: \(fn\) => \{[\s\S]*setValue: \(value, opts = \{\}\) => \{[\s\S]*emitChange\(\);/,
   'metadata panel session should define a tabs metadata manager that reuses the frontmatter panel shell and field styling'
+);
+
+assert.doesNotMatch(
+  editorMainMetadataPanelSource,
+  /section\.id = 'tabsMetadataSection'|field\.dataset\.fieldId = 'tabs-title'|input\.addEventListener\('input'/,
+  'metadata panel session should not own tabs metadata DOM construction or input event handling'
+);
+
+assert.doesNotMatch(
+  editorMainTabsMetadataManagerSource,
+  /\bwindowRef\b|options\.windowRef|windowRef\.|typeof window|typeof document\b|ownerDocument|defaultView/,
+  'tabs metadata manager should stay bound to injected document and translation adapters'
 );
 
 assert.match(
@@ -6053,20 +6915,20 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  `${editorMainSource}\n${editorMainCurrentFileSessionSource}`,
+  `${editorMainSource}\n${editorMainCurrentFileSessionSource}\n${editorMainCurrentFileViewSource}`,
   /<button type="button" class="cf-breadcrumb-item/,
   'current file breadcrumb should not use native buttons that inherit the bordered toolbar style'
 );
 
 assert.doesNotMatch(
-  `${editorMainSource}\n${editorMainCurrentFileSessionSource}`,
+  `${editorMainSource}\n${editorMainCurrentFileSessionSource}\n${editorMainCurrentFileViewSource}`,
   /<a href="#" class="cf-breadcrumb-item\$\{currentClass\}"[\s\S]*data-current-file-node-id=/,
   'current file breadcrumb should no longer render clickable links'
 );
 
 assert.match(
-  editorMainCurrentFileSessionSource,
-  /const normalizeCurrentFileBreadcrumb = \(value, fallbackPath = ''\) => \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>/,
+  editorMainCurrentFileViewSource,
+  /export function normalizeCurrentFileBreadcrumb\(value, fallbackPath = ''\) \{[\s\S]*const renderCurrentFileBreadcrumb = \(items, fullPath\) => \{[\s\S]*<span class="cf-breadcrumb-item cf-breadcrumb-item-static\$\{currentClass\}"\$\{ariaCurrent\}>/,
   'current file indicator should normalize and emit static breadcrumb entries'
 );
 
@@ -6331,13 +7193,13 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const field = options\.subheading[\s\S]*createSubheadingField\(section, \{[\s\S]*dataKey: key,[\s\S]*label: options\.label,[\s\S]*description: options\.description[\s\S]*createField\(section, \{/,
+  /const field = fieldOptions\.subheading[\s\S]*createSubheadingField\(section, \{[\s\S]*dataKey: key,[\s\S]*label: fieldOptions\.label,[\s\S]*description: fieldOptions\.description[\s\S]*createField\(section, \{/,
   'localized fields should be able to reuse the shared subsection heading renderer'
 );
 
 assert.match(
-  siteSettingsSource,
-  /const createSubheadingField = \(section, config\) => \{[\s\S]*head\.className = 'cs-config-subsection-head'[\s\S]*title\.className = 'cs-config-subsection-title'[\s\S]*description\.className = 'cs-config-subsection-description'/,
+  composerSiteSettingsControlsSource,
+  /const createSubheadingField = \(section, config = \{\}\) => \{[\s\S]*head\.className = 'cs-config-subsection-head'[\s\S]*title\.className = 'cs-config-subsection-title'[\s\S]*description\.className = 'cs-config-subsection-description'/,
   'subheading fields should reuse the same title and description classes as combined configuration subsections'
 );
 
@@ -6391,7 +7253,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const useLocalizedGrid = !!\(options\.grid \|\| options\.multiline\);/,
+  /const useLocalizedGrid = !!\(fieldOptions\.grid \|\| fieldOptions\.multiline\);/,
   'localized fields should have an explicit grid option shared by keywords and multiline fields'
 );
 
@@ -6403,7 +7265,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /if \(useLocalizedGrid\) row\.classList\.add\('cs-localized-row--grid'\);[\s\S]*if \(options\.multiline\) row\.classList\.add\('cs-localized-row--multiline'\);/,
+  /if \(useLocalizedGrid\) row\.classList\.add\('cs-localized-row--grid'\);[\s\S]*if \(fieldOptions\.multiline\) row\.classList\.add\('cs-localized-row--multiline'\);/,
   'aligned localized fields should mark grid rows separately from multiline textarea behavior'
 );
 
@@ -6486,14 +7348,14 @@ assert.match(
 );
 
 assert.match(
-  composerIndexTabsUiSource,
-  /const handle = target\.closest\('\.ci-grip,\.ct-grip'\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const li = handle\.closest\(keySelector\);/,
+  composerDragListSource,
+  /const handleSelector = dragOptions\.handleSelector \|\| '\.ci-grip,\.ct-grip';[\s\S]*const handle = target\.closest\(handleSelector\);[\s\S]*if \(!handle \|\| !container\.contains\(handle\)\) return;[\s\S]*const item = handle\.closest\(keySelector\);/,
   'composer entry reordering should start only from the visible drag handle'
 );
 
 assert.doesNotMatch(
-  composerIndexTabsUiSource.match(/function makeDragList\(container, onReorder\) \{[\s\S]*?\n  function buildIndexUI\(root, state\) \{/)[0],
-  /const li = target\.closest\(keySelector\);/,
+  composerDragListSource.match(/function makeDragList\(container, onReorder, dragOptions = \{\}\) \{[\s\S]*?container\.addEventListener\('pointerdown', onPointerDown\);/)[0],
+  /const (?:li|item) = target\.closest\(keySelector\);/,
   'composer entry reordering should not treat the entire card as a drag source'
 );
 
@@ -6504,9 +7366,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const renderIdentityPathGrid = \(section\) => \{/,
-  'composer site editor should define a compact identity path grid renderer'
+  composerSiteSettingsSingleGridsSource,
+  /renderIdentityPathGrid: \(section\) => renderSchemaTextGrid\(section, schemaFields\.identityPaths\)/,
+  'composer site editor should define compact identity path grid rendering in the single-grids boundary'
 );
 
 assert.match(
@@ -6558,8 +7420,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const renderSeoResourceGrid = \(section\) => \{[\s\S]*dataKey: 'resourceURL'[\s\S]*fields\.resourceURLHelp/,
+  composerSiteSettingsSchemaSource,
+  /seoResources: \[[\s\S]*field\('resourceURL', 'resourceURL', 'resourceURLHelp'/,
   'SEO Resource URL compact grid should preserve the field key and help tooltip text'
 );
 
@@ -6600,8 +7462,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const renderBehaviorGrid = \(section\) => \{[\s\S]*dataKey: 'defaultLanguage'[\s\S]*dataKey: 'contentOutdatedDays'[\s\S]*dataKey: 'pageSize'[\s\S]*dataKey: 'showAllPosts'[\s\S]*dataKey: 'landingTab'[\s\S]*dataKey: 'cardCoverFallback'[\s\S]*dataKey: 'errorOverlay'/,
+  composerSiteSettingsSchemaSource,
+  /behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'[\s\S]*contentOutdatedDays: field\('contentOutdatedDays'[\s\S]*pageSize: field\('pageSize'[\s\S]*showAllPosts: field\('showAllPosts'[\s\S]*landingTab: field\('landingTab'[\s\S]*cardCoverFallback: field\('cardCoverFallback'[\s\S]*errorOverlay: field\('errorOverlay'/,
   'Behavior compact grid should include all single-value behavior fields'
 );
 
@@ -6624,8 +7486,8 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
-  /const repoSection = createSection\([\s\S]*sections\.repo\.title[\s\S]*sections\.repo\.description[\s\S]*const identitySection = createSection\(/,
+  composerSiteSettingsUiSource,
+  /createComposerSiteSettingsRepoSection\(\{[\s\S]*siteSettingsSchema,[\s\S]*createSection,[\s\S]*renderPublishTransportSettings,[\s\S]*\}\);[\s\S]*const identitySection = createSection\(/,
   'Repository should be the first site editor card before Identity'
 );
 
@@ -6660,13 +7522,13 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
+  composerSiteSettingsRepoSectionSource,
   /repoInputs\.className = 'cs-repo-grid';[\s\S]*repoInputs\.dataset\.field = 'repo';[\s\S]*createRepoFieldGroup\('cs-repo-field-group--owner', t\('editor\.composer\.site\.repoOwner'\), ownerWrap\)[\s\S]*createRepoFieldGroup\('cs-repo-field-group--name', t\('editor\.composer\.site\.repoName'\), repoWrap\)[\s\S]*createRepoFieldGroup\('cs-repo-field-group--branch', t\('editor\.composer\.site\.repoBranch'\), branchWrap\)[\s\S]*repoSection\.appendChild\(repoInputs\);/,
   'Repository inputs should remain diff-addressable while rendering labeled controls directly in the Repository card'
 );
 
 assert.match(
-  siteSettingsSource,
+  composerSiteSettingsRepoSectionSource,
   /repoSection\.appendChild\(repoInputs\);\s*renderPublishTransportSettings\(repoSection\);/,
   'Repository card should host the browser-local publish transport settings'
 );
@@ -6728,7 +7590,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: CONNECT_PUBLISH_PRESETS[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: ANNOTATE_DISCUSSION_CATEGORY_PRESETS/,
+  /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: connectPublishPresets[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: annotateDiscussionCategoryPresets/,
   'Annotate settings should expose editable datalist inputs for Connect URL and Discussion category'
 );
 

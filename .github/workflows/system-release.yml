@@ -34,6 +34,8 @@ jobs:
           node scripts/test-composer-service-registry.js
           node scripts/test-press-system-surface.mjs
           node scripts/test-editor-app-kernel.mjs
+          node scripts/test-provider-adapters.js
+          node scripts/test-provider-boundary.js
           node scripts/test-publish-flow-smoke.js
           node --experimental-default-type=module scripts/test-theme-contracts.js
           bash scripts/test-system-release-package.sh

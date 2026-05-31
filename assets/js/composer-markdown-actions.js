@@ -1,3 +1,5 @@
+import { PRESS_GITHUB_SITE_PROVIDER } from './provider-adapters.js';
+
 function noop() {}
 
 function identityTranslate(key) {
@@ -34,6 +36,7 @@ export function createComposerMarkdownActionsController(options = {}) {
   const setButtonLabel = typeof options.setButtonLabel === 'function' ? options.setButtonLabel : noop;
   const getButtonLabel = typeof options.getButtonLabel === 'function' ? options.getButtonLabel : () => '';
   const getCurrentMode = typeof options.getCurrentMode === 'function' ? options.getCurrentMode : () => null;
+  const siteRepositoryProvider = options.siteRepositoryProvider || PRESS_GITHUB_SITE_PROVIDER;
 
   function getActiveTab() {
     return typeof options.getActiveDynamicTab === 'function' ? options.getActiveDynamicTab() : null;
@@ -189,8 +192,8 @@ export function createComposerMarkdownActionsController(options = {}) {
       return;
     }
 
-    const { owner, name, branch } = options.getActiveSiteRepoConfig();
-    if (!owner || !name) {
+    const repo = siteRepositoryProvider.normalizeRepositoryConfig(options.getActiveSiteRepoConfig());
+    if (!repo.owner || !repo.name) {
       showToast('info', t('editor.toasts.repoConfigMissing'));
       return;
     }
@@ -225,27 +228,15 @@ export function createComposerMarkdownActionsController(options = {}) {
     }
 
     const contentPath = `${root}/${rel}`.replace(/[\\]+/g, '/').replace(/^\/+/g, '');
-    const encodedContentPath = options.encodeGitHubPath(contentPath);
     const folder = options.dirnameFromPath(rel);
     const fullFolder = [root, folder].filter(Boolean).join('/');
-    const encodedFolder = options.encodeGitHubPath(fullFolder);
     const filename = options.basenameFromPath(rel) || 'main.md';
-
-    const base = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
-    const branchPart = encodeURIComponent(branch);
     const remoteState = tab.fileStatus && tab.fileStatus.state ? String(tab.fileStatus.state) : '';
     const isCreate = remoteState === 'missing';
 
-    let href = '';
-    if (isCreate) {
-      href = encodedFolder
-        ? `${base}/new/${branchPart}/${encodedFolder}?filename=${encodeURIComponent(filename)}`
-        : `${base}/new/${branchPart}?filename=${encodeURIComponent(filename)}`;
-    } else {
-      href = encodedContentPath
-        ? `${base}/edit/${branchPart}/${encodedContentPath}`
-        : `${base}/edit/${branchPart}`;
-    }
+    const href = isCreate
+      ? siteRepositoryProvider.buildNewFileUrl({ repo, folderPath: fullFolder, filename })
+      : siteRepositoryProvider.buildEditFileUrl({ repo, filePath: contentPath });
 
     if (!href) {
       options.closePopupWindow(popup);

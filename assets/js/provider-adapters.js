@@ -19,6 +19,27 @@ function trimOrigin(value, fallback) {
   }
 }
 
+function trimBaseUrl(value, fallback) {
+  const raw = safeString(value || fallback).trim().replace(/\/+$/u, '');
+  try {
+    const url = new URL(raw);
+    return `${url.origin}${url.pathname === '/' ? '' : url.pathname}`;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function defaultGraphqlApiUrl(apiBaseUrl) {
+  try {
+    const url = new URL(apiBaseUrl);
+    const cleanPath = url.pathname.replace(/\/+$/u, '');
+    if (cleanPath.endsWith('/api/v3')) {
+      return `${url.origin}${cleanPath.slice(0, -'/api/v3'.length)}/api/graphql`;
+    }
+  } catch (_) {}
+  return `${apiBaseUrl}/graphql`;
+}
+
 function normalizeRepository(value, fallback) {
   const raw = safeString(value || fallback).trim();
   const parts = raw.split('/').map((part) => part.trim()).filter(Boolean);
@@ -68,6 +89,100 @@ function buildWebUrl({ webBaseUrl, repository, path }) {
   return `${webBaseUrl}/${encodeURIComponent(owner)}/${encodeURIComponent(name)}${cleanPath ? `/${encodePath(cleanPath)}` : ''}`;
 }
 
+function normalizeRepositoryPath(value) {
+  const raw = safeString(value).trim();
+  if (!raw || raw.includes('\0')) return '';
+  const parts = raw
+    .replace(/\\+/g, '/')
+    .replace(/^\/+/, '')
+    .split('/');
+  const stack = [];
+  for (const part of parts) {
+    if (!part || part === '.') continue;
+    if (part === '..') {
+      if (stack.length) stack.pop();
+      continue;
+    }
+    stack.push(part);
+  }
+  return stack.join('/');
+}
+
+function encodeRepositoryPath(value) {
+  const clean = normalizeRepositoryPath(value);
+  return clean ? clean.split('/').map(encodeURIComponent).join('/') : '';
+}
+
+function normalizeBranchName(value, fallback = 'main') {
+  const branch = safeString(value || fallback).trim() || fallback;
+  return branch.replace(/^refs\/heads\//, '') || fallback;
+}
+
+function normalizeSiteRepositoryConfig(repo, fallback = {}) {
+  const source = repo && typeof repo === 'object' ? repo : {};
+  const backup = fallback && typeof fallback === 'object' ? fallback : {};
+  return {
+    owner: safeString(source.owner || backup.owner).trim(),
+    name: safeString(source.name || backup.name).trim(),
+    branch: normalizeBranchName(source.branch || backup.branch || 'main')
+  };
+}
+
+function inferGitHubPagesRepository(locationLike) {
+  let protocol = '';
+  let hostname = '';
+  let pathname = '';
+
+  try {
+    if (typeof locationLike === 'string') {
+      const url = new URL(locationLike);
+      protocol = url.protocol;
+      hostname = url.hostname;
+      pathname = url.pathname;
+    } else if (locationLike && typeof locationLike === 'object') {
+      if (locationLike.href) {
+        const url = new URL(String(locationLike.href));
+        protocol = url.protocol;
+        hostname = url.hostname;
+        pathname = url.pathname;
+      } else {
+        protocol = String(locationLike.protocol || '');
+        hostname = String(locationLike.hostname || '');
+        pathname = String(locationLike.pathname || '');
+      }
+    }
+  } catch (_) {
+    return null;
+  }
+
+  if (protocol !== 'https:') return null;
+  const host = String(hostname || '').trim().toLowerCase();
+  const suffix = '.github.io';
+  if (!host.endsWith(suffix)) return null;
+  const owner = host.slice(0, -suffix.length);
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(owner)) return null;
+
+  const path = String(pathname || '');
+  const rawSegments = path.split('/').filter(Boolean);
+  const firstSegment = rawSegments[0] || '';
+  const isRootIndexFile = rawSegments.length === 1
+    && (firstSegment === 'index.html' || firstSegment === 'index_editor.html')
+    && !path.endsWith('/');
+  let name = '';
+  if (!firstSegment || isRootIndexFile) {
+    name = `${owner}.github.io`;
+  } else {
+    try {
+      name = decodeURIComponent(firstSegment);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (!/^[A-Za-z0-9_.-]+$/.test(name)) return null;
+
+  return { owner, name, branch: 'main' };
+}
+
 function createCanonicalSystemAssetMatcher({ rawBaseUrl, pressRepository, releaseArtifactsRef }) {
   const { owner, name } = repositoryParts(pressRepository);
   const rawOrigin = new URL(rawBaseUrl).origin;
@@ -87,7 +202,7 @@ function createCanonicalSystemAssetMatcher({ rawBaseUrl, pressRepository, releas
 
 export function createGitHubPressProvider(options = {}) {
   const rawBaseUrl = trimOrigin(options.rawBaseUrl, 'https://raw.githubusercontent.com');
-  const apiBaseUrl = trimOrigin(options.apiBaseUrl, 'https://api.github.com');
+  const apiBaseUrl = trimBaseUrl(options.apiBaseUrl, 'https://api.github.com');
   const webBaseUrl = trimOrigin(options.webBaseUrl, 'https://github.com');
   const pressRepository = normalizeRepository(options.pressRepository, DEFAULT_PRESS_REPOSITORY);
   const themeCatalogRepository = normalizeRepository(
@@ -143,3 +258,54 @@ export function createGitHubPressProvider(options = {}) {
 }
 
 export const PRESS_GITHUB_PROVIDER = createGitHubPressProvider();
+
+export function createGitHubSiteRepositoryProvider(options = {}) {
+  const apiBaseUrl = trimBaseUrl(options.apiBaseUrl, 'https://api.github.com');
+  const webBaseUrl = trimOrigin(options.webBaseUrl, 'https://github.com');
+  const graphqlApiUrl = trimBaseUrl(options.graphqlApiUrl, defaultGraphqlApiUrl(apiBaseUrl));
+
+  function buildNewFileUrl({ repo, branch, folderPath, folder, filename } = {}) {
+    const repository = normalizeSiteRepositoryConfig(repo, { branch });
+    if (!repository.owner || !repository.name) return '';
+    const branchName = normalizeBranchName(branch || repository.branch);
+    const cleanFolder = encodeRepositoryPath(folderPath || folder || '');
+    const name = safeString(filename).trim();
+    const base = `${webBaseUrl}/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/new/${encodeURIComponent(branchName)}`;
+    const href = cleanFolder ? `${base}/${cleanFolder}` : base;
+    return name ? `${href}?filename=${encodeURIComponent(name)}` : href;
+  }
+
+  function buildEditFileUrl({ repo, branch, filePath, path } = {}) {
+    const repository = normalizeSiteRepositoryConfig(repo, { branch });
+    if (!repository.owner || !repository.name) return '';
+    const branchName = normalizeBranchName(branch || repository.branch);
+    const cleanPath = encodeRepositoryPath(filePath || path || '');
+    const base = `${webBaseUrl}/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/edit/${encodeURIComponent(branchName)}`;
+    return cleanPath ? `${base}/${cleanPath}` : base;
+  }
+
+  return Object.freeze({
+    id: GITHUB_PROVIDER_ID,
+    label: 'GitHub',
+    apiBaseUrl,
+    webBaseUrl,
+    graphqlApiUrl,
+    inferRepositoryFromPublishedUrl: inferGitHubPagesRepository,
+    normalizeRepositoryConfig: normalizeSiteRepositoryConfig,
+    normalizeBranchName,
+    normalizeRepositoryPath,
+    encodeRepositoryPath,
+    buildNewFileUrl,
+    buildEditFileUrl,
+    buildGraphqlHeaders(token) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${safeString(token).trim()}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      };
+    }
+  });
+}
+
+export const PRESS_GITHUB_SITE_PROVIDER = createGitHubSiteRepositoryProvider();

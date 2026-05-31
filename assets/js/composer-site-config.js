@@ -4,60 +4,10 @@ import {
   mergeYamlConfig,
   resolveSiteRepoConfig
 } from './yaml.js';
+import { PRESS_GITHUB_SITE_PROVIDER } from './provider-adapters.js';
 
 export function inferRepoConfigFromGitHubPagesUrl(locationLike) {
-  let protocol = '';
-  let hostname = '';
-  let pathname = '';
-
-  try {
-    if (typeof locationLike === 'string') {
-      const url = new URL(locationLike);
-      protocol = url.protocol;
-      hostname = url.hostname;
-      pathname = url.pathname;
-    } else if (locationLike && typeof locationLike === 'object') {
-      if (locationLike.href) {
-        const url = new URL(String(locationLike.href));
-        protocol = url.protocol;
-        hostname = url.hostname;
-        pathname = url.pathname;
-      } else {
-        protocol = String(locationLike.protocol || '');
-        hostname = String(locationLike.hostname || '');
-        pathname = String(locationLike.pathname || '');
-      }
-    }
-  } catch (_) {
-    return null;
-  }
-
-  if (protocol !== 'https:') return null;
-  const host = String(hostname || '').trim().toLowerCase();
-  const suffix = '.github.io';
-  if (!host.endsWith(suffix)) return null;
-  const owner = host.slice(0, -suffix.length);
-  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(owner)) return null;
-
-  const path = String(pathname || '');
-  const rawSegments = path.split('/').filter(Boolean);
-  const firstSegment = rawSegments[0] || '';
-  const isRootIndexFile = rawSegments.length === 1
-    && (firstSegment === 'index.html' || firstSegment === 'index_editor.html')
-    && !path.endsWith('/');
-  let name = '';
-  if (!firstSegment || isRootIndexFile) {
-    name = `${owner}.github.io`;
-  } else {
-    try {
-      name = decodeURIComponent(firstSegment);
-    } catch (_) {
-      return null;
-    }
-  }
-  if (!/^[A-Za-z0-9_.-]+$/.test(name)) return null;
-
-  return { owner, name, branch: 'main' };
+  return PRESS_GITHUB_SITE_PROVIDER.inferRepositoryFromPublishedUrl(locationLike);
 }
 
 export function isPlaceholderRepoConfig(repo) {

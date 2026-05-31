@@ -71,7 +71,6 @@ function makeBaseOptions(overrides = {}) {
       const index = text.lastIndexOf('/');
       return index >= 0 ? text.slice(index + 1) : text;
     },
-    encodeGitHubPath: (value) => String(value || ''),
     getPrimaryEditorApi: () => null,
     loadDynamicTabContent: async (tab) => {
       calls.push(['load', tab.path]);
@@ -190,6 +189,34 @@ function makeBaseOptions(overrides = {}) {
 
   assert(options.calls.some(call => call[0] === 'open-popup' && call[1].endsWith('/edit/main/wwwroot/post/doc.md')));
   assert(options.calls.some(call => call[0] === 'watch' && call[1] === 'post/doc.md' && call[3] === false));
+}
+
+{
+  const tab = {
+    mode: 'markdown-1',
+    path: 'post/custom.md',
+    content: 'Custom',
+    loaded: true,
+    fileStatus: { state: 'tracked' }
+  };
+  const options = makeBaseOptions({
+    siteRepositoryProvider: {
+      normalizeRepositoryConfig(repo) {
+        return { owner: repo.owner, name: repo.name, branch: repo.branch || 'main' };
+      },
+      buildNewFileUrl() {
+        throw new Error('new-file URL builder should not be used for tracked files');
+      },
+      buildEditFileUrl({ repo, filePath }) {
+        return `https://git.example.test/${repo.owner}/${repo.name}/edit/${repo.branch}/${filePath}`;
+      }
+    }
+  });
+  const controller = createComposerMarkdownActionsController(options);
+
+  await controller.openMarkdownPushOnGitHub(tab);
+
+  assert(options.calls.some(call => call[0] === 'open-popup' && call[1] === 'https://git.example.test/EkilyHQ/Press/edit/main/wwwroot/post/custom.md'));
 }
 
 {

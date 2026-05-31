@@ -20,7 +20,6 @@ export function createComposerEditorWorkspaceFeature(options = {}) {
   const t = typeof options.t === 'function' ? options.t : (key) => String(key || '');
   const tComposer = typeof options.tComposer === 'function' ? options.tComposer : (suffix) => `editor.composer.${suffix}`;
   const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : (value) => String(value || '').replace(/[\\]/g, '/');
-  const normalizeLangCode = typeof options.normalizeLangCode === 'function' ? options.normalizeLangCode : (value) => String(value || '').trim().toLowerCase();
   const normalizeIndexVariantList = typeof options.normalizeIndexVariantList === 'function' ? options.normalizeIndexVariantList : (value) => value;
   const getIndexVariantLocation = typeof options.getIndexVariantLocation === 'function' ? options.getIndexVariantLocation : () => '';
   const extractVersionFromPath = typeof options.extractVersionFromPath === 'function' ? options.extractVersionFromPath : () => '';
@@ -31,9 +30,7 @@ export function createComposerEditorWorkspaceFeature(options = {}) {
   const getIndexEntry = typeof options.getIndexEntry === 'function' ? options.getIndexEntry : () => ({});
   const getTabsEntry = typeof options.getTabsEntry === 'function' ? options.getTabsEntry : () => ({});
   const notifyComposerChange = typeof options.notifyComposerChange === 'function' ? options.notifyComposerChange : noop;
-  const refreshEditorContentTree = typeof options.refreshEditorContentTree === 'function' ? options.refreshEditorContentTree : noop;
   const setEditorDetailPanelModeExternal = typeof options.setEditorDetailPanelMode === 'function' ? options.setEditorDetailPanelMode : noop;
-  const animateEditorStructurePanelContentExternal = typeof options.animateEditorStructurePanelContent === 'function' ? options.animateEditorStructurePanelContent : noop;
   const getCurrentMode = typeof options.getCurrentMode === 'function' ? options.getCurrentMode : () => '';
   const isDynamicMode = typeof options.isDynamicMode === 'function' ? options.isDynamicMode : () => false;
   const applyMode = typeof options.applyMode === 'function' ? options.applyMode : noop;

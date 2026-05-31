@@ -346,7 +346,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   });
   const {
     computeTextSignature,
-    createDiscardedMarkdownProtectionState,
     createMarkdownProtectionState,
     getLockedEncryptedMarkdownDraft,
     getMarkdownProtectionState,
@@ -362,7 +361,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getMarkdownDraftEntry,
     clearMarkdownDraftEntry,
     restoreMarkdownDraftForTab,
-    saveMarkdownDraftForTab,
     clearMarkdownDraftForTab,
     scheduleMarkdownDraftSave,
     flushMarkdownDraft,
@@ -370,7 +368,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     hasUnsavedMarkdownDrafts,
     collectDynamicMarkdownDraftStates,
     updateComposerDraftContainerState,
-    updateComposerMarkdownDraftContainerState,
     updateComposerMarkdownDraftIndicators,
     ensureMarkdownAssetBucket,
     importMarkdownAssetsForPath,
@@ -493,7 +490,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     closeComposerDiffModalForKind: (kind) => closeComposerDiffModalForKind(kind)
   });
   const {
-    setSyncOverlayStatus,
     startRemoteSyncWatcher,
     renderPublishTransportSettings,
     refreshSyncCommitPanel,

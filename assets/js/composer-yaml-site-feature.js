@@ -42,7 +42,6 @@ const SITE_FIELD_LABEL_MAP = {
 const noop = () => {};
 
 export function createComposerYamlSiteFeature(options = {}) {
-  const editorRuntime = options.editorRuntime || {};
   const documentRef = options.documentRef || null;
   const windowRef = options.windowRef || null;
   const consoleRef = options.consoleRef || { error: noop, warn: noop };

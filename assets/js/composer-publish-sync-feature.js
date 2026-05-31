@@ -5,7 +5,6 @@ import { createComposerRemoteSyncController } from './composer-remote-sync.js';
 const noop = () => {};
 
 export function createComposerPublishSyncFeature(options = {}) {
-  const editorRuntime = options.editorRuntime || {};
   const documentRef = options.documentRef || null;
   const windowRef = options.windowRef || null;
   const consoleRef = options.consoleRef || { error: noop, warn: noop };

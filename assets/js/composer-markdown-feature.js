@@ -232,7 +232,6 @@ export function createComposerMarkdownFeature(options = {}) {
     }
     const opts = decryptOptions && typeof decryptOptions === 'object' ? decryptOptions : {};
     const protection = getMarkdownProtectionState(tab);
-    let lastError = null;
     for (;;) {
       let password = protection.password;
       if (!password) {
@@ -254,13 +253,11 @@ export function createComposerMarkdownFeature(options = {}) {
           remoteCiphertext: envelope.ciphertext || protection.remoteCiphertext || ''
         });
         return normalizeMarkdownContent(decrypted);
-      } catch (err) {
-        lastError = err;
+      } catch (_) {
         protection.password = '';
         showToast('error', t('editor.composer.markdown.protection.unlockFailed'));
       }
     }
-    throw lastError || new Error(t('editor.composer.markdown.protection.unlockFailed'));
   }
 
   async function prepareMarkdownForProtectedStorage(tab, markdown, storageOptions = {}) {

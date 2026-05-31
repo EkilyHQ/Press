@@ -47,7 +47,7 @@ assert.deepEqual(
 );
 
 assert.equal(grouped.runtime.includes('./composer-runtime.js'), true);
-assert.equal(grouped.bootstrap.includes('./composer-bootstrap.js'), true);
+assert.equal(grouped.bootstrap.includes('./composer-controller-graph.js'), true);
 assert.equal(grouped.action.includes('./composer-action-effects.js'), true);
 assert.equal(grouped.publish.includes('./composer-publish-service.js'), true);
 assert.equal(grouped.state.includes('./editor-drafts.js'), true);
@@ -67,7 +67,7 @@ assert.doesNotMatch(
 
 assert.match(
   contractSource,
-  /reason: 'publish transport settings and Connect presets'/,
+  /reason: 'controller service graph and startup lifecycle composition boundary'[\s\S]*reason: 'publish transport settings and Connect presets'/,
   'contract entries should record why cross-domain imports are still allowed'
 );
 

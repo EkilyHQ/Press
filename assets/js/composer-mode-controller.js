@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+
 export function isComposerSystemMode(value) {
   return value === 'composer' || value === 'themes' || value === 'updates' || value === 'sync';
 }
@@ -81,7 +83,7 @@ export function createComposerModeController(options = {}) {
   function setEditorModeLayoutState(nextMode) {
     const showEditor = nextMode === 'editor' || isComposerSystemMode(nextMode) || isDynamicMode(nextMode);
     try {
-      const layout = query('#mode-editor');
+      const layout = query(`#${EDITOR_SHELL_IDS.modeEditor}`);
       if (layout) {
         layout.style.display = showEditor ? '' : 'none';
         layout.classList.toggle('is-dynamic', isDynamicMode(nextMode));
@@ -92,7 +94,7 @@ export function createComposerModeController(options = {}) {
 
   function updateModeTabSelection(nextMode) {
     const isDynamic = isDynamicMode(nextMode);
-    queryAll('.mode-tab').forEach((button) => {
+    queryAll(EDITOR_SHELL_SELECTORS.modeTabs).forEach((button) => {
       const baseMode = button && button.dataset ? button.dataset.mode : '';
       if (isComposerSystemMode(baseMode)) {
         const active = nextMode === baseMode;
@@ -123,7 +125,7 @@ export function createComposerModeController(options = {}) {
 
   function refreshCurrentMode(nextMode, optionsForMode = {}) {
     try {
-      const layout = query('#mode-editor');
+      const layout = query(`#${EDITOR_SHELL_IDS.modeEditor}`);
       if (layout) layout.classList.toggle('is-dynamic', isDynamicMode(nextMode));
     } catch (_) {}
     if (nextMode === 'editor' && optionsForMode.forceStructure) {

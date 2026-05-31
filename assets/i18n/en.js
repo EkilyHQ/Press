@@ -383,6 +383,8 @@ const translations = {
         siteWaitStopped: 'Stopped waiting for the live site. Your commit is already on GitHub, but it may take a few minutes to appear.',
         siteWaitTimedOut: 'Committed files to GitHub, but the live site did not update in time. Check the deploy status manually.',
         commitSuccess: ({ count }) => `Committed ${count} ${count === 1 ? 'file' : 'files'} to GitHub.`,
+        commitSuccessWithWarnings: ({ count, warningCount }) => `Committed ${count} ${count === 1 ? 'file' : 'files'} to GitHub with ${warningCount} staging ${warningCount === 1 ? 'warning' : 'warnings'}.`,
+        publishStagingWarnings: ({ count }) => `${count} optional staging ${count === 1 ? 'warning' : 'warnings'} recorded for this publish.`,
         githubCommitFailed: 'GitHub commit failed.',
         githubTokenRejected: 'GitHub rejected the access token. Enter a new Fine-grained Personal Access Token.',
         repoOwnerMissing: 'Configure repo.owner and repo.name in site.yaml to enable GitHub synchronization.',

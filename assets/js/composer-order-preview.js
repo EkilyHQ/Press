@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
+
 function noop() {}
 
 function normalizeOrderKind(kind) {
@@ -133,7 +135,7 @@ export function createComposerOrderPreview(options = {}) {
       host.appendChild(svg);
     }
 
-    const meta = documentRef.getElementById('composerOrderInlineMeta');
+    const meta = documentRef.getElementById(EDITOR_SHELL_IDS.composerOrderInlineMeta);
     const statsWrap = meta ? meta.querySelector('.composer-order-inline-stats') : null;
     const list = root.querySelector('.composer-order-inline-list');
     const emptyNotice = root.querySelector('.composer-order-inline-empty');
@@ -204,7 +206,9 @@ export function createComposerOrderPreview(options = {}) {
     const { host, root, list, statsWrap, emptyNotice, svg, kindLabel, openBtn, title, meta } = preview;
     const label = normalized === 'tabs' ? 'tabs.yaml' : 'index.yaml';
     const allowReveal = options.reveal !== false;
-    const primaryList = normalized === 'tabs' ? documentRef.getElementById('ctList') : documentRef.getElementById('ciList');
+    const primaryList = normalized === 'tabs'
+      ? documentRef.getElementById(EDITOR_SHELL_IDS.ctList)
+      : documentRef.getElementById(EDITOR_SHELL_IDS.ciList);
     const primaryListRectBefore = captureElementRect(primaryList);
     let listAnimationScheduled = false;
     const collapseImmediately = !!options.collapseImmediately

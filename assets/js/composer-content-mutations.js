@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
+
 export function createComposerContentMutationController(options = {}) {
   const documentRef = options.documentRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => key;
@@ -320,7 +322,7 @@ export function createComposerContentMutationController(options = {}) {
   function focusComposerEntry(kind, key) {
     const normalized = kind === 'tabs' ? 'tabs' : 'index';
     const root = documentRef
-      ? documentRef.getElementById(normalized === 'tabs' ? 'composerTabs' : 'composerIndex')
+      ? documentRef.getElementById(normalized === 'tabs' ? EDITOR_SHELL_IDS.composerTabs : EDITOR_SHELL_IDS.composerIndex)
       : null;
     if (!root) return;
     const selector = normalized === 'tabs' ? `.ct-item[data-key="${cssEscape(key)}"]` : `.ci-item[data-key="${cssEscape(key)}"]`;

@@ -168,7 +168,9 @@ export function createMarkdownBlocksEditor(root, options = {}) {
   };
 
   const blockElements = () => Array.from(list.children).filter(el => el && el.classList && el.classList.contains('blocks-block'));
-  const blockSessions = createEditorBlocksSessionRegistry();
+  const blockSessions = createEditorBlocksSessionRegistry({
+    onDiagnostic: typeof options.onDiagnostic === 'function' ? options.onDiagnostic : null
+  });
 
   const focusBlockPrimaryEditable = (block, caretOffset = null) => {
     blockSessions.focusBlockPrimaryEditable(block, caretOffset);

@@ -240,6 +240,11 @@ export function createEditorMainFeatures() {
           linkCardContext: context.linkCardContext,
           resolveImageSrc: context.resolveEditorImageSrc
         }));
+      },
+      dispose(context) {
+        if (context.blocksSession && typeof context.blocksSession.dispose === 'function') {
+          context.blocksSession.dispose();
+        }
       }
     },
     {

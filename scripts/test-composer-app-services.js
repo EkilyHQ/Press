@@ -13,6 +13,8 @@ import { runEditorFeatureLifecycle } from '../assets/js/editor-app-kernel.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
+const controllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
+const lifecycleSource = readFileSync(resolve(here, '../assets/js/composer-lifecycle.js'), 'utf8');
 const registrySource = readFileSync(resolve(here, '../assets/js/composer-service-registry.js'), 'utf8');
 
 const expectedSlots = [
@@ -116,9 +118,9 @@ assert.match(
 );
 
 assert.match(
-  composerSource,
-  /const composerServices = createComposerServiceRegistry\(\);\s*const composerServiceLifecycle = createComposerServiceLifecycle\(composerServices\);/,
-  'composer should create a lifecycle wrapper for late-bound app services'
+  controllerGraphSource,
+  /const composerServices = createServiceRegistry\(options\.serviceRegistry \|\| \{\}\);\s*const composerServiceLifecycle = createServiceLifecycle\(composerServices, options\.serviceLifecycle \|\| \{\}\);/,
+  'composer controller graph should create a lifecycle wrapper for late-bound app services'
 );
 
 expectedSetters.forEach((setter) => {
@@ -139,9 +141,9 @@ const actualSetterOrder = [...composerSource.matchAll(/composerServiceLifecycle\
   .filter(setter => expectedSetters.includes(setter));
 assert.deepEqual(actualSetterOrder, expectedSetters);
 assert.match(
-  composerSource,
-  /function start\(\) \{\s*composerServiceLifecycle\.assertReady\(\);[\s\S]*initializeComposerApp\(/,
-  'composer should assert service readiness before bootstrap starts'
+  lifecycleSource,
+  /name: 'composer\.controllerServices'[\s\S]*context\.composerServiceLifecycle\.assertReady\(\);[\s\S]*context\.composerActions\.assertReady\(\);[\s\S]*name: 'composer\.domBootstrap'[\s\S]*context\.initializeComposerApp\(/,
+  'composer lifecycle should assert service readiness before DOM bootstrap starts'
 );
 
 console.log('ok - composer app services');

@@ -172,7 +172,6 @@ class FakeDocument {
     bindEditorStatePersistenceListeners: () => calls.push(['persistListeners']),
     openEditorOverlay: mode => calls.push(['openOverlay', mode]),
     applyMode: mode => calls.push(['applyMode', mode]),
-    initSystemThemeBridge: () => calls.push(['systemTheme']),
     setComposerFile: (name, options = {}) => calls.push(['setFile', name, !!options.immediate]),
     getInitialComposerFile: () => 'index',
     getActiveComposerFile: () => 'tabs',
@@ -184,7 +183,7 @@ class FakeDocument {
     bindVerifySetup: () => calls.push(['verify'])
   });
 
-  assert.deepEqual(calls.slice(0, 6).map(call => call[0]), ['mount', 'overlay', 'resize', 'mobile', 'persistListeners', 'systemTheme']);
+  assert.deepEqual(calls.slice(0, 6).map(call => call[0]), ['mount', 'overlay', 'resize', 'mobile', 'persistListeners', 'setFile']);
   assert.equal(calls.some(call => call[0] === 'setFile' && call[1] === 'index' && call[2] === true), true);
   await syncMode.click();
   await editorMode.click();
@@ -274,6 +273,8 @@ class FakeDocument {
   assert.equal(calls.some(call => call[0] === 'applyMode' && call[1] === 'editor'), true);
   assert.equal(allowPersist, true);
   assert.equal(calls.some(call => call[0] === 'persist'), true);
+  assert.equal(typeof result.dispose, 'function');
+  assert.equal(await result.dispose(), true);
 }
 
 {
@@ -327,6 +328,63 @@ class FakeDocument {
 }
 
 {
+  const documentRef = new FakeDocument();
+  documentRef.addElement(new FakeElement('composerIndex'));
+  documentRef.addElement(new FakeElement('composerTabs'));
+  documentRef.addElement(new FakeElement('composerSite'));
+  const calls = [];
+  const result = await initializeComposerOnDomReady({
+    documentRef,
+    initialState: {
+      ensureSiteRepo: () => {},
+      fetchTrackedSiteConfig: async () => ({}),
+      fetchConfigWithYamlFallback: async () => ({}),
+      applyEffectiveSiteConfig: site => site || {},
+      prepareSiteState: value => value || {},
+      prepareIndexState: value => value || {},
+      prepareTabsState: value => value || {},
+      cloneSiteState: value => ({ ...(value || {}) }),
+      deepClone: value => JSON.parse(JSON.stringify(value || {})),
+      setRemoteBaseline: () => {},
+      updateMarkdownPushButton: () => {},
+      t: key => key
+    },
+    workspace: {
+      loadDraftSnapshotsIntoState: () => [],
+      bindWorkspaceUi: () => {},
+      applyEffectiveSiteConfig: () => {},
+      updateMarkdownPushButton: () => {},
+      buildIndexUI: () => {},
+      buildTabsUI: () => {},
+      buildSiteUI: () => {},
+      notifyComposerChange: () => {},
+      refreshEditorContentTree: () => {},
+      restoreDynamicEditorState: () => false,
+      applyMode: () => {},
+      setAllowEditorStatePersist: () => {},
+      persistDynamicEditorState: () => {}
+    },
+    extraFeatures: [
+      {
+        name: 'test.bootstrapExtra',
+        requires: ['composerWorkspace'],
+        start() {
+          calls.push(['extra-start']);
+        },
+        dispose() {
+          calls.push(['extra-dispose']);
+        }
+      }
+    ]
+  });
+
+  assert.deepEqual(calls, [['extra-start']]);
+  assert.equal(typeof result.dispose, 'function');
+  assert.equal(await result.dispose(), true);
+  assert.deepEqual(calls, [['extra-start'], ['extra-dispose']]);
+}
+
+{
   const features = createComposerBootstrapFeatures({});
   assert.deepEqual(
     features.map(feature => feature.name),
@@ -338,16 +396,38 @@ class FakeDocument {
 }
 
 {
+  const features = createComposerBootstrapFeatures({
+    extraFeatures: [
+      {
+        name: 'composer.systemThemeBridge',
+        requires: ['composerWorkspace'],
+        provides: ['systemThemeBridge']
+      }
+    ]
+  });
+  assert.deepEqual(
+    features.map(feature => feature.name),
+    ['composer.markdownToolbar', 'composer.initialState', 'composer.workspace', 'composer.systemThemeBridge'],
+    'composer bootstrap should append bridge/features that participate in the shared lifecycle'
+  );
+}
+
+{
   const here = dirname(fileURLToPath(import.meta.url));
   const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
+  const controllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
   const bootstrapSource = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
   assert.doesNotMatch(composerSource, /document\.addEventListener\('DOMContentLoaded'/);
   assert.doesNotMatch(composerSource, /function bindComposerUI\(/);
-  assert.match(composerSource, /from '\.\/composer-bootstrap\.js'/);
+  assert.match(composerSource, /from '\.\/composer-controller-graph\.js'/);
+  assert.doesNotMatch(composerSource, /from '\.\/composer-bootstrap\.js'|from '\.\/composer-lifecycle\.js'/);
+  assert.match(controllerGraphSource, /from '\.\/composer-bootstrap\.js'/);
+  assert.match(controllerGraphSource, /from '\.\/composer-lifecycle\.js'/);
   assert.match(bootstrapSource, /from '\.\/editor-app-kernel\.js'/);
   assert.match(bootstrapSource, /createComposerBootstrapFeatures/);
   assert.match(bootstrapSource, /documentRef: context\.documentRef/);
   assert.match(bootstrapSource, /context\.initialComposerState = state/);
+  assert.doesNotMatch(bootstrapSource, /initSystemThemeBridge/, 'system/theme bridge init should be an explicit lifecycle feature, not workspace binding side effect');
   assert.match(bootstrapSource, /const onDocumentReady = typeof options\.onDocumentReady === 'function'/);
   assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m);
   assert.doesNotMatch(

@@ -1,6 +1,7 @@
 import { createComposerDragList } from './composer-drag-list.js';
 import { createComposerIndexTabsLanguageMenu } from './composer-index-tabs-language-menu.js';
 import { createComposerIndexVersionList } from './composer-index-version-list.js';
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
 
 export function createComposerIndexTabsUi(options = {}) {
   const documentRef = options.documentRef || null;
@@ -90,7 +91,7 @@ export function createComposerIndexTabsUi(options = {}) {
     if (!root || !documentRef || typeof documentRef.createElement !== 'function') return;
     root.innerHTML = '';
     const list = documentRef.createElement('div');
-    list.id = 'ciList';
+    list.id = EDITOR_SHELL_IDS.ciList;
     root.appendChild(list);
 
     const markDirty = () => { try { notifyComposerChange('index'); } catch (_) {} };
@@ -244,7 +245,7 @@ export function createComposerIndexTabsUi(options = {}) {
     if (!root || !documentRef || typeof documentRef.createElement !== 'function') return;
     root.innerHTML = '';
     const list = documentRef.createElement('div');
-    list.id = 'ctList';
+    list.id = EDITOR_SHELL_IDS.ctList;
     root.appendChild(list);
 
     const markDirty = () => { try { notifyComposerChange('tabs'); } catch (_) {} };

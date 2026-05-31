@@ -2,6 +2,7 @@ import {
   refreshSyncCommitPanelView,
   scheduleSyncCommitPanelRefreshView
 } from './composer-sync-panel.js';
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
 
 function noop() {}
 
@@ -52,7 +53,7 @@ export function createComposerSyncCommitController({
 
   function getSyncCommitPanelHost() {
     if (!documentRef || typeof documentRef.getElementById !== 'function') return null;
-    const syncPanel = documentRef.getElementById('mode-sync');
+    const syncPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeSync);
     if (!syncPanel) return null;
     let panel = documentRef.getElementById('syncCommitPanel');
     if (!panel) {

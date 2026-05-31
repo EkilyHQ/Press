@@ -1,5 +1,6 @@
 import { createEditorAppKernel } from './editor-app-kernel.js';
 import { createDomEffects } from './editor-effects.js';
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
 
 function noop() {}
 
@@ -43,7 +44,7 @@ export function bindComposerMarkdownToolbar({
   updateMarkdownDiscardButton = noop
 } = {}) {
   const effects = createDomEffects({ documentRef });
-  const pushBtn = effects.getElementById('btnPushMarkdown');
+  const pushBtn = effects.getElementById(EDITOR_SHELL_IDS.btnPushMarkdown);
   if (pushBtn) {
     setMarkdownPushButton(pushBtn);
     effects.on(pushBtn, 'click', async (event) => {
@@ -68,7 +69,7 @@ export function bindComposerMarkdownToolbar({
     updateMarkdownPushButton(getActiveDynamicTab());
   }
 
-  const saveBtn = effects.getElementById('btnSaveMarkdown');
+  const saveBtn = effects.getElementById(EDITOR_SHELL_IDS.btnSaveMarkdown);
   if (saveBtn) {
     setMarkdownSaveButton(saveBtn);
     effects.on(saveBtn, 'click', (event) => {
@@ -78,7 +79,7 @@ export function bindComposerMarkdownToolbar({
     updateMarkdownSaveButton(getActiveDynamicTab());
   }
 
-  const protectBtn = effects.getElementById('btnProtectMarkdown');
+  const protectBtn = effects.getElementById(EDITOR_SHELL_IDS.btnProtectMarkdown);
   if (protectBtn) {
     setMarkdownProtectionButton(protectBtn);
     effects.on(protectBtn, 'click', (event) => {
@@ -88,7 +89,7 @@ export function bindComposerMarkdownToolbar({
     updateMarkdownProtectionButton(getActiveDynamicTab());
   }
 
-  const discardBtn = effects.getElementById('btnDiscardMarkdown');
+  const discardBtn = effects.getElementById(EDITOR_SHELL_IDS.btnDiscardMarkdown);
   if (discardBtn) {
     setMarkdownDiscardButton(discardBtn);
     effects.on(discardBtn, 'click', (event) => {
@@ -109,7 +110,6 @@ export function bindComposerWorkspaceUi({
   bindEditorStatePersistenceListeners = noop,
   openEditorOverlay = noop,
   applyMode = noop,
-  initSystemThemeBridge = noop,
   setComposerFile = noop,
   getInitialComposerFile = () => 'index',
   getActiveComposerFile = () => 'index',
@@ -127,7 +127,7 @@ export function bindComposerWorkspaceUi({
   initMobileEditorRail();
   bindEditorStatePersistenceListeners();
 
-  effects.querySelectorAll('.mode-tab').forEach((btn) => {
+  effects.querySelectorAll(EDITOR_SHELL_SELECTORS.modeTabs).forEach((btn) => {
     effects.on(btn, 'click', (event) => {
       const mode = btn.dataset && btn.dataset.mode;
       if (mode === 'composer' || mode === 'themes' || mode === 'updates' || mode === 'sync') {
@@ -138,9 +138,8 @@ export function bindComposerWorkspaceUi({
       applyMode(mode);
     });
   });
-  initSystemThemeBridge();
 
-  effects.querySelectorAll('a.vt-btn[data-cfile]').forEach((link) => {
+  effects.querySelectorAll(EDITOR_SHELL_SELECTORS.composerFileTabs).forEach((link) => {
     effects.on(link, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       setComposerFile(link.dataset && link.dataset.cfile);
@@ -148,7 +147,7 @@ export function bindComposerWorkspaceUi({
   });
   setComposerFile(getInitialComposerFile(), { immediate: true });
 
-  const btnAddItem = effects.getElementById('btnAddItem');
+  const btnAddItem = effects.getElementById(EDITOR_SHELL_IDS.btnAddItem);
   if (btnAddItem) {
     effects.on(btnAddItem, 'click', (event) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
@@ -162,13 +161,13 @@ export function bindComposerWorkspaceUi({
     });
   }
 
-  const btnDiscard = effects.getElementById('btnDiscard');
+  const btnDiscard = effects.getElementById(EDITOR_SHELL_IDS.btnDiscard);
   if (btnDiscard) effects.on(btnDiscard, 'click', () => handleComposerDiscard(btnDiscard));
 
-  const btnRefresh = effects.getElementById('btnRefresh');
+  const btnRefresh = effects.getElementById(EDITOR_SHELL_IDS.btnRefresh);
   if (btnRefresh) effects.on(btnRefresh, 'click', () => handleComposerRefresh(btnRefresh));
 
-  const btnReview = effects.getElementById('btnReview');
+  const btnReview = effects.getElementById(EDITOR_SHELL_IDS.btnReview);
   if (btnReview) {
     effects.on(btnReview, 'click', () => {
       const datasetKind = btnReview.dataset && btnReview.dataset.kind;
@@ -304,9 +303,9 @@ export function assembleComposerWorkspace({
   }
 
   bindWorkspaceUi(state);
-  buildIndexUI(effects.getElementById('composerIndex'), state);
-  buildTabsUI(effects.getElementById('composerTabs'), state);
-  buildSiteUI(effects.getElementById('composerSite'), state);
+  buildIndexUI(effects.getElementById(EDITOR_SHELL_IDS.composerIndex), state);
+  buildTabsUI(effects.getElementById(EDITOR_SHELL_IDS.composerTabs), state);
+  buildSiteUI(effects.getElementById(EDITOR_SHELL_IDS.composerSite), state);
 
   notifyComposerChange('index', { skipAutoSave: true });
   notifyComposerChange('tabs', { skipAutoSave: true });
@@ -352,7 +351,15 @@ export async function initializeComposerOnDomReady(options = {}) {
   }).forEach(feature => kernel.registerFeature(feature));
 
   const runResult = await kernel.run();
-  return runResult.context.result;
+  const result = runResult.context.result;
+  if (result && typeof result === 'object' && typeof result.dispose !== 'function') {
+    Object.defineProperty(result, 'dispose', {
+      value: () => runResult.dispose(),
+      enumerable: false,
+      configurable: true
+    });
+  }
+  return result;
 }
 
 export function createComposerBootstrapFeatures(options = {}) {
@@ -360,10 +367,11 @@ export function createComposerBootstrapFeatures(options = {}) {
     markdownToolbar,
     initialState,
     workspace,
+    extraFeatures,
     setActiveComposerState = noop
   } = options;
 
-  return [
+  const features = [
     {
       name: 'composer.markdownToolbar',
       requires: ['documentRef'],
@@ -405,13 +413,27 @@ export function createComposerBootstrapFeatures(options = {}) {
       }
     }
   ];
+  return features.concat(Array.isArray(extraFeatures) ? extraFeatures : []);
 }
 
 export function initializeComposerApp(options = {}) {
-  const handler = () => initializeComposerOnDomReady(options);
+  let runPromise = null;
+  let readyCleanup = null;
+  const handler = () => {
+    if (!runPromise) runPromise = initializeComposerOnDomReady(options);
+    return runPromise;
+  };
+  handler.dispose = async () => {
+    if (typeof readyCleanup === 'function') {
+      try { readyCleanup(); } catch (_) {}
+    }
+    if (!runPromise) return false;
+    const result = await runPromise;
+    return result && typeof result.dispose === 'function' ? result.dispose() : false;
+  };
   const onDocumentReady = typeof options.onDocumentReady === 'function'
     ? options.onDocumentReady
     : (readyHandler) => readyHandler();
-  onDocumentReady(handler);
+  readyCleanup = onDocumentReady(handler);
   return handler;
 }

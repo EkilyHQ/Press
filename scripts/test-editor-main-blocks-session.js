@@ -37,6 +37,7 @@ function createFixture() {
   const editorCalls = [];
   const previewCalls = [];
   const imageCalls = [];
+  const runtimeWarnings = [];
   const linkCardContext = createLinkCardContext();
   const documentRef = { id: 'document' };
   const windowRef = { id: 'window' };
@@ -45,6 +46,9 @@ function createFixture() {
     windowRef,
     getEditorBaseDir(fallback) {
       return `base:${fallback}`;
+    },
+    warn(...args) {
+      runtimeWarnings.push(args);
     }
   };
   const fakeEditor = {
@@ -59,6 +63,9 @@ function createFixture() {
     },
     focus() {
       editorCalls.push(['focus']);
+    },
+    dispose() {
+      editorCalls.push(['dispose']);
     }
   };
   const previewSession = {
@@ -113,6 +120,7 @@ function createFixture() {
     runtime,
     hydrateCalls,
     bodyChanges,
+    runtimeWarnings,
     setEditorBody(value) {
       editorBody = value;
     }
@@ -133,6 +141,10 @@ function createFixture() {
   assert.equal(options.getBaseDir(), 'base:wwwroot/');
   assert.equal(options.resolveImageSrc('image.png'), 'resolved:image.png');
   assert.deepEqual(fixture.editorCalls.shift(), ['setCardEntries', [{ location: 'a.md', label: 'Alpha' }]]);
+  assert.equal(typeof options.onDiagnostic, 'function');
+  options.onDiagnostic({ slot: 'focusSession', method: 'focusBlockPrimaryEditable' });
+  assert.equal(fixture.runtimeWarnings.at(-1)[0], 'Editor blocks session diagnostic');
+  assert.deepEqual(fixture.runtimeWarnings.at(-1)[1], { slot: 'focusSession', method: 'focusBlockPrimaryEditable' });
 
   options.onChange('updated body');
   assert.deepEqual(fixture.bodyChanges, ['updated body']);
@@ -201,4 +213,13 @@ function createFixture() {
   assert.deepEqual(fixture.editorCalls.at(-1), ['setCardEntries', [{ location: 'b.md', label: 'Beta' }]]);
   fixture.session.setCardEntries(null);
   assert.deepEqual(fixture.editorCalls.at(-1), ['setCardEntries', [{ location: 'b.md', label: 'Beta' }]]);
+}
+
+{
+  const fixture = createFixture();
+  fixture.session.initialize();
+  assert.equal(fixture.session.dispose(), true);
+  assert.equal(fixture.session.getEditor(), null);
+  assert.deepEqual(fixture.editorCalls.at(-1), ['dispose']);
+  assert.equal(fixture.session.dispose(), false, 'blocks session dispose should be idempotent after the editor is cleared');
 }

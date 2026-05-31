@@ -187,6 +187,7 @@ await run('exposes theme manager through an explicit controller facade', async (
   assert.equal(typeof controller.getSummaryEntries, 'function');
   assert.equal(typeof controller.getCommitFiles, 'function');
   assert.equal(typeof controller.clear, 'function');
+  assert.equal(typeof controller.dispose, 'function');
   assert.equal(typeof controller.analyzeArchive, 'function');
   assert.equal(typeof controller.handleImportFile, 'function');
   assert.equal(typeof controller.loadOfficialCatalog, 'function');
@@ -195,6 +196,17 @@ await run('exposes theme manager through an explicit controller facade', async (
   assert.equal(typeof controller.getProductStateStatus, 'function');
   assert.equal(typeof controller.stageCatalogTheme, 'function');
   assert.equal(typeof controller.stageUninstall, 'function');
+});
+
+await run('disposes theme manager DOM listeners', async () => {
+  const documentRef = makeThemeManagerDocument();
+  const controller = createThemeManagerController({ documentRef });
+  controller.init();
+  assert.equal(typeof documentRef.elements.btnThemeImport.listeners.click, 'function');
+  assert.equal(typeof documentRef.elements.themeImportFileInput.listeners.change, 'function');
+  assert.equal(controller.dispose(), true);
+  assert.equal(documentRef.elements.btnThemeImport.listeners.click, null);
+  assert.equal(documentRef.elements.themeImportFileInput.listeners.change, null);
 });
 
 await run('keeps theme package and install responsibilities outside the UI controller', async () => {
@@ -354,6 +366,9 @@ function makeElement(tagName = 'div') {
     },
     addEventListener(type, listener) {
       this.listeners[type] = listener;
+    },
+    removeEventListener(type, listener) {
+      if (this.listeners[type] === listener) this.listeners[type] = null;
     },
     click() {
       if (this.listeners.click) this.listeners.click({ target: this });

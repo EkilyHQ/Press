@@ -105,6 +105,16 @@ export function createEditorAppKernel(options = {}) {
 
   async function run(extraContext = {}) {
     const orderedFeatures = sortFeatures(features, initialProvides, appName);
+    const registeredDisposers = [];
+    let disposed = false;
+    const registerDisposer = (dispose) => {
+      if (typeof dispose !== 'function') return () => {};
+      registeredDisposers.push(dispose);
+      return () => {
+        const index = registeredDisposers.lastIndexOf(dispose);
+        if (index >= 0) registeredDisposers.splice(index, 1);
+      };
+    };
     const context = {
       ...baseContext,
       ...extraContext,
@@ -115,7 +125,8 @@ export function createEditorAppKernel(options = {}) {
           name: feature.name,
           requires: [...feature.requires],
           provides: [...feature.provides]
-        }))
+        })),
+        registerDisposer
       })
     };
 
@@ -126,9 +137,23 @@ export function createEditorAppKernel(options = {}) {
       }
     }
 
+    async function dispose() {
+      if (disposed) return false;
+      disposed = true;
+      for (const feature of orderedFeatures.slice().reverse()) {
+        if (typeof feature.dispose === 'function') await feature.dispose(context);
+      }
+      for (const disposer of registeredDisposers.slice().reverse()) {
+        await disposer();
+      }
+      registeredDisposers.splice(0, registeredDisposers.length);
+      return true;
+    }
+
     return {
       context,
-      features: orderedFeatures
+      features: orderedFeatures,
+      dispose
     };
   }
 

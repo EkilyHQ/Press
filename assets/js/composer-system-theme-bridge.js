@@ -10,6 +10,7 @@ export function createComposerSystemThemeBridge(options = {}) {
   const refreshEditorContentTree = typeof options.refreshEditorContentTree === 'function' ? options.refreshEditorContentTree : (() => {});
   const systemUpdates = options.systemUpdatesController || createSystemUpdatesController();
   const themeManager = options.themeManagerController || createThemeManagerController();
+  let initialized = false;
 
   function getSystemSummaryEntries() {
     return systemUpdates.getSummaryEntries().map(entry => ({ ...entry, kind: 'system' }));
@@ -65,6 +66,8 @@ export function createComposerSystemThemeBridge(options = {}) {
   }
 
   function init() {
+    if (initialized) return true;
+    initialized = true;
     try {
       systemUpdates.init({ onStateChange: refreshUnsyncedSummary });
     } catch (err) {
@@ -83,6 +86,31 @@ export function createComposerSystemThemeBridge(options = {}) {
         consoleRef.error('Failed to initialize theme manager module', err);
       }
     }
+    return true;
+  }
+
+  function dispose() {
+    initialized = false;
+    try {
+      if (systemUpdates && typeof systemUpdates.dispose === 'function') systemUpdates.dispose();
+    } catch (_) {}
+    try {
+      if (themeManager && typeof themeManager.dispose === 'function') themeManager.dispose();
+    } catch (_) {}
+    return true;
+  }
+
+  function createLifecycleFeature() {
+    return {
+      name: 'composer.systemThemeBridge',
+      requires: ['composerWorkspace'],
+      provides: ['systemThemeBridge'],
+      start(context) {
+        init();
+        context.systemThemeBridge = api;
+      },
+      dispose
+    };
   }
 
   function hasSystemUpdateEntries() {
@@ -93,8 +121,10 @@ export function createComposerSystemThemeBridge(options = {}) {
     return themeManager.getSummaryEntries().length > 0;
   }
 
-  return {
+  const api = {
     init,
+    dispose,
+    createLifecycleFeature,
     registerStagingProviders,
     hasSystemUpdateEntries,
     hasThemeEntries,
@@ -103,4 +133,5 @@ export function createComposerSystemThemeBridge(options = {}) {
     getSystemCommitFiles,
     getThemeCommitFiles
   };
+  return api;
 }

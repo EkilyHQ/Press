@@ -45,10 +45,8 @@ import {
   COMPOSER_RUNTIME_EVENTS,
   createComposerRuntime
 } from './composer-runtime.js';
-import { createComposerServiceRegistry } from './composer-service-registry.js';
-import { createComposerServiceLifecycle } from './composer-app-services.js';
 import { createComposerActionEffects } from './composer-action-effects.js';
-import { createComposerMarkdownWorkspaceFacade } from './composer-markdown-workspace-facade.js';
+import { createComposerControllerGraph } from './composer-controller-graph.js';
 import { createComposerYamlSerialization } from './composer-yaml-serialization.js';
 import { createComposerEditorTreeState } from './composer-editor-tree-state.js';
 import { createComposerFilePanelController } from './composer-file-panel-controller.js';
@@ -69,12 +67,7 @@ import { createComposerContentMutationController } from './composer-content-muta
 import { createComposerSetupVerifier } from './composer-setup-verifier.js';
 import { createComposerModeController, isComposerSystemMode } from './composer-mode-controller.js';
 import { createComposerUnsyncedSummaryController } from './composer-unsynced-summary.js';
-import { injectComposerRuntimeStyles } from './composer-runtime-styles.js';
 import { createComposerSystemThemeBridge } from './composer-system-theme-bridge.js';
-import {
-  bindComposerWorkspaceUi,
-  initializeComposerApp
-} from './composer-bootstrap.js';
 import {
   createComposerUiMotionController
 } from './composer-ui-motion.js';
@@ -324,9 +317,18 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     storageKey: MARKDOWN_DRAFT_STORAGE_KEY,
     scopeKey: scopedEditorStorageKey
   });
-  const composerServices = createComposerServiceRegistry();
-  const composerServiceLifecycle = createComposerServiceLifecycle(composerServices);
-  const markdownWorkspace = createComposerMarkdownWorkspaceFacade({ services: composerServices });
+  const composerControllerGraph = createComposerControllerGraph({
+    serviceRegistry: {
+      onDiagnostic: (diagnostic) => {
+        composerLogger.warn('Composer service diagnostic', diagnostic);
+      }
+    }
+  });
+  const {
+    composerServices,
+    composerServiceLifecycle,
+    markdownWorkspace
+  } = composerControllerGraph;
   const {
     getMarkdownActionsUi,
     getMarkdownDraftController,
@@ -1857,105 +1859,91 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     return composerYamlPanelsController.rebuildSiteUI();
   }
 
-  function start() {
-    composerServiceLifecycle.assertReady();
-    composerActions.assertReady();
-    initializeComposerApp({
-      documentRef: composerDocument,
-      onDocumentReady: editorRuntime.onDocumentReady,
-      setActiveComposerState: (state) => {
-        composerStateStore.setActiveState(state);
+  const composerStartup = composerControllerGraph.createStartup({
+    editorRuntime,
+    documentRef: composerDocument,
+    windowRef: composerWindow,
+    consoleRef: composerLogger,
+    composerStateStore,
+    composerActions,
+    composerSystemThemeBridge,
+    markdownToolbar: {
+      t,
+      setMarkdownPushButton,
+      setMarkdownSaveButton,
+      setMarkdownProtectionButton,
+      setMarkdownDiscardButton,
+      getMarkdownPushButton,
+      getActiveDynamicTab,
+      getButtonLabel,
+      getMarkdownPushLabel,
+      setButtonLabel,
+      showToast,
+      openMarkdownPushOnGitHub,
+      updateMarkdownPushButton,
+      updateMarkdownProtectionButton,
+      manualSaveActiveMarkdown,
+      handleMarkdownProtectionButton,
+      discardMarkdownLocalChanges,
+      updateMarkdownSaveButton,
+      updateMarkdownDiscardButton
+    },
+    initialState: {
+      t,
+      fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
+      applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
+      fetchConfigWithYamlFallback,
+      prepareSiteState,
+      prepareIndexState,
+      prepareTabsState,
+      cloneSiteState,
+      deepClone,
+      getActiveDynamicTab,
+      updateMarkdownPushButton,
+      showStatus
+    },
+    workspace: {
+      t,
+      loadDraftSnapshotsIntoState,
+      applyInferredRepoConfig,
+      inferRepoConfigFromGitHubPagesUrl,
+      applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
+      updateMarkdownPushButton,
+      getActiveDynamicTab,
+      showStatus,
+      buildIndexUI: (root, state) => composerIndexTabsUi.buildIndexUI(root, state),
+      buildTabsUI: (root, state) => composerIndexTabsUi.buildTabsUI(root, state),
+      buildSiteUI: (root, state) => composerSiteSettingsUi.buildSiteUI(root, state),
+      notifyComposerChange,
+      refreshEditorContentTree,
+      restoreDynamicEditorState,
+      applyMode,
+      persistDynamicEditorState
+    },
+    workspaceUi: {
+      mountEditorSystemPanels,
+      initEditorOverlay,
+      initEditorRailResize,
+      initMobileEditorRail,
+      bindEditorStatePersistenceListeners,
+      openEditorOverlay,
+      applyMode,
+      setComposerFile: (name, options = {}) => {
+        composerActions.selectComposerFile(name, options);
       },
-      markdownToolbar: {
-        t,
-        setMarkdownPushButton,
-        setMarkdownSaveButton,
-        setMarkdownProtectionButton,
-        setMarkdownDiscardButton,
-        getMarkdownPushButton,
-        getActiveDynamicTab,
-        getButtonLabel,
-        getMarkdownPushLabel,
-        setButtonLabel,
-        showToast,
-        openMarkdownPushOnGitHub,
-        updateMarkdownPushButton,
-        updateMarkdownProtectionButton,
-        manualSaveActiveMarkdown,
-        handleMarkdownProtectionButton,
-        discardMarkdownLocalChanges,
-        updateMarkdownSaveButton,
-        updateMarkdownDiscardButton
-      },
-      initialState: {
-        ensureSiteRepo: () => editorRuntime.ensureSiteRepo(),
-        windowRef: composerWindow,
-        consoleRef: composerLogger,
-        t,
-        fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
-        applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
-        fetchConfigWithYamlFallback,
-        prepareSiteState,
-        prepareIndexState,
-        prepareTabsState,
-        cloneSiteState,
-        deepClone,
-        setRemoteBaseline: (kind, value) => {
-          composerStateStore.setRemoteBaseline(kind, value);
-        },
-        getActiveDynamicTab,
-        updateMarkdownPushButton,
-        showStatus
-      },
-      workspace: {
-        documentRef: composerDocument,
-        windowRef: composerWindow,
-        getLocation: () => editorRuntime.getLocation(),
-        t,
-        loadDraftSnapshotsIntoState,
-        applyInferredRepoConfig,
-        inferRepoConfigFromGitHubPagesUrl,
-        applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
-        updateMarkdownPushButton,
-        getActiveDynamicTab,
-        showStatus,
-        bindWorkspaceUi: () => bindComposerWorkspaceUi({
-          documentRef: composerDocument,
-          consoleRef: composerLogger,
-          mountEditorSystemPanels,
-          initEditorOverlay,
-          initEditorRailResize,
-          initMobileEditorRail,
-          bindEditorStatePersistenceListeners,
-          openEditorOverlay,
-          applyMode,
-          initSystemThemeBridge: () => composerSystemThemeBridge.init(),
-          setComposerFile: (name, options = {}) => {
-            composerActions.selectComposerFile(name, options);
-          },
-          getInitialComposerFile,
-          getActiveComposerFile,
-          addComposerEntry,
-          handleComposerDiscard,
-          handleComposerRefresh,
-          computeUnsyncedSummary,
-          openComposerDiffModal,
-          bindVerifySetup
-        }),
-        buildIndexUI: (root, state) => composerIndexTabsUi.buildIndexUI(root, state),
-        buildTabsUI: (root, state) => composerIndexTabsUi.buildTabsUI(root, state),
-        buildSiteUI: (root, state) => composerSiteSettingsUi.buildSiteUI(root, state),
-        notifyComposerChange,
-        refreshEditorContentTree,
-        restoreDynamicEditorState,
-        applyMode,
-        setAllowEditorStatePersist: (value) => editorRuntime.setAllowEditorStatePersist(value),
-        persistDynamicEditorState,
-        setTimeoutRef: (handler, delay) => editorRuntime.setTimer(handler, delay)
-      }
-    });
+      getInitialComposerFile,
+      getActiveComposerFile,
+      addComposerEntry,
+      handleComposerDiscard,
+      handleComposerRefresh,
+      computeUnsyncedSummary,
+      openComposerDiffModal,
+      bindVerifySetup
+    }
+  });
 
-    injectComposerRuntimeStyles({ documentRef: composerDocument });
+  function start() {
+    return composerStartup.start();
   }
 
   return { start };

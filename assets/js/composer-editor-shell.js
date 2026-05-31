@@ -2,6 +2,7 @@ import {
   animateEditorSystemPanelContent as animateSystemPanelContent,
   showEditorSystemPanel as showComposerSystemPanel
 } from './composer-system-panel.js';
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
 
 export function createComposerEditorShell(options = {}) {
   const documentRef = options.documentRef || null;
@@ -68,7 +69,7 @@ export function createComposerEditorShell(options = {}) {
   const EDITOR_SCROLL_SAVE_DELAY = 120;
 
   function getEditorContentPane() {
-    try { return documentRef ? documentRef.getElementById('editorContentPane') : null; }
+    try { return documentRef ? documentRef.getElementById(EDITOR_SHELL_IDS.editorContentPane) : null; }
     catch (_) { return null; }
   }
 
@@ -98,7 +99,7 @@ export function createComposerEditorShell(options = {}) {
   }
 
   function getEditorRailScrollElement() {
-    try { return documentRef ? documentRef.querySelector('.editor-rail-tree-scroll') : null; }
+    try { return documentRef ? documentRef.querySelector(EDITOR_SHELL_SELECTORS.editorRailTreeScroll) : null; }
     catch (_) { return null; }
   }
 
@@ -133,7 +134,7 @@ export function createComposerEditorShell(options = {}) {
   function getEditorContentScrollElement(mode = getCurrentMode()) {
     try {
       if (documentRef && mode === 'composer') {
-        const siteViewport = documentRef.querySelector('#composerSite .cs-viewport');
+        const siteViewport = documentRef.querySelector(EDITOR_SHELL_SELECTORS.composerSiteViewport);
         if (siteViewport && siteViewport.getClientRects && siteViewport.getClientRects().length) {
           return siteViewport;
         }
@@ -240,16 +241,16 @@ export function createComposerEditorShell(options = {}) {
 
   function mountEditorSystemPanels() {
     if (!documentRef) return;
-    const body = documentRef.getElementById('editorSystemBody');
+    const body = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemBody);
     if (!body || body.__pressSystemPanelsMounted) return;
     body.__pressSystemPanelsMounted = true;
-    const composerPanel = documentRef.getElementById('mode-composer');
-    const themesPanel = documentRef.getElementById('mode-themes');
-    const updatesPanel = documentRef.getElementById('mode-updates');
-    let syncPanel = documentRef.getElementById('mode-sync');
+    const composerPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeComposer);
+    const themesPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeThemes);
+    const updatesPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeUpdates);
+    let syncPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeSync);
     if (!syncPanel) {
       syncPanel = documentRef.createElement('div');
-      syncPanel.id = 'mode-sync';
+      syncPanel.id = EDITOR_SHELL_IDS.modeSync;
       syncPanel.className = 'sync-layout editor-overlay-panel';
       syncPanel.hidden = true;
       syncPanel.setAttribute('aria-hidden', 'true');
@@ -262,7 +263,7 @@ export function createComposerEditorShell(options = {}) {
 
   function setEditorSystemPanelVisible(visible) {
     if (!documentRef) return;
-    const panel = documentRef.getElementById('editorSystemPanel');
+    const panel = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemPanel);
     if (!panel) return;
     if (visible) {
       panel.removeAttribute('hidden');
@@ -284,14 +285,14 @@ export function createComposerEditorShell(options = {}) {
 
   function resetSiteSettingsNavOnOpen() {
     if (!documentRef) return;
-    const root = documentRef.getElementById('composerSite');
+    const root = documentRef.getElementById(EDITOR_SHELL_IDS.composerSite);
     if (!root) return;
     try {
-      const viewport = root.querySelector('.cs-viewport');
+      const viewport = root.querySelector(EDITOR_SHELL_SELECTORS.composerSiteViewportElement);
       if (viewport) viewport.scrollTop = 0;
     } catch (_) {}
     try {
-      const modalBody = typeof root.closest === 'function' ? root.closest('.editor-modal-body') : null;
+      const modalBody = typeof root.closest === 'function' ? root.closest(EDITOR_SHELL_SELECTORS.editorModalBody) : null;
       if (modalBody) modalBody.scrollTop = 0;
     } catch (_) {}
     const firstSectionId = (() => {
@@ -336,10 +337,10 @@ export function createComposerEditorShell(options = {}) {
 
   function syncEditorOverlayUi() {
     if (!documentRef) return;
-    const layer = documentRef.getElementById('editorModalLayer');
-    const dialog = documentRef.querySelector('.editor-modal-dialog');
-    const title = documentRef.getElementById('editorModalTitle');
-    const modalBody = documentRef.querySelector('.editor-modal-body');
+    const layer = documentRef.getElementById(EDITOR_SHELL_IDS.editorModalLayer);
+    const dialog = documentRef.querySelector(EDITOR_SHELL_SELECTORS.editorModalDialog);
+    const title = documentRef.getElementById(EDITOR_SHELL_IDS.editorModalTitle);
+    const modalBody = documentRef.querySelector(EDITOR_SHELL_SELECTORS.editorModalBody);
     if (layer) {
       layer.hidden = true;
       layer.setAttribute('aria-hidden', 'true');
@@ -390,7 +391,7 @@ export function createComposerEditorShell(options = {}) {
     try {
       if (documentRef) documentRef.documentElement.style.setProperty('--editor-rail-width', `${Math.round(width)}px`);
     } catch (_) {}
-    const resizer = documentRef ? documentRef.getElementById('editorRailResizer') : null;
+    const resizer = documentRef ? documentRef.getElementById(EDITOR_SHELL_IDS.editorRailResizer) : null;
     if (resizer) {
       resizer.setAttribute('aria-valuemin', String(EDITOR_RAIL_MIN_WIDTH));
       resizer.setAttribute('aria-valuemax', String(Math.round(computeEditorRailMaxWidth())));
@@ -404,8 +405,8 @@ export function createComposerEditorShell(options = {}) {
 
   function initEditorRailResize() {
     if (editorRailResizeBound || !documentRef) return;
-    const resizer = documentRef.getElementById('editorRailResizer');
-    const shell = documentRef.getElementById('editorAppShell');
+    const resizer = documentRef.getElementById(EDITOR_SHELL_IDS.editorRailResizer);
+    const shell = documentRef.getElementById(EDITOR_SHELL_IDS.editorAppShell);
     if (!resizer || !shell) return;
     editorRailResizeBound = true;
 
@@ -500,14 +501,14 @@ export function createComposerEditorShell(options = {}) {
 
   function getEditorRailToggles() {
     if (!documentRef) return [];
-    return Array.from(documentRef.querySelectorAll('[data-editor-rail-toggle]'));
+    return Array.from(documentRef.querySelectorAll(EDITOR_SHELL_SELECTORS.editorRailToggle));
   }
 
   function setEditorRailOpen(open) {
     if (!documentRef) return;
-    const shell = documentRef.getElementById('editorAppShell');
+    const shell = documentRef.getElementById(EDITOR_SHELL_IDS.editorAppShell);
     const toggles = getEditorRailToggles();
-    const scrim = documentRef.getElementById('editorRailScrim');
+    const scrim = documentRef.getElementById(EDITOR_SHELL_IDS.editorRailScrim);
     if (!shell) return;
     const shouldOpen = !!open && isEditorMobileRailLayout();
     shell.classList.toggle('is-rail-open', shouldOpen);
@@ -527,12 +528,12 @@ export function createComposerEditorShell(options = {}) {
   function initMobileEditorRail() {
     if (editorMobileRailBound || !documentRef) return;
     const toggles = getEditorRailToggles();
-    const scrim = documentRef.getElementById('editorRailScrim');
+    const scrim = documentRef.getElementById(EDITOR_SHELL_IDS.editorRailScrim);
     if (!toggles.length) return;
     editorMobileRailBound = true;
     toggles.forEach((toggle) => {
       toggle.addEventListener('click', () => {
-        const shell = documentRef.getElementById('editorAppShell');
+        const shell = documentRef.getElementById(EDITOR_SHELL_IDS.editorAppShell);
         const isOpen = !!(shell && shell.classList.contains('is-rail-open'));
         setEditorRailOpen(!isOpen);
       });

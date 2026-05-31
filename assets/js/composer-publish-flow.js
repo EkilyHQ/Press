@@ -72,6 +72,14 @@ export function createComposerPublishFlow({
     if (timerRef) timerRef(resolve, timeout);
     else resolve();
   });
+  function normalizeStagingWarnings(warnings = []) {
+    return (Array.isArray(warnings) ? warnings : []).filter(Boolean);
+  }
+  function describeStagingWarnings(warnings = []) {
+    const count = warnings.length;
+    if (!count) return '';
+    return t('editor.toasts.publishStagingWarnings', { count });
+  }
   const receiptStore = publishReceiptStore || createPublishReceiptStore({
     storage: resolveReceiptStorage(windowRef)
   });
@@ -150,12 +158,16 @@ export function createComposerPublishFlow({
       setPublishReceiptState(state);
     };
     try {
-      const { files } = await gatherCommitPayload({ showSeoStatus: true });
+      const payload = await gatherCommitPayload({ showSeoStatus: true });
+      const files = Array.isArray(payload && payload.files) ? payload.files : [];
+      const stagingWarnings = normalizeStagingWarnings(payload && payload.warnings);
       if (!files.length) {
         hideSyncOverlay();
-        showToast('info', t('editor.toasts.noPendingChanges'));
+        if (stagingWarnings.length) showToast('warning', describeStagingWarnings(stagingWarnings));
+        else showToast('info', t('editor.toasts.noPendingChanges'));
         return;
       }
+      if (stagingWarnings.length) setSyncOverlayStatus(describeStagingWarnings(stagingWarnings));
 
       const headline = `chore: sync ${files.length === 1 ? 'draft' : 'drafts'} via Press`;
       const repo = { owner, name, branch };
@@ -166,6 +178,7 @@ export function createComposerPublishFlow({
         contentRoot,
         headline,
         files,
+        warnings: stagingWarnings,
         now,
         runId: typeof createPublishRunId === 'function'
           ? createPublishRunId({ repo, transport, headline, files })
@@ -231,7 +244,12 @@ export function createComposerPublishFlow({
       } else if (propagationResult && (propagationResult.timedOut || propagationResult.failed)) {
         showToast('warning', t('editor.toasts.siteWaitTimedOut'));
       } else {
-        showToast('success', t('editor.toasts.commitSuccess', { count: fileCount }));
+        showToast(
+          stagingWarnings.length ? 'warning' : 'success',
+          stagingWarnings.length
+            ? t('editor.toasts.commitSuccessWithWarnings', { count: fileCount, warningCount: stagingWarnings.length })
+            : t('editor.toasts.commitSuccess', { count: fileCount })
+        );
       }
       return publishReceipt;
     } catch (err) {

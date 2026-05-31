@@ -1,4 +1,4 @@
-import { createStagingRegistry } from './composer-staging.js';
+import { createStagingRegistry, normalizeStagingWarning } from './composer-staging.js';
 import { createIndexPublishMetadataEnricher } from './composer-index-publish-metadata.js';
 import { createContentCommitStagingProvider } from './composer-content-staging.js';
 import { createSeoStagingProvider } from './composer-seo-staging.js';
@@ -152,7 +152,9 @@ export function createComposerPublishStateService(options = {}) {
     });
     const files = Array.isArray(providerResult.files) ? providerResult.files : [];
     const seoFiles = files.filter(file => file && file.kind === 'seo');
-    return { files, seoFiles, warnings: providerResult.warnings || [] };
+    const warnings = (Array.isArray(providerResult.warnings) ? providerResult.warnings : [])
+      .map(warning => normalizeStagingWarning(warning));
+    return { files, seoFiles, warnings };
   }
 
   function getTrackedPublishContentRoot() {

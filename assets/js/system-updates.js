@@ -2,6 +2,8 @@ import { mdParse } from './markdown.js';
 import { renderPressMath } from './math-render.js';
 import { setSafeHtml } from './safe-html.js';
 import { t } from './i18n.js';
+import { bindEventEffect } from './editor-effects.js';
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
 import { buildConnectStatusUrl, CONNECT_SYSTEM_RELEASE_PATH } from './connect-status.js';
 import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
 import {
@@ -58,6 +60,7 @@ function createSystemUpdatesState() {
     assetName: '',
     currentPressSystem: null,
     listeners: new Set(),
+    disposers: [],
     elements: createSystemUpdateElements()
   };
 }
@@ -856,34 +859,37 @@ function initSystemUpdatesWithRuntime(runtime, options = {}) {
   }
   state.initialized = true;
   if (documentRef && typeof documentRef.getElementById === 'function') {
-    elements.root = documentRef.getElementById('mode-updates');
-    elements.status = documentRef.getElementById('systemUpdateStatus');
-    elements.downloadLink = documentRef.getElementById('systemUpdateDownloadLink');
-    elements.downloadButton = documentRef.getElementById('btnSystemDownload');
-    elements.selectButton = documentRef.getElementById('btnSystemSelect');
-    elements.fileInput = documentRef.getElementById('systemUpdateFileInput');
-    elements.fileSection = documentRef.getElementById('systemUpdateFileSection');
-    elements.fileList = documentRef.getElementById('systemUpdateFileList');
-    elements.notes = documentRef.getElementById('systemUpdateReleaseNotes');
-    elements.currentVersion = documentRef.getElementById('systemUpdateCurrentVersion');
-    elements.targetVersion = documentRef.getElementById('systemUpdateTargetVersion');
-    elements.metaTitle = documentRef.getElementById('systemUpdateReleaseMeta');
-    elements.metaPublished = documentRef.getElementById('systemUpdateReleasePublished');
-    elements.assetMeta = documentRef.getElementById('systemUpdateAssetMeta');
+    elements.root = documentRef.getElementById(EDITOR_SHELL_IDS.modeUpdates);
+    elements.status = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateStatus);
+    elements.downloadLink = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateDownloadLink);
+    elements.downloadButton = documentRef.getElementById(EDITOR_SHELL_IDS.btnSystemDownload);
+    elements.selectButton = documentRef.getElementById(EDITOR_SHELL_IDS.btnSystemSelect);
+    elements.fileInput = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateFileInput);
+    elements.fileSection = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateFileSection);
+    elements.fileList = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateFileList);
+    elements.notes = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateReleaseNotes);
+    elements.currentVersion = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateCurrentVersion);
+    elements.targetVersion = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateTargetVersion);
+    elements.metaTitle = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateReleaseMeta);
+    elements.metaPublished = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateReleasePublished);
+    elements.assetMeta = documentRef.getElementById(EDITOR_SHELL_IDS.systemUpdateAssetMeta);
   }
 
   if (options && typeof options.onStateChange === 'function') state.listeners.add(options.onStateChange);
+  const trackDisposer = (dispose) => {
+    if (typeof dispose === 'function') state.disposers.push(dispose);
+  };
 
   if (elements.downloadButton) {
     elements.downloadButton.dataset.state = 'idle';
-    elements.downloadButton.addEventListener('click', () => handleDownloadClick(runtime));
+    trackDisposer(bindEventEffect(elements.downloadButton, 'click', () => handleDownloadClick(runtime)));
   }
   if (elements.selectButton) {
     elements.selectButton.dataset.state = 'idle';
-    elements.selectButton.addEventListener('click', () => handleSelectClick(runtime));
+    trackDisposer(bindEventEffect(elements.selectButton, 'click', () => handleSelectClick(runtime)));
   }
   if (elements.fileInput) {
-    elements.fileInput.addEventListener('change', (event) => handleFileInputChange(runtime, event));
+    trackDisposer(bindEventEffect(elements.fileInput, 'change', (event) => handleFileInputChange(runtime, event)));
   }
 
   updateDownloadLink(runtime);
@@ -920,6 +926,16 @@ function clearSystemUpdateStateWithRuntime(runtime, options = {}) {
   renderReleaseMeta(runtime);
 }
 
+function disposeSystemUpdatesWithRuntime(runtime) {
+  const state = runtime.state;
+  state.disposers.splice(0, state.disposers.length).reverse().forEach((dispose) => {
+    try { dispose(); } catch (_) {}
+  });
+  state.listeners.clear();
+  state.initialized = false;
+  return true;
+}
+
 export function createSystemUpdatesController(options = {}) {
   const runtime = createSystemUpdatesRuntime(options);
   return {
@@ -934,6 +950,9 @@ export function createSystemUpdatesController(options = {}) {
     },
     clear(clearOptions = {}) {
       return clearSystemUpdateStateWithRuntime(runtime, clearOptions);
+    },
+    dispose() {
+      return disposeSystemUpdatesWithRuntime(runtime);
     },
     analyzeArchive(buffer, filename) {
       return analyzeArchiveWithRuntime(runtime, buffer, filename);

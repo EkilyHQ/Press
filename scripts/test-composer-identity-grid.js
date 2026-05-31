@@ -3239,6 +3239,12 @@ assert.match(
 );
 
 assert.match(
+  composerEditorWorkspaceFeatureSource,
+  /let scheduleEditorStatePersistRef = scheduleEditorStatePersistExternal;[\s\S]*let persistSystemTreeExpandedStateRef = persistSystemTreeExpandedStateExternal;[\s\S]*createEditorContentTreeController\(\{[\s\S]*scheduleEditorStatePersist: \(\) => scheduleEditorStatePersistRef\(\),[\s\S]*persistSystemTreeExpandedState: \(\) => persistSystemTreeExpandedStateRef\(\),[\s\S]*const editorShell = createComposerEditorShell\(\{[\s\S]*scheduleEditorStatePersist: scheduleEditorStatePersistFromShell,[\s\S]*scheduleEditorStatePersistRef = scheduleEditorStatePersistFromShell;[\s\S]*persistSystemTreeExpandedStateRef = persistSystemTreeExpandedStateFromShell;/,
+  'editor workspace feature should late-bind tree-controller persistence hooks to the editor shell lifecycle callbacks'
+);
+
+assert.match(
   composerMarkdownFeatureSource,
   /from '\.\/composer-markdown-loader\.js'/,
   'Markdown feature should cache-bust the extracted Markdown loader boundary'

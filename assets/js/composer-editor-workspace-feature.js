@@ -35,12 +35,14 @@ export function createComposerEditorWorkspaceFeature(options = {}) {
   const isDynamicMode = typeof options.isDynamicMode === 'function' ? options.isDynamicMode : () => false;
   const applyMode = typeof options.applyMode === 'function' ? options.applyMode : noop;
   const openMarkdownInEditor = typeof options.openMarkdownInEditor === 'function' ? options.openMarkdownInEditor : noop;
-  const scheduleEditorStatePersist = typeof options.scheduleEditorStatePersist === 'function' ? options.scheduleEditorStatePersist : noop;
-  const persistSystemTreeExpandedState = typeof options.persistSystemTreeExpandedState === 'function' ? options.persistSystemTreeExpandedState : noop;
+  const scheduleEditorStatePersistExternal = typeof options.scheduleEditorStatePersist === 'function' ? options.scheduleEditorStatePersist : noop;
+  const persistSystemTreeExpandedStateExternal = typeof options.persistSystemTreeExpandedState === 'function' ? options.persistSystemTreeExpandedState : noop;
 
   let editorFileTreeUi = null;
   let editorStructurePanelUi = null;
   let buildCurrentEditorTreeRef = () => [];
+  let scheduleEditorStatePersistRef = scheduleEditorStatePersistExternal;
+  let persistSystemTreeExpandedStateRef = persistSystemTreeExpandedStateExternal;
   let setEditorDetailPanelModeRef = setEditorDetailPanelModeExternal;
   let setEditorStructurePanelVisibleRef = noop;
   let scrollEditorContentToTopRef = noop;
@@ -63,8 +65,8 @@ export function createComposerEditorWorkspaceFeature(options = {}) {
     openMarkdownInEditor,
     scrollEditorContentToTop: (behavior) => scrollEditorContentToTopRef(behavior),
     closeEditorRailDrawer: () => closeEditorRailDrawerRef(),
-    scheduleEditorStatePersist,
-    persistSystemTreeExpandedState,
+    scheduleEditorStatePersist: () => scheduleEditorStatePersistRef(),
+    persistSystemTreeExpandedState: () => persistSystemTreeExpandedStateRef(),
     inferMarkdownSourceFallback: (path) => (String(path || '').toLowerCase().startsWith('tab/') ? 'tabs' : 'index')
   });
 
@@ -113,6 +115,8 @@ export function createComposerEditorWorkspaceFeature(options = {}) {
     setEditorContentScrollByKey,
     getEditorContentScrollSnapshot
   } = editorShell;
+  scheduleEditorStatePersistRef = scheduleEditorStatePersistFromShell;
+  persistSystemTreeExpandedStateRef = persistSystemTreeExpandedStateFromShell;
   scrollEditorContentToTopRef = scrollEditorContentToTop;
   closeEditorRailDrawerRef = closeEditorRailDrawer;
 

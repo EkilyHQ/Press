@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 
 import { createComposerPublishFlow } from '../assets/js/composer-publish-flow.js';
+import {
+  PUBLISH_RECEIPT_LATEST_STORAGE_KEY,
+  PUBLISH_STATES
+} from '../assets/js/publish/publish-receipt.js';
 
 function okJson(payload) {
   return {
@@ -28,9 +32,23 @@ function notFound() {
   };
 }
 
+function createMemoryStorage() {
+  const data = new Map();
+  return {
+    getItem(key) {
+      return data.has(key) ? data.get(key) : null;
+    },
+    setItem(key, value) {
+      data.set(key, String(value));
+    }
+  };
+}
+
 function createFlowHarness() {
   const calls = [];
   const requests = [];
+  const receipts = [];
+  const receiptStorage = createMemoryStorage();
   const liveFiles = new Map([
     ['post/smoke.md', '# Smoke\n\nUpdated from publish flow.\n'],
     ['wwwroot/post/smoke.md', '# Smoke\n\nUpdated from publish flow.\n']
@@ -54,7 +72,7 @@ function createFlowHarness() {
 
     if (target === 'https://connect.example/api/press/publish') {
       const body = JSON.parse(String(options.body || '{}'));
-      return okJson({ ok: true, id: 'connect-smoke', body });
+      return okJson({ ok: true, id: 'connect-smoke', commit: { oid: 'connect-smoke-commit' }, body });
     }
 
     if (target === 'https://api.github.com/graphql') {
@@ -85,7 +103,10 @@ function createFlowHarness() {
   };
 
   const flow = createComposerPublishFlow({
-    windowRef: { location: { origin: 'https://docs.example' } },
+    windowRef: {
+      location: { origin: 'https://docs.example' },
+      localStorage: receiptStorage
+    },
     documentRef: {},
     fetchImpl,
     t: (key, values = {}) => values && values.count ? `${key}:${values.count}` : key,
@@ -120,12 +141,16 @@ function createFlowHarness() {
     describeSummaryEntry: entry => entry && entry.label || 'summary',
     switchToPatFallbackAndFocusToken: () => calls.push(['fallback']),
     setGitHubCommitInFlight: value => calls.push(['inFlight', !!value]),
+    onPublishReceipt: receipt => receipts.push(receipt),
+    createPublishRunId: () => 'smoke-receipt',
     consoleRef: { error: (...args) => calls.push(['console:error', args.length]) }
   });
 
   return {
     calls,
     flow,
+    receiptStorage,
+    receipts,
     requests
   };
 }
@@ -156,6 +181,26 @@ function createFlowHarness() {
   assert.ok(harness.calls.some(call => call[0] === 'postCommit' && call[1].includes('wwwroot/post/smoke.md')));
   assert.ok(harness.calls.some(call => call[0] === 'status' && String(call[1]).startsWith('Checking Smoke post')));
   assert.ok(harness.calls.some(call => call[0] === 'status' && String(call[1]).startsWith('Checking Removed post')));
+  assert.deepEqual(harness.receipts.map(receipt => receipt.state), [
+    PUBLISH_STATES.PREPARING,
+    PUBLISH_STATES.AUTHORIZING,
+    PUBLISH_STATES.COMMITTING,
+    PUBLISH_STATES.COMMITTED,
+    PUBLISH_STATES.APPLYING_LOCAL_STATE,
+    PUBLISH_STATES.OBSERVING_PROPAGATION,
+    PUBLISH_STATES.OBSERVED
+  ]);
+  const finalReceipt = harness.receipts.at(-1);
+  assert.equal(finalReceipt.repository.owner, 'EkilyHQ');
+  assert.equal(finalReceipt.transport.type, 'connect');
+  assert.equal(finalReceipt.fileCount, 2);
+  assert.equal(finalReceipt.commit.oid, 'connect-smoke-commit');
+  assert.deepEqual(finalReceipt.propagation, { canceled: false, timedOut: false, observed: true });
+  const storedReceipt = JSON.parse(harness.receiptStorage.getItem(PUBLISH_RECEIPT_LATEST_STORAGE_KEY));
+  assert.equal(storedReceipt.runId, 'smoke-receipt');
+  assert.equal(JSON.stringify(storedReceipt).includes('grant-token'), false);
+  assert.equal(JSON.stringify(storedReceipt).includes('Updated from publish flow'), false);
+  assert.equal(JSON.stringify(storedReceipt).includes('base64'), false);
   assert.deepEqual(harness.calls.at(-2), ['toast', 'success', 'editor.toasts.commitSuccess:2', false]);
   assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
 }
@@ -193,6 +238,18 @@ function createFlowHarness() {
   );
   assert.ok(harness.calls.some(call => call[0] === 'status' && call[1] === 'Creating commit...'));
   assert.ok(harness.calls.some(call => call[0] === 'status' && call[1] === 'All files confirmed on site.'));
+  assert.deepEqual(harness.receipts.map(receipt => receipt.state), [
+    PUBLISH_STATES.PREPARING,
+    PUBLISH_STATES.COMMITTING,
+    PUBLISH_STATES.COMMITTED,
+    PUBLISH_STATES.APPLYING_LOCAL_STATE,
+    PUBLISH_STATES.OBSERVING_PROPAGATION,
+    PUBLISH_STATES.OBSERVED
+  ]);
+  const finalReceipt = harness.receipts.at(-1);
+  assert.equal(finalReceipt.transport.type, 'pat');
+  assert.equal(finalReceipt.commit.oid, 'publish-smoke-commit');
+  assert.equal(JSON.stringify(finalReceipt).includes('pat-token'), false);
   assert.deepEqual(harness.calls.at(-2), ['toast', 'success', 'editor.toasts.commitSuccess:2', false]);
   assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
 }

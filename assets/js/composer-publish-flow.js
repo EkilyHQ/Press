@@ -1,11 +1,31 @@
 import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js';
 import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js';
+import {
+  createPublishReceipt,
+  createPublishReceiptStore,
+  PUBLISH_STATES,
+  transitionPublishReceipt
+} from './publish/publish-receipt.js';
 
 function resolveAmbientFunction(name) {
   try {
     const scope = typeof globalThis === 'object' ? globalThis : null;
     const value = scope ? scope[name] : null;
     return typeof value === 'function' ? value.bind(scope) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function resolveReceiptStorage(windowRef) {
+  try {
+    if (windowRef && windowRef.localStorage) return windowRef.localStorage;
+  } catch (_) {
+    return null;
+  }
+  try {
+    const scope = typeof globalThis === 'object' ? globalThis : null;
+    return scope && scope.localStorage ? scope.localStorage : null;
   } catch (_) {
     return null;
   }
@@ -34,6 +54,10 @@ export function createComposerPublishFlow({
   describeSummaryEntry = (entry) => entry && (entry.label || entry.path || entry.kind) || '',
   switchToPatFallbackAndFocusToken = () => {},
   setGitHubCommitInFlight = () => {},
+  publishReceiptStore = null,
+  onPublishReceipt = () => {},
+  createPublishRunId = null,
+  now = null,
   consoleRef = null
 } = {}) {
   const fetchRef = typeof fetchImpl === 'function'
@@ -47,6 +71,15 @@ export function createComposerPublishFlow({
     if (timerRef) timerRef(resolve, timeout);
     else resolve();
   });
+  const receiptStore = publishReceiptStore || createPublishReceiptStore({
+    storage: resolveReceiptStorage(windowRef)
+  });
+
+  function savePublishReceipt(receipt) {
+    if (!receipt) return;
+    if (receiptStore && typeof receiptStore.save === 'function') receiptStore.save(receipt);
+    if (typeof onPublishReceipt === 'function') onPublishReceipt(receipt);
+  }
 
   async function waitForRemotePropagation(files = []) {
     return waitForPublishedFiles(files, {
@@ -74,6 +107,18 @@ export function createComposerPublishFlow({
     });
 
     let connectFallbackActionAvailable = false;
+    let publishReceipt = null;
+    const setPublishReceiptState = (state, patch = {}) => {
+      if (!publishReceipt) return;
+      publishReceipt = transitionPublishReceipt(publishReceipt, state, patch, { now });
+      savePublishReceipt(publishReceipt);
+    };
+    const handlePublishStatus = (message) => {
+      setSyncOverlayStatus(message);
+    };
+    const handlePublishState = (state) => {
+      setPublishReceiptState(state);
+    };
     try {
       const { files } = await gatherCommitPayload({ showSeoStatus: true });
       if (!files.length) {
@@ -83,42 +128,69 @@ export function createComposerPublishFlow({
       }
 
       const headline = `chore: sync ${files.length === 1 ? 'draft' : 'drafts'} via Press`;
+      const repo = { owner, name, branch };
+      const contentRoot = getTrackedPublishContentRoot();
+      publishReceipt = createPublishReceipt({
+        repo,
+        transport,
+        contentRoot,
+        headline,
+        files,
+        now,
+        runId: typeof createPublishRunId === 'function'
+          ? createPublishRunId({ repo, transport, headline, files })
+          : null
+      });
+      savePublishReceipt(publishReceipt);
+      let publishResult = null;
       if (transport && transport.type === 'connect') {
         connectFallbackActionAvailable = true;
-        await publishStagedCommit({
+        publishResult = await publishStagedCommit({
           transport,
-          repo: { owner, name, branch },
+          repo,
           headline,
           files,
-          contentRoot: getTrackedPublishContentRoot(),
+          contentRoot,
           getCachedGrant: getCachedConnectPublishGrant,
           setCachedGrant: setCachedConnectPublishGrant,
           windowRef,
           documentRef,
           fetchImpl: fetchRef,
           translate: t,
-          onStatus: setSyncOverlayStatus
+          onStatus: handlePublishStatus,
+          onPublishState: handlePublishState
         });
         connectFallbackActionAvailable = false;
       } else {
-        await publishStagedCommit({
+        publishResult = await publishStagedCommit({
           transport,
-          repo: { owner, name, branch },
+          repo,
           headline,
           files,
           fetchImpl: fetchRef,
           translate: t,
-          onStatus: setSyncOverlayStatus
+          onStatus: handlePublishStatus,
+          onPublishState: handlePublishState
         });
       }
 
+      setPublishReceiptState(PUBLISH_STATES.COMMITTED, { publishResult });
+      setPublishReceiptState(PUBLISH_STATES.APPLYING_LOCAL_STATE);
       setSyncOverlayStatus('Updating editor state…');
       applyLocalPostCommitState(files);
 
       const fileCount = files.length;
       const summaryLabel = fileCount === 1 ? describeSummaryEntry(summaryEntries[0] || files[0]) : `${fileCount} files`;
-      setSyncOverlayMessage(`Commit pushed for ${summaryLabel}. Waiting for the site to update… This can take a few minutes. If you stop waiting, the commit stays on GitHub but the live site might not show the changes yet.`);
+      setPublishReceiptState(PUBLISH_STATES.OBSERVING_PROPAGATION);
+      setSyncOverlayMessage(`Commit accepted for ${summaryLabel}. Press recorded a local publish receipt and is checking the live site… This can take a few minutes. If you stop waiting, the commit stays on GitHub but the live site might not show the changes yet.`);
       const propagationResult = await waitForRemotePropagation(files);
+      setPublishReceiptState(propagationResult && propagationResult.canceled
+        ? PUBLISH_STATES.CANCELED
+        : propagationResult && propagationResult.timedOut
+          ? PUBLISH_STATES.TIMED_OUT
+          : PUBLISH_STATES.OBSERVED, {
+        propagation: propagationResult
+      });
 
       hideSyncOverlay();
       if (propagationResult && propagationResult.canceled) {
@@ -128,7 +200,9 @@ export function createComposerPublishFlow({
       } else {
         showToast('success', t('editor.toasts.commitSuccess', { count: fileCount }));
       }
+      return publishReceipt;
     } catch (err) {
+      setPublishReceiptState(PUBLISH_STATES.FAILED, { error: err });
       hideSyncOverlay();
       let message = err && err.message ? err.message : t('editor.toasts.githubCommitFailed');
       if (err && err.status === 401) {
@@ -154,6 +228,7 @@ export function createComposerPublishFlow({
         };
       }
       showToast('error', message, toastOptions);
+      return publishReceipt;
     } finally {
       setGitHubCommitInFlight(false);
     }

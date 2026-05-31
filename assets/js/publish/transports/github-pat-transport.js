@@ -169,5 +169,14 @@ export async function createFineGrainedTokenCommit(token, { owner, name, branch,
   };
 
   reportStatus('Creating commit...');
-  await githubGraphqlRequest(token, commitMutation, { input: mutationInput }, fetchImpl, provider);
+  const commitData = await githubGraphqlRequest(token, commitMutation, { input: mutationInput }, fetchImpl, provider);
+  const createdCommit = commitData && commitData.createCommitOnBranch && commitData.createCommitOnBranch.commit;
+  return {
+    ok: true,
+    provider: 'github',
+    transport: 'pat',
+    branchName,
+    expectedHeadOid,
+    commit: createdCommit && createdCommit.oid ? { oid: createdCommit.oid } : null
+  };
 }

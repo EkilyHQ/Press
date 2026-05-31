@@ -236,13 +236,21 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   const restores = ['fetch', 'window', 'document', 'btoa'].map((name) => installAmbientTrap(name, ambientCalls));
   const requests = [];
   try {
-    await createFineGrainedTokenCommit('pat-token', {
+    const result = await createFineGrainedTokenCommit('pat-token', {
       owner: 'EkilyHQ',
       name: 'Press',
       branch: 'main',
       headline: 'Sync draft',
       files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
       fetchImpl: createGithubFetchRecorder(requests)
+    });
+    assert.deepEqual(result, {
+      ok: true,
+      provider: 'github',
+      transport: 'pat',
+      branchName: 'main',
+      expectedHeadOid: 'abc123',
+      commit: { oid: 'def456' }
     });
   } finally {
     restores.reverse().forEach((restore) => restore());
@@ -258,7 +266,7 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   const provider = createGitHubSiteRepositoryProvider({
     apiBaseUrl: 'https://api.git.example.test'
   });
-  await createFineGrainedTokenCommit('pat-token', {
+  const result = await createFineGrainedTokenCommit('pat-token', {
     owner: 'EkilyHQ',
     name: 'Press',
     branch: 'refs/heads/feature/provider',
@@ -267,6 +275,8 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
     fetchImpl: createGithubFetchRecorder(requests),
     siteRepositoryProvider: provider
   });
+  assert.equal(result.branchName, 'feature/provider');
+  assert.equal(result.commit.oid, 'def456');
   assert.equal(requests.length, 2);
   assert.equal(requests[0].url, 'https://api.git.example.test/graphql');
   assert.equal(requests[0].body.variables.ref, 'refs/heads/feature/provider');
@@ -306,19 +316,25 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   const ambientCalls = [];
   const restores = ['fetch', 'window', 'document', 'btoa'].map((name) => installAmbientTrap(name, ambientCalls));
   const patRequests = [];
+  const states = [];
   try {
-    await publishCommit({
+    const result = await publishCommit({
       transport: { type: 'pat', token: 'pat-token' },
       repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
       headline: 'Sync draft',
       files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
-      fetchImpl: createGithubFetchRecorder(patRequests)
+      fetchImpl: createGithubFetchRecorder(patRequests),
+      onPublishState: state => states.push(state)
     });
+    assert.equal(result.provider, 'github');
+    assert.equal(result.transport, 'pat');
+    assert.equal(result.commit.oid, 'def456');
   } finally {
     restores.reverse().forEach((restore) => restore());
   }
   assert.equal(patRequests.length, 2);
   assert.equal(patRequests[1].body.variables.input.fileChanges.additions[0].contents, expectedBase64);
+  assert.deepEqual(states, ['committing']);
   assert.deepEqual(ambientCalls, [], 'publish commit service should pass injected fetch into the PAT transport');
 }
 
@@ -326,8 +342,9 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   const ambientCalls = [];
   const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
   const requests = [];
+  const states = [];
   try {
-    await publishCommit({
+    const result = await publishCommit({
       transport: { type: 'connect', connect: { baseUrl: 'https://connect.example' } },
       repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
       headline: 'Sync draft',
@@ -342,13 +359,22 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
       }),
       fetchImpl(url, options) {
         requests.push({ url, options });
-        return Promise.resolve(okJson({ ok: true, id: 'published' }));
-      }
+        return Promise.resolve(okJson({ ok: true, id: 'published', commit: { oid: 'connect-commit' } }));
+      },
+      onPublishState: state => states.push(state)
+    });
+    assert.deepEqual(result, {
+      ok: true,
+      provider: 'connect',
+      transport: 'connect',
+      id: 'published',
+      commit: { oid: 'connect-commit' }
     });
   } finally {
     restores.reverse().forEach((restore) => restore());
   }
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url, 'https://connect.example/api/press/publish');
+  assert.deepEqual(states, ['authorizing', 'committing']);
   assert.deepEqual(ambientCalls, [], 'publish commit service should pass injected fetch into the Connect transport');
 }

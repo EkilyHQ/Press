@@ -5878,8 +5878,8 @@ assert.doesNotMatch(
 
 assert.match(
   composerPublishFlowSource,
-  /publishStagedCommit\(\{[\s\S]*transport,[\s\S]*repo: \{ owner, name, branch \},[\s\S]*fetchImpl: fetchRef,[\s\S]*onStatus: setSyncOverlayStatus[\s\S]*\}\);[\s\S]*publishStagedCommit\(\{[\s\S]*transport,[\s\S]*repo: \{ owner, name, branch \},[\s\S]*fetchImpl: fetchRef,[\s\S]*onStatus: setSyncOverlayStatus/,
-  'composer publish flow should pass runtime fetch into both Connect and PAT commit transports'
+  /publishResult = await publishStagedCommit\(\{[\s\S]*transport,[\s\S]*repo,[\s\S]*fetchImpl: fetchRef,[\s\S]*onStatus: handlePublishStatus,[\s\S]*onPublishState: handlePublishState[\s\S]*\}\);[\s\S]*publishResult = await publishStagedCommit\(\{[\s\S]*transport,[\s\S]*repo,[\s\S]*fetchImpl: fetchRef,[\s\S]*onStatus: handlePublishStatus,[\s\S]*onPublishState: handlePublishState/,
+  'composer publish flow should pass runtime fetch and publish-state callbacks into both Connect and PAT commit transports'
 );
 
 assert.doesNotMatch(
@@ -7573,7 +7573,7 @@ assert.match(
 
 assert.match(
   composerPublishFlowSource,
-  /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*await publishStagedCommit\(\{[\s\S]*transport,[\s\S]*getCachedGrant: getCachedConnectPublishGrant[\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
+  /let connectFallbackActionAvailable = false;[\s\S]*const \{ files \} = await gatherCommitPayload\(\{ showSeoStatus: true \}\);[\s\S]*connectFallbackActionAvailable = true;[\s\S]*publishResult = await publishStagedCommit\(\{[\s\S]*transport,[\s\S]*getCachedGrant: getCachedConnectPublishGrant[\s\S]*connectFallbackActionAvailable = false;[\s\S]*if \(transport && transport\.type === 'connect' && connectFallbackActionAvailable\) \{[\s\S]*toastOptions\.action = \{[\s\S]*connectFallback[\s\S]*switchToPatFallbackAndFocusToken\(\);[\s\S]*showToast\('error', message, toastOptions\);/,
   'Only Connect authorization and publish failures should expose a toast action that switches to PAT fallback'
 );
 

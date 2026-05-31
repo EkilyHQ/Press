@@ -683,6 +683,11 @@ if ! grep -qx "press-system-${version}/assets/js/composer-publish-state-service.
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/publish/publish-receipt.js" "${entries_file}"; then
+  echo "expected package to include publish receipt state machine code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-service-registry.js" "${entries_file}"; then
   echo "expected package to include composer service registry code" >&2
   exit 1

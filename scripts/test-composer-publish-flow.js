@@ -16,6 +16,17 @@ function installAmbientGlobal(name, value) {
 }
 
 {
+  const windowRef = {};
+  Object.defineProperty(windowRef, 'localStorage', {
+    configurable: true,
+    get() {
+      throw new Error('localStorage unavailable');
+    }
+  });
+  assert.doesNotThrow(() => createComposerPublishFlow({ windowRef }));
+}
+
+{
   const urls = [];
   const delays = [];
   let now = 5000;

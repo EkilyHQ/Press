@@ -47,6 +47,7 @@ for command in \
   'node scripts/test-composer-service-registry.js' \
   'node scripts/test-provider-adapters.js' \
   'node scripts/test-provider-boundary.js' \
+  'node scripts/test-publish-receipt.js' \
   'node scripts/test-publish-flow-smoke.js' \
   'bash scripts/test-pages-artifact.sh'
 do

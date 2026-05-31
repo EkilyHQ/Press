@@ -375,6 +375,8 @@ const translations = {
         siteWaitStopped: 'ライブサイトの更新待機を停止しました。コミットは GitHub にありますが、反映まで数分かかる場合があります。',
         siteWaitTimedOut: 'GitHub にファイルをコミットしましたが、ライブサイトが時間内に更新されませんでした。デプロイ状況を手動で確認してください。',
         commitSuccess: ({ count }) => `${count} 件のファイルを GitHub にコミットしました。`,
+        commitSuccessWithWarnings: ({ count, warningCount }) => `${count} 件のファイルを GitHub にコミットしましたが、ステージング警告 ${warningCount} 件を記録しました。`,
+        publishStagingWarnings: ({ count }) => `この公開で任意のステージング警告 ${count} 件を記録しました。`,
         githubCommitFailed: 'GitHub へのコミットに失敗しました。',
         githubTokenRejected: 'GitHub がアクセストークンを拒否しました。新しい細分化されたパーソナルアクセストークンを入力してください。',
         repoOwnerMissing: 'GitHub 同期を有効にするには site.yaml の repo.owner と repo.name を設定してください。',

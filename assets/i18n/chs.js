@@ -375,6 +375,8 @@ const translations = {
         siteWaitStopped: '已停止等待线上站点。提交已在 GitHub 上，但显示可能还需要几分钟。',
         siteWaitTimedOut: '已将文件提交到 GitHub，但线上站点未及时更新。请手动检查部署状态。',
         commitSuccess: ({ count }) => `已将 ${count} 个文件提交到 GitHub。`,
+        commitSuccessWithWarnings: ({ count, warningCount }) => `已将 ${count} 个文件提交到 GitHub，但记录了 ${warningCount} 个 staging 警告。`,
+        publishStagingWarnings: ({ count }) => `本次发布记录了 ${count} 个可选 staging 警告。`,
         githubCommitFailed: '提交到 GitHub 失败。',
         githubTokenRejected: 'GitHub 拒绝了访问令牌。请输入新的细粒度个人访问令牌。',
         repoOwnerMissing: '请在 site.yaml 中配置 repo.owner 和 repo.name 以启用 GitHub 同步。',

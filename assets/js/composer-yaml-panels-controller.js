@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+
 function noop() {}
 
 function getElement(documentRef, id) {
@@ -59,7 +61,7 @@ export function createComposerYamlPanelsController(options = {}) {
   function updateDynamicTabsGroupState() {
     const container = getElement(documentRef, 'modeDynamicTabs');
     if (!container) return false;
-    const hasTabs = !!query(container, '.mode-tab.dynamic-mode');
+    const hasTabs = !!query(container, `${EDITOR_SHELL_SELECTORS.modeTabs}.dynamic-mode`);
     container.hidden = !hasTabs;
     if (hasTabs) container.removeAttribute('aria-hidden');
     else container.setAttribute('aria-hidden', 'true');
@@ -84,7 +86,7 @@ export function createComposerYamlPanelsController(options = {}) {
   }
 
   function rebuildIndexUI(preserveOpen = true) {
-    const root = getElement(documentRef, 'composerIndex');
+    const root = getElement(documentRef, EDITOR_SHELL_IDS.composerIndex);
     if (!root) return false;
     const openKeys = preserveOpen ? collectOpenKeys(root, '.ci-item.is-open') : [];
     buildIndexUI(root, getActiveState());
@@ -99,7 +101,7 @@ export function createComposerYamlPanelsController(options = {}) {
   }
 
   function rebuildTabsUI(preserveOpen = true) {
-    const root = getElement(documentRef, 'composerTabs');
+    const root = getElement(documentRef, EDITOR_SHELL_IDS.composerTabs);
     if (!root) return false;
     const openKeys = preserveOpen ? collectOpenKeys(root, '.ct-item.is-open') : [];
     buildTabsUI(root, getActiveState());
@@ -114,7 +116,7 @@ export function createComposerYamlPanelsController(options = {}) {
   }
 
   function rebuildSiteUI() {
-    const root = getElement(documentRef, 'composerSite');
+    const root = getElement(documentRef, EDITOR_SHELL_IDS.composerSite);
     if (!root) return false;
     buildSiteUI(root, getActiveState());
     notifyComposerChange('site', { skipAutoSave: true });

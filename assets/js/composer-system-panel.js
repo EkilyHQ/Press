@@ -1,10 +1,12 @@
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
+
 export function animateEditorSystemPanelContent({
   documentRef = null,
   setTimeoutRef = null,
   clearTimeoutRef = null
 } = {}) {
   if (!documentRef || typeof documentRef.getElementById !== 'function') return;
-  const panel = documentRef.getElementById('editorSystemPanel');
+  const panel = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemPanel);
   if (!panel) return;
   const setTimer = typeof setTimeoutRef === 'function'
     ? setTimeoutRef
@@ -53,19 +55,19 @@ export function showEditorSystemPanel(mode, deps = {}) {
   if (!documentRef || typeof documentRef.getElementById !== 'function') return;
   const nextMode = mode === 'sync' ? 'sync' : (mode === 'updates' ? 'updates' : (mode === 'themes' ? 'themes' : 'composer'));
   mountEditorSystemPanels();
-  const panel = documentRef.getElementById('editorSystemPanel');
-  const title = documentRef.getElementById('editorSystemTitle');
-  const kicker = documentRef.getElementById('editorSystemKicker');
-  const meta = documentRef.getElementById('editorSystemMeta');
-  const actions = documentRef.getElementById('editorSystemActions');
-  const composerActions = documentRef.getElementById('editorModalComposerActions');
-  const themeActions = documentRef.getElementById('editorModalThemeActions');
-  const updateActions = documentRef.getElementById('editorModalUpdateActions');
-  const syncActions = documentRef.getElementById('editorModalSyncActions');
-  const composerPanel = documentRef.getElementById('mode-composer');
-  const themesPanel = documentRef.getElementById('mode-themes');
-  const updatesPanel = documentRef.getElementById('mode-updates');
-  const syncPanel = documentRef.getElementById('mode-sync');
+  const panel = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemPanel);
+  const title = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemTitle);
+  const kicker = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemKicker);
+  const meta = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemMeta);
+  const actions = documentRef.getElementById(EDITOR_SHELL_IDS.editorSystemActions);
+  const composerActions = documentRef.getElementById(EDITOR_SHELL_IDS.editorModalComposerActions);
+  const themeActions = documentRef.getElementById(EDITOR_SHELL_IDS.editorModalThemeActions);
+  const updateActions = documentRef.getElementById(EDITOR_SHELL_IDS.editorModalUpdateActions);
+  const syncActions = documentRef.getElementById(EDITOR_SHELL_IDS.editorModalSyncActions);
+  const composerPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeComposer);
+  const themesPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeThemes);
+  const updatesPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeUpdates);
+  const syncPanel = documentRef.getElementById(EDITOR_SHELL_IDS.modeSync);
   if (!panel) return;
 
   setEditorSystemPanelVisible(true);

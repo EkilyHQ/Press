@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+
 function fallbackEscapeHtml(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;')
@@ -99,7 +101,7 @@ export function createComposerDiffUi(options = {}) {
 
   function applySiteDiffMarkers(diff) {
     if (!documentRef) return;
-    const root = documentRef.getElementById('composerSite');
+    const root = documentRef.getElementById(EDITOR_SHELL_IDS.composerSite);
     if (!root) return;
     const fields = diff && diff.fields ? diff.fields : {};
     const matchesFieldDiff = (el, key) => {
@@ -146,7 +148,7 @@ export function createComposerDiffUi(options = {}) {
 
   function applyIndexDiffMarkers(diff) {
     if (!documentRef) return;
-    const list = documentRef.getElementById('ciList');
+    const list = documentRef.getElementById(EDITOR_SHELL_IDS.ciList);
     if (!list) return;
     const keyDiff = (diff && diff.keys) || {};
     list.querySelectorAll('.ci-item').forEach(row => {
@@ -206,7 +208,7 @@ export function createComposerDiffUi(options = {}) {
 
   function applyTabsDiffMarkers(diff) {
     if (!documentRef) return;
-    const list = documentRef.getElementById('ctList');
+    const list = documentRef.getElementById(EDITOR_SHELL_IDS.ctList);
     if (!list) return;
     const keyDiff = (diff && diff.keys) || {};
     list.querySelectorAll('.ct-item').forEach(row => {
@@ -280,7 +282,7 @@ export function createComposerDiffUi(options = {}) {
   function updateFileDirtyBadge(kind) {
     if (!documentRef) return;
     const name = normalizeComposerKind(kind);
-    const el = documentRef.querySelector(`a.vt-btn[data-cfile="${name}"]`);
+    const el = documentRef.querySelector(`${EDITOR_SHELL_SELECTORS.composerFileTabs}[data-cfile="${name}"]`);
     if (!el) return;
     const diff = getComposerDiff(name);
     const changeCount = getComposerDiffChangeCount(diff);
@@ -598,7 +600,7 @@ export function createComposerDiffUi(options = {}) {
 
   function refreshComposerInlineMeta(refreshOptions = {}) {
     if (!documentRef) return;
-    const meta = documentRef.getElementById('composerOrderInlineMeta');
+    const meta = documentRef.getElementById(EDITOR_SHELL_IDS.composerOrderInlineMeta);
     if (!meta) return;
     const activeKind = getActiveComposerFile();
     if (activeKind === 'site') {

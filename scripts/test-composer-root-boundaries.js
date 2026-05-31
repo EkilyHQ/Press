@@ -9,15 +9,17 @@ import { createComposerYamlSerialization } from '../assets/js/composer-yaml-seri
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
+const composerControllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
 const actionEffectsSource = readFileSync(resolve(here, '../assets/js/composer-action-effects.js'), 'utf8');
 const markdownWorkspaceFacadeSource = readFileSync(resolve(here, '../assets/js/composer-markdown-workspace-facade.js'), 'utf8');
 const yamlSerializationSource = readFileSync(resolve(here, '../assets/js/composer-yaml-serialization.js'), 'utf8');
 const editorTreeStateSource = readFileSync(resolve(here, '../assets/js/composer-editor-tree-state.js'), 'utf8');
 
 assert.match(composerSource, /from '\.\/composer-action-effects\.js'/);
-assert.match(composerSource, /from '\.\/composer-markdown-workspace-facade\.js'/);
+assert.match(composerSource, /from '\.\/composer-controller-graph\.js'/);
 assert.match(composerSource, /from '\.\/composer-yaml-serialization\.js'/);
 assert.match(composerSource, /from '\.\/composer-editor-tree-state\.js'/);
+assert.match(composerControllerGraphSource, /from '\.\/composer-markdown-workspace-facade\.js'/);
 assert.doesNotMatch(composerSource, /createComposerActionDispatcher|composerActions\.dispatch\('/);
 assert.doesNotMatch(composerSource, /import \{ buildEditorContentTree/);
 [

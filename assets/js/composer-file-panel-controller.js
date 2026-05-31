@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+
 function noop() {}
 
 function normalizeComposerFileKind(name) {
@@ -100,7 +102,7 @@ export function createComposerFilePanelController(options = {}) {
 
   function updateToggleUi() {
     const normalized = getActiveComposerFile();
-    queryAll(documentRef, 'a.vt-btn[data-cfile]').forEach((link) => {
+    queryAll(documentRef, EDITOR_SHELL_SELECTORS.composerFileTabs).forEach((link) => {
       try {
         if (link && link.classList) {
           link.classList.toggle('active', link.dataset && link.dataset.cfile === normalized);
@@ -108,7 +110,7 @@ export function createComposerFilePanelController(options = {}) {
       } catch (_) {}
     });
 
-    const addButton = getElement(documentRef, 'btnAddItem');
+    const addButton = getElement(documentRef, EDITOR_SHELL_IDS.btnAddItem);
     if (!addButton) return;
 
     if (normalized === 'index' || normalized === 'tabs') {
@@ -130,12 +132,12 @@ export function createComposerFilePanelController(options = {}) {
     const showTabs = normalized === 'tabs';
     const showSite = normalized === 'site';
 
-    setDisplay(getElement(documentRef, 'composerIndexHost'), showIndex);
-    setDisplay(getElement(documentRef, 'composerTabsHost'), showTabs);
-    setDisplay(getElement(documentRef, 'composerSiteHost'), showSite);
-    setDisplay(getElement(documentRef, 'composerIndex'), showIndex, 'block');
-    setDisplay(getElement(documentRef, 'composerTabs'), showTabs, 'block');
-    setDisplay(getElement(documentRef, 'composerSite'), showSite, 'block');
+    setDisplay(getElement(documentRef, EDITOR_SHELL_IDS.composerIndexHost), showIndex);
+    setDisplay(getElement(documentRef, EDITOR_SHELL_IDS.composerTabsHost), showTabs);
+    setDisplay(getElement(documentRef, EDITOR_SHELL_IDS.composerSiteHost), showSite);
+    setDisplay(getElement(documentRef, EDITOR_SHELL_IDS.composerIndex), showIndex, 'block');
+    setDisplay(getElement(documentRef, EDITOR_SHELL_IDS.composerTabs), showTabs, 'block');
+    setDisplay(getElement(documentRef, EDITOR_SHELL_IDS.composerSite), showSite, 'block');
 
     try {
       const root = documentRef && documentRef.documentElement;

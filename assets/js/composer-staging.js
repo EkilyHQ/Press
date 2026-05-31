@@ -25,6 +25,36 @@ export function createCommitFileCollector() {
   };
 }
 
+function safeString(value) {
+  return value == null ? '' : String(value);
+}
+
+function redactWarningMessage(value) {
+  return safeString(value)
+    .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._~+/=-]{12,})\b/g, '[redacted]')
+    .replace(/([?&#][^=&#\s]*(?:token|secret|password|grant|code)[^=&#\s]*=)[^&#\s]+/gi, '$1[redacted]')
+    .slice(0, 320);
+}
+
+export function normalizeStagingWarning(warning, provider = {}) {
+  const source = warning && typeof warning === 'object' ? warning : {};
+  const providerId = safeString(source.providerId || provider.id || 'unknown').trim() || 'unknown';
+  const message = redactWarningMessage(
+    source.message
+      || source.reason
+      || (typeof warning === 'string' ? warning : '')
+      || 'Optional staging provider did not complete.'
+  );
+  const out = {
+    providerId,
+    code: safeString(source.code || source.name || 'staging-warning').trim() || 'staging-warning',
+    message
+  };
+  if (source.kind) out.kind = safeString(source.kind);
+  if (source.path) out.path = safeString(source.path).replace(/\\+/g, '/').replace(/^\/+/, '');
+  return out;
+}
+
 function normalizeProviderEntries(entries, provider) {
   return (Array.isArray(entries) ? entries : [])
     .filter(entry => entry && typeof entry === 'object')
@@ -76,11 +106,13 @@ export function createStagingRegistry() {
           files.push(...normalizeProviderEntries(result, provider));
         } else if (result && typeof result === 'object') {
           files.push(...normalizeProviderEntries(result.files, provider));
-          if (Array.isArray(result.warnings)) warnings.push(...result.warnings);
+          if (Array.isArray(result.warnings)) {
+            warnings.push(...result.warnings.map(warning => normalizeStagingWarning(warning, provider)));
+          }
         }
       } catch (err) {
         if (provider.required) throw err;
-        warnings.push(err);
+        warnings.push(normalizeStagingWarning(err, provider));
       }
     }
     return { files, warnings };

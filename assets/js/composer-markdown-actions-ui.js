@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
+
 const MARKDOWN_PUSH_LABEL_KEYS = {
   default: 'editor.composer.markdown.push.labelDefault',
   create: 'editor.composer.markdown.push.labelCreate',
@@ -99,7 +101,7 @@ export function createComposerMarkdownActionsUi(options = {}) {
     : getActiveDynamicTab();
 
   function updatePushButton(tab) {
-    if (!pushButton) pushButton = queryButton('btnPushMarkdown');
+    if (!pushButton) pushButton = queryButton(EDITOR_SHELL_IDS.btnPushMarkdown);
     if (!pushButton) return;
 
     const btn = pushButton;
@@ -173,7 +175,7 @@ export function createComposerMarkdownActionsUi(options = {}) {
   }
 
   function updateDiscardButton(tab) {
-    if (!discardButton) discardButton = queryButton('btnDiscardMarkdown');
+    if (!discardButton) discardButton = queryButton(EDITOR_SHELL_IDS.btnDiscardMarkdown);
     if (!discardButton) return;
 
     const btn = discardButton;
@@ -226,7 +228,7 @@ export function createComposerMarkdownActionsUi(options = {}) {
   }
 
   function updateSaveButton(tab) {
-    if (!saveButton) saveButton = queryButton('btnSaveMarkdown');
+    if (!saveButton) saveButton = queryButton(EDITOR_SHELL_IDS.btnSaveMarkdown);
     if (!saveButton) return;
 
     const btn = saveButton;
@@ -260,7 +262,7 @@ export function createComposerMarkdownActionsUi(options = {}) {
   }
 
   function updateProtectionButton(tab) {
-    if (!protectionButton) protectionButton = queryButton('btnProtectMarkdown');
+    if (!protectionButton) protectionButton = queryButton(EDITOR_SHELL_IDS.btnProtectMarkdown);
     if (!protectionButton) return;
 
     const btn = protectionButton;

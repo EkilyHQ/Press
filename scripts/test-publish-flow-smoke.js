@@ -52,6 +52,9 @@ function createFlowHarness(options = {}) {
   const connectPropagationSequence = Array.isArray(options.connectPropagationSequence)
     ? options.connectPropagationSequence
     : [];
+  const stagingWarnings = Array.isArray(options.stagingWarnings)
+    ? options.stagingWarnings
+    : [];
   let connectStatusCalls = 0;
   const liveFiles = new Map([
     ['post/smoke.md', '# Smoke\n\nUpdated from publish flow.\n'],
@@ -148,12 +151,18 @@ function createFlowHarness(options = {}) {
     },
     documentRef: {},
     fetchImpl,
-    t: (key, values = {}) => values && values.count ? `${key}:${values.count}` : key,
+    t: (key, values = {}) => {
+      if (key === 'editor.toasts.commitSuccessWithWarnings') return `${key}:${values.count}/${values.warningCount}`;
+      return values && values.count ? `${key}:${values.count}` : key;
+    },
     getActiveSiteRepoConfig: () => ({ owner: 'EkilyHQ', name: 'Press', branch: 'main' }),
     getTrackedPublishContentRoot: () => 'wwwroot',
     gatherCommitPayload: async (options = {}) => {
       calls.push(['gather', options.showSeoStatus === true]);
-      return { files: files.map(file => ({ ...file })) };
+      return {
+        files: files.map(file => ({ ...file })),
+        warnings: stagingWarnings.map(warning => ({ ...warning }))
+      };
     },
     applyLocalPostCommitState: committedFiles => calls.push(['postCommit', committedFiles.map(file => file.path)]),
     setTimeoutRef: (handler, delay) => {
@@ -247,6 +256,40 @@ function createFlowHarness(options = {}) {
   assert.equal(JSON.stringify(storedReceipt).includes('Updated from publish flow'), false);
   assert.equal(JSON.stringify(storedReceipt).includes('base64'), false);
   assert.deepEqual(harness.calls.at(-2), ['toast', 'success', 'editor.toasts.commitSuccess:2', false]);
+  assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
+}
+
+{
+  const harness = createFlowHarness({
+    stagingWarnings: [
+      {
+        providerId: 'themes',
+        code: 'optional-theme-cache',
+        message: 'Theme cache skipped?token=secret-value',
+        path: 'assets/themes/arcus/theme.json'
+      }
+    ]
+  });
+  await harness.flow.performDirectGithubCommit('pat-token', [
+    { kind: 'site', label: 'site.yaml' }
+  ]);
+
+  assert.ok(
+    harness.calls.some(call => call[0] === 'status' && call[1] === 'editor.toasts.publishStagingWarnings:1'),
+    'publish flow should surface optional staging warnings before committing'
+  );
+  const finalReceipt = harness.receipts.at(-1);
+  assert.deepEqual(finalReceipt.warnings, [
+    {
+      providerId: 'themes',
+      code: 'optional-theme-cache',
+      message: 'Theme cache skipped?token=[redacted]',
+      path: 'assets/themes/arcus/theme.json'
+    }
+  ]);
+  const storedReceipt = JSON.parse(harness.receiptStorage.getItem(PUBLISH_RECEIPT_LATEST_STORAGE_KEY));
+  assert.equal(JSON.stringify(storedReceipt).includes('secret-value'), false);
+  assert.deepEqual(harness.calls.at(-2), ['toast', 'warning', 'editor.toasts.commitSuccessWithWarnings:2/1', false]);
   assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
 }
 

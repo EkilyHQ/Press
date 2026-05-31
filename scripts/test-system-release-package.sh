@@ -313,6 +313,16 @@ if ! grep -qx "press-system-${version}/assets/js/editor-effects.js" "${entries_f
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/editor-effects-contract.js" "${entries_file}"; then
+  echo "expected package to include editor effects boundary contract code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/editor-shell-contract.js" "${entries_file}"; then
+  echo "expected package to include editor shell selector contract code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/editor-boot-runtime.js" "${entries_file}"; then
   echo "expected package to include editor boot runtime boundary code" >&2
   exit 1
@@ -723,8 +733,18 @@ if ! grep -qx "press-system-${version}/assets/js/composer-yaml-panels-controller
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/composer-controller-graph.js" "${entries_file}"; then
+  echo "expected package to include composer controller graph code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/composer-bootstrap.js" "${entries_file}"; then
   echo "expected package to include composer bootstrap and workspace assembly code" >&2
+  exit 1
+fi
+
+if ! grep -qx "press-system-${version}/assets/js/composer-lifecycle.js" "${entries_file}"; then
+  echo "expected package to include composer controller lifecycle code" >&2
   exit 1
 fi
 

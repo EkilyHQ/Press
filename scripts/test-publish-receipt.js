@@ -59,6 +59,14 @@ function createClock() {
       },
       { path: 'wwwroot/post/old.md', deleted: true, content: 'removed body' }
     ],
+    warnings: [
+      {
+        providerId: 'themes',
+        code: 'optional-theme-cache',
+        message: 'Theme cache skipped?access_token=secret-a&client_secret=secret-b#refresh_token=secret-c',
+        path: '/assets/themes/arcus/theme.json'
+      }
+    ],
     now,
     runId: 'receipt-test'
   });
@@ -69,6 +77,14 @@ function createClock() {
   assert.deepEqual(receipt.repository, { owner: 'EkilyHQ', name: 'Press', branch: 'main' });
   assert.deepEqual(receipt.transport, { type: 'connect', connectBaseUrl: 'https://connect.example' });
   assert.equal(receipt.fileCount, 3);
+  assert.deepEqual(receipt.warnings, [
+    {
+      providerId: 'themes',
+      code: 'optional-theme-cache',
+      message: 'Theme cache skipped?access_token=[redacted]&client_secret=[redacted]#refresh_token=[redacted]',
+      path: 'assets/themes/arcus/theme.json'
+    }
+  ]);
   assert.deepEqual(
     receipt.files.map(file => ({
       path: file.path,
@@ -88,6 +104,9 @@ function createClock() {
   assert.equal(serialized.includes('private-image-bytes'), false);
   assert.equal(serialized.includes('pat-token-must-not-leak'), false);
   assert.equal(serialized.includes('grant=secret'), false);
+  assert.equal(serialized.includes('secret-a'), false);
+  assert.equal(serialized.includes('secret-b'), false);
+  assert.equal(serialized.includes('secret-c'), false);
 
   const committed = transitionPublishReceipt(receipt, PUBLISH_STATES.COMMITTED, {
     publishResult: {

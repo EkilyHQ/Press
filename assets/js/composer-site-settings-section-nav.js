@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+
 const noop = () => {};
 
 export function cleanupComposerSiteSettingsSectionNav(root) {
@@ -101,7 +103,7 @@ export function createComposerSiteSettingsSectionNav(options = {}) {
   const resolveSiteScrollContainer = () => {
     if (!windowRef || !documentRef || !root) return null;
     try {
-      const viewport = root ? root.querySelector('.cs-viewport') : null;
+      const viewport = root ? root.querySelector(EDITOR_SHELL_SELECTORS.composerSiteViewportElement) : null;
       if (viewport) {
         const styles = getComputedStyleFor(viewport);
         const overflowY = styles ? String(styles.overflowY || '') : '';
@@ -111,7 +113,7 @@ export function createComposerSiteSettingsSectionNav(options = {}) {
       }
     } catch (_) {}
     try {
-      const modalBody = root && typeof root.closest === 'function' ? root.closest('.editor-modal-body') : null;
+      const modalBody = root && typeof root.closest === 'function' ? root.closest(EDITOR_SHELL_SELECTORS.editorModalBody) : null;
       if (modalBody) return modalBody;
     } catch (_) {}
     let node = root && root.parentElement ? root.parentElement : null;

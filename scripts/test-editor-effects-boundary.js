@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  collectAmbientEffectUsages,
+  getEditorEffectAmbientAllowlist,
+  validateEditorEffectAmbientBoundary
+} from '../assets/js/editor-effects-contract.js';
 import {
   bindEventEffect,
   createDomEffects,
@@ -12,6 +17,35 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (path) => readFileSync(resolve(here, '..', path), 'utf8');
+
+function walkJsFiles(dir) {
+  return readdirSync(dir).flatMap((name) => {
+    const absolutePath = resolve(dir, name);
+    const stat = statSync(absolutePath);
+    if (stat.isDirectory()) {
+      if (name === 'vendor') return [];
+      return walkJsFiles(absolutePath);
+    }
+    return name.endsWith('.js') ? [absolutePath] : [];
+  });
+}
+
+function collectEffectBoundarySources() {
+  const repoRoot = resolve(here, '..');
+  return new Map(
+    walkJsFiles(resolve(repoRoot, 'assets/js'))
+      .map(path => relative(repoRoot, path).replace(/\\/g, '/'))
+      .filter(path => (
+        path.startsWith('assets/js/publish/')
+        || /^assets\/js\/composer.*\.js$/.test(path)
+        || /^assets\/js\/editor.*\.js$/.test(path)
+        || path === 'assets/js/system-updates.js'
+        || path === 'assets/js/theme-manager.js'
+      ))
+      .filter(path => path !== 'assets/js/editor-effects-contract.js')
+      .map(path => [path, read(path)])
+  );
+}
 
 function createTarget() {
   const listeners = [];
@@ -142,6 +176,40 @@ assert.doesNotMatch(
   connectTransport,
   /windowRef\.(?:addEventListener|removeEventListener)\('message'/,
   'Connect popup listener should be routed through shared event effects'
+);
+
+assert.deepEqual(
+  validateEditorEffectAmbientBoundary(collectEffectBoundarySources()),
+  [],
+  'ambient window/document/fetch/storage/timer fallbacks in editor/composer modules should be explicitly allowlisted'
+);
+
+assert.match(
+  getEditorEffectAmbientAllowlist().find(entry => entry.module === 'assets/js/composer-publish-flow.js').reason,
+  /legacy browser-local publish fallback/,
+  'allowlisted ambient effects should carry a concrete architectural reason'
+);
+
+assert.deepEqual(
+  collectAmbientEffectUsages('assets/js/new-controller.js', 'const href = typeof window !== \'undefined\' ? window.location.href : \'\';')
+    .map(usage => usage.kind),
+  ['window'],
+  'ambient effect collection should classify direct browser fallback usage'
+);
+
+assert.deepEqual(
+  collectAmbientEffectUsages('assets/js/new-controller.js', 'const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));')
+    .map(usage => usage.kind),
+  ['timer'],
+  'ambient effect collection should classify direct timer fallback usage'
+);
+
+assert.deepEqual(
+  validateEditorEffectAmbientBoundary(new Map([
+    ['assets/js/new-controller.js', 'const href = typeof window !== \'undefined\' ? window.location.href : \'\';']
+  ])),
+  ['assets/js/new-controller.js:1 uses ambient window: const href = typeof window !== \'undefined\' ? window.location.href : \'\';'],
+  'unallowlisted ambient browser fallbacks should fail the boundary contract'
 );
 
 console.log('ok - editor effects boundary');

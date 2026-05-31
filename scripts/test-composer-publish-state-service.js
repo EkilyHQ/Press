@@ -36,7 +36,15 @@ const registry = {
         { kind: 'index', path: 'index.yaml' },
         { kind: 'seo', path: 'sitemap.xml' }
       ],
-      warnings: ['asset reference missing']
+      warnings: [
+        'asset reference missing',
+        {
+          providerId: 'themes',
+          code: 'theme-cache',
+          message: 'theme cache skipped?token=secret-value',
+          path: '/assets/themes/arcus/theme.json'
+        }
+      ]
     };
   },
   getSummaryEntries(context = {}) {
@@ -156,7 +164,19 @@ const payload = await service.gatherCommitPayload({
 });
 assert.equal(payload.files.length, 2);
 assert.deepEqual(payload.seoFiles, [{ kind: 'seo', path: 'sitemap.xml' }]);
-assert.deepEqual(payload.warnings, ['asset reference missing']);
+assert.deepEqual(payload.warnings, [
+  {
+    providerId: 'unknown',
+    code: 'staging-warning',
+    message: 'asset reference missing'
+  },
+  {
+    providerId: 'themes',
+    code: 'theme-cache',
+    message: 'theme cache skipped?token=[redacted]',
+    path: 'assets/themes/arcus/theme.json'
+  }
+]);
 assert.ok(
   calls.some((call) => call[0] === 'registry.getCommitFiles' && call[1] === true && call[2] === 'function'),
   'gatherCommitPayload should delegate to the staging registry with status context'

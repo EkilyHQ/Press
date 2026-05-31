@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict';
-import { createEditorBlocksSessionRegistry } from '../assets/js/editor-blocks-session-registry.js';
+import {
+  EDITOR_BLOCKS_SESSION_CALLS,
+  createEditorBlocksSessionRegistry
+} from '../assets/js/editor-blocks-session-registry.js';
 
-const registry = createEditorBlocksSessionRegistry();
+const diagnostics = [];
+const registry = createEditorBlocksSessionRegistry({
+  onDiagnostic: diagnostic => diagnostics.push(diagnostic)
+});
+
+assert.ok(
+  Object.keys(EDITOR_BLOCKS_SESSION_CALLS).includes('focusBlockPrimaryEditable'),
+  'blocks session registry should declare dispatch through explicit call descriptors'
+);
 
 assert.equal(registry.getFocusSession(), null);
 assert.equal(registry.focusBlockPrimaryEditable({ id: 'a' }, 0), false);
 assert.equal(registry.blockNavigationTarget(0, 'first'), null);
 assert.equal(registry.openMathEditorForSelection(), false);
 assert.equal(registry.setCardEntries([]), false);
+assert.deepEqual(registry.getDiagnostics(), [], 'missing block sessions before setup should not emit diagnostics');
 
 const focusCalls = [];
 const focusSession = {
@@ -62,6 +74,22 @@ registry.setCardPickerSession({
   }
 });
 assert.equal(registry.setCardEntries([]), false);
+assert.deepEqual(
+  registry.getDiagnostics().map(item => ({ slot: item.slot, method: item.method, reason: item.reason, error: item.error })),
+  [{ slot: 'cardPickerSession', method: 'setEntries', reason: 'thrown', error: 'failed to set entries' }],
+  'handled block session failures should emit structured diagnostics instead of silently degrading'
+);
+assert.deepEqual(diagnostics, registry.getDiagnostics(), 'blocks registry should notify diagnostic observers');
+registry.clearDiagnostics();
+assert.deepEqual(registry.getDiagnostics(), [], 'blocks registry diagnostics should be clearable');
+
+registry.setFocusSession({ blockNavigationTarget: () => null });
+assert.equal(registry.focusBlockPrimaryEditable({ id: 'c' }, 1), false);
+assert.deepEqual(
+  registry.getDiagnostics().map(item => ({ slot: item.slot, method: item.method, reason: item.reason })),
+  [{ slot: 'focusSession', method: 'focusBlockPrimaryEditable', reason: 'missingMethod' }],
+  'registered sessions missing expected methods should emit contract diagnostics'
+);
 
 registry.setFocusSession(null);
 assert.equal(registry.getFocusSession(), null);

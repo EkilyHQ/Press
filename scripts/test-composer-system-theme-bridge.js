@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
+const controllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
 const bridgeSource = readFileSync(resolve(here, '../assets/js/composer-system-theme-bridge.js'), 'utf8');
 
 assert.match(
@@ -38,9 +39,9 @@ assert.match(
 );
 
 assert.match(
-  composerSource,
-  /initSystemThemeBridge: \(\) => composerSystemThemeBridge\.init\(\)/,
-  'system/theme module initialization should be delegated to the bridge'
+  controllerGraphSource,
+  /composerSystemThemeBridge\.createLifecycleFeature\(\)/,
+  'system/theme module initialization should join the shared composer lifecycle as an explicit feature'
 );
 
 assert.match(
@@ -85,6 +86,12 @@ assert.match(
   'bridge should initialize system updates and theme manager with the existing callbacks'
 );
 
+assert.match(
+  bridgeSource,
+  /function createLifecycleFeature\(\) \{[\s\S]*name: 'composer\.systemThemeBridge'[\s\S]*requires: \['composerWorkspace'\][\s\S]*provides: \['systemThemeBridge'\][\s\S]*start\(context\) \{[\s\S]*init\(\);[\s\S]*context\.systemThemeBridge = api;/,
+  'bridge should expose a lifecycle feature instead of relying on workspace UI binding side effects'
+);
+
 assert.doesNotMatch(
   bridgeSource,
   /\|\|\s*console\b/,
@@ -123,7 +130,8 @@ const bridge = createComposerSystemThemeBridge({
     },
     getSummaryEntries: () => [{ label: 'System runtime', path: 'assets/main.js' }],
     getCommitFiles: () => [{ path: 'assets/main.js', content: 'export {};' }],
-    clear: (options) => calls.push(['system-clear', options])
+    clear: (options) => calls.push(['system-clear', options]),
+    dispose: () => calls.push(['system-dispose'])
   },
   themeManagerController: {
     init(options) {
@@ -132,7 +140,8 @@ const bridge = createComposerSystemThemeBridge({
     },
     getSummaryEntries: () => [{ label: 'Theme CSS', path: 'assets/themes/arcus/theme.css' }],
     getCommitFiles: () => [{ path: 'assets/themes/arcus/theme.css', content: ':root{}' }],
-    clear: (options) => calls.push(['theme-clear', options])
+    clear: (options) => calls.push(['theme-clear', options]),
+    dispose: () => calls.push(['theme-dispose'])
   },
   getStateSlice: (key) => state[key],
   setStateSlice: (key, value) => { state[key] = value; },
@@ -169,6 +178,7 @@ assert.deepEqual(calls.slice(0, 2), [
 ]);
 
 bridge.init();
+bridge.init();
 assert.equal(typeof systemInitOptions.onStateChange, 'function');
 assert.equal(typeof themeInitOptions.onStateChange, 'function');
 assert.equal(themeInitOptions.getCurrentThemePack(), 'arcus');
@@ -183,4 +193,16 @@ assert.deepEqual(calls.slice(2), [
   ['unsynced'],
   ['unsynced'],
   ['tree', { preserveStructure: true }]
+]);
+
+const featureContext = {};
+const feature = bridge.createLifecycleFeature();
+assert.equal(feature.name, 'composer.systemThemeBridge');
+feature.start(featureContext);
+assert.equal(featureContext.systemThemeBridge, bridge);
+assert.equal(calls.filter(call => call[0] === 'system-init').length, 1, 'bridge lifecycle feature should not double-init an initialized bridge');
+feature.dispose();
+assert.deepEqual(calls.slice(-2), [
+  ['system-dispose'],
+  ['theme-dispose']
 ]);

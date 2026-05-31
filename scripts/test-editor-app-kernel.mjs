@@ -48,6 +48,42 @@ const read = (path) => readFileSync(resolve(here, '..', path), 'utf8');
   assert.deepEqual(result.context.lifecycle.features.map(feature => feature.name), ['feature.a', 'feature.b']);
 }
 
+{
+  const calls = [];
+  const kernel = createEditorAppKernel({
+    name: 'dispose-test',
+    provides: ['runtime'],
+    context: { calls }
+  });
+  kernel.registerFeature({
+    name: 'feature.a',
+    requires: ['runtime'],
+    provides: ['aService'],
+    init(context) {
+      context.lifecycle.registerDisposer(() => context.calls.push('a:registered-dispose'));
+    },
+    dispose(context) {
+      context.calls.push('a:dispose');
+    }
+  });
+  kernel.registerFeature({
+    name: 'feature.b',
+    requires: ['aService'],
+    provides: ['bService'],
+    dispose(context) {
+      context.calls.push('b:dispose');
+    }
+  });
+  const result = await kernel.run();
+  assert.equal(await result.dispose(), true);
+  assert.equal(await result.dispose(), false);
+  assert.deepEqual(
+    calls,
+    ['b:dispose', 'a:dispose', 'a:registered-dispose'],
+    'app kernel dispose should run feature and registered disposers in reverse lifecycle order'
+  );
+}
+
 await assert.rejects(
   runEditorFeatureLifecycle([
     { name: 'feature.a', requires: ['missingService'] }

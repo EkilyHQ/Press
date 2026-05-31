@@ -139,6 +139,7 @@ await run('exposes system updates through an explicit controller facade', async 
   assert.equal(typeof controller.getSummaryEntries, 'function');
   assert.equal(typeof controller.getCommitFiles, 'function');
   assert.equal(typeof controller.clear, 'function');
+  assert.equal(typeof controller.dispose, 'function');
   assert.equal(typeof controller.analyzeArchive, 'function');
   assert.equal(typeof controller.stageLatest, 'function');
 });

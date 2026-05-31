@@ -1,3 +1,5 @@
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+
 export function createComposerUnsyncedSummaryController(options = {}) {
   const documentRef = options.documentRef || null;
   const getDynamicEditorTabs = typeof options.getDynamicEditorTabs === 'function' ? options.getDynamicEditorTabs : (() => new Map());
@@ -127,7 +129,7 @@ export function createComposerUnsyncedSummaryController(options = {}) {
 
   function getModeTabButton(mode) {
     try {
-      return documentRef ? documentRef.querySelector(`.mode-tab[data-mode="${mode}"]:not(.dynamic-mode)`) : null;
+      return documentRef ? documentRef.querySelector(`${EDITOR_SHELL_SELECTORS.modeTabs}[data-mode="${mode}"]:not(.dynamic-mode)`) : null;
     } catch (_) {
       return null;
     }
@@ -257,7 +259,7 @@ export function createComposerUnsyncedSummaryController(options = {}) {
   }
 
   function updateReviewButton(summaryEntries = []) {
-    const btn = documentRef ? documentRef.getElementById('btnReview') : null;
+    const btn = documentRef ? documentRef.getElementById(EDITOR_SHELL_IDS.btnReview) : null;
     if (!btn) return;
     const activeKind = getActiveComposerFile();
     const normalizedKind = activeKind === 'tabs' ? 'tabs' : (activeKind === 'site' ? 'site' : 'index');
@@ -291,7 +293,7 @@ export function createComposerUnsyncedSummaryController(options = {}) {
   }
 
   function updateDiscardButtonVisibility() {
-    const btn = documentRef ? documentRef.getElementById('btnDiscard') : null;
+    const btn = documentRef ? documentRef.getElementById(EDITOR_SHELL_IDS.btnDiscard) : null;
     if (!btn) return;
     const activeKind = getActiveComposerFile();
     const normalizedKind = activeKind === 'tabs' ? 'tabs' : activeKind === 'site' ? 'site' : 'index';

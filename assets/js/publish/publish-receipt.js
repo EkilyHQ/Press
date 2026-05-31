@@ -27,6 +27,13 @@ function safeString(value) {
   return value == null ? '' : String(value);
 }
 
+function redactSafeText(value) {
+  return safeString(value)
+    .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._~+/=-]{12,})\b/g, '[redacted]')
+    .replace(/([?&#][^=&#\s]*(?:token|secret|password|grant|code)[^=&#\s]*=)[^&#\s]+/gi, '$1[redacted]')
+    .slice(0, 320);
+}
+
 function isoNow(now) {
   try {
     const value = typeof now === 'function' ? now() : now;
@@ -97,6 +104,30 @@ function summarizeFile(file = {}) {
   if (source.assetRelativePath) out.assetRelativePath = safeString(source.assetRelativePath).replace(/\\+/g, '/').replace(/^\/+/, '');
   if (source.markdownPath) out.markdownPath = safeString(source.markdownPath).replace(/\\+/g, '/').replace(/^\/+/, '');
   return out;
+}
+
+function normalizePublishWarning(warning = {}) {
+  const source = warning && typeof warning === 'object' ? warning : {};
+  const message = redactSafeText(
+    source.message
+      || source.reason
+      || (typeof warning === 'string' ? warning : '')
+      || 'Publish warning.'
+  );
+  const out = {
+    providerId: safeString(source.providerId || source.provider || 'unknown').trim() || 'unknown',
+    code: safeString(source.code || source.name || 'publish-warning').trim() || 'publish-warning',
+    message
+  };
+  if (source.kind) out.kind = safeString(source.kind);
+  if (source.path) out.path = safeString(source.path).replace(/\\+/g, '/').replace(/^\/+/, '');
+  return out;
+}
+
+function normalizePublishWarnings(warnings = []) {
+  return (Array.isArray(warnings) ? warnings : [])
+    .map(normalizePublishWarning)
+    .filter(warning => warning.message);
 }
 
 function normalizeCommitInfo(value) {
@@ -223,6 +254,7 @@ export function createPublishReceipt({
   contentRoot,
   headline,
   files,
+  warnings,
   now,
   runId
 } = {}) {
@@ -243,6 +275,7 @@ export function createPublishReceipt({
     headline: safeString(headline).trim(),
     fileCount: fileSummaries.length,
     files: fileSummaries,
+    warnings: normalizePublishWarnings(warnings),
     commit: null,
     publish: null,
     propagation: null,
@@ -277,6 +310,7 @@ export function transitionPublishReceipt(receipt, state, patch = {}, options = {
     if (commit) next.commit = commit;
   }
   if (patch.propagation) next.propagation = normalizePropagation(patch.propagation);
+  if (patch.warnings) next.warnings = normalizePublishWarnings(patch.warnings);
   if (patch.error) next.error = classifyPublishError(patch.error);
   return next;
 }

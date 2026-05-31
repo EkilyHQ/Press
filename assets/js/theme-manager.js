@@ -1,5 +1,6 @@
 import { t } from './i18n.js';
 import { createDomEffects } from './editor-effects.js';
+import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
 import { createThemeInstallService } from './theme-install-service.js';
 import {
   getThemeManagerOfficialCatalogStatus as getOfficialCatalogStatusForRuntime,
@@ -58,6 +59,7 @@ function createThemeManagerState() {
       getCurrentThemePack: null,
       setSiteThemePack: null
     },
+    disposers: [],
     elements: createThemeManagerElements()
   };
 }
@@ -175,36 +177,39 @@ function initThemeManagerWithRuntime(runtime, options = {}) {
   if (options && typeof options.setSiteThemePack === 'function') optionsRef.setSiteThemePack = options.setSiteThemePack;
   if (state.initialized) return;
   state.initialized = true;
+  const trackDisposer = (dispose) => {
+    if (typeof dispose === 'function') state.disposers.push(dispose);
+  };
 
-  elements.root = effects.getElementById('mode-themes');
-  elements.status = effects.getElementById('themeManagerStatus');
-  elements.tabs = effects.querySelectorAll('[data-theme-manager-view]');
-  elements.views = effects.querySelectorAll('[data-theme-manager-panel]');
-  elements.installedList = effects.getElementById('themeManagerInstalledList');
-  elements.availableList = effects.getElementById('themeManagerAvailableList');
-  elements.pendingSection = effects.getElementById('themeManagerPendingSection');
-  elements.pendingList = effects.getElementById('themeManagerFileList');
-  elements.fileInput = effects.getElementById('themeImportFileInput');
-  elements.headerImportButton = effects.getElementById('btnThemeImport');
-  elements.inlineImportButton = effects.getElementById('btnThemeImportInline');
-  elements.refreshCatalogButton = effects.getElementById('btnThemeRefreshCatalog');
-  elements.clearButton = effects.getElementById('btnThemeClearStaged');
+  elements.root = effects.getElementById(EDITOR_SHELL_IDS.modeThemes);
+  elements.status = effects.getElementById(EDITOR_SHELL_IDS.themeManagerStatus);
+  elements.tabs = effects.querySelectorAll(EDITOR_SHELL_SELECTORS.themeManagerTabs);
+  elements.views = effects.querySelectorAll(EDITOR_SHELL_SELECTORS.themeManagerPanels);
+  elements.installedList = effects.getElementById(EDITOR_SHELL_IDS.themeManagerInstalledList);
+  elements.availableList = effects.getElementById(EDITOR_SHELL_IDS.themeManagerAvailableList);
+  elements.pendingSection = effects.getElementById(EDITOR_SHELL_IDS.themeManagerPendingSection);
+  elements.pendingList = effects.getElementById(EDITOR_SHELL_IDS.themeManagerFileList);
+  elements.fileInput = effects.getElementById(EDITOR_SHELL_IDS.themeImportFileInput);
+  elements.headerImportButton = effects.getElementById(EDITOR_SHELL_IDS.btnThemeImport);
+  elements.inlineImportButton = effects.getElementById(EDITOR_SHELL_IDS.btnThemeImportInline);
+  elements.refreshCatalogButton = effects.getElementById(EDITOR_SHELL_IDS.btnThemeRefreshCatalog);
+  elements.clearButton = effects.getElementById(EDITOR_SHELL_IDS.btnThemeClearStaged);
 
   elements.tabs.forEach((button) => {
-    effects.on(button, 'click', () => setActiveThemeManagerView(runtime, button.dataset.themeManagerView));
+    trackDisposer(effects.on(button, 'click', () => setActiveThemeManagerView(runtime, button.dataset.themeManagerView)));
   });
-  if (elements.headerImportButton) effects.on(elements.headerImportButton, 'click', () => openImportPicker(runtime));
-  if (elements.inlineImportButton) effects.on(elements.inlineImportButton, 'click', () => openImportPicker(runtime));
+  if (elements.headerImportButton) trackDisposer(effects.on(elements.headerImportButton, 'click', () => openImportPicker(runtime)));
+  if (elements.inlineImportButton) trackDisposer(effects.on(elements.inlineImportButton, 'click', () => openImportPicker(runtime)));
   if (elements.fileInput) {
-    effects.on(elements.fileInput, 'change', (event) => {
+    trackDisposer(effects.on(elements.fileInput, 'change', (event) => {
       const input = event && event.target ? event.target : elements.fileInput;
       const file = input && input.files && input.files[0] ? input.files[0] : null;
       if (input) input.value = '';
       handleImportFileWithRuntime(runtime, file);
-    });
+    }));
   }
   if (elements.refreshCatalogButton) {
-    effects.on(elements.refreshCatalogButton, 'click', async () => {
+    trackDisposer(effects.on(elements.refreshCatalogButton, 'click', async () => {
       if (runtime.state.busy) return;
       setBusy(runtime, true);
       try {
@@ -221,10 +226,10 @@ function initThemeManagerWithRuntime(runtime, options = {}) {
       } finally {
         setBusy(runtime, false);
       }
-    });
+    }));
   }
   if (elements.clearButton) {
-    effects.on(elements.clearButton, 'click', () => clearThemeManagerStateWithRuntime(runtime, { keepStatus: false }));
+    trackDisposer(effects.on(elements.clearButton, 'click', () => clearThemeManagerStateWithRuntime(runtime, { keepStatus: false })));
   }
 
   setActiveThemeManagerView(runtime, 'installed');
@@ -273,6 +278,16 @@ function clearThemeManagerStateWithRuntime(runtime, options = {}) {
   }
 }
 
+function disposeThemeManagerWithRuntime(runtime) {
+  const state = runtime.state;
+  state.disposers.splice(0, state.disposers.length).reverse().forEach((dispose) => {
+    try { dispose(); } catch (_) {}
+  });
+  state.listeners.clear();
+  state.initialized = false;
+  return true;
+}
+
 function analyzeThemeArchiveWithRuntime(runtime, buffer, fileName = '', options = {}) {
   return stageThemeArchiveWithRuntime(runtime, buffer, fileName, withThemeManagerRender(runtime, options));
 }
@@ -291,6 +306,9 @@ export function createThemeManagerController(options = {}) {
     },
     clear(clearOptions = {}) {
       return clearThemeManagerStateWithRuntime(runtime, clearOptions);
+    },
+    dispose() {
+      return disposeThemeManagerWithRuntime(runtime);
     },
     analyzeArchive(buffer, fileName = '', analyzeOptions = {}) {
       return analyzeThemeArchiveWithRuntime(runtime, buffer, fileName, analyzeOptions);

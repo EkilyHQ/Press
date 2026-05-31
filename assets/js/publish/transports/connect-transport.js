@@ -262,7 +262,7 @@ async function pollConnectPublishJob({
           name: 'ConnectPublishJobPollError'
         });
       }
-      const error = new Error(latest && latest.error && latest.error.message
+      const error = new Error(latest.error && latest.error.message
         ? latest.error.message
         : translate('editor.composer.github.modal.connectPublishFailed'));
       error.status = response.status;

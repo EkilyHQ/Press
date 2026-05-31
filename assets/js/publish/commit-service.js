@@ -63,6 +63,28 @@ function normalizeConnectPublishJob(value) {
       out.error.upstreamCode = safeString(error && error.upstreamCode || source.upstreamCode);
     }
   }
+  const propagation = source.propagation && typeof source.propagation === 'object' ? source.propagation : null;
+  if (propagation && safeString(propagation.source || 'connect').trim() === 'connect') {
+    const propagationState = safeString(propagation.state).trim();
+    if (propagationState) {
+      out.propagation = {
+        source: 'connect',
+        state: propagationState
+      };
+      for (const key of ['markerPath', 'markerUrl', 'startedAt', 'updatedAt', 'observedAt', 'timedOutAt', 'lastAttemptAt']) {
+        if (propagation[key] != null) out.propagation[key] = safeString(propagation[key]);
+      }
+      if (propagation.attemptCount != null) out.propagation.attemptCount = Number(propagation.attemptCount) || 0;
+      const propagationError = propagation.error && typeof propagation.error === 'object' ? propagation.error : null;
+      const propagationErrorCode = safeString(propagationError && propagationError.code || propagation.errorCode).trim();
+      if (propagationErrorCode) {
+        out.propagation.error = {
+          code: propagationErrorCode,
+          message: safeString(propagationError && propagationError.message || propagation.errorMessage)
+        };
+      }
+    }
+  }
   return out;
 }
 

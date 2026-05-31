@@ -44,11 +44,15 @@ function createMemoryStorage() {
   };
 }
 
-function createFlowHarness() {
+function createFlowHarness(options = {}) {
   const calls = [];
   const requests = [];
   const receipts = [];
   const receiptStorage = createMemoryStorage();
+  const connectPropagationSequence = Array.isArray(options.connectPropagationSequence)
+    ? options.connectPropagationSequence
+    : [];
+  let connectStatusCalls = 0;
   const liveFiles = new Map([
     ['post/smoke.md', '# Smoke\n\nUpdated from publish flow.\n'],
     ['wwwroot/post/smoke.md', '# Smoke\n\nUpdated from publish flow.\n']
@@ -89,20 +93,24 @@ function createFlowHarness() {
     }
 
     if (target === 'https://connect.example/api/press/publish?job=pubjob_connect_smoke') {
+      connectStatusCalls += 1;
+      const propagation = connectPropagationSequence[Math.min(connectStatusCalls - 1, connectPropagationSequence.length - 1)] || null;
+      const job = {
+        id: 'pubjob_connect_smoke',
+        requestId: 'connect-smoke',
+        state: 'committed',
+        statusUrl: 'https://connect.example/api/press/publish?job=pubjob_connect_smoke',
+        fileCount: 2,
+        additionCount: 1,
+        deletionCount: 1,
+        commit: { oid: 'connect-smoke-commit' }
+      };
+      if (propagation) job.propagation = propagation;
       return okJson({
         ok: true,
         id: 'connect-smoke',
         commit: { oid: 'connect-smoke-commit' },
-        job: {
-          id: 'pubjob_connect_smoke',
-          requestId: 'connect-smoke',
-          state: 'committed',
-          statusUrl: 'https://connect.example/api/press/publish?job=pubjob_connect_smoke',
-          fileCount: 2,
-          additionCount: 1,
-          deletionCount: 1,
-          commit: { oid: 'connect-smoke-commit' }
-        }
+        job
       });
     }
 
@@ -179,6 +187,7 @@ function createFlowHarness() {
 
   return {
     calls,
+    connectStatusCalls: () => connectStatusCalls,
     flow,
     receiptStorage,
     receipts,
@@ -239,6 +248,51 @@ function createFlowHarness() {
   assert.equal(JSON.stringify(storedReceipt).includes('base64'), false);
   assert.deepEqual(harness.calls.at(-2), ['toast', 'success', 'editor.toasts.commitSuccess:2', false]);
   assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
+}
+
+{
+  const harness = createFlowHarness({
+    connectPropagationSequence: [
+      {
+        source: 'connect',
+        state: 'observing',
+        markerPath: 'wwwroot/press-publish-status.json',
+        markerUrl: 'https://docs.example/press-publish-status.json',
+        attemptCount: 0
+      },
+      {
+        source: 'connect',
+        state: 'observed',
+        markerPath: 'wwwroot/press-publish-status.json',
+        markerUrl: 'https://docs.example/press-publish-status.json',
+        observedAt: '2026-05-31T00:00:00.000Z',
+        attemptCount: 1
+      }
+    ]
+  });
+  await harness.flow.performConnectGithubCommit({ baseUrl: 'https://connect.example' }, [
+    { kind: 'site', label: 'site.yaml' }
+  ]);
+
+  assert.equal(harness.connectStatusCalls(), 2, 'Connect-managed propagation should poll the durable job status after commit');
+  assert.ok(harness.calls.some(call => call[0] === 'status' && call[1] === 'Connect is checking the live site...'));
+  assert.equal(
+    harness.calls.some(call => call[0] === 'status' && String(call[1]).startsWith('Checking Smoke post')),
+    false,
+    'Connect-managed propagation should avoid local per-file browser polling'
+  );
+  const finalReceipt = harness.receipts.at(-1);
+  assert.equal(finalReceipt.state, PUBLISH_STATES.OBSERVED);
+  assert.equal(finalReceipt.publish.job.propagation.source, 'connect');
+  assert.equal(finalReceipt.publish.job.propagation.state, 'observing');
+  assert.equal(finalReceipt.propagation.source, 'connect');
+  assert.equal(finalReceipt.propagation.state, 'observed');
+  assert.equal(finalReceipt.propagation.jobId, 'pubjob_connect_smoke');
+  assert.equal(finalReceipt.propagation.markerUrl, 'https://docs.example/press-publish-status.json');
+  assert.equal(finalReceipt.propagation.observedAt, '2026-05-31T00:00:00.000Z');
+  assert.equal(finalReceipt.propagation.attemptCount, 1);
+  assert.equal(finalReceipt.propagation.observed, true);
+  assert.equal(finalReceipt.propagation.timedOut, false);
 }
 
 {

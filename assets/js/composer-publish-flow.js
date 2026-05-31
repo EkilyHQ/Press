@@ -1,5 +1,6 @@
 import { ensurePublishGrant, publishCommit as publishStagedCommit } from './publish/commit-service.js';
 import { waitForRemotePropagation as waitForPublishedFiles } from './publish/propagation-watcher.js';
+import { waitForConnectPublishPropagation } from './publish/transports/connect-transport.js';
 import {
   createPublishReceipt,
   createPublishReceiptStore,
@@ -89,6 +90,35 @@ export function createComposerPublishFlow({
       setStatus: setSyncOverlayStatus,
       setCancelHandler: setSyncOverlayCancelHandler
     });
+  }
+
+  async function waitForConnectManagedPropagation(transport, publishResult) {
+    const job = publishResult && publishResult.job && typeof publishResult.job === 'object'
+      ? publishResult.job
+      : null;
+    const propagation = job && job.propagation && typeof job.propagation === 'object'
+      ? job.propagation
+      : null;
+    if (!transport || transport.type !== 'connect' || !propagation || propagation.source !== 'connect') return null;
+    const grant = typeof getCachedConnectPublishGrant === 'function' ? getCachedConnectPublishGrant() : null;
+    if (!grant || !grant.token) return null;
+    try {
+      return await waitForConnectPublishPropagation({
+        connect: transport.connect,
+        grant,
+        job,
+        fetchImpl: fetchRef,
+        translate: t,
+        onStatus: setSyncOverlayStatus,
+        setCancelHandler: setSyncOverlayCancelHandler,
+        sleepImpl: sleepMs
+      });
+    } catch (err) {
+      if (consoleRef && typeof consoleRef.warn === 'function') {
+        consoleRef.warn('Press Connect propagation status unavailable; falling back to local checks', err);
+      }
+      return null;
+    }
   }
 
   async function performPublishCommit(transport, summaryEntries = []) {
@@ -183,10 +213,13 @@ export function createComposerPublishFlow({
       const summaryLabel = fileCount === 1 ? describeSummaryEntry(summaryEntries[0] || files[0]) : `${fileCount} files`;
       setPublishReceiptState(PUBLISH_STATES.OBSERVING_PROPAGATION);
       setSyncOverlayMessage(`Commit accepted for ${summaryLabel}. Press recorded a local publish receipt and is checking the live site… This can take a few minutes. If you stop waiting, the commit stays on GitHub but the live site might not show the changes yet.`);
-      const propagationResult = await waitForRemotePropagation(files);
+      const propagationResult = await waitForConnectManagedPropagation(transport, publishResult)
+        || await waitForRemotePropagation(files);
       setPublishReceiptState(propagationResult && propagationResult.canceled
         ? PUBLISH_STATES.CANCELED
-        : propagationResult && propagationResult.timedOut
+        : propagationResult && propagationResult.failed
+          ? PUBLISH_STATES.FAILED
+          : propagationResult && propagationResult.timedOut
           ? PUBLISH_STATES.TIMED_OUT
           : PUBLISH_STATES.OBSERVED, {
         propagation: propagationResult
@@ -195,7 +228,7 @@ export function createComposerPublishFlow({
       hideSyncOverlay();
       if (propagationResult && propagationResult.canceled) {
         showToast('info', t('editor.toasts.siteWaitStopped'));
-      } else if (propagationResult && propagationResult.timedOut) {
+      } else if (propagationResult && (propagationResult.timedOut || propagationResult.failed)) {
         showToast('warning', t('editor.toasts.siteWaitTimedOut'));
       } else {
         showToast('success', t('editor.toasts.commitSuccess', { count: fileCount }));

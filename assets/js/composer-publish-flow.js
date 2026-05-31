@@ -203,7 +203,6 @@ export function createComposerPublishFlow({
       return publishReceipt;
     } catch (err) {
       if (transport && transport.type === 'connect' && err && err.pendingPublishResult) {
-        connectFallbackActionAvailable = false;
         setPublishReceiptState(PUBLISH_STATES.TIMED_OUT, {
           publishResult: err.pendingPublishResult,
           error: err

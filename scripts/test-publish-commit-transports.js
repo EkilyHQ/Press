@@ -510,6 +510,95 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
 
 {
   const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    const result = await createConnectPublishCommit({
+      connect: { baseUrl: 'https://connect.example' },
+      repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+      headline: 'Sync draft',
+      files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+      contentRoot: 'wwwroot',
+      grant: { token: 'grant-token' },
+      pollIntervalMs: 0,
+      sleepImpl: async () => {},
+      fetchImpl(url, options) {
+        requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+        if (requests.length === 1) {
+          return Promise.resolve(okJson({
+            ok: true,
+            accepted: true,
+            job: {
+              id: 'pubjob_direct_status',
+              state: 'queued',
+              statusUrl: 'https://connect.example/api/press/publish?job=pubjob_direct_status'
+            }
+          }, 202));
+        }
+        return Promise.resolve(okJson({
+          ok: true,
+          commit: { oid: 'direct-status-commit' }
+        }));
+      }
+    });
+    assert.equal(result.commit.oid, 'direct-status-commit');
+    assert.equal(result.job.id, 'pubjob_direct_status');
+    assert.equal(result.job.state, 'committed');
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 2);
+  assert.deepEqual(ambientCalls, [], 'Connect publish polling should accept direct committed status payloads');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    await assert.rejects(
+      () => createConnectPublishCommit({
+        connect: { baseUrl: 'https://connect.example' },
+        repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+        headline: 'Sync draft',
+        files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+        contentRoot: 'wwwroot',
+        grant: { token: 'grant-token' },
+        pollIntervalMs: 0,
+        sleepImpl: async () => {},
+        fetchImpl(url, options) {
+          requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+          if (requests.length === 1) {
+            return Promise.resolve(okJson({
+              ok: true,
+              accepted: true,
+              job: {
+                id: 'pubjob_poll_failed',
+                state: 'queued',
+                statusUrl: 'https://connect.example/api/press/publish?job=pubjob_poll_failed'
+              }
+            }, 202));
+          }
+          throw new Error('poll network failed');
+        }
+      }),
+      (err) => {
+        assert.equal(err.name, 'ConnectPublishJobPollError');
+        assert.equal(err.status, 202);
+        assert.equal(err.pendingPublishResult.job.id, 'pubjob_poll_failed');
+        assert.equal(err.response.error.code, 'publish_job_poll_failed');
+        return true;
+      }
+    );
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 2);
+  assert.deepEqual(ambientCalls, [], 'Connect publish poll failures should preserve the accepted job');
+}
+
+{
+  const ambientCalls = [];
   const restores = ['fetch', 'window', 'document', 'btoa'].map((name) => installAmbientTrap(name, ambientCalls));
   const patRequests = [];
   const states = [];

@@ -115,14 +115,46 @@ function normalizeCommitInfo(value) {
   return out;
 }
 
+function normalizePublishJobInfo(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const id = safeString(source.id || source.jobId).trim();
+  if (!id) return null;
+  const out = { id };
+  if (source.requestId) out.requestId = safeString(source.requestId);
+  if (source.state) out.state = safeString(source.state);
+  if (source.statusUrl) out.statusUrl = safeString(source.statusUrl);
+  for (const key of ['createdAt', 'updatedAt', 'finishedAt', 'durationMs', 'fileCount', 'additionCount', 'deletionCount']) {
+    if (source[key] != null) out[key] = source[key];
+  }
+  const commit = normalizeCommitInfo(source);
+  if (commit) out.commit = commit;
+  const error = source.error && typeof source.error === 'object' ? source.error : null;
+  const errorCode = safeString(error && error.code || source.errorCode).trim();
+  if (errorCode) {
+    out.error = {
+      code: errorCode,
+      message: safeString(error && error.message || source.errorMessage)
+    };
+    if ((error && error.upstreamStatus != null) || source.upstreamStatus != null) {
+      out.error.upstreamStatus = error && error.upstreamStatus != null ? error.upstreamStatus : source.upstreamStatus;
+    }
+    if ((error && error.upstreamCode) || source.upstreamCode) {
+      out.error.upstreamCode = safeString(error && error.upstreamCode || source.upstreamCode);
+    }
+  }
+  return out;
+}
+
 function normalizePublishResult(value) {
   const source = value && typeof value === 'object' ? value : {};
   const out = {};
   if (source.provider) out.provider = safeString(source.provider);
   if (source.transport) out.transport = safeString(source.transport);
-  if (source.id || source.requestId) out.id = safeString(source.id || source.requestId);
+  const job = normalizePublishJobInfo(source.job || source.publishJob);
+  if (source.id || source.requestId || job) out.id = safeString(source.id || source.requestId || job.id);
   if (source.branchName) out.branchName = safeString(source.branchName);
   if (source.expectedHeadOid) out.expectedHeadOid = safeString(source.expectedHeadOid);
+  if (job) out.job = job;
   return Object.keys(out).length ? out : null;
 }
 

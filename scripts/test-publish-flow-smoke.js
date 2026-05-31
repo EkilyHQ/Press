@@ -72,7 +72,22 @@ function createFlowHarness() {
 
     if (target === 'https://connect.example/api/press/publish') {
       const body = JSON.parse(String(options.body || '{}'));
-      return okJson({ ok: true, id: 'connect-smoke', commit: { oid: 'connect-smoke-commit' }, body });
+      return okJson({
+        ok: true,
+        id: 'connect-smoke',
+        commit: { oid: 'connect-smoke-commit' },
+        job: {
+          id: 'pubjob_connect_smoke',
+          requestId: 'connect-smoke',
+          state: 'committed',
+          statusUrl: 'https://connect.example/api/press/publish?job=pubjob_connect_smoke',
+          fileCount: 2,
+          additionCount: 1,
+          deletionCount: 1,
+          commit: { oid: 'connect-smoke-commit' }
+        },
+        body
+      });
     }
 
     if (target === 'https://api.github.com/graphql') {
@@ -195,9 +210,13 @@ function createFlowHarness() {
   assert.equal(finalReceipt.transport.type, 'connect');
   assert.equal(finalReceipt.fileCount, 2);
   assert.equal(finalReceipt.commit.oid, 'connect-smoke-commit');
+  assert.equal(finalReceipt.publish.job.id, 'pubjob_connect_smoke');
+  assert.equal(finalReceipt.publish.job.state, 'committed');
+  assert.equal(finalReceipt.publish.job.statusUrl, 'https://connect.example/api/press/publish?job=pubjob_connect_smoke');
   assert.deepEqual(finalReceipt.propagation, { canceled: false, timedOut: false, observed: true });
   const storedReceipt = JSON.parse(harness.receiptStorage.getItem(PUBLISH_RECEIPT_LATEST_STORAGE_KEY));
   assert.equal(storedReceipt.runId, 'smoke-receipt');
+  assert.equal(storedReceipt.publish.job.id, 'pubjob_connect_smoke');
   assert.equal(JSON.stringify(storedReceipt).includes('grant-token'), false);
   assert.equal(JSON.stringify(storedReceipt).includes('Updated from publish flow'), false);
   assert.equal(JSON.stringify(storedReceipt).includes('base64'), false);

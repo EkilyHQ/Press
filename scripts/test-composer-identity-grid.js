@@ -3402,6 +3402,18 @@ assert.match(
 
 assert.match(
   composerMarkdownFeatureSource,
+  /createComposerMarkdownDraftController\(\{[\s\S]*updateComposerMarkdownDraftIndicators,[\s\S]*refreshEditorContentTree,[\s\S]*updateUnsyncedSummary: \(\) => updateUnsyncedSummary\(\{ preserveStructure: true \}\)/,
+  'Markdown feature should pass draft indicator, editor-tree, and summary refresh hooks into the draft boundary'
+);
+
+assert.match(
+  composerMarkdownDraftsSource,
+  /function refreshMarkdownDraftTree\(tab\) \{[\s\S]*refreshEditorContentTree\(\{ preserveStructure: !!\(tab && getCurrentMode\(\) === tab\.mode\) \}\);[\s\S]*async function saveDraftForTab\(tab, saveOptions = \{\}\)[\s\S]*updateComposerMarkdownDraftIndicators\(\{ path: tab\.path \}\);\s*refreshMarkdownDraftTree\(tab\);[\s\S]*function clearDraftForTab\(tab\)[\s\S]*updateComposerMarkdownDraftIndicators\(\{ path: tab\.path \}\);\s*refreshMarkdownDraftTree\(tab\);/,
+  'Markdown draft save and clear paths should refresh the editor tree after path-scoped draft indicator updates'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
   /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef,[\s\S]*setTimeoutRef: \(handler, delay\) => typeof editorRuntime\.setTimer === 'function' \? editorRuntime\.setTimer\(handler, delay\) : null,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\)[\s\S]*\}\)/,
   'Markdown feature should inject Markdown draft logging and autosave timers explicitly'
 );

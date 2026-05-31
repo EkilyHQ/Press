@@ -50,6 +50,10 @@ export function createComposerMarkdownDraftController(options = {}) {
   const clearTimeoutRef = typeof options.clearTimeoutRef === 'function' ? options.clearTimeoutRef : noop;
   const now = typeof options.now === 'function' ? options.now : () => Date.now();
 
+  function refreshMarkdownDraftTree(tab) {
+    refreshEditorContentTree({ preserveStructure: !!(tab && getCurrentMode() === tab.mode) });
+  }
+
   function readDraftStore() {
     return draftStore && typeof draftStore.read === 'function' ? draftStore.read() : {};
   }
@@ -174,6 +178,7 @@ export function createComposerMarkdownDraftController(options = {}) {
         try { tab.button.setAttribute('data-draft-state', 'saved'); } catch (_) {}
       }
       updateComposerMarkdownDraftIndicators({ path: tab.path });
+      refreshMarkdownDraftTree(tab);
       try { updateUnsyncedSummary(); } catch (_) {}
       return true;
     }
@@ -193,6 +198,7 @@ export function createComposerMarkdownDraftController(options = {}) {
       tab.localDraft = null;
       tab.draftConflict = false;
       updateComposerMarkdownDraftIndicators({ path: tab.path });
+      refreshMarkdownDraftTree(tab);
       try { updateUnsyncedSummary(); } catch (_) {}
       return null;
     }
@@ -219,6 +225,7 @@ export function createComposerMarkdownDraftController(options = {}) {
         deletedAssets: saved.deletedAssets || []
       };
       updateComposerMarkdownDraftIndicators({ path: tab.path });
+      refreshMarkdownDraftTree(tab);
       try { updateUnsyncedSummary(); } catch (_) {}
     }
     return saved;
@@ -245,6 +252,7 @@ export function createComposerMarkdownDraftController(options = {}) {
       try { tab.button.removeAttribute('data-draft-state'); } catch (_) {}
     }
     updateComposerMarkdownDraftIndicators({ path: tab.path });
+    refreshMarkdownDraftTree(tab);
     try { updateUnsyncedSummary(); } catch (_) {}
   }
 
@@ -316,7 +324,7 @@ export function createComposerMarkdownDraftController(options = {}) {
     else updateMarkdownPushButton(tab);
 
     updateComposerMarkdownDraftIndicators({ path: tab.path });
-    refreshEditorContentTree({ preserveStructure: getCurrentMode() === tab.mode });
+    refreshMarkdownDraftTree(tab);
     try { updateUnsyncedSummary(); } catch (_) {}
   }
 

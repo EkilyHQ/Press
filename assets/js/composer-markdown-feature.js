@@ -309,7 +309,7 @@ export function createComposerMarkdownFeature(options = {}) {
       ? markdownWorkspace.updateMarkdownPushButton(tab)
       : undefined,
     updateComposerMarkdownDraftIndicators,
-    refreshEditorContentTree: () => {},
+    refreshEditorContentTree,
     updateUnsyncedSummary: () => updateUnsyncedSummary({ preserveStructure: true }),
     showToast,
     t,

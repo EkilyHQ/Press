@@ -57,6 +57,40 @@ export function serializeConnectPublishFile(file) {
   return out;
 }
 
+function resolveConnectPublishJob(payload) {
+  return payload && typeof payload === 'object'
+    ? payload.job || payload.publishJob || null
+    : null;
+}
+
+function createConnectPublishJobTimeoutError({ job, translate }) {
+  const error = new Error(translate('editor.composer.github.modal.connectPublishTimedOut'));
+  error.name = 'ConnectPublishJobTimeoutError';
+  error.status = 202;
+  error.response = { ok: true, error: { code: 'publish_job_timeout' }, job };
+  error.pendingPublishResult = {
+    ok: true,
+    provider: 'connect',
+    transport: 'connect',
+    job
+  };
+  return error;
+}
+
+function resolveConnectPublishStatusTarget(job, endpoint) {
+  const jobId = String(job && (job.id || job.jobId) || '').trim();
+  const statusUrl = String(job && job.statusUrl || '').trim();
+  if (statusUrl) {
+    try {
+      const target = new URL(statusUrl, endpoint.href);
+      if (target.origin === endpoint.origin) return target;
+    } catch (_) {}
+  }
+  const target = new URL(endpoint.href);
+  if (jobId) target.searchParams.set('job', jobId);
+  return target;
+}
+
 export async function createConnectPublishCommit({
   connect,
   repo,
@@ -120,12 +154,14 @@ export async function createConnectPublishCommit({
     error.response = payload;
     throw error;
   }
-  if (response.status === 202 && payload && payload.job) {
+  const job = resolveConnectPublishJob(payload);
+  if (response.status === 202 && job) {
     if (typeof onStatus === 'function') {
       onStatus(message('editor.composer.github.modal.connectPublishing', 'Creating commit through Connect...'));
     }
     return pollConnectPublishJob({
       payload,
+      job,
       endpoint,
       grant,
       fetchRef,
@@ -140,6 +176,7 @@ export async function createConnectPublishCommit({
 
 async function pollConnectPublishJob({
   payload,
+  job,
   endpoint,
   grant,
   fetchRef,
@@ -150,7 +187,6 @@ async function pollConnectPublishJob({
 }) {
   const startedAt = Date.now();
   let latest = payload;
-  let job = latest && typeof latest === 'object' ? latest.job : null;
   while (job && typeof job === 'object') {
     const state = String(job.state || '').trim();
     if (state === 'committed') {
@@ -174,15 +210,10 @@ async function pollConnectPublishJob({
       throw error;
     }
     if (Date.now() - startedAt >= pollTimeoutMs) {
-      const error = new Error(translate('editor.composer.github.modal.connectPublishTimedOut'));
-      error.status = 504;
-      error.response = { ok: false, error: { code: 'publish_job_timeout' }, job };
-      throw error;
+      throw createConnectPublishJobTimeoutError({ job, translate });
     }
     await sleep(Math.max(0, Number(pollIntervalMs) || 0));
-    const statusUrl = String(job.statusUrl || '').trim();
-    const target = statusUrl ? new URL(statusUrl) : new URL(endpoint.href);
-    if (!statusUrl) target.searchParams.set('job', String(job.id || ''));
+    const target = resolveConnectPublishStatusTarget(job, endpoint);
     const response = await fetchRef(target.href, {
       method: 'GET',
       referrerPolicy: 'unsafe-url',
@@ -199,7 +230,7 @@ async function pollConnectPublishJob({
       error.response = latest;
       throw error;
     }
-    job = latest.job;
+    job = resolveConnectPublishJob(latest);
   }
   const error = new Error(translate('editor.composer.github.modal.connectPublishFailed'));
   error.status = 502;

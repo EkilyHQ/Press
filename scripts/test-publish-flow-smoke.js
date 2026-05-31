@@ -242,6 +242,46 @@ function createFlowHarness() {
 }
 
 {
+  const realDateNow = Date.now;
+  let dateNowCalls = 0;
+  Date.now = () => {
+    dateNowCalls += 1;
+    return dateNowCalls === 1 ? 1000 : 122000;
+  };
+  try {
+    const harness = createFlowHarness();
+    await harness.flow.performConnectGithubCommit({ baseUrl: 'https://connect.example' }, [
+      { kind: 'site', label: 'site.yaml' }
+    ]);
+
+    assert.equal(
+      harness.requests.some(request => request.url === 'https://connect.example/api/press/publish?job=pubjob_connect_smoke'),
+      false,
+      'Connect timeout should not keep polling after the accepted job exceeds the local wait budget'
+    );
+    assert.equal(
+      harness.calls.some(call => call[0] === 'postCommit'),
+      false,
+      'Connect timeout should not apply local post-commit state before a commit exists'
+    );
+    assert.deepEqual(harness.receipts.map(receipt => receipt.state), [
+      PUBLISH_STATES.PREPARING,
+      PUBLISH_STATES.AUTHORIZING,
+      PUBLISH_STATES.COMMITTING,
+      PUBLISH_STATES.TIMED_OUT
+    ]);
+    const finalReceipt = harness.receipts.at(-1);
+    assert.equal(finalReceipt.publish.job.id, 'pubjob_connect_smoke');
+    assert.equal(finalReceipt.publish.job.state, 'queued');
+    assert.equal(finalReceipt.error.status, 202);
+    assert.deepEqual(harness.calls.at(-2), ['toast', 'warning', 'editor.composer.github.modal.connectPublishTimedOut', false]);
+    assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
+  } finally {
+    Date.now = realDateNow;
+  }
+}
+
+{
   const harness = createFlowHarness();
   await harness.flow.performDirectGithubCommit('pat-token', [
     { kind: 'site', label: 'site.yaml' }

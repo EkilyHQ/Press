@@ -202,6 +202,18 @@ export function createComposerPublishFlow({
       }
       return publishReceipt;
     } catch (err) {
+      if (transport && transport.type === 'connect' && err && err.pendingPublishResult) {
+        connectFallbackActionAvailable = false;
+        setPublishReceiptState(PUBLISH_STATES.TIMED_OUT, {
+          publishResult: err.pendingPublishResult,
+          error: err
+        });
+        hideSyncOverlay();
+        showToast('warning', err.message || t('editor.composer.github.modal.connectPublishTimedOut'), {
+          duration: 9000
+        });
+        return publishReceipt;
+      }
       setPublishReceiptState(PUBLISH_STATES.FAILED, { error: err });
       hideSyncOverlay();
       let message = err && err.message ? err.message : t('editor.toasts.githubCommitFailed');

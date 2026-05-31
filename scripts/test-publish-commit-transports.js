@@ -370,6 +370,146 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
 
 {
   const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    const result = await createConnectPublishCommit({
+      connect: { baseUrl: 'https://connect.example' },
+      repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+      headline: 'Sync draft',
+      files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+      contentRoot: 'wwwroot',
+      grant: { token: 'grant-token' },
+      pollIntervalMs: 0,
+      sleepImpl: async () => {},
+      fetchImpl(url, options) {
+        requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+        if (requests.length === 1) {
+          return Promise.resolve(okJson({
+            ok: true,
+            accepted: true,
+            publishJob: {
+              id: 'pubjob_alias',
+              state: 'queued',
+              statusUrl: '/api/press/publish?job=pubjob_alias'
+            }
+          }, 202));
+        }
+        return Promise.resolve(okJson({
+          ok: true,
+          publishJob: {
+            id: 'pubjob_alias',
+            state: 'committed',
+            repository: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+            commit: { oid: 'alias-commit' }
+          }
+        }));
+      }
+    });
+    assert.equal(result.job.id, 'pubjob_alias');
+    assert.equal(result.job.state, 'committed');
+    assert.equal(result.commit.oid, 'alias-commit');
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].url, 'https://connect.example/api/press/publish?job=pubjob_alias');
+  assert.equal(requests[1].options.headers.Authorization, 'Bearer grant-token');
+  assert.deepEqual(ambientCalls, [], 'Connect publish polling should support publishJob aliases without ambient fetch');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    const result = await createConnectPublishCommit({
+      connect: { baseUrl: 'https://connect.example' },
+      repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+      headline: 'Sync draft',
+      files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+      contentRoot: 'wwwroot',
+      grant: { token: 'grant-token' },
+      pollIntervalMs: 0,
+      sleepImpl: async () => {},
+      fetchImpl(url, options) {
+        requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+        if (requests.length === 1) {
+          return Promise.resolve(okJson({
+            ok: true,
+            accepted: true,
+            job: {
+              id: 'pubjob_safe',
+              state: 'queued',
+              statusUrl: 'https://evil.example/collect?job=pubjob_safe'
+            }
+          }, 202));
+        }
+        return Promise.resolve(okJson({
+          ok: true,
+          job: {
+            id: 'pubjob_safe',
+            state: 'committed',
+            repository: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+            commit: { oid: 'safe-commit' }
+          }
+        }));
+      }
+    });
+    assert.equal(result.commit.oid, 'safe-commit');
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 2);
+  assert.equal(requests[1].url, 'https://connect.example/api/press/publish?job=pubjob_safe');
+  assert.equal(requests[1].options.headers.Authorization, 'Bearer grant-token');
+  assert.deepEqual(ambientCalls, [], 'Connect publish polling should not leak grants to foreign statusUrl origins');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    await assert.rejects(
+      () => createConnectPublishCommit({
+        connect: { baseUrl: 'https://connect.example' },
+        repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+        headline: 'Sync draft',
+        files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+        contentRoot: 'wwwroot',
+        grant: { token: 'grant-token' },
+        pollTimeoutMs: 0,
+        fetchImpl(url, options) {
+          requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+          return Promise.resolve(okJson({
+            ok: true,
+            accepted: true,
+            job: {
+              id: 'pubjob_timeout',
+              state: 'queued',
+              statusUrl: 'https://connect.example/api/press/publish?job=pubjob_timeout'
+            }
+          }, 202));
+        }
+      }),
+      (err) => {
+        assert.equal(err.name, 'ConnectPublishJobTimeoutError');
+        assert.equal(err.status, 202);
+        assert.equal(err.pendingPublishResult.job.id, 'pubjob_timeout');
+        assert.equal(err.response.ok, true);
+        return true;
+      }
+    );
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 1);
+  assert.deepEqual(ambientCalls, [], 'Connect publish timeout should preserve the accepted job');
+}
+
+{
+  const ambientCalls = [];
   const restores = ['fetch', 'window', 'document', 'btoa'].map((name) => installAmbientTrap(name, ambientCalls));
   const patRequests = [];
   const states = [];

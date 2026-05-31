@@ -101,12 +101,35 @@ function createHarness(overrides = {}) {
 {
   const { controller } = createHarness();
   assert.equal(
-    controller.buildGhNewLink('EkilyHQ', 'Press', 'main', 'wwwroot/post/alpha/v1.0.0', 'en.md'),
+    controller.buildRepositoryNewFileLink('EkilyHQ', 'Press', 'main', 'wwwroot/post/alpha/v1.0.0', 'en.md'),
     'https://github.com/EkilyHQ/Press/new/main/wwwroot/post/alpha/v1.0.0?filename=en.md'
   );
   assert.equal(
-    controller.buildGhEditFileLink('EkilyHQ', 'Press', 'main', 'wwwroot/index.yaml'),
+    controller.buildRepositoryEditFileLink('EkilyHQ', 'Press', 'main', 'wwwroot/index.yaml'),
     'https://github.com/EkilyHQ/Press/edit/main/wwwroot/index.yaml'
+  );
+}
+
+{
+  const { controller } = createHarness({
+    options: {
+      siteRepositoryProvider: {
+        buildNewFileUrl({ repo, folderPath, filename }) {
+          return `https://git.example.test/${repo.owner}/${repo.name}/new/${repo.branch}/${folderPath}?filename=${filename}`;
+        },
+        buildEditFileUrl({ repo, filePath }) {
+          return `https://git.example.test/${repo.owner}/${repo.name}/edit/${repo.branch}/${filePath}`;
+        }
+      }
+    }
+  });
+  assert.equal(
+    controller.buildRepositoryNewFileLink('EkilyHQ', 'Press', 'main', 'wwwroot/post/alpha/v1.0.0', 'en.md'),
+    'https://git.example.test/EkilyHQ/Press/new/main/wwwroot/post/alpha/v1.0.0?filename=en.md'
+  );
+  assert.equal(
+    controller.buildRepositoryEditFileLink('EkilyHQ', 'Press', 'main', 'wwwroot/index.yaml'),
+    'https://git.example.test/EkilyHQ/Press/edit/main/wwwroot/index.yaml'
   );
 }
 

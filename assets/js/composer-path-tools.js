@@ -102,16 +102,6 @@ export function createComposerPathTools(options = {}) {
     return base.endsWith('/') ? base : `${base}/`;
   }
 
-  function encodeGitHubPath(path) {
-    const clean = String(path || '')
-      .replace(/[\\]/g, '/')
-      .replace(/^\/+/g, '')
-      .replace(/\/+/g, '/')
-      .replace(/\/?$/, '');
-    if (!clean) return '';
-    return clean.split('/').map(part => encodeURIComponent(part)).join('/');
-  }
-
   function getDefaultComposerLanguage() {
     if (preferredLangOrder.length > 0) return preferredLangOrder[0];
     return 'en';
@@ -300,7 +290,6 @@ export function createComposerPathTools(options = {}) {
     extractVersionFromPath,
     getContentRootSafe,
     computeBaseDirForPath,
-    encodeGitHubPath,
     getDefaultComposerLanguage,
     buildDefaultEntryPath,
     normalizeComposerLangCode,

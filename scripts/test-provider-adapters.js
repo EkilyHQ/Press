@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {
   GITHUB_PROVIDER_ID,
   PRESS_GITHUB_PROVIDER,
-  createGitHubPressProvider
+  PRESS_GITHUB_SITE_PROVIDER,
+  createGitHubPressProvider,
+  createGitHubSiteRepositoryProvider
 } from '../assets/js/provider-adapters.js';
 
 assert.equal(PRESS_GITHUB_PROVIDER.id, GITHUB_PROVIDER_ID);
@@ -79,5 +81,108 @@ assert.equal(
   true
 );
 assert.equal(Object.isFrozen(custom), true);
+
+const pathfulApiProvider = createGitHubPressProvider({
+  apiBaseUrl: 'https://ghe.example.test/api/v3',
+  rawBaseUrl: 'https://raw.example.test',
+  webBaseUrl: 'https://ghe.example.test',
+  pressRepository: 'Example/Press',
+  themeCatalogRepository: 'Example/Theme-Catalog'
+});
+assert.equal(
+  pathfulApiProvider.latestReleaseApiUrl,
+  'https://ghe.example.test/api/v3/repos/Example/Press/releases/latest'
+);
+
+assert.equal(PRESS_GITHUB_SITE_PROVIDER.id, GITHUB_PROVIDER_ID);
+assert.equal(PRESS_GITHUB_SITE_PROVIDER.apiBaseUrl, 'https://api.github.com');
+assert.equal(PRESS_GITHUB_SITE_PROVIDER.webBaseUrl, 'https://github.com');
+assert.equal(PRESS_GITHUB_SITE_PROVIDER.graphqlApiUrl, 'https://api.github.com/graphql');
+assert.deepEqual(
+  PRESS_GITHUB_SITE_PROVIDER.inferRepositoryFromPublishedUrl('https://deemoe404.github.io/test1/index_editor.html'),
+  { owner: 'deemoe404', name: 'test1', branch: 'main' }
+);
+assert.deepEqual(
+  PRESS_GITHUB_SITE_PROVIDER.inferRepositoryFromPublishedUrl('https://deemoe404.github.io/index.html'),
+  { owner: 'deemoe404', name: 'deemoe404.github.io', branch: 'main' }
+);
+assert.equal(
+  PRESS_GITHUB_SITE_PROVIDER.inferRepositoryFromPublishedUrl('http://deemoe404.github.io/test1/index_editor.html'),
+  null
+);
+assert.deepEqual(
+  PRESS_GITHUB_SITE_PROVIDER.normalizeRepositoryConfig({ owner: ' EkilyHQ ', name: ' Press ', branch: 'refs/heads/main' }),
+  { owner: 'EkilyHQ', name: 'Press', branch: 'main' }
+);
+assert.equal(
+  PRESS_GITHUB_SITE_PROVIDER.normalizeRepositoryPath('/wwwroot/post/alpha/../beta/en.md'),
+  'wwwroot/post/beta/en.md'
+);
+assert.equal(
+  PRESS_GITHUB_SITE_PROVIDER.encodeRepositoryPath('wwwroot/post/hello world/en.md'),
+  'wwwroot/post/hello%20world/en.md'
+);
+assert.equal(
+  PRESS_GITHUB_SITE_PROVIDER.buildNewFileUrl({
+    repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+    folderPath: 'wwwroot/post/hello world',
+    filename: 'en draft.md'
+  }),
+  'https://github.com/EkilyHQ/Press/new/main/wwwroot/post/hello%20world?filename=en%20draft.md'
+);
+assert.equal(
+  PRESS_GITHUB_SITE_PROVIDER.buildEditFileUrl({
+    repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+    filePath: 'wwwroot/post/hello world/en.md'
+  }),
+  'https://github.com/EkilyHQ/Press/edit/main/wwwroot/post/hello%20world/en.md'
+);
+assert.deepEqual(
+  PRESS_GITHUB_SITE_PROVIDER.buildGraphqlHeaders(' pat-token '),
+  {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer pat-token',
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  }
+);
+
+const customSite = createGitHubSiteRepositoryProvider({
+  apiBaseUrl: 'https://api.git.example.test/',
+  webBaseUrl: 'https://git.example.test/'
+});
+assert.equal(customSite.graphqlApiUrl, 'https://api.git.example.test/graphql');
+assert.equal(
+  customSite.buildEditFileUrl({
+    repo: { owner: 'Example', name: 'Site', branch: 'docs/main' },
+    filePath: '/wwwroot/index.yaml'
+  }),
+  'https://git.example.test/Example/Site/edit/docs%2Fmain/wwwroot/index.yaml'
+);
+assert.equal(Object.isFrozen(customSite), true);
+
+const pathfulApiSite = createGitHubSiteRepositoryProvider({
+  apiBaseUrl: 'https://ghe.example.test/api'
+});
+assert.equal(pathfulApiSite.apiBaseUrl, 'https://ghe.example.test/api');
+assert.equal(pathfulApiSite.graphqlApiUrl, 'https://ghe.example.test/api/graphql');
+
+const explicitGraphqlSite = createGitHubSiteRepositoryProvider({
+  apiBaseUrl: 'https://ghe.example.test/api/v3',
+  graphqlApiUrl: 'https://ghe.example.test/api/graphql/'
+});
+assert.equal(explicitGraphqlSite.apiBaseUrl, 'https://ghe.example.test/api/v3');
+assert.equal(explicitGraphqlSite.graphqlApiUrl, 'https://ghe.example.test/api/graphql');
+
+const ghesRestSite = createGitHubSiteRepositoryProvider({
+  apiBaseUrl: 'https://ghe.example.test/api/v3'
+});
+assert.equal(ghesRestSite.apiBaseUrl, 'https://ghe.example.test/api/v3');
+assert.equal(ghesRestSite.graphqlApiUrl, 'https://ghe.example.test/api/graphql');
+
+const nestedGhesRestSite = createGitHubSiteRepositoryProvider({
+  apiBaseUrl: 'https://ghe.example.test/custom/api/v3'
+});
+assert.equal(nestedGhesRestSite.graphqlApiUrl, 'https://ghe.example.test/custom/api/graphql');
 
 console.log('ok - provider adapters');

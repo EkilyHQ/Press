@@ -1,3 +1,5 @@
+import { PRESS_GITHUB_SITE_PROVIDER } from '../../provider-adapters.js';
+
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 function bytesToBase64(bytes) {
@@ -82,20 +84,23 @@ export function buildGithubFileChanges(files) {
   return fileChanges;
 }
 
-export async function githubGraphqlRequest(token, query, variables = {}, fetchImpl = null) {
+function resolveSiteRepositoryProvider(provider) {
+  return provider && typeof provider === 'object' ? provider : PRESS_GITHUB_SITE_PROVIDER;
+}
+
+export async function githubGraphqlRequest(token, query, variables = {}, fetchImpl = null, siteRepositoryProvider = null) {
   const fetchRef = resolveFetch(fetchImpl);
+  const provider = resolveSiteRepositoryProvider(siteRepositoryProvider);
   const trimmedToken = String(token || '').trim();
   if (!trimmedToken) throw new Error('GitHub token is required.');
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${trimmedToken}`,
-    'Accept': 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28'
-  };
+  const headers = typeof provider.buildGraphqlHeaders === 'function'
+    ? provider.buildGraphqlHeaders(trimmedToken)
+    : PRESS_GITHUB_SITE_PROVIDER.buildGraphqlHeaders(trimmedToken);
+  const endpoint = provider.graphqlApiUrl || PRESS_GITHUB_SITE_PROVIDER.graphqlApiUrl;
   const body = JSON.stringify({ query, variables });
   let response;
   try {
-    response = await fetchRef('https://api.github.com/graphql', { method: 'POST', headers, body });
+    response = await fetchRef(endpoint, { method: 'POST', headers, body });
   } catch (err) {
     const error = new Error('Network error while reaching GitHub.');
     error.cause = err;
@@ -123,9 +128,13 @@ export async function githubGraphqlRequest(token, query, variables = {}, fetchIm
   return payload ? payload.data : null;
 }
 
-export async function createFineGrainedTokenCommit(token, { owner, name, branch, headline, files, fetchImpl = null, onStatus } = {}) {
+export async function createFineGrainedTokenCommit(token, { owner, name, branch, headline, files, fetchImpl = null, onStatus, siteRepositoryProvider = null } = {}) {
   const reportStatus = typeof onStatus === 'function' ? onStatus : () => {};
-  const branchRef = String(branch || '').startsWith('refs/') ? branch : `refs/heads/${branch}`;
+  const provider = resolveSiteRepositoryProvider(siteRepositoryProvider);
+  const branchName = typeof provider.normalizeBranchName === 'function'
+    ? provider.normalizeBranchName(branch || 'main')
+    : PRESS_GITHUB_SITE_PROVIDER.normalizeBranchName(branch || 'main');
+  const branchRef = String(branch || '').startsWith('refs/') ? branch : `refs/heads/${branchName}`;
   reportStatus('Fetching repository state...');
   const headQuery = `
     query($owner:String!, $name:String!, $ref:String!) {
@@ -138,7 +147,7 @@ export async function createFineGrainedTokenCommit(token, { owner, name, branch,
       }
     }
   `;
-  const headData = await githubGraphqlRequest(token, headQuery, { owner, name, ref: branchRef }, fetchImpl);
+  const headData = await githubGraphqlRequest(token, headQuery, { owner, name, ref: branchRef }, fetchImpl, provider);
   const refInfo = headData && headData.repository && headData.repository.ref;
   const expectedHeadOid = refInfo && refInfo.target && refInfo.target.oid;
   if (!expectedHeadOid) throw new Error('Unable to resolve the branch head on GitHub.');
@@ -153,12 +162,12 @@ export async function createFineGrainedTokenCommit(token, { owner, name, branch,
     }
   `;
   const mutationInput = {
-    branch: { repositoryNameWithOwner: `${owner}/${name}`, branchName: branch },
+    branch: { repositoryNameWithOwner: `${owner}/${name}`, branchName },
     message: { headline },
     expectedHeadOid,
     fileChanges
   };
 
   reportStatus('Creating commit...');
-  await githubGraphqlRequest(token, commitMutation, { input: mutationInput }, fetchImpl);
+  await githubGraphqlRequest(token, commitMutation, { input: mutationInput }, fetchImpl, provider);
 }

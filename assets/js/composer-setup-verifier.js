@@ -1,3 +1,5 @@
+import { PRESS_GITHUB_SITE_PROVIDER } from './provider-adapters.js';
+
 export function createComposerSetupVerifier(options = {}) {
   const documentRef = options.documentRef || null;
   const consoleRef = options.consoleRef || null;
@@ -40,6 +42,7 @@ export function createComposerSetupVerifier(options = {}) {
   const setTimeoutRef = typeof options.setTimeoutRef === 'function'
     ? options.setTimeoutRef
     : (runtime && typeof runtime.setTimer === 'function' ? runtime.setTimer : () => null);
+  const siteRepositoryProvider = options.siteRepositoryProvider || PRESS_GITHUB_SITE_PROVIDER;
 
   function getContentRoot() {
     const value = readContentRoot() || 'wwwroot';
@@ -66,18 +69,19 @@ export function createComposerSetupVerifier(options = {}) {
     }
   }
 
-  function buildGhNewLink(owner, repo, branch, folderPath, filename) {
-    const enc = (value) => encodeURIComponent(String(value || ''));
-    const clean = String(folderPath || '').replace(/^\/+/, '');
-    const base = `https://github.com/${enc(owner)}/${enc(repo)}/new/${enc(branch)}/${clean}`;
-    if (filename) return `${base}?filename=${enc(filename)}`;
-    return base;
+  function buildRepositoryNewFileLink(owner, repo, branch, folderPath, filename) {
+    return siteRepositoryProvider.buildNewFileUrl({
+      repo: { owner, name: repo, branch },
+      folderPath,
+      filename
+    });
   }
 
-  function buildGhEditFileLink(owner, repo, branch, filePath) {
-    const enc = (value) => encodeURIComponent(String(value || ''));
-    const clean = String(filePath || '').replace(/^\/+/, '');
-    return `https://github.com/${enc(owner)}/${enc(repo)}/edit/${enc(branch)}/${clean}`;
+  function buildRepositoryEditFileLink(owner, repo, branch, filePath) {
+    return siteRepositoryProvider.buildEditFileUrl({
+      repo: { owner, name: repo, branch },
+      filePath
+    });
   }
 
   function normalizeTarget(value) {
@@ -189,7 +193,7 @@ export function createComposerSetupVerifier(options = {}) {
 
     if (canGh) {
       const branchName = branch || 'main';
-      let href = buildGhNewLink(owner, name, branchName, `${root}/${item.folder}`, item.filename);
+      let href = buildRepositoryNewFileLink(owner, name, branchName, `${root}/${item.folder}`, item.filename);
       try {
         if (String(item.folder || '').replace(/^\/+/, '').startsWith('post/')) {
           const version = item && item.version ? String(item.version) : '';
@@ -460,8 +464,8 @@ export function createComposerSetupVerifier(options = {}) {
     const { owner, name, branch } = getActiveSiteRepoConfig();
     if (owner && name) {
       let href = '';
-      if (current) href = buildGhEditFileLink(owner, name, branch, `${contentRoot}/${baseName}.yaml`);
-      else href = buildGhNewLink(owner, name, branch, `${contentRoot}`, `${baseName}.yaml`);
+      if (current) href = buildRepositoryEditFileLink(owner, name, branch, `${contentRoot}/${baseName}.yaml`);
+      else href = buildRepositoryNewFileLink(owner, name, branch, `${contentRoot}`, `${baseName}.yaml`);
       if (!href) {
         closePopupWindow(popup);
         showToast('error', t('editor.toasts.unableResolveYamlSync'));
@@ -542,8 +546,8 @@ export function createComposerSetupVerifier(options = {}) {
     afterAllGood,
     attach,
     bindVerifySetup,
-    buildGhEditFileLink,
-    buildGhNewLink,
+    buildRepositoryEditFileLink,
+    buildRepositoryNewFileLink,
     computeMissingFiles,
     normalizeTarget,
     openVerifyModal,

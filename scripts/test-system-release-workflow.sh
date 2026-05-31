@@ -128,6 +128,16 @@ if ! grep -F 'node scripts/test-editor-app-kernel.mjs' "${workflow}" >/dev/null;
   exit 1
 fi
 
+if ! grep -F 'node scripts/test-provider-adapters.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify provider adapter contracts before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-provider-boundary.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the editor provider boundary before publishing" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-publish-flow-smoke.js' "${workflow}" >/dev/null; then
   echo "system release workflow must run the publish flow smoke before publishing" >&2
   exit 1

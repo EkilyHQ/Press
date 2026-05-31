@@ -44,7 +44,7 @@ export const COMPOSER_ROOT_IMPORT_CONTRACT = Object.freeze([
   Object.freeze({ specifier: './composer-markdown-assets.js', group: 'service', reason: 'Markdown asset staging and reference reconciliation' }),
   Object.freeze({ specifier: './composer-editor-shell.js', group: 'ui', reason: 'editor shell, overlay, rail, and layout controls' }),
   Object.freeze({ specifier: './composer-editor-detail-panel-controller.js', group: 'controller', reason: 'editor detail panel routing and rendering' }),
-  Object.freeze({ specifier: './composer-path-tools.js', group: 'shared', reason: 'content path, language, and GitHub path helpers' }),
+  Object.freeze({ specifier: './composer-path-tools.js', group: 'shared', reason: 'content path, language, and default Markdown helpers' }),
   Object.freeze({ specifier: './composer-content-mutations.js', group: 'controller', reason: 'index/tabs/content mutation workflows' }),
   Object.freeze({ specifier: './composer-setup-verifier.js', group: 'service', reason: 'repository setup verification workflow' }),
   Object.freeze({ specifier: './composer-mode-controller.js', group: 'controller', reason: 'editor mode switching and system-mode detection' }),

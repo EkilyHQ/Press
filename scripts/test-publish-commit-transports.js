@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 
+import { createGitHubSiteRepositoryProvider } from '../assets/js/provider-adapters.js';
 import { publishCommit } from '../assets/js/publish/commit-service.js';
 import {
   createConnectPublishCommit,
@@ -61,6 +62,27 @@ function okJson(payload) {
   }
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url, 'https://api.github.com/graphql');
+}
+
+{
+  const requests = [];
+  const provider = createGitHubSiteRepositoryProvider({
+    apiBaseUrl: 'https://api.git.example.test'
+  });
+  const result = await githubGraphqlRequest(
+    'pat-token',
+    'query Test { viewer { login } }',
+    {},
+    async (url, options) => {
+      requests.push({ url, headers: options.headers, body: JSON.parse(options.body) });
+      return okJson({ data: { viewer: { login: 'example' } } });
+    },
+    provider
+  );
+  assert.deepEqual(result, { viewer: { login: 'example' } });
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://api.git.example.test/graphql');
+  assert.equal(requests[0].headers.Authorization, 'Bearer pat-token');
 }
 
 function createGithubFetchRecorder(requests) {
@@ -229,6 +251,26 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   assert.equal(requests[0].url, 'https://api.github.com/graphql');
   assert.equal(requests[1].body.variables.input.fileChanges.additions[0].contents, expectedBase64);
   assert.deepEqual(ambientCalls, [], 'PAT commit transport should use injected fetch and local base64 encoding only');
+}
+
+{
+  const requests = [];
+  const provider = createGitHubSiteRepositoryProvider({
+    apiBaseUrl: 'https://api.git.example.test'
+  });
+  await createFineGrainedTokenCommit('pat-token', {
+    owner: 'EkilyHQ',
+    name: 'Press',
+    branch: 'refs/heads/feature/provider',
+    headline: 'Sync draft',
+    files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+    fetchImpl: createGithubFetchRecorder(requests),
+    siteRepositoryProvider: provider
+  });
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].url, 'https://api.git.example.test/graphql');
+  assert.equal(requests[0].body.variables.ref, 'refs/heads/feature/provider');
+  assert.equal(requests[1].body.variables.input.branch.branchName, 'feature/provider');
 }
 
 {

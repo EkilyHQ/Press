@@ -1733,8 +1733,8 @@ assert.match(
 
 assert.doesNotMatch(
   source,
-  /function buildGhNewLink|function buildGhEditFileLink|async function computeMissingFiles|function openVerifyModal|async function afterAllGood|Verify Setup - Missing Files|Verify Setup – Missing Files/,
-  'setup verification scanning, modal rendering, and GitHub link details should stay outside the main composer shell'
+  /function buildRepositoryNewFileLink|function buildRepositoryEditFileLink|async function computeMissingFiles|function openVerifyModal|async function afterAllGood|Verify Setup - Missing Files|Verify Setup – Missing Files/,
+  'setup verification scanning, modal rendering, and repository link details should stay outside the main composer shell'
 );
 
 assert.match(

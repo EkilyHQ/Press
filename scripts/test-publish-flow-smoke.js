@@ -6,10 +6,10 @@ import {
   PUBLISH_STATES
 } from '../assets/js/publish/publish-receipt.js';
 
-function okJson(payload) {
+function okJson(payload, status = 200) {
   return {
     ok: true,
-    status: 200,
+    status,
     json: () => Promise.resolve(payload),
     text: () => Promise.resolve(JSON.stringify(payload))
   };
@@ -74,6 +74,23 @@ function createFlowHarness() {
       const body = JSON.parse(String(options.body || '{}'));
       return okJson({
         ok: true,
+        accepted: true,
+        job: {
+          id: 'pubjob_connect_smoke',
+          requestId: 'connect-smoke',
+          state: 'queued',
+          statusUrl: 'https://connect.example/api/press/publish?job=pubjob_connect_smoke',
+          fileCount: 2,
+          additionCount: 1,
+          deletionCount: 1
+        },
+        body
+      }, 202);
+    }
+
+    if (target === 'https://connect.example/api/press/publish?job=pubjob_connect_smoke') {
+      return okJson({
+        ok: true,
         id: 'connect-smoke',
         commit: { oid: 'connect-smoke-commit' },
         job: {
@@ -85,8 +102,7 @@ function createFlowHarness() {
           additionCount: 1,
           deletionCount: 1,
           commit: { oid: 'connect-smoke-commit' }
-        },
-        body
+        }
       });
     }
 
@@ -180,6 +196,7 @@ function createFlowHarness() {
   assert.ok(connectPost, 'Connect smoke should POST to the Connect publish endpoint');
   assert.equal(connectPost.options.referrerPolicy, 'unsafe-url');
   assert.equal(connectPost.options.headers.Authorization, 'Bearer grant-token');
+  assert.equal(connectPost.options.headers.Prefer, 'respond-async');
   const connectBody = JSON.parse(connectPost.options.body);
   assert.deepEqual(connectBody.repository, { owner: 'EkilyHQ', name: 'Press', branch: 'main' });
   assert.equal(connectBody.contentRoot, 'wwwroot');

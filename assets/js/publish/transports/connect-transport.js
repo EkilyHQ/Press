@@ -20,6 +20,11 @@ function resolveFetch(fetchImpl) {
   return typeof fetchImpl === 'function' ? fetchImpl : resolveAmbientFunction('fetch');
 }
 
+function resolveSleep(sleepImpl) {
+  if (typeof sleepImpl === 'function') return sleepImpl;
+  return ms => new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function resolveWindow(windowRef) {
   if (windowRef) return windowRef;
   const ambientWindow = resolveAmbientValue('window');
@@ -60,13 +65,18 @@ export async function createConnectPublishCommit({
   contentRoot,
   grant,
   fetchImpl = null,
-  translate = (key) => key
+  translate = (key) => key,
+  onStatus = null,
+  pollIntervalMs = 1500,
+  pollTimeoutMs = 120000,
+  sleepImpl = null
 } = {}) {
   const message = (key, fallback) => {
     const value = typeof translate === 'function' ? translate(key) : '';
     return value && value !== key ? value : fallback;
   };
   const fetchRef = resolveFetch(fetchImpl);
+  const sleep = resolveSleep(sleepImpl);
   if (!connect || !connect.baseUrl) {
     throw new Error(message('editor.composer.github.modal.connectMissing', 'Connect publish settings are missing.'));
   }
@@ -91,7 +101,8 @@ export async function createConnectPublishCommit({
       referrerPolicy: 'unsafe-url',
       headers: {
         'Authorization': `Bearer ${grant.token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Prefer': 'respond-async'
       },
       body: JSON.stringify(body)
     });
@@ -109,7 +120,91 @@ export async function createConnectPublishCommit({
     error.response = payload;
     throw error;
   }
+  if (response.status === 202 && payload && payload.job) {
+    if (typeof onStatus === 'function') {
+      onStatus(message('editor.composer.github.modal.connectPublishing', 'Creating commit through Connect...'));
+    }
+    return pollConnectPublishJob({
+      payload,
+      endpoint,
+      grant,
+      fetchRef,
+      translate,
+      pollIntervalMs,
+      pollTimeoutMs,
+      sleep
+    });
+  }
   return payload;
+}
+
+async function pollConnectPublishJob({
+  payload,
+  endpoint,
+  grant,
+  fetchRef,
+  translate = (key) => key,
+  pollIntervalMs = 1500,
+  pollTimeoutMs = 120000,
+  sleep = resolveSleep(null)
+}) {
+  const startedAt = Date.now();
+  let latest = payload;
+  let job = latest && typeof latest === 'object' ? latest.job : null;
+  while (job && typeof job === 'object') {
+    const state = String(job.state || '').trim();
+    if (state === 'committed') {
+      return {
+        ok: true,
+        provider: 'connect',
+        transport: 'connect',
+        owner: job.repository && job.repository.owner,
+        name: job.repository && job.repository.name,
+        branch: job.repository && job.repository.branch,
+        commit: job.commit || latest.commit,
+        job
+      };
+    }
+    if (state === 'failed') {
+      const error = new Error(job.error && job.error.message
+        ? job.error.message
+        : translate('editor.composer.github.modal.connectPublishFailed'));
+      error.status = job.error && job.error.upstreamStatus ? job.error.upstreamStatus : 502;
+      error.response = { ok: false, error: job.error, job };
+      throw error;
+    }
+    if (Date.now() - startedAt >= pollTimeoutMs) {
+      const error = new Error(translate('editor.composer.github.modal.connectPublishTimedOut'));
+      error.status = 504;
+      error.response = { ok: false, error: { code: 'publish_job_timeout' }, job };
+      throw error;
+    }
+    await sleep(Math.max(0, Number(pollIntervalMs) || 0));
+    const statusUrl = String(job.statusUrl || '').trim();
+    const target = statusUrl ? new URL(statusUrl) : new URL(endpoint.href);
+    if (!statusUrl) target.searchParams.set('job', String(job.id || ''));
+    const response = await fetchRef(target.href, {
+      method: 'GET',
+      referrerPolicy: 'unsafe-url',
+      headers: {
+        'Authorization': `Bearer ${grant.token}`
+      }
+    });
+    latest = await response.json().catch(() => null);
+    if (!response.ok || !latest || latest.ok === false) {
+      const error = new Error(latest && latest.error && latest.error.message
+        ? latest.error.message
+        : translate('editor.composer.github.modal.connectPublishFailed'));
+      error.status = response.status;
+      error.response = latest;
+      throw error;
+    }
+    job = latest.job;
+  }
+  const error = new Error(translate('editor.composer.github.modal.connectPublishFailed'));
+  error.status = 502;
+  error.response = latest;
+  throw error;
 }
 
 export async function ensureConnectPublishGrant({

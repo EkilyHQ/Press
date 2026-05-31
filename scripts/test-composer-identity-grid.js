@@ -1887,12 +1887,6 @@ assert.match(
   'composer should receive rebuild callbacks from the YAML/site feature runtime'
 );
 
-assert.match(
-  source,
-  /function rebuildSiteUI\(\) \{\s*return composerYamlRuntime\.rebuildSiteUI\(\);\s*\}/,
-  'composer site rebuild wrapper should delegate to the YAML/site feature runtime'
-);
-
 assert.doesNotMatch(
   source,
   /function getDynamicTabsContainer|document\.getElementById\('modeDynamicTabs'\)|document\.getElementById\('composerIndex'\)|document\.getElementById\('composerTabs'\)|document\.getElementById\('composerSite'\)/,

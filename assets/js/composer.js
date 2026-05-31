@@ -490,7 +490,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     closeComposerDiffModalForKind: (kind) => closeComposerDiffModalForKind(kind)
   });
   const {
-    startRemoteSyncWatcher,
     renderPublishTransportSettings,
     refreshSyncCommitPanel,
     scheduleSyncCommitPanelRefresh,
@@ -576,12 +575,9 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   });
   const {
     editorContentTreeController,
-    buildCurrentEditorTree,
-    getActiveEditorTreeNode,
     inferMarkdownSourceFromPath,
     getEditorTreeNodeById,
     getEditorTreeFileNodeByPath,
-    getEditorTreeFileNodeForTab,
     buildCurrentFileBreadcrumb,
     expandEditorAncestors,
     selectEditorTreeNodeByPath,
@@ -824,12 +820,9 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     refreshFileDirtyBadges,
     refreshComposerInlineMeta,
     renderComposerInlineSummary,
-    renderOrderStatsChips,
     openComposerDiffModal,
     scheduleComposerOrderPreviewRelayout,
-    updateComposerOrderPreview,
     setComposerOrderPreviewActiveKind,
-    getComposerOrderPreviewActiveKind,
     closeComposerDiffModalForKind,
     rawScheduleYamlAutoDraft,
     rawClearDraftStorage,
@@ -841,7 +834,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     buildSiteUI,
     rebuildIndexUI,
     rebuildTabsUI,
-    rebuildSiteUI,
     loadDraftSnapshotsIntoState,
     handleComposerDiscard,
     handleComposerRefresh
@@ -1202,10 +1194,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
       showToast(type, msg);
     }
     updateUnsyncedSummary();
-  }
-
-  function rebuildSiteUI() {
-    return composerYamlRuntime.rebuildSiteUI();
   }
 
   const composerStartup = composerControllerGraph.createStartup({

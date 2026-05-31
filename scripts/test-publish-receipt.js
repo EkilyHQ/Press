@@ -94,11 +94,25 @@ function createClock() {
       provider: 'connect',
       transport: 'connect',
       id: 'request-id-not-a-commit',
-      commit: { oid: 'abc123', url: 'https://github.example/commit/abc123' }
+      commit: { oid: 'abc123', url: 'https://github.example/commit/abc123' },
+      job: {
+        id: 'pubjob_123',
+        requestId: 'connect-request',
+        state: 'committed',
+        statusUrl: 'https://connect.example/api/press/publish?job=pubjob_123',
+        fileCount: 3,
+        additionCount: 2,
+        deletionCount: 1,
+        commit: { oid: 'abc123', url: 'https://github.example/commit/abc123' }
+      }
     }
   }, { now });
   assert.equal(committed.commit.oid, 'abc123');
   assert.equal(committed.publish.id, 'request-id-not-a-commit');
+  assert.equal(committed.publish.job.id, 'pubjob_123');
+  assert.equal(committed.publish.job.state, 'committed');
+  assert.equal(committed.publish.job.statusUrl, 'https://connect.example/api/press/publish?job=pubjob_123');
+  assert.equal(committed.publish.job.commit.oid, 'abc123');
   assert.equal(committed.finishedAt, null);
 
   const observed = transitionPublishReceipt(committed, PUBLISH_STATES.OBSERVED, {

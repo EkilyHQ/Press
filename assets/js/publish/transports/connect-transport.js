@@ -63,17 +63,22 @@ function resolveConnectPublishJob(payload) {
     : null;
 }
 
-function createConnectPublishJobPendingError({ job, translate, code, name, cause = null }) {
+function createConnectPublishJobPendingError({ job = null, payload = null, translate, code, name, cause = null }) {
   const error = new Error(translate('editor.composer.github.modal.connectPublishTimedOut'));
   error.name = name || 'ConnectPublishJobPendingError';
   error.status = 202;
   error.response = { ok: true, error: { code }, job };
-  error.pendingPublishResult = {
+  const pendingPublishResult = {
     ok: true,
     provider: 'connect',
-    transport: 'connect',
-    job
+    transport: 'connect'
   };
+  if (job) pendingPublishResult.job = job;
+  if (payload && typeof payload === 'object') {
+    if (payload.id) pendingPublishResult.id = String(payload.id);
+    if (payload.requestId) pendingPublishResult.requestId = String(payload.requestId);
+  }
+  error.pendingPublishResult = pendingPublishResult;
   if (cause) error.cause = cause;
   return error;
 }
@@ -172,6 +177,14 @@ export async function createConnectPublishCommit({
       sleep
     });
   }
+  if (response.status === 202) {
+    throw createConnectPublishJobPendingError({
+      payload,
+      translate,
+      code: 'publish_job_missing',
+      name: 'ConnectPublishJobMissingError'
+    });
+  }
   return payload;
 }
 
@@ -240,6 +253,15 @@ async function pollConnectPublishJob({
     }
     latest = await response.json().catch(() => null);
     if (!response.ok || !latest || latest.ok === false) {
+      if (response.status >= 500 || !latest) {
+        throw createConnectPublishJobPendingError({
+          job,
+          payload: latest,
+          translate,
+          code: 'publish_job_poll_failed',
+          name: 'ConnectPublishJobPollError'
+        });
+      }
       const error = new Error(latest && latest.error && latest.error.message
         ? latest.error.message
         : translate('editor.composer.github.modal.connectPublishFailed'));
@@ -248,7 +270,7 @@ async function pollConnectPublishJob({
       throw error;
     }
     const nextJob = resolveConnectPublishJob(latest);
-    if (!nextJob && latest && typeof latest === 'object' && latest.commit) {
+    if (!nextJob && typeof latest === 'object' && latest.commit) {
       return {
         ...latest,
         ok: true,

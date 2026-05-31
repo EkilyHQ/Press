@@ -513,6 +513,43 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
   const requests = [];
   try {
+    await assert.rejects(
+      () => createConnectPublishCommit({
+        connect: { baseUrl: 'https://connect.example' },
+        repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+        headline: 'Sync draft',
+        files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+        contentRoot: 'wwwroot',
+        grant: { token: 'grant-token' },
+        fetchImpl(url, options) {
+          requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+          return Promise.resolve(okJson({
+            ok: true,
+            accepted: true,
+            id: 'accepted-without-job'
+          }, 202));
+        }
+      }),
+      (err) => {
+        assert.equal(err.name, 'ConnectPublishJobMissingError');
+        assert.equal(err.status, 202);
+        assert.equal(err.pendingPublishResult.id, 'accepted-without-job');
+        assert.equal(err.pendingPublishResult.job, undefined);
+        return true;
+      }
+    );
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 1);
+  assert.deepEqual(ambientCalls, [], 'Bare Connect 202 responses should not be treated as committed');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
     const result = await createConnectPublishCommit({
       connect: { baseUrl: 'https://connect.example' },
       repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
@@ -595,6 +632,56 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   }
   assert.equal(requests.length, 2);
   assert.deepEqual(ambientCalls, [], 'Connect publish poll failures should preserve the accepted job');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    await assert.rejects(
+      () => createConnectPublishCommit({
+        connect: { baseUrl: 'https://connect.example' },
+        repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+        headline: 'Sync draft',
+        files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+        contentRoot: 'wwwroot',
+        grant: { token: 'grant-token' },
+        pollIntervalMs: 0,
+        sleepImpl: async () => {},
+        fetchImpl(url, options) {
+          requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+          if (requests.length === 1) {
+            return Promise.resolve(okJson({
+              ok: true,
+              accepted: true,
+              job: {
+                id: 'pubjob_status_503',
+                state: 'queued',
+                statusUrl: 'https://connect.example/api/press/publish?job=pubjob_status_503'
+              }
+            }, 202));
+          }
+          return Promise.resolve({
+            ok: false,
+            status: 503,
+            json: () => Promise.reject(new Error('temporary html response'))
+          });
+        }
+      }),
+      (err) => {
+        assert.equal(err.name, 'ConnectPublishJobPollError');
+        assert.equal(err.status, 202);
+        assert.equal(err.pendingPublishResult.job.id, 'pubjob_status_503');
+        assert.equal(err.response.error.code, 'publish_job_poll_failed');
+        return true;
+      }
+    );
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 2);
+  assert.deepEqual(ambientCalls, [], 'Connect publish status 5xx responses should preserve the accepted job');
 }
 
 {

@@ -27,6 +27,17 @@ function parseStaticImportSpecifiers(source) {
 const composerImports = parseStaticImportSpecifiers(composerSource);
 const contract = getComposerRootImportContract();
 const grouped = getComposerRootImportsByGroup();
+const composerRootLineCount = composerSource.split(/\r?\n/).length;
+
+assert.ok(
+  composerRootLineCount <= 1350,
+  `composer root should stay below the feature-composition budget (saw ${composerRootLineCount} lines)`
+);
+
+assert.ok(
+  composerImports.length <= 32,
+  `composer root should stay below the static import budget (saw ${composerImports.length} imports)`
+);
 
 assert.deepEqual(
   validateComposerRootImportContract(composerImports),
@@ -49,9 +60,9 @@ assert.deepEqual(
 assert.equal(grouped.runtime.includes('./composer-runtime.js'), true);
 assert.equal(grouped.bootstrap.includes('./composer-controller-graph.js'), true);
 assert.equal(grouped.action.includes('./composer-action-effects.js'), true);
-assert.equal(grouped.publish.includes('./composer-publish-service.js'), true);
+assert.equal(grouped.publish.includes('./composer-publish-sync-feature.js'), true);
 assert.equal(grouped.state.includes('./editor-drafts.js'), true);
-assert.equal(grouped.ui.includes('./editor-file-tree-ui.js'), true);
+assert.equal(grouped.controller.includes('./composer-editor-workspace-feature.js'), true);
 
 assert.doesNotMatch(
   composerSource,
@@ -62,12 +73,12 @@ assert.doesNotMatch(
 assert.doesNotMatch(
   composerSource,
   /from '\.\/publish\/transports\//,
-  'composer root should route publishing through composer-publish-service and publish/commit-service'
+  'composer root should route publishing through composer-publish-sync-feature and publish/commit-service'
 );
 
 assert.match(
   contractSource,
-  /reason: 'controller service graph and startup lifecycle composition boundary'[\s\S]*reason: 'publish transport settings and Connect presets'/,
+  /reason: 'controller service graph and startup lifecycle composition boundary'[\s\S]*reason: 'publish state, transport settings, remote sync, and propagation composition boundary'[\s\S]*reason: 'YAML, site settings, index\/tabs, diff, draft, and actions feature boundary'/,
   'contract entries should record why cross-domain imports are still allowed'
 );
 

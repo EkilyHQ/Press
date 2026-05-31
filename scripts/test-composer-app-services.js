@@ -13,6 +13,7 @@ import { runEditorFeatureLifecycle } from '../assets/js/editor-app-kernel.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
+const composerMarkdownFeatureSource = readFileSync(resolve(here, '../assets/js/composer-markdown-feature.js'), 'utf8');
 const controllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
 const lifecycleSource = readFileSync(resolve(here, '../assets/js/composer-lifecycle.js'), 'utf8');
 const registrySource = readFileSync(resolve(here, '../assets/js/composer-service-registry.js'), 'utf8');
@@ -123,20 +124,51 @@ assert.match(
   'composer controller graph should create a lifecycle wrapper for late-bound app services'
 );
 
-expectedSetters.forEach((setter) => {
+const markdownFeatureSetters = [
+  'setMarkdownDraftController',
+  'setMarkdownLoader',
+  'setMarkdownActionsUi'
+];
+const composerRootSetters = expectedSetters.filter(setter => !markdownFeatureSetters.includes(setter));
+
+markdownFeatureSetters.forEach((setter) => {
+  assert.match(
+    composerMarkdownFeatureSource,
+    new RegExp(`serviceLifecycle\\.${setter}\\(`),
+    `Markdown feature should register ${setter} through the lifecycle wrapper`
+  );
+  assert.doesNotMatch(
+    composerSource,
+    new RegExp(`composerServiceLifecycle\\.${setter}\\(`),
+    `composer root should delegate ${setter} registration to the Markdown feature`
+  );
+});
+
+composerRootSetters.forEach((setter) => {
   assert.match(
     composerSource,
     new RegExp(`composerServiceLifecycle\\.${setter}\\(`),
     `composer should register ${setter} through the lifecycle wrapper`
   );
+});
+
+expectedSetters.forEach((setter) => {
   assert.doesNotMatch(
     composerSource,
     new RegExp(`composerServices\\.${setter}\\(`),
     `composer should not bypass the lifecycle wrapper for ${setter}`
   );
+  assert.doesNotMatch(
+    composerMarkdownFeatureSource,
+    new RegExp(`composerServices\\.${setter}\\(`),
+    `Markdown feature should not bypass the lifecycle wrapper for ${setter}`
+  );
 });
 
-const actualSetterOrder = [...composerSource.matchAll(/composerServiceLifecycle\.(set[A-Za-z]+)\(/g)]
+const actualSetterOrder = [
+  ...composerMarkdownFeatureSource.matchAll(/serviceLifecycle\.(set[A-Za-z]+)\(/g),
+  ...composerSource.matchAll(/composerServiceLifecycle\.(set[A-Za-z]+)\(/g)
+]
   .map(match => match[1])
   .filter(setter => expectedSetters.includes(setter));
 assert.deepEqual(actualSetterOrder, expectedSetters);

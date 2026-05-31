@@ -20,6 +20,11 @@ function resolveFetch(fetchImpl) {
   return typeof fetchImpl === 'function' ? fetchImpl : resolveAmbientFunction('fetch');
 }
 
+function resolveSleep(sleepImpl) {
+  if (typeof sleepImpl === 'function') return sleepImpl;
+  return ms => new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function resolveWindow(windowRef) {
   if (windowRef) return windowRef;
   const ambientWindow = resolveAmbientValue('window');
@@ -52,6 +57,46 @@ export function serializeConnectPublishFile(file) {
   return out;
 }
 
+function resolveConnectPublishJob(payload) {
+  return payload && typeof payload === 'object'
+    ? payload.job || payload.publishJob || null
+    : null;
+}
+
+function createConnectPublishJobPendingError({ job = null, payload = null, translate, code, name, cause = null }) {
+  const error = new Error(translate('editor.composer.github.modal.connectPublishTimedOut'));
+  error.name = name || 'ConnectPublishJobPendingError';
+  error.status = 202;
+  error.response = { ok: true, error: { code }, job };
+  const pendingPublishResult = {
+    ok: true,
+    provider: 'connect',
+    transport: 'connect'
+  };
+  if (job) pendingPublishResult.job = job;
+  if (payload && typeof payload === 'object') {
+    if (payload.id) pendingPublishResult.id = String(payload.id);
+    if (payload.requestId) pendingPublishResult.requestId = String(payload.requestId);
+  }
+  error.pendingPublishResult = pendingPublishResult;
+  if (cause) error.cause = cause;
+  return error;
+}
+
+function resolveConnectPublishStatusTarget(job, endpoint) {
+  const jobId = String(job && (job.id || job.jobId) || '').trim();
+  const statusUrl = String(job && job.statusUrl || '').trim();
+  if (statusUrl) {
+    try {
+      const target = new URL(statusUrl, endpoint.href);
+      if (target.origin === endpoint.origin) return target;
+    } catch (_) {}
+  }
+  const target = new URL(endpoint.href);
+  if (jobId) target.searchParams.set('job', jobId);
+  return target;
+}
+
 export async function createConnectPublishCommit({
   connect,
   repo,
@@ -60,13 +105,18 @@ export async function createConnectPublishCommit({
   contentRoot,
   grant,
   fetchImpl = null,
-  translate = (key) => key
+  translate = (key) => key,
+  onStatus = null,
+  pollIntervalMs = 1500,
+  pollTimeoutMs = 120000,
+  sleepImpl = null
 } = {}) {
   const message = (key, fallback) => {
     const value = typeof translate === 'function' ? translate(key) : '';
     return value && value !== key ? value : fallback;
   };
   const fetchRef = resolveFetch(fetchImpl);
+  const sleep = resolveSleep(sleepImpl);
   if (!connect || !connect.baseUrl) {
     throw new Error(message('editor.composer.github.modal.connectMissing', 'Connect publish settings are missing.'));
   }
@@ -91,7 +141,8 @@ export async function createConnectPublishCommit({
       referrerPolicy: 'unsafe-url',
       headers: {
         'Authorization': `Bearer ${grant.token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Prefer': 'respond-async'
       },
       body: JSON.stringify(body)
     });
@@ -109,7 +160,135 @@ export async function createConnectPublishCommit({
     error.response = payload;
     throw error;
   }
+  const job = resolveConnectPublishJob(payload);
+  if (response.status === 202 && job) {
+    if (typeof onStatus === 'function') {
+      onStatus(message('editor.composer.github.modal.connectPublishing', 'Creating commit through Connect...'));
+    }
+    return pollConnectPublishJob({
+      payload,
+      job,
+      endpoint,
+      grant,
+      fetchRef,
+      translate,
+      pollIntervalMs,
+      pollTimeoutMs,
+      sleep
+    });
+  }
+  if (response.status === 202) {
+    throw createConnectPublishJobPendingError({
+      payload,
+      translate,
+      code: 'publish_job_missing',
+      name: 'ConnectPublishJobMissingError'
+    });
+  }
   return payload;
+}
+
+async function pollConnectPublishJob({
+  payload,
+  job,
+  endpoint,
+  grant,
+  fetchRef,
+  translate = (key) => key,
+  pollIntervalMs = 1500,
+  pollTimeoutMs = 120000,
+  sleep = resolveSleep(null)
+}) {
+  const startedAt = Date.now();
+  let latest = payload;
+  while (job && typeof job === 'object') {
+    const state = String(job.state || '').trim();
+    if (state === 'committed') {
+      return {
+        ok: true,
+        provider: 'connect',
+        transport: 'connect',
+        owner: job.repository && job.repository.owner,
+        name: job.repository && job.repository.name,
+        branch: job.repository && job.repository.branch,
+        commit: job.commit || latest.commit,
+        job
+      };
+    }
+    if (state === 'failed') {
+      const error = new Error(job.error && job.error.message
+        ? job.error.message
+        : translate('editor.composer.github.modal.connectPublishFailed'));
+      error.status = job.error && job.error.upstreamStatus ? job.error.upstreamStatus : 502;
+      error.response = { ok: false, error: job.error, job };
+      throw error;
+    }
+    if (Date.now() - startedAt >= pollTimeoutMs) {
+      throw createConnectPublishJobPendingError({
+        job,
+        translate,
+        code: 'publish_job_timeout',
+        name: 'ConnectPublishJobTimeoutError'
+      });
+    }
+    await sleep(Math.max(0, Number(pollIntervalMs) || 0));
+    const target = resolveConnectPublishStatusTarget(job, endpoint);
+    let response = null;
+    try {
+      response = await fetchRef(target.href, {
+        method: 'GET',
+        referrerPolicy: 'unsafe-url',
+        headers: {
+          'Authorization': `Bearer ${grant.token}`
+        }
+      });
+    } catch (err) {
+      throw createConnectPublishJobPendingError({
+        job,
+        translate,
+        code: 'publish_job_poll_failed',
+        name: 'ConnectPublishJobPollError',
+        cause: err
+      });
+    }
+    latest = await response.json().catch(() => null);
+    if (!response.ok || !latest || latest.ok === false) {
+      if (response.status >= 500 || !latest) {
+        throw createConnectPublishJobPendingError({
+          job,
+          payload: latest,
+          translate,
+          code: 'publish_job_poll_failed',
+          name: 'ConnectPublishJobPollError'
+        });
+      }
+      const error = new Error(latest.error && latest.error.message
+        ? latest.error.message
+        : translate('editor.composer.github.modal.connectPublishFailed'));
+      error.status = response.status;
+      error.response = latest;
+      throw error;
+    }
+    const nextJob = resolveConnectPublishJob(latest);
+    if (!nextJob && typeof latest === 'object' && latest.commit) {
+      return {
+        ...latest,
+        ok: true,
+        provider: 'connect',
+        transport: 'connect',
+        job: {
+          ...job,
+          state: 'committed',
+          commit: latest.commit
+        }
+      };
+    }
+    job = nextJob;
+  }
+  const error = new Error(translate('editor.composer.github.modal.connectPublishFailed'));
+  error.status = 502;
+  error.response = latest;
+  throw error;
 }
 
 export async function ensureConnectPublishGrant({

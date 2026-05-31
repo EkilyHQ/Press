@@ -142,7 +142,8 @@ export async function publishCommit({
       grant,
       contentRoot,
       fetchImpl,
-      translate
+      translate,
+      onStatus
     });
     return normalizeConnectPublishResult(payload);
   }

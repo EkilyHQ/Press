@@ -839,6 +839,7 @@ const translations = {
             connectPublishing: 'Creating commit through Connect…',
             connectNetworkError: 'Could not reach Connect. Check your connection.',
             connectPublishFailed: 'Connect publish failed.',
+            connectPublishTimedOut: 'Connect is still working on this publish job. Check the publish receipt for the latest status.',
             connectAuthorizationFailed: 'Connect authorization failed.',
             connectAuthorizationCanceled: 'Connect authorization was canceled.',
             connectAuthorizationTimedOut: 'Connect authorization timed out. Try signing in again.',

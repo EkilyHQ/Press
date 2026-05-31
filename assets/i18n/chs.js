@@ -832,6 +832,7 @@ const translations = {
             connectPublishing: '正在通过 Connect 创建提交…',
             connectNetworkError: '无法连接到 Connect，请检查网络。',
             connectPublishFailed: 'Connect 发布失败。',
+            connectPublishTimedOut: 'Connect 仍在处理本次发布任务，请查看发布回执获取最新状态。',
             connectAuthorizationFailed: 'Connect 授权失败。',
             connectAuthorizationCanceled: '已取消 Connect 授权。',
             connectAuthorizationTimedOut: 'Connect 授权超时，请重新登录。',

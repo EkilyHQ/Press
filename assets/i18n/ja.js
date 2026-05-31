@@ -832,6 +832,7 @@ const translations = {
             connectPublishing: 'Connect 経由でコミットを作成しています…',
             connectNetworkError: 'Connect に接続できません。接続状態を確認してください。',
             connectPublishFailed: 'Connect 公開に失敗しました。',
+            connectPublishTimedOut: 'Connect はこの公開ジョブをまだ処理しています。最新の状態は公開レシートで確認してください。',
             connectAuthorizationFailed: 'Connect 認可に失敗しました。',
             connectAuthorizationCanceled: 'Connect 認可がキャンセルされました。',
             connectAuthorizationTimedOut: 'Connect 認可がタイムアウトしました。もう一度サインインしてください。',

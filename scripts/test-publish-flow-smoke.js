@@ -6,10 +6,10 @@ import {
   PUBLISH_STATES
 } from '../assets/js/publish/publish-receipt.js';
 
-function okJson(payload) {
+function okJson(payload, status = 200) {
   return {
     ok: true,
-    status: 200,
+    status,
     json: () => Promise.resolve(payload),
     text: () => Promise.resolve(JSON.stringify(payload))
   };
@@ -74,6 +74,23 @@ function createFlowHarness() {
       const body = JSON.parse(String(options.body || '{}'));
       return okJson({
         ok: true,
+        accepted: true,
+        job: {
+          id: 'pubjob_connect_smoke',
+          requestId: 'connect-smoke',
+          state: 'queued',
+          statusUrl: 'https://connect.example/api/press/publish?job=pubjob_connect_smoke',
+          fileCount: 2,
+          additionCount: 1,
+          deletionCount: 1
+        },
+        body
+      }, 202);
+    }
+
+    if (target === 'https://connect.example/api/press/publish?job=pubjob_connect_smoke') {
+      return okJson({
+        ok: true,
         id: 'connect-smoke',
         commit: { oid: 'connect-smoke-commit' },
         job: {
@@ -85,8 +102,7 @@ function createFlowHarness() {
           additionCount: 1,
           deletionCount: 1,
           commit: { oid: 'connect-smoke-commit' }
-        },
-        body
+        }
       });
     }
 
@@ -180,6 +196,7 @@ function createFlowHarness() {
   assert.ok(connectPost, 'Connect smoke should POST to the Connect publish endpoint');
   assert.equal(connectPost.options.referrerPolicy, 'unsafe-url');
   assert.equal(connectPost.options.headers.Authorization, 'Bearer grant-token');
+  assert.equal(connectPost.options.headers.Prefer, 'respond-async');
   const connectBody = JSON.parse(connectPost.options.body);
   assert.deepEqual(connectBody.repository, { owner: 'EkilyHQ', name: 'Press', branch: 'main' });
   assert.equal(connectBody.contentRoot, 'wwwroot');
@@ -222,6 +239,46 @@ function createFlowHarness() {
   assert.equal(JSON.stringify(storedReceipt).includes('base64'), false);
   assert.deepEqual(harness.calls.at(-2), ['toast', 'success', 'editor.toasts.commitSuccess:2', false]);
   assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
+}
+
+{
+  const realDateNow = Date.now;
+  let dateNowCalls = 0;
+  Date.now = () => {
+    dateNowCalls += 1;
+    return dateNowCalls === 1 ? 1000 : 122000;
+  };
+  try {
+    const harness = createFlowHarness();
+    await harness.flow.performConnectGithubCommit({ baseUrl: 'https://connect.example' }, [
+      { kind: 'site', label: 'site.yaml' }
+    ]);
+
+    assert.equal(
+      harness.requests.some(request => request.url === 'https://connect.example/api/press/publish?job=pubjob_connect_smoke'),
+      false,
+      'Connect timeout should not keep polling after the accepted job exceeds the local wait budget'
+    );
+    assert.equal(
+      harness.calls.some(call => call[0] === 'postCommit'),
+      false,
+      'Connect timeout should not apply local post-commit state before a commit exists'
+    );
+    assert.deepEqual(harness.receipts.map(receipt => receipt.state), [
+      PUBLISH_STATES.PREPARING,
+      PUBLISH_STATES.AUTHORIZING,
+      PUBLISH_STATES.COMMITTING,
+      PUBLISH_STATES.TIMED_OUT
+    ]);
+    const finalReceipt = harness.receipts.at(-1);
+    assert.equal(finalReceipt.publish.job.id, 'pubjob_connect_smoke');
+    assert.equal(finalReceipt.publish.job.state, 'queued');
+    assert.equal(finalReceipt.error.status, 202);
+    assert.deepEqual(harness.calls.at(-2), ['toast', 'warning', 'editor.composer.github.modal.connectPublishTimedOut', false]);
+    assert.deepEqual(harness.calls.at(-1), ['inFlight', false]);
+  } finally {
+    Date.now = realDateNow;
+  }
 }
 
 {

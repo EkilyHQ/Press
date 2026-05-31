@@ -12,13 +12,17 @@ const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), '
 const composerControllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
 const actionEffectsSource = readFileSync(resolve(here, '../assets/js/composer-action-effects.js'), 'utf8');
 const markdownWorkspaceFacadeSource = readFileSync(resolve(here, '../assets/js/composer-markdown-workspace-facade.js'), 'utf8');
+const yamlSiteFeatureSource = readFileSync(resolve(here, '../assets/js/composer-yaml-site-feature.js'), 'utf8');
 const yamlSerializationSource = readFileSync(resolve(here, '../assets/js/composer-yaml-serialization.js'), 'utf8');
+const editorWorkspaceFeatureSource = readFileSync(resolve(here, '../assets/js/composer-editor-workspace-feature.js'), 'utf8');
 const editorTreeStateSource = readFileSync(resolve(here, '../assets/js/composer-editor-tree-state.js'), 'utf8');
 
 assert.match(composerSource, /from '\.\/composer-action-effects\.js'/);
 assert.match(composerSource, /from '\.\/composer-controller-graph\.js'/);
-assert.match(composerSource, /from '\.\/composer-yaml-serialization\.js'/);
-assert.match(composerSource, /from '\.\/composer-editor-tree-state\.js'/);
+assert.match(composerSource, /from '\.\/composer-yaml-site-feature\.js'/);
+assert.match(yamlSiteFeatureSource, /from '\.\/composer-yaml-serialization\.js'/);
+assert.match(composerSource, /from '\.\/composer-editor-workspace-feature\.js'/);
+assert.match(editorWorkspaceFeatureSource, /from '\.\/composer-editor-tree-state\.js'/);
 assert.match(composerControllerGraphSource, /from '\.\/composer-markdown-workspace-facade\.js'/);
 assert.doesNotMatch(composerSource, /createComposerActionDispatcher|composerActions\.dispatch\('/);
 assert.doesNotMatch(composerSource, /import \{ buildEditorContentTree/);

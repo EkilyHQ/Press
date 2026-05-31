@@ -17,6 +17,7 @@ const composerPath = resolve(here, '../assets/js/composer.js');
 const composerSyncPanelPath = resolve(here, '../assets/js/composer-sync-panel.js');
 const composerSyncCommitControllerPath = resolve(here, '../assets/js/composer-sync-commit-controller.js');
 const composerSystemPanelPath = resolve(here, '../assets/js/composer-system-panel.js');
+const composerPublishSyncFeaturePath = resolve(here, '../assets/js/composer-publish-sync-feature.js');
 const composerPublishServicePath = resolve(here, '../assets/js/composer-publish-service.js');
 const composerPublishStateServicePath = resolve(here, '../assets/js/composer-publish-state-service.js');
 const composerSyncOverlayPath = resolve(here, '../assets/js/composer-sync-overlay.js');
@@ -28,6 +29,7 @@ const composerDialogsPath = resolve(here, '../assets/js/composer-dialogs.js');
 const composerRemoteSyncPath = resolve(here, '../assets/js/composer-remote-sync.js');
 const composerYamlDraftsPath = resolve(here, '../assets/js/composer-yaml-drafts.js');
 const composerYamlActionsPath = resolve(here, '../assets/js/composer-yaml-actions.js');
+const composerYamlSiteFeaturePath = resolve(here, '../assets/js/composer-yaml-site-feature.js');
 const composerContentStagingPath = resolve(here, '../assets/js/composer-content-staging.js');
 const composerIndexPublishMetadataPath = resolve(here, '../assets/js/composer-index-publish-metadata.js');
 const composerSeoStagingPath = resolve(here, '../assets/js/composer-seo-staging.js');
@@ -55,6 +57,8 @@ const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-
 const composerSiteSettingsSingleGridsPath = resolve(here, '../assets/js/composer-site-settings-single-grids.js');
 const composerYamlPanelsControllerPath = resolve(here, '../assets/js/composer-yaml-panels-controller.js');
 const composerMarkdownAssetsPath = resolve(here, '../assets/js/composer-markdown-assets.js');
+const composerMarkdownFeaturePath = resolve(here, '../assets/js/composer-markdown-feature.js');
+const composerEditorWorkspaceFeaturePath = resolve(here, '../assets/js/composer-editor-workspace-feature.js');
 const composerEditorShellPath = resolve(here, '../assets/js/composer-editor-shell.js');
 const composerPathToolsPath = resolve(here, '../assets/js/composer-path-tools.js');
 const composerContentMutationsPath = resolve(here, '../assets/js/composer-content-mutations.js');
@@ -185,6 +189,7 @@ const source = readFileSync(composerPath, 'utf8');
 const composerSyncPanelSource = readFileSync(composerSyncPanelPath, 'utf8');
 const composerSyncCommitControllerSource = readFileSync(composerSyncCommitControllerPath, 'utf8');
 const composerSystemPanelSource = readFileSync(composerSystemPanelPath, 'utf8');
+const composerPublishSyncFeatureSource = readFileSync(composerPublishSyncFeaturePath, 'utf8');
 const composerPublishServiceSource = readFileSync(composerPublishServicePath, 'utf8');
 const composerPublishStateServiceSource = readFileSync(composerPublishStateServicePath, 'utf8');
 const composerSyncOverlaySource = readFileSync(composerSyncOverlayPath, 'utf8');
@@ -196,6 +201,7 @@ const composerDialogsSource = readFileSync(composerDialogsPath, 'utf8');
 const composerRemoteSyncSource = readFileSync(composerRemoteSyncPath, 'utf8');
 const composerYamlDraftsSource = readFileSync(composerYamlDraftsPath, 'utf8');
 const composerYamlActionsSource = readFileSync(composerYamlActionsPath, 'utf8');
+const composerYamlSiteFeatureSource = readFileSync(composerYamlSiteFeaturePath, 'utf8');
 const composerContentStagingSource = readFileSync(composerContentStagingPath, 'utf8');
 const composerIndexPublishMetadataSource = readFileSync(composerIndexPublishMetadataPath, 'utf8');
 const composerSeoStagingSource = readFileSync(composerSeoStagingPath, 'utf8');
@@ -223,6 +229,8 @@ const composerSiteSettingsSectionNavSource = readFileSync(composerSiteSettingsSe
 const composerSiteSettingsSingleGridsSource = readFileSync(composerSiteSettingsSingleGridsPath, 'utf8');
 const composerYamlPanelsControllerSource = readFileSync(composerYamlPanelsControllerPath, 'utf8');
 const composerMarkdownAssetsSource = readFileSync(composerMarkdownAssetsPath, 'utf8');
+const composerMarkdownFeatureSource = readFileSync(composerMarkdownFeaturePath, 'utf8');
+const composerEditorWorkspaceFeatureSource = readFileSync(composerEditorWorkspaceFeaturePath, 'utf8');
 const composerEditorShellSource = readFileSync(composerEditorShellPath, 'utf8');
 const composerPathToolsSource = readFileSync(composerPathToolsPath, 'utf8');
 const composerContentMutationsSource = readFileSync(composerContentMutationsPath, 'utf8');
@@ -1177,10 +1185,16 @@ assert.match(
   'system/theme bridge should cache-bust system updates when version compatibility changes'
 );
 
-assert.match(
+assert.doesNotMatch(
   source,
   /from '\.\/encrypted-content\.js'/,
-  'composer should import encrypted article helpers through the encrypted-articles cache key'
+  'composer root should not import encrypted article helpers directly after the Markdown feature extraction'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
+  /from '\.\/encrypted-content\.js'/,
+  'Markdown feature should import encrypted article helpers through the encrypted-articles cache key'
 );
 
 assert.match(
@@ -1220,9 +1234,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-diff-ui\.js'/,
-  'composer should cache-bust the extracted diff UI boundary'
+  'YAML/site feature should own the extracted diff UI boundary'
 );
 
 assert.doesNotMatch(
@@ -1238,9 +1252,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-order-diff-ui\.js'/,
-  'composer should cache-bust the extracted order diff UI boundary'
+  'YAML/site feature should own the extracted order diff UI boundary'
 );
 
 assert.match(
@@ -1311,8 +1325,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerOrderDiffUi = createComposerOrderDiffUi\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
-  'composer should inject order diff timers, frames, events, media, style, and observers through the runtime boundary'
+  /composerYamlFeature\.createRuntime\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*ResizeObserverRef: editorRuntime\.getResizeObserver\(\),/,
+  'composer should inject YAML/site feature timers, frames, events, media, style, and observers through the runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -1331,9 +1345,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-index-tabs-ui\.js'/,
-  'composer should cache-bust the extracted index/tabs list UI boundary'
+  'YAML/site feature should own the extracted index/tabs list UI boundary'
 );
 
 assert.match(
@@ -1404,8 +1418,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerIndexTabsUi = createComposerIndexTabsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*getWindowScroll: \(\) => editorRuntime\.getWindowScroll\(\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
-  'composer should inject index/tabs UI frame, timer, event, scroll, dialog, and style effects through the runtime boundary'
+  /composerYamlFeature\.createRuntime\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*getWindowScroll: \(\) => editorRuntime\.getWindowScroll\(\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),/,
+  'composer should inject YAML/site feature frame, timer, event, scroll, dialog, and style effects through the runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -1415,9 +1429,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-site-settings-ui\.js'/,
-  'composer should cache-bust the extracted Site Settings UI boundary'
+  'YAML/site feature should own the extracted Site Settings UI boundary'
 );
 
 assert.match(
@@ -1590,8 +1604,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerSiteSettingsUi = createComposerSiteSettingsUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*cssRef: editorRuntime\.getCss\(\),[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*\}\);/,
-  'composer should inject Site Settings document, window, frame, timer, fetch, style, performance, and CSS access through the runtime boundary'
+  /composerYamlFeature\.createRuntime\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*cancelAnimationFrameRef: \(id\) => editorRuntime\.cancelFrame\(id\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*getComputedStyleRef: \(element\) => editorRuntime\.getComputedStyle\(element\),[\s\S]*performanceRef: editorRuntime\.getPerformance\(\),[\s\S]*cssRef: editorRuntime\.getCss\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),/,
+  'composer should inject Site Settings frame, timer, fetch, style, performance, and CSS access through the feature runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -1602,8 +1616,20 @@ assert.doesNotMatch(
 
 assert.match(
   source,
+  /from '\.\/composer-markdown-feature\.js'/,
+  'composer should cache-bust the extracted Markdown feature boundary'
+);
+
+assert.doesNotMatch(
+  source,
   /from '\.\/composer-markdown-assets\.js'/,
-  'composer should cache-bust the extracted Markdown asset manager boundary'
+  'composer root should not import the Markdown asset manager directly after the Markdown feature extraction'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
+  /from '\.\/composer-markdown-assets\.js'/,
+  'Markdown feature should cache-bust the extracted Markdown asset manager boundary'
 );
 
 assert.doesNotMatch(
@@ -1619,9 +1645,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*emitMarkdownAssetPreview: \(detail\) => editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*\}\);/,
-  'composer should inject Markdown asset preview events, editor asset listeners, and repository fetches through the runtime boundary'
+  composerMarkdownFeatureSource,
+  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*emitMarkdownAssetPreview: \(detail\) => \{[\s\S]*editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\);[\s\S]*addWindowListener: \(type, handler, listenerOptions\) => editorRuntime\.events && typeof editorRuntime\.events\.onWindow === 'function'[\s\S]*fetchContent,[\s\S]*\}\);/,
+  'Markdown feature should inject Markdown asset preview events, editor asset listeners, and repository fetches through the runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -1632,8 +1658,8 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const \{[\s\S]*ensureMarkdownAssetBucket,[\s\S]*textWithFallback,[\s\S]*collectCurrentRepositoryMarkdownAssetReferences[\s\S]*\} = markdownAssetManager;/,
-  'composer should import all remaining Markdown asset adapter helpers from the manager instead of stale local bindings'
+  /const \{[\s\S]*ensureMarkdownAssetBucket,[\s\S]*textWithFallback,[\s\S]*collectCurrentRepositoryMarkdownAssetReferences[\s\S]*\} = composerMarkdownFeature;/,
+  'composer should import remaining Markdown adapter helpers from the feature port instead of stale local bindings'
 );
 
 assert.match(
@@ -1644,8 +1670,14 @@ assert.match(
 
 assert.match(
   source,
+  /from '\.\/composer-editor-workspace-feature\.js'/,
+  'composer should cache-bust the editor workspace feature boundary'
+);
+
+assert.match(
+  composerEditorWorkspaceFeatureSource,
   /from '\.\/composer-editor-shell\.js'/,
-  'composer should cache-bust the extracted editor shell boundary'
+  'editor workspace feature should own the extracted editor shell boundary'
 );
 
 assert.doesNotMatch(
@@ -1661,9 +1693,9 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const editorShell = createComposerEditorShell\(\{[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, options\) => editorRuntime\.events\.onWindow\(type, handler, options\),[\s\S]*addDocumentListener: \(type, handler, options\) => editorRuntime\.events\.onDocument\(type, handler, options\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getViewportWidth: \(\) => editorRuntime\.getViewportWidth\(\),[\s\S]*scrollWindowToTop: \(behavior\) => editorRuntime\.scrollWindowToTop\(behavior\),[\s\S]*getDocumentVisibilityState: \(\) => \(composerDocument \? composerDocument\.visibilityState : ''\),[\s\S]*\}\);/,
-  'composer should inject editor shell timers, frames, events, media, viewport, scroll, and visibility through the runtime boundary'
+  composerEditorWorkspaceFeatureSource,
+  /const editorShell = createComposerEditorShell\(\{[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*addWindowListener: \(type, handler, listenerOptions\) => editorRuntime\.events\.onWindow\(type, handler, listenerOptions\),[\s\S]*addDocumentListener: \(type, handler, listenerOptions\) => editorRuntime\.events\.onDocument\(type, handler, listenerOptions\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),[\s\S]*getViewportWidth: \(\) => editorRuntime\.getViewportWidth\(\),[\s\S]*scrollWindowToTop: \(behavior\) => editorRuntime\.scrollWindowToTop\(behavior\),[\s\S]*getDocumentVisibilityState: \(\) => \(documentRef \? documentRef\.visibilityState : ''\),[\s\S]*\}\);/,
+  'editor workspace feature should inject editor shell timers, frames, events, media, viewport, scroll, and visibility through the runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -1808,15 +1840,15 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerEditorWorkspaceFeatureSource,
   /from '\.\/composer-editor-detail-panel-controller\.js'/,
-  'composer should cache-bust the extracted editor detail panel controller boundary'
+  'editor workspace feature should own the extracted editor detail panel controller boundary'
 );
 
 assert.match(
-  source,
-  /const editorDetailPanelController = createComposerEditorDetailPanelController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*setSystemPanelVisible: \(visible\) => setEditorSystemPanelVisible\(visible\),[\s\S]*showSystemPanel: \(mode\) => showEditorSystemPanel\(mode\)[\s\S]*\}\);[\s\S]*animateEditorMarkdownPanelContent,[\s\S]*animateEditorStructurePanelContent,[\s\S]*setEditorDetailPanelMode,[\s\S]*setEditorStructurePanelVisible/,
-  'composer should wire editor detail panels through a focused controller with runtime timers'
+  composerEditorWorkspaceFeatureSource,
+  /const editorDetailPanelController = createComposerEditorDetailPanelController\(\{[\s\S]*documentRef,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*setSystemPanelVisible: \(visible\) => setEditorSystemPanelVisible\(visible\),[\s\S]*showSystemPanel: \(mode\) => showEditorSystemPanel\(mode\)[\s\S]*\}\);[\s\S]*animateEditorMarkdownPanelContent,[\s\S]*animateEditorStructurePanelContent,[\s\S]*setEditorDetailPanelMode,[\s\S]*setEditorStructurePanelVisible/,
+  'editor workspace feature should wire editor detail panels through a focused controller with runtime timers'
 );
 
 assert.doesNotMatch(
@@ -1838,27 +1870,21 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-yaml-panels-controller\.js'/,
-  'composer should cache-bust the extracted YAML panels controller boundary'
+  'YAML/site feature should own the extracted YAML panels controller boundary'
+);
+
+assert.match(
+  composerYamlSiteFeatureSource,
+  /function buildIndexUI\(root, state\) \{[\s\S]*composerIndexTabsUi\.buildIndexUI\(root, state\);[\s\S]*function buildTabsUI\(root, state\) \{[\s\S]*composerIndexTabsUi\.buildTabsUI\(root, state\);[\s\S]*function buildSiteUI\(root, state\) \{[\s\S]*composerSiteSettingsUi\.buildSiteUI\(root, state\);[\s\S]*const composerYamlPanelsController = createComposerYamlPanelsController\(\{[\s\S]*buildIndexUI,[\s\S]*buildTabsUI,[\s\S]*buildSiteUI,[\s\S]*updateMarkdownDraftIndicators: \(\) => runtimeOptions\.updateComposerMarkdownDraftIndicators\(\)[\s\S]*\}\);/,
+  'YAML/site feature should wire YAML panel rebuilds through a focused controller'
 );
 
 assert.match(
   source,
-  /const composerYamlPanelsController = createComposerYamlPanelsController\(\{[\s\S]*buildIndexUI: \(root, state\) => composerIndexTabsUi\.buildIndexUI\(root, state\),[\s\S]*buildTabsUI: \(root, state\) => composerIndexTabsUi\.buildTabsUI\(root, state\),[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\),[\s\S]*updateMarkdownDraftIndicators: \(\) => updateComposerMarkdownDraftIndicators\(\)[\s\S]*\}\);/,
-  'composer should wire YAML panel rebuilds through a focused controller'
-);
-
-assert.match(
-  source,
-  /function rebuildIndexUI\(preserveOpen = true\) \{\s*return composerYamlPanelsController\.rebuildIndexUI\(preserveOpen\);\s*\}[\s\S]*function rebuildTabsUI\(preserveOpen = true\) \{\s*return composerYamlPanelsController\.rebuildTabsUI\(preserveOpen\);\s*\}/,
-  'composer rebuild wrappers should delegate to the YAML panels controller for early callback wiring'
-);
-
-assert.match(
-  source,
-  /function rebuildSiteUI\(\) \{\s*return composerYamlPanelsController\.rebuildSiteUI\(\);\s*\}/,
-  'composer site rebuild wrapper should delegate to the YAML panels controller'
+  /rebuildIndexUI,[\s\S]*rebuildTabsUI,/,
+  'composer should receive rebuild callbacks from the YAML/site feature runtime'
 );
 
 assert.doesNotMatch(
@@ -1874,10 +1900,12 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  [
+ [
     composerSiteConfigSource,
+    composerYamlSiteFeatureSource,
     composerYamlActionsSource,
     composerYamlPanelsControllerSource,
+    composerMarkdownFeatureSource,
     composerMarkdownActionsUiSource,
     composerMarkdownActionsSource,
     composerMarkdownSessionSource
@@ -1888,8 +1916,14 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerControllerGraph = createComposerControllerGraph\(\{[\s\S]*serviceRegistry:[\s\S]*onDiagnostic:[\s\S]*Composer service diagnostic[\s\S]*\}\s*\}\);[\s\S]*composerServiceLifecycle\.setMarkdownDraftController\(createComposerMarkdownDraftController\(\{[\s\S]*composerServiceLifecycle\.setMarkdownLoader\(createComposerMarkdownLoader\(\{[\s\S]*composerServiceLifecycle\.setMarkdownActionsUi\(createComposerMarkdownActionsUi\(\{[\s\S]*composerServiceLifecycle\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServiceLifecycle\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServiceLifecycle\.setModeController\(createComposerModeController\(\{[\s\S]*composerServiceLifecycle\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
-  'composer should register late-bound controllers through the explicit composer service lifecycle'
+  /const composerControllerGraph = createComposerControllerGraph\(\{[\s\S]*serviceRegistry:[\s\S]*onDiagnostic:[\s\S]*Composer service diagnostic[\s\S]*\}\s*\}\);[\s\S]*const composerMarkdownFeature = createComposerMarkdownFeature\(\{[\s\S]*serviceLifecycle: composerServiceLifecycle,[\s\S]*\}\);[\s\S]*composerServiceLifecycle\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServiceLifecycle\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServiceLifecycle\.setModeController\(createComposerModeController\(\{[\s\S]*composerServiceLifecycle\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
+  'composer should register root-level late-bound controllers through the explicit composer service lifecycle and delegate Markdown feature internals to the feature boundary'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
+  /serviceLifecycle\.setMarkdownDraftController\(draftController\);[\s\S]*serviceLifecycle\.setMarkdownLoader\(loader\);[\s\S]*serviceLifecycle\.setMarkdownActionsUi\(actionsUi\);/,
+  'Markdown feature should register draft, loader, and actions UI controllers through the explicit composer service lifecycle'
 );
 
 assert.match(
@@ -2827,7 +2861,7 @@ assert.match(
 );
 
 assert.match(
-  `${source}\n${composerControllerGraphSource}`,
+  `${source}\n${composerEditorWorkspaceFeatureSource}\n${composerControllerGraphSource}`,
   /getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*setAllowEditorStatePersist: \(value\) => getFunction\(editorRuntime, 'setAllowEditorStatePersist'\)\(value\)/,
   'composer should route editor-state persistence gates through the explicit composer runtime'
 );
@@ -2923,15 +2957,15 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /const editorFileTreeUi = createEditorFileTreeUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
-  'composer should inject editor file tree scheduling through the runtime boundary'
+  composerEditorWorkspaceFeatureSource,
+  /editorFileTreeUi = createEditorFileTreeUi\(\{[\s\S]*documentRef,[\s\S]*windowRef,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  'editor workspace feature should inject editor file tree scheduling through the runtime boundary'
 );
 
 assert.match(
-  source,
-  /const editorStructurePanelUi = createEditorStructurePanelUi\(\{[\s\S]*documentRef: composerDocument,[\s\S]*windowRef: composerWindow,[\s\S]*consoleRef: composerLogger,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*populateEditorLanguageSelect: \(\) => editorRuntime\.populateEditorLanguageSelect\(\),[\s\S]*emitLanguageControlMounted: \(\) => editorRuntime\.emitEditorLanguageControlMounted\(\)[\s\S]*\}\);/,
-  'composer should inject editor structure panel frames, alerts, and language-control events through the runtime boundary'
+  composerEditorWorkspaceFeatureSource,
+  /editorStructurePanelUi = createEditorStructurePanelUi\(\{[\s\S]*documentRef,[\s\S]*windowRef,[\s\S]*consoleRef,[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*populateEditorLanguageSelect: \(\) => editorRuntime\.populateEditorLanguageSelect\(\),[\s\S]*emitLanguageControlMounted: \(\) => editorRuntime\.emitEditorLanguageControlMounted\(\)[\s\S]*\}\);/,
+  'editor workspace feature should inject editor structure panel frames, alerts, and language-control events through the runtime boundary'
 );
 
 assert.match(
@@ -2965,9 +2999,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerPublishSyncFeatureSource,
   /from '\.\/composer-publish-state-service\.js'/,
-  'composer should cache-bust the extracted publish state service boundary'
+  'publish/sync feature should own the extracted publish state service boundary'
 );
 
 assert.doesNotMatch(
@@ -2978,8 +3012,14 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishStateService = createComposerPublishStateService\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*consoleRef: composerLogger,[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishStateService\.gatherCommitPayload\(\{[\s\S]*setStatus: setSyncOverlayStatus[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerActions\.applyLocalPostCommitState\(files\);[\s\S]*function rawApplyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishStateService\.applyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishStateService\.getTrackedPublishContentRoot\(\);/,
-  'composer should reduce publish persistence to explicit app-service and action-contract callbacks'
+  /const composerPublishSyncFeature = createComposerPublishSyncFeature\(\{[\s\S]*getStateSlice,[\s\S]*getRemoteBaseline: \(\) => composerStateStore\.getRemoteBaseline\(\),[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*getLocationOrigin: \(\) => editorRuntime\.getLocationOrigin\(\),[\s\S]*getDocumentLang: \(\) => editorRuntime\.getDocumentLang\(\),[\s\S]*setRemoteBaselineSlice: \(kind, value\) => composerStateStore\.setRemoteBaseline\(kind, value\),[\s\S]*applyComposerEffectiveSiteConfig: \(site\) => applyComposerEffectiveSiteConfig\(site\),[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*\}\);[\s\S]*function gatherCommitPayload\(options = \{\}\) \{[\s\S]*composerPublishSyncFeature\.gatherCommitPayload\(options\);[\s\S]*function applyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerActions\.applyLocalPostCommitState\(files\);[\s\S]*function rawApplyLocalPostCommitState\(files = \[\]\) \{[\s\S]*composerPublishSyncFeature\.rawApplyLocalPostCommitState\(files\);[\s\S]*function getTrackedPublishContentRoot\(\) \{[\s\S]*composerPublishSyncFeature\.getTrackedPublishContentRoot\(\);/,
+  'composer should reduce publish persistence to explicit publish/sync feature and action-contract callbacks'
+);
+
+assert.match(
+  composerPublishSyncFeatureSource,
+  /createComposerPublishStateService\(\{[\s\S]*prepareIndexState: options\.prepareIndexState,[\s\S]*prepareTabsState: options\.prepareTabsState,[\s\S]*prepareSiteState: options\.prepareSiteState,[\s\S]*deepClone: options\.deepClone/,
+  'publish/sync feature should forward all YAML normalizers into post-commit publish state'
 );
 
 assert.match(
@@ -3151,15 +3191,15 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerEditorWorkspaceFeatureSource,
   /from '\.\/editor-content-tree-controller\.js'/,
-  'composer should cache-bust the extracted editor content tree controller boundary'
+  'editor workspace feature should own the extracted editor content tree controller boundary'
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-yaml-actions\.js'/,
-  'composer should cache-bust the extracted YAML action boundary'
+  'YAML/site feature should own the extracted YAML action boundary'
 );
 
 assert.doesNotMatch(
@@ -3176,8 +3216,8 @@ assert.match(
 
 assert.match(
   source,
-  /const composerYamlActions = createComposerYamlActions\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
-  'composer should inject YAML action dialogs, logging, and timers through the runtime boundary'
+  /composerYamlFeature\.createRuntime\(\{[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\)[\s\S]*\}\);/,
+  'composer should inject YAML action dialogs and timers through the feature runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -3199,9 +3239,21 @@ assert.match(
 );
 
 assert.match(
+  composerEditorWorkspaceFeatureSource,
+  /let scheduleEditorStatePersistRef = scheduleEditorStatePersistExternal;[\s\S]*let persistSystemTreeExpandedStateRef = persistSystemTreeExpandedStateExternal;[\s\S]*createEditorContentTreeController\(\{[\s\S]*scheduleEditorStatePersist: \(\) => scheduleEditorStatePersistRef\(\),[\s\S]*persistSystemTreeExpandedState: \(\) => persistSystemTreeExpandedStateRef\(\),[\s\S]*const editorShell = createComposerEditorShell\(\{[\s\S]*scheduleEditorStatePersist: scheduleEditorStatePersistFromShell,[\s\S]*scheduleEditorStatePersistRef = scheduleEditorStatePersistFromShell;[\s\S]*persistSystemTreeExpandedStateRef = persistSystemTreeExpandedStateFromShell;/,
+  'editor workspace feature should late-bind tree-controller persistence hooks to the editor shell lifecycle callbacks'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
+  /from '\.\/composer-markdown-loader\.js'/,
+  'Markdown feature should cache-bust the extracted Markdown loader boundary'
+);
+
+assert.doesNotMatch(
   source,
   /from '\.\/composer-markdown-loader\.js'/,
-  'composer should cache-bust the extracted Markdown loader boundary'
+  'composer root should not import the Markdown loader directly after the Markdown feature extraction'
 );
 
 assert.doesNotMatch(
@@ -3223,9 +3275,15 @@ assert.doesNotMatch(
 );
 
 assert.match(
+  composerMarkdownFeatureSource,
+  /from '\.\/composer-markdown-actions-ui\.js'/,
+  'Markdown feature should cache-bust the extracted Markdown actions UI boundary'
+);
+
+assert.doesNotMatch(
   source,
   /from '\.\/composer-markdown-actions-ui\.js'/,
-  'composer should cache-bust the extracted Markdown actions UI boundary'
+  'composer root should not import the Markdown actions UI directly after the Markdown feature extraction'
 );
 
 assert.doesNotMatch(
@@ -3241,9 +3299,15 @@ assert.match(
 );
 
 assert.match(
+  composerMarkdownFeatureSource,
+  /from '\.\/composer-markdown-actions\.js'/,
+  'Markdown feature should cache-bust the extracted Markdown actions controller boundary'
+);
+
+assert.doesNotMatch(
   source,
   /from '\.\/composer-markdown-actions\.js'/,
-  'composer should cache-bust the extracted Markdown actions controller boundary'
+  'composer root should not import the Markdown actions controller directly after the Markdown feature extraction'
 );
 
 assert.match(
@@ -3278,8 +3342,14 @@ assert.match(
 
 assert.match(
   source,
-  /const markdownActionsController = createComposerMarkdownActionsController\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*confirmRef: \(message\) => editorRuntime\.confirmAction\(message\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),/,
-  'composer should inject Markdown action dialogs, logging, and timer clearing through the runtime boundary'
+  /const markdownActionsController = composerMarkdownFeature\.createActionsController\(\{[\s\S]*preparePopupWindow,[\s\S]*startMarkdownSyncWatcher,[\s\S]*nsCopyToClipboard[\s\S]*\}\);/,
+  'composer should delegate Markdown action controller wiring to the Markdown feature boundary'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
+  /createComposerMarkdownActionsController\(\{[\s\S]*consoleRef,[\s\S]*confirmRef: \(message\) => typeof editorRuntime\.confirmAction === 'function' \? editorRuntime\.confirmAction\(message\) : true,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\),/,
+  'Markdown feature should inject Markdown action dialogs, logging, and timer clearing through the runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -3289,9 +3359,15 @@ assert.doesNotMatch(
 );
 
 assert.match(
+  composerMarkdownFeatureSource,
+  /from '\.\/composer-markdown-state\.js'/,
+  'Markdown feature should cache-bust the extracted Markdown state boundary'
+);
+
+assert.doesNotMatch(
   source,
   /from '\.\/composer-markdown-state\.js'/,
-  'composer should cache-bust the extracted Markdown state boundary'
+  'composer root should not import the Markdown state boundary directly after the Markdown feature extraction'
 );
 
 assert.doesNotMatch(
@@ -3307,24 +3383,20 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerMarkdownFeatureSource,
   /from '\.\/composer-markdown-drafts\.js'/,
-  'composer should cache-bust the extracted Markdown drafts boundary'
+  'Markdown feature should cache-bust the extracted Markdown drafts boundary'
 );
 
-const restoreMarkdownDraftForTabBody = extractFunctionBody(source, 'restoreMarkdownDraftForTab');
-const saveMarkdownDraftForTabBody = extractFunctionBody(source, 'saveMarkdownDraftForTab');
-const scheduleMarkdownDraftSaveBody = extractFunctionBody(source, 'scheduleMarkdownDraftSave');
-const updateDynamicTabDirtyStateBody = extractFunctionBody(source, 'updateDynamicTabDirtyState');
+assert.doesNotMatch(
+  source,
+  /from '\.\/composer-markdown-drafts\.js'/,
+  'composer root should not import the Markdown drafts controller directly after the Markdown feature extraction'
+);
 
 assert.doesNotMatch(
-  [
-    restoreMarkdownDraftForTabBody,
-    saveMarkdownDraftForTabBody,
-    scheduleMarkdownDraftSaveBody,
-    updateDynamicTabDirtyStateBody
-  ].join('\n'),
-  /importMarkdownAssetsForPath|prepareMarkdownForProtectedStorage|setTimeout|normalizeMarkdownContent|countMarkdownAssetDeletions/,
+  source,
+  /function restoreMarkdownDraftForTab|function saveMarkdownDraftForTab|function scheduleMarkdownDraftSave|function updateDynamicTabDirtyState/,
   'Markdown draft storage, restore, autosave, and dirty-state lifecycle should stay outside the main composer shell'
 );
 
@@ -3335,9 +3407,21 @@ assert.match(
 );
 
 assert.match(
-  source,
-  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\)/,
-  'composer should inject Markdown draft logging and autosave timers explicitly'
+  composerMarkdownFeatureSource,
+  /createComposerMarkdownDraftController\(\{[\s\S]*updateComposerMarkdownDraftIndicators,[\s\S]*refreshEditorContentTree,[\s\S]*updateUnsyncedSummary: \(\) => updateUnsyncedSummary\(\{ preserveStructure: true \}\)/,
+  'Markdown feature should pass draft indicator, editor-tree, and summary refresh hooks into the draft boundary'
+);
+
+assert.match(
+  composerMarkdownDraftsSource,
+  /function refreshMarkdownDraftTree\(tab\) \{[\s\S]*refreshEditorContentTree\(\{ preserveStructure: !!\(tab && getCurrentMode\(\) === tab\.mode\) \}\);[\s\S]*async function saveDraftForTab\(tab, saveOptions = \{\}\)[\s\S]*updateComposerMarkdownDraftIndicators\(\{ path: tab\.path \}\);\s*refreshMarkdownDraftTree\(tab\);[\s\S]*function clearDraftForTab\(tab\)[\s\S]*updateComposerMarkdownDraftIndicators\(\{ path: tab\.path \}\);\s*refreshMarkdownDraftTree\(tab\);/,
+  'Markdown draft save and clear paths should refresh the editor tree after path-scoped draft indicator updates'
+);
+
+assert.match(
+  composerMarkdownFeatureSource,
+  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef,[\s\S]*setTimeoutRef: \(handler, delay\) => typeof editorRuntime\.setTimer === 'function' \? editorRuntime\.setTimer\(handler, delay\) : null,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\)[\s\S]*\}\)/,
+  'Markdown feature should inject Markdown draft logging and autosave timers explicitly'
 );
 
 assert.doesNotMatch(
@@ -3347,9 +3431,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerEditorWorkspaceFeatureSource,
   /from '\.\/editor-file-tree-ui\.js'/,
-  'composer should cache-bust the extracted editor file tree UI boundary'
+  'editor workspace feature should own the extracted editor file tree UI boundary'
 );
 
 assert.doesNotMatch(
@@ -3365,9 +3449,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerEditorWorkspaceFeatureSource,
   /from '\.\/editor-structure-panel-ui\.js'/,
-  'composer should cache-bust the extracted editor structure panel UI boundary'
+  'editor workspace feature should own the extracted editor structure panel UI boundary'
 );
 
 assert.doesNotMatch(
@@ -3700,8 +3784,14 @@ assert.equal(
 
 assert.match(
   source,
-  /export function createComposerController\(editorRuntime = createComposerRuntime\(\)\)[\s\S]*const composerStartup = composerControllerGraph\.createStartup\(\{[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildSiteUI: \(root, state\) => composerSiteSettingsUi\.buildSiteUI\(root, state\)[\s\S]*function start\(\) \{\s*return composerStartup\.start\(\);\s*\}[\s\S]*createComposerController\(\)\.start\(\);/,
-  'composer should wire inferred starter repository config into the extracted workspace assembly before rendering Site Settings'
+  /export function createComposerController\(editorRuntime = createComposerRuntime\(\)\)[\s\S]*const composerStartup = composerControllerGraph\.createStartup\(\{[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildIndexUI,[\s\S]*buildTabsUI,[\s\S]*buildSiteUI,[\s\S]*function start\(\) \{\s*return composerStartup\.start\(\);\s*\}[\s\S]*createComposerController\(\)\.start\(\);/,
+  'composer should wire inferred starter repository config into the extracted workspace assembly before rendering through YAML feature ports'
+);
+
+assert.doesNotMatch(
+  source,
+  /composerIndexTabsUi|composerSiteSettingsUi/,
+  'composer startup should not reference YAML/site feature-private UI instances'
 );
 
 assert.match(
@@ -5774,9 +5864,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerPublishSyncFeatureSource,
   /from '\.\/composer-publish-service\.js'/,
-  'composer should cache-bust the explicit composer publish app-service boundary'
+  'publish/sync feature should own the explicit composer publish app-service boundary'
 );
 
 assert.doesNotMatch(
@@ -5787,14 +5877,14 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerPublishService = createComposerPublishService\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*consoleRef: composerLogger,[\s\S]*setGitHubCommitInFlight: \(value\) => editorRuntime\.setGitHubCommitInFlight\(value\)/,
-  'composer should pass app callbacks into the publish service instead of assembling the publish control plane itself'
+  /const composerPublishSyncFeature = createComposerPublishSyncFeature\(\{[\s\S]*fetchContent: \(url, options\) => editorRuntime\.fetchContent\(url, options\),[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*getActiveSiteRepoConfig: \(\) => getActiveSiteRepoConfig\(\),[\s\S]*getTrackedPublishContentRoot: \(\) => getTrackedPublishContentRoot\(\),[\s\S]*gatherCommitPayload: \(options\) => gatherCommitPayload\(options\),[\s\S]*applyLocalPostCommitState: \(files\) => applyLocalPostCommitState\(files\),[\s\S]*computeUnsyncedSummary,[\s\S]*setGitHubCommitInFlight: \(value\) => editorRuntime\.setGitHubCommitInFlight\(value\)/,
+  'composer should pass app callbacks into the publish/sync feature instead of assembling the publish control plane itself'
 );
 
 assert.match(
   source,
-  /const composerPublishService = createComposerPublishService\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),/,
-  'composer should inject publish/sync timer, frame, and media adapters from the app runtime'
+  /const composerPublishSyncFeature = createComposerPublishSyncFeature\(\{[\s\S]*requestAnimationFrameRef: \(callback\) => editorRuntime\.requestFrame\(callback\),[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\),[\s\S]*matchesMedia: \(query\) => editorRuntime\.matchesMedia\(query\),/,
+  'composer should inject publish/sync timer, frame, and media adapters through the feature runtime'
 );
 
 assert.match(
@@ -6047,9 +6137,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerPublishSyncFeatureSource,
   /from '\.\/composer-remote-sync\.js'/,
-  'composer should cache-bust the extracted remote sync boundary'
+  'publish/sync feature should own the extracted remote sync boundary'
 );
 
 assert.doesNotMatch(
@@ -6071,9 +6161,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  source,
+  composerYamlSiteFeatureSource,
   /from '\.\/composer-yaml-drafts\.js'/,
-  'composer should cache-bust the extracted YAML draft boundary'
+  'YAML/site feature should own the extracted YAML draft boundary'
 );
 
 assert.doesNotMatch(
@@ -6090,8 +6180,8 @@ assert.match(
 
 assert.match(
   source,
-  /const composerYamlDraftController = createComposerYamlDraftController\(\{[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\);/,
-  'composer should inject YAML draft autosave timers through the runtime boundary'
+  /composerYamlFeature\.createRuntime\(\{[\s\S]*setTimeoutRef: \(handler, delay\) => editorRuntime\.setTimer\(handler, delay\),[\s\S]*clearTimeoutRef: \(id\) => editorRuntime\.clearTimer\(id\)[\s\S]*\}\);/,
+  'composer should inject YAML draft autosave timers through the feature runtime boundary'
 );
 
 assert.doesNotMatch(
@@ -6869,9 +6959,9 @@ assert.match(
 );
 
 assert.match(
-  source,
+  composerEditorWorkspaceFeatureSource,
   /import \{ findEditorContentTreeNode, flattenEditorContentTree \} from '\.\/editor-content-tree\.js';/,
-  'composer should use the shared editor content tree navigation helpers'
+  'editor workspace feature should use the shared editor content tree navigation helpers'
 );
 
 assert.match(
@@ -7078,13 +7168,13 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
+  `${composerYamlSiteFeatureSource}\n${siteSettingsSource}`,
   /const renderIdentityLocalizedGrid = \(section\) => \{/,
   'composer site editor should define a merged identity localized grid renderer'
 );
 
 assert.match(
-  siteSettingsSource,
+  `${siteSettingsSource}\n${composerYamlSiteFeatureSource}`,
   /renderIdentityLocalizedGrid\(identitySection\);/,
   'Identity section should render title and subtitle through the merged grid'
 );
@@ -7643,7 +7733,7 @@ assert.match(
 );
 
 assert.match(
-  siteSettingsSource,
+  `${composerYamlSiteFeatureSource}\n${siteSettingsSource}`,
   /const ANNOTATE_DISCUSSION_CATEGORY_PRESETS = \[[\s\S]*value: 'General'[\s\S]*renderAnnotateGrid[\s\S]*type: 'url'[\s\S]*listId: 'siteAnnotateConnectBaseUrlPresets'[\s\S]*options: connectPublishPresets[\s\S]*listId: 'siteAnnotateDiscussionCategoryPresets'[\s\S]*options: annotateDiscussionCategoryPresets/,
   'Annotate settings should expose editable datalist inputs for Connect URL and Discussion category'
 );

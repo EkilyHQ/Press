@@ -13,6 +13,7 @@ const indexEditorHtml = read('index_editor.html');
 const indexEditorPreviewHtml = read('index_editor_preview.html');
 const composer = read('assets/js/composer.js');
 const composerDialogs = read('assets/js/composer-dialogs.js');
+const composerMarkdownFeature = read('assets/js/composer-markdown-feature.js');
 const composerMarkdownActionsUi = read('assets/js/composer-markdown-actions-ui.js');
 const composerMarkdownActions = read('assets/js/composer-markdown-actions.js');
 const composerMarkdownState = read('assets/js/composer-markdown-state.js');
@@ -164,7 +165,8 @@ assert.match(composerSeoStaging, /from '\.\/seo\.js';/, 'composer SEO staging sh
 assert.match(composerSystemThemeBridge, /from '\.\/system-updates\.js';/, 'system/theme bridge should cache-bust system updates after version compatibility changes');
 assert.match(read('assets/js/system-updates.js'), /from '\.\/safe-html\.js';/, 'system updates should cache-bust sanitizer when release notes can contain math');
 assert.match(composerSystemThemeBridge, /from '\.\/theme-manager\.js';/, 'system/theme bridge should cache-bust theme manager after Press engine compatibility changes');
-assert.match(composer, /from '\.\/encrypted-content\.js';/, 'composer should use the encrypted markdown envelope helpers for protected editor flows');
+assert.doesNotMatch(composer, /from '\.\/encrypted-content\.js';/, 'composer root should not import encrypted markdown helpers directly after the Markdown feature split');
+assert.match(composerMarkdownFeature, /from '\.\/encrypted-content\.js';/, 'Markdown feature should use the encrypted markdown envelope helpers for protected editor flows');
 assert.match(themeLayout, /from '\.\/i18n\.js';/, 'theme layout should share the repository deletion docs i18n cache key');
 assert.match(languageManifest, /en\.js/, 'language manifest should cache-bust bundles when editor asset deletion strings change');
 assert.doesNotMatch(

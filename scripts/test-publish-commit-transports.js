@@ -4,7 +4,8 @@ import { createGitHubSiteRepositoryProvider } from '../assets/js/provider-adapte
 import { publishCommit } from '../assets/js/publish/commit-service.js';
 import {
   createConnectPublishCommit,
-  requestConnectPublishGrant
+  requestConnectPublishGrant,
+  waitForConnectPublishPropagation
 } from '../assets/js/publish/transports/connect-transport.js';
 import {
   buildGithubFileChanges,
@@ -388,6 +389,64 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
           return Promise.resolve(okJson({
             ok: true,
             accepted: true,
+            job: {
+              id: 'pubjob_async_propagation',
+              state: 'queued',
+              statusUrl: 'https://connect.example/api/press/publish?job=pubjob_async_propagation'
+            }
+          }, 202));
+        }
+        return Promise.resolve(okJson({
+          ok: true,
+          job: {
+            id: 'pubjob_async_propagation',
+            requestId: 'request-async-propagation',
+            state: 'committed',
+            repository: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+            commit: { oid: 'async-propagation-commit' },
+            propagation: {
+              source: 'connect',
+              state: 'observing',
+              markerPath: 'wwwroot/press-publish-status.json',
+              markerUrl: 'https://ekilyhq.github.io/Press/press-publish-status.json',
+              attemptCount: 0
+            }
+          }
+        }));
+      }
+    });
+    assert.equal(result.job.id, 'pubjob_async_propagation');
+    assert.equal(result.job.propagation.source, 'connect');
+    assert.equal(result.job.propagation.state, 'observing');
+    assert.equal(result.job.propagation.markerPath, 'wwwroot/press-publish-status.json');
+    assert.equal(result.job.propagation.markerUrl, 'https://ekilyhq.github.io/Press/press-publish-status.json');
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 2);
+  assert.deepEqual(ambientCalls, [], 'Connect publish result should preserve durable propagation metadata');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  try {
+    const result = await createConnectPublishCommit({
+      connect: { baseUrl: 'https://connect.example' },
+      repo: { owner: 'EkilyHQ', name: 'Press', branch: 'main' },
+      headline: 'Sync draft',
+      files: [{ path: 'wwwroot/post/main.md', content: utf8Fixture }],
+      contentRoot: 'wwwroot',
+      grant: { token: 'grant-token' },
+      pollIntervalMs: 0,
+      sleepImpl: async () => {},
+      fetchImpl(url, options) {
+        requests.push({ url, options, body: options.body ? JSON.parse(options.body) : null });
+        if (requests.length === 1) {
+          return Promise.resolve(okJson({
+            ok: true,
+            accepted: true,
             publishJob: {
               id: 'pubjob_alias',
               state: 'queued',
@@ -416,6 +475,68 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
   assert.equal(requests[1].url, 'https://connect.example/api/press/publish?job=pubjob_alias');
   assert.equal(requests[1].options.headers.Authorization, 'Bearer grant-token');
   assert.deepEqual(ambientCalls, [], 'Connect publish polling should support publishJob aliases without ambient fetch');
+}
+
+{
+  const ambientCalls = [];
+  const restores = ['fetch', 'window', 'document'].map((name) => installAmbientTrap(name, ambientCalls));
+  const requests = [];
+  const statuses = [];
+  const cancelHandlers = [];
+  try {
+    const result = await waitForConnectPublishPropagation({
+      connect: { baseUrl: 'https://connect.example' },
+      grant: { token: 'grant-token' },
+      job: {
+        id: 'pubjob_propagation',
+        state: 'committed',
+        statusUrl: 'https://connect.example/api/press/publish?job=pubjob_propagation',
+        propagation: {
+          source: 'connect',
+          state: 'observing',
+          markerUrl: 'https://site.example/press-publish-status.json'
+        }
+      },
+      pollIntervalMs: 0,
+      sleepImpl: async () => {},
+      onStatus: status => statuses.push(status),
+      setCancelHandler: handler => cancelHandlers.push(typeof handler === 'function'),
+      fetchImpl(url, options) {
+        requests.push({ url, options });
+        return Promise.resolve(okJson({
+          ok: true,
+          job: {
+            id: 'pubjob_propagation',
+            state: 'committed',
+            statusUrl: 'https://connect.example/api/press/publish?job=pubjob_propagation',
+            propagation: {
+              source: 'connect',
+              state: 'observed',
+              markerPath: 'wwwroot/press-publish-status.json',
+              markerUrl: 'https://site.example/press-publish-status.json',
+              observedAt: '2026-05-31T00:00:00.000Z',
+              attemptCount: 1
+            }
+          }
+        }));
+      }
+    });
+    assert.equal(result.source, 'connect');
+    assert.equal(result.state, 'observed');
+    assert.equal(result.observed, true);
+    assert.equal(result.timedOut, false);
+    assert.equal(result.jobId, 'pubjob_propagation');
+    assert.equal(result.markerUrl, 'https://site.example/press-publish-status.json');
+    assert.equal(result.attemptCount, 1);
+  } finally {
+    restores.reverse().forEach((restore) => restore());
+  }
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, 'https://connect.example/api/press/publish?job=pubjob_propagation');
+  assert.equal(requests[0].options.headers.Authorization, 'Bearer grant-token');
+  assert.ok(statuses.includes('Connect is checking the live site...'));
+  assert.deepEqual(cancelHandlers, [true, false]);
+  assert.deepEqual(ambientCalls, [], 'Connect propagation polling should use injected fetch only');
 }
 
 {
@@ -731,17 +852,33 @@ const expectedBase64 = Buffer.from(utf8Fixture, 'utf8').toString('base64');
       }),
       fetchImpl(url, options) {
         requests.push({ url, options });
-        return Promise.resolve(okJson({ ok: true, id: 'published', commit: { oid: 'connect-commit' } }));
+        return Promise.resolve(okJson({
+          ok: true,
+          id: 'published',
+          commit: { oid: 'connect-commit' },
+          job: {
+            id: 'pubjob_normalized',
+            state: 'committed',
+            propagation: {
+              source: 'connect',
+              state: 'observed',
+              markerUrl: 'https://site.example/press-publish-status.json',
+              attemptCount: 1
+            }
+          }
+        }));
       },
       onPublishState: state => states.push(state)
     });
-    assert.deepEqual(result, {
-      ok: true,
-      provider: 'connect',
-      transport: 'connect',
-      id: 'published',
-      commit: { oid: 'connect-commit' }
-    });
+    assert.equal(result.ok, true);
+    assert.equal(result.provider, 'connect');
+    assert.equal(result.transport, 'connect');
+    assert.equal(result.id, 'published');
+    assert.deepEqual(result.commit, { oid: 'connect-commit' });
+    assert.equal(result.job.id, 'pubjob_normalized');
+    assert.equal(result.job.propagation.source, 'connect');
+    assert.equal(result.job.propagation.state, 'observed');
+    assert.equal(result.job.propagation.markerUrl, 'https://site.example/press-publish-status.json');
   } finally {
     restores.reverse().forEach((restore) => restore());
   }

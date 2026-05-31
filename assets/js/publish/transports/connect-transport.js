@@ -25,6 +25,10 @@ function resolveSleep(sleepImpl) {
   return ms => new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function safeString(value) {
+  return value == null ? '' : String(value);
+}
+
 function resolveWindow(windowRef) {
   if (windowRef) return windowRef;
   const ambientWindow = resolveAmbientValue('window');
@@ -95,6 +99,144 @@ function resolveConnectPublishStatusTarget(job, endpoint) {
   const target = new URL(endpoint.href);
   if (jobId) target.searchParams.set('job', jobId);
   return target;
+}
+
+function normalizeConnectPublishPropagation(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const state = safeString(source.state).trim();
+  if (!state) return null;
+  const out = {
+    source: safeString(source.source || 'connect').trim() || 'connect',
+    state
+  };
+  for (const key of ['markerPath', 'markerUrl', 'startedAt', 'updatedAt', 'observedAt', 'timedOutAt', 'lastAttemptAt']) {
+    if (source[key] != null) out[key] = safeString(source[key]);
+  }
+  if (source.attemptCount != null) out.attemptCount = Number(source.attemptCount) || 0;
+  const error = source.error && typeof source.error === 'object' ? source.error : null;
+  const errorCode = safeString(error && error.code || source.errorCode).trim();
+  if (errorCode) {
+    out.error = {
+      code: errorCode,
+      message: safeString(error && error.message || source.errorMessage)
+    };
+  }
+  return out;
+}
+
+function formatConnectPropagationResult(job, propagation, patch = {}) {
+  if (!propagation || propagation.source !== 'connect') return null;
+  const state = safeString(propagation.state).trim();
+  if (!state) return null;
+  const timedOut = state === 'timedOut' || state === 'failed' || !!patch.timedOut;
+  const failed = state === 'failed' || !!patch.failed;
+  return {
+    source: 'connect',
+    state,
+    jobId: safeString(job && (job.id || job.jobId)).trim(),
+    markerPath: propagation.markerPath || '',
+    markerUrl: propagation.markerUrl || '',
+    observedAt: propagation.observedAt || '',
+    timedOutAt: propagation.timedOutAt || '',
+    attemptCount: propagation.attemptCount || 0,
+    canceled: !!patch.canceled,
+    timedOut,
+    failed,
+    observed: !patch.canceled && !timedOut && state === 'observed',
+    error: propagation.error || patch.error || null,
+    job
+  };
+}
+
+function isConnectPropagationTerminal(propagation) {
+  const state = safeString(propagation && propagation.state).trim();
+  return state === 'observed' || state === 'timedOut' || state === 'failed';
+}
+
+export async function waitForConnectPublishPropagation({
+  connect,
+  grant,
+  job,
+  fetchImpl = null,
+  translate = (key) => key,
+  onStatus = null,
+  setCancelHandler = null,
+  pollIntervalMs = 30000,
+  pollTimeoutMs = 10 * 60 * 1000,
+  sleepImpl = null
+} = {}) {
+  const message = (key, fallback) => {
+    const value = typeof translate === 'function' ? translate(key) : '';
+    return value && value !== key ? value : fallback;
+  };
+  const fetchRef = resolveFetch(fetchImpl);
+  const sleep = resolveSleep(sleepImpl);
+  if (!fetchRef || !connect || !connect.baseUrl || !grant || !grant.token || !job) return null;
+  const endpoint = new URL('/api/press/publish', connect.baseUrl);
+  const startedAt = Date.now();
+  let latestPayload = null;
+  let latestJob = job;
+  let canceled = false;
+
+  const setStatus = (text) => {
+    if (typeof onStatus === 'function') onStatus(text);
+  };
+  if (typeof setCancelHandler === 'function') {
+    setCancelHandler(() => {
+      canceled = true;
+      setStatus(message('editor.composer.github.modal.connectPropagationStopping', 'Stopping Connect live-site checks...'));
+    }, true);
+  }
+
+  try {
+    while (latestJob && typeof latestJob === 'object') {
+      const propagation = normalizeConnectPublishPropagation(latestJob.propagation);
+      if (isConnectPropagationTerminal(propagation)) {
+        return formatConnectPropagationResult(latestJob, propagation);
+      }
+      if (canceled) {
+        return formatConnectPropagationResult(latestJob, propagation || { source: 'connect', state: 'canceled' }, { canceled: true });
+      }
+      if (Date.now() - startedAt >= pollTimeoutMs) {
+        return formatConnectPropagationResult(latestJob, propagation || { source: 'connect', state: 'localTimeout' }, { timedOut: true });
+      }
+
+      setStatus(message('editor.composer.github.modal.connectCheckingLiveSite', 'Connect is checking the live site...'));
+      await sleep(Math.max(0, Number(pollIntervalMs) || 0));
+      if (canceled) {
+        return formatConnectPropagationResult(latestJob, propagation || { source: 'connect', state: 'canceled' }, { canceled: true });
+      }
+
+      const target = resolveConnectPublishStatusTarget(latestJob, endpoint);
+      let response = null;
+      try {
+        response = await fetchRef(target.href, {
+          method: 'GET',
+          referrerPolicy: 'unsafe-url',
+          headers: {
+            'Authorization': `Bearer ${grant.token}`
+          }
+        });
+      } catch (err) {
+        const error = new Error(message('editor.composer.github.modal.connectPropagationUnavailable', 'Connect propagation status is temporarily unavailable.'));
+        error.cause = err;
+        throw error;
+      }
+      latestPayload = await response.json().catch(() => null);
+      if (!response.ok || !latestPayload || latestPayload.ok === false) {
+        const error = new Error(latestPayload && latestPayload.error && latestPayload.error.message
+          ? latestPayload.error.message
+          : message('editor.composer.github.modal.connectPropagationUnavailable', 'Connect propagation status is temporarily unavailable.'));
+        error.status = response.status;
+        error.response = latestPayload;
+        throw error;
+      }
+      latestJob = resolveConnectPublishJob(latestPayload) || latestJob;
+    }
+  } finally {
+    if (typeof setCancelHandler === 'function') setCancelHandler(null, true);
+  }
+  return null;
 }
 
 export async function createConnectPublishCommit({

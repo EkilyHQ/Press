@@ -142,7 +142,36 @@ function normalizePublishJobInfo(value) {
       out.error.upstreamCode = safeString(error && error.upstreamCode || source.upstreamCode);
     }
   }
+  const propagation = normalizePublishPropagationInfo(source.propagation);
+  if (propagation) out.propagation = propagation;
   return out;
+}
+
+function normalizePublishPropagationInfo(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const state = safeString(source.state).trim();
+  const sourceName = safeString(source.source).trim();
+  if (!state && !sourceName) return null;
+  const out = {};
+  if (sourceName) out.source = sourceName;
+  if (state) out.state = state;
+  for (const key of ['jobId', 'markerPath', 'markerUrl', 'observedAt', 'timedOutAt']) {
+    if (source[key] != null) out[key] = safeString(source[key]);
+  }
+  if (source.attemptCount != null) out.attemptCount = Number(source.attemptCount) || 0;
+  if (source.canceled) out.canceled = true;
+  if (source.timedOut) out.timedOut = true;
+  if (source.failed) out.failed = true;
+  if (source.observed) out.observed = true;
+  const error = source.error && typeof source.error === 'object' ? source.error : null;
+  const errorCode = safeString(error && error.code || source.errorCode).trim();
+  if (errorCode) {
+    out.error = {
+      code: errorCode,
+      message: safeString(error && error.message || source.errorMessage)
+    };
+  }
+  return Object.keys(out).length ? out : null;
 }
 
 function normalizePublishResult(value) {
@@ -160,11 +189,17 @@ function normalizePublishResult(value) {
 
 function normalizePropagation(value) {
   const source = value && typeof value === 'object' ? value : {};
-  return {
+  const out = {
     canceled: !!source.canceled,
     timedOut: !!source.timedOut,
-    observed: !source.canceled && !source.timedOut
+    observed: source.observed != null
+      ? !!source.observed
+      : !source.canceled && !source.timedOut && !source.failed
   };
+  const info = normalizePublishPropagationInfo(source);
+  if (info) Object.assign(out, info);
+  if (source.failed) out.failed = true;
+  return out;
 }
 
 export function classifyPublishError(err) {

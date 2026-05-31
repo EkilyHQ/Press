@@ -3023,6 +3023,12 @@ assert.match(
 );
 
 assert.match(
+  composerPublishSyncFeatureSource,
+  /createComposerPublishStateService\(\{[\s\S]*prepareIndexState: options\.prepareIndexState,[\s\S]*prepareTabsState: options\.prepareTabsState,[\s\S]*prepareSiteState: options\.prepareSiteState,[\s\S]*deepClone: options\.deepClone/,
+  'publish/sync feature should forward all YAML normalizers into post-commit publish state'
+);
+
+assert.match(
   composerPublishStateServiceSource,
   /from '\.\/composer-staging\.js'[\s\S]*from '\.\/composer-index-publish-metadata\.js'[\s\S]*from '\.\/composer-content-staging\.js'[\s\S]*from '\.\/composer-seo-staging\.js'[\s\S]*from '\.\/composer-post-commit-state\.js'/,
   'publish state service should cache-bust the staging and post-commit modules it composes'

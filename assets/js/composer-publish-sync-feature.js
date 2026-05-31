@@ -50,6 +50,8 @@ export function createComposerPublishSyncFeature(options = {}) {
     getIndexVariantLocation: options.getIndexVariantLocation,
     normalizeIndexVariantList: options.normalizeIndexVariantList,
     prepareIndexState: options.prepareIndexState,
+    prepareTabsState: options.prepareTabsState,
+    prepareSiteState: options.prepareSiteState,
     deepClone: options.deepClone,
     sortLangKeys: options.sortLangKeys,
     extractVersionFromPath: options.extractVersionFromPath,

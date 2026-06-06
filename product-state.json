@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-06-06T14:57:45.965Z",
+  "generatedAt": "2026-06-06T16:34:52.461Z",
   "status": "ok",
   "desired": {
     "source": "press-release-intent",
@@ -286,16 +286,16 @@
         "repository": "EkilyHQ/Press-Theme-Arcus",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/main/theme-release.json",
         "status": "ok",
-        "version": "3.4.2",
-        "contractVersion": 1,
+        "version": "3.4.3",
+        "contractVersion": 2,
         "engines": {
-          "press": ">=3.4.0 <4.0.0"
+          "press": ">=3.4.121 <4.0.0"
         },
         "artifact": {
-          "name": "press-theme-arcus-v3.4.2.zip",
-          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.2/press-theme-arcus-v3.4.2.zip",
-          "size": 30550,
-          "digest": "sha256:9afde8ca0069b68bd633cef4a59636d0d02df59c29179b33020301384c3a18ea"
+          "name": "press-theme-arcus-v3.4.3.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.3/press-theme-arcus-v3.4.3.zip",
+          "size": 30613,
+          "digest": "sha256:987ed220ee6bc5a5b707efd7c77bf39419ecb5defd0c62e1e32e2f47c8c4c95b"
         },
         "problems": []
       },
@@ -305,16 +305,16 @@
         "repository": "EkilyHQ/Press-Theme-Cartograph",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/main/theme-release.json",
         "status": "ok",
-        "version": "3.4.2",
-        "contractVersion": 1,
+        "version": "3.4.3",
+        "contractVersion": 2,
         "engines": {
-          "press": ">=3.4.0 <4.0.0"
+          "press": ">=3.4.121 <4.0.0"
         },
         "artifact": {
-          "name": "press-theme-cartograph-v3.4.2.zip",
-          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/release-artifacts/v3.4.2/press-theme-cartograph-v3.4.2.zip",
-          "size": 18948,
-          "digest": "sha256:147f4f7334e55c2fa025cf1c9cc35cb7749ac25115cc3d722e4a5a5b10beb2fb"
+          "name": "press-theme-cartograph-v3.4.3.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/release-artifacts/v3.4.3/press-theme-cartograph-v3.4.3.zip",
+          "size": 18960,
+          "digest": "sha256:0b46895abedb2db4bee13e27b42203cab366bc6e0296891e18ba5e86ec01bdf5"
         },
         "problems": []
       },
@@ -324,16 +324,16 @@
         "repository": "EkilyHQ/Press-Theme-Solstice",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json",
         "status": "ok",
-        "version": "3.4.2",
-        "contractVersion": 1,
+        "version": "3.4.3",
+        "contractVersion": 2,
         "engines": {
-          "press": ">=3.4.0 <4.0.0"
+          "press": ">=3.4.121 <4.0.0"
         },
         "artifact": {
-          "name": "press-theme-solstice-v3.4.2.zip",
-          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/release-artifacts/v3.4.2/press-theme-solstice-v3.4.2.zip",
-          "size": 23448,
-          "digest": "sha256:4ef90a23267f5bb53078d6e682be189a63b2ad909f3d71c8998a068e20e2b18a"
+          "name": "press-theme-solstice-v3.4.3.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/release-artifacts/v3.4.3/press-theme-solstice-v3.4.3.zip",
+          "size": 23506,
+          "digest": "sha256:425217372f781ece8600d2193d6e1aa9605021ce9981fa186a8f4a479f3f2fc6"
         },
         "problems": []
       },
@@ -343,16 +343,16 @@
         "repository": "EkilyHQ/Press-Theme-Glasswing",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/main/theme-release.json",
         "status": "ok",
-        "version": "0.1.10",
-        "contractVersion": 1,
+        "version": "0.1.11",
+        "contractVersion": 2,
         "engines": {
-          "press": ">=3.4.0 <4.0.0"
+          "press": ">=3.4.121 <4.0.0"
         },
         "artifact": {
-          "name": "press-theme-glasswing-v0.1.10.zip",
-          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.10/press-theme-glasswing-v0.1.10.zip",
-          "size": 14708,
-          "digest": "sha256:73d5f0eb46f1e537c5e76f9c8859394cada98cb6f861326e18707b67dc32c9aa"
+          "name": "press-theme-glasswing-v0.1.11.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.11/press-theme-glasswing-v0.1.11.zip",
+          "size": 14761,
+          "digest": "sha256:c6a65d6715f430b163f7a391ed7064529b57bc028110a1479b119bbccebef279"
         },
         "problems": []
       }
@@ -367,8 +367,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1780671467,
-        "until": 1780757867,
+        "since": 1780677294,
+        "until": 1780763694,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -383,7 +383,7 @@
   },
   "problems": [],
   "observed": {
-    "checkedAt": "2026-06-06T14:57:45.965Z",
+    "checkedAt": "2026-06-06T16:34:52.461Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.121/system-release.json",
@@ -490,16 +490,16 @@
           "repository": "EkilyHQ/Press-Theme-Arcus",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/main/theme-release.json",
           "status": "ok",
-          "version": "3.4.2",
-          "contractVersion": 1,
+          "version": "3.4.3",
+          "contractVersion": 2,
           "engines": {
-            "press": ">=3.4.0 <4.0.0"
+            "press": ">=3.4.121 <4.0.0"
           },
           "artifact": {
-            "name": "press-theme-arcus-v3.4.2.zip",
-            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.2/press-theme-arcus-v3.4.2.zip",
-            "size": 30550,
-            "digest": "sha256:9afde8ca0069b68bd633cef4a59636d0d02df59c29179b33020301384c3a18ea"
+            "name": "press-theme-arcus-v3.4.3.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.3/press-theme-arcus-v3.4.3.zip",
+            "size": 30613,
+            "digest": "sha256:987ed220ee6bc5a5b707efd7c77bf39419ecb5defd0c62e1e32e2f47c8c4c95b"
           },
           "problems": []
         },
@@ -509,16 +509,16 @@
           "repository": "EkilyHQ/Press-Theme-Cartograph",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/main/theme-release.json",
           "status": "ok",
-          "version": "3.4.2",
-          "contractVersion": 1,
+          "version": "3.4.3",
+          "contractVersion": 2,
           "engines": {
-            "press": ">=3.4.0 <4.0.0"
+            "press": ">=3.4.121 <4.0.0"
           },
           "artifact": {
-            "name": "press-theme-cartograph-v3.4.2.zip",
-            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/release-artifacts/v3.4.2/press-theme-cartograph-v3.4.2.zip",
-            "size": 18948,
-            "digest": "sha256:147f4f7334e55c2fa025cf1c9cc35cb7749ac25115cc3d722e4a5a5b10beb2fb"
+            "name": "press-theme-cartograph-v3.4.3.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/release-artifacts/v3.4.3/press-theme-cartograph-v3.4.3.zip",
+            "size": 18960,
+            "digest": "sha256:0b46895abedb2db4bee13e27b42203cab366bc6e0296891e18ba5e86ec01bdf5"
           },
           "problems": []
         },
@@ -528,16 +528,16 @@
           "repository": "EkilyHQ/Press-Theme-Solstice",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json",
           "status": "ok",
-          "version": "3.4.2",
-          "contractVersion": 1,
+          "version": "3.4.3",
+          "contractVersion": 2,
           "engines": {
-            "press": ">=3.4.0 <4.0.0"
+            "press": ">=3.4.121 <4.0.0"
           },
           "artifact": {
-            "name": "press-theme-solstice-v3.4.2.zip",
-            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/release-artifacts/v3.4.2/press-theme-solstice-v3.4.2.zip",
-            "size": 23448,
-            "digest": "sha256:4ef90a23267f5bb53078d6e682be189a63b2ad909f3d71c8998a068e20e2b18a"
+            "name": "press-theme-solstice-v3.4.3.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/release-artifacts/v3.4.3/press-theme-solstice-v3.4.3.zip",
+            "size": 23506,
+            "digest": "sha256:425217372f781ece8600d2193d6e1aa9605021ce9981fa186a8f4a479f3f2fc6"
           },
           "problems": []
         },
@@ -547,16 +547,16 @@
           "repository": "EkilyHQ/Press-Theme-Glasswing",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/main/theme-release.json",
           "status": "ok",
-          "version": "0.1.10",
-          "contractVersion": 1,
+          "version": "0.1.11",
+          "contractVersion": 2,
           "engines": {
-            "press": ">=3.4.0 <4.0.0"
+            "press": ">=3.4.121 <4.0.0"
           },
           "artifact": {
-            "name": "press-theme-glasswing-v0.1.10.zip",
-            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.10/press-theme-glasswing-v0.1.10.zip",
-            "size": 14708,
-            "digest": "sha256:73d5f0eb46f1e537c5e76f9c8859394cada98cb6f861326e18707b67dc32c9aa"
+            "name": "press-theme-glasswing-v0.1.11.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.11/press-theme-glasswing-v0.1.11.zip",
+            "size": 14761,
+            "digest": "sha256:c6a65d6715f430b163f7a391ed7064529b57bc028110a1479b119bbccebef279"
           },
           "problems": []
         }
@@ -571,8 +571,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1780671467,
-          "until": 1780757867,
+          "since": 1780677294,
+          "until": 1780763694,
           "seconds": 86400
         },
         "totalEvents": 0,

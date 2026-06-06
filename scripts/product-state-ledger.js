@@ -26,6 +26,7 @@ const SIGNED_URL_QUERY_KEYS = [
   'x-goog-signature'
 ];
 const DEFAULT_RELEASE_SOURCES = getReleaseProductStateSources(DEFAULT_RAW_ROOT);
+const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([1, 2]);
 const DEFAULT_SOURCES = {
   systemRelease: `${DEFAULT_RAW_ROOT}/${DEFAULT_PRESS_REPOSITORY}/release-artifacts/system-release.json`,
   downstream: DEFAULT_RELEASE_SOURCES.downstream,
@@ -453,9 +454,9 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
     out.status = 'drift';
     out.problems.push(`theme release slug does not match catalog entry "${slug}"`);
   }
-  if (!out.version || out.contractVersion !== 1) {
+  if (!out.version || !SUPPORTED_THEME_CONTRACT_VERSIONS.has(out.contractVersion)) {
     out.status = 'drift';
-    out.problems.push('theme release must declare version and contractVersion 1');
+    out.problems.push('theme release must declare version and supported contractVersion');
   }
   if (!out.engines.press || !satisfiesSemverRange(pressVersion, out.engines.press)) {
     out.status = 'drift';

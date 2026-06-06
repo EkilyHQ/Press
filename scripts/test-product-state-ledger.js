@@ -85,14 +85,14 @@ function pressManifest(version = '3.4.51') {
   };
 }
 
-function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0') {
+function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0', contractVersion = 1) {
   return {
     schemaVersion: 1,
     type: 'press-theme',
     value: slug,
     label: slug.charAt(0).toUpperCase() + slug.slice(1),
     version,
-    contractVersion: 1,
+    contractVersion,
     engines: {
       press: pressRange
     },
@@ -763,4 +763,31 @@ test('buildProductState marks incompatible theme release manifests as drift', as
   assert.equal(state.themes.entries[0].status, 'drift');
   assert.match(state.themes.entries[0].problems.join('\n'), /engines\.press/);
   assert.equal(shouldFailCheck(state, { allowPending: true, allowUnknown: true }), true);
+});
+
+test('buildProductState accepts supported theme contract versions', async () => {
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 2)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.themes.entries[0].contractVersion, 2);
+  assert.notEqual(state.themes.entries[0].status, 'drift');
+});
+
+test('buildProductState rejects unsupported theme contract versions', async () => {
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 3)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themes.entries[0].status, 'drift');
+  assert.match(state.themes.entries[0].problems.join('\n'), /supported contractVersion/);
 });

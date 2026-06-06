@@ -31,7 +31,7 @@ remote repository at runtime; a selected theme must exist locally under
 The shared machine-readable contract surface lives in
 `assets/js/theme-contract-surface.mjs`. Theme Manager, runtime development
 warnings, contract tests, and the JSON schema are expected to agree with that
-surface for the current `contractVersion`, required views, regions, components,
+surface for the current `contractVersion`, supported legacy contract versions, required views, regions, components,
 content shapes, and archive file-type rules.
 
 ## Manifest
@@ -40,9 +40,9 @@ content shapes, and archive file-type rules.
 {
   "$schema": "../../schema/theme.json",
   "name": "Native",
-  "version": "3.4.0",
-  "contractVersion": 1,
-  "engines": { "press": ">=3.4.0 <4.0.0" },
+  "version": "3.4.1",
+  "contractVersion": 2,
+  "engines": { "press": ">=3.4.121 <4.0.0" },
   "styles": ["theme.css"],
   "modules": ["modules/layout.js", "modules/interactions.js", "modules/views.js"],
   "views": {
@@ -72,7 +72,10 @@ content shapes, and archive file-type rules.
 
 - `name` and `version`: Human-facing theme identity.
 - `contractVersion`: Press runtime contract version. The current value is
-  `1`.
+  `2`. Press still accepts `1` for existing themes; contract v1 keeps the
+  legacy theme-controls DOM bridge (`#tools` and older shipped-theme host
+  classes), while contract v2 uses the current `<press-theme-controls>`
+  component contract.
 - `engines.press`: Press system SemVer range the theme supports. Theme Manager
   rejects official and manually imported themes outside the current Press
   version.
@@ -102,8 +105,8 @@ changes to it through Publish, and Press system updates do not overwrite it.
   "value": "arcus",
   "label": "Arcus",
   "version": "3.4.0",
-  "contractVersion": 1,
-  "engines": { "press": ">=3.4.0 <4.0.0" },
+  "contractVersion": 2,
+  "engines": { "press": ">=3.4.121 <4.0.0" },
   "builtIn": false,
   "removable": true,
   "source": {
@@ -142,8 +145,8 @@ Official theme repositories publish a root `theme-release.json`:
   "value": "arcus",
   "label": "Arcus",
   "version": "3.4.0",
-  "contractVersion": 1,
-  "engines": { "press": ">=3.4.0 <4.0.0" },
+  "contractVersion": 2,
+  "engines": { "press": ">=3.4.121 <4.0.0" },
   "release": {
     "tag": "v3.4.0",
     "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.0",

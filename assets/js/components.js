@@ -269,6 +269,10 @@ export class PressSearch extends HTMLElement {
 }
 
 export class PressThemeControls extends HTMLElement {
+  static get observedAttributes() {
+    return ['variant', 'contract-version'];
+  }
+
   constructor() {
     super();
     this._labels = {};
@@ -288,6 +292,10 @@ export class PressThemeControls extends HTMLElement {
 
   disconnectedCallback() {
     this._unbindEvents();
+  }
+
+  attributeChangedCallback(_name, oldValue, newValue) {
+    if (oldValue !== newValue && this.isConnected) this.render();
   }
 
   setLabels(labels = {}) {
@@ -335,18 +343,34 @@ export class PressThemeControls extends HTMLElement {
     return raw.replace(/[^a-z0-9_-]/g, '') || 'native';
   }
 
+  _contractVersion() {
+    const version = Number(this.getAttribute('contract-version') || 2);
+    return Number.isFinite(version) ? version : 2;
+  }
+
+  _usesLegacyDom() {
+    return this._contractVersion() <= 1;
+  }
+
   _syncHostClass() {
     const variant = this._variant();
-    if (!this.id) this.id = 'tools';
+    const legacyDom = this._usesLegacyDom();
+    if (legacyDom && !this.id) {
+      this.id = 'tools';
+      this.dataset.pressThemeControlsLegacyId = '1';
+    } else if (!legacyDom && this.id === 'tools' && this.dataset.pressThemeControlsLegacyId === '1') {
+      this.removeAttribute('id');
+      delete this.dataset.pressThemeControlsLegacyId;
+    }
     Array.from(this.classList || []).forEach((className) => {
       if (String(className || '').startsWith('press-theme-controls--')) {
         this.classList.remove(className);
       }
     });
     this.classList.remove('box', 'arcus-tools__groups', 'solstice-tools');
-    if (variant === 'arcus') {
+    if (legacyDom && variant === 'arcus') {
       this.classList.add('arcus-tools__groups', `press-theme-controls--${variant}`);
-    } else if (variant === 'solstice') {
+    } else if (legacyDom && variant === 'solstice') {
       this.classList.add('solstice-tools', `press-theme-controls--${variant}`);
     } else {
       this.classList.add('box', `press-theme-controls--${variant}`);

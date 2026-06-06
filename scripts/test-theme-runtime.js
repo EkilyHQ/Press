@@ -39,6 +39,24 @@ class TestElement {
     return child;
   }
 
+  insertBefore(child, ref) {
+    if (!child) return child;
+    const index = this.children.indexOf(ref);
+    if (index < 0) return this.appendChild(child);
+    child.parentElement = this;
+    this.children.splice(index, 0, child);
+    return child;
+  }
+
+  replaceChild(child, oldChild) {
+    const index = this.children.indexOf(oldChild);
+    if (index < 0) return this.appendChild(child);
+    if (child) child.parentElement = this;
+    if (oldChild) oldChild.parentElement = null;
+    this.children[index] = child;
+    return oldChild;
+  }
+
   remove() {
     if (!this.parentElement) return;
     const siblings = this.parentElement.children;
@@ -46,6 +64,10 @@ class TestElement {
     if (index >= 0) siblings.splice(index, 1);
     this.parentElement = null;
   }
+
+  addEventListener() {}
+
+  removeEventListener() {}
 
   setAttribute(name, value) {
     const key = String(name);
@@ -167,6 +189,8 @@ function installGlobals({ savedPack = 'native', manifests = {} } = {}) {
     location: { href: 'https://example.test/', search: '' },
     localStorage,
     matchMedia: () => ({ matches: false }),
+    addEventListener() {},
+    removeEventListener() {},
     __press_themeDevMode: false
   };
   globalThis.requestAnimationFrame = (fn) => setTimeout(fn, 0);
@@ -261,6 +285,81 @@ await run('theme pack controllers isolate suppressed state', async () => {
   assert.equal(first.isSuppressed('cartograph'), true);
   assert.equal(second.isSuppressed('cartograph'), false);
   assert.equal(isThemePackSuppressed('cartograph'), false);
+});
+
+await run('theme controls infer legacy DOM bridge from the active theme context', async () => {
+  const { setThemeLayoutContext } = await import('../assets/js/theme-regions.js');
+  const { mountThemeControls } = await freshThemeHelpers();
+  try {
+    let installed = installGlobals({ savedPack: 'arcus' });
+    let sidebar = installed.document.createElement('aside');
+    sidebar.setAttribute('class', 'sidebar');
+    let legacyTools = installed.document.createElement('div');
+    legacyTools.setAttribute('id', 'tools');
+    sidebar.appendChild(legacyTools);
+    installed.document.body.appendChild(sidebar);
+    setThemeLayoutContext({
+      manifest: { contractVersion: 1 },
+      theme: { contractVersion: 1 },
+      regions: {}
+    });
+
+    const legacyComponent = mountThemeControls({ variant: 'arcus' });
+    assert.equal(legacyComponent && legacyComponent.tagName, 'PRESS-THEME-CONTROLS');
+    assert.equal(legacyComponent.getAttribute('contract-version'), '1');
+    assert.equal(legacyTools.parentElement, null);
+    assert.equal(sidebar.children[0], legacyComponent);
+
+    installed = installGlobals({ savedPack: 'arcus' });
+    sidebar = installed.document.createElement('aside');
+    sidebar.setAttribute('class', 'sidebar');
+    legacyTools = installed.document.createElement('div');
+    legacyTools.setAttribute('id', 'tools');
+    sidebar.appendChild(legacyTools);
+    installed.document.body.appendChild(sidebar);
+    setThemeLayoutContext({
+      manifest: { contractVersion: 2 },
+      theme: { contractVersion: 2 },
+      regions: {}
+    });
+
+    const currentComponent = mountThemeControls({ variant: 'arcus' });
+    assert.equal(currentComponent && currentComponent.tagName, 'PRESS-THEME-CONTROLS');
+    assert.equal(currentComponent.getAttribute('contract-version'), '2');
+    assert.equal(legacyTools.parentElement, sidebar);
+    assert.notEqual(sidebar.children[0], currentComponent);
+  } finally {
+    setThemeLayoutContext(null);
+  }
+});
+
+await run('theme controls infer legacy DOM bridge during v1 theme module mount', async () => {
+  let mountedComponent = null;
+  let legacyTools = null;
+  const { mountThemeControls } = await freshThemeHelpers();
+  const { document } = installGlobals({
+    savedPack: 'legacy',
+    manifests: {
+      legacy: makeManifest('legacy', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async () => ({
+    mount() {
+      const sidebar = document.createElement('aside');
+      sidebar.setAttribute('class', 'sidebar');
+      legacyTools = document.createElement('div');
+      legacyTools.setAttribute('id', 'tools');
+      sidebar.appendChild(legacyTools);
+      document.body.appendChild(sidebar);
+      mountedComponent = mountThemeControls({ variant: 'arcus' });
+    }
+  });
+
+  const { ensureThemeLayout } = await freshThemeLayout();
+  await ensureThemeLayout({ pack: 'legacy', persist: false, reset: true });
+  assert.equal(mountedComponent && mountedComponent.tagName, 'PRESS-THEME-CONTROLS');
+  assert.equal(mountedComponent.getAttribute('contract-version'), '1');
+  assert.equal(legacyTools.parentElement, null);
 });
 
 await run('theme modules load in parallel and mount in manifest order', async () => {

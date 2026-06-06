@@ -23,8 +23,8 @@
     },
     "contractVersion": {
       "type": "integer",
-      "const": 1,
-      "description": "Press theme contract version this manifest targets."
+      "enum": [1, 2],
+      "description": "Press theme contract version this manifest targets. Contract v1 keeps legacy theme-controls DOM bridges; v2 uses the current component contract."
     },
     "engines": {
       "type": "object",

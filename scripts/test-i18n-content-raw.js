@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const i18nSource = readFileSync(resolve(here, '../assets/js/i18n.js'), 'utf8');
+const mainSource = readFileSync(resolve(here, '../assets/main.js'), 'utf8');
 
 [
   ['base default language', /^let\s+baseDefaultLang\b/m],
@@ -39,6 +40,11 @@ assert.match(
   i18nSource,
   /async function fetchConfigWithYamlFallbackForRuntime\(runtime, names\)[\s\S]*runtime\.getFetch\(\)\(name, \{ cache: 'no-store' \}\)/,
   'i18n content YAML loading should use the runtime fetch adapter'
+);
+assert.doesNotMatch(
+  mainSource,
+  /\bloadLangJson\b/,
+  'main runtime should not import the retired legacy sidecar loader'
 );
 
 globalThis.document = globalThis.document || {
@@ -169,6 +175,27 @@ globalThis.fetch = async (url) => {
       ].join('\n')
     };
   }
+  if (textUrl.endsWith('/flat-tabs.yaml')) {
+    return {
+      ok: true,
+      text: async () => [
+        'Docs: docs/index.md',
+        'About:',
+        '  location: about.md',
+        '  title: About',
+        ''
+      ].join('\n')
+    };
+  }
+  if (textUrl.endsWith('/flat-index.yaml')) {
+    return {
+      ok: true,
+      text: async () => [
+        'Guide: post/flat.md',
+        ''
+      ].join('\n')
+    };
+  }
   if (textUrl.endsWith('/post/demo.md')) {
     return {
       ok: true,
@@ -178,6 +205,19 @@ globalThis.fetch = async (url) => {
         'date: 2026-04-27',
         '---',
         'Demo body.',
+        ''
+      ].join('\n')
+    };
+  }
+  if (textUrl.endsWith('/post/flat.md')) {
+    return {
+      ok: true,
+      text: async () => [
+        '---',
+        'title: Flat Guide',
+        'date: 2026-05-01',
+        '---',
+        'Flat body.',
         ''
       ].join('\n')
     };
@@ -217,6 +257,7 @@ globalThis.fetch = async (url) => {
 const {
   createI18nController,
   initI18n,
+  loadTabsJson,
   loadContentJsonWithRaw,
   getAvailableLangs,
   getContentLangs,
@@ -238,6 +279,46 @@ assert.equal(result.entries.demo.location, 'post/demo.md');
 assert.equal(result.entries.secret.location, 'post/secret.md');
 assert.deepEqual(getContentLangs(), ['en']);
 assert.deepEqual(getAvailableLangs(), ['en', 'chs', 'cht-tw', 'cht-hk', 'ja']);
+
+const beforeLegacyContentRequests = requests.length;
+const legacyContent = await loadContentJsonWithRaw('wwwroot', 'legacy-only');
+assert.deepEqual(legacyContent.entries, {});
+assert.equal(
+  requests.slice(beforeLegacyContentRequests).some(url => /legacy-only\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should not probe legacy per-language index YAML sidecars'
+);
+
+const beforeLegacyTabsRequests = requests.length;
+const legacyTabs = await loadTabsJson('wwwroot', 'legacy-tabs');
+assert.deepEqual(legacyTabs, {});
+assert.equal(
+  requests.slice(beforeLegacyTabsRequests).some(url => /legacy-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should not probe legacy per-language tabs YAML sidecars'
+);
+
+const beforeFlatTabsRequests = requests.length;
+const flatTabs = await loadTabsJson('wwwroot', 'flat-tabs');
+assert.deepEqual(flatTabs, {
+  Docs: 'docs/index.md',
+  About: { location: 'about.md', title: 'About' }
+});
+assert.equal(
+  requests.slice(beforeFlatTabsRequests).some(url => /flat-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should keep base flat tabs without probing legacy per-language tabs YAML sidecars'
+);
+
+const beforeFlatIndexRequests = requests.length;
+const flatIndex = await loadContentJsonWithRaw('wwwroot', 'flat-index');
+assert.deepEqual(flatIndex.raw, { Guide: 'post/flat.md' });
+assert.equal(flatIndex.entries.Guide.location, 'post/flat.md');
+assert.equal(
+  requests.slice(beforeFlatIndexRequests).some(url => /flat-index\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should keep base flat index string entries without probing legacy per-language index YAML sidecars'
+);
 
 const enrichedEntries = await metadataReady;
 assert.equal(enrichedEntries['Secret Title'].protected, true);

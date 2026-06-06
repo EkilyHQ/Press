@@ -17,7 +17,6 @@ import {
   initI18n,
   t,
   withLangParam,
-  loadLangJson,
   loadContentJsonWithRaw,
   loadTabsJson,
   getCurrentLang,

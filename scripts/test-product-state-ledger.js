@@ -85,7 +85,7 @@ function pressManifest(version = '3.4.51') {
   };
 }
 
-function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0', contractVersion = 1) {
+function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0', contractVersion = 2) {
   return {
     schemaVersion: 1,
     type: 'press-theme',
@@ -799,11 +799,11 @@ test('buildProductState accepts supported theme contract versions', async () => 
   assert.notEqual(state.themes.entries[0].status, 'drift');
 });
 
-test('buildProductState rejects unsupported theme contract versions', async () => {
+test('buildProductState rejects legacy theme contract versions', async () => {
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
-      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 3)
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 1)
     })),
     generatedAt: '2026-05-25T00:00:00Z'
   });

@@ -170,7 +170,7 @@ function makeManifest(pack, modules) {
   return {
     name: pack,
     version: '1.0.0',
-    contractVersion: 1,
+    contractVersion: 2,
     styles: ['theme.css', 'extra.css'],
     modules,
     views: { post: {}, posts: {}, search: {}, tab: {} },
@@ -287,14 +287,14 @@ await run('theme pack controllers isolate suppressed state', async () => {
   assert.equal(isThemePackSuppressed('cartograph'), false);
 });
 
-await run('theme controls infer legacy DOM bridge from the active theme context', async () => {
+await run('theme controls ignore retired legacy DOM bridge hints from the active theme context', async () => {
   const { setThemeLayoutContext } = await import('../assets/js/theme-regions.js');
   const { mountThemeControls } = await freshThemeHelpers();
   try {
-    let installed = installGlobals({ savedPack: 'arcus' });
-    let sidebar = installed.document.createElement('aside');
+    const installed = installGlobals({ savedPack: 'arcus' });
+    const sidebar = installed.document.createElement('aside');
     sidebar.setAttribute('class', 'sidebar');
-    let legacyTools = installed.document.createElement('div');
+    const legacyTools = installed.document.createElement('div');
     legacyTools.setAttribute('id', 'tools');
     sidebar.appendChild(legacyTools);
     installed.document.body.appendChild(sidebar);
@@ -306,41 +306,23 @@ await run('theme controls infer legacy DOM bridge from the active theme context'
 
     const legacyComponent = mountThemeControls({ variant: 'arcus' });
     assert.equal(legacyComponent && legacyComponent.tagName, 'PRESS-THEME-CONTROLS');
-    assert.equal(legacyComponent.getAttribute('contract-version'), '1');
-    assert.equal(legacyTools.parentElement, null);
-    assert.equal(sidebar.children[0], legacyComponent);
-
-    installed = installGlobals({ savedPack: 'arcus' });
-    sidebar = installed.document.createElement('aside');
-    sidebar.setAttribute('class', 'sidebar');
-    legacyTools = installed.document.createElement('div');
-    legacyTools.setAttribute('id', 'tools');
-    sidebar.appendChild(legacyTools);
-    installed.document.body.appendChild(sidebar);
-    setThemeLayoutContext({
-      manifest: { contractVersion: 2 },
-      theme: { contractVersion: 2 },
-      regions: {}
-    });
-
-    const currentComponent = mountThemeControls({ variant: 'arcus' });
-    assert.equal(currentComponent && currentComponent.tagName, 'PRESS-THEME-CONTROLS');
-    assert.equal(currentComponent.getAttribute('contract-version'), '2');
+    assert.equal(legacyComponent.getAttribute('contract-version'), null);
     assert.equal(legacyTools.parentElement, sidebar);
-    assert.notEqual(sidebar.children[0], currentComponent);
+    assert.equal(sidebar.children[0], legacyTools);
+    assert.equal(sidebar.children[1], legacyComponent);
   } finally {
     setThemeLayoutContext(null);
   }
 });
 
-await run('theme controls infer legacy DOM bridge during v1 theme module mount', async () => {
+await run('theme controls keep current component contract during legacy theme module mount', async () => {
   let mountedComponent = null;
   let legacyTools = null;
   const { mountThemeControls } = await freshThemeHelpers();
   const { document } = installGlobals({
     savedPack: 'legacy',
     manifests: {
-      legacy: makeManifest('legacy', ['modules/layout.js'])
+      legacy: { ...makeManifest('legacy', ['modules/layout.js']), contractVersion: 1 }
     }
   });
   window.__pressThemeModuleLoader = async () => ({
@@ -358,8 +340,9 @@ await run('theme controls infer legacy DOM bridge during v1 theme module mount',
   const { ensureThemeLayout } = await freshThemeLayout();
   await ensureThemeLayout({ pack: 'legacy', persist: false, reset: true });
   assert.equal(mountedComponent && mountedComponent.tagName, 'PRESS-THEME-CONTROLS');
-  assert.equal(mountedComponent.getAttribute('contract-version'), '1');
-  assert.equal(legacyTools.parentElement, null);
+  assert.equal(mountedComponent.getAttribute('contract-version'), null);
+  assert.equal(legacyTools.parentElement && legacyTools.parentElement.matches('.sidebar'), true);
+  assert.notEqual(legacyTools.parentElement.children[0], mountedComponent);
 });
 
 await run('theme modules load in parallel and mount in manifest order', async () => {

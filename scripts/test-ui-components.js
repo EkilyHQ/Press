@@ -60,8 +60,8 @@ const nativeCss = read('assets/themes/native/base.css');
 const languageManifest = read('assets/i18n/languages.json');
 const i18nEn = read('assets/i18n/en.js');
 
-assert.match(components, /observedAttributes[\s\S]*'variant'[\s\S]*'contract-version'[\s\S]*_usesLegacyDom\(\)[\s\S]*this\._contractVersion\(\) <= 1/, 'theme controls should re-render when the theme contract changes and gate legacy DOM on contract v1');
-assert.match(components, /legacyDom && variant === 'arcus'[\s\S]*arcus-tools__groups[\s\S]*legacyDom && variant === 'solstice'[\s\S]*solstice-tools/, 'theme controls should preserve legacy Arcus and Solstice host classes only for contract v1 themes');
+assert.match(components, /observedAttributes[\s\S]*return \['variant'\]/, 'theme controls should only observe the current variant contract');
+assert.doesNotMatch(components, /contract-version|_usesLegacyDom|_contractVersion|arcus-tools__groups|solstice-tools/, 'theme controls should not retain the retired contract v1 legacy DOM bridge');
 assert.match(components, /arcus-tool[\s\S]*solstice-tool/, 'theme controls should preserve variant-specific control markup classes for shipped theme styling');
 assert.doesNotMatch(components, /\bcartograph\b/i, 'core UI components should not hard-code non-legacy external theme variants');
 
@@ -272,7 +272,7 @@ assert.doesNotMatch(search, /input\.onkeydown\s*=/, 'search.js should not own th
 assert.match(read('assets/js/tags.js'), /press:tag-select/, 'tag sidebar should emit press:tag-select');
 
 assert.match(theme, /mountThemeControls\(options = \{\}\)[\s\S]*document\.createElement\('press-theme-controls'\)/, 'core theme controls should mount press-theme-controls');
-assert.match(theme, /resolveThemeControlsContractVersion\(opts\)[\s\S]*usesLegacyThemeControlsDom\(contractVersion\)[\s\S]*legacyDom \? document\.getElementById\('tools'\) : null[\s\S]*component\.setAttribute\('contract-version', String\(contractVersion\)\)/, 'theme controls should scope #tools replacement and component legacy DOM to the active theme contract version');
+assert.doesNotMatch(theme, /resolveThemeControlsContractVersion|usesLegacyThemeControlsDom|document\.getElementById\('tools'\)|setAttribute\('contract-version'/, 'theme controls should not retain the retired contract v1 #tools bridge');
 assert.match(theme, /component\.addEventListener\('press:theme-toggle'[\s\S]*component\.addEventListener\('press:language-reset'/, 'theme control side effects should be event-driven');
 assert.doesNotMatch(theme, /import ['"]\.\/components\.js['"]/, 'theme helpers should not top-level import browser-only custom elements');
 assert.doesNotMatch(theme, /^let\s+componentsReady\b/m, 'theme controls should not keep component import state in a module-level promise');
@@ -285,7 +285,8 @@ assert.doesNotMatch(nativeSearch, /setAttribute\('icon'/, 'native search should 
 
 assert.match(nativeToc, /createElement\('press-toc'\)/, 'native TOC module should mount press-toc');
 assert.match(toc, /typeof tocRoot\.enhance === 'function'/, 'legacy setupTOC should delegate to press-toc when present');
-assert.match(nativeCss, /:is\(#tools, press-theme-controls\.box\) \.tools[\s\S]*:is\(#tools, press-theme-controls\.box\) \.btn/, 'native theme CSS should style both legacy #tools and v2 press-theme-controls hosts');
+assert.match(nativeCss, /press-theme-controls\.box \.tools[\s\S]*press-theme-controls\.box \.btn/, 'native theme CSS should style the v2 press-theme-controls host');
+assert.doesNotMatch(nativeCss, /#tools/, 'native theme CSS should not style the retired legacy #tools host');
 
 assert.match(nativeInteractions, /renderPressPostCardHtml\(/, 'native cards should render through press-post-card');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js'/, 'native interactions should cache-bust theme helper imports');

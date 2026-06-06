@@ -1,9 +1,5 @@
 import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js';
-import {
-  PRESS_THEME_CONTRACT,
-  usesLegacyThemeControlsDom
-} from './theme-contract-surface.mjs';
-import { getThemeLayoutContext, getThemeRegion } from './theme-regions.js';
+import { getThemeRegion } from './theme-regions.js';
 
 const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
@@ -335,27 +331,6 @@ function getThemeControlsElement(root = document) {
   return root && root.querySelector ? root.querySelector('press-theme-controls') : null;
 }
 
-function resolveThemeControlsContractVersion(options = {}) {
-  let activeContext = null;
-  try { activeContext = getThemeLayoutContext(); } catch (_) {}
-  const candidates = [
-    options.contractVersion,
-    options.themeContext && options.themeContext.theme && options.themeContext.theme.contractVersion,
-    options.themeContext && options.themeContext.manifest && options.themeContext.manifest.contractVersion,
-    options.context && options.context.theme && options.context.theme.contractVersion,
-    options.context && options.context.manifest && options.context.manifest.contractVersion,
-    options.manifest && options.manifest.contractVersion,
-    activeContext && activeContext.theme && activeContext.theme.contractVersion,
-    activeContext && activeContext.manifest && activeContext.manifest.contractVersion,
-    PRESS_THEME_CONTRACT.contractVersion
-  ];
-  for (const candidate of candidates) {
-    const version = Number(candidate);
-    if (Number.isFinite(version) && version > 0) return version;
-  }
-  return PRESS_THEME_CONTRACT.contractVersion;
-}
-
 function getThemeControlLabels() {
   return {
     sectionTitle: t('tools.sectionTitle'),
@@ -505,14 +480,12 @@ function populateThemeControls(component) {
   }
 }
 
-// Render theme tools UI through <press-theme-controls>. Options are sourced from
-// assets/themes/packs.json; legacy button/select binders remain below for older
-// custom themes that have not migrated yet.
+// Render theme tools UI through the current <press-theme-controls> contract.
+// Options are sourced from assets/themes/packs.json; legacy button/select
+// binders remain below for custom themes that still render their own controls.
 export function mountThemeControls(options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
   const variant = String(opts.variant || document.body.dataset.themeLayout || 'native').toLowerCase();
-  const contractVersion = resolveThemeControlsContractVersion(opts);
-  const legacyDom = usesLegacyThemeControlsDom(contractVersion);
   const componentImport = ensurePressComponents();
   let component = null;
   const host = opts.host || null;
@@ -529,13 +502,6 @@ export function mountThemeControls(options = {}) {
   } else {
     component = getThemeControlsElement(document);
     if (!component) {
-      const legacyTools = legacyDom ? document.getElementById('tools') : null;
-      if (legacyTools && legacyTools.parentElement) {
-        component = document.createElement('press-theme-controls');
-        legacyTools.parentElement.replaceChild(component, legacyTools);
-      }
-    }
-    if (!component) {
       const sidebar = document.querySelector('.sidebar');
       if (!sidebar) return null;
       component = document.createElement('press-theme-controls');
@@ -546,7 +512,6 @@ export function mountThemeControls(options = {}) {
   }
 
   const finish = () => {
-    component.setAttribute('contract-version', String(contractVersion));
     component.setAttribute('variant', variant);
     const upgraded = typeof component.render === 'function' && typeof component.setLabels === 'function';
     if (!upgraded && componentImport) return;

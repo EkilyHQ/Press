@@ -62,12 +62,19 @@ const guardedManifest = normalizePressSystemManifest({
   themeContractUpgrade: {
     requiresInstalledThemeContractVersion: 2,
     message: 'Update installed themes to contract v2 first.'
+  },
+  contentModelUpgrade: {
+    requiresUnifiedIndexTabs: true,
+    message: 'Publish content model migration first.'
   }
 });
 assert.equal(guardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 2);
 assert.equal(guardedManifest.themeContractUpgrade.message, 'Update installed themes to contract v2 first.');
+assert.equal(guardedManifest.contentModelUpgrade.requiresUnifiedIndexTabs, true);
+assert.equal(guardedManifest.contentModelUpgrade.message, 'Publish content model migration first.');
 
 const unguardedManifest = normalizePressSystemManifest(manifest('3.4.122'));
 assert.equal(unguardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 0);
+assert.equal(unguardedManifest.contentModelUpgrade.requiresUnifiedIndexTabs, false);
 
 console.log('ok - press system manifest loader state is explicit per instance');

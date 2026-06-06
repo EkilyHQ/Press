@@ -15,6 +15,7 @@ export const COMPOSER_ROOT_IMPORT_CONTRACT = Object.freeze([
   Object.freeze({ specifier: './yaml.js', group: 'shared', reason: 'tracked YAML loading and parsing primitives' }),
   Object.freeze({ specifier: './utils.js', group: 'shared', reason: 'shared text escaping helper' }),
   Object.freeze({ specifier: './i18n.js', group: 'runtime', reason: 'editor translation and language labels' }),
+  Object.freeze({ specifier: './content-model-migration.js', group: 'service', reason: 'legacy content-model migration and upgrade guard helpers' }),
   Object.freeze({ specifier: './composer-index-tabs-model.js', group: 'model', reason: 'index and tabs state normalization, diffing, and signatures' }),
   Object.freeze({ specifier: './composer-site-model.js', group: 'model', reason: 'site.yaml normalization, diffing, and serialization helpers' }),
   Object.freeze({ specifier: './editor-storage.js', group: 'state', reason: 'scoped browser storage keys' }),

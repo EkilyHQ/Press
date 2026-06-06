@@ -39,6 +39,21 @@ function themeContractUpgradesMatch(left, right) {
     && a.message === b.message;
 }
 
+function normalizeContentModelUpgrade(input = {}) {
+  const source = input && typeof input === 'object' ? input : {};
+  return {
+    requiresUnifiedIndexTabs: source.requiresUnifiedIndexTabs === true,
+    message: String(source.message || '').trim()
+  };
+}
+
+function contentModelUpgradesMatch(left, right) {
+  const a = normalizeContentModelUpgrade(left);
+  const b = normalizeContentModelUpgrade(right);
+  return a.requiresUnifiedIndexTabs === b.requiresUnifiedIndexTabs
+    && a.message === b.message;
+}
+
 function readJsonFile(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
@@ -72,6 +87,9 @@ function normalizeSystemRelease(input = {}) {
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
     themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
       ? source.themeContractUpgrade
+      : {},
+    contentModelUpgrade: source.contentModelUpgrade && typeof source.contentModelUpgrade === 'object'
+      ? source.contentModelUpgrade
       : {},
     runtime: {
       manifestPath: String(runtime.manifestPath || '').trim(),
@@ -150,7 +168,8 @@ function buildReleaseIntent(options = {}) {
       asset: systemRelease.asset,
       runtime: systemRelease.runtime,
       upgradeFrom: systemRelease.upgradeFrom,
-      themeContractUpgrade: systemRelease.themeContractUpgrade
+      themeContractUpgrade: systemRelease.themeContractUpgrade,
+      contentModelUpgrade: systemRelease.contentModelUpgrade
     },
     targets
   };
@@ -201,6 +220,9 @@ function normalizeReleaseIntent(input = {}) {
         : {},
       themeContractUpgrade: pressSystem.themeContractUpgrade && typeof pressSystem.themeContractUpgrade === 'object'
         ? pressSystem.themeContractUpgrade
+        : {},
+      contentModelUpgrade: pressSystem.contentModelUpgrade && typeof pressSystem.contentModelUpgrade === 'object'
+        ? pressSystem.contentModelUpgrade
         : {}
     },
     targets: targets.map((target) => {
@@ -296,6 +318,9 @@ function validateReleaseIntent(intentInput, options = {}) {
     }
     if (!themeContractUpgradesMatch(systemRelease.themeContractUpgrade, intent.pressSystem.themeContractUpgrade)) {
       failures.push('release intent themeContractUpgrade must match system-release.json');
+    }
+    if (!contentModelUpgradesMatch(systemRelease.contentModelUpgrade, intent.pressSystem.contentModelUpgrade)) {
+      failures.push('release intent contentModelUpgrade must match system-release.json');
     }
   }
   return failures;

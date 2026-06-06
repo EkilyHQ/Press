@@ -352,6 +352,9 @@ function normalizeSystemRelease(input) {
     themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
       ? source.themeContractUpgrade
       : {},
+    contentModelUpgrade: source.contentModelUpgrade && typeof source.contentModelUpgrade === 'object'
+      ? source.contentModelUpgrade
+      : {},
     runtime: {
       manifestPath: String(runtime.manifestPath || '').trim(),
       type: String(runtime.type || '').trim(),
@@ -528,7 +531,8 @@ function buildDesiredState({ sources, systemRelease, systemSource, releaseIntent
       version: target.version,
       tag: target.tag,
       asset: systemRelease.asset,
-      runtime: systemRelease.runtime
+      runtime: systemRelease.runtime,
+      contentModelUpgrade: systemRelease.contentModelUpgrade
     },
     downstream: Object.fromEntries((sources.downstream || []).map((source) => {
       return [source.key, downstreamTarget(source, target.version)];
@@ -560,7 +564,8 @@ function buildObservedState(state, checkedAt) {
       version: state.pressSystem.version,
       tag: state.pressSystem.tag,
       runtime: state.pressSystem.runtime,
-      asset: state.pressSystem.asset
+      asset: state.pressSystem.asset,
+      contentModelUpgrade: state.pressSystem.contentModelUpgrade
     },
     releaseIntent: clone(state.releaseIntent),
     downstream: clone(state.downstream),

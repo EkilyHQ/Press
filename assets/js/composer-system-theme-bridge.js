@@ -13,9 +13,13 @@ export function createComposerSystemThemeBridge(options = {}) {
   const getStagedThemeCommitFiles = typeof options.getStagedThemeCommitFiles === 'function'
     ? options.getStagedThemeCommitFiles
     : () => (themeManager && typeof themeManager.getCommitFiles === 'function' ? themeManager.getCommitFiles() : []);
+  const getStagedContentCommitFiles = typeof options.getStagedContentCommitFiles === 'function'
+    ? options.getStagedContentCommitFiles
+    : () => [];
   const systemUpdates = options.systemUpdatesController || createSystemUpdatesController({
     localStorageRef,
     getStagedThemeCommitFiles,
+    getStagedContentCommitFiles,
     getCurrentThemePack
   });
   let initialized = false;

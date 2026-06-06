@@ -25,6 +25,10 @@ function systemRelease(version = '3.4.62') {
       requiresInstalledThemeContractVersion: 2,
       message: 'Update installed themes to contract v2 first.'
     },
+    contentModelUpgrade: {
+      requiresUnifiedIndexTabs: true,
+      message: 'Publish content model migration first.'
+    },
     runtime: {
       manifestPath: 'assets/press-runtime-manifest.json',
       type: 'press-runtime-assets',
@@ -70,6 +74,7 @@ test('buildReleaseIntent freezes Press release targets and artifact metadata', (
   assert.equal(intent.systemRelease.path, 'system-release.json');
   assert.equal(intent.systemRelease.digest, 'sha256:system');
   assert.deepEqual(intent.pressSystem.themeContractUpgrade, release.themeContractUpgrade);
+  assert.deepEqual(intent.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
   assert.deepEqual(intent.targets.map((target) => target.key), getReleaseTargets().map((target) => target.key));
   assert.equal(intent.targets[0].expected.version, '3.4.62');
   assert.equal(intent.targets[0].observed.source, 'https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json');
@@ -98,6 +103,17 @@ test('validateReleaseIntent compares theme upgrade metadata structurally', () =>
   intent.pressSystem.themeContractUpgrade = {
     message: 'Update installed themes to contract v2 first.',
     requiresInstalledThemeContractVersion: 2
+  };
+
+  assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);
+});
+
+test('validateReleaseIntent compares content-model upgrade metadata structurally', () => {
+  const release = systemRelease();
+  const intent = buildReleaseIntent({ systemRelease: release });
+  intent.pressSystem.contentModelUpgrade = {
+    message: 'Publish content model migration first.',
+    requiresUnifiedIndexTabs: true
   };
 
   assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);

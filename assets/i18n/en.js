@@ -265,6 +265,7 @@ const translations = {
           themeRegistryUnavailable: ({ target, required }) => `Cannot verify installed themes before updating to ${target}. Make sure assets/themes/packs.json is readable before applying an update that requires ${required}.`,
           themeContractUpgradeBlocked: ({ target, required, themes }) => `Update installed themes to ${required} before updating to ${target}. Update or uninstall: ${themes}.`,
           themeContractUpgradeThemes: ({ themes }) => `Update or uninstall: ${themes}.`,
+          contentModelUpgradeBlocked: ({ target, paths }) => `Publish the content model migration before updating to ${target}. Legacy YAML: ${paths}.`,
           sizeMismatch: ({ expected, actual }) => `The selected archive size (${actual}) does not match the release asset (${expected}).`,
           digestMismatch: 'The selected archive SHA-256 does not match the release asset.',
           generic: 'System update failed. Please try again.'
@@ -547,6 +548,7 @@ const translations = {
         statusMessages: {
           loadingConfig: 'Loading config…',
           restoredDraft: ({ label }) => `Restored local draft for ${label}`,
+          contentModelMigrationReady: 'Legacy content YAML was normalized. Publish once before installing the next clean Press release.',
           refreshSuccess: ({ name }) => `${name} refreshed from remote`,
           remoteUpdated: 'Remote snapshot updated. Highlights now include remote differences.',
           remoteUnchanged: 'Remote snapshot unchanged.',

@@ -485,11 +485,15 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(shouldFailCheck(state, { requireConverged: true }), false);
 });
 
-test('buildProductState preserves theme contract upgrade metadata for release intent validation', async () => {
+test('buildProductState preserves release upgrade metadata for release intent validation', async () => {
   const release = systemRelease();
   release.themeContractUpgrade = {
     requiresInstalledThemeContractVersion: 2,
     message: 'Update installed themes to contract v2 first.'
+  };
+  release.contentModelUpgrade = {
+    requiresUnifiedIndexTabs: true,
+    message: 'Publish content model migration first.'
   };
   const fixtures = makeFixtures({
     'fixture:system': release,
@@ -504,6 +508,7 @@ test('buildProductState preserves theme contract upgrade metadata for release in
 
   assert.equal(state.status, 'ok');
   assert.equal(state.releaseIntent.status, 'ok');
+  assert.deepEqual(state.desired.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
 });
 
 test('buildProductState preserves legacy theme-starter reconciler fallback', async () => {

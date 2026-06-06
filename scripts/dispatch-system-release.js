@@ -109,6 +109,7 @@ function buildPayload(release) {
     tag,
     version: String(system.version || '').trim(),
     upgrade_from: system.upgradeFrom || {},
+    content_model_upgrade: system.contentModelUpgrade || {},
     asset_name: assetName,
     asset_size: Number.isFinite(assetSize) ? assetSize : 0,
     asset_sha256: assetSha256,

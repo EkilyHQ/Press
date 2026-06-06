@@ -4,7 +4,12 @@ import {
   parseYAML
 } from './yaml.js';
 import { escapeHtml } from './utils.js';
-import { t, getAvailableLangs, getLanguageLabel } from './i18n.js';
+import { t, getAvailableLangs, getCurrentLang, getLanguageLabel } from './i18n.js';
+import {
+  CONTENT_MODEL_MIGRATION_STATE_KEY,
+  getLegacyContentModelMigrationFiles,
+  loadLegacyContentModelMigration
+} from './content-model-migration.js';
 import {
   cloneIndexMetadataValue,
   computeIndexDiff,
@@ -391,6 +396,9 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getStateSlice,
     setStateSlice,
     notifyComposerChange,
+    getStagedContentCommitFiles: () => getLegacyContentModelMigrationFiles(
+      composerStateStore.getActiveState() && composerStateStore.getActiveState()[CONTENT_MODEL_MIGRATION_STATE_KEY]
+    ),
     updateUnsyncedSummary: () => composerActions.refreshSystemThemeState({ preserveStructure: true }),
     refreshEditorContentTree: (options) => composerActions.refreshEditorContentTree(options)
   });
@@ -442,6 +450,9 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     computeIndexDiff,
     recomputeDiff,
     listMarkdownAssetDeletions,
+    getContentModelMigrationFiles: () => getLegacyContentModelMigrationFiles(
+      composerStateStore.getActiveState() && composerStateStore.getActiveState()[CONTENT_MODEL_MIGRATION_STATE_KEY]
+    ),
     draftHasAssetDeletions,
     textWithFallback,
     getRemoteBaselineSite: () => composerStateStore.getRemoteBaseline('site'),
@@ -467,6 +478,12 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     scheduleMarkdownDraftSave,
     updateDynamicTabDirtyState,
     removeMarkdownAssetDeletion,
+    clearContentModelMigration: () => {
+      const state = composerStateStore.getActiveState();
+      if (state && Object.prototype.hasOwnProperty.call(state, CONTENT_MODEL_MIGRATION_STATE_KEY)) {
+        delete state[CONTENT_MODEL_MIGRATION_STATE_KEY];
+      }
+    },
     updateUnsyncedSummary,
     registerExternalStagingProviders: (registry) => composerSystemThemeBridge.registerStagingProviders(registry),
     parseEncryptedMarkdownEnvelope,
@@ -1230,6 +1247,12 @@ export function createComposerController(editorRuntime = createComposerRuntime()
       fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
       applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
       fetchConfigWithYamlFallback,
+      loadContentModelMigration: (options) => loadLegacyContentModelMigration({
+        ...options,
+        languages: getAvailableLangs(),
+        currentLang: getCurrentLang(),
+        fetchImpl: (url, fetchOptions) => editorRuntime.fetchContent(url, fetchOptions)
+      }),
       prepareSiteState,
       prepareIndexState,
       prepareTabsState,

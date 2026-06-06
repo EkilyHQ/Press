@@ -374,6 +374,7 @@ jobs:
               "notes": release.get("body") or "",
               "upgradeFrom": system.get("upgradeFrom") or {},
               "themeContractUpgrade": system.get("themeContractUpgrade") or {},
+              "contentModelUpgrade": system.get("contentModelUpgrade") or {},
               "runtime": {
                   "manifestPath": runtime_manifest_path,
                   "type": runtime.get("type") or "",

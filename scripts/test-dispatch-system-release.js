@@ -93,6 +93,7 @@ test('buildPayload includes release artifact and compatibility metadata', () => 
   assert.equal(payload.asset_size, 1234);
   assert.equal(payload.asset_sha256, 'abc123');
   assert.deepEqual(payload.upgrade_from, system.upgradeFrom);
+  assert.deepEqual(payload.content_model_upgrade, system.contentModelUpgrade || {});
   assert.equal(payload.release_intent.type, 'press-release-intent');
   assert.equal(payload.release_intent.source, `https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/${system.tag}/release-intent.json`);
   assert.equal(payload.release_intent.target_count, 1);

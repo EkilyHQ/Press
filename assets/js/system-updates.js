@@ -10,6 +10,7 @@ import { parseYAML } from './yaml.js';
 import {
   isUpgradeAllowed,
   loadPressSystemManifest,
+  normalizeContentModelUpgrade,
   normalizeThemeContractUpgrade,
   normalizePressSystemManifest,
   normalizeSemver,
@@ -17,6 +18,10 @@ import {
   semverToTag
 } from './press-version.js';
 import { isPressSystemUpdatePath } from './press-system-surface.mjs';
+import {
+  getLegacyContentModelMigrationFiles,
+  loadLegacyContentModelMigration
+} from './content-model-migration.js';
 import { normalizeThemeRegistry, sanitizeThemeSlug } from './theme-package-core.js';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
@@ -32,6 +37,7 @@ const RELEASE_API_URL = PRESS_GITHUB_PROVIDER.latestReleaseApiUrl;
 const RELEASE_MANIFEST_URL = PRESS_GITHUB_PROVIDER.systemReleaseUrl;
 const THEME_PACK_STORAGE_KEYS = ['themePackPending', 'themePack'];
 const SITE_CONFIG_THEME_PACK_PATHS = ['site.yaml', 'site.yml'];
+const LEGACY_CONTENT_SIDECAR_PATTERN = /(^|\/)(?:index|tabs)\.[a-z0-9][a-z0-9-]*\.ya?ml$/i;
 
 function createSystemUpdateElements() {
   return {
@@ -85,6 +91,9 @@ function createSystemUpdatesRuntime(options = {}) {
   const getStagedThemeCommitFiles = typeof options.getStagedThemeCommitFiles === 'function'
     ? options.getStagedThemeCommitFiles
     : null;
+  const getStagedContentCommitFiles = typeof options.getStagedContentCommitFiles === 'function'
+    ? options.getStagedContentCommitFiles
+    : null;
   const getCurrentThemePack = typeof options.getCurrentThemePack === 'function'
     ? options.getCurrentThemePack
     : null;
@@ -104,6 +113,9 @@ function createSystemUpdatesRuntime(options = {}) {
     },
     getStagedThemeCommitFiles() {
       return getStagedThemeCommitFiles ? getStagedThemeCommitFiles() : [];
+    },
+    getStagedContentCommitFiles() {
+      return getStagedContentCommitFiles ? getStagedContentCommitFiles() : [];
     },
     getCurrentThemePack() {
       return getCurrentThemePack ? getCurrentThemePack() : null;
@@ -378,6 +390,7 @@ function normalizeReleaseCache(data) {
     notes: data.body || '',
     upgradeFrom: normalizeUpgradeFrom(data.upgradeFrom),
     themeContractUpgrade: normalizeThemeContractUpgrade(data.themeContractUpgrade),
+    contentModelUpgrade: normalizeContentModelUpgrade(data.contentModelUpgrade),
     htmlUrl: data.html_url || '',
     asset: asset ? { ...asset, fetchable: false } : asset
   };
@@ -419,6 +432,7 @@ export function normalizeSystemReleaseManifest(manifest) {
     notes,
     upgradeFrom: normalizeUpgradeFrom(manifest.upgradeFrom),
     themeContractUpgrade: normalizeThemeContractUpgrade(manifest.themeContractUpgrade),
+    contentModelUpgrade: normalizeContentModelUpgrade(manifest.contentModelUpgrade),
     htmlUrl,
     asset: {
       ...asset,
@@ -611,6 +625,99 @@ function getStagedThemeCommitFilesForUpgrade(runtime) {
     }) : [];
   } catch (_) {
     return [];
+  }
+}
+
+function getStagedContentCommitFilesForUpgrade(runtime) {
+  if (!runtime || typeof runtime.getStagedContentCommitFiles !== 'function') return [];
+  try {
+    const files = runtime.getStagedContentCommitFiles();
+    return Array.isArray(files) ? files.filter((file) => {
+      const path = String(file && file.path || '').replace(/[\\]/g, '/').replace(/^\/+/, '');
+      if (!path) return false;
+      if (file && file.kind === 'content-model-migration') return true;
+      return LEGACY_CONTENT_SIDECAR_PATTERN.test(path);
+    }) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function normalizeContentRootForUpgrade(value) {
+  const root = String(value || 'wwwroot')
+    .replace(/[\\]/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\/+/g, '/');
+  return root || 'wwwroot';
+}
+
+async function resolveContentRootForUpgrade(runtime) {
+  const fetchImpl = runtime.getFetch();
+  for (const path of SITE_CONFIG_THEME_PACK_PATHS) {
+    let response = null;
+    try {
+      response = await fetchImpl(path, { cache: 'no-store' });
+    } catch (_) {
+      response = null;
+    }
+    if (!response || !response.ok) continue;
+    try {
+      const config = parseYAML(await response.text());
+      if (!config || typeof config !== 'object' || Array.isArray(config)) continue;
+      return normalizeContentRootForUpgrade(config.contentRoot || 'wwwroot');
+    } catch (_) {
+      continue;
+    }
+  }
+  return 'wwwroot';
+}
+
+function createContentModelUpgradeError(targetVersion, requirement, files = [], reason = '') {
+  const paths = (Array.isArray(files) ? files : [])
+    .map(file => String(file && file.path || '').replace(/[\\]/g, '/').replace(/^\/+/, ''))
+    .filter(Boolean)
+    .slice(0, 6);
+  const pathText = paths.length ? paths.join(', ') : 'legacy content YAML';
+  let message = requirement.message || t('editor.systemUpdates.errors.contentModelUpgradeBlocked', {
+    target: versionLabel(targetVersion),
+    paths: pathText
+  });
+  if (!requirement.message && message === 'editor.systemUpdates.errors.contentModelUpgradeBlocked') {
+    message = `Publish the content model migration before updating to ${versionLabel(targetVersion)}. Legacy YAML: ${pathText}.`;
+  }
+  if (reason === 'staged') {
+    const detail = `Staged content model migration is not published yet: ${pathText}.`;
+    message = requirement.message ? `${message} ${detail}` : `Publish the staged content model migration before updating to ${versionLabel(targetVersion)}. ${detail}`;
+  } else if (requirement.message && paths.length) {
+    message = `${message} Legacy YAML: ${pathText}.`;
+  }
+  const error = new Error(message);
+  error.pressContentModelUpgradeBlocked = true;
+  throw error;
+}
+
+async function assertContentModelCompatibility(runtime, release, archiveSystem) {
+  const targetVersion = normalizeSemver(
+    (archiveSystem && archiveSystem.version) || (release && (release.version || release.tag)) || ''
+  );
+  const archiveRequirement = normalizeContentModelUpgrade(archiveSystem && archiveSystem.contentModelUpgrade);
+  const releaseRequirement = normalizeContentModelUpgrade(release && release.contentModelUpgrade);
+  const requirement = archiveRequirement.requiresUnifiedIndexTabs ? archiveRequirement : releaseRequirement;
+  if (!requirement.requiresUnifiedIndexTabs) return;
+
+  const stagedContentFiles = getStagedContentCommitFilesForUpgrade(runtime);
+  if (stagedContentFiles.length) {
+    createContentModelUpgradeError(targetVersion, requirement, stagedContentFiles, 'staged');
+  }
+
+  const contentRoot = await resolveContentRootForUpgrade(runtime);
+  const migration = await loadLegacyContentModelMigration({
+    contentRoot,
+    fetchImpl: runtime.getFetch()
+  });
+  const legacyFiles = getLegacyContentModelMigrationFiles(migration);
+  if (legacyFiles.length) {
+    createContentModelUpgradeError(targetVersion, requirement, legacyFiles, 'legacy');
   }
 }
 
@@ -1011,11 +1118,13 @@ async function analyzeArchiveWithRuntime(runtime, buffer, filename) {
     await refreshCurrentPressSystem(runtime);
     assertSystemUpdateCompatibility(runtime, release, archiveSystem);
     await assertInstalledThemeContractCompatibility(runtime, release, archiveSystem);
+    await assertContentModelCompatibility(runtime, release, archiveSystem);
     files = await processArchiveEntries(runtime, entries);
   } catch (err) {
     console.error('Failed to unpack system update archive', err);
     if (err && err.pressUpgradeBlocked) throw err;
     if (err && err.pressThemeContractUpgradeBlocked) throw err;
+    if (err && err.pressContentModelUpgradeBlocked) throw err;
     if (err && err.message && /upgrade|version|Press/i.test(err.message)) throw err;
     throw new Error(t('editor.systemUpdates.errors.invalidArchive'));
   }

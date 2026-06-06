@@ -383,6 +383,11 @@ if ! grep -F '"themeContractUpgrade": system.get("themeContractUpgrade") or {}' 
   exit 1
 fi
 
+if ! grep -F '"contentModelUpgrade": system.get("contentModelUpgrade") or {}' "${workflow}" >/dev/null; then
+  echo "system release manifest must publish content model upgrade metadata" >&2
+  exit 1
+fi
+
 if ! grep -F '"runtime": {' "${workflow}" >/dev/null || ! grep -F '"edgeCount": len(runtime_edges)' "${workflow}" >/dev/null; then
   echo "system release manifest must publish runtime asset graph summary metadata" >&2
   exit 1
@@ -572,6 +577,11 @@ fi
 
 if ! grep -F 'upgrade_from: system.upgradeFrom || {}' scripts/dispatch-system-release.js >/dev/null; then
   echo "release dispatch orchestrator must pass upgrade compatibility metadata to targets" >&2
+  exit 1
+fi
+
+if ! grep -F 'content_model_upgrade: system.contentModelUpgrade || {}' scripts/dispatch-system-release.js >/dev/null; then
+  echo "release dispatch orchestrator must pass content model upgrade metadata to targets" >&2
   exit 1
 fi
 

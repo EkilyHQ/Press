@@ -35,6 +35,7 @@ export function createPostCommitStateApplier({
   updateDynamicTabDirtyState = () => {},
   removeMarkdownAsset = () => {},
   removeMarkdownAssetDeletion = () => {},
+  clearContentModelMigration = () => {},
   updateUnsyncedSummary = () => {}
 } = {}) {
   function apply(files = []) {
@@ -178,6 +179,9 @@ export function createPostCommitStateApplier({
         }
       }
     });
+    if (files.some(file => file && file.kind === 'content-model-migration')) {
+      clearContentModelMigration();
+    }
     updateUnsyncedSummary();
     updateMarkdownPushButton(getActiveDynamicTab());
     updateMarkdownDiscardButton(getActiveDynamicTab());

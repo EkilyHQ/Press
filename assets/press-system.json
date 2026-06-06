@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "type": "press-system",
-  "version": "3.4.123",
-  "tag": "v3.4.123",
+  "version": "3.4.124",
+  "tag": "v3.4.124",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.122 <3.4.123"
+      ">=3.4.123 <3.4.124"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.122 first."
+    "message": "Update to v3.4.123 first."
   },
   "themeContractUpgrade": {
     "requiresInstalledThemeContractVersion": 2,
-    "message": "Update installed themes to contract v2 before installing v3.4.123."
+    "message": "Update installed themes to contract v2 before installing v3.4.124."
   }
 }

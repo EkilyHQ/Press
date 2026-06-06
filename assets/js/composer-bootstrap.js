@@ -1,6 +1,10 @@
 import { createEditorAppKernel } from './editor-app-kernel.js';
 import { createDomEffects } from './editor-effects.js';
 import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
+import {
+  CONTENT_MODEL_MIGRATION_STATE_KEY,
+  getLegacyContentModelMigrationFiles
+} from './content-model-migration.js';
 
 function noop() {}
 
@@ -202,7 +206,8 @@ export async function loadInitialComposerState({
   setRemoteBaseline,
   getActiveDynamicTab = () => null,
   updateMarkdownPushButton = noop,
-  showStatus = noop
+  showStatus = noop,
+  loadContentModelMigration = null
 } = {}) {
   try {
     ensureSiteRepo();
@@ -222,12 +227,45 @@ export async function loadInitialComposerState({
     ]);
     const remoteIndex = prepareIndexState(idx || {});
     const remoteTabs = prepareTabsState(tbs || {});
+    let migration = null;
+    if (typeof loadContentModelMigration === 'function') {
+      try {
+        migration = await loadContentModelMigration({
+          contentRoot: root,
+          indexRaw: idx || {},
+          tabsRaw: tbs || {}
+        });
+      } catch (err) {
+        if (consoleRef && typeof consoleRef.warn === 'function') {
+          consoleRef.warn('Composer: failed to inspect legacy content model files', err);
+        }
+        migration = null;
+      }
+    }
+    const hasContentModelMigration = !!(migration && migration.hasLegacyContentModel);
+    const migratedIndex = hasContentModelMigration
+      ? prepareIndexState(migration.indexRaw || idx || {})
+      : remoteIndex;
+    const migratedTabs = hasContentModelMigration
+      ? prepareTabsState(migration.tabsRaw || tbs || {})
+      : remoteTabs;
     setRemoteBaseline('index', deepClone(remoteIndex));
     setRemoteBaseline('tabs', deepClone(remoteTabs));
     setRemoteBaseline('site', cloneSiteState(remoteSite));
-    state.index = deepClone(remoteIndex);
-    state.tabs = deepClone(remoteTabs);
+    state.index = deepClone(migratedIndex);
+    state.tabs = deepClone(migratedTabs);
     state.site = cloneSiteState(remoteSite);
+    if (hasContentModelMigration) {
+      Object.defineProperty(state, CONTENT_MODEL_MIGRATION_STATE_KEY, {
+        value: {
+          contentRoot: root,
+          legacyFiles: getLegacyContentModelMigrationFiles(migration)
+        },
+        enumerable: false,
+        configurable: true
+      });
+      showStatus(t('editor.composer.statusMessages.contentModelMigrationReady'));
+    }
   } catch (err) {
     if (consoleRef && typeof consoleRef.warn === 'function') {
       consoleRef.warn('Composer: failed to load configs', err);

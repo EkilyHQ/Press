@@ -76,6 +76,14 @@ export function normalizeThemeContractUpgrade(input) {
   };
 }
 
+export function normalizeContentModelUpgrade(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  return {
+    requiresUnifiedIndexTabs: source.requiresUnifiedIndexTabs === true,
+    message: String(source.message || '')
+  };
+}
+
 export function normalizePressSystemManifest(input) {
   if (!input || typeof input !== 'object') throw new Error('Press system manifest is missing.');
   if (Number(input.schemaVersion) !== 1 || input.type !== 'press-system') {
@@ -92,7 +100,8 @@ export function normalizePressSystemManifest(input) {
     version,
     tag,
     upgradeFrom: normalizeUpgradeFrom(input.upgradeFrom),
-    themeContractUpgrade: normalizeThemeContractUpgrade(input.themeContractUpgrade)
+    themeContractUpgrade: normalizeThemeContractUpgrade(input.themeContractUpgrade),
+    contentModelUpgrade: normalizeContentModelUpgrade(input.contentModelUpgrade)
   };
 }
 

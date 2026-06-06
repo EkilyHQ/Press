@@ -79,6 +79,21 @@ function jsonResponse(data, options = {}) {
   };
 }
 
+function textResponse(text, options = {}) {
+  const {
+    ok = true,
+    status = ok ? 200 : 404
+  } = options;
+  return {
+    ok,
+    status,
+    headers: { get: () => null },
+    json: async () => ({}),
+    text: async () => String(text || ''),
+    arrayBuffer: async () => new ArrayBuffer(0)
+  };
+}
+
 function arrayBufferResponse(buffer, options = {}) {
   const {
     ok = true,
@@ -1432,6 +1447,147 @@ await run('blocks guarded system updates when theme changes are staged for the s
   await assert.rejects(
     () => controller.analyzeArchive(buffer, 'press-system-v3.4.123.zip'),
     /staged theme changes|contract v2|v3\.4\.123/i
+  );
+  assert.deepEqual(controller.getCommitFiles(), []);
+  setPressSystemManifestForTests(null);
+});
+
+await run('blocks content-model guarded system updates while legacy sidecar YAML files still exist', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.124',
+    tag: 'v3.4.124',
+    upgradeFrom: { ranges: ['>=3.4.123 <3.4.124'], allowUnknownSource: false, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v3.4.125/index.html': '<!doctype html><p>clean content model</p>',
+    'press-system-v3.4.125/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '3.4.125',
+      tag: 'v3.4.125',
+      upgradeFrom: {
+        ranges: ['>=3.4.124 <3.4.125'],
+        allowUnknownSource: false,
+        message: ''
+      },
+      contentModelUpgrade: {
+        requiresUnifiedIndexTabs: true,
+        message: 'Open v3.4.124, publish the content model migration, then install v3.4.125.'
+      }
+    })
+  });
+  const controller = createSystemUpdatesController({
+    fetchImpl: async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'site.yaml') return textResponse('contentRoot: docs\n');
+      if (url === 'docs/index.en.yaml') return textResponse('Guide: posts/guide.md\n');
+      return textResponse('', { ok: false, status: 404 });
+    }
+  });
+
+  await assert.rejects(
+    () => controller.analyzeArchive(buffer, 'press-system-v3.4.125.zip'),
+    /content model|publish|index\.en\.yaml|v3\.4\.125/i
+  );
+  assert.deepEqual(controller.getCommitFiles(), []);
+  setPressSystemManifestForTests(null);
+});
+
+await run('blocks content-model guarded system updates for registered custom language sidecars', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.124',
+    tag: 'v3.4.124',
+    upgradeFrom: { ranges: ['>=3.4.123 <3.4.124'], allowUnknownSource: false, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v3.4.125/index.html': '<!doctype html><p>clean content model</p>',
+    'press-system-v3.4.125/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '3.4.125',
+      tag: 'v3.4.125',
+      upgradeFrom: {
+        ranges: ['>=3.4.124 <3.4.125'],
+        allowUnknownSource: false,
+        message: ''
+      },
+      contentModelUpgrade: {
+        requiresUnifiedIndexTabs: true,
+        message: ''
+      }
+    })
+  });
+  const controller = createSystemUpdatesController({
+    fetchImpl: async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'site.yaml') return textResponse('contentRoot: docs\n');
+      if (url === 'assets/i18n/languages.json') {
+        return jsonResponse([{ value: 'en' }, { value: 'fr' }]);
+      }
+      if (url === 'docs/index.fr.yaml') return textResponse('Guide FR: posts/guide-fr.md\n');
+      return textResponse('', { ok: false, status: 404 });
+    }
+  });
+
+  await assert.rejects(
+    () => controller.analyzeArchive(buffer, 'press-system-v3.4.125.zip'),
+    /content model|publish|index\.fr\.yaml|v3\.4\.125/i
+  );
+  assert.deepEqual(controller.getCommitFiles(), []);
+  setPressSystemManifestForTests(null);
+});
+
+await run('blocks content-model guarded system updates while migrated sidecar deletions are staged but unpublished', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.124',
+    tag: 'v3.4.124',
+    upgradeFrom: { ranges: ['>=3.4.123 <3.4.124'], allowUnknownSource: false, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v3.4.125/index.html': '<!doctype html><p>clean content model</p>',
+    'press-system-v3.4.125/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '3.4.125',
+      tag: 'v3.4.125',
+      upgradeFrom: {
+        ranges: ['>=3.4.124 <3.4.125'],
+        allowUnknownSource: false,
+        message: ''
+      },
+      contentModelUpgrade: {
+        requiresUnifiedIndexTabs: true,
+        message: ''
+      }
+    })
+  });
+  const controller = createSystemUpdatesController({
+    getStagedContentCommitFiles: () => [
+      {
+        kind: 'content-model-migration',
+        path: 'docs/index.en.yaml',
+        deleted: true
+      }
+    ],
+    fetchImpl: async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'site.yaml') return textResponse('contentRoot: docs\n');
+      return textResponse('', { ok: false, status: 404 });
+    }
+  });
+
+  await assert.rejects(
+    () => controller.analyzeArchive(buffer, 'press-system-v3.4.125.zip'),
+    /content model|publish|staged|v3\.4\.125/i
   );
   assert.deepEqual(controller.getCommitFiles(), []);
   setPressSystemManifestForTests(null);

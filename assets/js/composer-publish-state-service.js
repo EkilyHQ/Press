@@ -67,6 +67,7 @@ export function createComposerPublishStateService(options = {}) {
     computeIndexDiff: options.computeIndexDiff || (() => null),
     recomputeDiff: options.recomputeDiff || (() => null),
     listMarkdownAssetDeletions: options.listMarkdownAssetDeletions || (() => []),
+    getContentModelMigrationFiles: options.getContentModelMigrationFiles || (() => []),
     safeString,
     draftHasAssetDeletions: options.draftHasAssetDeletions || (() => false),
     textWithFallback: options.textWithFallback || ((_key, fallback) => fallback),
@@ -122,6 +123,7 @@ export function createComposerPublishStateService(options = {}) {
     updateDynamicTabDirtyState: options.updateDynamicTabDirtyState || noop,
     removeMarkdownAsset: options.removeMarkdownAsset || noop,
     removeMarkdownAssetDeletion: options.removeMarkdownAssetDeletion || noop,
+    clearContentModelMigration: options.clearContentModelMigration || noop,
     updateUnsyncedSummary: options.updateUnsyncedSummary || noop
   });
 

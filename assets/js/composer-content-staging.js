@@ -35,6 +35,7 @@ export function createContentCommitStagingProvider({
   computeIndexDiff = () => null,
   recomputeDiff = () => null,
   listMarkdownAssetDeletions = () => [],
+  getContentModelMigrationFiles = () => [],
   safeString = (value) => String(value == null ? '' : value),
   draftHasAssetDeletions = () => false,
   textWithFallback = (key, fallback) => fallback,
@@ -72,6 +73,25 @@ export function createContentCommitStagingProvider({
       }
     } catch (_) {}
     return Array.from(paths);
+  }
+
+  function collectContentModelMigrationFiles() {
+    try {
+      const files = getContentModelMigrationFiles();
+      return Array.isArray(files) ? files
+        .filter(file => file && file.path)
+        .map(file => ({
+          ...file,
+          kind: file.kind || 'content-model-migration',
+          category: file.category || 'legacy-content-model',
+          state: 'deleted',
+          deleted: true,
+          path: normalizeRelPath(file.path)
+        }))
+        .filter(file => file.path) : [];
+    } catch (_) {
+      return [];
+    }
   }
 
   function formatRepositoryDeletionBlockers(blocked = []) {
@@ -190,6 +210,7 @@ export function createContentCommitStagingProvider({
       const yaml = toSiteYaml(state);
       addFile({ kind: 'site', label: 'site.yaml', path: 'site.yaml', content: yaml });
     }
+    collectContentModelMigrationFiles().forEach(addFile);
 
     const contentDeletionPlan = planManagedContentDeletions({
       index: getStateSlice('index') || { __order: [] },

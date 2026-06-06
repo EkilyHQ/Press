@@ -8,7 +8,8 @@ import {
   bindComposerWorkspaceUi,
   createComposerBootstrapFeatures,
   initializeComposerApp,
-  initializeComposerOnDomReady
+  initializeComposerOnDomReady,
+  loadInitialComposerState
 } from '../assets/js/composer-bootstrap.js';
 
 class FakeClassList {
@@ -196,6 +197,91 @@ class FakeDocument {
   assert.equal(calls.some(call => call[0] === 'add' && call[1] === 'tabs'), true);
   assert.equal(calls.some(call => call[0] === 'diff' && call[1] === 'tabs'), true);
   assert.equal(calls.some(call => call[0] === 'verify'), true);
+}
+
+{
+  const remoteBaseline = {};
+  const calls = [];
+  const state = await loadInitialComposerState({
+    t: key => key,
+    fetchTrackedSiteConfig: async () => ({ contentRoot: 'docs', siteTitle: 'Legacy' }),
+    applyEffectiveSiteConfig: site => ({ ...site, contentRoot: site.contentRoot || 'wwwroot' }),
+    fetchConfigWithYamlFallback: async (paths) => {
+      calls.push(['fetchConfig', paths]);
+      return {};
+    },
+    loadContentModelMigration: async ({ contentRoot, indexRaw, tabsRaw }) => {
+      calls.push(['contentMigration', contentRoot, indexRaw, tabsRaw]);
+      return {
+        hasLegacyContentModel: true,
+        indexRaw: {
+          Guide: {
+            en: 'posts/guide.md'
+          }
+        },
+        tabsRaw: {
+          Docs: {
+            en: {
+              title: 'Docs',
+              location: 'docs/index.md'
+            }
+          }
+        },
+        legacyFiles: [
+          {
+            kind: 'content-model-migration',
+            path: 'docs/index.en.yaml',
+            deleted: true
+          }
+        ]
+      };
+    },
+    prepareSiteState: value => ({ ...value, preparedSite: true }),
+    prepareIndexState: value => ({ ...value, preparedIndex: true }),
+    prepareTabsState: value => ({ ...value, preparedTabs: true }),
+    cloneSiteState: value => ({ ...value, clonedSite: true }),
+    deepClone: value => JSON.parse(JSON.stringify(value || {})),
+    setRemoteBaseline: (kind, value) => {
+      remoteBaseline[kind] = value;
+    },
+    updateMarkdownPushButton: () => {}
+  });
+
+  assert.deepEqual(
+    calls.find(call => call[0] === 'contentMigration'),
+    ['contentMigration', 'docs', {}, {}],
+    'composer bootstrap should offer the remote unified YAML as migration input'
+  );
+  assert.deepEqual(remoteBaseline.index, { preparedIndex: true });
+  assert.deepEqual(state.index, {
+    Guide: {
+      en: 'posts/guide.md'
+    },
+    preparedIndex: true
+  });
+  assert.deepEqual(state.tabs, {
+    Docs: {
+      en: {
+        title: 'Docs',
+        location: 'docs/index.md'
+      }
+    },
+    preparedTabs: true
+  });
+  assert.equal(
+    Object.keys(state).includes('__contentModelMigration'),
+    false,
+    'content migration metadata should not be enumerable editor state'
+  );
+  assert.deepEqual(state.__contentModelMigration.legacyFiles, [
+    {
+      category: 'legacy-content-model',
+      state: 'deleted',
+      kind: 'content-model-migration',
+      path: 'docs/index.en.yaml',
+      deleted: true
+    }
+  ]);
 }
 
 {

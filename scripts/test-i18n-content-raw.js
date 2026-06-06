@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const i18nSource = readFileSync(resolve(here, '../assets/js/i18n.js'), 'utf8');
+const mainSource = readFileSync(resolve(here, '../assets/main.js'), 'utf8');
 
 [
   ['base default language', /^let\s+baseDefaultLang\b/m],
@@ -39,6 +40,11 @@ assert.match(
   i18nSource,
   /async function fetchConfigWithYamlFallbackForRuntime\(runtime, names\)[\s\S]*runtime\.getFetch\(\)\(name, \{ cache: 'no-store' \}\)/,
   'i18n content YAML loading should use the runtime fetch adapter'
+);
+assert.doesNotMatch(
+  mainSource,
+  /\bloadLangJson\b/,
+  'main runtime should not import the retired legacy sidecar loader'
 );
 
 globalThis.document = globalThis.document || {
@@ -169,6 +175,18 @@ globalThis.fetch = async (url) => {
       ].join('\n')
     };
   }
+  if (textUrl.endsWith('/flat-tabs.yaml')) {
+    return {
+      ok: true,
+      text: async () => [
+        'Docs: docs/index.md',
+        'About:',
+        '  location: about.md',
+        '  title: About',
+        ''
+      ].join('\n')
+    };
+  }
   if (textUrl.endsWith('/post/demo.md')) {
     return {
       ok: true,
@@ -256,6 +274,18 @@ assert.equal(
   requests.slice(beforeLegacyTabsRequests).some(url => /legacy-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
   false,
   'clean content runtime should not probe legacy per-language tabs YAML sidecars'
+);
+
+const beforeFlatTabsRequests = requests.length;
+const flatTabs = await loadTabsJson('wwwroot', 'flat-tabs');
+assert.deepEqual(flatTabs, {
+  Docs: 'docs/index.md',
+  About: { location: 'about.md', title: 'About' }
+});
+assert.equal(
+  requests.slice(beforeFlatTabsRequests).some(url => /flat-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should keep base flat tabs without probing legacy per-language tabs YAML sidecars'
 );
 
 const enrichedEntries = await metadataReady;

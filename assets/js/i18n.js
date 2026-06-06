@@ -967,8 +967,35 @@ function transformUnifiedTabs(runtime, obj, lang) {
   return { entries: out, availableLangs: Array.from(langsSeen).sort() };
 }
 
-// Load tabs in unified format only. Legacy per-language sidecars are migrated by
-// the transition editor release and are not read by the clean runtime.
+function isFlatTabsEntry(value) {
+  if (typeof value === 'string') return !!String(value).trim();
+  return isPlainObject(value) && (value.location != null || value.path != null);
+}
+
+function transformFlatTabs(obj) {
+  const out = {};
+  for (const [title, value] of Object.entries(obj || {})) {
+    if (typeof value === 'string') {
+      const location = value.trim();
+      if (location) out[title] = location;
+      continue;
+    }
+    if (isPlainObject(value)) {
+      const location = value.location != null ? value.location : value.path;
+      if (location == null || !String(location).trim()) continue;
+      out[title] = {
+        ...value,
+        location: String(location).trim()
+      };
+      delete out[title].path;
+    }
+  }
+  return out;
+}
+
+// Load unified tabs YAML and the supported base flat tabs shape. Legacy
+// per-language sidecars are migrated by the transition editor release and are
+// not read by the clean runtime.
 async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
   try {
     const obj = await fetchConfigWithYamlFallbackForRuntime(runtime, [
@@ -978,6 +1005,7 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
     if (obj && typeof obj === 'object') {
       let isUnified = false;
       for (const [k, v] of Object.entries(obj || {})) {
+        if (isFlatTabsEntry(v)) continue;
         if (v && typeof v === 'object' && !Array.isArray(v)) {
           if ('default' in v) { isUnified = true; break; }
           const inner = Object.keys(v);
@@ -990,6 +1018,7 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
         setContentLangs(runtime, availableLangs);
         return entries;
       }
+      return transformFlatTabs(obj);
     }
   } catch (_) { /* return empty tabs */ }
   return {};

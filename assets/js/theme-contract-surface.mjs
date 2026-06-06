@@ -14,8 +14,7 @@ const REQUIRED_THEME_CONTENT_SHAPES = Object.freeze([
 ]);
 const REQUIRED_THEME_MANIFEST_FIELDS = Object.freeze(['contractVersion', 'engines', 'content', 'modules']);
 const DEFAULT_THEME_STYLES = Object.freeze(['theme.css']);
-const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([1, 2]);
-const LEGACY_THEME_CONTROLS_DOM_CONTRACT_MAX = 1;
+const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([2]);
 const THEME_ARCHIVE_ALLOWED_EXTENSIONS = Object.freeze([
   '.avif', '.css', '.gif', '.ico', '.jpeg', '.jpg', '.js', '.json', '.mjs', '.otf',
   '.png', '.svg', '.ttf', '.txt', '.webp', '.woff', '.woff2'
@@ -27,7 +26,6 @@ export const PRESS_THEME_CONTRACT = Object.freeze({
   type: 'press-theme-contract',
   contractVersion: 2,
   supportedContractVersions: SUPPORTED_THEME_CONTRACT_VERSIONS,
-  legacyThemeControlsDomContractMax: LEGACY_THEME_CONTROLS_DOM_CONTRACT_MAX,
   manifestSchemaPath: 'assets/schema/theme.json',
   manifest: Object.freeze({
     requiredFields: REQUIRED_THEME_MANIFEST_FIELDS,
@@ -90,10 +88,4 @@ export function getThemeTextExtensions() {
 
 export function isPressThemeContractVersionSupported(value) {
   return SUPPORTED_THEME_CONTRACT_VERSIONS.includes(Number(value));
-}
-
-export function usesLegacyThemeControlsDom(value) {
-  const version = Number(value);
-  if (!Number.isFinite(version)) return false;
-  return version >= 1 && version <= LEGACY_THEME_CONTROLS_DOM_CONTRACT_MAX;
 }

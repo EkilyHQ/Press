@@ -73,7 +73,7 @@ async function sha256(buffer) {
 function makeThemeManifest({
   name = 'Test',
   version = '1.0.0',
-  contractVersion = 1,
+  contractVersion = 2,
   engines = { press: '>=3.4.0 <4.0.0' },
   styles = ['theme.css'],
   modules = ['modules/layout.js'],
@@ -110,7 +110,7 @@ function makeThemeManifest({
   };
 }
 
-function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contractVersion = 1, files = {} } = {}) {
+function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contractVersion = 2, files = {} } = {}) {
   const manifest = makeThemeManifest({ name, version, contractVersion });
   return makeZip({
     [`press-theme-${slug}/theme.json`]: JSON.stringify(manifest, null, 2),
@@ -699,7 +699,7 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
     value: 'arcus',
     label: 'Arcus',
     version: '1.2.3',
-    contractVersion: 1,
+    contractVersion: 2,
     engines: { press: '>=3.4.0 <4.0.0' },
     release: { tag: 'v1.2.3' },
     asset: {
@@ -712,7 +712,8 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
   });
   assert.equal(manifest.value, 'arcus');
   assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
-  assert.equal(normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }).contractVersion, 2);
+  assert.equal(manifest.contractVersion, 2);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 1 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 3 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, engines: {} }), /engines\.press/i);
 });
@@ -724,21 +725,21 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      '../theme.json': '{"name":"Test","version":"1.0.0","contractVersion":1}',
+      '../theme.json': '{"name":"Test","version":"1.0.0","contractVersion":2}',
       '../theme.css': 'body{}'
     })),
     /unsafe/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      './theme.json': '{"name":"Test","version":"1.0.0","contractVersion":1}',
+      './theme.json': '{"name":"Test","version":"1.0.0","contractVersion":2}',
       './theme.css': 'body{}'
     })),
     /unsafe/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      'press-theme-test/theme.json': '{"name":"Test","version":"1.0.0","contractVersion":1}',
+      'press-theme-test/theme.json': '{"name":"Test","version":"1.0.0","contractVersion":2}',
       'press-theme-test/modules//layout.js': 'export {};'
     })),
     /unsafe/i
@@ -749,10 +750,14 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      'arcus/theme.json': '{"name":"Arcus","contractVersion":1}',
-      'solstice/theme.json': '{"name":"Solstice","contractVersion":1}'
+      'arcus/theme.json': '{"name":"Arcus","contractVersion":2}',
+      'solstice/theme.json': '{"name":"Solstice","contractVersion":2}'
     })),
     /theme\.json|single|root/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 1 })),
+    /contractVersion/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })),
@@ -767,7 +772,7 @@ await run('rejects invalid theme manifests before staging', async () => {
       'press-theme-bad/theme.json': JSON.stringify({
         name: 'Bad',
         version: '1.0.0',
-        contractVersion: 1,
+        contractVersion: 2,
         styles: ['theme.css']
       }, null, 2),
       'press-theme-bad/theme.css': ':root{}'
@@ -844,7 +849,7 @@ await run('blocks official theme releases outside the current Press engine range
         value: 'cataloged',
         label: 'Cataloged',
         version: '1.0.0',
-        contractVersion: 1,
+        contractVersion: 2,
         engines: { press: '>=4.0.0 <5.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',
@@ -993,7 +998,7 @@ await run('staged inactive theme update preserves the current site theme', async
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'cartograph', label: 'Cartograph', version: '1.0.0', contractVersion: 1, files: ['theme.json', 'theme.css', 'modules/layout.js'] }
+    { value: 'cartograph', label: 'Cartograph', version: '1.0.0', contractVersion: 2, files: ['theme.json', 'theme.css', 'modules/layout.js'] }
   ], {
     textFiles: themeTextFiles('cartograph', ['theme.json', 'theme.css', 'modules/layout.js'])
   });
@@ -1024,7 +1029,7 @@ await run('refuses to stage theme writes when registry cannot be loaded', async 
 await run('stages removed old files during theme update', async () => {
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '0.9.0', contractVersion: 1, files: ['theme.json', 'theme.css', 'modules/old.js'] }
+    { value: 'test', label: 'Test', version: '0.9.0', contractVersion: 2, files: ['theme.json', 'theme.css', 'modules/old.js'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css', 'modules/old.js'])
   });
@@ -1042,7 +1047,7 @@ await run('infers old registry file inventory during theme update', async () => 
       'assets/themes/legacy/theme.json': JSON.stringify({
         name: 'Legacy',
         version: '0.9.0',
-        contractVersion: 1,
+        contractVersion: 2,
         modules: ['modules/old.js']
       }),
       'assets/themes/legacy/modules/old.js': 'export {};'
@@ -1071,7 +1076,7 @@ await run('stages uninstall deletions and falls back current default to native',
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 2, removable: true, files: ['theme.json', 'theme.css'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
   });
@@ -1095,7 +1100,7 @@ await run('infers old registry file inventory during uninstall', async () => {
       'assets/themes/legacy/theme.json': JSON.stringify({
         name: 'Legacy',
         version: '0.9.0',
-        contractVersion: 1,
+        contractVersion: 2,
         modules: ['modules/layout.js']
       }),
       'assets/themes/legacy/theme.css': 'body{}',
@@ -1157,7 +1162,7 @@ await run('filters catalog-inferred inventory to existing files during uninstall
         value: 'cataloged',
         label: 'Cataloged',
         version: '1.0.0',
-        contractVersion: 1,
+        contractVersion: 2,
         engines: { press: '>=3.4.0 <4.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',
@@ -1190,7 +1195,7 @@ await run('clearing uninstall staging restores the previous default theme', asyn
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 2, removable: true, files: ['theme.json', 'theme.css'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
   });
@@ -1209,7 +1214,7 @@ await run('failed replacement staging keeps uninstall fallback active', async ()
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 2, removable: true, files: ['theme.json', 'theme.css'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
   });
@@ -1233,7 +1238,7 @@ await run('failed import keeps existing uninstall staging active', async () => {
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 2, removable: true, files: ['theme.json', 'theme.css'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
   });
@@ -1264,7 +1269,7 @@ await run('successful replacement staging clears uninstall fallback', async () =
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 2, removable: true, files: ['theme.json', 'theme.css'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
   });
@@ -1285,7 +1290,7 @@ await run('post-commit theme cleanup keeps the published fallback default', asyn
   });
   mockFetchRegistry([
     { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
-    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 1, removable: true, files: ['theme.json', 'theme.css'] }
+    { value: 'test', label: 'Test', version: '1.0.0', contractVersion: 2, removable: true, files: ['theme.json', 'theme.css'] }
   ], {
     textFiles: themeTextFiles('test', ['theme.json', 'theme.css'])
   });

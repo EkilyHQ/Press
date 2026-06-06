@@ -192,12 +192,14 @@ const legacyStateRuntime = createComposerRuntime({ windowRef, documentRef, navig
 assert.equal(legacyStateRuntime.initializeEditorSessionState({
   editorSessionStateStore: {
     readEditorState: () => ({ v: 2 }),
-    readLegacySystemTreeExpanded: () => true
+    readLegacySystemTreeExpanded: () => {
+      throw new Error('legacy tree state should no longer be read');
+    }
   },
   editorStateVersion: 3
 }), false);
 assert.equal(legacyStateRuntime.hasEditorStateSnapshot(), false);
-assert.deepEqual(legacyStateRuntime.getExpandedEditorTreeNodeIdsSnapshot(), ['articles', 'pages', 'system']);
+assert.deepEqual(legacyStateRuntime.getExpandedEditorTreeNodeIdsSnapshot(), ['articles', 'pages']);
 assert.equal(runtime.getAllowEditorStatePersist(), false);
 assert.equal(runtime.setAllowEditorStatePersist(true), true);
 assert.equal(runtime.getAllowEditorStatePersist(), true);

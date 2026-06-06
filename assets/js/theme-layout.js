@@ -23,6 +23,7 @@ import {
 } from './theme-regions.js';
 import {
   PRESS_THEME_CONTRACT,
+  isPressThemeContractVersionSupported,
   getDefaultThemeStyles,
   getRequiredThemeContentShapes
 } from './theme-contract-surface.mjs';
@@ -120,7 +121,7 @@ export function createThemeI18nContext() {
 function validateManifestContract(pack, manifest) {
   if (!isThemeDevMode()) return;
   const contractVersion = manifest && manifest.contractVersion;
-  if (contractVersion !== CONTRACT_VERSION) {
+  if (!isPressThemeContractVersionSupported(contractVersion)) {
     themeDevWarn(`Theme "${pack}" declares unsupported contract version`, contractVersion);
   }
   if (!manifest.version) {
@@ -514,6 +515,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
   };
 
   if (!isCurrentMountGeneration(mountGeneration, options)) return null;
+  regionController.setThemeLayoutContext(context);
   applyManifestStyles(pack, manifest);
 
   for (const { entry, mod } of loadedModules) {

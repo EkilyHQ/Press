@@ -680,7 +680,8 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
   });
   assert.equal(manifest.value, 'arcus');
   assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
-  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }), /contractVersion/i);
+  assert.equal(normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }).contractVersion, 2);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 3 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, engines: {} }), /engines\.press/i);
 });
 
@@ -722,7 +723,7 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
     /theme\.json|single|root/i
   );
   assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 2 })),
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })),
     /contractVersion/i
   );
 });
@@ -1184,7 +1185,7 @@ await run('failed replacement staging keeps uninstall fallback active', async ()
   assert.equal(themePack, 'native');
   assert(getThemeManagerCommitFiles().some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
   await assert.rejects(
-    () => analyzeThemeArchive(makeThemeZip({ slug: 'replacement', contractVersion: 2 }), 'press-theme-replacement-v1.0.0.zip'),
+    () => analyzeThemeArchive(makeThemeZip({ slug: 'replacement', contractVersion: 3 }), 'press-theme-replacement-v1.0.0.zip'),
     /contractVersion/i
   );
   assert.equal(themePack, 'native');
@@ -1212,7 +1213,7 @@ await run('failed import keeps existing uninstall staging active', async () => {
   try {
     await handleImportFile({
       name: 'press-theme-bad-v1.0.0.zip',
-      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 2 })
+      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 3 })
     });
   } finally {
     console.error = originalError;

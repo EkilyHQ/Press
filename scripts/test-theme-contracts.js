@@ -170,8 +170,8 @@ if (PRESS_THEME_CONTRACT.schemaVersion !== 1 || PRESS_THEME_CONTRACT.type !== 'p
 if (PRESS_THEME_CONTRACT.manifestSchemaPath !== 'assets/schema/theme.json') {
   fail('theme contract surface must point at assets/schema/theme.json');
 }
-if ((schema.properties && schema.properties.contractVersion && schema.properties.contractVersion.const) !== PRESS_THEME_CONTRACT.contractVersion) {
-  fail('assets/schema/theme.json contractVersion must match the shared theme contract surface');
+if (JSON.stringify(schema.properties && schema.properties.contractVersion && schema.properties.contractVersion.enum) !== JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions)) {
+  fail('assets/schema/theme.json supported contract versions must match the shared theme contract surface');
 }
 if (JSON.stringify(schema.required || []) !== JSON.stringify(REQUIRED_MANIFEST_FIELDS)) {
   fail('assets/schema/theme.json required fields must match the shared theme contract surface');
@@ -299,8 +299,8 @@ themeNames.forEach((themeName) => {
   }
   if (!manifest.name) fail(`${relManifest} must declare name`);
   if (!manifest.version) fail(`${relManifest} must declare version`);
-  if (manifest.contractVersion !== PRESS_THEME_CONTRACT.contractVersion) {
-    fail(`${relManifest} contractVersion must be ${PRESS_THEME_CONTRACT.contractVersion}`);
+  if (!PRESS_THEME_CONTRACT.supportedContractVersions.includes(manifest.contractVersion)) {
+    fail(`${relManifest} contractVersion must be supported by the shared theme contract surface`);
   }
   if (!manifest.engines || typeof manifest.engines.press !== 'string' || !manifest.engines.press.trim()) {
     fail(`${relManifest} must declare engines.press`);

@@ -407,7 +407,7 @@ function setupThemeControlsNative(params = {}) {
   const bindToggle = typeof params.bindThemeToggle === 'function' ? params.bindThemeToggle : bindThemeToggle;
   const bindEditor = typeof params.bindPostEditor === 'function' ? params.bindPostEditor : bindPostEditor;
   const bindPack = typeof params.bindThemePackPicker === 'function' ? params.bindThemePackPicker : bindThemePackPicker;
-  try { mount(); } catch (_) {}
+  try { mount({ contractVersion: params.contractVersion, themeContext: params.themeContext || params.context }); } catch (_) {}
   try { apply(); } catch (_) {}
   try { bindToggle(); } catch (_) {}
   try { bindEditor(); } catch (_) {}
@@ -1424,11 +1424,15 @@ function resetThemeControlsNative(params = {}, documentRef = defaultDocument) {
   const refreshLang = typeof params.refreshLanguageSelector === 'function' ? params.refreshLanguageSelector : (() => {});
   if (documentRef) {
     try {
-      const tools = documentRef.getElementById('tools');
-      if (tools && tools.parentElement) tools.parentElement.removeChild(tools);
+      const controls = documentRef.querySelector('press-theme-controls');
+      if (controls && controls.parentElement) controls.parentElement.removeChild(controls);
+      else {
+        const tools = documentRef.getElementById('tools');
+        if (tools && tools.parentElement) tools.parentElement.removeChild(tools);
+      }
     } catch (_) {}
   }
-  try { mount(); } catch (_) {}
+  try { mount({ contractVersion: params.contractVersion, themeContext: params.themeContext || params.context }); } catch (_) {}
   try { applyTheme(); } catch (_) {}
   try { bindToggle(); } catch (_) {}
   try { bindPack(); } catch (_) {}

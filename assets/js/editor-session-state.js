@@ -10,12 +10,6 @@ export function createEditorSessionStateStore({
     catch (_) { return ''; }
   }
 
-  function removeItem(key) {
-    try {
-      if (storage && storage.removeItem) storage.removeItem(scoped(key));
-    } catch (_) {}
-  }
-
   function readJson(key) {
     try {
       const raw = getItem(key);
@@ -38,11 +32,7 @@ export function createEditorSessionStateStore({
 
   return {
     readEditorState: () => readJson(keys.editorState),
-    writeEditorState: (state) => {
-      if (writeJson(keys.editorState, state)) removeItem(keys.systemTreeExpanded);
-    },
-    readLegacySystemTreeExpanded: () => getItem(keys.systemTreeExpanded) === '1',
-    clearLegacySystemTreeExpanded: () => removeItem(keys.systemTreeExpanded),
+    writeEditorState: (state) => writeJson(keys.editorState, state),
     readUnscopedNumber(key, fallback = 0) {
       try {
         const raw = storage && storage.getItem ? storage.getItem(key) : null;

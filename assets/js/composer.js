@@ -197,8 +197,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   // --- Persisted UI state keys ---
   const LS_KEYS = {
     cfile: 'press_composer_file',           // 'index' | 'tabs' | 'site'
-    editorState: 'press_composer_editor_state', // persisted dynamic editor info
-    systemTreeExpanded: 'press_editor_system_tree_expanded'
+    editorState: 'press_composer_editor_state' // persisted dynamic editor info
   };
   const EDITOR_STATE_VERSION = 3;
 

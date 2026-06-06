@@ -5,7 +5,6 @@ import {
 
 export const GITHUB_PAT_STORAGE_KEY = 'press_fg_pat_cache';
 export const CONNECT_PUBLISH_GRANT_STORAGE_KEY = 'press_connect_publish_grant_cache';
-export const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';
 export const CONNECT_PUBLISH_BASE_URL_STORAGE_KEY = 'press_connect_publish_base_url';
 export const PUBLISH_TRANSPORT_MODE_STORAGE_KEY = 'press_publish_transport_mode';
 export const CONNECT_PUBLISH_MESSAGE_TYPE = 'press-connect-publish-authorized';
@@ -100,28 +99,12 @@ export function createPublishSettingsStore(options = {}) {
     try {
       const storage = local();
       const modeRaw = storage.getItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY));
-      let migratedLegacyMode = false;
       if (modeRaw === 'connect' || modeRaw === 'pat') {
         settings.mode = modeRaw;
         settings.enabled = modeRaw === 'connect';
-      } else {
-        const enabledRaw = storage.getItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY));
-        if (enabledRaw === '0') {
-          settings.mode = 'pat';
-          settings.enabled = false;
-          migratedLegacyMode = true;
-        } else if (enabledRaw === '1') {
-          settings.mode = 'connect';
-          settings.enabled = true;
-          migratedLegacyMode = true;
-        }
       }
       const baseUrlRaw = storage.getItem(scopedKey(CONNECT_PUBLISH_BASE_URL_STORAGE_KEY));
       if (typeof baseUrlRaw === 'string' && baseUrlRaw.trim()) settings.baseUrl = baseUrlRaw.trim();
-      if (migratedLegacyMode) {
-        const wroteMode = storage.setItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY), settings.mode) !== false;
-        if (wroteMode) storage.removeItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY));
-      }
     } catch (_) {
       /* ignore unavailable storage */
     }
@@ -146,8 +129,7 @@ export function createPublishSettingsStore(options = {}) {
     cachedConnectPublishSettingsMemory = { ...settings };
     try {
       const storage = local();
-      const wroteMode = storage.setItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY), settings.mode) !== false;
-      if (wroteMode) storage.removeItem(scopedKey(CONNECT_PUBLISH_ENABLED_STORAGE_KEY));
+      storage.setItem(scopedKey(PUBLISH_TRANSPORT_MODE_STORAGE_KEY), settings.mode);
       storage.setItem(scopedKey(CONNECT_PUBLISH_BASE_URL_STORAGE_KEY), settings.baseUrl);
     } catch (_) {
       /* ignore storage errors */

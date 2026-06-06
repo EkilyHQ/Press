@@ -3608,16 +3608,15 @@ function createMemoryStorage(seed = {}) {
     storage: localStorage,
     scopeKey: (key) => `${key}:scope`,
     keys: {
-      editorState: 'press_composer_editor_state',
-      systemTreeExpanded: 'press_editor_system_tree_expanded'
+      editorState: 'press_composer_editor_state'
     }
   });
-  assert.equal(store.readLegacySystemTreeExpanded(), true, 'transition release should still read the legacy system-tree state');
-  store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] });
+  assert.equal(typeof store.readLegacySystemTreeExpanded, 'undefined', 'cleanup release should not expose legacy system-tree readers');
+  assert.equal(store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] }), true, 'current editor state should persist through the v3 store');
   assert.equal(
     localStorage.dump()['press_editor_system_tree_expanded:scope'],
-    undefined,
-    'writing current editor state should clear the legacy system-tree key'
+    '1',
+    'current editor-state writes should not mutate the retired legacy system-tree key'
   );
   assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 340, 'missing rail width should preserve the default width');
   localStorage.setItem('press_editor_rail_width', '420');
@@ -3628,57 +3627,6 @@ function createMemoryStorage(seed = {}) {
 
 {
   const localStorage = createMemoryStorage({
-    'press_editor_system_tree_expanded:scope': '1'
-  });
-  const originalSetItem = localStorage.setItem;
-  localStorage.setItem = (key, value) => {
-    if (key === 'press_composer_editor_state:scope') throw new Error('quota exceeded');
-    originalSetItem(key, value);
-  };
-  const store = createEditorSessionStateStore({
-    storage: localStorage,
-    scopeKey: (key) => `${key}:scope`,
-    keys: {
-      editorState: 'press_composer_editor_state',
-      systemTreeExpanded: 'press_editor_system_tree_expanded'
-    }
-  });
-  store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] });
-  assert.equal(
-    localStorage.dump()['press_editor_system_tree_expanded:scope'],
-    '1',
-    'failed current editor-state writes should keep the legacy fallback key for the next load'
-  );
-}
-
-{
-  const localStorage = createMemoryStorage({
-    'press_editor_system_tree_expanded:scope': '1'
-  });
-  const originalSetItem = localStorage.setItem;
-  localStorage.setItem = (key, value) => {
-    if (key === 'press_composer_editor_state:scope') return false;
-    originalSetItem(key, value);
-    return true;
-  };
-  const store = createEditorSessionStateStore({
-    storage: localStorage,
-    scopeKey: (key) => `${key}:scope`,
-    keys: {
-      editorState: 'press_composer_editor_state',
-      systemTreeExpanded: 'press_editor_system_tree_expanded'
-    }
-  });
-  store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] });
-  assert.equal(
-    localStorage.dump()['press_editor_system_tree_expanded:scope'],
-    '1',
-    'storage wrappers that return false on editor-state writes should keep the legacy fallback key'
-  );
-}
-
-{
-  const localStorage = createMemoryStorage({
     'press_connect_publish_enabled:scope': '0'
   });
   const sessionStorage = createMemoryStorage();
@@ -3686,37 +3634,12 @@ function createMemoryStorage(seed = {}) {
     windowRef: { localStorage, sessionStorage },
     scopeKey: (key) => `${key}:scope`
   });
-  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'legacy Connect opt-out should migrate to PAT fallback mode');
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'pat', 'legacy opt-out should be normalized to the publish transport mode key');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'legacy Connect enabled key should be removed after normalization');
+  assert.equal(store.getStoredConnectPublishSettings().mode, 'connect', 'retired legacy Connect opt-out should no longer change the current default mode');
+  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], undefined, 'retired legacy opt-out should not be normalized by the cleanup release');
+  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], '0', 'cleanup release should leave retired legacy publish keys untouched');
   store.setStoredConnectPublishSettings({ baseUrl: 'http://127.0.0.1:8788' });
-  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'editing the Connect URL should not silently leave PAT fallback mode');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'saving publish settings should not recreate the legacy Connect enabled key');
-  store.setStoredConnectPublishSettings({ enabled: true });
-  assert.equal(store.getStoredConnectPublishSettings().mode, 'connect', 'enabling Connect should persist Connect as the default publish mode');
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'connect', 'enabling Connect should persist the current transport mode key');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'current publish settings should not write the legacy Connect enabled key');
-}
-
-{
-  const localStorage = createMemoryStorage({
-    'press_connect_publish_enabled:scope': '0'
-  });
-  const sessionStorage = createMemoryStorage();
-  const originalSetItem = localStorage.setItem;
-  localStorage.setItem = (key, value) => {
-    if (key === 'press_publish_transport_mode:scope') throw new Error('quota exceeded');
-    originalSetItem(key, value);
-  };
-  const store = createPublishSettingsStore({
-    windowRef: { localStorage, sessionStorage },
-    scopeKey: (key) => `${key}:scope`
-  });
-  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'legacy Connect opt-out should still be read when mode normalization fails');
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], undefined, 'failed mode normalization should not create the current transport key');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], '0', 'failed mode normalization should keep the legacy Connect enabled key');
-  store.setStoredConnectPublishSettings({ enabled: true });
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], '0', 'failed current mode writes should not remove the legacy publish fallback key');
+  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'connect', 'saving current publish settings should write the current transport mode key');
+  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], '0', 'saving current publish settings should not remove or rewrite the retired key');
 }
 
 {
@@ -7814,14 +7737,14 @@ assert.match(
 
 assert.match(
   publishSettingsSource,
-  /const CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled';[\s\S]*const PUBLISH_TRANSPORT_MODE_STORAGE_KEY = 'press_publish_transport_mode';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
-  'Connect publish settings should keep the transition key names and Connect presets explicit'
+  /const PUBLISH_TRANSPORT_MODE_STORAGE_KEY = 'press_publish_transport_mode';[\s\S]*const CONNECT_PUBLISH_PRESETS = \[[\s\S]*https:\/\/connect-8mr\.pages\.dev[\s\S]*http:\/\/127\.0\.0\.1:8788/,
+  'Connect publish settings should keep the current transport key and Connect presets explicit'
 );
 
-assert.match(
+assert.doesNotMatch(
   publishSettingsSource,
-  /enabledRaw === '0'[\s\S]*migratedLegacyMode = true;[\s\S]*const wroteMode = storage\.setItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\), settings\.mode\) !== false;[\s\S]*if \(wroteMode\) storage\.removeItem\(scopedKey\(CONNECT_PUBLISH_ENABLED_STORAGE_KEY\)\);[\s\S]*function setStoredConnectPublishSettings[\s\S]*const wroteMode = storage\.setItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\), settings\.mode\) !== false;[\s\S]*if \(wroteMode\) storage\.removeItem\(scopedKey\(CONNECT_PUBLISH_ENABLED_STORAGE_KEY\)\);/,
-  'Connect publish settings should read legacy storage once and normalize it to the transport mode key'
+  /CONNECT_PUBLISH_ENABLED_STORAGE_KEY|press_connect_publish_enabled|enabledRaw|migratedLegacyMode/,
+  'cleanup release should remove the retired Connect publish storage bridge'
 );
 
 assert.match(
@@ -7838,8 +7761,8 @@ assert.match(
 
 assert.match(
   publishSettingsSource,
-  /mode: 'connect'[\s\S]*const modeRaw = storage\.getItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\)\)[\s\S]*enabledRaw === '0'[\s\S]*mode = 'pat'[\s\S]*function resolvePublishTransport/,
-  'Publish transport should default to Connect while preserving legacy opt-out to PAT fallback'
+  /mode: 'connect'[\s\S]*const modeRaw = storage\.getItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\)\)[\s\S]*modeRaw === 'connect' \|\| modeRaw === 'pat'[\s\S]*function resolvePublishTransport/,
+  'Publish transport should default to Connect and read only the current transport mode key'
 );
 
 assert.doesNotMatch(

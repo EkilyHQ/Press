@@ -187,6 +187,15 @@ globalThis.fetch = async (url) => {
       ].join('\n')
     };
   }
+  if (textUrl.endsWith('/flat-index.yaml')) {
+    return {
+      ok: true,
+      text: async () => [
+        'Guide: post/flat.md',
+        ''
+      ].join('\n')
+    };
+  }
   if (textUrl.endsWith('/post/demo.md')) {
     return {
       ok: true,
@@ -196,6 +205,19 @@ globalThis.fetch = async (url) => {
         'date: 2026-04-27',
         '---',
         'Demo body.',
+        ''
+      ].join('\n')
+    };
+  }
+  if (textUrl.endsWith('/post/flat.md')) {
+    return {
+      ok: true,
+      text: async () => [
+        '---',
+        'title: Flat Guide',
+        'date: 2026-05-01',
+        '---',
+        'Flat body.',
         ''
       ].join('\n')
     };
@@ -286,6 +308,16 @@ assert.equal(
   requests.slice(beforeFlatTabsRequests).some(url => /flat-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
   false,
   'clean content runtime should keep base flat tabs without probing legacy per-language tabs YAML sidecars'
+);
+
+const beforeFlatIndexRequests = requests.length;
+const flatIndex = await loadContentJsonWithRaw('wwwroot', 'flat-index');
+assert.deepEqual(flatIndex.raw, { Guide: 'post/flat.md' });
+assert.equal(flatIndex.entries.Guide.location, 'post/flat.md');
+assert.equal(
+  requests.slice(beforeFlatIndexRequests).some(url => /flat-index\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should keep base flat index string entries without probing legacy per-language index YAML sidecars'
 );
 
 const enrichedEntries = await metadataReady;

@@ -884,6 +884,10 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
       // Check if it's a simplified format (just path mappings) or unified format
       for (const k of keys) {
         const v = obj[k];
+        if (isIndexVariantBucket(v)) {
+          isSimplified = true;
+          break;
+        }
         if (v && typeof v === 'object' && !Array.isArray(v)) {
           // Check for simplified/enriched format (language -> path or metadata mapping)
           const innerKeys = Object.keys(v);
@@ -974,7 +978,7 @@ function isFlatTabsEntry(value) {
 
 function transformFlatTabs(obj) {
   const out = {};
-  for (const [title, value] of Object.entries(obj || {})) {
+  for (const [title, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
       const location = value.trim();
       if (location) out[title] = location;

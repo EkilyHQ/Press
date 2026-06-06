@@ -260,6 +260,9 @@ const translations = {
           invalidArchive: '选中的 ZIP 无法作为 Press 发布读取。',
           downloadFailed: '无法下载最新系统更新包。请改为选择已下载的 ZIP。',
           upgradeBlocked: ({ current, target, ranges }) => `不能从 ${current} 直接更新到 ${target}。请先应用中间版本的 Press 发布。支持的来源范围：${ranges}。`,
+          themeRegistryUnavailable: ({ target, required }) => `更新到 ${target} 前无法验证已安装主题。此更新要求 ${required}，请先确认 assets/themes/packs.json 可读取。`,
+          themeContractUpgradeBlocked: ({ target, required, themes }) => `更新到 ${target} 前，请先把已安装主题更新到 ${required}。请更新或卸载：${themes}。`,
+          themeContractUpgradeThemes: ({ themes }) => `请更新或卸载：${themes}。`,
           sizeMismatch: ({ expected, actual }) => `选中的压缩包大小（${actual}）与发布附件（${expected}）不一致。`,
           digestMismatch: '选中的压缩包 SHA-256 与发布附件不一致。',
           generic: '系统更新失败，请重试。'

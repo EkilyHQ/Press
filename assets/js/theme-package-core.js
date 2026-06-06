@@ -301,11 +301,12 @@ export function normalizeThemeRegistry(input) {
     if (seen.has(value)) return;
     seen.add(value);
     const builtIn = value === 'native' || entry.builtIn === true;
+    const contractVersion = Number(entry.contractVersion);
     const item = {
       value,
       label: safeString(entry.label || entry.name || value) || value,
       version: safeString(entry.version || ''),
-      contractVersion: Number.isFinite(Number(entry.contractVersion)) ? Number(entry.contractVersion) : REQUIRED_THEME_CONTRACT_VERSION,
+      contractVersion: Number.isFinite(contractVersion) && contractVersion > 0 ? Math.floor(contractVersion) : 0,
       engines: normalizeThemeEngines(entry.engines),
       builtIn,
       removable: builtIn ? false : entry.removable !== false,
@@ -314,6 +315,7 @@ export function normalizeThemeRegistry(input) {
       files: normalizeFileList(entry.files)
     };
     if (builtIn) {
+      item.contractVersion = REQUIRED_THEME_CONTRACT_VERSION;
       item.source = { type: 'builtin' };
       item.removable = false;
     }

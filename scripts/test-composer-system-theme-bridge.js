@@ -64,7 +64,7 @@ assert.doesNotMatch(
 
 assert.match(
   bridgeSource,
-  /const systemUpdates = options\.systemUpdatesController \|\| createSystemUpdatesController\(\);[\s\S]*const themeManager = options\.themeManagerController \|\| createThemeManagerController\(\);/,
+  /const localStorageRef = options\.localStorageRef \|\| null;[\s\S]*const themeManager = options\.themeManagerController \|\| createThemeManagerController\(\);[\s\S]*const getStagedThemeCommitFiles = typeof options\.getStagedThemeCommitFiles === 'function'[\s\S]*const systemUpdates = options\.systemUpdatesController \|\| createSystemUpdatesController\(\{[\s\S]*localStorageRef,[\s\S]*getStagedThemeCommitFiles,[\s\S]*getCurrentThemePack[\s\S]*\}\);/,
   'bridge should bind explicit system and theme manager controller instances'
 );
 

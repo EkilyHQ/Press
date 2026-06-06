@@ -6,15 +6,18 @@ import { bindEventEffect } from './editor-effects.js';
 import { EDITOR_SHELL_IDS } from './editor-shell-contract.js';
 import { buildConnectStatusUrl, CONNECT_SYSTEM_RELEASE_PATH } from './connect-status.js';
 import { PRESS_GITHUB_PROVIDER } from './provider-adapters.js';
+import { parseYAML } from './yaml.js';
 import {
   isUpgradeAllowed,
   loadPressSystemManifest,
+  normalizeThemeContractUpgrade,
   normalizePressSystemManifest,
   normalizeSemver,
   normalizeUpgradeFrom,
   semverToTag
 } from './press-version.js';
 import { isPressSystemUpdatePath } from './press-system-surface.mjs';
+import { normalizeThemeRegistry, sanitizeThemeSlug } from './theme-package-core.js';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 const TEXT_EXTENSIONS = new Set([
@@ -27,6 +30,8 @@ export const SYSTEM_UPDATE_ASSET_NAME_PATTERN = /^press-system-v\d+\.\d+\.\d+\.z
 
 const RELEASE_API_URL = PRESS_GITHUB_PROVIDER.latestReleaseApiUrl;
 const RELEASE_MANIFEST_URL = PRESS_GITHUB_PROVIDER.systemReleaseUrl;
+const THEME_PACK_STORAGE_KEYS = ['themePackPending', 'themePack'];
+const SITE_CONFIG_THEME_PACK_PATHS = ['site.yaml', 'site.yml'];
 
 function createSystemUpdateElements() {
   return {
@@ -77,6 +82,12 @@ function createSystemUpdatesRuntime(options = {}) {
     storageScope: options.storageScope || '',
     windowRef: options.windowRef || null
   };
+  const getStagedThemeCommitFiles = typeof options.getStagedThemeCommitFiles === 'function'
+    ? options.getStagedThemeCommitFiles
+    : null;
+  const getCurrentThemePack = typeof options.getCurrentThemePack === 'function'
+    ? options.getCurrentThemePack
+    : null;
 
   return {
     state,
@@ -90,6 +101,12 @@ function createSystemUpdatesRuntime(options = {}) {
     },
     getConnectStatusOptions() {
       return connectStatusOptions;
+    },
+    getStagedThemeCommitFiles() {
+      return getStagedThemeCommitFiles ? getStagedThemeCommitFiles() : [];
+    },
+    getCurrentThemePack() {
+      return getCurrentThemePack ? getCurrentThemePack() : null;
     }
   };
 }
@@ -360,6 +377,7 @@ function normalizeReleaseCache(data) {
     publishedAt: data.published_at || data.created_at || '',
     notes: data.body || '',
     upgradeFrom: normalizeUpgradeFrom(data.upgradeFrom),
+    themeContractUpgrade: normalizeThemeContractUpgrade(data.themeContractUpgrade),
     htmlUrl: data.html_url || '',
     asset: asset ? { ...asset, fetchable: false } : asset
   };
@@ -400,6 +418,7 @@ export function normalizeSystemReleaseManifest(manifest) {
     publishedAt,
     notes,
     upgradeFrom: normalizeUpgradeFrom(manifest.upgradeFrom),
+    themeContractUpgrade: normalizeThemeContractUpgrade(manifest.themeContractUpgrade),
     htmlUrl,
     asset: {
       ...asset,
@@ -516,6 +535,228 @@ function assertSystemUpdateCompatibility(runtime, release, archiveSystem) {
   const error = new Error(message);
   error.pressUpgradeBlocked = true;
   throw error;
+}
+
+function getRawRegistryEntry(rawRegistry, slug) {
+  return (Array.isArray(rawRegistry) ? rawRegistry : []).find((entry) => {
+    if (!entry || typeof entry !== 'object') return false;
+    return String(entry.value || entry.slug || '').trim().toLowerCase() === slug;
+  }) || null;
+}
+
+function readContractVersion(value) {
+  const version = Number(value);
+  return Number.isFinite(version) && version > 0 ? Math.floor(version) : 0;
+}
+
+function normalizeExternalThemePackSlug(value) {
+  try {
+    const slug = sanitizeThemeSlug(value);
+    return slug && slug !== 'native' ? slug : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function themePackLabelFromSlug(slug) {
+  const value = String(slug || '').trim();
+  if (!value) return '';
+  return value
+    .split(/[-_]+/g)
+    .filter(Boolean)
+    .map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1) : '')
+    .join(' ') || value;
+}
+
+function addThemeContractCandidate(candidates, entry = {}, rawEntry = null) {
+  const value = normalizeExternalThemePackSlug(entry.value || entry.slug);
+  if (!value || candidates.has(value)) return;
+  candidates.set(value, {
+    value,
+    label: entry.label || themePackLabelFromSlug(value) || value,
+    rawEntry,
+    source: entry.sourceKind || ''
+  });
+}
+
+function getSystemUpdateLocalStorage(runtime) {
+  const options = runtime && typeof runtime.getConnectStatusOptions === 'function'
+    ? runtime.getConnectStatusOptions()
+    : {};
+  return options && options.localStorageRef ? options.localStorageRef : null;
+}
+
+function collectStoredThemePackCandidates(runtime, candidates) {
+  const storageRef = getSystemUpdateLocalStorage(runtime);
+  if (!storageRef || typeof storageRef.getItem !== 'function') return;
+  for (const key of THEME_PACK_STORAGE_KEYS) {
+    let raw = '';
+    try {
+      raw = storageRef.getItem(key) || '';
+    } catch (_) {
+      raw = '';
+    }
+    const value = normalizeExternalThemePackSlug(raw);
+    if (value) addThemeContractCandidate(candidates, { value });
+  }
+}
+
+function getStagedThemeCommitFilesForUpgrade(runtime) {
+  if (!runtime || typeof runtime.getStagedThemeCommitFiles !== 'function') return [];
+  try {
+    const files = runtime.getStagedThemeCommitFiles();
+    return Array.isArray(files) ? files.filter((file) => {
+      const path = String(file && file.path || '');
+      return path === 'assets/themes/packs.json' || /^assets\/themes\/[^/]+\/theme\.json$/.test(path);
+    }) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function collectConfiguredThemePackCandidates(runtime, candidates) {
+  if (runtime && typeof runtime.getCurrentThemePack === 'function') {
+    const currentThemePack = runtime.getCurrentThemePack();
+    if (currentThemePack !== null && currentThemePack !== undefined) {
+      const value = normalizeExternalThemePackSlug(currentThemePack);
+      if (value) addThemeContractCandidate(candidates, { value, sourceKind: 'current-site' });
+      return;
+    }
+  }
+  const fetchImpl = runtime.getFetch();
+  for (const path of SITE_CONFIG_THEME_PACK_PATHS) {
+    let response = null;
+    try {
+      response = await fetchImpl(path, { cache: 'no-store' });
+    } catch (_) {
+      response = null;
+    }
+    if (!response || !response.ok) continue;
+    try {
+      const config = parseYAML(await response.text());
+      if (!config || typeof config !== 'object' || Array.isArray(config)) continue;
+      const value = normalizeExternalThemePackSlug(config.themePack);
+      if (value) addThemeContractCandidate(candidates, { value });
+    } catch (_) {
+      continue;
+    }
+    break;
+  }
+}
+
+async function loadInstalledThemeRegistryForUpgrade(runtime, targetVersion, requirement) {
+  const fetchImpl = runtime.getFetch();
+  let response = null;
+  try {
+    response = await fetchImpl('assets/themes/packs.json', { cache: 'no-store' });
+  } catch (err) {
+    response = null;
+  }
+  if (!response || !response.ok) {
+    createThemeContractUpgradeError(targetVersion, requirement, [], 'registry');
+  }
+  try {
+    const rawRegistry = await response.json();
+    if (!Array.isArray(rawRegistry)) {
+      createThemeContractUpgradeError(targetVersion, requirement, [], 'registry');
+    }
+    return {
+      rawRegistry,
+      registry: normalizeThemeRegistry(rawRegistry)
+    };
+  } catch (err) {
+    createThemeContractUpgradeError(targetVersion, requirement, [], 'registry');
+  }
+}
+
+async function resolveInstalledThemeContractVersion(runtime, entry, rawEntry) {
+  const explicit = readContractVersion(rawEntry && rawEntry.contractVersion);
+  if (explicit) return { installed: true, contractVersion: explicit };
+  const slug = String(entry && entry.value || '').trim().toLowerCase();
+  if (!slug) return { installed: false, contractVersion: 0 };
+  const hasRegistryEntry = !!rawEntry;
+  try {
+    const response = await runtime.getFetch()(`assets/themes/${encodeURIComponent(slug)}/theme.json`, { cache: 'no-store' });
+    if (!response || !response.ok) return { installed: hasRegistryEntry, contractVersion: 0 };
+    const manifest = await response.json();
+    return { installed: true, contractVersion: readContractVersion(manifest && manifest.contractVersion) };
+  } catch (_) {
+    return { installed: hasRegistryEntry, contractVersion: 0 };
+  }
+}
+
+function formatThemeContract(value) {
+  const version = readContractVersion(value);
+  return version ? `contract v${version}` : t('editor.systemUpdates.unknownVersion');
+}
+
+function createThemeContractUpgradeError(targetVersion, requirement, incompatible, reason = '') {
+  const required = `contract v${requirement.requiresInstalledThemeContractVersion}`;
+  let message = '';
+  if (reason === 'registry') {
+    message = t('editor.systemUpdates.errors.themeRegistryUnavailable', {
+      target: versionLabel(targetVersion),
+      required
+    });
+  } else {
+    const themes = incompatible.map((entry) => `${entry.label || entry.value} (${formatThemeContract(entry.contractVersion)})`).join(', ');
+    message = requirement.message || t('editor.systemUpdates.errors.themeContractUpgradeBlocked', {
+      target: versionLabel(targetVersion),
+      required,
+      themes
+    });
+    if (requirement.message && themes) {
+      message = `${message} ${t('editor.systemUpdates.errors.themeContractUpgradeThemes', { themes })}`;
+    }
+  }
+  const error = new Error(message);
+  error.pressThemeContractUpgradeBlocked = true;
+  throw error;
+}
+
+async function assertInstalledThemeContractCompatibility(runtime, release, archiveSystem) {
+  const targetVersion = normalizeSemver(
+    (archiveSystem && archiveSystem.version) || (release && (release.version || release.tag)) || ''
+  );
+  const archiveRequirement = normalizeThemeContractUpgrade(archiveSystem && archiveSystem.themeContractUpgrade);
+  const releaseRequirement = normalizeThemeContractUpgrade(release && release.themeContractUpgrade);
+  const requirement = archiveRequirement.requiresInstalledThemeContractVersion ? archiveRequirement : releaseRequirement;
+  const requiredVersion = requirement.requiresInstalledThemeContractVersion;
+  if (!requiredVersion) return;
+
+  const stagedThemeFiles = getStagedThemeCommitFilesForUpgrade(runtime);
+  if (stagedThemeFiles.length) {
+    createThemeContractUpgradeError(targetVersion, requirement, [{
+      value: 'staged-theme-changes',
+      label: 'staged theme changes',
+      contractVersion: 0
+    }]);
+  }
+
+  const { rawRegistry, registry } = await loadInstalledThemeRegistryForUpgrade(runtime, targetVersion, requirement);
+  const candidates = new Map();
+  for (const entry of registry) {
+    if (!entry || entry.builtIn || entry.value === 'native') continue;
+    addThemeContractCandidate(candidates, entry, getRawRegistryEntry(rawRegistry, entry.value));
+  }
+  collectStoredThemePackCandidates(runtime, candidates);
+  await collectConfiguredThemePackCandidates(runtime, candidates);
+
+  const incompatible = [];
+  for (const entry of candidates.values()) {
+    const rawEntry = entry.rawEntry || getRawRegistryEntry(rawRegistry, entry.value);
+    const resolution = await resolveInstalledThemeContractVersion(runtime, entry, rawEntry);
+    if (!resolution.installed && !rawEntry) continue;
+    const contractVersion = resolution.contractVersion;
+    if (!contractVersion || contractVersion < requiredVersion) {
+      incompatible.push({
+        value: entry.value,
+        label: entry.label || entry.value,
+        contractVersion
+      });
+    }
+  }
+  if (incompatible.length) createThemeContractUpgradeError(targetVersion, requirement, incompatible);
 }
 
 function renderRelease(runtime) {
@@ -769,10 +1010,12 @@ async function analyzeArchiveWithRuntime(runtime, buffer, filename) {
     archiveSystem = readArchivePressSystemManifest(entries);
     await refreshCurrentPressSystem(runtime);
     assertSystemUpdateCompatibility(runtime, release, archiveSystem);
+    await assertInstalledThemeContractCompatibility(runtime, release, archiveSystem);
     files = await processArchiveEntries(runtime, entries);
   } catch (err) {
     console.error('Failed to unpack system update archive', err);
     if (err && err.pressUpgradeBlocked) throw err;
+    if (err && err.pressThemeContractUpgradeBlocked) throw err;
     if (err && err.message && /upgrade|version|Press/i.test(err.message)) throw err;
     throw new Error(t('editor.systemUpdates.errors.invalidArchive'));
   }

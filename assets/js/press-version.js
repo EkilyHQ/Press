@@ -67,6 +67,15 @@ export function normalizeUpgradeFrom(input) {
   };
 }
 
+export function normalizeThemeContractUpgrade(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const required = Number(source.requiresInstalledThemeContractVersion);
+  return {
+    requiresInstalledThemeContractVersion: Number.isFinite(required) && required > 0 ? Math.floor(required) : 0,
+    message: String(source.message || '')
+  };
+}
+
 export function normalizePressSystemManifest(input) {
   if (!input || typeof input !== 'object') throw new Error('Press system manifest is missing.');
   if (Number(input.schemaVersion) !== 1 || input.type !== 'press-system') {
@@ -82,7 +91,8 @@ export function normalizePressSystemManifest(input) {
     type: 'press-system',
     version,
     tag,
-    upgradeFrom: normalizeUpgradeFrom(input.upgradeFrom)
+    upgradeFrom: normalizeUpgradeFrom(input.upgradeFrom),
+    themeContractUpgrade: normalizeThemeContractUpgrade(input.themeContractUpgrade)
   };
 }
 

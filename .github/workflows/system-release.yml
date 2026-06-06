@@ -373,6 +373,7 @@ jobs:
               "publishedAt": release.get("published_at") or release.get("created_at") or "",
               "notes": release.get("body") or "",
               "upgradeFrom": system.get("upgradeFrom") or {},
+              "themeContractUpgrade": system.get("themeContractUpgrade") or {},
               "runtime": {
                   "manifestPath": runtime_manifest_path,
                   "type": runtime.get("type") or "",

@@ -349,6 +349,9 @@ function normalizeSystemRelease(input) {
     version,
     publishedAt: String(source.publishedAt || source.published_at || '').trim(),
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
+    themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
+      ? source.themeContractUpgrade
+      : {},
     runtime: {
       manifestPath: String(runtime.manifestPath || '').trim(),
       type: String(runtime.type || '').trim(),

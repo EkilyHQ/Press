@@ -217,6 +217,7 @@ globalThis.fetch = async (url) => {
 const {
   createI18nController,
   initI18n,
+  loadTabsJson,
   loadContentJsonWithRaw,
   getAvailableLangs,
   getContentLangs,
@@ -238,6 +239,24 @@ assert.equal(result.entries.demo.location, 'post/demo.md');
 assert.equal(result.entries.secret.location, 'post/secret.md');
 assert.deepEqual(getContentLangs(), ['en']);
 assert.deepEqual(getAvailableLangs(), ['en', 'chs', 'cht-tw', 'cht-hk', 'ja']);
+
+const beforeLegacyContentRequests = requests.length;
+const legacyContent = await loadContentJsonWithRaw('wwwroot', 'legacy-only');
+assert.deepEqual(legacyContent.entries, {});
+assert.equal(
+  requests.slice(beforeLegacyContentRequests).some(url => /legacy-only\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should not probe legacy per-language index YAML sidecars'
+);
+
+const beforeLegacyTabsRequests = requests.length;
+const legacyTabs = await loadTabsJson('wwwroot', 'legacy-tabs');
+assert.deepEqual(legacyTabs, {});
+assert.equal(
+  requests.slice(beforeLegacyTabsRequests).some(url => /legacy-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
+  false,
+  'clean content runtime should not probe legacy per-language tabs YAML sidecars'
+);
 
 const enrichedEntries = await metadataReady;
 assert.equal(enrichedEntries['Secret Title'].protected, true);

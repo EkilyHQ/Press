@@ -6,7 +6,6 @@
 // - Content i18n supports a single unified YAML with per-language entries and default fallback.
 //   Prefer using one `wwwroot/index.yaml` that stores, per post, a `default` block and optional language blocks
 //   (e.g., `en`, `chs`, `ja`) describing `title` and `location`. Missing languages fall back to `default`.
-//   Legacy per-language files like `index.<lang>.yaml` and `tabs.<lang>.yaml` are also supported.
 // - Friendly language names come from assets/i18n/languages.json (or the language module's metadata).
 
 import { parseFrontMatter } from './content.js';
@@ -614,7 +613,7 @@ function tWithRuntime(runtime, path, vars) {
 
 // (language switcher helpers are defined near the end of the file)
 
-// --- Content loading (unified JSON with fallback, plus legacy support) ---
+// --- Content loading (unified YAML with language fallback) ---
 
 const NORMALIZED_LANG_ALIASES = new Map([
   ['english', 'en'],
@@ -865,8 +864,8 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
 }
 
 
-// Try to load unified YAML (`base.yaml`) first; if not unified or missing, fallback to legacy
-// per-language files (base.<currentLang>.yaml -> base.<default>.yaml -> base.yaml)
+// Load unified YAML (`base.yaml`) or simplified content mappings. Legacy
+// per-language sidecars are intentionally retired by the content-model clean release.
 async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
   // YAML only (unified or simplified)
   let raw = null;
@@ -914,12 +913,10 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
         setContentLangs(runtime, availableLangs);
         return { entries, raw };
       }
-      // Not unified; fall through to legacy handling below
     }
-  } catch (_) { /* fall back */ }
+  } catch (_) { /* return empty content */ }
 
-  // Legacy per-language YAML chain
-  return { entries: await loadLangJsonWithRuntime(runtime, basePath, baseName), raw };
+  return { entries: {}, raw };
 }
 
 async function loadContentJsonWithRuntime(runtime, basePath, baseName) {
@@ -970,7 +967,8 @@ function transformUnifiedTabs(runtime, obj, lang) {
   return { entries: out, availableLangs: Array.from(langsSeen).sort() };
 }
 
-// Load tabs in unified format first, then fall back to legacy per-language files
+// Load tabs in unified format only. Legacy per-language sidecars are migrated by
+// the transition editor release and are not read by the clean runtime.
 async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
   try {
     const obj = await fetchConfigWithYamlFallbackForRuntime(runtime, [
@@ -993,8 +991,8 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
         return entries;
       }
     }
-  } catch (_) { /* fall through */ }
-  return loadLangJsonWithRuntime(runtime, basePath, baseName);
+  } catch (_) { /* return empty tabs */ }
+  return {};
 }
 
 // Ensure lang param is included when generating internal links
@@ -1009,25 +1007,6 @@ function withLangParamWithRuntime(runtime, urlStr) {
     // Fallback: naive append
     const joiner = urlStr.includes('?') ? '&' : '?';
     return `${urlStr}${joiner}lang=${encodeURIComponent(state.currentLang)}`;
-  }
-}
-
-// Try to load JSON for a given base name with lang suffix, falling back in order:
-// base.<currentLang>.json -> base.<default>.json -> base.json
-async function loadLangJsonWithRuntime(runtime, basePath, baseName) {
-  const state = runtime.state;
-  const attempts = [
-    `${basePath}/${baseName}.${state.currentLang}.yaml`,
-    `${basePath}/${baseName}.${state.currentLang}.yml`,
-    `${basePath}/${baseName}.${DEFAULT_LANG}.yaml`,
-    `${basePath}/${baseName}.${DEFAULT_LANG}.yml`,
-    `${basePath}/${baseName}.yaml`,
-    `${basePath}/${baseName}.yml`
-  ];
-  try {
-    return await fetchConfigWithYamlFallbackForRuntime(runtime, attempts);
-  } catch (_) {
-    return {};
   }
 }
 
@@ -1140,9 +1119,6 @@ export function createI18nController(options = {}) {
     withLangParam(urlStr) {
       return withLangParamWithRuntime(runtime, urlStr);
     },
-    loadLangJson(basePath, baseName) {
-      return loadLangJsonWithRuntime(runtime, basePath, baseName);
-    },
     getAvailableLangs() {
       return getAvailableLangsWithRuntime(runtime);
     },
@@ -1196,10 +1172,6 @@ export function loadTabsJson(basePath, baseName) {
 
 export function withLangParam(urlStr) {
   return defaultI18nController.withLangParam(urlStr);
-}
-
-export function loadLangJson(basePath, baseName) {
-  return defaultI18nController.loadLangJson(basePath, baseName);
 }
 
 export function getAvailableLangs() {

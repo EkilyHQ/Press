@@ -10,9 +10,9 @@ export function createEditorSessionStateStore({
     catch (_) { return ''; }
   }
 
-  function setItem(key, value) {
+  function removeItem(key) {
     try {
-      if (storage && storage.setItem) storage.setItem(scoped(key), String(value));
+      if (storage && storage.removeItem) storage.removeItem(scoped(key));
     } catch (_) {}
   }
 
@@ -27,15 +27,22 @@ export function createEditorSessionStateStore({
 
   function writeJson(key, value) {
     try {
-      if (storage && storage.setItem) storage.setItem(scoped(key), JSON.stringify(value));
-    } catch (_) {}
+      if (storage && storage.setItem) {
+        return storage.setItem(scoped(key), JSON.stringify(value)) !== false;
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
   }
 
   return {
     readEditorState: () => readJson(keys.editorState),
-    writeEditorState: (state) => writeJson(keys.editorState, state),
+    writeEditorState: (state) => {
+      if (writeJson(keys.editorState, state)) removeItem(keys.systemTreeExpanded);
+    },
     readLegacySystemTreeExpanded: () => getItem(keys.systemTreeExpanded) === '1',
-    writeLegacySystemTreeExpanded: (expanded) => setItem(keys.systemTreeExpanded, expanded ? '1' : '0'),
+    clearLegacySystemTreeExpanded: () => removeItem(keys.systemTreeExpanded),
     readUnscopedNumber(key, fallback = 0) {
       try {
         const raw = storage && storage.getItem ? storage.getItem(key) : null;

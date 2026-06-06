@@ -198,8 +198,7 @@ export function createComposerEditorShell(options = {}) {
   }
 
   function persistSystemTreeExpandedState() {
-    if (!editorSessionStateStore || typeof editorSessionStateStore.writeLegacySystemTreeExpanded !== 'function') return;
-    editorSessionStateStore.writeLegacySystemTreeExpanded(expandedEditorTreeNodeIds.has('system'));
+    scheduleEditorStatePersist();
   }
 
   function scheduleEditorStatePersist() {

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   createPressSystemManifestLoader,
   loadPressSystemManifest,
+  normalizePressSystemManifest,
   setPressSystemManifestForTests
 } from '../assets/js/press-version.js';
 
@@ -55,5 +56,18 @@ assert.equal(secondCalls.length, 1);
 setPressSystemManifestForTests(manifest('3.4.4'), { manifestLoader: firstLoader });
 assert.equal((await loadPressSystemManifest({ manifestLoader: firstLoader })).version, '3.4.4');
 assert.equal((await loadPressSystemManifest({ manifestLoader: secondLoader })).version, '3.4.3');
+
+const guardedManifest = normalizePressSystemManifest({
+  ...manifest('3.4.123'),
+  themeContractUpgrade: {
+    requiresInstalledThemeContractVersion: 2,
+    message: 'Update installed themes to contract v2 first.'
+  }
+});
+assert.equal(guardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 2);
+assert.equal(guardedManifest.themeContractUpgrade.message, 'Update installed themes to contract v2 first.');
+
+const unguardedManifest = normalizePressSystemManifest(manifest('3.4.122'));
+assert.equal(unguardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 0);
 
 console.log('ok - press system manifest loader state is explicit per instance');

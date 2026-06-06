@@ -262,6 +262,9 @@ const translations = {
           invalidArchive: 'The selected ZIP could not be read as a Press release.',
           downloadFailed: 'Unable to download the latest system update package. Select a downloaded ZIP instead.',
           upgradeBlocked: ({ current, target, ranges }) => `Cannot update from ${current} to ${target}. Apply an intermediate Press release first. Supported source range: ${ranges}.`,
+          themeRegistryUnavailable: ({ target, required }) => `Cannot verify installed themes before updating to ${target}. Make sure assets/themes/packs.json is readable before applying an update that requires ${required}.`,
+          themeContractUpgradeBlocked: ({ target, required, themes }) => `Update installed themes to ${required} before updating to ${target}. Update or uninstall: ${themes}.`,
+          themeContractUpgradeThemes: ({ themes }) => `Update or uninstall: ${themes}.`,
           sizeMismatch: ({ expected, actual }) => `The selected archive size (${actual}) does not match the release asset (${expected}).`,
           digestMismatch: 'The selected archive SHA-256 does not match the release asset.',
           generic: 'System update failed. Please try again.'

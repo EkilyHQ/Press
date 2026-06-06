@@ -260,6 +260,9 @@ const translations = {
           invalidArchive: '選択した ZIP を Press リリースとして読み込めませんでした。',
           downloadFailed: '最新のシステム更新パッケージをダウンロードできませんでした。ダウンロード済み ZIP を選択してください。',
           upgradeBlocked: ({ current, target, ranges }) => `${current} から ${target} へ直接更新できません。先に中間の Press リリースを適用してください。対応する元バージョン範囲：${ranges}。`,
+          themeRegistryUnavailable: ({ target, required }) => `${target} へ更新する前にインストール済みテーマを確認できませんでした。この更新には ${required} が必要です。assets/themes/packs.json を読み込める状態にしてください。`,
+          themeContractUpgradeBlocked: ({ target, required, themes }) => `${target} へ更新する前に、インストール済みテーマを ${required} へ更新してください。更新またはアンインストールが必要です：${themes}。`,
+          themeContractUpgradeThemes: ({ themes }) => `更新またはアンインストールが必要です：${themes}。`,
           sizeMismatch: ({ expected, actual }) => `選択したアーカイブのサイズ（${actual}）がリリースアセット（${expected}）と一致しません。`,
           digestMismatch: '選択したアーカイブの SHA-256 がリリースアセットと一致しません。',
           generic: 'システム更新に失敗しました。再試行してください。'

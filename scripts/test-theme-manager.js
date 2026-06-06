@@ -660,6 +660,38 @@ await run('renders product-state release metadata for official themes', async ()
   assert.match(availableText, /release ok v1\.2\.3/);
 });
 
+await run('renders installed v1 themes as contract migration candidates', async () => {
+  const documentRef = makeThemeManagerDocument();
+  mockFetchRegistry([
+    { value: 'native', label: 'Native', builtIn: true, removable: false, contractVersion: 2, files: [] },
+    { value: 'arcus', label: 'Arcus', version: '3.4.2', contractVersion: 1, files: ['theme.json'] },
+    { value: 'legacy', label: 'Legacy', version: '0.9.0', files: ['theme.json'] },
+    { value: 'cartograph', label: 'Cartograph', version: '3.4.3', contractVersion: 2, files: ['theme.json'] }
+  ], {
+    catalog: {
+      schemaVersion: 1,
+      themes: [
+        { value: 'arcus', label: 'Arcus', repo: 'EkilyHQ/Press-Theme-Arcus', manifestUrl: 'https://example.test/arcus.json' },
+        { value: 'cartograph', label: 'Cartograph', repo: 'EkilyHQ/Press-Theme-Cartograph', manifestUrl: 'https://example.test/cartograph.json' }
+      ]
+    }
+  });
+  const controller = createThemeManagerController({ documentRef });
+  controller.init({
+    getCurrentThemePack: () => 'native',
+    setSiteThemePack: () => {}
+  });
+  await waitFor(() => collectElementText(documentRef.elements.themeManagerInstalledList).includes('Arcus'));
+  const installedText = collectElementText(documentRef.elements.themeManagerInstalledList);
+  assert.match(installedText, /Arcus/);
+  assert.match(installedText, /contract v1/i);
+  assert.match(installedText, /update before next Press release/i);
+  assert.match(installedText, /Legacy/);
+  assert.match(installedText, /contract unknown/i);
+  assert.match(installedText, /Cartograph/);
+  assert.match(installedText, /contract v2/i);
+});
+
 await run('normalizes release manifests and rejects contract mismatch', async () => {
   const manifest = normalizeThemeReleaseManifest({
     schemaVersion: 1,

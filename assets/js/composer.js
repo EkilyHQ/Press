@@ -387,6 +387,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   } = composerMarkdownFeature;
   const composerSystemThemeBridge = createComposerSystemThemeBridge({
     consoleRef: composerLogger,
+    localStorageRef: editorRuntime.storage.native,
     getStateSlice,
     setStateSlice,
     notifyComposerChange,

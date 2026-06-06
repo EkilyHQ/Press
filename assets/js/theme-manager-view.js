@@ -1,5 +1,5 @@
 import { getProductStateThemeEntry } from './product-state.js';
-import { safeString } from './theme-package-core.js';
+import { REQUIRED_THEME_CONTRACT_VERSION, safeString } from './theme-package-core.js';
 
 export function createThemeManagerElements() {
   return {
@@ -93,6 +93,18 @@ function buildThemeManagerMeta(parts, productState, slug) {
   ].filter(Boolean).join(' · ');
 }
 
+function formatThemeContractMeta(entry) {
+  const version = Number(entry && entry.contractVersion);
+  if (!Number.isFinite(version) || version <= 0) {
+    return entry && !entry.builtIn ? 'contract unknown - update before next Press release' : '';
+  }
+  const label = `contract v${Math.floor(version)}`;
+  if (entry && !entry.builtIn && version < REQUIRED_THEME_CONTRACT_VERSION) {
+    return `${label} - update before next Press release`;
+  }
+  return label;
+}
+
 function renderProductStateNotice(runtime, target, productState) {
   const { productStateLoadError } = runtime.state;
   const documentRef = runtime.getDocument();
@@ -125,6 +137,7 @@ export function renderThemeManagerInstalledThemes(runtime, registry, catalog, pr
     meta.textContent = buildThemeManagerMeta([
       entry.value,
       entry.version ? `v${entry.version}` : '',
+      formatThemeContractMeta(entry),
       entry.builtIn ? 'built-in' : (entry.source && entry.source.type ? entry.source.type : '')
     ], productState, entry.value);
     body.appendChild(title);

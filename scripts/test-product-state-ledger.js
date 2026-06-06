@@ -485,6 +485,27 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(shouldFailCheck(state, { requireConverged: true }), false);
 });
 
+test('buildProductState preserves theme contract upgrade metadata for release intent validation', async () => {
+  const release = systemRelease();
+  release.themeContractUpgrade = {
+    requiresInstalledThemeContractVersion: 2,
+    message: 'Update installed themes to contract v2 first.'
+  };
+  const fixtures = makeFixtures({
+    'fixture:system': release,
+    'fixture:intent': releaseIntentFixture(release)
+  });
+
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(fixtures),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'ok');
+  assert.equal(state.releaseIntent.status, 'ok');
+});
+
 test('buildProductState preserves legacy theme-starter reconciler fallback', async () => {
   const sources = makeSources();
   delete sources.downstream[1].eventType;

@@ -4,7 +4,7 @@
   "version": "3.4.1",
   "contractVersion": 2,
   "engines": {
-    "press": ">=3.4.121 <4.0.0"
+    "press": ">=3.4.122 <4.0.0"
   },
   "styles": [
     "theme.css"

@@ -42,7 +42,7 @@ content shapes, and archive file-type rules.
   "name": "Native",
   "version": "3.4.1",
   "contractVersion": 2,
-  "engines": { "press": ">=3.4.121 <4.0.0" },
+  "engines": { "press": ">=3.4.122 <4.0.0" },
   "styles": ["theme.css"],
   "modules": ["modules/layout.js", "modules/interactions.js", "modules/views.js"],
   "views": {
@@ -75,7 +75,8 @@ content shapes, and archive file-type rules.
   `2`. Press still accepts `1` for existing themes; contract v1 keeps the
   legacy theme-controls DOM bridge (`#tools` and older shipped-theme host
   classes), while contract v2 uses the current `<press-theme-controls>`
-  component contract.
+  component contract. System updates can require installed themes to reach
+  contract v2 before a later release removes the v1 bridge.
 - `engines.press`: Press system SemVer range the theme supports. Theme Manager
   rejects official and manually imported themes outside the current Press
   version.
@@ -106,7 +107,7 @@ changes to it through Publish, and Press system updates do not overwrite it.
   "label": "Arcus",
   "version": "3.4.0",
   "contractVersion": 2,
-  "engines": { "press": ">=3.4.121 <4.0.0" },
+  "engines": { "press": ">=3.4.122 <4.0.0" },
   "builtIn": false,
   "removable": true,
   "source": {
@@ -146,7 +147,7 @@ Official theme repositories publish a root `theme-release.json`:
   "label": "Arcus",
   "version": "3.4.0",
   "contractVersion": 2,
-  "engines": { "press": ">=3.4.121 <4.0.0" },
+  "engines": { "press": ">=3.4.122 <4.0.0" },
   "release": {
     "tag": "v3.4.0",
     "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.0",

@@ -21,6 +21,10 @@ function systemRelease(version = '3.4.62') {
       ranges: ['>=3.4.61 <3.4.62'],
       allowUnknownSource: false
     },
+    themeContractUpgrade: {
+      requiresInstalledThemeContractVersion: 2,
+      message: 'Update installed themes to contract v2 first.'
+    },
     runtime: {
       manifestPath: 'assets/press-runtime-manifest.json',
       type: 'press-runtime-assets',
@@ -65,6 +69,7 @@ test('buildReleaseIntent freezes Press release targets and artifact metadata', (
   assert.equal(intent.latestSource, release.intent.latestUrl);
   assert.equal(intent.systemRelease.path, 'system-release.json');
   assert.equal(intent.systemRelease.digest, 'sha256:system');
+  assert.deepEqual(intent.pressSystem.themeContractUpgrade, release.themeContractUpgrade);
   assert.deepEqual(intent.targets.map((target) => target.key), getReleaseTargets().map((target) => target.key));
   assert.equal(intent.targets[0].expected.version, '3.4.62');
   assert.equal(intent.targets[0].observed.source, 'https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json');
@@ -84,6 +89,17 @@ test('buildReleaseIntent can point immutable intents at tag-scoped system releas
 
   assert.equal(intent.systemRelease.path, 'v3.4.62/system-release.json');
   assert.equal(intent.systemRelease.source, 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.62/system-release.json');
+  assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);
+});
+
+test('validateReleaseIntent compares theme upgrade metadata structurally', () => {
+  const release = systemRelease();
+  const intent = buildReleaseIntent({ systemRelease: release });
+  intent.pressSystem.themeContractUpgrade = {
+    message: 'Update installed themes to contract v2 first.',
+    requiresInstalledThemeContractVersion: 2
+  };
+
   assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);
 });
 

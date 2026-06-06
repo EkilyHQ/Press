@@ -23,6 +23,22 @@ function semverToTag(value) {
   return version ? `v${version}` : '';
 }
 
+function normalizeThemeContractUpgrade(input = {}) {
+  const source = input && typeof input === 'object' ? input : {};
+  const required = Number(source.requiresInstalledThemeContractVersion || 0);
+  return {
+    requiresInstalledThemeContractVersion: Number.isFinite(required) && required > 0 ? Math.floor(required) : 0,
+    message: String(source.message || '').trim()
+  };
+}
+
+function themeContractUpgradesMatch(left, right) {
+  const a = normalizeThemeContractUpgrade(left);
+  const b = normalizeThemeContractUpgrade(right);
+  return a.requiresInstalledThemeContractVersion === b.requiresInstalledThemeContractVersion
+    && a.message === b.message;
+}
+
 function readJsonFile(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
@@ -54,6 +70,9 @@ function normalizeSystemRelease(input = {}) {
     version,
     publishedAt: String(source.publishedAt || source.published_at || '').trim(),
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
+    themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
+      ? source.themeContractUpgrade
+      : {},
     runtime: {
       manifestPath: String(runtime.manifestPath || '').trim(),
       type: String(runtime.type || '').trim(),
@@ -130,7 +149,8 @@ function buildReleaseIntent(options = {}) {
     pressSystem: {
       asset: systemRelease.asset,
       runtime: systemRelease.runtime,
-      upgradeFrom: systemRelease.upgradeFrom
+      upgradeFrom: systemRelease.upgradeFrom,
+      themeContractUpgrade: systemRelease.themeContractUpgrade
     },
     targets
   };
@@ -178,6 +198,9 @@ function normalizeReleaseIntent(input = {}) {
       },
       upgradeFrom: pressSystem.upgradeFrom && typeof pressSystem.upgradeFrom === 'object'
         ? pressSystem.upgradeFrom
+        : {},
+      themeContractUpgrade: pressSystem.themeContractUpgrade && typeof pressSystem.themeContractUpgrade === 'object'
+        ? pressSystem.themeContractUpgrade
         : {}
     },
     targets: targets.map((target) => {
@@ -270,6 +293,9 @@ function validateReleaseIntent(intentInput, options = {}) {
       || systemRelease.runtime.entryCount !== intent.pressSystem.runtime.entryCount
       || systemRelease.runtime.edgeCount !== intent.pressSystem.runtime.edgeCount) {
       failures.push('release intent runtime metadata must match system-release.json');
+    }
+    if (!themeContractUpgradesMatch(systemRelease.themeContractUpgrade, intent.pressSystem.themeContractUpgrade)) {
+      failures.push('release intent themeContractUpgrade must match system-release.json');
     }
   }
   return failures;

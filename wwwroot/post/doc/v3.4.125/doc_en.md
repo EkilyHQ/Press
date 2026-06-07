@@ -215,7 +215,7 @@ If a paragraph contains only a link to a post (`?id=...`), the link is upgraded 
 ... content below omitted
 ```
 
-To force a card inline, include `card` in the link title or add `data-card`:
+To force a card inline, include `card` in the link title:
 
 ```markdown
 ... content above omitted

@@ -115,7 +115,7 @@ Press 不会提交密码，不会把密码写入 JavaScript，也不会把密码
 请使用 `excerpt` 编写受保护文章的公开摘要。Press 不会从加密正文中生成预览或 SEO 描述。
 
 ## 页面写作
-与 [文章写作](#45) 类似，Press 通过读取 `wwwroot/` 文件夹内的 `tabs.yaml` 文件来获取页面列表。例如 [关于](?tab=about&lang=chs) 页面的对应的 `wwwroot/tabs.yaml` 内容如下：
+与文章写作类似，Press 通过读取 `wwwroot/` 文件夹内的 `tabs.yaml` 文件来获取页面列表。例如 [关于](?tab=about&lang=chs) 页面的对应的 `wwwroot/tabs.yaml` 内容如下：
 
 ```yaml
 About:
@@ -190,7 +190,7 @@ Press 支持在 Markdown 中插入图片和视频。所有 Markdown 文件中的
 ... 此后内容省略
 ```
 
-若要在行内强制显示为卡片，可在 `title` 中包含 `card` 或添加 `data-card`：
+若要在行内强制显示为卡片，可在链接的 `title` 中包含 `card`：
 
 ```markdown
 ... 此前内容省略

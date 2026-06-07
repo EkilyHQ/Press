@@ -217,10 +217,10 @@ Press 支持在 Markdown 中插入图片和视频。所有 Markdown 文件中的
 `site.yaml` 还有一些其他设置选项。
 
 #### 主题覆写
-默认情况下，网站的主题尊重用户的选择，并储存在浏览器中。但您可以通过设置强制用户加载某一主题（及其变体）。
-- `themeMode` — 主题模式（例如，`user`、`dark`、`light`、`default`）。
+默认情况下，站点配置的主题会生效。如果希望站点只提供默认值，并让访客保留浏览器中保存的主题选择，请设置 `themeOverride: false`。
+- `themeMode` — 主题模式（`user`、`dark`、`light` 或 `auto`）。
 - `themePack` — 主题包（例如，`minimalism`、`github`）。
-- `themeOverride` — 强制用户加载特定主题（缺省为 `false`）。
+- `themeOverride` — 是否用站点配置强制覆盖访客选择（缺省为 `true`）。
 
 例如：
 ```yaml
@@ -268,7 +268,7 @@ defaultLanguage: en
 - `?tab=posts` — 全部文章（默认）。支持 `&page=N` 分页。
 - `?tab=search&q=关键词` — 按标题或标签搜索。也可用 `&tag=标签名` 过滤。
 - `?id=路径/到/文章.md` — 直接打开某篇文章（路径必须存在于 `index.yaml`）。
-- `?lang=chs` — UI 语言偏好。存储在 localStorage；内容会先尝试匹配该语言版本，再按配置的回退链选择可用内容。
+- `?lang=chs` — UI 语言偏好。存储在 localStorage；内容会先尝试匹配该语言版本，再按运行时回退顺序选择可用内容。
 
 Markdown 中的站内跳转链接示例：`[看看这篇](?id=post/frogy/main.md)`，标签页：`[关于](?tab=about)`。
 
@@ -280,7 +280,7 @@ Markdown 中的站内跳转链接示例：`[看看这篇](?id=post/frogy/main.md
 2) `index.yaml` 元数据
 3) 自动回退（H1/首段）与生成的占位社交图
 
-`index.yaml` 的 SEO 部分示例配置如下：
+`site.yaml` 的 SEO 部分示例配置如下：
 ```yaml
 resourceURL: https://ekilyhq.github.io/Press/wwwroot/
 siteDescription:
@@ -304,7 +304,7 @@ siteKeywords:
 - `siteDescription` — 网站的描述信息，用于 SEO 和社交分享。
 - `siteKeywords` — 网站的关键词，用于 SEO。
 
-您同时应该打开 `index_seo.html`，生成 `sitemap.xml`、`robots.txt` 并放入网站根目录（与 `index.html` 同级）；以及根据 `site.yaml` 生成初始 `<head>` 标签并填入 `index.html` 的对应位置。
+通过编辑器发布时，Press 会根据当前 Composer 状态暂存 `sitemap.xml`、`robots.txt`，以及 `index.html` 中生成的 `<head>` 更新。
 
 ### 多语言
 
@@ -313,8 +313,8 @@ Press 将网站本体语言和内容语言视为相关但独立的两层。
 - 网站本体支持的 UI 语言来自 `assets/i18n/languages.json` 以及 `assets/i18n/` 中对应的语言包。文章编辑器可以展示项目支持的全部语言。
 - 内容语言由每篇文章或页面在 `wwwroot/index.yaml` 与 `wwwroot/tabs.yaml` 中分别声明。作者只需要列出自己实际撰写的语言版本。
 - 当 URL 中设置 `?lang=...` 时，网站导航、按钮、提示等本体文案会切换到对应 UI 语言（前提是语言包存在）。
-- 对每篇文章或页面，Press 会先尝试加载与当前 UI 语言相同的内容版本。若该版本不存在，则回退到 `site.yaml` 中的 `defaultLanguage`；本仓库默认是 `en`。
-- 如果配置的默认语言版本也不存在，Press 会继续尝试 `en`、`default`，最后使用该条目下第一个可用版本，以避免页面完全无法渲染。
+- 对每篇文章或页面，Press 会先尝试加载与当前 UI 语言相同的内容版本。若该版本不存在，v3.4.125 会回退到初始文档/默认语言决定的运行时基础语言；标准模板通常是 `en`。
+- 如果该基础语言版本也不存在，Press 会继续尝试 `en`、`default`，最后使用该条目下第一个可用版本，以避免页面完全无法渲染。`site.yaml` 中的 `defaultLanguage` 用于没有显式或已保存语言选择时的初始 UI/内容语言；若需要稳定的缺失内容回退，请保留 `en` 或 `default` 版本。
 
 内容索引支持：
 

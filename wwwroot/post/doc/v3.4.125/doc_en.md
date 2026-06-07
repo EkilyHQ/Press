@@ -242,10 +242,10 @@ Advanced options if you want to go further.
 Additional options in `site.yaml`:
 
 #### Theme Override
-By default, the site respects user theme choices (stored in the browser). You can force a theme (and its variant):
-- `themeMode` — Theme mode (e.g., `user`, `dark`, `light`, `default`).
+By default, site-configured theme values are applied. Set `themeOverride: false` if the site should only provide defaults and let visitors keep their browser-stored theme choice.
+- `themeMode` — Theme mode (`user`, `dark`, `light`, or `auto`).
 - `themePack` — Theme pack (e.g., `minimalism`, `github`).
-- `themeOverride` — Force a specific theme for all users (default `false`).
+- `themeOverride` — Force the configured theme mode and pack over visitor choices (default `true`).
 
 Example:
 ```yaml
@@ -293,7 +293,7 @@ The client router reads URL query parameters:
 - `?tab=posts` — All posts (default). Supports `&page=N` pagination.
 - `?tab=search&q=term` — Search by title or tag. You can also filter by `&tag=TagName`.
 - `?id=path/to/post.md` — Open a specific post (the path must exist in `index.yaml`).
-- `?lang=chs` — UI language preference. Stored in localStorage; content tries the matching variant and then uses the configured fallback chain.
+- `?lang=chs` — UI language preference. Stored in localStorage; content tries the matching variant and then uses the runtime fallback order.
 
 Markdown examples: `[See this](?id=post/frogy/main.md)` and `[About](?tab=about)`.
 
@@ -305,7 +305,7 @@ At runtime, Press updates meta tags per page (title, description, Open Graph, Tw
 2) `index.yaml` metadata
 3) Auto‑fallbacks (H1/first paragraph) and a generated fallback social image
 
-Example `index.yaml` SEO fields:
+Example `site.yaml` SEO fields:
 ```yaml
 resourceURL: https://ekilyhq.github.io/Press/wwwroot/
 siteDescription:
@@ -329,7 +329,7 @@ Where:
 - `siteDescription` — Site description for SEO and social sharing.
 - `siteKeywords` — Keywords for SEO.
 
-You should also open `index_seo.html` to generate `sitemap.xml` and `robots.txt` into the site root (same level as `index.html`), and to generate starter `<head>` tags for `index.html` based on `site.yaml`.
+When publishing from the editor, Press stages SEO outputs such as `sitemap.xml`, `robots.txt`, and the generated `<head>` updates for `index.html` from the current composer state.
 
 ### Multi‑language
 
@@ -338,8 +338,8 @@ Press treats the site UI language and the content language as related but separa
 - Supported UI languages come from `assets/i18n/languages.json` and the matching files in `assets/i18n/`. The editor may expose every language supported by the project.
 - Content languages are declared per post or page in `wwwroot/index.yaml` and `wwwroot/tabs.yaml`. A post only needs to list the language variants that the author actually wrote.
 - When `?lang=...` is set, the site chrome switches to that UI language if a bundle exists.
-- For each post or page, Press first tries to load the content variant matching the current UI language. If that variant is missing, it falls back to `defaultLanguage` from `site.yaml`; in this repository that default is `en`.
-- If the configured default variant is also missing, Press tries `en`, then `default`, then the first available variant so the page can still render.
+- For each post or page, Press first tries to load the content variant matching the current UI language. If that variant is missing, v3.4.125 falls back to the runtime base language from the initial document/default language, normally `en` in the standard template.
+- If that base variant is also missing, Press tries `en`, then `default`, then the first available variant so the page can still render. `defaultLanguage` in `site.yaml` chooses the initial UI/content language when there is no explicit or saved language choice; keep an `en` or `default` variant when you need a stable fallback for missing localized content.
 
 Content index formats:
 

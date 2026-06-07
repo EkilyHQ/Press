@@ -1,0 +1,329 @@
+---
+title: Press ドキュメント
+date: 2026-06-07
+version: v3.4.125
+tags:
+	- Press
+	- ドキュメント
+excerpt: Press v3.4.125 の現在のドキュメントです。Markdown とベース YAML ファイルからコンテンツサイトを構築し、現在のコンテンツインデックス形式、言語フォールバック、テーマ、検索、SEO、メディア、デプロイ方法を説明します。
+author: Ekily
+ai: true
+---
+
+## ファイル概要
+Press を使い始める前に、サイト構成の中核となるファイル/フォルダを把握しておくと便利です。
+
+- `site.yaml` — サイトの基本情報（サイトタイトルやプロフィールリンクなど）を設定します。
+- `wwwroot/` — すべてのコンテンツとデータを格納します：
+  - `wwwroot/index.yaml` — 記事のインデックス（例：「旅行記 — モルディブ」「読書ノート：星の王子さま」など）。
+  - `wwwroot/tabs.yaml` — 固定ページのインデックス（例：「About」「法的表示」など）。
+
+> v3.4.125 のデフォルト設定ファイルは [v3.4.125/site.yaml](https://github.com/EkilyHQ/Press/blob/v3.4.125/site.yaml) から取得できます。
+
+
+## サイト基本情報
+`site.yaml` で以下を設定します：
+
+- `siteTitle` / `siteSubtitle` — サイトのタイトルとサブタイトル。
+- `avatar` — サイトのロゴ。
+
+例：
+
+```yaml
+# サイト基本情報
+siteTitle:
+  default: Press
+  en: Press
+  chs: Press
+  cht-tw: Press
+  cht-hk: Press
+  ja: Press
+siteSubtitle:
+  default: Where knowledge becomes pages.
+  en: Where knowledge becomes pages.
+  chs: Where knowledge becomes pages.
+  cht-tw: Where knowledge becomes pages.
+  cht-hk: Where knowledge becomes pages.
+  ja: Where knowledge becomes pages.
+avatar: assets/avatar.png
+```
+
+
+## プロフィール／ソーシャルリンク
+サイトカードに連絡先やソーシャルリンクを表示できます。`site.yaml` に `profileLinks` を追加します：
+
+```yaml
+# ソーシャルリンク
+profileLinks:
+  - label: GitHub
+    href: https://github.com/EkilyHQ/Press
+  - label: Demo
+    href: https://ekilyhq.github.io/Press/
+```
+
+> `label` は表示用テキストです。任意の文字列を使えます（固定のサービス名に限定されません）。
+
+
+## 記事の作成
+Press は既定で `wwwroot/` をワークディレクトリとして使用し、`wwwroot/index.yaml` を読んで記事一覧を取得します。入門用サイトでは、「Press を GitHub Pages で公開する設定」の最小エントリを次のように書けます：
+
+```yaml
+githubpages:
+  en: post/page/githubpages_en.md
+  chs: post/page/githubpages_chs.md # 中国語版は wwwroot/post/page/githubpages_chs.md にあります
+  ja: post/page/githubpages_ja.md
+```
+
+`wwwroot/index.yaml` に記事パスを記載するほか、各 Markdown の先頭に Front Matter を入れてメタデータを提供します。`wwwroot/post/page/githubpages_ja.md` の例：
+
+```yaml
+---
+title: Press を GitHub Pages で公開する設定
+date: 2025-08-21
+tags:
+  - Press
+  - 技術
+  - GitHub Pages
+image: page.jpeg
+excerpt: Press は GitHub Pages に無料でホスティングできます。本稿は自足的なリファレンスですが、最新かつ正確な情報は GitHub 公式ドキュメントを参照してください。
+author: Ekily
+ai: true
+---
+
+... 以下省略
+```
+
+主な項目：
+
+- `title` — 記事タイトル。
+- `date` — 公開日。
+- `tags` — タグ（複数可）。
+- `excerpt` — カードや meta 用の要約。
+- `image` — カバー画像のパス（Markdown ファイルからの相対）。
+- `author` — 著者名。
+- `ai` — 生成系 AI（特に LLM）の関与有無。
+
+> Front Matter の全項目は任意です。不要なら省略して構いません。
+
+### 保護された記事
+記事はエディターからパスワードで保護できます。記事を編集中に「保護」ボタンを押し、記事ごとのパスワードを設定してから通常どおり保存または公開します。
+
+保護された記事でも、`title`、`date`、`tags`、`image`、`excerpt` などの公開 Front Matter は残ります。そのためカード、検索結果、ソーシャルメタデータには公開情報を表示できます。Markdown 本文は `press-encrypted-markdown-v1` の暗号文ブロックに置き換えられ、Web Crypto の `PBKDF2-SHA256` と `AES-GCM-256` で暗号化されます。
+
+Press はパスワードをコミットせず、JavaScript に埋め込まず、ブラウザー storage に保存しません。正しいパスワードは現在開いているページのメモリ内だけに残ります。再読み込みや再オープン後は、もう一度入力する必要があります。
+
+保護された記事の公開要約には `excerpt` を使ってください。Press は暗号化された本文からプレビューや SEO 説明文を生成しません。
+
+## ページの作成
+記事の作成と同様に、固定ページは `wwwroot/tabs.yaml` で管理します。例えば About ページは次のように設定します：
+
+```yaml
+About:
+  en:
+    title: About
+    location: tab/about/en.md
+  chs:
+    title: 关于
+    location: tab/about/chs.md # 中国語版は wwwroot/tab/about/chs.md にあります
+  ja:
+    title: 概要
+    location: tab/about/ja.md
+```
+
+ページの Markdown は Front Matter を省略しても構いません。
+
+
+## Press Markdown 構文
+Press は Press サイト向けの小さく安全な Markdown 風レンダラーを使用します。完全な CommonMark や GitHub Flavored Markdown の実装ではありません。
+
+対応している構文は、見出し、段落、太字、斜体、取り消し線、インラインコード、フェンス付きコードブロック、通常のリンク、通常の画像、単純な順序付き/順序なしリスト、引用、単純なパイプ表、`- [ ]` / `- [x]` のタスクリスト、Press のサイト内リンクカード、Obsidian 風 callout、`![[...]]` 埋め込みです。画像と動画のパスは現在の Markdown ファイルからの相対パスとして解決されます。
+
+Raw HTML はサポートされません。`<div>`、`<script>`、HTML コメントなどはページへ挿入されず、テキストとして表示されます。未対応またはリスクの高い構文は、エディターのブロック表示でも構造化された編集ブロックに変換せず、Markdown ソースとして保持される場合があります。
+
+### 表
+Press は単純なパイプ表をサポートします。ヘッダー行、区切り行、データ行を書き、各行は `|` で始めて `|` で終えることを推奨します：
+
+```markdown
+| 左揃え | 中央揃え | 右揃え |
+| :--- | :---: | ---: |
+| 基本セル | 対応 | 1 行に 1 行分を書く |
+| インライン Markdown | **太字**、`コード`、リンクが使えます | 42 |
+| 視覚的な表編集 | Blocks ビュー | 対応 |
+```
+
+表示例：
+
+| 左揃え | 中央揃え | 右揃え |
+| :--- | :---: | ---: |
+| 基本セル | 対応 | 1 行に 1 行分を書く |
+| インライン Markdown | **太字**、`コード`、リンクが使えます | 42 |
+| 視覚的な表編集 | Blocks ビュー | 対応 |
+
+区切り行で `:---`、`:---:`、`---:` を使うと、それぞれ左揃え、中央揃え、右揃えを指定できます。コロンを省略した列は有効なテーマの既定の配置になります。Markdown Editor の Blocks ビューでは標準 pipe table を視覚的に編集でき、セル、行、列、列の配置を扱えます。表はセル内の改行、セル内のエスケープされたパイプ、`colspan`、`rowspan` には対応していません。未対応の表形式 Markdown は Markdown ソースブロックとして編集できます。
+
+
+## 画像と動画
+Markdown 中の画像・動画をサポートします。パスはその Markdown ファイルからの相対で解決されます。前述の GitHub Pages 設定記事では、本文冒頭に次の画像を挿入しています：
+
+```markdown
+![page](page.jpeg)
+```
+
+記事のパスが `wwwroot/post/page/githubpages_ja.md` の場合、画像は `wwwroot/post/page/page.jpeg` に置きます。動画も同様で、パスが正しければ Press が動画として扱います。
+
+### コンテンツとメディアの削除
+エディターで記事、ページ、言語、またはバージョンを削除すると、Publish は `index.yaml` または `tabs.yaml` から参照を取り除き、対応する管理下の Markdown ファイルを GitHub 上のファイル削除としてステージします。削除されたツリーノードは Publish 前なら復元できます。Publish プレビューでは削除ファイルが `deleted` と表示されます。
+
+削除された Markdown ファイルが `assets/...` と書かれ、その Markdown ファイルの隣の `assets/` サブディレクトリに置かれたローカルアセットを参照していた場合、Press は現在のコンテンツスキャンで残っている管理下の Markdown ファイルが参照していないことを確認できたときだけ、そのアセットも削除します。`page.jpeg` のような同階層ファイル、サイト共通アセット、絶対 URL、ルート相対パス、共有アセット、別文書のアセットは保持されます。
+
+画像ブロックには、現在の文書内のローカル `assets/...` ファイル向けに **リソースを削除** 操作もあります。この操作は画像ブロックを取り除き、アセット削除をステージします。ソースモードで Markdown の画像記法を手動で削除しても、既にコミット済みのアセットファイルは自動削除されません。
+
+## サイト内リンクカード（プレビュー）
+
+段落全体が記事へのリンク（`?id=...`）だけで構成される場合、そのリンクはカバー画像・抜粋・日付・読了時間を含むカードに自動的に拡張されます。
+
+```markdown
+... ここまでの内容は省略
+
+[Press を GitHub Pages で公開する設定](?id=post%2Fpage%2Fgithubpages_ja.md)
+
+... ここから先の内容は省略
+```
+
+行内でも強制的にカード表示したい場合は、リンクの `title` に `card` を含めます：
+
+```markdown
+... ここまでの内容は省略
+
+これは行内カードです → [Press を GitHub Pages で公開する設定](?id=post%2Fpage%2Fgithubpages_ja.md "card")
+
+... ここから先の内容は省略
+```
+
+## よくある質問
+
+- Q：サイトを開いたら真っ白です。
+  - A：YAML（インデント、コロン、配列/マップ構造）を検証してください。
+  - A：既定では `index.yaml`/`tabs.yaml` のパスは `wwwroot/` からの相対です。パスを確認してください。
+  - A：`index.html` をダブルクリックではなく、ローカル/実サーバー経由でプレビューしてください。セキュリティ上の理由でローカルリソースの読み込みを禁止するブラウザがあります。
+- Q：記事を書いたのに一覧に出ません。
+  - A：`wwwroot/index.yaml` に該当記事の `location` が登録され、パスが正しいか確認してください。
+  - A：ブラウザのキャッシュを強制更新してください（例：Shift を押しながら再読み込み）。
+
+## 上級
+さらに細かく調整したい場合のオプションです。
+
+### その他の設定
+`site.yaml` の追加オプション：
+
+#### テーマ強制
+既定では、サイト設定のテーマ値が適用されます。サイト側は既定値だけを提供し、訪問者がブラウザに保存したテーマ選択を維持できるようにするには、`themeOverride: false` を設定します。
+- `themeMode` — `user`、`dark`、`light`、`auto` のいずれか。
+- `themePack` — テーマパックの slug（例：`native`。外部テーマはインストール済みの slug を使います）。
+- `themeOverride` — サイト設定で訪問者の選択を上書きするか（既定 `true`）。
+
+例：
+```yaml
+themeMode: user
+themePack: native
+themeOverride: false
+```
+
+#### エラーレポート設定
+- `repo.owner` と `repo.name` — 事前入力された GitHub Issue へのリンクを有効化。
+- `errorOverlay` — エラー発生時にページ上へオーバーレイ表示（既定 `false`）。
+- `assetWarnings` — アセットに関する警告。
+  - `largeImage` — 大きな画像に関する警告。
+    - `enabled` — 警告を有効化（既定 `false`）。
+    - `thresholdKB` — KB 単位の閾値（既定 `500KB`）。
+
+例：
+```yaml
+repo:
+  owner: EkilyHQ
+  name: Press
+errorOverlay: true
+assetWarnings:
+  largeImage:
+    enabled: true
+    thresholdKB: 500
+```
+
+#### そのほか
+- `contentOutdatedDays` — この記事が古いとみなす日数（既定 180）。
+- `cardCoverFallback` — カバー画像が無い場合に自動生成のプレースホルダーを使用（既定 `true`）。
+- `pageSize` — 一覧の 1 ページあたり件数（既定 `8`）。
+- `defaultLanguage` — 既定の UI/コンテンツ言語（例：`en`、`chs`、`cht-tw`、`cht-hk`、`ja`。既定は `en`）。
+
+例：
+```yaml
+contentOutdatedDays: 180
+cardCoverFallback: false
+pageSize: 8
+defaultLanguage: en
+```
+
+### ルーティングの仕組み
+
+フロントエンドのルーターは URL のクエリを読み取ります：
+
+- `?tab=posts` — すべての記事（既定）。`&page=N` でページング。
+- `?tab=search&q=語句` — タイトル/タグで検索。`&tag=タグ名` でさらに絞り込み。
+- `?id=path/to/post.md` — 個別記事を開く（パスは `index.yaml` に存在している必要があります）。
+- `?lang=chs` — UI 言語の設定。localStorage に保存され、コンテンツは同じ言語のバリアントを試してから実行時のフォールバック順に従います。
+
+Markdown の例：`[この記事](?id=post/frogy/main.md)`、`[概要](?tab=about)`。
+
+### SEO（内蔵）
+
+ページごとに meta（タイトル、説明、Open Graph、Twitter Card）を動的に更新し、構造化データ（JSON-LD）を挿入します。参照順：
+
+1) Markdown の Front Matter（`title`、`excerpt`、`tags`、`date`、`image`）
+2) `index.yaml` のメタデータ
+3) 自動フォールバック（H1/最初の段落）と自動生成のプレースホルダー画像
+
+`site.yaml` の SEO 例：
+```yaml
+resourceURL: https://ekilyhq.github.io/Press/wwwroot/
+siteDescription:
+  default: Press - Where knowledge becomes pages.
+  en: Press - Where knowledge becomes pages.
+  chs: Press - Where knowledge becomes pages.
+  cht-tw: Press - Where knowledge becomes pages.
+  cht-hk: Press - Where knowledge becomes pages.
+  ja: Press - Where knowledge becomes pages.
+siteKeywords:
+  default: static blog, markdown, github pages, blog
+  en: static blog, markdown, github pages, blog
+  chs: 静态博客, Markdown, GitHub Pages, 博客
+  cht-tw: 靜態部落格, Markdown, GitHub Pages, 部落格
+  cht-hk: 靜態網誌, Markdown, GitHub Pages, 網誌
+  ja: 静的サイト, Markdown, GitHub Pages, ブログ
+```
+
+補足：
+- `resourceURL` — 画像/動画などのリソースが正しく解決されるようにするためのベース URL。実サイトの `wwwroot/` に合わせて設定します。
+- `siteDescription` — SEO やソーシャル共有用のサイト説明。
+- `siteKeywords` — SEO 用のキーワード。
+
+エディターから公開すると、Press は現在の Composer 状態から `sitemap.xml`、`robots.txt`、および `index.html` の生成済み `<head>` 更新をステージします。
+
+### 多言語
+
+Press では、サイト UI の言語とコンテンツの言語を関連しているが別々のものとして扱います。
+
+- サポートされる UI 言語は `assets/i18n/languages.json` と `assets/i18n/` 内の言語バンドルで決まります。エディターは、プロジェクトがサポートするすべての言語を表示できます。
+- コンテンツ言語は、投稿またはページごとに `wwwroot/index.yaml` と `wwwroot/tabs.yaml` で宣言します。作者は、実際に書いた言語バリアントだけを列挙すれば十分です。
+- URL に `?lang=...` がある場合、言語バンドルが存在すれば、ナビゲーションやボタンなどのサイト UI はその言語に切り替わります。
+- 各投稿またはページでは、Press はまず現在の UI 言語と一致するコンテンツを探します。存在しない場合、v3.4.125 は初期ドキュメント/既定言語から決まる実行時の基準言語にフォールバックします。標準テンプレートでは通常 `en` です。
+- その基準言語も存在しない場合は、`en`、`default`、最後にその項目で最初に利用可能なバリアントを試し、ページが完全に空にならないようにします。`site.yaml` の `defaultLanguage` は、明示的または保存済みの言語選択がない場合の初期 UI/コンテンツ言語を選ぶためのものです。ローカライズ不足時の安定したフォールバックが必要な場合は、`en` または `default` バリアントを残してください。
+
+コンテンツ形式：
+
+- 簡易：ベースの `index.yaml` と `tabs.yaml` の中で、言語ごとに Markdown のパスを指定します。
+- 統合：同じベースファイルの中で、言語ごとに `{title, location}` を指定します。
+- ベースのフラット項目：小規模なサイトでは、ベースファイル内に `Guide: post/guide.md` や `About: { location: tab/about.md }` のように書くこともできます。
+
+`index.en.yaml` や `tabs.en.yaml` のような旧来の言語別 sidecar ファイルは、現在のランタイムのフォールバックではなく、移行元として扱います。まだ使っているサイトは、まず Press v3.4.124 に更新し、エディターを開いてコンテンツモデル移行を公開してから、v3.4.125 以降へ更新してください。
+
+言語を切り替えると、該当するバリアントがある場合は同じ記事に留まります。ない場合は、上記のルールで既定言語のコンテンツを表示します。

@@ -1,0 +1,329 @@
+---
+title: Press指南
+date: 2026-06-07
+version: v3.4.125
+tags:
+	- Press
+	- 文档
+excerpt: Press v3.4.125 的当前文档。用 Markdown 与基础 YAML 文件直接构建内容网站，并说明当前内容索引格式、语言回退、主题、搜索、SEO、媒体和部署方式。
+author: Ekily
+ai: true
+---
+
+## 文件概览
+在开始使用 **Press** 之前，理解网站结构中的核心文件十分重要：
+
+- `site.yaml` — 您将在这里设置网站的基本信息，例如**站点标题**或您的**个人资料链接**。
+- `wwwroot/` — 包含所有内容和数据的文件夹：
+  - `wwwroot/index.yaml` — 所有**文章**的索引，例如“旅行日志 - 马尔代夫”、“读书笔记：小王子”等。
+  - `wwwroot/tabs.yaml` — 所有**页面**的索引，例如“关于本站”、“法律声明”等。
+
+> 您始终可以从 [v3.4.125/site.yaml](https://github.com/EkilyHQ/Press/blob/v3.4.125/site.yaml) 获取到 v3.4.125 版本的**默认**设置文件。
+
+
+## 网站基本信息设置
+在 `site.yaml` 中，您可以设置以下基本信息：
+
+- `siteTitle` 与 `siteSubtitle` — 网站的标题与副标题。
+- `avatar` — 网站的 LOGO。
+
+例如，本站的 `site.yaml` 配置如下：
+
+```yaml
+# 网站基本信息设置
+siteTitle:
+  default: Press
+  en: Press
+  chs: Press
+  cht-tw: Press
+  cht-hk: Press
+  ja: Press
+siteSubtitle:
+  default: Where knowledge becomes pages.
+  en: Where knowledge becomes pages.
+  chs: Where knowledge becomes pages.
+  cht-tw: Where knowledge becomes pages.
+  cht-hk: Where knowledge becomes pages.
+  ja: Where knowledge becomes pages.
+avatar: assets/avatar.png
+```
+
+
+## 联系方式与社交媒体展示
+Press 允许您在站点卡片上展示您的联系方式或者社交媒体链接。您可以在 `site.yaml` 中添加 `profileLinks` 字段来实现这一点，例如：
+
+```yaml
+# 社交媒体链接
+profileLinks:
+  - label: GitHub
+    href: https://github.com/EkilyHQ/Press
+  - label: Demo
+    href: https://ekilyhq.github.io/Press/
+```
+
+> `label` 选项仅用于显示文本，因此可以是任意值——而非固定的社交媒体名称。
+
+
+## 文章写作
+Press 默认将 `wwwroot/` 文件夹作为工作路径。它通过读取这个文件夹下的 `index.yaml` 文件来获取文章列表。对于入门站点，[为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md&lang=chs) 这篇文章可以用如下最小条目表示：
+
+```yaml
+githubpages:
+  en: post/page/githubpages_en.md
+  chs: post/page/githubpages_chs.md # 文章的中文版本位于 wwwroot/post/page/githubpages_chs.md
+  ja: post/page/githubpages_ja.md
+```
+
+除了在 `wwwroot/index.yaml` 中指定文章的 Markdown 文件路径外，您还需要在每篇 Markdown 文件的开头添加前言区（Front Matter）来提供文章的元数据。以下是 `wwwroot/post/page/githubpages_chs.md` 的文件节选：
+
+```yaml
+---
+title: 为 Press 配置 GitHub Pages
+date: 2025-08-21
+tags:
+  - Press
+  - 技术
+  - GitHub Pages
+image: page.jpeg
+excerpt: 你可以将 Press 免费托管在 GitHub Pages 上。本文作为一份自包含的参考，但仍请以 GitHub 官方文档为准以获取最准确的信息。
+author: Ekily
+ai: true
+---
+
+... 此后内容省略
+```
+
+其中的关键词含义如下：
+
+- `title` — 文章标题。
+- `date` — 文章发布日期。
+- `tags` — 文章标签，可多选（参见上文示例）。
+- `excerpt` — 文章摘要。
+- `image` — 文章封面图片路径（相对于该 Markdown 文件本身）。
+- `author` — 文章作者。
+- `ai` — 声明该文章的创作过程是否有生成式 AI（此处特指 LLMs）的参与。
+
+> 前言区的所有参数都是可选的；若您不愿意提供某个参数，可直接将其留空或删除该行。
+
+### 受保护文章
+文章可以在编辑器中设置密码保护。编辑文章时点击“保护”按钮，为该文章设置独立密码，然后像平常一样保存或发布。
+
+受保护文章会继续公开 `title`、`date`、`tags`、`image`、`excerpt` 等前言区元数据，因此文章卡片、搜索结果和社交分享信息仍可展示公开摘要。Markdown 正文会被替换为 `press-encrypted-markdown-v1` 密文块，并使用 Web Crypto 的 `PBKDF2-SHA256` 与 `AES-GCM-256` 加密。
+
+Press 不会提交密码，不会把密码写入 JavaScript，也不会把密码保存到浏览器存储。正确密码只保留在当前页面内存中。刷新或重新打开文章后，需要再次输入密码。
+
+请使用 `excerpt` 编写受保护文章的公开摘要。Press 不会从加密正文中生成预览或 SEO 描述。
+
+## 页面写作
+与文章写作类似，Press 通过读取 `wwwroot/` 文件夹内的 `tabs.yaml` 文件来获取页面列表。例如 [关于](?tab=about&lang=chs) 页面的对应的 `wwwroot/tabs.yaml` 内容如下：
+
+```yaml
+About:
+  en:
+    title: About
+    location: tab/about/en.md
+  chs:
+    title: 关于
+    location: tab/about/chs.md # 页面的中文版本位于 wwwroot/tab/about/chs.md
+  ja:
+    title: 概要
+    location: tab/about/ja.md
+```
+
+与文章不同，页面对应的 Markdown 文件可以不包含前言区。
+
+
+## Press Markdown 语法
+Press 使用一套为 Press 站点设计的小型、安全的类 Markdown 渲染器。它不是完整的 CommonMark 或 GitHub Flavored Markdown 实现。
+
+支持的语法包括标题、段落、粗体、斜体、删除线、行内代码、围栏代码块、普通链接、普通图片、简单有序/无序列表、引用块、简单管道表格、`- [ ]` / `- [x]` 任务列表、Press 站内链接卡片、Obsidian 风格 callout，以及 `![[...]]` 嵌入。图片与视频路径会相对于当前 Markdown 文件解析。
+
+Press 不支持 raw HTML。`<div>`、`<script>` 和 HTML 注释等内容会作为文本显示，而不会被插入页面。对于不支持或风险较高的语法，编辑器的块视图也可能将其保留为 Markdown 源码，而不是转换成结构化可编辑块。
+
+### 表格
+Press 支持简单的管道表格。表格需要包含表头行、分隔行和数据行，并建议每一行都以 `|` 开头和结尾：
+
+```markdown
+| 左对齐 | 居中对齐 | 右对齐 |
+| :--- | :---: | ---: |
+| 基础单元格 | 支持 | 每一行写在单独一行 |
+| 行内 Markdown | **粗体**、`代码` 和链接可用 | 42 |
+| 可视化表格编辑 | Blocks 视图 | 支持 |
+```
+
+渲染示例：
+
+| 左对齐 | 居中对齐 | 右对齐 |
+| :--- | :---: | ---: |
+| 基础单元格 | 支持 | 每一行写在单独一行 |
+| 行内 Markdown | **粗体**、`代码` 和链接可用 | 42 |
+| 可视化表格编辑 | Blocks 视图 | 支持 |
+
+在分隔行中使用 `:---`、`:---:`、`---:` 可以分别设置左对齐、居中对齐和右对齐。省略冒号时使用当前主题的默认对齐方式。Markdown 编辑器的 Blocks 视图可以可视化编辑标准 pipe table，包括单元格、行、列和列对齐。表格暂不支持单元格内换行、单元格内转义管道符、`colspan` 或 `rowspan`；不支持的表格样式 Markdown 会继续作为 Markdown 源码块编辑。
+
+
+## 图片与视频
+Press 支持在 Markdown 中插入图片和视频。所有 Markdown 文件中的图片和视频都会以该文件的相对路径进行引用。例如在 [为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md&lang=chs) 这篇文章中，其于内容开头处插入了一张图片：
+
+```markdown
+![page](page.jpeg)
+```
+
+且其文章路径为 `wwwroot/post/page/githubpages_chs.md`，那么 `page.jpeg` 的存放位置则应为 `wwwroot/post/page/page.jpeg`。视频文件与图片文件的引用方式相同，只需确保路径正确即可，Press 会自动识别出视频文件并进行处理。
+
+### 删除内容与媒体
+在编辑器中删除文章、页面、语言或版本时，Publish 会从 `index.yaml` 或 `tabs.yaml` 中移除引用，并将对应的托管 Markdown 文件作为 GitHub 文件删除提交。删除后的树节点在发布前仍可恢复；Publish 预览会把删除文件标记为 `deleted`。
+
+如果被删除的 Markdown 文件引用了写作 `assets/...` 且存放在该 Markdown 文件旁边 `assets/` 子目录中的本地资源，Press 只会在当前内容扫描确认没有任何仍存在的托管 Markdown 文件引用它时，才一并删除该资源。`page.jpeg` 这类同级文件、站点级资源、绝对 URL、根路径资源、共享资源和跨文档资源都会保留。
+
+图片块还提供 **删除资源** 操作，仅用于当前文档下的本地 `assets/...` 文件。该操作会移除图片块并暂存资源删除；在源码模式中手动删掉 Markdown 图片语法，不会自动删除已经提交过的资源文件。
+
+## 站内链接卡片（预览）
+
+当某段落只包含一个指向文章的链接（如 `?id=...`）时，该链接会被升级为带封面、摘要、日期、阅读时长的卡片（就像您在文章列表中看到的那样）。
+
+```markdown
+... 此前内容省略
+
+[为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md)
+
+... 此后内容省略
+```
+
+若要在行内强制显示为卡片，可在链接的 `title` 中包含 `card`：
+
+```markdown
+... 此前内容省略
+
+这是一张 [为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md "card") 行内卡片。
+
+... 此后内容省略
+```
+
+## 常见问题
+
+- Q：网站打开后完全空白？
+  - A：请校验 YAML（缩进、冒号、列表/键值结构）。
+  - A：默认情况下，`index.yaml`/`tabs.yaml` 中的路径需相对 `wwwroot/`。请检查路径。
+  - A：请确认您通过一个模拟服务器或真实服务器进行网站预览（而非直接双击 `index.html` 打开），因为某些浏览器出于安全考虑默认禁止本地网页加载资源。
+- Q：文章已编写但未在网站中列出
+  - A：请确认文章的 `location` 已写入 `wwwroot/index.yaml`，并且路径正确。
+  - A：请尝试按住键盘上的 `Shift` 按键点击刷新按钮，强制刷新浏览器缓存。
+
+## 进阶内容
+此处记录 Press 的一些高级选项，若您有兴趣可以进一步探索。
+
+### 其他设置
+`site.yaml` 还有一些其他设置选项。
+
+#### 主题覆写
+默认情况下，站点配置的主题会生效。如果希望站点只提供默认值，并让访客保留浏览器中保存的主题选择，请设置 `themeOverride: false`。
+- `themeMode` — 主题模式（`user`、`dark`、`light` 或 `auto`）。
+- `themePack` — 主题包 slug（例如 `native`；外部主题使用已安装的主题 slug）。
+- `themeOverride` — 是否用站点配置强制覆盖访客选择（缺省为 `true`）。
+
+例如：
+```yaml
+themeMode: user
+themePack: native
+themeOverride: false
+```
+
+#### 错误报告设置
+- `repo.owner` 与 `repo.name` — 启用预填充的 GitHub 问题链接。
+- `errorOverlay` — 如果发生错误，则在页面上显示错误弹窗（缺省为 `false`）。
+- `assetWarnings` — 资源相关警告设置。
+  - `largeImage` — 大图警告设置。
+    - `enabled` — 是否启用大图警告（缺省为 `false`）。
+    - `thresholdKB` — 大图阈值（缺省为 `500KB`）。
+
+例如：
+```yaml
+repo:
+  owner: EkilyHQ
+  name: Press
+errorOverlay: true
+assetWarnings:
+  largeImage:
+    enabled: true
+    thresholdKB: 500
+```
+
+#### 杂项设置
+- `contentOutdatedDays` — 内容被视为过时的天数（默认为 180 天）。
+- `cardCoverFallback` — 如果未提供封面图像，则使用生成的占位封面图像（缺省为 `true`）。
+- `pageSize` — 索引列表中每页的帖子数量（缺省为 `8`）。
+- `defaultLanguage` — 默认 UI/内容语言（例如，`en`、`chs`、`cht-tw`、`cht-hk`、`ja`；缺省为 `en`）。
+
+例如：
+```yaml
+contentOutdatedDays: 180
+cardCoverFallback: false
+pageSize: 8
+defaultLanguage: en
+```
+
+### 路由工作方式
+
+前端路由读取 URL 查询参数：
+
+- `?tab=posts` — 全部文章（默认）。支持 `&page=N` 分页。
+- `?tab=search&q=关键词` — 按标题或标签搜索。也可用 `&tag=标签名` 过滤。
+- `?id=路径/到/文章.md` — 直接打开某篇文章（路径必须存在于 `index.yaml`）。
+- `?lang=chs` — UI 语言偏好。存储在 localStorage；内容会先尝试匹配该语言版本，再按运行时回退顺序选择可用内容。
+
+Markdown 中的站内跳转链接示例：`[看看这篇](?id=post/frogy/main.md)`，标签页：`[关于](?tab=about)`。
+
+### SEO（内置）
+
+运行时按页面动态更新 meta（标题、描述、Open Graph、Twitter Card），并注入结构化数据（JSON-LD）。数据来源优先级：
+
+1) Markdown 前言区（`title`、`excerpt`、`tags`、`date`、`image`）
+2) `index.yaml` 元数据
+3) 自动回退（H1/首段）与生成的占位社交图
+
+`site.yaml` 的 SEO 部分示例配置如下：
+```yaml
+resourceURL: https://ekilyhq.github.io/Press/wwwroot/
+siteDescription:
+  default: Press - Where knowledge becomes pages.
+  en: Press - Where knowledge becomes pages.
+  chs: Press - Where knowledge becomes pages.
+  cht-tw: Press - Where knowledge becomes pages.
+  cht-hk: Press - Where knowledge becomes pages.
+  ja: Press - Where knowledge becomes pages.
+siteKeywords:
+  default: static blog, markdown, github pages, blog
+  en: static blog, markdown, github pages, blog
+  chs: 静态博客, Markdown, GitHub Pages, 博客
+  cht-tw: 靜態部落格, Markdown, GitHub Pages, 部落格
+  cht-hk: 靜態網誌, Markdown, GitHub Pages, 網誌
+  ja: 静的サイト, Markdown, GitHub Pages, ブログ
+```
+
+其中：
+- `resourceURL` — 资源的基础 URL，确保所有资源（如图片、视频）都能正确加载。默认情况下设置为您实际网站的 `wwwroot/` 目录即可。
+- `siteDescription` — 网站的描述信息，用于 SEO 和社交分享。
+- `siteKeywords` — 网站的关键词，用于 SEO。
+
+通过编辑器发布时，Press 会根据当前 Composer 状态暂存 `sitemap.xml`、`robots.txt`，以及 `index.html` 中生成的 `<head>` 更新。
+
+### 多语言
+
+Press 将网站本体语言和内容语言视为相关但独立的两层。
+
+- 网站本体支持的 UI 语言来自 `assets/i18n/languages.json` 以及 `assets/i18n/` 中对应的语言包。文章编辑器可以展示项目支持的全部语言。
+- 内容语言由每篇文章或页面在 `wwwroot/index.yaml` 与 `wwwroot/tabs.yaml` 中分别声明。作者只需要列出自己实际撰写的语言版本。
+- 当 URL 中设置 `?lang=...` 时，网站导航、按钮、提示等本体文案会切换到对应 UI 语言（前提是语言包存在）。
+- 对每篇文章或页面，Press 会先尝试加载与当前 UI 语言相同的内容版本。若该版本不存在，v3.4.125 会回退到初始文档/默认语言决定的运行时基础语言；标准模板通常是 `en`。
+- 如果该基础语言版本也不存在，Press 会继续尝试 `en`、`default`，最后使用该条目下第一个可用版本，以避免页面完全无法渲染。`site.yaml` 中的 `defaultLanguage` 用于没有显式或已保存语言选择时的初始 UI/内容语言；若需要稳定的缺失内容回退，请保留 `en` 或 `default` 版本。
+
+内容索引支持：
+
+- 简化版：在基础 `index.yaml` 与 `tabs.yaml` 中按语言直接给出 Markdown 路径。
+- 统一版：在这些基础文件中为每种语言提供 `{title, location}`。
+- 基础扁平条目：小型站点也可以在基础文件中使用 `Guide: post/guide.md` 或 `About: { location: tab/about.md }`。
+
+旧的分语言 sidecar 文件，例如 `index.en.yaml` 或 `tabs.en.yaml`，现在只是迁移来源，不再是当前运行时回退路径。如果站点仍在使用这些文件，请先升级到 Press v3.4.124，打开编辑器并发布内容模型迁移，然后再升级到 v3.4.125 或更新版本。
+
+切换语言时，若当前文章存在相应变体，路由会尽量保持在“同一篇”；若不存在，则按上述规则显示默认语言内容。

@@ -111,6 +111,17 @@ pressDocs:
       protected: false
       versionLabel: v2.1.0
       ai: true
+    - location: post/doc/v3.4.125/doc_en.md
+      title: "Documentation for Press"
+      date: 2026-06-07
+      tags:
+        - Press
+        - Documentation
+      excerpt: "Current Press documentation for v3.4.125. Build a content site directly from Markdown and base YAML files, with current content-index formats, language fallback, themes, search, SEO, media, and deployment guidance."
+      readTime: 8
+      protected: false
+      versionLabel: v3.4.125
+      ai: true
   chs:
     - location: post/doc/v1.0.0/doc_chs.md
       title: "Press指南"
@@ -145,6 +156,17 @@ pressDocs:
       protected: false
       versionLabel: v2.1.0
       ai: true
+    - location: post/doc/v3.4.125/doc_chs.md
+      title: "Press指南"
+      date: 2026-06-07
+      tags:
+        - Press
+        - "文档"
+      excerpt: "Press v3.4.125 的当前文档。用 Markdown 与基础 YAML 文件直接构建内容网站，并说明当前内容索引格式、语言回退、主题、搜索、SEO、媒体和部署方式。"
+      readTime: 3
+      protected: false
+      versionLabel: v3.4.125
+      ai: true
   cht-tw:
     - location: post/doc/v2.1.0/doc_cht-tw.md
       title: "Press指南"
@@ -157,6 +179,17 @@ pressDocs:
       protected: false
       versionLabel: v2.1.0
       ai: true
+    - location: post/doc/v3.4.125/doc_cht-tw.md
+      title: "Press指南"
+      date: 2026-06-07
+      tags:
+        - Press
+        - "文件"
+      excerpt: "Press v3.4.125 的目前文件。使用 Markdown 與基礎 YAML 檔案直接建立內容網站，並說明目前內容索引格式、語言回退、主題、搜尋、SEO、媒體與部署。"
+      readTime: 2
+      protected: false
+      versionLabel: v3.4.125
+      ai: true
   cht-hk:
     - location: post/doc/v2.1.0/doc_cht-hk.md
       title: "Press指南"
@@ -168,6 +201,17 @@ pressDocs:
       readTime: 2
       protected: false
       versionLabel: v2.1.0
+      ai: true
+    - location: post/doc/v3.4.125/doc_cht-hk.md
+      title: "Press指南"
+      date: 2026-06-07
+      tags:
+        - Press
+        - "文件"
+      excerpt: "Press v3.4.125 嘅目前文件。使用 Markdown 同基礎 YAML 檔案直接建立內容網站，並說明目前內容索引格式、語言回退、主題、搜尋、SEO、媒體同部署。"
+      readTime: 2
+      protected: false
+      versionLabel: v3.4.125
       ai: true
   ja:
     - location: post/doc/v1.0.0/doc_ja.md
@@ -202,6 +246,17 @@ pressDocs:
       readTime: 2
       protected: false
       versionLabel: v2.1.0
+      ai: true
+    - location: post/doc/v3.4.125/doc_ja.md
+      title: "Press ドキュメント"
+      date: 2026-06-07
+      tags:
+        - Press
+        - "ドキュメント"
+      excerpt: "Press v3.4.125 の現在のドキュメントです。Markdown とベース YAML ファイルからコンテンツサイトを構築し、現在のコンテンツインデックス形式、言語フォールバック、テーマ、検索、SEO、メディア、デプロイ方法を説明します。"
+      readTime: 2
+      protected: false
+      versionLabel: v3.4.125
       ai: true
 githubpages:
   en:

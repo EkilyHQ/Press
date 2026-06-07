@@ -65,7 +65,7 @@ profileLinks:
 
 
 ## 文章写作
-Press 默认将 `wwwroot/` 文件夹作为工作路径。它通过读取这个文件夹下的 `index.yaml` 文件来获取文章列表。例如 [为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md&lang=chs) 这篇文章对应的 `wwwroot/index.yaml` 内容如下：
+Press 默认将 `wwwroot/` 文件夹作为工作路径。它通过读取这个文件夹下的 `index.yaml` 文件来获取文章列表。对于入门站点，[为 Press 配置 GitHub Pages](?id=post%2Fpage%2Fgithubpages_chs.md&lang=chs) 这篇文章可以用如下最小条目表示：
 
 ```yaml
 githubpages:
@@ -219,18 +219,18 @@ Press 支持在 Markdown 中插入图片和视频。所有 Markdown 文件中的
 #### 主题覆写
 默认情况下，站点配置的主题会生效。如果希望站点只提供默认值，并让访客保留浏览器中保存的主题选择，请设置 `themeOverride: false`。
 - `themeMode` — 主题模式（`user`、`dark`、`light` 或 `auto`）。
-- `themePack` — 主题包（例如，`minimalism`、`github`）。
+- `themePack` — 主题包 slug（例如 `native`；外部主题使用已安装的主题 slug）。
 - `themeOverride` — 是否用站点配置强制覆盖访客选择（缺省为 `true`）。
 
 例如：
 ```yaml
 themeMode: user
-themePack: minimalism
-themeOverride: true
+themePack: native
+themeOverride: false
 ```
 
 #### 错误报告设置
-- `reportIssueURL` — 启用预填充的 GitHub 问题链接。
+- `repo.owner` 与 `repo.name` — 启用预填充的 GitHub 问题链接。
 - `errorOverlay` — 如果发生错误，则在页面上显示错误弹窗（缺省为 `false`）。
 - `assetWarnings` — 资源相关警告设置。
   - `largeImage` — 大图警告设置。
@@ -239,7 +239,9 @@ themeOverride: true
 
 例如：
 ```yaml
-reportIssueURL: https://github.com/EkilyHQ/Press/issues/new
+repo:
+  owner: EkilyHQ
+  name: Press
 errorOverlay: true
 assetWarnings:
   largeImage:
@@ -318,7 +320,7 @@ Press 将网站本体语言和内容语言视为相关但独立的两层。
 
 内容索引支持：
 
-- 简化版（本仓库示例）：在基础 `index.yaml` 与 `tabs.yaml` 中按语言直接给出 Markdown 路径。
+- 简化版：在基础 `index.yaml` 与 `tabs.yaml` 中按语言直接给出 Markdown 路径。
 - 统一版：在这些基础文件中为每种语言提供 `{title, location}`。
 - 基础扁平条目：小型站点也可以在基础文件中使用 `Guide: post/guide.md` 或 `About: { location: tab/about.md }`。
 

@@ -65,7 +65,7 @@ profileLinks:
 
 
 ## Writing Posts
-By default, Press uses the `wwwroot/` folder as its working directory and reads `wwwroot/index.yaml` for the posts list. For example, the article Configure GitHub Pages for Press corresponds to this entry in `wwwroot/index.yaml`:
+By default, Press uses the `wwwroot/` folder as its working directory and reads `wwwroot/index.yaml` for the posts list. For an entry-level site, a minimal entry for the article Configure GitHub Pages for Press can look like this:
 
 ```yaml
 githubpages:
@@ -244,18 +244,18 @@ Additional options in `site.yaml`:
 #### Theme Override
 By default, site-configured theme values are applied. Set `themeOverride: false` if the site should only provide defaults and let visitors keep their browser-stored theme choice.
 - `themeMode` — Theme mode (`user`, `dark`, `light`, or `auto`).
-- `themePack` — Theme pack (e.g., `minimalism`, `github`).
+- `themePack` — Theme pack slug (for example, `native`; external themes use their installed slug).
 - `themeOverride` — Force the configured theme mode and pack over visitor choices (default `true`).
 
 Example:
 ```yaml
 themeMode: user
-themePack: minimalism
-themeOverride: true
+themePack: native
+themeOverride: false
 ```
 
 #### Error Reporting
-- `reportIssueURL` — Enable a prefilled issue link (e.g., GitHub New Issue).
+- `repo.owner` and `repo.name` — Enable the prefilled GitHub report-issue link.
 - `errorOverlay` — Show an error overlay on the page if something goes wrong (default `false`).
 - `assetWarnings` — Asset-related warnings.
   - `largeImage` — Large image warnings.
@@ -264,7 +264,9 @@ themeOverride: true
 
 Example:
 ```yaml
-reportIssueURL: https://github.com/EkilyHQ/Press/issues/new
+repo:
+  owner: EkilyHQ
+  name: Press
 errorOverlay: true
 assetWarnings:
   largeImage:
@@ -343,7 +345,7 @@ Press treats the site UI language and the content language as related but separa
 
 Content index formats:
 
-- Simplified (as in this repo): provide Markdown paths per language inside the base `index.yaml` and `tabs.yaml` files.
+- Simplified: provide Markdown paths per language inside the base `index.yaml` and `tabs.yaml` files.
 - Unified: provide `{title, location}` objects per language inside those base files.
 - Flat base entries: small sites can use entries such as `Guide: post/guide.md` or `About: { location: tab/about.md }` in the base files.
 

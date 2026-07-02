@@ -63,6 +63,22 @@ try {
   assert.match(pushes[1], /[?&]q=beta\b/);
   assert.equal(dispatched.length, 2);
   assert.equal(dispatched[0].type, 'popstate');
+
+  const disabledRoot = createEventRoot();
+  mod.bindSearchEvents(disabledRoot, {
+    isSearchEnabled: () => false,
+    getHomeSlug: () => 'overview'
+  });
+  assert.equal(disabledRoot.listenerCount('press:search'), 0);
+
+  mod.navigateSearch('blocked', {
+    isSearchEnabled: () => false,
+    getHomeSlug: () => 'overview'
+  });
+  assert.match(pushes.at(-1), /[?&]tab=overview\b/);
+  assert.doesNotMatch(pushes.at(-1), /[?&]q=blocked\b/);
+  assert.equal(dispatched.at(-1).type, 'popstate');
+
   console.log('ok - search event binding is scoped per root');
 } finally {
   delete globalThis.window;

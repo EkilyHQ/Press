@@ -287,6 +287,24 @@ await run('theme pack controllers isolate suppressed state', async () => {
   assert.equal(isThemePackSuppressed('cartograph'), false);
 });
 
+await run('cached theme layout contexts refresh public feature context', async () => {
+  installGlobals({
+    savedPack: 'featurepack',
+    manifests: {
+      featurepack: makeManifest('featurepack', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async () => ({ mount() {} });
+  const { ensureThemeLayout } = await freshThemeLayout();
+  const firstFeatures = { flags: { search: true }, isEnabled: (key) => key !== 'search' };
+  const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
+  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures });
+  assert.equal(first.features, firstFeatures);
+  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures });
+  assert.equal(second, first);
+  assert.equal(second.features, secondFeatures);
+});
+
 await run('theme controls ignore retired legacy DOM bridge hints from the active theme context', async () => {
   const { setThemeLayoutContext } = await import('../assets/js/theme-regions.js');
   const { mountThemeControls } = await freshThemeHelpers();

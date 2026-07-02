@@ -252,6 +252,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       renderAnnotateGrid,
       renderAssetWarningsGrid,
       renderBehaviorGrid,
+      renderPublicChromeGrid,
       renderThemeGrid
     } = createComposerSiteSettingsConfigGrids({
       documentRef,
@@ -337,6 +338,13 @@ export function createComposerSiteSettingsUi(options = {}) {
       siteSettingsSchema.subsections.behavior.description
     );
     renderBehaviorGrid(behaviorSubsection);
+
+    const publicChromeSubsection = createConfigSubsection(
+      siteConfigSection,
+      siteSettingsSchema.subsections.publicChrome.title,
+      siteSettingsSchema.subsections.publicChrome.description
+    );
+    renderPublicChromeGrid(publicChromeSubsection);
 
     const themeSubsection = createConfigSubsection(
       siteConfigSection,

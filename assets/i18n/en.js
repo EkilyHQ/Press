@@ -594,7 +594,11 @@ const translations = {
             },
             behavior: {
               title: 'Behavior',
-              description: 'Control pagination, landing behavior, and All Posts visibility.'
+              description: 'Control pagination and landing behavior.'
+            },
+            publicChrome: {
+              title: 'Public chrome',
+              description: 'Control which public site controls and navigation surfaces are visible.'
             },
             theme: {
               title: 'Theme',
@@ -645,6 +649,29 @@ const translations = {
             landingTab: 'Landing tab',
             landingTabHelp: 'Choose which tab opens first when the site loads.',
             landingTabAllPostsOption: 'All Posts tab',
+            featureSearch: 'Search',
+            featureSearchHelp: 'Show public search UI and allow the search route.',
+            featureEditorEntry: 'Editor entry',
+            featureEditorEntryHelp: 'Show the public editor shortcut. Hiding it is presentation-only and does not protect index_editor.html.',
+            featureVisitorThemeControls: 'Visitor theme controls',
+            featureVisitorThemeControlsHelp: 'Show the visitor tools panel for theme, language, and editor controls.',
+            featureLanguageSwitcher: 'Language switcher',
+            featureLanguageSwitcherHelp: 'Show language controls inside the visitor tools panel.',
+            featureAllPosts: 'All Posts',
+            featureAllPostsHelp: 'Show the All Posts route and navigation link.',
+            featureFooterNav: 'Footer navigation',
+            featureFooterNavHelp: 'Show secondary navigation in the public footer.',
+            featureProfileLinks: 'Profile links',
+            featureProfileLinksHelp: 'Show configured profile links in public site chrome.',
+            featureTags: 'Tags',
+            featureTagsHelp: 'Show public tag filters and tag sidebars.',
+            featureToc: 'Table of contents',
+            featureTocHelp: 'Show generated article or page table of contents.',
+            featurePostMeta: 'Post metadata',
+            featurePostMetaHelp: 'Show article metadata cards, outdated notices, and related public meta surfaces.',
+            featureComments: 'Comments',
+            featureCommentsHelp: 'Allow public comment rendering when Annotate is configured.',
+            publicChromeHomeWarning: 'No reachable home is configured. Enable All Posts or add a tab page.',
             cardCoverFallback: 'Fallback card cover',
             cardCoverFallbackHelp: 'Generate a fallback cover image when a post has no cover.',
             errorOverlay: 'Error overlay',

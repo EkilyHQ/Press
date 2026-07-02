@@ -505,6 +505,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     document: document,
     i18n: createThemeI18nContext(),
     regions: createThemeRegionRegistry(),
+    features: options.features || null,
     pack,
     manifest,
     theme: createThemeApi(pack, manifest),
@@ -560,6 +561,9 @@ async function ensureThemeLayoutWithState(themeLayoutState, options = {}) {
   }
   const cachedContext = themeLayoutState.regionController.getThemeLayoutContext();
   if (cachedContext && document.body.dataset.themeLayout === pack) {
+    if (options && Object.prototype.hasOwnProperty.call(options, 'features')) {
+      cachedContext.features = options.features || null;
+    }
     return cachedContext;
   }
   if (themeLayoutState.layoutPromise && themeLayoutState.activePack === pack) {

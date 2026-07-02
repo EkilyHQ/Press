@@ -1,3 +1,9 @@
+import {
+  SITE_FEATURE_KEYS,
+  normalizeSiteFeatureSettings,
+  siteFeatureSettingsForOutput
+} from './site-features.js';
+
 function deepClone(value) {
   try {
     if (typeof structuredClone === 'function') return structuredClone(value);
@@ -79,6 +85,7 @@ export function prepareSiteState(raw) {
   site.themeMode = safeString(src.themeMode || '');
   site.themePack = safeString(src.themePack || '');
   site.themeOverride = normalizeBoolean(src.themeOverride);
+  site.features = normalizeSiteFeatureSettings(src.features);
   const enableAllPosts = normalizeBoolean(src.enableAllPosts);
   const disableAllPosts = normalizeBoolean(src.disableAllPosts);
   if (normalizeBoolean(src.showAllPosts) != null) site.showAllPosts = normalizeBoolean(src.showAllPosts);
@@ -111,7 +118,7 @@ export function prepareSiteState(raw) {
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'resourceURL', 'contentRoot',
     'profileLinks', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'postsPerPage',
     'defaultLanguage', 'themeMode', 'themePack', 'themeOverride', 'repo', 'annotate', 'assetWarnings', 'landingTab', 'showAllPosts',
-    'enableAllPosts', 'disableAllPosts', 'connect'
+    'enableAllPosts', 'disableAllPosts', 'features', 'connect'
   ]);
   const deprecated = new Set(['links']);
 
@@ -145,6 +152,7 @@ export function cloneSiteState(state) {
     themeMode: safeString(state.themeMode || ''),
     themePack: safeString(state.themePack || ''),
     themeOverride: normalizeBoolean(state.themeOverride),
+    features: normalizeSiteFeatureSettings(state.features),
     showAllPosts: normalizeBoolean(state.showAllPosts),
     landingTab: safeString(state.landingTab || ''),
     repo: deepClone(state.repo || { owner: '', name: '', branch: '' }),
@@ -259,6 +267,8 @@ function buildSiteSnapshot(state) {
   if (site.themeMode) snapshot.themeMode = site.themeMode;
   if (site.themePack) snapshot.themePack = site.themePack;
   if (site.themeOverride != null) snapshot.themeOverride = !!site.themeOverride;
+  const features = siteFeatureSettingsForOutput(site.features);
+  if (features) snapshot.features = features;
   if (site.showAllPosts != null) snapshot.showAllPosts = !!site.showAllPosts;
   if (site.landingTab) snapshot.landingTab = site.landingTab;
   const repo = repoForOutput(site.repo);
@@ -349,6 +359,17 @@ export function computeSiteDiff(current, baseline) {
       diff.hasChanges = true;
     }
   });
+
+  const featureFields = {};
+  SITE_FEATURE_KEYS.forEach((key) => {
+    if (normalizeBoolean(cur.features && cur.features[key]) !== normalizeBoolean(base.features && base.features[key])) {
+      featureFields[key] = true;
+    }
+  });
+  if (Object.keys(featureFields).length) {
+    diff.fields.features = { type: 'object', fields: featureFields };
+    diff.hasChanges = true;
+  }
 
   const numericFields = ['contentOutdatedDays', 'pageSize'];
   numericFields.forEach((key) => {
@@ -511,7 +532,7 @@ export function toSiteYaml(data) {
   const keysInOrder = [
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'profileLinks', 'resourceURL',
     'contentRoot', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'defaultLanguage',
-    'themeMode', 'themePack', 'themeOverride', 'showAllPosts', 'landingTab', 'repo', 'annotate', 'connect', 'assetWarnings'
+    'themeMode', 'themePack', 'themeOverride', 'features', 'showAllPosts', 'landingTab', 'repo', 'annotate', 'connect', 'assetWarnings'
   ];
   const ordered = {};
   keysInOrder.forEach((key) => {

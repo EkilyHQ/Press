@@ -1,3 +1,5 @@
+import { SITE_FEATURE_KEYS, isSiteFeatureEnabled } from './site-features.js';
+
 export function createComposerSiteSettingsConfigGrids(options = {}) {
   const noop = () => {};
   const documentRef = options.documentRef || null;
@@ -25,6 +27,34 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
   const connectPublishPresets = Array.isArray(options.connectPublishPresets) ? options.connectPublishPresets : [];
   const annotateDiscussionCategoryPresets = Array.isArray(options.annotateDiscussionCategoryPresets) ? options.annotateDiscussionCategoryPresets : [];
   const t = typeof options.t === 'function' ? options.t : (key) => key;
+  let refreshLandingOptions = noop;
+
+  const ensureFeatures = () => {
+    if (!site.features || typeof site.features !== 'object' || Array.isArray(site.features)) site.features = {};
+    return site.features;
+  };
+
+  const getFeatureEnabled = (key) => isSiteFeatureEnabled(site, key);
+
+  const setFeatureEnabled = (key, value) => {
+    ensureFeatures()[key] = !!value;
+    if (key === 'allPosts' && value === false && site.landingTab === 'posts') {
+      site.landingTab = '';
+    }
+  };
+
+  const tabHasReachableLocation = (slug) => {
+    const tabs = state.tabs && typeof state.tabs === 'object' ? state.tabs : {};
+    const visit = (value) => {
+      if (!value) return false;
+      if (typeof value === 'string') return !!value.trim();
+      if (Array.isArray(value)) return value.some(visit);
+      if (typeof value !== 'object') return false;
+      if (typeof value.location === 'string' && value.location.trim()) return true;
+      return Object.entries(value).some(([key, child]) => key !== 'title' && visit(child));
+    };
+    return !!(slug && visit(tabs[slug]));
+  };
 
   const renderBehaviorGrid = (section) => {
     const { addRow } = createSingleGridFieldset(section);
@@ -128,12 +158,6 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       return { checkbox, row, control: toggle };
     };
 
-    const showAllPostsField = createToggleRow({
-      ...behaviorSchema.showAllPosts,
-      get: () => site.showAllPosts === true,
-      set: (value) => { site.showAllPosts = !!value; }
-    });
-
     const landingTabSelect = createSelectRow(behaviorSchema.landingTab);
 
     const getTabLabel = (slug) => {
@@ -176,10 +200,10 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       landingTabSelect.innerHTML = '';
       const order = state.tabs && Array.isArray(state.tabs.__order) ? state.tabs.__order : [];
       order.forEach((slug) => {
-        if (!slug) return;
+        if (!slug || !tabHasReachableLocation(slug)) return;
         addOption(slug, getTabLabel(slug));
       });
-      const allowPosts = site.showAllPosts === true || current === 'posts';
+      const allowPosts = getFeatureEnabled('allPosts') || current === 'posts';
       if (allowPosts) {
         addOption('posts', t('editor.composer.site.fields.landingTabAllPostsOption'));
       }
@@ -191,6 +215,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
         markDirty();
       }
     };
+    refreshLandingOptions = renderLandingOptions;
 
     landingTabSelect.addEventListener('change', () => {
       const value = landingTabSelect.value;
@@ -199,14 +224,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
         markDirty();
       }
     });
-
     renderLandingOptions();
-    showAllPostsField.checkbox.addEventListener('change', () => {
-      if (site.showAllPosts !== true && site.landingTab === 'posts') {
-        site.landingTab = '';
-      }
-      renderLandingOptions();
-    });
 
     createToggleRow({
       ...behaviorSchema.cardCoverFallback,
@@ -219,6 +237,51 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       get: () => site.errorOverlay,
       set: (value) => { site.errorOverlay = value; }
     }, true);
+  };
+
+  const renderPublicChromeGrid = (section) => {
+    const schema = siteSettingsSchema.fields.publicChrome || {};
+    const { addRow } = createSingleGridFieldset(section);
+    const rows = [];
+    const homeWarning = documentRef.createElement('p');
+    homeWarning.className = 'cs-field-help cs-public-chrome-warning';
+    homeWarning.textContent = t('editor.composer.site.fields.publicChromeHomeWarning');
+    homeWarning.hidden = true;
+    const addFeatureRow = (item) => {
+      const row = addRow(item, rows.length);
+      rows.push(row);
+      return row;
+    };
+    const updateHomeWarning = () => {
+      const order = state.tabs && Array.isArray(state.tabs.__order) ? state.tabs.__order : [];
+      const hasStaticTab = order.some(slug => tabHasReachableLocation(slug));
+      const hasReachableHome = getFeatureEnabled('allPosts') || hasStaticTab;
+      homeWarning.hidden = !!hasReachableHome;
+    };
+    SITE_FEATURE_KEYS.forEach((key) => {
+      const item = schema[key];
+      if (!item) return;
+      const { row, controlCell } = addFeatureRow(item);
+      const { toggle, checkbox } = createSwitchControl(row, item.checkboxLabel || item.label, {
+        target: controlCell,
+        classes: ['cs-single-grid-switch']
+      });
+      toggle.dataset.field = 'features';
+      toggle.dataset.subfield = key;
+      const sync = () => {
+        syncSwitchState(checkbox, toggle, getFeatureEnabled(key), false);
+      };
+      checkbox.addEventListener('change', () => {
+        setFeatureEnabled(key, checkbox.checked);
+        syncSwitchState(checkbox, toggle, checkbox.checked, false);
+        if (key === 'allPosts') refreshLandingOptions();
+        updateHomeWarning();
+        markDirty();
+      });
+      sync();
+    });
+    section.appendChild(homeWarning);
+    updateHomeWarning();
   };
 
   const renderThemeGrid = (section) => {
@@ -550,6 +613,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
   };
 
   return {
+    renderPublicChromeGrid,
     renderAnnotateGrid,
     renderAssetWarningsGrid,
     renderBehaviorGrid,

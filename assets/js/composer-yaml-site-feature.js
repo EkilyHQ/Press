@@ -31,6 +31,7 @@ const SITE_FIELD_LABEL_MAP = {
   themeMode: { i18nKey: 'editor.composer.site.fields.themeMode' },
   themePack: { i18nKey: 'editor.composer.site.fields.themePack' },
   themeOverride: { i18nKey: 'editor.composer.site.fields.themeOverride' },
+  features: { i18nKey: 'editor.composer.site.sections.publicChrome.title', fallback: 'Public chrome' },
   showAllPosts: { i18nKey: 'editor.composer.site.fields.showAllPosts' },
   landingTab: { i18nKey: 'editor.composer.site.fields.landingTab' },
   repo: { i18nKey: 'editor.composer.site.fields.repo' },

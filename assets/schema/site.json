@@ -120,6 +120,24 @@
       "type": "boolean",
       "description": "Show error overlay in UI when enabled."
     },
+    "features": {
+      "type": "object",
+      "description": "Public site chrome feature toggles. Omitted features default to enabled.",
+      "additionalProperties": false,
+      "properties": {
+        "search": { "$ref": "#/$defs/featureToggle" },
+        "editorEntry": { "$ref": "#/$defs/featureToggle" },
+        "visitorThemeControls": { "$ref": "#/$defs/featureToggle" },
+        "languageSwitcher": { "$ref": "#/$defs/featureToggle" },
+        "allPosts": { "$ref": "#/$defs/featureToggle" },
+        "footerNav": { "$ref": "#/$defs/featureToggle" },
+        "profileLinks": { "$ref": "#/$defs/featureToggle" },
+        "tags": { "$ref": "#/$defs/featureToggle" },
+        "toc": { "$ref": "#/$defs/featureToggle" },
+        "postMeta": { "$ref": "#/$defs/featureToggle" },
+        "comments": { "$ref": "#/$defs/featureToggle" }
+      }
+    },
     "cachePolicy": {
       "type": "object",
       "description": "Browser fetch cache policy for author-managed content files.",
@@ -238,6 +256,16 @@
         "no-cache",
         "no-store"
       ]
+    },
+    "featureToggle": {
+      "type": "object",
+      "description": "Feature toggle object. Missing enabled values are treated as enabled.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

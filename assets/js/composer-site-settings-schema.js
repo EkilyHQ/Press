@@ -26,6 +26,7 @@ export function createComposerSiteSettingsSchema(options = {}) {
     },
     subsections: {
       behavior: section('behavior'),
+      publicChrome: section('publicChrome'),
       theme: section('theme'),
       comments: section('comments'),
       assets: section('assets')
@@ -42,14 +43,46 @@ export function createComposerSiteSettingsSchema(options = {}) {
         defaultLanguage: field('defaultLanguage', 'defaultLanguage', 'defaultLanguageHelp'),
         contentOutdatedDays: field('contentOutdatedDays', 'contentOutdatedDays', 'contentOutdatedDaysHelp', { min: 0 }),
         pageSize: field('pageSize', 'pageSize', 'pageSizeHelp', { min: 1 }),
-        showAllPosts: field('showAllPosts', 'showAllPosts', 'showAllPostsHelp', {
-          checkboxLabel: t('editor.composer.site.toggleEnabled')
-        }),
         landingTab: field('landingTab', 'landingTab', 'landingTabHelp'),
         cardCoverFallback: field('cardCoverFallback', 'cardCoverFallback', 'cardCoverFallbackHelp', {
           checkboxLabel: t('editor.composer.site.toggleEnabled')
         }),
         errorOverlay: field('errorOverlay', 'errorOverlay', 'errorOverlayHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        })
+      },
+      publicChrome: {
+        search: field('searchFeature', 'featureSearch', 'featureSearchHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        editorEntry: field('editorEntryFeature', 'featureEditorEntry', 'featureEditorEntryHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        visitorThemeControls: field('visitorThemeControlsFeature', 'featureVisitorThemeControls', 'featureVisitorThemeControlsHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        languageSwitcher: field('languageSwitcherFeature', 'featureLanguageSwitcher', 'featureLanguageSwitcherHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        allPosts: field('allPostsFeature', 'featureAllPosts', 'featureAllPostsHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        footerNav: field('footerNavFeature', 'featureFooterNav', 'featureFooterNavHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        profileLinks: field('profileLinksFeature', 'featureProfileLinks', 'featureProfileLinksHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        tags: field('tagsFeature', 'featureTags', 'featureTagsHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        toc: field('tocFeature', 'featureToc', 'featureTocHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        postMeta: field('postMetaFeature', 'featurePostMeta', 'featurePostMetaHelp', {
+          checkboxLabel: t('editor.composer.site.toggleEnabled')
+        }),
+        comments: field('commentsFeature', 'featureComments', 'featureCommentsHelp', {
           checkboxLabel: t('editor.composer.site.toggleEnabled')
         })
       }

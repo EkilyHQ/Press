@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "type": "press-system",
-  "version": "3.4.125",
-  "tag": "v3.4.125",
+  "version": "3.4.126",
+  "tag": "v3.4.126",
   "upgradeFrom": {
     "ranges": [
-      ">=3.4.124 <3.4.125"
+      ">=3.4.125 <3.4.126"
     ],
     "allowUnknownSource": false,
-    "message": "Update to v3.4.124 first and publish the content model migration before installing v3.4.125."
+    "message": "Update to v3.4.125 before installing v3.4.126."
   },
   "themeContractUpgrade": {
     "requiresInstalledThemeContractVersion": 2,
-    "message": "Update installed themes to contract v2 before installing v3.4.125."
+    "message": "Update installed themes to contract v2 before installing v3.4.126."
   },
   "contentModelUpgrade": {
     "requiresUnifiedIndexTabs": true,
-    "message": "Open v3.4.124, publish the content model migration, then install v3.4.125."
+    "message": "Install v3.4.125 and publish the content model migration before installing v3.4.126."
   }
 }

@@ -1229,7 +1229,7 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteModelSource,
-  /export function prepareSiteState\(raw\)[\s\S]*'enableAllPosts', 'disableAllPosts', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)/,
+  /export function prepareSiteState\(raw\)[\s\S]*site\.features = normalizeSiteFeatureSettings\(src\.features\)[\s\S]*'enableAllPosts', 'disableAllPosts', 'features', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.features[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)/,
   'site model boundary should own site.yaml normalization, diffing, and serialization'
 );
 
@@ -1598,7 +1598,7 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
   composerSiteSettingsUiSource,
-  /t\('editor\.composer\.site\.sections\.(?:repo|identity|seo|configuration|behavior|theme|comments|assets|extras)\.(?:title|description)'\)|t\('editor\.composer\.site\.fields\.(?:avatar|contentRoot|resourceURL|defaultLanguage|contentOutdatedDays|pageSize|showAllPosts|landingTab|cardCoverFallback|errorOverlay)(?:Help)?'\)/,
+  /t\('editor\.composer\.site\.sections\.(?:repo|identity|seo|configuration|behavior|publicChrome|theme|comments|assets|extras)\.(?:title|description)'\)|t\('editor\.composer\.site\.fields\.(?:avatar|contentRoot|resourceURL|defaultLanguage|contentOutdatedDays|pageSize|landingTab|cardCoverFallback|errorOverlay|featureSearch|featureEditorEntry|featureVisitorThemeControls|featureLanguageSwitcher|featureAllPosts|featureFooterNav|featureProfileLinks|featureTags|featureToc|featurePostMeta|featureComments)(?:Help)?'\)/,
   'Site Settings UI should not keep stable section and simple field label metadata inline'
 );
 
@@ -5458,7 +5458,7 @@ assert.match(
 
 assert.match(
   editorPreviewRuntimeSource,
-  /import \{ createThemeLayoutController, createThemeI18nContext \} from '\.\/theme-layout\.js';[\s\S]*export function createEditorPreviewRuntimeController\(\s*previewRuntime = createEditorPreviewAppRuntime\(\),\s*themeLayout = createThemeLayoutController\(\)\s*\)[\s\S]*themeLayout\.getThemeLayoutContext\(\)[\s\S]*themeLayout\.getThemeApiHandler\(name\)[\s\S]*function getPreviewThemeRegion\(names\) \{[\s\S]*themeLayout\.getThemeRegion\(names\)[\s\S]*setupAnchors\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*setupTOC\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*renderTagSidebar\(indexMap, \{ getRegion: getPreviewThemeRegion \}\)[\s\S]*themeLayout\.ensureThemeLayout\(\{ pack: requestedPack, persist: false, reset \}\)[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
+  /import \{ createThemeLayoutController, createThemeI18nContext \} from '\.\/theme-layout\.js';[\s\S]*import \{ createSiteFeatureContext \} from '\.\/site-features\.js';[\s\S]*export function createEditorPreviewRuntimeController\(\s*previewRuntime = createEditorPreviewAppRuntime\(\),\s*themeLayout = createThemeLayoutController\(\)\s*\)[\s\S]*themeLayout\.getThemeLayoutContext\(\)[\s\S]*themeLayout\.getThemeApiHandler\(name\)[\s\S]*function getPreviewThemeRegion\(names\) \{[\s\S]*themeLayout\.getThemeRegion\(names\)[\s\S]*setupAnchors\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*setupTOC\(\{ getRegion: getPreviewThemeRegion \}\)[\s\S]*renderTagSidebar\(indexMap, \{ getRegion: getPreviewThemeRegion \}\)[\s\S]*const features = createSiteFeatureContext\(payload\.siteConfig \|\| \{\}\)[\s\S]*themeLayout\.ensureThemeLayout\(\{[\s\S]*pack: requestedPack,[\s\S]*persist: false,[\s\S]*reset,[\s\S]*features[\s\S]*\}\)[\s\S]*createRuntimeContext\(\{ payload, containers, content, features \}\)[\s\S]*features,[\s\S]*function start\(\) \{[\s\S]*previewRuntime\.onRenderMessage\(\(event\) => \{[\s\S]*previewRuntime\.isTrustedMessageEvent\(event\)[\s\S]*initI18n\(\)[\s\S]*postToParent\(\{ type: READY_MESSAGE \}\)[\s\S]*return \{[\s\S]*renderPreview,[\s\S]*start[\s\S]*\};[\s\S]*createEditorPreviewRuntimeController\(\)\.start\(\);/,
   'editor preview runtime should expose explicit preview and theme-layout controller boundaries before browser startup'
 );
 
@@ -7616,8 +7616,26 @@ assert.match(
 
 assert.match(
   composerSiteSettingsSchemaSource,
-  /behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'[\s\S]*contentOutdatedDays: field\('contentOutdatedDays'[\s\S]*pageSize: field\('pageSize'[\s\S]*showAllPosts: field\('showAllPosts'[\s\S]*landingTab: field\('landingTab'[\s\S]*cardCoverFallback: field\('cardCoverFallback'[\s\S]*errorOverlay: field\('errorOverlay'/,
+  /behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'[\s\S]*contentOutdatedDays: field\('contentOutdatedDays'[\s\S]*pageSize: field\('pageSize'[\s\S]*landingTab: field\('landingTab'[\s\S]*cardCoverFallback: field\('cardCoverFallback'[\s\S]*errorOverlay: field\('errorOverlay'/,
   'Behavior compact grid should include all single-value behavior fields'
+);
+
+assert.match(
+  composerSiteSettingsSchemaSource,
+  /publicChrome: \{[\s\S]*search: field\('searchFeature'[\s\S]*editorEntry: field\('editorEntryFeature'[\s\S]*visitorThemeControls: field\('visitorThemeControlsFeature'[\s\S]*languageSwitcher: field\('languageSwitcherFeature'[\s\S]*allPosts: field\('allPostsFeature'[\s\S]*footerNav: field\('footerNavFeature'[\s\S]*profileLinks: field\('profileLinksFeature'[\s\S]*tags: field\('tagsFeature'[\s\S]*toc: field\('tocFeature'[\s\S]*postMeta: field\('postMetaFeature'[\s\S]*comments: field\('commentsFeature'/,
+  'Public chrome compact grid should include all public feature toggles'
+);
+
+assert.match(
+  siteSettingsSource,
+  /const renderPublicChromeGrid = \(section\) => \{[\s\S]*publicChromeHomeWarning[\s\S]*SITE_FEATURE_KEYS\.forEach\(\(key\) => \{[\s\S]*toggle\.dataset\.field = 'features';[\s\S]*toggle\.dataset\.subfield = key;/,
+  'Public chrome grid should render feature toggles from the centralized feature key list with object diff markers'
+);
+
+assert.match(
+  siteSettingsSource,
+  /const tabHasReachableLocation = \(slug\) => \{[\s\S]*typeof value\.location === 'string' && value\.location\.trim\(\)[\s\S]*const hasStaticTab = order\.some\(slug => tabHasReachableLocation\(slug\)\);/,
+  'Public chrome home warning should count only tabs with reachable locations'
 );
 
 assert.match(

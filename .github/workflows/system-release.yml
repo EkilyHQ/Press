@@ -38,6 +38,8 @@ jobs:
           node scripts/test-provider-boundary.js
           node scripts/test-publish-receipt.js
           node scripts/test-publish-flow-smoke.js
+          node scripts/test-site-features.js
+          node scripts/test-official-theme-public-chrome-behavior.mjs
           node --experimental-default-type=module scripts/test-theme-contracts.js
           bash scripts/test-system-release-package.sh
           bash scripts/test-system-release-workflow.sh

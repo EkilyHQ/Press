@@ -1,5 +1,6 @@
 import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js';
 import { getThemeRegion } from './theme-regions.js';
+import { siteFeatureContextEnabled } from './site-features.js';
 
 const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
@@ -480,11 +481,32 @@ function populateThemeControls(component) {
   }
 }
 
+function getControlFeatures(options = {}) {
+  return (options && options.features)
+    || (options && options.themeContext && options.themeContext.features)
+    || (options && options.context && options.context.features)
+    || null;
+}
+
+function controlFeatureEnabled(options = {}, key) {
+  return siteFeatureContextEnabled(getControlFeatures(options), key);
+}
+
+function removeThemeControlsComponent(component) {
+  try {
+    if (component && component.parentElement) component.parentElement.removeChild(component);
+  } catch (_) {}
+}
+
 // Render theme tools UI through the current <press-theme-controls> contract.
 // Options are sourced from assets/themes/packs.json; legacy button/select
 // binders remain below for custom themes that still render their own controls.
 export function mountThemeControls(options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
+  if (!controlFeatureEnabled(opts, 'visitorThemeControls')) {
+    removeThemeControlsComponent(getThemeControlsElement(document));
+    return null;
+  }
   const variant = String(opts.variant || document.body.dataset.themeLayout || 'native').toLowerCase();
   const componentImport = ensurePressComponents();
   let component = null;
@@ -515,6 +537,14 @@ export function mountThemeControls(options = {}) {
     component.setAttribute('variant', variant);
     const upgraded = typeof component.render === 'function' && typeof component.setLabels === 'function';
     if (!upgraded && componentImport) return;
+    try {
+      if (typeof component.setHiddenRoles === 'function') {
+        component.setHiddenRoles({
+          editor: !controlFeatureEnabled(opts, 'editorEntry'),
+          language: !controlFeatureEnabled(opts, 'languageSwitcher')
+        });
+      }
+    } catch (_) {}
     try { if (typeof component.render === 'function') component.render(); } catch (_) {}
     bindThemeControlsComponent(component);
     if (upgraded) populateThemeControls(component);

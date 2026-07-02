@@ -11,9 +11,19 @@ import { applyLangHints } from '../../../js/typography.js';
 import { renderPressPostCardHtml } from '../../../js/post-card-html.js';
 import { mountThemeControls, applySavedTheme, bindThemeToggle, bindThemePackPicker, bindPostEditor } from '../../../js/theme.js';
 import { isEncryptedMarkdown, stripEncryptedBodyForPublicUse } from '../../../js/encrypted-content.js';
+import { siteFeatureContextEnabled } from '../../../js/site-features.js';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
+
+function featureEnabled(params = {}, runtimeState = null, key) {
+  return siteFeatureContextEnabled(
+    (params && params.features)
+      || (params && params.ctx && params.ctx.features)
+      || (runtimeState && runtimeState.features),
+    key
+  );
+}
 
 function getRuntimeLinkCardsCache(runtimeState = null) {
   return runtimeState && typeof runtimeState === 'object' ? runtimeState.linkCards : null;
@@ -177,6 +187,7 @@ function createNativeInteractionsRuntimeState(context = {}) {
     linkCards: { modulePromise: null },
     i18n: context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null,
     regions: context && context.regions && typeof context.regions === 'object' ? context.regions : null,
+    features: context && context.features && typeof context.features === 'object' ? context.features : null,
     hasInitiallyRendered: false,
     pendingHighlightRaf: 0,
     tabsResizeTimer: 0,
@@ -389,6 +400,14 @@ function resolveViewContainersNative(params = {}, documentRef = defaultDocument,
 
 function updateSearchPlaceholderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
+  if (!featureEnabled(params, runtimeState, 'search')) {
+    const search = getSearchRegion(documentRef, runtimeState);
+    if (search) {
+      try { search.hidden = true; } catch (_) {}
+      try { search.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    }
+    return true;
+  }
   const search = documentRef.querySelector('press-search');
   if (search && typeof search.setPlaceholder === 'function') {
     search.setPlaceholder(params && params.placeholder != null ? String(params.placeholder) : '');
@@ -407,10 +426,18 @@ function setupThemeControlsNative(params = {}) {
   const bindToggle = typeof params.bindThemeToggle === 'function' ? params.bindThemeToggle : bindThemeToggle;
   const bindEditor = typeof params.bindPostEditor === 'function' ? params.bindPostEditor : bindPostEditor;
   const bindPack = typeof params.bindThemePackPicker === 'function' ? params.bindThemePackPicker : bindThemePackPicker;
-  try { mount({ contractVersion: params.contractVersion, themeContext: params.themeContext || params.context }); } catch (_) {}
+  try {
+    mount({
+      contractVersion: params.contractVersion,
+      themeContext: params.themeContext || params.context,
+      features: params.features || (params.context && params.context.features)
+    });
+  } catch (_) {}
   try { apply(); } catch (_) {}
   try { bindToggle(); } catch (_) {}
-  try { bindEditor(); } catch (_) {}
+  if (featureEnabled(params, null, 'editorEntry')) {
+    try { bindEditor(); } catch (_) {}
+  }
   try { bindPack(); } catch (_) {}
   return true;
 }
@@ -577,6 +604,8 @@ function showElementNative(params = {}, windowRef = defaultWindow) {
   if (!el) return false;
   const fallback = typeof params.fallback === 'function' ? params.fallback : ((target) => {
     if (!target) return;
+    try { target.hidden = false; } catch (_) {}
+    try { target.removeAttribute('hidden'); } catch (_) {}
     target.style.display = 'block';
     target.setAttribute('aria-hidden', 'false');
   });
@@ -585,6 +614,8 @@ function showElementNative(params = {}, windowRef = defaultWindow) {
       ? windowRef.getComputedStyle(el)
       : null;
     if (!cs || cs.display !== 'none') {
+      try { el.hidden = false; } catch (_) {}
+      try { el.removeAttribute('hidden'); } catch (_) {}
       el.setAttribute('aria-hidden', 'false');
       return true;
     }
@@ -599,6 +630,8 @@ function showElementNative(params = {}, windowRef = defaultWindow) {
     el.dataset.prevPaddingBottom = savedPadBottom;
     const prevMin = cs ? cs.minHeight : '';
     if (prevMin) el.dataset.prevMinHeight = prevMin;
+    try { el.hidden = false; } catch (_) {}
+    try { el.removeAttribute('hidden'); } catch (_) {}
     el.style.display = 'block';
     el.style.overflow = 'hidden';
     el.style.minHeight = '0px';
@@ -788,10 +821,23 @@ function renderPostTOCNative(params = {}, documentRef = defaultDocument, windowR
   const scope = params.containers && typeof params.containers === 'object' ? params.containers : {};
   const toc = scope.tocElement || params.tocElement || (documentRef ? getTocRegion(documentRef, runtimeState) : null);
   if (!toc) return false;
+  if (!featureEnabled(params, runtimeState, 'toc')) {
+    try {
+      if (typeof toc.clear === 'function') toc.clear();
+      else toc.innerHTML = '';
+    } catch (_) {}
+    try { toc.hidden = true; } catch (_) {}
+    try { toc.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    return true;
+  }
   const translate = getTranslator(params, runtimeState);
   const title = params.articleTitle != null ? String(params.articleTitle) : '';
   const tocHtml = params.tocHtml || '';
   const baseDir = getRenderedMarkdownBaseDir(params);
+  try { toc.hidden = false; } catch (_) {}
+  try { toc.removeAttribute('hidden'); } catch (_) {}
+  try { toc.setAttribute('aria-hidden', 'false'); } catch (_) {}
+  try { toc.style.display = ''; } catch (_) {}
   if (typeof toc.renderToc === 'function') {
     try { toc.setAttribute('toggle-label', translate('toc.toggleAria') || 'Toggle section'); } catch (_) {}
     toc.renderToc({
@@ -864,8 +910,10 @@ function handleViewChangeNative(params = {}, documentRef = defaultDocument, wind
   const search = context.searchElement || params.searchElement || (documentRef ? getSearchRegion(documentRef, runtimeState) : null);
   const tags = context.tagElement || params.tagElement || (documentRef ? getTagsRegion(documentRef, runtimeState) : null);
   const input = params.searchInput || (search && search.input) || (documentRef ? getSearchInput(documentRef, runtimeState) : null);
-  const showSearch = context.showSearch != null ? !!context.showSearch : !!params.showSearch;
-  const showTags = context.showTags != null ? !!context.showTags : !!params.showTags;
+  const showSearch = featureEnabled(params, runtimeState, 'search') && (context.showSearch != null ? !!context.showSearch : !!params.showSearch);
+  const showTags = featureEnabled(params, runtimeState, 'tags')
+    && featureEnabled(params, runtimeState, 'search')
+    && (context.showTags != null ? !!context.showTags : !!params.showTags);
   const queryValue = context.queryValue != null ? context.queryValue : params.queryValue;
 
   if (search) {
@@ -886,7 +934,16 @@ function handleViewChangeNative(params = {}, documentRef = defaultDocument, wind
   return !!(search || tags || input);
 }
 
-function renderTagSidebarNative(params = {}, documentRef = defaultDocument) {
+function renderTagSidebarNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
+  if (!featureEnabled(params, runtimeState, 'tags') || !featureEnabled(params, runtimeState, 'search')) {
+    const tags = documentRef ? getTagsRegion(documentRef, runtimeState) : null;
+    if (tags) {
+      try { tags.innerHTML = ''; } catch (_) {}
+      try { tags.hidden = true; } catch (_) {}
+      try { tags.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    }
+    return true;
+  }
   const renderer = getUtility(params, 'renderTagSidebar');
   if (typeof renderer !== 'function') return false;
   try { renderer(params.postsIndex || {}); } catch (_) {}
@@ -917,7 +974,7 @@ function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, wi
   if (typeof params.setupSearch === 'function') {
     try { params.setupSearch(Array.isArray(params.allEntries) ? params.allEntries : []); } catch (_) {}
   }
-  if (typeof params.renderTagSidebar === 'function') {
+  if (featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search') && typeof params.renderTagSidebar === 'function') {
     try { params.renderTagSidebar(params.postsIndexMap || {}); } catch (_) {}
   }
   const runMasonry = () => {
@@ -1065,6 +1122,14 @@ function renderSiteLinksNative(params = {}, documentRef = defaultDocument) {
   const cfg = params.config;
   const root = documentRef.querySelector('.site-card .social-links');
   if (!root || !cfg) return false;
+  if (!featureEnabled(params, null, 'profileLinks')) {
+    root.innerHTML = '';
+    try { root.hidden = true; } catch (_) {}
+    try { root.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    return true;
+  }
+  try { root.hidden = false; } catch (_) {}
+  try { root.removeAttribute('aria-hidden'); } catch (_) {}
   const linksVal = (cfg && cfg.profileLinks) || [];
   let items = [];
   if (Array.isArray(linksVal)) {
@@ -1132,6 +1197,32 @@ function renderFooterNavNative(params = {}, documentRef = defaultDocument, windo
   if (!documentRef) return false;
   const nav = documentRef.getElementById('footerNav');
   if (!nav) return false;
+  const setSeparatorVisible = (visible) => {
+    const parent = nav && nav.parentElement;
+    let sep = null;
+    try {
+      sep = parent && typeof parent.querySelector === 'function' ? parent.querySelector('.footer-sep') : null;
+    } catch (_) {}
+    if (!sep) {
+      try { sep = typeof documentRef.querySelector === 'function' ? documentRef.querySelector('.footer-sep') : null; } catch (_) {}
+    }
+    if (!sep) return;
+    try { sep.hidden = !visible; } catch (_) {}
+    if (visible) {
+      try { sep.removeAttribute('aria-hidden'); } catch (_) {}
+    } else {
+      try { sep.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    }
+  };
+  if (!featureEnabled(params, runtimeState, 'footerNav')) {
+    nav.innerHTML = '';
+    try { nav.hidden = true; } catch (_) {}
+    try { nav.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    setSeparatorVisible(false);
+    return true;
+  }
+  try { nav.hidden = false; } catch (_) {}
+  try { nav.removeAttribute('aria-hidden'); } catch (_) {}
   const tabs = params.tabsBySlug || {};
   const getHome = typeof params.getHomeSlug === 'function'
     ? params.getHomeSlug
@@ -1148,8 +1239,18 @@ function renderFooterNavNative(params = {}, documentRef = defaultDocument, windo
   const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const translate = getTranslator(params, runtimeState);
 
-  const homeSlug = (() => { try { return slugifyTab(getHome()) || 'posts'; } catch (_) { return 'posts'; }})();
-  const defaultTab = homeSlug || 'posts';
+  const homeSlug = (() => {
+    try { return slugifyTab(getHome()) || (postsEnabledFn() ? 'posts' : ''); } catch (_) { return postsEnabledFn() ? 'posts' : ''; }
+  })();
+  if (!homeSlug) {
+    nav.innerHTML = '';
+    try { nav.hidden = true; } catch (_) {}
+    try { nav.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    setSeparatorVisible(false);
+    return true;
+  }
+  setSeparatorVisible(true);
+  const defaultTab = homeSlug;
   const currentTabRaw = queryGetter ? (queryGetter('tab') || (queryGetter('id') ? 'post' : defaultTab)) : defaultTab;
   const currentTab = String(currentTabRaw || '').toLowerCase();
   const makeLink = (href, label, cls = '') => `<a class="${cls}" href="${makeLangUrl(href)}">${escapeHtml(String(label || ''))}</a>`;
@@ -1181,7 +1282,15 @@ function renderPostLoadingStateNative(params = {}, documentRef = defaultDocument
   const ensureAutoHeight = typeof params.ensureAutoHeight === 'function' ? params.ensureAutoHeight : (() => {});
   const show = typeof params.showElement === 'function' ? params.showElement : ((el) => { if (el) { el.style.display = ''; el.setAttribute('aria-hidden', 'false'); } });
 
-  if (toc) {
+  if (toc && !featureEnabled(params, runtimeState, 'toc')) {
+    try {
+      if (typeof toc.clear === 'function') toc.clear();
+      else toc.innerHTML = '';
+    } catch (_) {}
+    try { toc.hidden = true; } catch (_) {}
+    try { toc.setAttribute('aria-hidden', 'true'); } catch (_) {}
+    try { toc.style.display = 'none'; } catch (_) {}
+  } else if (toc) {
     toc.innerHTML = `<div class="toc-header"><span>${escapeHtml(translate('ui.contents'))}</span><span class="toc-loading">${escapeHtml(translate('ui.loading'))}</span></div>`
       + '<ul class="toc-skeleton">'
       + '<li><div class="skeleton-block skeleton-line w-90"></div></li>'
@@ -1225,21 +1334,28 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
   const locationAliasMap = params.locationAliasMap || new Map();
   const postId = params.postId || '';
 
+  const showPostMeta = featureEnabled(params, runtimeState, 'postMeta');
   const renderMetaFn = typeof params.renderPostMetaCard === 'function' ? params.renderPostMetaCard : renderPostMetaCard;
   const renderOutdatedFn = typeof params.renderOutdatedCard === 'function' ? params.renderOutdatedCard : renderOutdatedCard;
 
   let topMeta = '';
   let bottomMeta = '';
-  try {
-    const titleForMeta = metadataTitle || fallbackTitle;
-    topMeta = renderMetaFn(titleForMeta, metadata, markdown) || '';
-    if (topMeta) bottomMeta = topMeta.replace('post-meta-card', 'post-meta-card post-meta-bottom');
-  } catch (_) {
-    topMeta = '';
-    bottomMeta = '';
+  if (showPostMeta) {
+    try {
+      const titleForMeta = metadataTitle || fallbackTitle;
+      topMeta = renderMetaFn(titleForMeta, metadata, markdown, {
+        showTags: featureEnabled(params, runtimeState, 'tags')
+      }) || '';
+      if (topMeta) bottomMeta = topMeta.replace('post-meta-card', 'post-meta-card post-meta-bottom');
+    } catch (_) {
+      topMeta = '';
+      bottomMeta = '';
+    }
   }
   let outdated = '';
-  try { outdated = renderOutdatedFn(metadata, siteConfig) || ''; } catch (_) { outdated = ''; }
+  if (showPostMeta) {
+    try { outdated = renderOutdatedFn(metadata, siteConfig) || ''; } catch (_) { outdated = ''; }
+  }
 
   const markdownBaseDir = getRenderedMarkdownBaseDir(params);
   clearElementChildren(container);
@@ -1321,8 +1437,8 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
 
   let tocHandled = false;
   if (tocElement) {
-    if (tocHtml) {
-      renderPostTOCNative({ tocElement, articleTitle, tocHtml, translate }, documentRef, windowRef, runtimeState);
+    if (tocHtml && featureEnabled(params, runtimeState, 'toc')) {
+      renderPostTOCNative({ tocElement, articleTitle, tocHtml, translate, features: params.features }, documentRef, windowRef, runtimeState);
       try { showElementNative({ element: tocElement }, windowRef); } catch (_) { try { tocElement.style.display = ''; } catch (_) {} }
       try { ensureHeight(tocElement); } catch (_) {}
       const setupAnchorsFn = getUtility(params, 'setupAnchors', null);
@@ -1330,6 +1446,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
       try { if (typeof setupAnchorsFn === 'function') setupAnchorsFn(); } catch (_) {}
       try { if (typeof setupTocFn === 'function') setupTocFn(); } catch (_) {}
     } else {
+      if (tocHtml) renderPostTOCNative({ tocElement, articleTitle, tocHtml, translate, features: params.features }, documentRef, windowRef, runtimeState);
       try { hideElementNative({ element: tocElement }, windowRef); } catch (_) { try { tocElement.style.display = 'none'; } catch (_) {} }
       try { tocElement.innerHTML = ''; } catch (_) {}
     }
@@ -1432,7 +1549,13 @@ function resetThemeControlsNative(params = {}, documentRef = defaultDocument) {
       }
     } catch (_) {}
   }
-  try { mount({ contractVersion: params.contractVersion, themeContext: params.themeContext || params.context }); } catch (_) {}
+  try {
+    mount({
+      contractVersion: params.contractVersion,
+      themeContext: params.themeContext || params.context,
+      features: params.features || (params.context && params.context.features)
+    });
+  } catch (_) {}
   try { applyTheme(); } catch (_) {}
   try { bindToggle(); } catch (_) {}
   try { bindPack(); } catch (_) {}
@@ -1485,23 +1608,27 @@ function renderIndexViewNative(params = {}, documentRef = defaultDocument, windo
   const translate = getTranslator(params, runtimeState);
   const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const siteConfig = params.siteConfig || {};
+  const showTags = featureEnabled(params, runtimeState, 'tags');
+  const showPostMeta = featureEnabled(params, runtimeState, 'postMeta');
 
   let html = '<div class="index">';
   for (const [key, value] of pageEntries) {
-    const tag = value ? renderTags(value.tag) : '';
+    const tag = showTags && value ? renderTags(value.tag) : '';
     const { coverSrc, useFallbackCover } = resolveCoverSource(value, siteConfig);
     const cover = (value && coverSrc)
       ? `<div class="card-cover-wrap"><div class="ph-skeleton" aria-hidden="true"></div><img class="card-cover" alt="${escapeHtml(String(key || ''))}" src="${escapeHtml(cardImageSrc(coverSrc))}" loading="lazy" decoding="async" fetchpriority="low" width="1600" height="1000"></div>`
       : (useFallbackCover ? fallbackCover(key) : '');
     const hasDate = value && value.date;
-    const dateLabel = hasDate ? formatDisplayDate(value.date) : '';
+    const dateLabel = showPostMeta && hasDate ? formatDisplayDate(value.date) : '';
     const verCount = (value && Array.isArray(value.versions)) ? value.versions.length : 0;
-    const versionsLabel = verCount > 1 ? translate('ui.versionsCount', verCount) : '';
-    const protectedLabel = (value && value.protected) ? translate('ui.protectedBadge') : '';
-    const draftLabel = [
-      protectedLabel,
-      (value && value.draft) ? translate('ui.draftBadge') : ''
-    ].filter(Boolean).join(' / ');
+    const versionsLabel = showPostMeta && verCount > 1 ? translate('ui.versionsCount', verCount) : '';
+    const protectedLabel = showPostMeta && value && value.protected ? translate('ui.protectedBadge') : '';
+    const draftLabel = showPostMeta
+      ? [
+          protectedLabel,
+          (value && value.draft) ? translate('ui.draftBadge') : ''
+        ].filter(Boolean).join(' / ')
+      : '';
     const href = makeLangUrl(`?id=${encodeURIComponent(value && value.location ? String(value.location) : '')}`);
     html += renderPressPostCardHtml({
       title: String(key || ''),
@@ -1536,6 +1663,7 @@ function updateCardMetadata(entries = [], context = {}) {
   const documentRef = context.document || defaultDocument;
   if (!documentRef) return;
   const translate = context.translate || getRuntimeTranslator(context.runtimeState || null);
+  const showPostMeta = context.showPostMeta !== false;
   const cards = Array.from(documentRef.querySelectorAll('.index a'));
   const readMinutesFromMeta = (meta) => {
     const raw = meta && (meta.readTime != null ? meta.readTime : (meta.minutes != null ? meta.minutes : meta.readMinutes));
@@ -1550,6 +1678,10 @@ function updateCardMetadata(entries = [], context = {}) {
   const updateMetaLine = (el, meta, minutes, encrypted = false) => {
     const metaEl = el.querySelector('.card-meta');
     if (!metaEl) return;
+    if (!showPostMeta) {
+      metaEl.textContent = '';
+      return;
+    }
     const items = [];
     const dateEl = metaEl.querySelector('.card-date');
     if (dateEl && dateEl.textContent.trim()) items.push(dateEl.cloneNode(true));
@@ -1628,7 +1760,13 @@ function updateCardMetadata(entries = [], context = {}) {
 
 function afterIndexRenderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
-  updateCardMetadata(params.entries || [], { ...params, document: documentRef, translate: getTranslator(params, runtimeState), runtimeState });
+  updateCardMetadata(params.entries || [], {
+    ...params,
+    document: documentRef,
+    translate: getTranslator(params, runtimeState),
+    runtimeState,
+    showPostMeta: featureEnabled(params, runtimeState, 'postMeta')
+  });
   return true;
 }
 
@@ -1646,6 +1784,8 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
   const translate = getTranslator(params, runtimeState);
   const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const siteConfig = params.siteConfig || {};
+  const showTags = featureEnabled(params, runtimeState, 'tags');
+  const showPostMeta = featureEnabled(params, runtimeState, 'postMeta');
 
   if (total === 0) {
     const backHref = makeLangUrl(`?tab=${encodeURIComponent(typeof params.getHomeSlug === 'function' ? params.getHomeSlug() : getHomeSlug({}, windowRef))}`);
@@ -1658,20 +1798,22 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
 
   let html = '<div class="index">';
   for (const [key, value] of entries) {
-    const tag = value ? renderTags(value.tag) : '';
+    const tag = showTags && value ? renderTags(value.tag) : '';
     const { coverSrc, useFallbackCover } = resolveCoverSource(value, siteConfig);
     const cover = (value && coverSrc)
       ? `<div class="card-cover-wrap"><div class="ph-skeleton" aria-hidden="true"></div><img class="card-cover" alt="${escapeHtml(String(key || ''))}" src="${escapeHtml(cardImageSrc(coverSrc))}" loading="lazy" decoding="async" fetchpriority="low" width="1600" height="1000"></div>`
       : (useFallbackCover ? fallbackCover(key) : '');
     const hasDate = value && value.date;
-    const dateLabel = hasDate ? formatDisplayDate(value.date) : '';
+    const dateLabel = showPostMeta && hasDate ? formatDisplayDate(value.date) : '';
     const verCount = (value && Array.isArray(value.versions)) ? value.versions.length : 0;
-    const versionsLabel = verCount > 1 ? translate('ui.versionsCount', verCount) : '';
-    const protectedLabel = (value && value.protected) ? translate('ui.protectedBadge') : '';
-    const draftLabel = [
-      protectedLabel,
-      (value && value.draft) ? translate('ui.draftBadge') : ''
-    ].filter(Boolean).join(' / ');
+    const versionsLabel = showPostMeta && verCount > 1 ? translate('ui.versionsCount', verCount) : '';
+    const protectedLabel = showPostMeta && value && value.protected ? translate('ui.protectedBadge') : '';
+    const draftLabel = showPostMeta
+      ? [
+          protectedLabel,
+          (value && value.draft) ? translate('ui.draftBadge') : ''
+        ].filter(Boolean).join(' / ')
+      : '';
     const href = makeLangUrl(`?id=${encodeURIComponent(value && value.location ? String(value.location) : '')}`);
     html += renderPressPostCardHtml({
       title: String(key || ''),
@@ -1707,7 +1849,13 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
 
 function afterSearchRenderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
-  updateCardMetadata(params.entries || [], { ...params, document: documentRef, translate: getTranslator(params, runtimeState), runtimeState });
+  updateCardMetadata(params.entries || [], {
+    ...params,
+    document: documentRef,
+    translate: getTranslator(params, runtimeState),
+    runtimeState,
+    showPostMeta: featureEnabled(params, runtimeState, 'postMeta')
+  });
   return true;
 }
 
@@ -1737,6 +1885,15 @@ function computeHomeLabel(slug, tabs, runtimeState = null) {
   const info = tabs && tabs[slug];
   if (info && info.title) return info.title;
   return slug;
+}
+
+function resolveSearchTabState(params = {}, runtimeState = null, windowRef = defaultWindow) {
+  const search = windowRef && windowRef.location ? windowRef.location.search : '';
+  const sp = new URLSearchParams(search);
+  const rawTag = (sp.get('tag') || '').trim();
+  const tag = featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search') ? rawTag : '';
+  const q = (sp.get('q') || String(params.searchQuery || '')).trim();
+  return { tag, q };
 }
 
 function ensureHighlightOverlay(nav, documentRef = defaultDocument) {
@@ -1849,10 +2006,7 @@ function buildSafeTrackFromHtml(markup, documentRef = defaultDocument, windowRef
       try {
         const safeSlug = slugifyTab(slug);
         if (safeSlug === 'search') {
-          const search = windowRef && windowRef.location ? windowRef.location.search : '';
-          const sp = new URLSearchParams(search);
-          const tagParam = (sp.get('tag') || '').trim();
-          const qParam = (sp.get('q') || String(searchQuery || '')).trim();
+          const { tag: tagParam, q: qParam } = resolveSearchTabState({ searchQuery }, runtimeState, windowRef);
           href = withLangParam(`?tab=search${tagParam ? `&tag=${encodeURIComponent(tagParam)}` : (qParam ? `&q=${encodeURIComponent(qParam)}` : '')}`, runtimeState, documentRef, windowRef);
         } else if (safeSlug) {
           href = withLangParam(`?tab=${encodeURIComponent(safeSlug)}`, runtimeState, documentRef, windowRef);
@@ -1905,16 +2059,20 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
   let homeSlugRaw;
   try { homeSlugRaw = getHomeFn(); } catch (_) { homeSlugRaw = getHomeSlug(tabs, windowRef); }
   const safeHome = slugifyTab(homeSlugRaw);
-  const homeSlug = safeHome || homeSlugRaw || 'posts';
+  const postsEnabledFn = typeof params.postsEnabled === 'function'
+    ? params.postsEnabled
+    : () => postsEnabled(windowRef);
+  const homeSlug = safeHome || homeSlugRaw || (postsEnabledFn() ? 'posts' : '');
+  if (!homeSlug) {
+    setTrackHtml(nav, '', documentRef, windowRef, searchQuery, runtimeState);
+    return;
+  }
   const getHomeLabelFn = typeof params.getHomeLabel === 'function'
     ? params.getHomeLabel
     : () => computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState);
   let homeLabel;
   try { homeLabel = getHomeLabelFn(); } catch (_) { homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState); }
   if (!homeLabel) homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState);
-  const postsEnabledFn = typeof params.postsEnabled === 'function'
-    ? params.postsEnabled
-    : () => postsEnabled(windowRef);
   const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
 
   const make = (slug, label) => {
@@ -1934,11 +2092,8 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
     html += make(slug, label);
   }
 
-  if (activeSlug === 'search') {
-    const search = windowRef && windowRef.location ? windowRef.location.search : '';
-    const sp = new URLSearchParams(search);
-    const tag = (sp.get('tag') || '').trim();
-    const q = (sp.get('q') || String(searchQuery || '')).trim();
+  if (activeSlug === 'search' && featureEnabled(params, runtimeState, 'search')) {
+    const { tag, q } = resolveSearchTabState(params, runtimeState, windowRef);
     const href = makeLangUrl(`?tab=search${tag ? `&tag=${encodeURIComponent(tag)}` : (q ? `&q=${encodeURIComponent(q)}` : '')}`);
     const label = tag ? translate('ui.tagSearch', tag) : (q ? translate('titles.search', q) : translate('ui.searchTab'));
     html += `<a class="tab active" data-slug="search" href="${href}">${escapeHtml(String(label || ''))}</a>`;
@@ -1970,11 +2125,8 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
     const containerWidth = ((nav.parentElement && nav.parentElement.getBoundingClientRect && nav.parentElement.getBoundingClientRect().width) || nav.clientWidth || 0);
     const fullWidth = measureWidth(html);
     let compact = make(homeSlug, homeLabel);
-    if (activeSlug === 'search') {
-      const search = windowRef && windowRef.location ? windowRef.location.search : '';
-      const sp = new URLSearchParams(search);
-      const tag = (sp.get('tag') || '').trim();
-      const q = (sp.get('q') || String(searchQuery || '')).trim();
+    if (activeSlug === 'search' && featureEnabled(params, runtimeState, 'search')) {
+      const { tag, q } = resolveSearchTabState(params, runtimeState, windowRef);
       const href = makeLangUrl(`?tab=search${tag ? `&tag=${encodeURIComponent(tag)}` : (q ? `&q=${encodeURIComponent(q)}` : '')}`);
       const label = tag ? translate('ui.tagSearch', tag) : (q ? translate('titles.search', q) : translate('ui.searchTab'));
       compact += `<a class="tab active" data-slug="search" href="${href}">${escapeHtml(String(label || ''))}</a>`;
@@ -1982,7 +2134,7 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
       const raw = String(searchQuery || translate('ui.postTab')).trim();
       const label = raw ? escapeHtml(raw.length > 28 ? `${raw.slice(0, 25)}…` : raw) : translate('ui.postTab');
       compact += `<span class="tab active" data-slug="post">${label}</span>`;
-    } else if (activeSlug && activeSlug !== 'posts') {
+    } else if (activeSlug && activeSlug !== 'posts' && activeSlug !== 'search') {
       const info = tabs[activeSlug];
       const label = info && info.title ? info.title : activeSlug;
       compact += make(activeSlug, label).replace('"tab ', '"tab active ');
@@ -1992,11 +2144,8 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
         const raw = String(searchQuery || translate('ui.postTab')).trim();
         const label = raw ? escapeHtml(raw.length > 16 ? `${raw.slice(0, 13)}…` : raw) : translate('ui.postTab');
         compact = make(homeSlug, homeLabel) + `<span class="tab active" data-slug="post">${label}</span>`;
-      } else if (activeSlug === 'search') {
-        const search = windowRef && windowRef.location ? windowRef.location.search : '';
-        const sp = new URLSearchParams(search);
-        const tag = (sp.get('tag') || '').trim();
-        const q = (sp.get('q') || String(searchQuery || '')).trim();
+      } else if (activeSlug === 'search' && featureEnabled(params, runtimeState, 'search')) {
+        const { tag, q } = resolveSearchTabState(params, runtimeState, windowRef);
         const labelRaw = tag ? translate('ui.tagSearch', tag) : (q ? translate('titles.search', q) : translate('ui.searchTab'));
         const label = escapeHtml(labelRaw.length > 16 ? `${labelRaw.slice(0, 13)}…` : labelRaw);
         const href = makeLangUrl(`?tab=search${tag ? `&tag=${encodeURIComponent(tag)}` : (q ? `&q=${encodeURIComponent(q)}` : '')}`);
@@ -2188,7 +2337,7 @@ export function mount(context = {}) {
   effects.renderPostTOC = (params = {}) => renderPostTOCNative(params, documentRef, windowRef, runtimeState);
   effects.renderErrorState = (params = {}) => renderErrorStateNative(params, documentRef, runtimeState);
   effects.handleViewChange = (params = {}) => handleViewChangeNative(params, documentRef, windowRef, runtimeState);
-  effects.renderTagSidebar = (params = {}) => renderTagSidebarNative(params, documentRef);
+  effects.renderTagSidebar = (params = {}) => renderTagSidebarNative(params, documentRef, runtimeState);
   effects.initializeSyntaxHighlighting = (params = {}) => initializeSyntaxHighlightingNative(params);
   effects.updateSearchPlaceholder = (params = {}) => updateSearchPlaceholderNative(params, documentRef, runtimeState);
   effects.renderPostLoadingState = (params = {}) => renderPostLoadingStateNative(params, documentRef, runtimeState);

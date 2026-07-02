@@ -10,6 +10,7 @@ import { setupAnchors, setupTOC } from './js/toc.js';
 import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeControls, refreshLanguageSelector, applyThemeConfig, bindPostEditor } from './js/theme.js';
 import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js';
 import { setupSearch } from './js/search.js';
+import { createSiteFeatureContext, isSiteFeatureEnabled } from './js/site-features.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js';
 import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
@@ -663,18 +664,29 @@ function ensureAutoHeight(el) {
 let siteConfig = {};
 
 // --- Feature helpers: landing tab and posts visibility ---
+function getSiteFeatureContext() {
+  return createSiteFeatureContext(siteConfig);
+}
+
+function siteFeatureEnabled(key) {
+  return isSiteFeatureEnabled(siteConfig, key);
+}
+
 function postsEnabled() {
-  try {
-    // Support multiple config keys for flexibility: showAllPosts (preferred), enableAllPosts, disableAllPosts
-    if (siteConfig && typeof siteConfig.showAllPosts === 'boolean') return !!siteConfig.showAllPosts;
-    if (siteConfig && typeof siteConfig.enableAllPosts === 'boolean') return !!siteConfig.enableAllPosts;
-    if (siteConfig && typeof siteConfig.disableAllPosts === 'boolean') return !siteConfig.disableAllPosts;
-  } catch (_) {}
-  return true; // default: enabled
+  return siteFeatureEnabled('allPosts');
+}
+
+function searchEnabled() {
+  return siteFeatureEnabled('search');
+}
+
+function tagNavigationEnabled() {
+  return siteFeatureEnabled('tags') && searchEnabled();
 }
 
 function isAnnotateConfigured(cfg = siteConfig) {
   try {
+    if (!isSiteFeatureEnabled(cfg, 'comments')) return false;
     const annotate = cfg && typeof cfg.annotate === 'object' && !Array.isArray(cfg.annotate) ? cfg.annotate : null;
     if (!annotate) return false;
     const enabled = annotate.enabled === true || ['true', '1', 'yes', 'y', 'on', 'enabled'].includes(String(annotate.enabled ?? '').trim().toLowerCase());
@@ -710,8 +722,8 @@ function getHomeSlug() {
     if (explicit) return explicit;
     // Otherwise, default to posts when enabled, else first static tab or search
     if (postsEnabled()) return 'posts';
-    return Object.keys(tabsBySlug || {})[0] || 'search';
-  } catch (_) { return 'search'; }
+    return Object.keys(tabsBySlug || {})[0] || '';
+  } catch (_) { return ''; }
 }
 
 function getHomeLabel() {
@@ -724,6 +736,7 @@ function getHomeLabel() {
 // Expose a minimal API that other modules can consult if needed
 try { window.__press_get_home_slug = () => getHomeSlug(); } catch (_) {}
 try { window.__press_posts_enabled = () => postsEnabled(); } catch (_) {}
+try { window.__press_site_features = () => getSiteFeatureContext().flags; } catch (_) {}
 async function loadSiteConfig() {
   try {
     // YAML only
@@ -735,6 +748,10 @@ function renderSiteLinks(cfg) {
   try {
     callThemeEffect('renderSiteLinks', {
       config: cfg,
+      features: getSiteFeatureContext(),
+      getHomeSlug: () => getHomeSlug(),
+      getHomeLabel: () => getHomeLabel(),
+      postsEnabled: () => postsEnabled(),
       document,
       window
     });
@@ -745,6 +762,7 @@ function renderSiteIdentity(cfg) {
   try {
     callThemeEffect('renderSiteIdentity', {
       config: cfg,
+      features: getSiteFeatureContext(),
       document,
       window
     });
@@ -775,7 +793,8 @@ function renderPostTOCBlock({
   return callThemeEffect('renderPostTOC', {
     tocElement,
     articleTitle,
-    tocHtml,
+    tocHtml: siteFeatureEnabled('toc') ? tocHtml : '',
+    features: getSiteFeatureContext(),
     translate: t,
     document,
     window
@@ -808,6 +827,7 @@ function notifyThemeViewChange(view, context = {}) {
   return callThemeEffect('handleViewChange', {
     view,
     context,
+    features: getSiteFeatureContext(),
     document,
     window
   });
@@ -818,10 +838,22 @@ function refreshTagSidebar({
   containers,
   postsIndex
 } = {}) {
+  if (!tagNavigationEnabled()) {
+    callThemeEffect('renderTagSidebar', {
+      view,
+      containers,
+      postsIndex: {},
+      features: getSiteFeatureContext(),
+      document,
+      window
+    });
+    return;
+  }
   callThemeEffect('renderTagSidebar', {
     view,
     containers,
     postsIndex: postsIndex === undefined ? postsIndexCache : postsIndex,
+    features: getSiteFeatureContext(),
     utilities: {
       aggregateTags,
       renderTagSidebar,
@@ -859,6 +891,7 @@ function resetTOCView(view, containers, { reason, immediate } = {}) {
     reason,
     immediate,
     smoothHide,
+    features: getSiteFeatureContext(),
     document,
     window
   });
@@ -877,6 +910,14 @@ function resetTOCView(view, containers, { reason, immediate } = {}) {
   }
 }
 
+function setupSearchForSite() {
+  if (!searchEnabled()) return false;
+  return setupSearch({
+    isSearchEnabled: () => searchEnabled(),
+    getHomeSlug: () => getHomeSlug()
+  });
+}
+
 function enhanceIndexLayout(params = {}) {
   callThemeEffect('enhanceIndexLayout', {
     ...params,
@@ -884,8 +925,12 @@ function enhanceIndexLayout(params = {}) {
     applyLazyLoadingIn,
     applyMasonry,
     debounce,
-    renderTagSidebar,
-    setupSearch,
+    renderTagSidebar: (...args) => {
+      if (!tagNavigationEnabled()) return false;
+      return renderTagSidebar(...args);
+    },
+    setupSearch: setupSearchForSite,
+    features: getSiteFeatureContext(),
     document,
     window
   });
@@ -905,6 +950,8 @@ function renderTabs(activeSlug, searchQuery) {
     getHomeSlug: () => getHomeSlug(),
     getHomeLabel: () => getHomeLabel(),
     postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled(),
+    features: getSiteFeatureContext(),
     translate: t,
     withLangParam,
     document,
@@ -919,6 +966,8 @@ function renderFooterNav() {
     getHomeSlug: () => getHomeSlug(),
     getHomeLabel: () => getHomeLabel(),
     postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled(),
+    features: getSiteFeatureContext(),
     getQueryVariable,
     withLangParam,
     t,
@@ -957,6 +1006,7 @@ function createThemeRuntimeContext({
       }
     },
     i18n: createThemeI18nContext(),
+    features: getSiteFeatureContext(),
     content,
     regions: layout && layout.regions,
     containers,
@@ -969,7 +1019,10 @@ function createThemeRuntimeContext({
       applyLazyLoadingIn,
       applyLangHints,
       renderPostTOC: (opts) => renderPostTOCBlock(opts),
-      renderTagSidebar,
+      renderTagSidebar: (...args) => {
+        if (!tagNavigationEnabled()) return false;
+        return renderTagSidebar(...args);
+      },
       setupAnchors,
       setupTOC,
       ensureAutoHeight,
@@ -1318,6 +1371,7 @@ function displayPost(postname, options = {}) {
       postMetadata,
       postId: postname,
       siteConfig,
+      features: getSiteFeatureContext(),
       postsIndex: postsIndexCache,
       postsByLocationTitle,
       allowedLocations,
@@ -1333,7 +1387,10 @@ function displayPost(postname, options = {}) {
         applyLazyLoadingIn,
         applyLangHints,
         renderPostTOC: (opts) => renderPostTOCBlock(opts),
-        renderTagSidebar,
+        renderTagSidebar: (...args) => {
+          if (!tagNavigationEnabled()) return false;
+          return renderTagSidebar(...args);
+        },
         getArticleTitleFromMain,
         setupAnchors,
         setupTOC,
@@ -1362,6 +1419,7 @@ function displayPost(postname, options = {}) {
         articleTitle,
         postMetadata,
         markdown: markdownForRender,
+        features: getSiteFeatureContext(),
         translate: t,
         document,
         window
@@ -1571,6 +1629,7 @@ function displayIndex(parsed) {
     totalPages,
     pageSize: PAGE_SIZE,
     siteConfig,
+    features: getSiteFeatureContext(),
     withLangParam,
     translate: t,
     getHomeSlug: () => getHomeSlug(),
@@ -1588,11 +1647,16 @@ function displayIndex(parsed) {
     page,
     totalPages,
     postsIndexMap: postsIndexCache,
-    siteConfig
+    siteConfig,
+    features: getSiteFeatureContext()
   });
 
   renderTabs('posts');
-  notifyThemeViewChange('posts', { showSearch: true, showTags: true, queryValue: '' });
+  notifyThemeViewChange('posts', {
+    showSearch: searchEnabled(),
+    showTags: tagNavigationEnabled(),
+    queryValue: ''
+  });
   setDocTitle(t('titles.allPosts'));
 
   callThemeEffect('afterIndexRender', {
@@ -1605,17 +1669,18 @@ function displayIndex(parsed) {
     document,
     window,
     updateMasonryItem,
-    siteConfig
+    siteConfig,
+    features: getSiteFeatureContext()
   });
   persistSiteViewState({ updateScroll: false });
   restoreSavedSiteScrollForCurrentRoute();
 }
 
 function displaySearch(query) {
+  if (!searchEnabled()) return displayHomeFallback();
   const rawTag = getQueryVariable('tag');
   const q = String(query || '').trim();
-  const tagFilter = rawTag ? String(rawTag).trim() : '';
-  if (!q && !tagFilter) return displayIndex(postsIndexCache);
+  const tagFilter = rawTag && tagNavigationEnabled() ? String(rawTag).trim() : '';
 
   const containers = getViewContainers('search');
   resetTOCView('search', containers, { reason: 'search' });
@@ -1623,6 +1688,7 @@ function displaySearch(query) {
   // Filter by title or tags; allow theme to override
   const allEntries = Object.entries(postsIndexCache || {});
   const defaultFilter = (entries, query, tag) => {
+    if (!query && !tag) return [];
     const ql = String(query || '').toLowerCase();
     const tagl = String(tag || '').toLowerCase();
     return entries.filter(([title, meta]) => {
@@ -1640,20 +1706,22 @@ function displaySearch(query) {
     });
   };
   let filtered = null;
-  try {
-    const themed = callThemeEffect('filterSearchEntries', {
-      view: 'search',
-      entries: allEntries,
-      query: q,
-      tagFilter,
-      postsIndexMap: postsIndexCache,
-      siteConfig,
-      utilities: { defaultFilter },
-      document,
-      window
-    });
-    if (Array.isArray(themed)) filtered = themed;
-  } catch (_) { /* ignore search effect issues */ }
+  if (q || tagFilter) {
+    try {
+      const themed = callThemeEffect('filterSearchEntries', {
+        view: 'search',
+        entries: allEntries,
+        query: q,
+        tagFilter,
+        postsIndexMap: postsIndexCache,
+        siteConfig,
+        utilities: { defaultFilter },
+        document,
+        window
+      });
+      if (Array.isArray(themed)) filtered = themed;
+    } catch (_) { /* ignore search effect issues */ }
+  }
   if (!Array.isArray(filtered)) filtered = defaultFilter(allEntries, q, tagFilter);
 
   const total = filtered.length;
@@ -1712,6 +1780,7 @@ function displaySearch(query) {
     query: q,
     tagFilter,
     siteConfig,
+    features: getSiteFeatureContext(),
     withLangParam,
     translate: t,
     getHomeSlug: () => getHomeSlug(),
@@ -1730,12 +1799,18 @@ function displaySearch(query) {
     totalPages,
     postsIndexMap: postsIndexCache,
     siteConfig,
+    features: getSiteFeatureContext(),
     query: q,
     tagFilter
   });
 
   renderTabs('search', tagFilter ? t('ui.tagSearch', tagFilter) : q);
-  notifyThemeViewChange('search', { showSearch: true, showTags: true, queryValue: q, tagFilter });
+  notifyThemeViewChange('search', {
+    showSearch: searchEnabled(),
+    showTags: tagNavigationEnabled(),
+    queryValue: q,
+    tagFilter
+  });
   setDocTitle(tagFilter ? t('ui.tagSearch', tagFilter) : t('titles.search', q));
 
   callThemeEffect('afterSearchRender', {
@@ -1748,7 +1823,8 @@ function displaySearch(query) {
     document,
     window,
     updateMasonryItem,
-    siteConfig
+    siteConfig,
+    features: getSiteFeatureContext()
   });
   persistSiteViewState({ updateScroll: false });
   restoreSavedSiteScrollForCurrentRoute();
@@ -1814,6 +1890,7 @@ function displayStaticTab(slug) {
         tab,
         slug,
         siteConfig,
+        features: getSiteFeatureContext(),
         postsByLocationTitle,
         allowedLocations,
         locationAliasMap,
@@ -1827,7 +1904,10 @@ function displayStaticTab(slug) {
           applyLazyLoadingIn,
           applyLangHints,
           renderPostTOC: (opts) => renderPostTOCBlock(opts),
-          renderTagSidebar,
+          renderTagSidebar: (...args) => {
+            if (!tagNavigationEnabled()) return false;
+            return renderTagSidebar(...args);
+          },
           getArticleTitleFromMain,
           setupAnchors,
           setupTOC,
@@ -1886,6 +1966,25 @@ function displayStaticTab(slug) {
     });
 }
 
+function displayHomeFallback() {
+  const homeSlug = getHomeSlug();
+  if (homeSlug && homeSlug !== 'posts' && homeSlug !== 'search' && tabsBySlug[homeSlug]) {
+    displayStaticTab(homeSlug);
+    return true;
+  }
+  if (postsEnabled()) {
+    renderTabs('posts');
+    displayIndex(postsIndexCache);
+    return true;
+  }
+  renderErrorState(getViewContainer('error', 'main') || document.body, {
+    title: t('errors.pageUnavailableTitle') || 'Page unavailable',
+    message: t('errors.pageUnavailableBody') || 'No enabled home page is available.',
+    view: 'error'
+  });
+  return false;
+}
+
 // Simple router: render based on current URL
 function routeAndRender() {
   const rawId = getQueryVariable('id');
@@ -1904,6 +2003,7 @@ function routeAndRender() {
   let tab = tabParam || homeSlug;
   // If posts are disabled but someone navigates to ?tab=posts, treat it as home
   if (!postsEnabled() && tab === 'posts') tab = homeSlug;
+  if (!searchEnabled() && tab === 'search') tab = homeSlug;
   const isValidId = (x) => typeof x === 'string' && !x.includes('..') && !x.startsWith('/') && !x.includes('\\') && allowedLocations.has(x);
 
   // Capture current navigation state for error reporting
@@ -1912,15 +2012,18 @@ function routeAndRender() {
       if (isValidId(id)) {
         return { view: 'post', id, title: postsByLocationTitle[id] || null };
       }
-      if (tab === 'search') {
+      if (tab === 'search' && searchEnabled()) {
         const q = getQueryVariable('q') || '';
         return { view: 'search', q };
       }
       if (tab !== 'posts' && tabsBySlug[tab]) {
         return { view: 'tab', tab, title: (tabsBySlug[tab] && tabsBySlug[tab].title) || tab };
       }
-      const page = parseInt(getQueryVariable('page') || '1', 10);
-      return { view: 'posts', page: isNaN(page) ? 1 : page };
+      if (tab === 'posts' && postsEnabled()) {
+        const page = parseInt(getQueryVariable('page') || '1', 10);
+        return { view: 'posts', page: isNaN(page) ? 1 : page };
+      }
+      return { view: 'home-unavailable' };
     })();
     setReporterContext({ route, routeUpdatedAt: new Date().toISOString() });
   } catch (_) { /* ignore */ }
@@ -1930,25 +2033,30 @@ function routeAndRender() {
   if (isValidId(id)) {
     renderTabs('post');
     displayPost(id);
-  } else if (tab === 'search') {
+  } else if (tab === 'search' && searchEnabled()) {
     const q = getQueryVariable('q') || '';
-    const tag = getQueryVariable('tag') || '';
-  renderTabs('search', tag || q);
-    displaySearch(q);
-    // Update SEO for search page
-    try {
-      const localizedTitle = tag ? t('ui.tagSearch', tag) : (q ? t('titles.search', q) : t('ui.searchTab'));
-      const baseSite = (() => { try { return document.title.split('·').slice(1).join('·').trim(); } catch { return ''; } })();
-      const title = baseSite ? `${localizedTitle} - ${baseSite}` : localizedTitle;
-      updateSEO({
-        title,
-        description: tag ? `Posts tagged "${tag}"` : (q ? `Search results for "${q}"` : 'Search through blog posts and content'),
-        type: 'website'
-      }, siteConfig);
-    } catch (_) { /* ignore SEO errors to avoid breaking UI */ }
+    const rawTag = getQueryVariable('tag') || '';
+    const tag = tagNavigationEnabled() ? rawTag : '';
+    if (rawTag && !tagNavigationEnabled() && !q) {
+      displayHomeFallback();
+    } else {
+      renderTabs('search', tag || q);
+      displaySearch(q);
+      // Update SEO for search page
+      try {
+        const localizedTitle = tag ? t('ui.tagSearch', tag) : (q ? t('titles.search', q) : t('ui.searchTab'));
+        const baseSite = (() => { try { return document.title.split('·').slice(1).join('·').trim(); } catch { return ''; } })();
+        const title = baseSite ? `${localizedTitle} - ${baseSite}` : localizedTitle;
+        updateSEO({
+          title,
+          description: tag ? `Posts tagged "${tag}"` : (q ? `Search results for "${q}"` : 'Search through blog posts and content'),
+          type: 'website'
+        }, siteConfig);
+      } catch (_) { /* ignore SEO errors to avoid breaking UI */ }
+    }
   } else if (tab !== 'posts' && tabsBySlug[tab]) {
     displayStaticTab(tab);
-  } else {
+  } else if (tab === 'posts' && postsEnabled()) {
     renderTabs('posts');
     displayIndex(postsIndexCache);
     // Update SEO for home/posts page
@@ -1970,6 +2078,8 @@ function routeAndRender() {
         url: window.location.href
       }, siteConfig);
     } catch (_) { /* ignore SEO errors to avoid breaking UI */ }
+  } else {
+    displayHomeFallback();
   }
   // Keep footer nav in sync as route/tabs may impact labels
   renderFooterNav();
@@ -2111,7 +2221,7 @@ try {
 } catch (_) {}
 
 // Build layout according to the active theme pack before binding UI logic
-await ensureThemeLayout();
+await ensureThemeLayout({ features: getSiteFeatureContext() });
 setBootProgress(0.6);
 
 // Ensure theme controls are present, then apply and bind
@@ -2121,6 +2231,8 @@ const controlsHandled = callThemeEffect('setupThemeControls', {
   bindThemeToggle,
   bindPostEditor,
   bindThemePackPicker,
+  features: getSiteFeatureContext(),
+  siteConfig,
   document,
   window
 });
@@ -2128,13 +2240,14 @@ if (controlsHandled === undefined) {
   try { applySavedTheme(); } catch (_) {}
 }
 
-// Localize search placeholder ASAP
+// Let the active theme either localize enabled search chrome or hide disabled search chrome ASAP.
 callThemeEffect('updateSearchPlaceholder', {
   placeholder: t('sidebar.searchPlaceholder'),
+  features: getSiteFeatureContext(),
   document,
   window
 });
-try { setupSearch(); } catch (_) {}
+try { setupSearchForSite(); } catch (_) {}
 
 // Observe viewport changes for responsive tabs
 callThemeEffect('setupResponsiveTabsObserver', {
@@ -2148,6 +2261,7 @@ callThemeEffect('setupResponsiveTabsObserver', {
 try {
   callThemeEffect('reflectThemeConfig', {
     config: siteConfig,
+    features: getSiteFeatureContext(),
     document,
     window
   });
@@ -2159,9 +2273,10 @@ async function softResetToSiteDefaultLanguage() {
     const def = (siteConfig && (siteConfig.defaultLanguage || siteConfig.defaultLang)) || defaultLang || 'en';
     // Switch language immediately (do not persist to mimic reset semantics)
     await initI18n({ lang: String(def), persist: false });
-    // Reflect placeholder promptly
+    // Reflect enabled search placeholder or keep disabled search chrome hidden.
     callThemeEffect('updateSearchPlaceholder', {
       placeholder: t('sidebar.searchPlaceholder'),
+      features: getSiteFeatureContext(),
       document,
       window
     });
@@ -2257,7 +2372,9 @@ async function softResetToSiteDefaultLanguage() {
         applySavedTheme,
         bindThemeToggle,
         bindThemePackPicker,
-        refreshLanguageSelector
+        refreshLanguageSelector,
+        features: getSiteFeatureContext(),
+        siteConfig
       });
     } catch (_) {}
     try {
@@ -2407,6 +2524,7 @@ try {
       applyThemeConfig(siteConfig);
       callThemeEffect('reflectThemeConfig', {
         config: siteConfig,
+        features: getSiteFeatureContext(),
         document,
         window
       });
@@ -2484,5 +2602,19 @@ try {
 
 // Footer: set dynamic year once
 try {
-  callThemeEffect('setupFooter', { translate: t, document, window });
+  callThemeEffect('setupFooter', {
+    translate: t,
+    document,
+    window,
+    siteConfig,
+    config: siteConfig,
+    features: getSiteFeatureContext(),
+    themeContext: getThemeLayoutContext(),
+    mountThemeControls,
+    applySavedTheme,
+    withLangParam,
+    getHomeSlug: () => getHomeSlug(),
+    getHomeLabel: () => getHomeLabel(),
+    postsEnabled: () => postsEnabled()
+  });
 } catch (_) {}

@@ -280,6 +280,7 @@ export class PressThemeControls extends HTMLElement {
     this._languages = [];
     this._currentPack = '';
     this._currentLang = '';
+    this._hiddenRoles = {};
     this._clickHandler = (event) => this._handleClick(event);
     this._changeHandler = (event) => this._handleChange(event);
     this._eventsBound = false;
@@ -327,6 +328,14 @@ export class PressThemeControls extends HTMLElement {
     if (select && this._currentLang) select.value = this._currentLang;
   }
 
+  setHiddenRoles(hiddenRoles = {}) {
+    this._hiddenRoles = {
+      editor: hiddenRoles.editor === true,
+      language: hiddenRoles.language === true
+    };
+    if (this.isConnected) this.render();
+  }
+
   render() {
     this._syncHostClass();
     this.innerHTML = this._markup();
@@ -341,6 +350,10 @@ export class PressThemeControls extends HTMLElement {
   _variant() {
     const raw = String(this.getAttribute('variant') || 'native').toLowerCase().trim();
     return raw.replace(/[^a-z0-9_-]/g, '') || 'native';
+  }
+
+  _isRoleHidden(role) {
+    return this._hiddenRoles && this._hiddenRoles[role] === true;
   }
 
   _syncHostClass() {
@@ -362,6 +375,8 @@ export class PressThemeControls extends HTMLElement {
     const themePack = safe(this._label('themePack', 'Theme pack'));
     const language = safe(this._label('language', 'Language'));
     const resetLanguage = safe(this._label('resetLanguage', 'Reset language'));
+    const showEditor = !this._isRoleHidden('editor');
+    const showLanguage = !this._isRoleHidden('language');
     if (variant === 'arcus') {
       return `
         <div class="arcus-tools__group" role="group" data-group="theme" aria-label="${toggleTheme} &amp; ${themePack}">
@@ -374,6 +389,7 @@ export class PressThemeControls extends HTMLElement {
             <select data-role="theme-pack" aria-label="${themePack}"></select>
           </label>
         </div>
+        ${showLanguage ? `
         <div class="arcus-tools__group" role="group" data-group="language" aria-label="${language} &amp; ${resetLanguage}">
           <label class="arcus-tool arcus-tool--select">
             <span class="arcus-tool__label">${language}</span>
@@ -383,13 +399,14 @@ export class PressThemeControls extends HTMLElement {
             <span class="arcus-tool__icon">&#9851;</span>
             <span class="arcus-tool__label">${resetLanguage}</span>
           </button>
-        </div>
+        </div>` : ''}
+        ${showEditor ? `
         <div class="arcus-tools__group arcus-tools__group--solo" role="group" data-group="editor" aria-label="${postEditor}">
           <button class="arcus-tool" type="button" data-role="post-editor" aria-label="${postEditor}">
             <span class="arcus-tool__icon">&#128221;</span>
             <span class="arcus-tool__label">${postEditor}</span>
           </button>
-        </div>`;
+        </div>` : ''}`;
     }
     if (variant === 'solstice') {
       return `
@@ -397,14 +414,16 @@ export class PressThemeControls extends HTMLElement {
           <span class="solstice-tool__icon">&#127769;</span>
           <span class="solstice-tool__label">${toggleTheme}</span>
         </button>
+        ${showEditor ? `
         <button class="solstice-tool" type="button" data-role="post-editor" aria-label="${postEditor}">
           <span class="solstice-tool__icon">&#128221;</span>
           <span class="solstice-tool__label">${postEditor}</span>
-        </button>
+        </button>` : ''}
         <label class="solstice-tool solstice-tool--select">
           <span class="solstice-tool__label">${themePack}</span>
           <select data-role="theme-pack" aria-label="${themePack}"></select>
         </label>
+        ${showLanguage ? `
         <label class="solstice-tool solstice-tool--select">
           <span class="solstice-tool__label">${language}</span>
           <select data-role="language" aria-label="${language}"></select>
@@ -412,7 +431,7 @@ export class PressThemeControls extends HTMLElement {
         <button class="solstice-tool" type="button" data-role="language-reset" aria-label="${resetLanguage}">
           <span class="solstice-tool__icon">&#9851;</span>
           <span class="solstice-tool__label">${resetLanguage}</span>
-        </button>`;
+        </button>` : ''}`;
     }
     return `
       <div class="section-title">${sectionTitle}</div>
@@ -420,20 +439,22 @@ export class PressThemeControls extends HTMLElement {
         <div class="tool-item">
           <button class="btn icon-btn" type="button" data-role="theme-toggle" aria-label="${toggleTheme}" title="${toggleTheme}"><span class="icon">&#127769;</span><span class="btn-text">${toggleTheme}</span></button>
         </div>
+        ${showEditor ? `
         <div class="tool-item">
           <button class="btn icon-btn" type="button" data-role="post-editor" aria-label="${postEditor}" title="${postEditor}"><span class="icon">&#128221;</span><span class="btn-text">${postEditor}</span></button>
-        </div>
+        </div>` : ''}
         <div class="tool-item">
           <label class="tool-label">${themePack}</label>
           <select data-role="theme-pack" aria-label="${themePack}" title="${themePack}"></select>
         </div>
+        ${showLanguage ? `
         <div class="tool-item">
           <label class="tool-label">${language}</label>
           <select data-role="language" aria-label="${language}" title="${language}"></select>
         </div>
         <div class="tool-item">
           <button class="btn icon-btn" type="button" data-role="language-reset" aria-label="${resetLanguage}" title="${resetLanguage}"><span class="icon">&#9851;</span><span class="btn-text">${resetLanguage}</span></button>
-        </div>
+        </div>` : ''}
       </div>`;
   }
 

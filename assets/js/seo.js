@@ -4,6 +4,7 @@
 import { getCurrentLang, DEFAULT_LANG } from './i18n.js';
 import { getAvailableLangs } from './i18n.js';
 import { parseFrontMatter } from './content.js';
+import { isSiteFeatureEnabled } from './site-features.js';
 
 function ensureTrailingSlash(value) {
   const str = String(value == null ? '' : value).trim();
@@ -534,13 +535,15 @@ function updateStructuredData(options, siteConfig = {}) {
       "author": {
         "@type": "Person",
         "name": author
-      },
-      "potentialAction": {
+      }
+    };
+    if (isSiteFeatureEnabled(siteConfig, 'search')) {
+      structuredData.potentialAction = {
         "@type": "SearchAction",
         "target": `${defaultUrl}?tab=search&q={search_term_string}`,
         "query-input": "required name=search_term_string"
-      }
-    };
+      };
+    }
   }
 
   // Add new structured data

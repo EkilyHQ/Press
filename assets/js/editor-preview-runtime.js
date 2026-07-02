@@ -15,6 +15,7 @@ import { renderTagSidebar } from './tags.js';
 import { getArticleTitleFromMain } from './dom-utils.js';
 import { createThemeLayoutController, createThemeI18nContext } from './theme-layout.js';
 import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js';
+import { createSiteFeatureContext } from './site-features.js';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';
@@ -237,7 +238,7 @@ function applyPreviewLangHints(container) {
   });
 }
 
-function createRuntimeContext({ payload, containers, content }) {
+function createRuntimeContext({ payload, containers, content, features }) {
   const layout = themeLayout.getThemeLayoutContext();
   return {
     document: previewRuntime.documentRef,
@@ -250,6 +251,7 @@ function createRuntimeContext({ payload, containers, content }) {
       navigate() { return false; }
     },
     i18n: createThemeI18nContext(),
+    features,
     content,
     regions: layout && layout.regions,
     containers,
@@ -290,7 +292,13 @@ async function renderPreview(payload = {}) {
   applyPreviewColorMode(payload.siteConfig || {});
   try {
     const reset = previewRuntime.shouldResetThemePack(requestedPack);
-    const layout = await themeLayout.ensureThemeLayout({ pack: requestedPack, persist: false, reset });
+    const features = createSiteFeatureContext(payload.siteConfig || {});
+    const layout = await themeLayout.ensureThemeLayout({
+      pack: requestedPack,
+      persist: false,
+      reset,
+      features
+    });
     if (!isCurrentPreviewRender(requestId)) return;
     const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);
     const markdown = String(payload.markdown || '');
@@ -316,12 +324,13 @@ async function renderPreview(payload = {}) {
     const main = containers.mainElement || previewRuntime.getBody();
     const allowedLocations = new Set(Array.isArray(payload.allowedLocations) ? payload.allowedLocations : []);
     const locationAliasMap = new Map(Array.isArray(payload.locationAliases) ? payload.locationAliases : []);
-    const ctx = createRuntimeContext({ payload, containers, content });
+    const ctx = createRuntimeContext({ payload, containers, content, features });
     const result = await Promise.resolve(callThemeEffect('renderPostView', {
       view: 'post',
       containers,
       ctx,
       content,
+      features,
       markdownHtml: output.post,
       tocHtml: output.toc,
       rawMarkdown: markdown,

@@ -1,5 +1,5 @@
 import { installLightbox } from '../../../js/lightbox.js';
-import { sanitizeImageUrl, setSafeHtml } from '../../../js/safe-html.js';
+import { sanitizeImageUrl, sanitizeUrl, setSafeHtml } from '../../../js/safe-html.js';
 import { slugifyTab, escapeHtml, getQueryVariable, renderTags, cardImageSrc, fallbackCover, formatDisplayDate, formatBytes, renderSkeletonArticle } from '../../../js/utils.js';
 import { attachHoverTooltip } from '../../../js/tags.js';
 import { prefersReducedMotion, getArticleTitleFromMain } from '../../../js/dom-utils.js';
@@ -1149,9 +1149,9 @@ function renderSiteLinksNative(params = {}, documentRef = defaultDocument) {
   if (Array.isArray(linksVal)) {
     items = linksVal
       .filter(x => x && x.href && x.label)
-      .map(x => ({ href: String(x.href), label: String(x.label) }));
+      .map(x => ({ href: sanitizeUrl(x.href), label: String(x.label) }));
   } else if (linksVal && typeof linksVal === 'object') {
-    items = Object.entries(linksVal).map(([label, href]) => ({ label: String(label), href: String(href) }));
+    items = Object.entries(linksVal).map(([label, href]) => ({ label: String(label), href: sanitizeUrl(href) }));
   }
   if (!items.length) { root.innerHTML = ''; return true; }
   const sep = '<span class="link-sep">•</span>';

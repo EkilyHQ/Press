@@ -1,6 +1,6 @@
 const ANNOTATE_SECTION_ID = 'press-annotate-comments';
 const STYLE_ID = 'press-annotate-style';
-const GRANT_STORAGE_PREFIX = 'press_annotate_grant_v1:';
+const GRANT_STORAGE_PREFIX = 'press_annotate_grant_v2:';
 
 function asObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -138,14 +138,25 @@ export function buildAnnotateCommentsUrl(config, context) {
   });
 }
 
-function getGrantStorageKey(config) {
-  const repo = (config && config.repository) || {};
-  return `${GRANT_STORAGE_PREFIX}${repo.owner || ''}/${repo.name || ''}`;
+function resolveAnnotateSourceKey(windowRef) {
+  try {
+    const href = windowRef && windowRef.location && windowRef.location.href;
+    const url = new URL(href);
+    url.hash = '';
+    return url.href;
+  } catch (_) {
+    return '';
+  }
 }
 
-function readStoredGrant(windowRef, config) {
+function getGrantStorageKey(config, sourceKey = '') {
+  const repo = (config && config.repository) || {};
+  return `${GRANT_STORAGE_PREFIX}${repo.owner || ''}/${repo.name || ''}:${sourceKey || 'unknown-source'}`;
+}
+
+function readStoredGrant(windowRef, config, sourceKey = '') {
   try {
-    const raw = windowRef.localStorage.getItem(getGrantStorageKey(config));
+    const raw = windowRef.localStorage.getItem(getGrantStorageKey(config, sourceKey));
     if (!raw) return '';
     const parsed = JSON.parse(raw);
     return normalizeGrantToken(parsed && parsed.grant);
@@ -154,22 +165,63 @@ function readStoredGrant(windowRef, config) {
   }
 }
 
-function writeStoredGrant(windowRef, config, grant) {
+function writeStoredGrant(windowRef, config, grant, sourceKey = '') {
   try {
     const token = normalizeGrantToken(grant);
     if (!token) return;
-    windowRef.localStorage.setItem(getGrantStorageKey(config), JSON.stringify({ grant: token, savedAt: Date.now() }));
+    windowRef.localStorage.setItem(getGrantStorageKey(config, sourceKey), JSON.stringify({ grant: token, savedAt: Date.now() }));
   } catch (_) {}
 }
 
-function clearStoredGrant(windowRef, config) {
-  try { windowRef.localStorage.removeItem(getGrantStorageKey(config)); } catch (_) {}
+function clearStoredGrant(windowRef, config, sourceKey = '') {
+  try { windowRef.localStorage.removeItem(getGrantStorageKey(config, sourceKey)); } catch (_) {}
+}
+
+function annotateRequestInit(init = {}, grant = '') {
+  const headers = {
+    ...(init.headers || {})
+  };
+  const token = normalizeGrantToken(grant);
+  if (token) headers.authorization = `Bearer ${token}`;
+  return {
+    ...init,
+    headers,
+    referrerPolicy: 'unsafe-url'
+  };
 }
 
 export function normalizeGrantToken(grant) {
   if (typeof grant === 'string') return grant.trim();
   if (asObject(grant)) return asTrimmedString(grant.token);
   return '';
+}
+
+async function responseErrorCode(response) {
+  try {
+    if (!response || typeof response.json !== 'function') return '';
+    const data = await response.json();
+    return asTrimmedString(data && data.error && data.error.code);
+  } catch (_) {
+    return '';
+  }
+}
+
+function shouldRetryAnnotateReadWithoutGrant(response, code) {
+  if (!response) return false;
+  if (response.status === 401) return true;
+  if ([400, 403].includes(response.status)) {
+    return ['invalid_source', 'source_mismatch', 'origin_mismatch'].includes(code);
+  }
+  return false;
+}
+
+function shouldClearAnnotateGrant(response, code) {
+  if (!response) return false;
+  if (response.status === 401) return true;
+  if ([400, 403].includes(response.status)) {
+    return ['invalid_source', 'source_mismatch', 'origin_mismatch'].includes(code);
+  }
+  return false;
 }
 
 function injectAnnotateStyle(documentRef) {
@@ -198,10 +250,23 @@ function injectAnnotateStyle(documentRef) {
   } catch (_) {}
 }
 
+function disposeAnnotateSection(section) {
+  try {
+    if (!section || typeof section.__pressAnnotateDispose !== 'function') return;
+    const dispose = section.__pressAnnotateDispose;
+    section.__pressAnnotateDispose = null;
+    dispose();
+  } catch (_) {}
+}
+
 function removeExistingSection(container) {
   try {
+    disposeAnnotateSection(container);
     const existing = container.querySelector(`#${ANNOTATE_SECTION_ID}`);
-    if (existing) existing.remove();
+    if (existing) {
+      disposeAnnotateSection(existing);
+      existing.remove();
+    }
   } catch (_) {}
 }
 
@@ -273,6 +338,7 @@ export function mountAnnotateComments(options = {}) {
   if (!context.articleKey || !context.location) return null;
   const fetchImpl = options.fetchImpl || windowRef.fetch;
   if (typeof fetchImpl !== 'function') return null;
+  const sourceKey = resolveAnnotateSourceKey(windowRef);
 
   injectAnnotateStyle(documentRef);
   const section = documentRef.createElement('section');
@@ -300,7 +366,7 @@ export function mountAnnotateComments(options = {}) {
   section.appendChild(list);
 
   const state = {
-    grant: readStoredGrant(windowRef, config),
+    grant: readStoredGrant(windowRef, config, sourceKey),
     comments: []
   };
 
@@ -326,13 +392,23 @@ export function mountAnnotateComments(options = {}) {
         'content-type': 'application/json',
         authorization: `Bearer ${state.grant}`
       },
+      referrerPolicy: 'unsafe-url',
       body: JSON.stringify(payload)
     });
     if (response.status === 401) {
-      clearStoredGrant(windowRef, config);
+      clearStoredGrant(windowRef, config, sourceKey);
       state.grant = '';
       setStatus('Session expired. Sign in again.');
       return false;
+    }
+    if (!response.ok) {
+      const code = await responseErrorCode(response);
+      if (shouldClearAnnotateGrant(response, code)) {
+        clearStoredGrant(windowRef, config, sourceKey);
+        state.grant = '';
+        setStatus('Sign in again from this page.');
+        return false;
+      }
     }
     if (!response.ok) {
       setStatus('Comment failed to post.');
@@ -370,7 +446,23 @@ export function mountAnnotateComments(options = {}) {
   async function loadComments() {
     setStatus('Loading comments...');
     try {
-      const response = await fetchImpl(buildAnnotateCommentsUrl(config, context), { method: 'GET' });
+      let response = await fetchImpl(
+        buildAnnotateCommentsUrl(config, context),
+        annotateRequestInit({ method: 'GET' }, state.grant)
+      );
+      if (state.grant && !response.ok) {
+        const code = await responseErrorCode(response);
+        if (shouldRetryAnnotateReadWithoutGrant(response, code)) {
+          clearStoredGrant(windowRef, config, sourceKey);
+          state.grant = '';
+          response = await fetchImpl(buildAnnotateCommentsUrl(config, context), annotateRequestInit({ method: 'GET' }));
+        }
+      }
+      if (response.status === 401 && state.grant) {
+        clearStoredGrant(windowRef, config, sourceKey);
+        state.grant = '';
+        response = await fetchImpl(buildAnnotateCommentsUrl(config, context), annotateRequestInit({ method: 'GET' }));
+      }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       state.comments = Array.isArray(data && data.comments) ? data.comments : [];
@@ -391,13 +483,27 @@ export function mountAnnotateComments(options = {}) {
       category: config.discussionCategory,
       articleKey: context.articleKey
     });
-    const popup = windowRef.open(url, 'press-annotate-login', 'popup,width=520,height=720');
+    const popupName = 'press-annotate-login';
+    const popup = windowRef.open('', popupName, 'popup,width=520,height=720');
     if (!popup) setStatus('Allow popups to sign in with GitHub.');
+    else if (documentRef && typeof documentRef.createElement === 'function' && documentRef.body) {
+      const link = documentRef.createElement('a');
+      link.href = url;
+      link.target = popupName;
+      link.referrerPolicy = 'unsafe-url';
+      link.rel = 'opener';
+      try { link.style.display = 'none'; } catch (_) {}
+      documentRef.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      try { popup.location.href = url; } catch (_) {}
+    }
   });
 
   refreshButton.addEventListener('click', () => { loadComments(); });
 
-  windowRef.addEventListener('message', (event) => {
+  function handleGrantMessage(event) {
     const expected = config.connectBaseUrl;
     if (event.origin !== expected) return;
     const data = event.data || {};
@@ -408,9 +514,23 @@ export function mountAnnotateComments(options = {}) {
       return;
     }
     state.grant = grantToken;
-    writeStoredGrant(windowRef, config, state.grant);
+    writeStoredGrant(windowRef, config, state.grant, sourceKey);
     setStatus('Signed in with GitHub.');
-  });
+  }
+
+  windowRef.addEventListener('message', handleGrantMessage);
+  let disposed = false;
+  const disposeAnnotateListener = () => {
+    if (disposed) return;
+    disposed = true;
+    try { windowRef.removeEventListener('message', handleGrantMessage); } catch (_) {}
+    try {
+      if (section.__pressAnnotateDispose === disposeAnnotateListener) section.__pressAnnotateDispose = null;
+      if (container.__pressAnnotateDispose === disposeAnnotateListener) container.__pressAnnotateDispose = null;
+    } catch (_) {}
+  };
+  section.__pressAnnotateDispose = disposeAnnotateListener;
+  container.__pressAnnotateDispose = disposeAnnotateListener;
 
   section.appendChild(renderForm(''));
   container.appendChild(section);

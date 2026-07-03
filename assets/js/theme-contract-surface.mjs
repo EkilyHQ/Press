@@ -16,10 +16,10 @@ const REQUIRED_THEME_MANIFEST_FIELDS = Object.freeze(['contractVersion', 'engine
 const DEFAULT_THEME_STYLES = Object.freeze(['theme.css']);
 const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([3, 4]);
 const THEME_ARCHIVE_ALLOWED_EXTENSIONS = Object.freeze([
-  '.avif', '.css', '.gif', '.ico', '.jpeg', '.jpg', '.js', '.json', '.mjs', '.otf',
+  '.avif', '.css', '.gif', '.htm', '.html', '.ico', '.jpeg', '.jpg', '.js', '.json', '.mjs', '.otf',
   '.png', '.svg', '.ttf', '.txt', '.webp', '.woff', '.woff2'
 ]);
-const THEME_TEXT_EXTENSIONS = Object.freeze(['.css', '.js', '.json', '.mjs', '.svg', '.txt']);
+const THEME_TEXT_EXTENSIONS = Object.freeze(['.css', '.htm', '.html', '.js', '.json', '.mjs', '.svg', '.txt']);
 
 export const PRESS_THEME_CONTRACT = Object.freeze({
   schemaVersion: 1,

@@ -314,6 +314,56 @@ await run('cached theme layout contexts refresh public feature context', async (
   assert.equal(second.router, secondRouter);
 });
 
+await run('cached native layout effects use refreshed router context', async () => {
+  installGlobals({
+    savedPack: 'native',
+    manifests: {
+      native: makeManifest('native', ['modules/interactions.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async (_path, { entry } = {}) => {
+    if (entry === 'modules/interactions.js') {
+      importCounter += 1;
+      return import(`../assets/themes/native/modules/interactions.js?theme-runtime-test=${importCounter}`);
+    }
+    return { mount() {} };
+  };
+  const { ensureThemeLayout } = await freshThemeLayout();
+  const firstRouter = {
+    getHomeSlug: () => 'first',
+    getHomeLabel: () => 'First',
+    postsEnabled: () => false,
+    getTabHref: (slug) => `?tab=first-${slug}`,
+    getSearchHref: () => null
+  };
+  const secondRouter = {
+    getHomeSlug: () => 'second',
+    getHomeLabel: () => 'Second',
+    postsEnabled: () => false,
+    getTabHref: (slug) => `?tab=second-${slug}`,
+    getSearchHref: () => null
+  };
+  const first = await withQuietConsole(() => ensureThemeLayout({ pack: 'native', persist: false, reset: true, router: firstRouter }));
+  const second = await withQuietConsole(() => ensureThemeLayout({ pack: 'native', persist: false, router: secondRouter }));
+  assert.equal(second, first);
+  window.requestAnimationFrame = () => 0;
+  window.cancelAnimationFrame = () => {};
+  const nav = document.createElement('nav');
+  second.theme.effects.renderTabs({
+    nav,
+    tabsBySlug: {
+      first: { label: 'First' },
+      second: { label: 'Second' }
+    },
+    activeSlug: 'second'
+  });
+  const track = nav.querySelector('.tabs-track');
+  const link = track && track.querySelector('a');
+  assert.ok(link);
+  assert.equal(link.getAttribute('data-slug'), 'second');
+  assert.equal(link.getAttribute('href'), '?tab=second-second');
+});
+
 await run('theme router href helpers gate routes and apply language parameters', async () => {
   installGlobals({ savedPack: 'native' });
   const { createThemeRouterHrefHelpers } = await freshThemeRouterHelpers();

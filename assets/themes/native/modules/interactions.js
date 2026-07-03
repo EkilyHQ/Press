@@ -20,6 +20,7 @@ function featureEnabled(params = {}, runtimeState = null, key) {
   return siteFeatureContextEnabled(
     (params && params.features)
       || (params && params.ctx && params.ctx.features)
+      || (runtimeState && runtimeState.context && runtimeState.context.features)
       || (runtimeState && runtimeState.features),
     key
   );
@@ -27,6 +28,7 @@ function featureEnabled(params = {}, runtimeState = null, key) {
 
 function getRuntimeRouter(params = {}, runtimeState = null) {
   return (params && params.ctx && params.ctx.router)
+    || (runtimeState && runtimeState.context && runtimeState.context.router)
     || (runtimeState && runtimeState.router)
     || {};
 }
@@ -62,12 +64,14 @@ async function hydrateInternalLinkCardsFallback(container, options = {}, runtime
 }
 
 function getRuntimeRegions(runtimeState = null) {
-  const regions = runtimeState && runtimeState.regions;
+  const regions = (runtimeState && runtimeState.context && runtimeState.context.regions)
+    || (runtimeState && runtimeState.regions);
   return regions && typeof regions === 'object' ? regions : null;
 }
 
 function getRuntimeI18n(runtimeState = null) {
-  const i18n = runtimeState && runtimeState.i18n;
+  const i18n = (runtimeState && runtimeState.context && runtimeState.context.i18n)
+    || (runtimeState && runtimeState.i18n);
   return i18n && typeof i18n === 'object' ? i18n : null;
 }
 
@@ -279,6 +283,7 @@ function getNativeHomeHref(params = {}, runtimeState = null, documentRef = defau
 
 function createNativeInteractionsRuntimeState(context = {}) {
   return {
+    context: context && typeof context === 'object' ? context : null,
     linkCards: { modulePromise: null },
     i18n: context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null,
     regions: context && context.regions && typeof context.regions === 'object' ? context.regions : null,

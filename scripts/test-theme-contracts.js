@@ -24,11 +24,10 @@ const REQUIRED_COMPONENTS = getRequiredThemeComponents();
 const REQUIRED_MANIFEST_FIELDS = getRequiredThemeManifestFields();
 const DEFAULT_THEME_STYLES = getDefaultThemeStyles();
 const REQUIRED_STYLE_TOKENS = ['--press-color-text', '--press-color-surface', '--press-font-body', '--press-radius-card', '--press-space-page'];
-const FORBIDDEN_V4_ROUTE_CONSTRUCTION_PATTERNS = [
-  /[?&](?:tab|id)=/,
-  /\bnew\s+URLSearchParams\s*\(\s*['"`][^'"`]*(?:[?&]?(?:tab|id)=)/,
-  /\bsearchParams\s*\.\s*(?:set|append)\(\s*(?!['"`]lang['"`])/
-];
+const STRING_LITERAL_PATTERN = /(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1/g;
+const ROUTE_QUERY_PATTERN = /[?&](?:tab|id)\s*=/g;
+const URL_SEARCH_PARAMS_LITERAL_PATTERN = /\bnew\s+URLSearchParams\s*\(\s*(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1\s*\)/g;
+const STATIC_ROUTE_SEARCH_PARAM_PATTERN = /\bsearchParams\s*\.\s*(?:set|append)\(\s*(['"`])(?:tab|id)\1\s*,/;
 const FORMER_DOM_IDS = [
   ['main', 'view'],
   ['toc', 'view'],
@@ -134,6 +133,66 @@ function modulePathIsSafe(entry, extension) {
 
 function escapeRe(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isExternalUrlPrefix(value) {
+  const prefix = String(value || '').trim();
+  return /^[a-z][a-z0-9+.-]*:/i.test(prefix) || prefix.startsWith('//');
+}
+
+function routeCandidatePrefix(content, queryIndex) {
+  const before = String(content || '').slice(0, queryIndex);
+  const boundaries = ['"', "'", '`', ' ', '\n', '\r', '\t', '(', '[', '{', '=', '>'];
+  let boundary = -1;
+  boundaries.forEach((candidate) => {
+    const index = before.lastIndexOf(candidate);
+    if (index > boundary) boundary = index;
+  });
+  return before.slice(boundary + 1).trim();
+}
+
+function containsRelativePressRouteLiteral(content) {
+  const value = String(content || '');
+  ROUTE_QUERY_PATTERN.lastIndex = 0;
+  let match = ROUTE_QUERY_PATTERN.exec(value);
+  while (match) {
+    const queryIndex = match[0].startsWith('?')
+      ? match.index
+      : value.lastIndexOf('?', match.index);
+    const prefix = queryIndex >= 0 ? routeCandidatePrefix(value, queryIndex) : '';
+    if (!isExternalUrlPrefix(prefix)) return true;
+    match = ROUTE_QUERY_PATTERN.exec(value);
+  }
+  return false;
+}
+
+function containsForbiddenRouteLiteral(source) {
+  const text = String(source || '');
+  STRING_LITERAL_PATTERN.lastIndex = 0;
+  let match = STRING_LITERAL_PATTERN.exec(text);
+  while (match) {
+    if (containsRelativePressRouteLiteral(match[2])) return true;
+    match = STRING_LITERAL_PATTERN.exec(text);
+  }
+  return false;
+}
+
+function containsForbiddenUrlSearchParamsLiteral(source) {
+  const text = String(source || '');
+  URL_SEARCH_PARAMS_LITERAL_PATTERN.lastIndex = 0;
+  let match = URL_SEARCH_PARAMS_LITERAL_PATTERN.exec(text);
+  while (match) {
+    if (/(?:^|[?&])(?:tab|id)\s*=/i.test(match[2])) return true;
+    match = URL_SEARCH_PARAMS_LITERAL_PATTERN.exec(text);
+  }
+  return false;
+}
+
+function containsForbiddenV4RouteConstruction(source) {
+  const text = String(source || '');
+  return containsForbiddenRouteLiteral(text)
+    || containsForbiddenUrlSearchParamsLiteral(text)
+    || STATIC_ROUTE_SEARCH_PARAM_PATTERN.test(text);
 }
 
 function sourceMentionsRegion(source, key) {
@@ -400,7 +459,7 @@ themeNames.forEach((themeName) => {
   ) {
     fail(`${relManifest} theme modules must read i18n from ctx.i18n instead of importing js/i18n.js directly`);
   }
-  if (Number(manifest.contractVersion) >= 4 && FORBIDDEN_V4_ROUTE_CONSTRUCTION_PATTERNS.some((pattern) => pattern.test(moduleSource))) {
+  if (Number(manifest.contractVersion) >= 4 && containsForbiddenV4RouteConstruction(moduleSource)) {
     fail(`${relManifest} contract v4 theme modules must use ctx.router href helpers instead of public route construction`);
   }
   FORMER_DOM_IDS.forEach((id) => {

@@ -816,11 +816,23 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
-        'modules/interactions.js': 'export function mount() { const routeKey = "tab"; const url = new URL(location.href); url.searchParams.set(routeKey, "posts"); return { views: {}, components: {}, effects: {} }; }'
+        'modules/interactions.js': 'export function mount() { const params = new URLSearchParams("tab=posts"); return { views: {}, components: {}, effects: {}, params }; }'
       }
     })),
     /router href helpers/i
   );
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/interactions.js': 'export function mount() { const routeKey = "tab"; const url = new URL("https://analytics.example.test/collect"); url.searchParams.set(routeKey, "posts"); url.searchParams.set("utm_source", "press-theme"); return { views: {}, components: {}, effects: {} }; }'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { return "https://example.test/product?id=sku-123"; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })));
 });
 

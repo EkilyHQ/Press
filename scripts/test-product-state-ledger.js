@@ -803,16 +803,38 @@ test('buildProductState accepts supported transition theme contract versions', a
   assert.equal(state.themes.entries[0].contractVersion, 3);
   assert.notEqual(state.themes.entries[0].status, 'drift');
 
+  const transitionRelease = systemRelease('3.4.130');
+  const transitionFixtures = {
+    'fixture:system': transitionRelease,
+    'fixture:intent': releaseIntentFixture(transitionRelease),
+    'fixture:yap': pressManifest('3.4.130'),
+    'fixture:starter': systemRelease('3.4.130'),
+    'fixture:arcus-demo': pressManifest('3.4.130')
+  };
   const v4State = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
-      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 4)
+      ...transitionFixtures,
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.130 <4.0.0', 4)
     })),
     generatedAt: '2026-05-25T00:00:00Z'
   });
 
   assert.equal(v4State.themes.entries[0].contractVersion, 4);
   assert.notEqual(v4State.themes.entries[0].status, 'drift');
+
+  const tooWideV4State = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      ...transitionFixtures,
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 4)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(tooWideV4State.themes.entries[0].contractVersion, 4);
+  assert.equal(tooWideV4State.themes.entries[0].status, 'drift');
+  assert.match(tooWideV4State.themes.entries[0].problems.join('\n'), /before 3\.4\.130/);
 });
 
 test('buildProductState rejects transition theme contract v2 after cleanup', async () => {

@@ -244,37 +244,82 @@ function collectNamedImports(source) {
 function collectLocalBindingNames(source) {
   const text = safeString(source);
   const bindings = new Set();
+  addLocalDeclarationBindings(bindings, text, { topLevelOnly: true });
+  const functionRe = /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)\s*\{/g;
+  let match = functionRe.exec(text);
+  while (match) {
+    const body = extractBlockText(text, functionRe.lastIndex - 1);
+    if (routeGuardBodyLooksRelevant(body)) {
+      addBindingNamesFromPattern(bindings, match[1]);
+      addLocalDeclarationBindings(bindings, body);
+    }
+    match = functionRe.exec(text);
+  }
+  return bindings;
+}
+
+function addLocalDeclarationBindings(bindings, source, options = {}) {
+  const text = safeString(source);
   const declarationRe = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g;
   let match = declarationRe.exec(text);
   while (match) {
-    bindings.add(match[1]);
+    if (!options.topLevelOnly || braceDepthAt(text, match.index) === 0) bindings.add(match[1]);
     match = declarationRe.exec(text);
   }
-  const addParams = (params) => {
-    safeString(params).split(',').forEach((part) => {
-      const name = part.trim().match(/^([A-Za-z_$][\w$]*)$/);
-      if (name) bindings.add(name[1]);
-    });
-  };
-  const functionRe = /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)/g;
-  match = functionRe.exec(text);
+  const destructuredRe = /\b(?:const|let|var)\s*\{([\s\S]*?)\}/g;
+  match = destructuredRe.exec(text);
   while (match) {
-    addParams(match[1]);
-    match = functionRe.exec(text);
+    if (!options.topLevelOnly || braceDepthAt(text, match.index) === 0) addBindingNamesFromPattern(bindings, match[1]);
+    match = destructuredRe.exec(text);
   }
-  const arrowRe = /\(([^)]*)\)\s*=>/g;
-  match = arrowRe.exec(text);
-  while (match) {
-    addParams(match[1]);
-    match = arrowRe.exec(text);
-  }
-  const singleArrowRe = /(?:^|[=(:,]\s*)([A-Za-z_$][\w$]*)\s*=>/g;
-  match = singleArrowRe.exec(text);
+}
+
+function addBindingNamesFromPattern(bindings, pattern) {
+  const text = safeString(pattern);
+  text.split(',').forEach((part) => {
+    const clean = part.trim();
+    const simple = clean.match(/^([A-Za-z_$][\w$]*)$/);
+    if (simple) {
+      bindings.add(simple[1]);
+      return;
+    }
+    const alias = clean.match(/^[A-Za-z_$][\w$]*\s*:\s*([A-Za-z_$][\w$]*)$/);
+    if (alias) bindings.add(alias[1]);
+  });
+  const shorthandRe = /(?:^|[,{]\s*)([A-Za-z_$][\w$]*)\s*(?=[,}])/g;
+  let match = shorthandRe.exec(text);
   while (match) {
     bindings.add(match[1]);
-    match = singleArrowRe.exec(text);
+    match = shorthandRe.exec(text);
   }
-  return bindings;
+}
+
+function routeGuardBodyLooksRelevant(body) {
+  return /\b(?:new\s+URL|URLSearchParams|searchParams|location)\b/.test(safeString(body));
+}
+
+function braceDepthAt(source, index) {
+  const text = safeString(source).slice(0, Math.max(0, index));
+  let depth = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    if (text[i] === '{') depth += 1;
+    else if (text[i] === '}' && depth > 0) depth -= 1;
+  }
+  return depth;
+}
+
+function extractBlockText(source, openBraceIndex) {
+  const text = safeString(source);
+  let depth = 0;
+  for (let i = openBraceIndex; i < text.length; i += 1) {
+    if (text[i] === '{') {
+      depth += 1;
+    } else if (text[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(openBraceIndex + 1, i);
+    }
+  }
+  return text.slice(openBraceIndex + 1);
 }
 
 function normalizeRouteGuardContext(contextSource, fallbackSource = '', fallbackPath = '') {

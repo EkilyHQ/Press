@@ -1290,6 +1290,16 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function route({ endpoint }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/config.js': 'export const key = "id";',
         'modules/interactions.js': 'import { key } from "./config.js"; function unrelated(key) { return key; } export function mount() { const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href; }'
       }
@@ -1484,6 +1494,13 @@ await run('rejects v4 theme packages with public route literals', async () => {
     files: {
       'modules/config.js': 'export const endpoint = "https://api.example.test/product"; export const productPath = "/product"; export const externalBase = "https://api.example.test";',
       'modules/layout.js': 'import { endpoint, productPath, externalBase } from "./config.js"; export default { mount() { const url = new URL(endpoint); url.searchParams.set("id", sku); const url2 = new URL(productPath, externalBase); url2.searchParams.set("id", sku); return { url: url.href, url2: url2.href }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+      'modules/layout.js': 'import { endpoint } from "./config.js"; export default { mount() { function helper() { const endpoint = "local"; return endpoint; } const url = new URL(endpoint); url.searchParams.set("id", sku); return { helper: helper(), url: url.href }; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({

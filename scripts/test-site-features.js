@@ -224,13 +224,13 @@ assert.match(
 );
 assert.match(
   nativeThemeSource,
-  /function afterIndexRenderNative[\s\S]*updateCardMetadata\(params\.entries \|\| \[\], \{[\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
-  'native after-index metadata hydration should receive the postMeta feature gate'
+  /function afterIndexRenderNative[\s\S]*updateCardMetadata\(filterEntriesWithNativePostHref\(params\.entries \|\| \[\][\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
+  'native after-index metadata hydration should filter unreachable post hrefs and receive the postMeta feature gate'
 );
 assert.match(
   nativeThemeSource,
-  /function afterSearchRenderNative[\s\S]*updateCardMetadata\(params\.entries \|\| \[\], \{[\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
-  'native after-search metadata hydration should receive the postMeta feature gate'
+  /function afterSearchRenderNative[\s\S]*updateCardMetadata\(filterEntriesWithNativePostHref\(params\.entries \|\| \[\][\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
+  'native after-search metadata hydration should filter unreachable post hrefs and receive the postMeta feature gate'
 );
 
 assert.doesNotMatch(
@@ -566,6 +566,11 @@ const cardProbe = {
 };
 fakeDocument.querySelectorAll = (selector) => (selector === '.index a' ? [cardProbe] : []);
 nativeApi.effects.afterIndexRender({
+  ctx: {
+    router: {
+      getPostHref: (location) => `?id=${encodeURIComponent(location)}`
+    }
+  },
   entries: [['Product', {
     location: 'product.md',
     readTime: 4,
@@ -578,6 +583,11 @@ assert.equal(cardMetaProbe.textContent, '', 'disabled native postMeta should cle
 assert.equal(cardMetaAppended, false, 'disabled native postMeta should not append hydrated read-time/version/draft metadata');
 cardMetaProbe.textContent = 'Jul 2 • 4 min read';
 nativeApi.effects.afterSearchRender({
+  ctx: {
+    router: {
+      getPostHref: (location) => `?id=${encodeURIComponent(location)}`
+    }
+  },
   entries: [['Product', {
     location: 'product.md',
     readTime: 4,

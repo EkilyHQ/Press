@@ -188,7 +188,7 @@ assert.match(
 );
 assert.match(
   nativeThemeSource,
-  /if \(activeSlug === 'search' && featureEnabled\(params, runtimeState, 'search'\)\) \{[\s\S]*compact \+= `<a class="tab active" data-slug="search"/,
+  /if \(activeSlug === 'search' && featureEnabled\(params, runtimeState, 'search'\)\) \{[\s\S]*compact \+= makeSearchTab\(tag, q, label\)/,
   'native compact tabs should only render stale search chrome when search is enabled'
 );
 assert.match(
@@ -488,9 +488,14 @@ assert.equal(footerSepProbe.hidden, true, 'disabled native footer nav should hid
 assert.equal(footerSepProbe.attributes.get('aria-hidden'), 'true', 'disabled native footer nav separator should be aria-hidden');
 nativeApi.effects.renderFooterNav({
   tabsBySlug: { overview: { title: 'Overview' } },
-  getHomeSlug: () => 'overview',
-  getHomeLabel: () => 'Overview',
-  postsEnabled: () => false,
+  ctx: {
+    router: {
+      getHomeSlug: () => 'overview',
+      getHomeLabel: () => 'Overview',
+      postsEnabled: () => false,
+      getTabHref: (slug) => `?tab=${slug}`
+    }
+  },
   getQueryVariable: () => 'overview',
   withLangParam: (href) => href,
   features: createSiteFeatureContext({ features: { footerNav: { enabled: true } } })
@@ -612,6 +617,13 @@ const nativeTabsApi = mountNativeTheme({
       tags: { enabled: false }
     }
   }),
+  router: {
+    getHomeSlug: () => 'overview',
+    getHomeLabel: () => 'Overview',
+    postsEnabled: () => false,
+    getTabHref: (slug) => `?tab=${slug}`,
+    getSearchHref: ({ q } = {}) => (q ? `?tab=search&q=${encodeURIComponent(q)}` : '?tab=search')
+  },
   i18n: {
     t: (key, value) => (value ? `${key}:${value}` : key),
     withLangParam: (href) => href

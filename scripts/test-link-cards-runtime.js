@@ -148,7 +148,7 @@ const hydrator = createLinkCardHydrator({ documentRef, windowRef });
 }
 
 {
-  const { root, paragraph, anchor } = makeLinkTree(documentRef);
+  const { root, paragraph } = makeLinkTree(documentRef);
   hydrator.hydrate(root, {
     allowedLocations: new Set(['product.md']),
     makeHref: (loc) => `/read/${encodeURIComponent(loc)}`

@@ -15,8 +15,6 @@ import { siteFeatureContextEnabled } from '../../../js/site-features.js';
 
 const defaultWindow = typeof window !== 'undefined' ? window : undefined;
 const defaultDocument = typeof document !== 'undefined' ? document : undefined;
-const ROUTE_POSTS_SLUG = 'posts';
-const ROUTE_SEARCH_SLUG = 'search';
 
 function featureEnabled(params = {}, runtimeState = null, key) {
   return siteFeatureContextEnabled(

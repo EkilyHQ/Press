@@ -978,6 +978,7 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
       end: parsed.end
     };
   };
+  const callbackCallSuffix = /^\s*(?:\)\s*\(\s*new\s+URL\s*\(|\)\s*\.\s*call\s*\(\s*[^,]*,\s*new\s+URL\s*\()/;
   const re = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\(([\\s\\S]*?)\\)\\s*\\)\\s*\\(\\s*new\\s+URL\\s*\\(`, 'g');
   let match = re.exec(text);
   while (match) {
@@ -988,11 +989,19 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
     match = re.exec(text);
   }
+  const callRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\(([\\s\\S]*?)\\)\\s*\\)\\s*\\.\\s*call\\s*\\(\\s*[^,]*,\\s*new\\s+URL\\s*\\(`, 'g');
+  match = callRe.exec(text);
+  while (match) {
+    const parsed = argsAreRelative(callRe.lastIndex);
+    if (parsed.relative && callbackMutatesRouteUrl(match[2] || '', match[1])) return true;
+    if (parsed.end > callRe.lastIndex) callRe.lastIndex = parsed.end;
+    match = callRe.exec(text);
+  }
   const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
   match = blockArrowRe.exec(text);
   while (match) {
     const span = extractBlockSpan(text, blockArrowRe.lastIndex - 1);
-    const suffix = text.slice(span.end).match(/^\s*\)\s*\(\s*new\s+URL\s*\(/);
+    const suffix = text.slice(span.end).match(callbackCallSuffix);
     if (suffix) {
       const parsed = argsAreRelative(span.end + suffix[0].length);
       if (parsed.relative && callbackMutatesRouteUrl(span.body, match[1])) return true;
@@ -1004,13 +1013,67 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
   match = functionRe.exec(text);
   while (match) {
     const span = extractBlockSpan(text, functionRe.lastIndex - 1);
-    const suffix = text.slice(span.end).match(/^\s*\)\s*\(\s*new\s+URL\s*\(/);
+    const suffix = text.slice(span.end).match(callbackCallSuffix);
     if (suffix) {
       const parsed = argsAreRelative(span.end + suffix[0].length);
       if (parsed.relative && callbackMutatesRouteUrl(span.body, match[1])) return true;
       if (parsed.end > functionRe.lastIndex) functionRe.lastIndex = parsed.end;
     }
     match = functionRe.exec(text);
+  }
+  const mutators = new Set();
+  const addMutator = (name, owner, body) => {
+    if (callbackMutatesRouteUrl(body, owner)) mutators.add(name);
+  };
+  const mutatorExpressionArrowRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*`, 'g');
+  match = mutatorExpressionArrowRe.exec(text);
+  while (match) {
+    const expression = extractAssignmentExpression(text, mutatorExpressionArrowRe.lastIndex);
+    addMutator(match[1], match[2], expression);
+    mutatorExpressionArrowRe.lastIndex += expression.length;
+    match = mutatorExpressionArrowRe.exec(text);
+  }
+  const mutatorArrowRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
+  match = mutatorArrowRe.exec(text);
+  while (match) {
+    const span = extractBlockSpan(text, mutatorArrowRe.lastIndex - 1);
+    addMutator(match[1], match[2], span.body);
+    if (span.end > mutatorArrowRe.lastIndex) mutatorArrowRe.lastIndex = span.end;
+    match = mutatorArrowRe.exec(text);
+  }
+  const mutatorFunctionExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+  match = mutatorFunctionExpressionRe.exec(text);
+  while (match) {
+    const span = extractBlockSpan(text, mutatorFunctionExpressionRe.lastIndex - 1);
+    addMutator(match[1], match[2], span.body);
+    if (span.end > mutatorFunctionExpressionRe.lastIndex) mutatorFunctionExpressionRe.lastIndex = span.end;
+    match = mutatorFunctionExpressionRe.exec(text);
+  }
+  const mutatorFunctionRe = new RegExp(`\\bfunction\\s+(${IDENTIFIER_PATTERN.source})\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+  match = mutatorFunctionRe.exec(text);
+  while (match) {
+    const span = extractBlockSpan(text, mutatorFunctionRe.lastIndex - 1);
+    addMutator(match[1], match[2], span.body);
+    if (span.end > mutatorFunctionRe.lastIndex) mutatorFunctionRe.lastIndex = span.end;
+    match = mutatorFunctionRe.exec(text);
+  }
+  for (const name of mutators) {
+    const directCallRe = new RegExp(`\\b${escapeRegExp(name)}\\s*\\(\\s*new\\s+URL\\s*\\(`, 'g');
+    match = directCallRe.exec(text);
+    while (match) {
+      const parsed = argsAreRelative(directCallRe.lastIndex);
+      if (parsed.relative) return true;
+      if (parsed.end > directCallRe.lastIndex) directCallRe.lastIndex = parsed.end;
+      match = directCallRe.exec(text);
+    }
+    const methodCallRe = new RegExp(`\\b${escapeRegExp(name)}\\s*\\.\\s*call\\s*\\(\\s*[^,]*,\\s*new\\s+URL\\s*\\(`, 'g');
+    match = methodCallRe.exec(text);
+    while (match) {
+      const parsed = argsAreRelative(methodCallRe.lastIndex);
+      if (parsed.relative) return true;
+      if (parsed.end > methodCallRe.lastIndex) methodCallRe.lastIndex = parsed.end;
+      match = methodCallRe.exec(text);
+    }
   }
   return false;
 }

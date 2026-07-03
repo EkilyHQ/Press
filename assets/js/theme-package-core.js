@@ -195,6 +195,15 @@ function collectExternalUrlAliases(source) {
     if (isExternalUrlPrefix(match[3])) aliases.add(match[1]);
     match = re.exec(text);
   }
+  const staticRelativeAliases = collectStaticRelativeUrlAliases(text);
+  const urlRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g');
+  match = urlRe.exec(text);
+  while (match) {
+    const parsed = extractCallArgs(text, urlRe.lastIndex);
+    if (urlConstructorArgsAreExternal(parsed.args, aliases, staticRelativeAliases)) aliases.add(match[1]);
+    if (parsed.end > urlRe.lastIndex) urlRe.lastIndex = parsed.end;
+    match = urlRe.exec(text);
+  }
   return aliases;
 }
 
@@ -521,7 +530,7 @@ function inlineUrlSearchParamsHasRelativeSink(source, callStart) {
   if (template) {
     return !templateRouteContentHasExternalPrefix(text, template[1]);
   }
-  return /\b(?:window\s*\.\s*)?location\s*\.\s*search\s*=\s*$/.test(before);
+  return new RegExp(`${locationSearchWritePattern(collectLocationAliases(text)).source}\\s*$`).test(before);
 }
 
 function containsForbiddenInlineUrlSearchParamsInitializer(source, aliases = new Set()) {
@@ -618,11 +627,9 @@ function urlConstructorArgsAreExternal(args, aliases = new Set(), staticRelative
     && expressionIsExternalUrl(parts[1], aliases);
 }
 
-function collectRouteUrlVariables(source) {
+function collectRouteUrlVariables(source, externalAliases = collectExternalUrlAliases(source), staticRelativeAliases = collectStaticRelativeUrlAliases(source)) {
   const text = safeString(source);
   const out = new Set();
-  const aliases = collectExternalUrlAliases(text);
-  const staticRelativeAliases = collectStaticRelativeUrlAliases(text);
   [
     new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g'),
     new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g')
@@ -630,7 +637,7 @@ function collectRouteUrlVariables(source) {
     let match = re.exec(text);
     while (match) {
       const parsed = extractCallArgs(text, re.lastIndex);
-      if (!urlConstructorArgsAreExternal(parsed.args, aliases, staticRelativeAliases)) out.add(match[1]);
+      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) out.add(match[1]);
       if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
       match = re.exec(text);
     }
@@ -651,6 +658,18 @@ function collectLocationAliases(source) {
       match = re.exec(text);
     }
   });
+  const destructureRe = /\b(?:const|let|var)\s*\{([\s\S]*?)\}\s*=\s*window\b/g;
+  let destructure = destructureRe.exec(text);
+  while (destructure) {
+    const body = destructure[1] || '';
+    const aliasRe = /(?:^|,)\s*location\s*:\s*([A-Za-z_$][\w$]*)/g;
+    let alias = aliasRe.exec(body);
+    while (alias) {
+      out.add(alias[1]);
+      alias = aliasRe.exec(body);
+    }
+    destructure = destructureRe.exec(text);
+  }
   return out;
 }
 
@@ -659,12 +678,13 @@ function locationSearchWritePattern(locationAliases = new Set()) {
   const ownerPattern = aliasPatterns.length
     ? `(?:\\b(?:window\\s*\\.\\s*)?location|${aliasPatterns.join('|')})`
     : '\\b(?:window\\s*\\.\\s*)?location';
-  return new RegExp(`${ownerPattern}\\s*\\.\\s*search\\s*(?:\\+=|=(?!=|>))`, 'g');
+  const searchProperty = `(?:\\.\\s*search|\\[\\s*(['"\`])search\\1\\s*\\])`;
+  return new RegExp(`${ownerPattern}\\s*${searchProperty}\\s*(?:\\+=|=(?!=|>))`, 'g');
 }
 
-function containsForbiddenRouteUrlMutation(source, aliases) {
+function containsForbiddenRouteUrlMutation(source, aliases, externalAliases, staticRelativeAliases) {
   const text = safeString(source);
-  const vars = collectRouteUrlVariables(text);
+  const vars = collectRouteUrlVariables(text, externalAliases, staticRelativeAliases);
   for (const name of vars) {
     if (containsRouteKeyWriteForOwner(text, name, aliases, 'searchParams')) return true;
     const paramsAliases = collectSearchParamsAliasesForRouteUrl(text, name);
@@ -753,10 +773,12 @@ function containsForbiddenLocationSearchAssignment(source, aliases = new Set()) 
   return false;
 }
 
-function containsForbiddenV4RouteConstruction(source) {
+function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const text = safeString(source);
+  const context = safeString(contextSource);
   const aliases = collectRouteKeyAliases(text);
-  const externalAliases = collectExternalUrlAliases(text);
+  const externalAliases = collectExternalUrlAliases(context);
+  const staticRelativeAliases = collectStaticRelativeUrlAliases(context);
   const inlineSearchParamsAliases = collectInlineUrlSearchParamsAliases(text);
   return containsForbiddenRouteLiteral(text, externalAliases)
     || containsForbiddenLocationSearchAssignment(text, aliases)
@@ -765,7 +787,7 @@ function containsForbiddenV4RouteConstruction(source) {
     || containsForbiddenSplitRouteQueryLiteral(text)
     || containsForbiddenRouteKeyAliasConstruction(text, aliases)
     || containsForbiddenUrlSearchParamsVariable(text, aliases)
-    || containsForbiddenRouteUrlMutation(text, aliases)
+    || containsForbiddenRouteUrlMutation(text, aliases, externalAliases, staticRelativeAliases)
     || Array.from(inlineSearchParamsAliases).some((name) => (
       containsRouteKeyWriteForOwner(text, name, aliases) && containsRelativeParamsSerialization(text, name)
     ));
@@ -966,11 +988,15 @@ function validateThemeManifestContract(themeManifest, availablePaths) {
 
 function validateThemeRouteHelperContract(entries, contractVersion) {
   if (Number(contractVersion) < ROUTE_HELPER_CONTRACT_VERSION) return;
+  const routeGuardContext = entries
+    .filter((entry) => entry && entry.path && isThemeTextPath(entry.path) && entry.path !== 'theme.json')
+    .map((entry) => strFromU8(entry.data))
+    .join('\n');
   entries.forEach((entry) => {
     if (!entry || !entry.path || !isThemeTextPath(entry.path)) return;
     if (entry.path === 'theme.json') return;
     const source = strFromU8(entry.data);
-    if (containsForbiddenV4RouteConstruction(source)) {
+    if (containsForbiddenV4RouteConstruction(source, routeGuardContext)) {
       throw new Error(`Theme contractVersion 4 requires router href helpers instead of public route construction in ${entry.path}.`);
     }
   });

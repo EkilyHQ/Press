@@ -1029,6 +1029,33 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/interactions.js': 'export function mount() { const routeKey = "id"; window.location["search"] = routeKey + "=" + post.location; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { const { location: loc } = window; const routeKey = "id"; const qs = routeKey + "=" + post.location; loc.search = qs; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { const loc = location; const routeKey = "id"; loc["search"] = routeKey + "=" + post.location; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/interactions.js': 'export function mount() { const loc = window.location; const params = new URLSearchParams({ id: post.location }); loc.search = params; }'
       }
     })),
@@ -1403,6 +1430,19 @@ await run('rejects v4 theme packages with public route literals', async () => {
     contractVersion: 4,
     files: {
       'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test"; const productPath = "/product"; const url = new URL(productPath, externalBase); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { const externalBase = new URL("https://api.example.test"); const url = new URL("/product", externalBase); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/config.js': 'export const endpoint = "https://api.example.test/product"; export const productPath = "/product"; export const externalBase = "https://api.example.test";',
+      'modules/layout.js': 'import { endpoint, productPath, externalBase } from "./config.js"; export default { mount() { const url = new URL(endpoint); url.searchParams.set("id", sku); const url2 = new URL(productPath, externalBase); url2.searchParams.set("id", sku); return { url: url.href, url2: url2.href }; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({

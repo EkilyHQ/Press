@@ -246,6 +246,15 @@ function collectExternalUrlAliases(source) {
     if (isExternalUrlPrefix(match[3])) aliases.add(match[1]);
     match = re.exec(text);
   }
+  const staticRelativeAliases = collectStaticRelativeUrlAliases(text);
+  const urlRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g');
+  match = urlRe.exec(text);
+  while (match) {
+    const parsed = extractCallArgs(text, urlRe.lastIndex);
+    if (urlConstructorArgsAreExternal(parsed.args, aliases, staticRelativeAliases)) aliases.add(match[1]);
+    if (parsed.end > urlRe.lastIndex) urlRe.lastIndex = parsed.end;
+    match = urlRe.exec(text);
+  }
   return aliases;
 }
 
@@ -572,7 +581,7 @@ function inlineUrlSearchParamsHasRelativeSink(source, callStart) {
   if (template) {
     return !templateRouteContentHasExternalPrefix(text, template[1]);
   }
-  return /\b(?:window\s*\.\s*)?location\s*\.\s*search\s*=\s*$/.test(before);
+  return new RegExp(`${locationSearchWritePattern(collectLocationAliases(text)).source}\\s*$`).test(before);
 }
 
 function containsForbiddenInlineUrlSearchParamsInitializer(source, aliases = new Set()) {
@@ -669,11 +678,9 @@ function urlConstructorArgsAreExternal(args, aliases = new Set(), staticRelative
     && expressionIsExternalUrl(parts[1], aliases);
 }
 
-function collectRouteUrlVariables(source) {
+function collectRouteUrlVariables(source, externalAliases = collectExternalUrlAliases(source), staticRelativeAliases = collectStaticRelativeUrlAliases(source)) {
   const text = String(source || '');
   const out = new Set();
-  const aliases = collectExternalUrlAliases(text);
-  const staticRelativeAliases = collectStaticRelativeUrlAliases(text);
   [
     new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g'),
     new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g')
@@ -681,7 +688,7 @@ function collectRouteUrlVariables(source) {
     let match = re.exec(text);
     while (match) {
       const parsed = extractCallArgs(text, re.lastIndex);
-      if (!urlConstructorArgsAreExternal(parsed.args, aliases, staticRelativeAliases)) out.add(match[1]);
+      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) out.add(match[1]);
       if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
       match = re.exec(text);
     }
@@ -702,6 +709,18 @@ function collectLocationAliases(source) {
       match = re.exec(text);
     }
   });
+  const destructureRe = /\b(?:const|let|var)\s*\{([\s\S]*?)\}\s*=\s*window\b/g;
+  let destructure = destructureRe.exec(text);
+  while (destructure) {
+    const body = destructure[1] || '';
+    const aliasRe = /(?:^|,)\s*location\s*:\s*([A-Za-z_$][\w$]*)/g;
+    let alias = aliasRe.exec(body);
+    while (alias) {
+      out.add(alias[1]);
+      alias = aliasRe.exec(body);
+    }
+    destructure = destructureRe.exec(text);
+  }
   return out;
 }
 
@@ -710,12 +729,13 @@ function locationSearchWritePattern(locationAliases = new Set()) {
   const ownerPattern = aliasPatterns.length
     ? `(?:\\b(?:window\\s*\\.\\s*)?location|${aliasPatterns.join('|')})`
     : '\\b(?:window\\s*\\.\\s*)?location';
-  return new RegExp(`${ownerPattern}\\s*\\.\\s*search\\s*(?:\\+=|=(?!=|>))`, 'g');
+  const searchProperty = `(?:\\.\\s*search|\\[\\s*(['"\`])search\\1\\s*\\])`;
+  return new RegExp(`${ownerPattern}\\s*${searchProperty}\\s*(?:\\+=|=(?!=|>))`, 'g');
 }
 
-function containsForbiddenRouteUrlMutation(source, aliases) {
+function containsForbiddenRouteUrlMutation(source, aliases, externalAliases, staticRelativeAliases) {
   const text = String(source || '');
-  const vars = collectRouteUrlVariables(text);
+  const vars = collectRouteUrlVariables(text, externalAliases, staticRelativeAliases);
   for (const name of vars) {
     if (containsRouteKeyWriteForOwner(text, name, aliases, 'searchParams')) return true;
     const paramsAliases = collectSearchParamsAliasesForRouteUrl(text, name);
@@ -804,10 +824,12 @@ function containsForbiddenLocationSearchAssignment(source, aliases = new Set()) 
   return false;
 }
 
-function containsForbiddenV4RouteConstruction(source) {
+function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const text = String(source || '');
+  const context = String(contextSource || '');
   const aliases = collectRouteKeyAliases(text);
-  const externalAliases = collectExternalUrlAliases(text);
+  const externalAliases = collectExternalUrlAliases(context);
+  const staticRelativeAliases = collectStaticRelativeUrlAliases(context);
   const inlineSearchParamsAliases = collectInlineUrlSearchParamsAliases(text);
   return containsForbiddenRouteLiteral(text, externalAliases)
     || containsForbiddenLocationSearchAssignment(text, aliases)
@@ -816,7 +838,7 @@ function containsForbiddenV4RouteConstruction(source) {
     || containsForbiddenSplitRouteQueryLiteral(text)
     || containsForbiddenRouteKeyAliasConstruction(text, aliases)
     || containsForbiddenUrlSearchParamsVariable(text, aliases)
-    || containsForbiddenRouteUrlMutation(text, aliases)
+    || containsForbiddenRouteUrlMutation(text, aliases, externalAliases, staticRelativeAliases)
     || Array.from(inlineSearchParamsAliases).some((name) => (
       containsRouteKeyWriteForOwner(text, name, aliases) && containsRelativeParamsSerialization(text, name)
     ));
@@ -827,15 +849,19 @@ function containsForbiddenV4RouteConstruction(source) {
   ['URL.searchParams alias route mutation', 'const url = new URL(location.href); const params = url.searchParams; params.set("id", post.location); return url.href;', true],
   ['location.search route query alias', 'const routeKey = "id"; const qs = routeKey + "=" + post.location; location.search = qs;', true],
   ['location object alias route query sink', 'const loc = location; const routeKey = "id"; const qs = routeKey + "=" + post.location; loc.search = qs;', true],
+  ['destructured location alias route query sink', 'const { location: loc } = window; const routeKey = "id"; const qs = routeKey + "=" + post.location; loc.search = qs;', true],
+  ['location bracket route query sink', 'const routeKey = "id"; window.location["search"] = routeKey + "=" + post.location;', true],
   ['member URLSearchParams route builder', 'state.params = new URLSearchParams({ id: post.location }); return "?" + state.params;', true],
   ['inline URL searchParams alias builder', 'const params = new URL(location.href).searchParams; params.set("id", post.location); return "?" + params;', true],
   ['parenthesized URL.searchParams alias mutation', 'const url = new URL(location.href); const params = (url.searchParams); params.set("id", post.location); return url.href;', true],
   ['destructured URL.searchParams alias mutation', 'const url = new URL(location.href); const { searchParams } = url; searchParams.set("id", post.location); return url.href;', true],
   ['external split query string', 'const externalBase = "https://api.example.test/product"; return externalBase + "?id=" + sku;', false],
   ['external split tab string', 'return "https://api.example.test/product" + "?tab=posts";', false],
-  ['external URL static relative path alias', 'const externalBase = "https://api.example.test"; const productPath = "/product"; const url = new URL(productPath, externalBase); url.searchParams.set("id", sku); return url.href;', false]
-].forEach(([label, source, expected]) => {
-  const actual = containsForbiddenV4RouteConstruction(source);
+  ['external URL static relative path alias', 'const externalBase = "https://api.example.test"; const productPath = "/product"; const url = new URL(productPath, externalBase); url.searchParams.set("id", sku); return url.href;', false],
+  ['external URL object alias', 'const externalBase = new URL("https://api.example.test"); const url = new URL("/product", externalBase); url.searchParams.set("id", sku); return url.href;', false],
+  ['cross-file external URL alias context', 'const url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, 'export const endpoint = "https://api.example.test/product";']
+].forEach(([label, source, expected, contextSource]) => {
+  const actual = containsForbiddenV4RouteConstruction(source, contextSource || source);
   if (actual !== expected) fail(`v4 route guard self-check failed for ${label}`);
 });
 

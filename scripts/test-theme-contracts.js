@@ -402,6 +402,10 @@ function braceDepthAt(source, index) {
 }
 
 function extractBlockText(source, openBraceIndex) {
+  return extractBlockSpan(source, openBraceIndex).body;
+}
+
+function extractBlockSpan(source, openBraceIndex) {
   const text = String(source || '');
   let depth = 0;
   for (let i = openBraceIndex; i < text.length; i += 1) {
@@ -409,10 +413,10 @@ function extractBlockText(source, openBraceIndex) {
       depth += 1;
     } else if (text[i] === '}') {
       depth -= 1;
-      if (depth === 0) return text.slice(openBraceIndex + 1, i);
+      if (depth === 0) return { body: text.slice(openBraceIndex + 1, i), end: i + 1 };
     }
   }
-  return text.slice(openBraceIndex + 1);
+  return { body: text.slice(openBraceIndex + 1), end: text.length };
 }
 
 function normalizeRouteGuardContext(contextSource, fallbackSource = '', fallbackPath = '') {
@@ -1008,16 +1012,54 @@ function containsForbiddenRouteUrlMutation(source, aliases, externalAliases, sta
 
 function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, externalAliases, staticRelativeAliases) {
   const text = String(source || '');
+  const callbackMutatesRouteUrl = (body, owner) => {
+    if (containsRouteKeyWriteForOwner(body, owner, aliases, 'searchParams')) return true;
+    const paramsAliases = collectSearchParamsAliasesForRouteUrl(body, owner);
+    for (const paramsAlias of paramsAliases) {
+      if (containsRouteKeyWriteForOwner(body, paramsAlias, aliases)) return true;
+    }
+    return false;
+  };
+  const argsAreRelative = (argsStart) => {
+    const parsed = extractCallArgs(text, argsStart);
+    return {
+      relative: !urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases),
+      end: parsed.end
+    };
+  };
   const re = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\(([\\s\\S]*?)\\)\\s*\\)\\s*\\(\\s*new\\s+URL\\s*\\(`, 'g');
   let match = re.exec(text);
   while (match) {
-    const parsed = extractCallArgs(text, re.lastIndex);
-    if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)
-      && containsRouteKeyWriteForOwner(match[2] || '', match[1], aliases, 'searchParams')) {
+    const parsed = argsAreRelative(re.lastIndex);
+    if (parsed.relative && callbackMutatesRouteUrl(match[2] || '', match[1])) {
       return true;
     }
     if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
     match = re.exec(text);
+  }
+  const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
+  match = blockArrowRe.exec(text);
+  while (match) {
+    const span = extractBlockSpan(text, blockArrowRe.lastIndex - 1);
+    const suffix = text.slice(span.end).match(/^\s*\)\s*\(\s*new\s+URL\s*\(/);
+    if (suffix) {
+      const parsed = argsAreRelative(span.end + suffix[0].length);
+      if (parsed.relative && callbackMutatesRouteUrl(span.body, match[1])) return true;
+      if (parsed.end > blockArrowRe.lastIndex) blockArrowRe.lastIndex = parsed.end;
+    }
+    match = blockArrowRe.exec(text);
+  }
+  const functionRe = new RegExp(`\\(\\s*function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+  match = functionRe.exec(text);
+  while (match) {
+    const span = extractBlockSpan(text, functionRe.lastIndex - 1);
+    const suffix = text.slice(span.end).match(/^\s*\)\s*\(\s*new\s+URL\s*\(/);
+    if (suffix) {
+      const parsed = argsAreRelative(span.end + suffix[0].length);
+      if (parsed.relative && callbackMutatesRouteUrl(span.body, match[1])) return true;
+      if (parsed.end > functionRe.lastIndex) functionRe.lastIndex = parsed.end;
+    }
+    match = functionRe.exec(text);
   }
   return false;
 }
@@ -1146,6 +1188,8 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file external URL default arrow param shadowing', 'import { endpoint } from "./config.js"; export default (endpoint, post) => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL expression arrow param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => endpoint + "?id=" + post.location;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL inline callback param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => ((url) => (url.searchParams.set("id", post.location), url.href))(new URL(endpoint));', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
+  ['cross-file external URL inline block callback param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => ((url) => { url.searchParams.set("id", post.location); return url.href; })(new URL(endpoint));', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
+  ['cross-file external URL inline function callback param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => (function(url) { url.searchParams.set("id", post.location); return url.href; })(new URL(endpoint));', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL single expression arrow param shadowing', 'import { endpoint } from "./config.js"; export default endpoint => endpoint + "?tab=posts";', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL async single arrow param shadowing', 'import { endpoint } from "./config.js"; const route = async endpoint => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL defaulted destructured param shadowing', 'import { endpoint } from "./config.js"; function route({ endpoint = location.href }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],

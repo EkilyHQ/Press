@@ -1208,19 +1208,19 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     }
     match = expressionMethodRe.exec(text);
   }
-  const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
+  const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*\\{`, 'g');
   match = blockArrowRe.exec(text);
   while (match) {
     const span = extractBlockSpan(text, blockArrowRe.lastIndex - 1);
     const suffix = text.slice(span.end).match(callbackCallSuffix);
     if (suffix) {
-      const parsed = inlineCallbackInvocationIsForbidden(match[1], span.body, suffix[1] || 'direct', span.end + suffix[0].length);
+      const parsed = inlineCallbackInvocationIsForbidden(match[1] || match[2], span.body, suffix[1] || 'direct', span.end + suffix[0].length);
       if (parsed.forbidden) return true;
       if (parsed.end > blockArrowRe.lastIndex) blockArrowRe.lastIndex = parsed.end;
     }
     match = blockArrowRe.exec(text);
   }
-  const functionRe = new RegExp(`\\(\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+  const functionRe = new RegExp(`\\(\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
   match = functionRe.exec(text);
   while (match) {
     const span = extractBlockSpan(text, functionRe.lastIndex - 1);
@@ -1510,6 +1510,8 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['parenthesized call helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate.call(null, (new URL(location.href)));', true],
   ['parenthesized apply helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate.apply(null, [(new URL(location.href))]);', true],
   ['parenthesized inline callback direct URL is rejected', 'return ((url) => (url.searchParams.set("id", "post.md"), url.href))((new URL(location.href)));', true],
+  ['multi-arg block arrow callback direct URL is rejected', 'return ((ctx, url) => { url.searchParams.set("id", "post.md"); return url.href; })("ctx", new URL(location.href));', true],
+  ['multi-arg function callback call URL is rejected', 'return (function(ctx, url) { url.searchParams.set("id", "post.md"); return url.href; }).call(null, "ctx", new URL(location.href));', true],
   ['multi-arg inline callback call is rejected', 'return ((ctx, url) => (url.searchParams.set("id", "post.md"), url.href)).call(null, "ctx", new URL(location.href));', true],
   ['multi-arg inline callback apply is rejected', 'return ((ctx, url) => (url.searchParams.set("id", "post.md"), url.href)).apply(null, ["ctx", new URL(location.href)]);', true],
   ['cross-file external URL multiline expression arrow param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => (\n  endpoint + "?id=" + post.location\n);', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],

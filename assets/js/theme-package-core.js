@@ -1157,19 +1157,19 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     }
     match = expressionMethodRe.exec(text);
   }
-  const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
+  const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*\\{`, 'g');
   match = blockArrowRe.exec(text);
   while (match) {
     const span = extractBlockSpan(text, blockArrowRe.lastIndex - 1);
     const suffix = text.slice(span.end).match(callbackCallSuffix);
     if (suffix) {
-      const parsed = inlineCallbackInvocationIsForbidden(match[1], span.body, suffix[1] || 'direct', span.end + suffix[0].length);
+      const parsed = inlineCallbackInvocationIsForbidden(match[1] || match[2], span.body, suffix[1] || 'direct', span.end + suffix[0].length);
       if (parsed.forbidden) return true;
       if (parsed.end > blockArrowRe.lastIndex) blockArrowRe.lastIndex = parsed.end;
     }
     match = blockArrowRe.exec(text);
   }
-  const functionRe = new RegExp(`\\(\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+  const functionRe = new RegExp(`\\(\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
   match = functionRe.exec(text);
   while (match) {
     const span = extractBlockSpan(text, functionRe.lastIndex - 1);

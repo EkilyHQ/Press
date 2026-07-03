@@ -566,11 +566,17 @@ function sourceArgIsRouteKey(arg, aliases) {
   return new RegExp(`^(?:${routeKeyExpressionPattern(aliases)})$`).test(value);
 }
 
+function propertyAccessorPattern(name) {
+  const escaped = escapeRe(name);
+  return `(?:\\s*\\?\\.\\s*${escaped}|\\s*\\.\\s*${escaped}|\\s*\\?\\.\\s*\\[\\s*["'\`]${escaped}["'\`]\\s*\\]|\\s*\\[\\s*["'\`]${escaped}["'\`]\\s*\\])`;
+}
+
 function routeKeyWritePattern(owner, property = '') {
   const ownerPattern = expressionReferencePattern(owner);
-  const suffix = property ? `\\s*\\.\\s*${escapeRe(property)}` : '';
+  const suffix = property ? propertyAccessorPattern(property) : '';
+  const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')})`;
   const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
-  return new RegExp(`${ownerPattern}${suffix}\\s*\\.\\s*(?:set|append)\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
+  return new RegExp(`${ownerPattern}${suffix}${mutator}\\s*\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
 }
 
 function containsRouteKeyWriteForOwner(source, owner, aliases, property = '') {
@@ -1475,9 +1481,14 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['inline URL searchParams alias builder', 'const params = new URL(location.href).searchParams; params.set("id", post.location); return "?" + params;', true],
   ['parenthesized URL.searchParams alias mutation', 'const url = new URL(location.href); const params = (url.searchParams); params.set("id", post.location); return url.href;', true],
   ['destructured URL.searchParams alias mutation', 'const url = new URL(location.href); const { searchParams } = url; searchParams.set("id", post.location); return url.href;', true],
+  ['bracket URL.searchParams route key mutation', 'const url = new URL(location.href); url.searchParams["set"]("id", post.location); return url.href;', true],
+  ['optional URL.searchParams route key mutation', 'const url = new URL(location.href); url.searchParams?.set("tab", "posts"); return url.href;', true],
+  ['optional bracket URL.searchParams route key mutation', 'const url = new URL(location.href); url["searchParams"]?.["append"]("id", post.location); return url.href;', true],
+  ['bracket URL.searchParams alias route key mutation', 'const url = new URL(location.href); const params = url.searchParams; params["append"]("tab", "posts"); return url.href;', true],
   ['external split query string', 'const externalBase = "https://api.example.test/product"; return externalBase + "?id=" + sku;', false],
   ['external split tab string', 'return "https://api.example.test/product" + "?tab=posts";', false],
   ['external URL static relative path alias', 'const externalBase = "https://api.example.test"; const productPath = "/product"; const url = new URL(productPath, externalBase); url.searchParams.set("id", sku); return url.href;', false],
+  ['external bracket URL searchParams allowed', 'const url = new URL("https://api.example.test/product"); url.searchParams["set"]("id", sku); return url.href;', false],
   ['external URL object alias', 'const externalBase = new URL("https://api.example.test"); const url = new URL("/product", externalBase); url.searchParams.set("id", sku); return url.href;', false],
   ['cross-file imported external URL alias context', 'import { endpoint } from "./config.js"; const url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file barrel external URL alias context', 'import { endpoint } from "./barrel.js"; const url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }, { path: 'modules/barrel.js', source: 'export { endpoint } from "./config.js";' }] }],

@@ -515,11 +515,17 @@ function sourceArgIsRouteKey(arg, aliases) {
   return new RegExp(`^(?:${routeKeyExpressionPattern(aliases)})$`).test(value);
 }
 
+function propertyAccessorPattern(name) {
+  const escaped = escapeRegExp(name);
+  return `(?:\\s*\\?\\.\\s*${escaped}|\\s*\\.\\s*${escaped}|\\s*\\?\\.\\s*\\[\\s*["'\`]${escaped}["'\`]\\s*\\]|\\s*\\[\\s*["'\`]${escaped}["'\`]\\s*\\])`;
+}
+
 function routeKeyWritePattern(owner, property = '') {
   const ownerPattern = expressionReferencePattern(owner);
-  const suffix = property ? `\\s*\\.\\s*${escapeRegExp(property)}` : '';
+  const suffix = property ? propertyAccessorPattern(property) : '';
+  const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')})`;
   const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
-  return new RegExp(`${ownerPattern}${suffix}\\s*\\.\\s*(?:set|append)\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
+  return new RegExp(`${ownerPattern}${suffix}${mutator}\\s*\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
 }
 
 function containsRouteKeyWriteForOwner(source, owner, aliases, property = '') {

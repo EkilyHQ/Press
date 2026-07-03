@@ -465,7 +465,7 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.desired.themeDemos.arcus.reconciler.kind, 'theme-demo-runtime-sync');
   assert.equal(state.desired.themes.catalog.expectedCount, 1);
   assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.51');
-  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 1);
+  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 3);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
   assert.equal(state.themes.catalog.status, 'ok');
@@ -792,6 +792,19 @@ test('buildProductState marks incompatible theme release manifests as drift', as
 });
 
 test('buildProductState accepts supported theme contract versions', async () => {
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 3)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.themes.entries[0].contractVersion, 3);
+  assert.notEqual(state.themes.entries[0].status, 'drift');
+});
+
+test('buildProductState accepts transition theme contract v2', async () => {
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({

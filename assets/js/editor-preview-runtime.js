@@ -238,6 +238,60 @@ function applyPreviewLangHints(container) {
   });
 }
 
+function previewFeatureEnabled(features, key) {
+  if (features && typeof features.isEnabled === 'function') {
+    try { return features.isEnabled(key) !== false; } catch (_) {}
+  }
+  const flags = features && features.flags && typeof features.flags === 'object' ? features.flags : features;
+  if (flags && typeof flags === 'object' && Object.prototype.hasOwnProperty.call(flags, key)) {
+    return flags[key] !== false;
+  }
+  return true;
+}
+
+function previewPostsEnabled(features) {
+  return previewFeatureEnabled(features, 'allPosts');
+}
+
+function previewSearchEnabled(features) {
+  return previewFeatureEnabled(features, 'search');
+}
+
+function resolvePreviewTabsBySlug(payload = {}) {
+  const source = payload.tabsBySlug && typeof payload.tabsBySlug === 'object' && !Array.isArray(payload.tabsBySlug)
+    ? payload.tabsBySlug
+    : {};
+  return source;
+}
+
+function resolvePreviewLandingSlug(payload = {}) {
+  const siteConfig = payload.siteConfig && typeof payload.siteConfig === 'object' ? payload.siteConfig : {};
+  const tabsBySlug = resolvePreviewTabsBySlug(payload);
+  const wanted = String(siteConfig.landingTab || siteConfig.landing || siteConfig.homeTab || siteConfig.home || '').trim().toLowerCase();
+  if (!wanted) return '';
+  if (tabsBySlug[wanted]) return wanted;
+  for (const [slug, info] of Object.entries(tabsBySlug)) {
+    const title = String((info && info.title) || '').trim().toLowerCase();
+    if (title && title === wanted) return slug;
+  }
+  return '';
+}
+
+function getPreviewHomeSlug(payload, features) {
+  const explicit = resolvePreviewLandingSlug(payload);
+  if (explicit) return explicit;
+  if (previewPostsEnabled(features)) return 'posts';
+  return Object.keys(resolvePreviewTabsBySlug(payload))[0] || '';
+}
+
+function getPreviewHomeLabel(payload, features) {
+  const slug = getPreviewHomeSlug(payload, features);
+  if (slug === 'posts') return t('ui.allPosts');
+  if (slug === 'search') return t('ui.searchTab');
+  const tabsBySlug = resolvePreviewTabsBySlug(payload);
+  return (tabsBySlug[slug] && tabsBySlug[slug].title) || slug;
+}
+
 function createRuntimeContext({ payload, containers, content, features }) {
   const layout = themeLayout.getThemeLayoutContext();
   return {
@@ -248,6 +302,10 @@ function createRuntimeContext({ payload, containers, content, features }) {
     router: {
       getRouteKey: () => (payload.currentPath ? `post:${payload.currentPath}` : 'editor-preview'),
       withLangParam,
+      getHomeSlug: () => getPreviewHomeSlug(payload, features),
+      getHomeLabel: () => getPreviewHomeLabel(payload, features),
+      postsEnabled: () => previewPostsEnabled(features),
+      searchEnabled: () => previewSearchEnabled(features),
       navigate() { return false; }
     },
     i18n: createThemeI18nContext(),
@@ -264,7 +322,10 @@ function createRuntimeContext({ payload, containers, content, features }) {
       applyLazyLoadingIn,
       applyLangHints: applyPreviewLangHints,
       renderPostTOC: () => {},
-      renderTagSidebar: renderPreviewTagSidebar,
+      renderTagSidebar: (...args) => {
+        if (!previewFeatureEnabled(features, 'tags') || !previewSearchEnabled(features)) return false;
+        return renderPreviewTagSidebar(...args);
+      },
       setupAnchors: setupPreviewAnchors,
       setupTOC: setupPreviewTOC,
       ensureAutoHeight: (el) => {
@@ -331,6 +392,11 @@ async function renderPreview(payload = {}) {
       ctx,
       content,
       features,
+      getHomeSlug: () => getPreviewHomeSlug(payload, features),
+      getHomeLabel: () => getPreviewHomeLabel(payload, features),
+      postsEnabled: () => previewPostsEnabled(features),
+      searchEnabled: () => previewSearchEnabled(features),
+      withLangParam,
       markdownHtml: output.post,
       tocHtml: output.toc,
       rawMarkdown: markdown,
@@ -355,7 +421,10 @@ async function renderPreview(payload = {}) {
         applyLazyLoadingIn,
         applyLangHints: applyPreviewLangHints,
         renderPostTOC: () => {},
-        renderTagSidebar: renderPreviewTagSidebar,
+        renderTagSidebar: (...args) => {
+          if (!previewFeatureEnabled(features, 'tags') || !previewSearchEnabled(features)) return false;
+          return renderPreviewTagSidebar(...args);
+        },
         getArticleTitleFromMain,
         setupAnchors: setupPreviewAnchors,
         setupTOC: setupPreviewTOC,

@@ -733,6 +733,27 @@ function getHomeLabel() {
   try { return (tabsBySlug && tabsBySlug[slug] && tabsBySlug[slug].title) || slug; } catch (_) { return slug; }
 }
 
+function createThemeRouterContext() {
+  return {
+    getRouteKey: getCurrentRouteKey,
+    withLangParam,
+    getQueryVariable,
+    getHomeSlug: () => getHomeSlug(),
+    getHomeLabel: () => getHomeLabel(),
+    postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled(),
+    navigate(href) {
+      try {
+        history.pushState({}, '', String(href || ''));
+        routeAndRender();
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+  };
+}
+
 // Expose a minimal API that other modules can consult if needed
 try { window.__press_get_home_slug = () => getHomeSlug(); } catch (_) {}
 try { window.__press_posts_enabled = () => postsEnabled(); } catch (_) {}
@@ -746,12 +767,16 @@ async function loadSiteConfig() {
 
 function renderSiteLinks(cfg) {
   try {
+    const ctx = createThemeRuntimeContext({ view: 'chrome' });
     callThemeEffect('renderSiteLinks', {
       config: cfg,
+      ctx,
       features: getSiteFeatureContext(),
       getHomeSlug: () => getHomeSlug(),
       getHomeLabel: () => getHomeLabel(),
       postsEnabled: () => postsEnabled(),
+      searchEnabled: () => searchEnabled(),
+      withLangParam,
       document,
       window
     });
@@ -760,9 +785,16 @@ function renderSiteLinks(cfg) {
 
 function renderSiteIdentity(cfg) {
   try {
+    const ctx = createThemeRuntimeContext({ view: 'chrome' });
     callThemeEffect('renderSiteIdentity', {
       config: cfg,
+      ctx,
       features: getSiteFeatureContext(),
+      getHomeSlug: () => getHomeSlug(),
+      getHomeLabel: () => getHomeLabel(),
+      postsEnabled: () => postsEnabled(),
+      searchEnabled: () => searchEnabled(),
+      withLangParam,
       document,
       window
     });
@@ -943,9 +975,11 @@ function enhanceIndexLayout(params = {}) {
 // RenderOutdatedCard moved to ./js/templates.js
 
 function renderTabs(activeSlug, searchQuery) {
+  const ctx = createThemeRuntimeContext({ view: activeSlug || 'nav' });
   callThemeEffect('renderTabs', {
     activeSlug,
     searchQuery,
+    ctx,
     tabsBySlug,
     getHomeSlug: () => getHomeSlug(),
     getHomeLabel: () => getHomeLabel(),
@@ -961,7 +995,9 @@ function renderTabs(activeSlug, searchQuery) {
 
 // Render footer navigation: Home (All Posts) + custom tabs
 function renderFooterNav() {
+  const ctx = createThemeRuntimeContext({ view: 'footer' });
   callThemeEffect('renderFooterNav', {
+    ctx,
     tabsBySlug,
     getHomeSlug: () => getHomeSlug(),
     getHomeLabel: () => getHomeLabel(),
@@ -991,20 +1027,7 @@ function createThemeRuntimeContext({
       key: getCurrentRouteKey(),
       ...route
     },
-    router: {
-      getRouteKey: getCurrentRouteKey,
-      withLangParam,
-      getQueryVariable,
-      navigate(href) {
-        try {
-          history.pushState({}, '', String(href || ''));
-          routeAndRender();
-          return true;
-        } catch (_) {
-          return false;
-        }
-      }
-    },
+    router: createThemeRouterContext(),
     i18n: createThemeI18nContext(),
     features: getSiteFeatureContext(),
     content,
@@ -1372,6 +1395,11 @@ function displayPost(postname, options = {}) {
       postId: postname,
       siteConfig,
       features: getSiteFeatureContext(),
+      getHomeSlug: () => getHomeSlug(),
+      getHomeLabel: () => getHomeLabel(),
+      postsEnabled: () => postsEnabled(),
+      searchEnabled: () => searchEnabled(),
+      withLangParam,
       postsIndex: postsIndexCache,
       postsByLocationTitle,
       allowedLocations,
@@ -1633,7 +1661,9 @@ function displayIndex(parsed) {
     withLangParam,
     translate: t,
     getHomeSlug: () => getHomeSlug(),
+    getHomeLabel: () => getHomeLabel(),
     postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled(),
     window,
     document
   });
@@ -1784,7 +1814,9 @@ function displaySearch(query) {
     withLangParam,
     translate: t,
     getHomeSlug: () => getHomeSlug(),
+    getHomeLabel: () => getHomeLabel(),
     postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled(),
     window,
     document
   });
@@ -1891,6 +1923,11 @@ function displayStaticTab(slug) {
         slug,
         siteConfig,
         features: getSiteFeatureContext(),
+        getHomeSlug: () => getHomeSlug(),
+        getHomeLabel: () => getHomeLabel(),
+        postsEnabled: () => postsEnabled(),
+        searchEnabled: () => searchEnabled(),
+        withLangParam,
         postsByLocationTitle,
         allowedLocations,
         locationAliasMap,

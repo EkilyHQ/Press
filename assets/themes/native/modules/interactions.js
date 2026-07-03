@@ -25,6 +25,17 @@ function featureEnabled(params = {}, runtimeState = null, key) {
   );
 }
 
+function getRuntimeRouter(params = {}, runtimeState = null) {
+  return (params && params.ctx && params.ctx.router)
+    || (runtimeState && runtimeState.router)
+    || {};
+}
+
+function getRuntimeRouterFunction(params = {}, runtimeState = null, name) {
+  const router = getRuntimeRouter(params, runtimeState);
+  return router && typeof router[name] === 'function' ? router[name] : null;
+}
+
 function getRuntimeLinkCardsCache(runtimeState = null) {
   return runtimeState && typeof runtimeState === 'object' ? runtimeState.linkCards : null;
 }
@@ -177,9 +188,11 @@ function withLangParam(urlStr, runtimeState = null, documentRef = defaultDocumen
 }
 
 function getLangUrlFactory(params = {}, runtimeState = null, documentRef = defaultDocument, windowRef = defaultWindow) {
-  return typeof params.withLangParam === 'function'
+  const routerWithLang = getRuntimeRouterFunction(params, runtimeState, 'withLangParam');
+  return routerWithLang
+    || (typeof params.withLangParam === 'function'
     ? params.withLangParam
-    : (url) => withLangParam(url, runtimeState, documentRef, windowRef);
+    : (url) => withLangParam(url, runtimeState, documentRef, windowRef));
 }
 
 function createNativeInteractionsRuntimeState(context = {}) {
@@ -188,6 +201,7 @@ function createNativeInteractionsRuntimeState(context = {}) {
     i18n: context && context.i18n && typeof context.i18n === 'object' ? context.i18n : null,
     regions: context && context.regions && typeof context.regions === 'object' ? context.regions : null,
     features: context && context.features && typeof context.features === 'object' ? context.features : null,
+    router: context && context.router && typeof context.router === 'object' ? context.router : null,
     hasInitiallyRendered: false,
     pendingHighlightRaf: 0,
     tabsResizeTimer: 0,
@@ -1224,15 +1238,18 @@ function renderFooterNavNative(params = {}, documentRef = defaultDocument, windo
   try { nav.hidden = false; } catch (_) {}
   try { nav.removeAttribute('aria-hidden'); } catch (_) {}
   const tabs = params.tabsBySlug || {};
-  const getHome = typeof params.getHomeSlug === 'function'
+  const getHome = getRuntimeRouterFunction(params, runtimeState, 'getHomeSlug')
+    || (typeof params.getHomeSlug === 'function'
     ? params.getHomeSlug
-    : () => getHomeSlug(tabs, windowRef);
-  const getLabel = typeof params.getHomeLabel === 'function'
+    : () => getHomeSlug(tabs, windowRef));
+  const getLabel = getRuntimeRouterFunction(params, runtimeState, 'getHomeLabel')
+    || (typeof params.getHomeLabel === 'function'
     ? params.getHomeLabel
-    : () => computeHomeLabel(getHome(), tabs, runtimeState);
-  const postsEnabledFn = typeof params.postsEnabled === 'function'
+    : () => computeHomeLabel(getHome(), tabs, runtimeState));
+  const postsEnabledFn = getRuntimeRouterFunction(params, runtimeState, 'postsEnabled')
+    || (typeof params.postsEnabled === 'function'
     ? params.postsEnabled
-    : () => postsEnabled(windowRef);
+    : () => postsEnabled(windowRef));
   const queryGetter = typeof params.getQueryVariable === 'function'
     ? params.getQueryVariable
     : (name) => getQueryVariable(name, windowRef);
@@ -1344,7 +1361,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
     try {
       const titleForMeta = metadataTitle || fallbackTitle;
       topMeta = renderMetaFn(titleForMeta, metadata, markdown, {
-        showTags: featureEnabled(params, runtimeState, 'tags')
+        showTags: featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search')
       }) || '';
       if (topMeta) bottomMeta = topMeta.replace('post-meta-card', 'post-meta-card post-meta-bottom');
     } catch (_) {
@@ -1608,7 +1625,7 @@ function renderIndexViewNative(params = {}, documentRef = defaultDocument, windo
   const translate = getTranslator(params, runtimeState);
   const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const siteConfig = params.siteConfig || {};
-  const showTags = featureEnabled(params, runtimeState, 'tags');
+  const showTags = featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search');
   const showPostMeta = featureEnabled(params, runtimeState, 'postMeta');
 
   let html = '<div class="index">';
@@ -2053,23 +2070,26 @@ function renderTabsNative(params = {}, runtimeState = createNativeInteractionsRu
   const searchQuery = params.searchQuery;
   const translate = getTranslator(params, runtimeState);
 
-  const getHomeFn = typeof params.getHomeSlug === 'function'
+  const getHomeFn = getRuntimeRouterFunction(params, runtimeState, 'getHomeSlug')
+    || (typeof params.getHomeSlug === 'function'
     ? params.getHomeSlug
-    : () => getHomeSlug(tabs, windowRef);
+    : () => getHomeSlug(tabs, windowRef));
   let homeSlugRaw;
   try { homeSlugRaw = getHomeFn(); } catch (_) { homeSlugRaw = getHomeSlug(tabs, windowRef); }
   const safeHome = slugifyTab(homeSlugRaw);
-  const postsEnabledFn = typeof params.postsEnabled === 'function'
+  const postsEnabledFn = getRuntimeRouterFunction(params, runtimeState, 'postsEnabled')
+    || (typeof params.postsEnabled === 'function'
     ? params.postsEnabled
-    : () => postsEnabled(windowRef);
+    : () => postsEnabled(windowRef));
   const homeSlug = safeHome || homeSlugRaw || (postsEnabledFn() ? 'posts' : '');
   if (!homeSlug) {
     setTrackHtml(nav, '', documentRef, windowRef, searchQuery, runtimeState);
     return;
   }
-  const getHomeLabelFn = typeof params.getHomeLabel === 'function'
+  const getHomeLabelFn = getRuntimeRouterFunction(params, runtimeState, 'getHomeLabel')
+    || (typeof params.getHomeLabel === 'function'
     ? params.getHomeLabel
-    : () => computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState);
+    : () => computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState));
   let homeLabel;
   try { homeLabel = getHomeLabelFn(); } catch (_) { homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState); }
   if (!homeLabel) homeLabel = computeHomeLabel(homeSlugRaw || homeSlug, tabs, runtimeState);

@@ -465,7 +465,7 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.desired.themeDemos.arcus.reconciler.kind, 'theme-demo-runtime-sync');
   assert.equal(state.desired.themes.catalog.expectedCount, 1);
   assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.51');
-  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 1);
+  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 3);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
   assert.equal(state.themes.catalog.status, 'ok');

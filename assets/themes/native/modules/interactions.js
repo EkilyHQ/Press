@@ -1361,7 +1361,7 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
     try {
       const titleForMeta = metadataTitle || fallbackTitle;
       topMeta = renderMetaFn(titleForMeta, metadata, markdown, {
-        showTags: featureEnabled(params, runtimeState, 'tags')
+        showTags: featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search')
       }) || '';
       if (topMeta) bottomMeta = topMeta.replace('post-meta-card', 'post-meta-card post-meta-bottom');
     } catch (_) {
@@ -1625,7 +1625,7 @@ function renderIndexViewNative(params = {}, documentRef = defaultDocument, windo
   const translate = getTranslator(params, runtimeState);
   const makeLangUrl = getLangUrlFactory(params, runtimeState, documentRef, windowRef);
   const siteConfig = params.siteConfig || {};
-  const showTags = featureEnabled(params, runtimeState, 'tags');
+  const showTags = featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search');
   const showPostMeta = featureEnabled(params, runtimeState, 'postMeta');
 
   let html = '<div class="index">';

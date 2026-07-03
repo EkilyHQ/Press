@@ -163,13 +163,13 @@ assert.match(
 const nativeThemeSource = read('assets/themes/native/modules/interactions.js');
 assert.match(
   nativeThemeSource,
-  /const showTags = featureEnabled\(params, runtimeState, 'tags'\);[\s\S]*const tag = showTags && value \? renderTags\(value\.tag\) : '';/,
-  'native index cards should hide tag chips when tags are disabled'
+  /const showTags = featureEnabled\(params, runtimeState, 'tags'\) && featureEnabled\(params, runtimeState, 'search'\);[\s\S]*const tag = showTags && value \? renderTags\(value\.tag\) : '';/,
+  'native index cards should hide tag chips when tags or search are disabled'
 );
 assert.match(
   nativeThemeSource,
-  /renderMetaFn\(titleForMeta, metadata, markdown, \{[\s\S]*showTags: featureEnabled\(params, runtimeState, 'tags'\)/,
-  'native post meta cards should pass the tags feature gate into shared meta rendering'
+  /renderMetaFn\(titleForMeta, metadata, markdown, \{[\s\S]*showTags: featureEnabled\(params, runtimeState, 'tags'\) && featureEnabled\(params, runtimeState, 'search'\)/,
+  'native post meta cards should pass the tags and search feature gates into shared meta rendering'
 );
 assert.match(
   nativeThemeSource,

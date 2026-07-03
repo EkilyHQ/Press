@@ -147,14 +147,14 @@ Official theme repositories publish a root `theme-release.json`:
   "contractVersion": 3,
   "engines": { "press": ">=3.4.127 <4.0.0" },
   "release": {
-    "tag": "v3.4.0",
-    "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.0",
+    "tag": "v3.4.5",
+    "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.5",
     "publishedAt": "2026-05-07T00:00:00Z",
     "notes": ""
   },
   "asset": {
-    "name": "press-theme-arcus-v3.4.0.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.0/press-theme-arcus-v3.4.0.zip",
+    "name": "press-theme-arcus-v3.4.5.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.5/press-theme-arcus-v3.4.5.zip",
     "size": 12345,
     "digest": "sha256:..."
   },

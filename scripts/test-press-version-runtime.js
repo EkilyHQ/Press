@@ -60,16 +60,16 @@ assert.equal((await loadPressSystemManifest({ manifestLoader: secondLoader })).v
 const guardedManifest = normalizePressSystemManifest({
   ...manifest('3.4.123'),
   themeContractUpgrade: {
-    requiresInstalledThemeContractVersion: 2,
-    message: 'Update installed themes to contract v2 first.'
+    requiresInstalledThemeContractVersion: 3,
+    message: 'Update installed themes to contract v3 first.'
   },
   contentModelUpgrade: {
     requiresUnifiedIndexTabs: true,
     message: 'Publish content model migration first.'
   }
 });
-assert.equal(guardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 2);
-assert.equal(guardedManifest.themeContractUpgrade.message, 'Update installed themes to contract v2 first.');
+assert.equal(guardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 3);
+assert.equal(guardedManifest.themeContractUpgrade.message, 'Update installed themes to contract v3 first.');
 assert.equal(guardedManifest.contentModelUpgrade.requiresUnifiedIndexTabs, true);
 assert.equal(guardedManifest.contentModelUpgrade.message, 'Publish content model migration first.');
 

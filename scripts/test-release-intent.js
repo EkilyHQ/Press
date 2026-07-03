@@ -22,8 +22,8 @@ function systemRelease(version = '3.4.62') {
       allowUnknownSource: false
     },
     themeContractUpgrade: {
-      requiresInstalledThemeContractVersion: 2,
-      message: 'Update installed themes to contract v2 first.'
+      requiresInstalledThemeContractVersion: 3,
+      message: 'Update installed themes to contract v3 first.'
     },
     contentModelUpgrade: {
       requiresUnifiedIndexTabs: true,
@@ -101,8 +101,8 @@ test('validateReleaseIntent compares theme upgrade metadata structurally', () =>
   const release = systemRelease();
   const intent = buildReleaseIntent({ systemRelease: release });
   intent.pressSystem.themeContractUpgrade = {
-    message: 'Update installed themes to contract v2 first.',
-    requiresInstalledThemeContractVersion: 2
+    message: 'Update installed themes to contract v3 first.',
+    requiresInstalledThemeContractVersion: 3
   };
 
   assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);

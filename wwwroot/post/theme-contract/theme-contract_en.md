@@ -72,9 +72,8 @@ content shapes, and archive file-type rules.
 
 - `name` and `version`: Human-facing theme identity.
 - `contractVersion`: Press runtime contract version. Contract v3 is the current
-  public chrome/runtime helper contract. The v3 transition release still accepts
-  v2 themes so sites can install v3-compatible themes before the clean release
-  requires installed themes to declare contract v3.
+  and only supported public chrome/runtime helper contract. Press rejects new
+  imports and official releases that declare older contract versions.
 - `engines.press`: Press system SemVer range the theme supports. Theme Manager
   rejects official and manually imported themes outside the current Press
   version.

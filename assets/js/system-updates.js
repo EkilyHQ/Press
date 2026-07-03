@@ -628,6 +628,93 @@ function getStagedThemeCommitFilesForUpgrade(runtime) {
   }
 }
 
+function isDeletedCommitFile(file) {
+  return !!(file && (file.deleted || file.state === 'deleted' || file.state === 'removed'));
+}
+
+function readStagedCommitFileText(file) {
+  if (!file || isDeletedCommitFile(file) || file.content == null) return '';
+  if (typeof file.content === 'string') return file.content;
+  if (file.content instanceof Uint8Array) return strFromU8(file.content);
+  try {
+    return String(file.content);
+  } catch (_) {
+    return '';
+  }
+}
+
+function stagedThemeSlugFromPath(path) {
+  const match = String(path || '').match(/^assets\/themes\/([^/]+)\/theme\.json$/);
+  return match ? normalizeExternalThemePackSlug(match[1]) : '';
+}
+
+function parseStagedThemeRegistryForUpgrade(stagedThemeFiles, targetVersion, requirement) {
+  const file = (Array.isArray(stagedThemeFiles) ? stagedThemeFiles : [])
+    .find((item) => String(item && item.path || '') === 'assets/themes/packs.json');
+  if (!file) return null;
+  if (isDeletedCommitFile(file)) {
+    createThemeContractUpgradeError(targetVersion, requirement, [], 'registry');
+  }
+  try {
+    const rawRegistry = JSON.parse(readStagedCommitFileText(file));
+    if (!Array.isArray(rawRegistry)) {
+      createThemeContractUpgradeError(targetVersion, requirement, [], 'registry');
+    }
+    return rawRegistry;
+  } catch (_) {
+    createThemeContractUpgradeError(targetVersion, requirement, [], 'registry');
+  }
+}
+
+function collectStagedThemeManifestOverrides(stagedThemeFiles) {
+  const overrides = new Map();
+  for (const file of Array.isArray(stagedThemeFiles) ? stagedThemeFiles : []) {
+    const slug = stagedThemeSlugFromPath(file && file.path);
+    if (!slug) continue;
+    const fallbackLabel = themePackLabelFromSlug(slug) || slug;
+    if (isDeletedCommitFile(file)) {
+      overrides.set(slug, {
+        value: slug,
+        label: fallbackLabel,
+        contractVersion: 0,
+        deleted: true,
+        rawEntry: { value: slug, label: fallbackLabel, contractVersion: 0 }
+      });
+      continue;
+    }
+    let manifest = null;
+    try {
+      manifest = JSON.parse(readStagedCommitFileText(file));
+    } catch (_) {
+      manifest = null;
+    }
+    const label = String((manifest && (manifest.name || manifest.label)) || fallbackLabel).trim() || fallbackLabel;
+    const contractVersion = readContractVersion(manifest && manifest.contractVersion);
+    overrides.set(slug, {
+      value: slug,
+      label,
+      contractVersion,
+      deleted: false,
+      rawEntry: {
+        ...(manifest && typeof manifest === 'object' ? manifest : {}),
+        value: slug,
+        label,
+        contractVersion
+      }
+    });
+  }
+  return overrides;
+}
+
+function collectRemovedStagedThemeSlugs(stagedThemeManifests, rawRegistry) {
+  const removed = new Set();
+  for (const entry of stagedThemeManifests.values()) {
+    if (!entry.deleted) continue;
+    if (!getRawRegistryEntry(rawRegistry, entry.value)) removed.add(entry.value);
+  }
+  return removed;
+}
+
 function getStagedContentCommitFilesForUpgrade(runtime) {
   if (!runtime || typeof runtime.getStagedContentCommitFiles !== 'function') return [];
   try {
@@ -832,27 +919,41 @@ async function assertInstalledThemeContractCompatibility(runtime, release, archi
   if (!requiredVersion) return;
 
   const stagedThemeFiles = getStagedThemeCommitFilesForUpgrade(runtime);
-  if (stagedThemeFiles.length) {
-    createThemeContractUpgradeError(targetVersion, requirement, [{
-      value: 'staged-theme-changes',
-      label: 'staged theme changes',
-      contractVersion: 0
-    }]);
+  let { rawRegistry, registry } = await loadInstalledThemeRegistryForUpgrade(runtime, targetVersion, requirement);
+  const stagedRawRegistry = parseStagedThemeRegistryForUpgrade(stagedThemeFiles, targetVersion, requirement);
+  if (stagedRawRegistry) {
+    rawRegistry = stagedRawRegistry;
+    registry = normalizeThemeRegistry(stagedRawRegistry);
   }
-
-  const { rawRegistry, registry } = await loadInstalledThemeRegistryForUpgrade(runtime, targetVersion, requirement);
+  const stagedThemeManifests = collectStagedThemeManifestOverrides(stagedThemeFiles);
+  const removedStagedThemeSlugs = collectRemovedStagedThemeSlugs(stagedThemeManifests, rawRegistry);
   const candidates = new Map();
   for (const entry of registry) {
     if (!entry || entry.builtIn || entry.value === 'native') continue;
     addThemeContractCandidate(candidates, entry, getRawRegistryEntry(rawRegistry, entry.value));
   }
+  for (const entry of stagedThemeManifests.values()) {
+    if (removedStagedThemeSlugs.has(entry.value)) continue;
+    candidates.set(entry.value, {
+      value: entry.value,
+      label: entry.label,
+      rawEntry: entry.rawEntry,
+      source: 'staged'
+    });
+  }
   collectStoredThemePackCandidates(runtime, candidates);
   await collectConfiguredThemePackCandidates(runtime, candidates);
+  for (const slug of removedStagedThemeSlugs) candidates.delete(slug);
 
   const incompatible = [];
   for (const entry of candidates.values()) {
-    const rawEntry = entry.rawEntry || getRawRegistryEntry(rawRegistry, entry.value);
-    const resolution = await resolveInstalledThemeContractVersion(runtime, entry, rawEntry);
+    const stagedEntry = stagedThemeManifests.get(entry.value);
+    const rawEntry = stagedEntry && !stagedEntry.deleted
+      ? stagedEntry.rawEntry
+      : entry.rawEntry || getRawRegistryEntry(rawRegistry, entry.value);
+    const resolution = stagedEntry
+      ? { installed: true, contractVersion: stagedEntry.deleted ? 0 : stagedEntry.contractVersion }
+      : await resolveInstalledThemeContractVersion(runtime, entry, rawEntry);
     if (!resolution.installed && !rawEntry) continue;
     const contractVersion = resolution.contractVersion;
     if (!contractVersion || contractVersion < requiredVersion) {

@@ -1461,6 +1461,35 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } const bound = mutate.bind(null, new URL(endpoint)); return bound(); };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(ctx, url) { url.searchParams.set("id", post.location); return url.href; } return mutate(null, new URL(endpoint)); };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export default { mount(a, b) { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } if (a) { function mutate(url) { return url.href; } } if (b) { return mutate(new URL(location.href)); } return null; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
         'modules/interactions.js': `import { endpoint } from "./config.js";
 export const route = ({ endpoint }, post) => (
   endpoint + "?id=" + post.location
@@ -1754,6 +1783,13 @@ export const route = ({ endpoint }, post) => (
     files: {
       'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
       'modules/layout.js': 'import { endpoint } from "./config.js"; export default { mount() { const helper = { mutate(url) { url.searchParams.set("id", sku); return url.href; } }; function mutate(url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null); return { objectUrl: helper.mutate(new URL(endpoint)), boundUrl: bound(new URL(endpoint)) }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+      'modules/layout.js': 'import { endpoint } from "./config.js"; export default { mount() { function mutate(ctx, url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null, "ctx"); return { direct: mutate("ctx", new URL(endpoint)), bound: bound(new URL(endpoint)) }; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({

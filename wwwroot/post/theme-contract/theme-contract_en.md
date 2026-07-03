@@ -40,9 +40,9 @@ content shapes, and archive file-type rules.
 {
   "$schema": "../../schema/theme.json",
   "name": "Native",
-  "version": "3.4.1",
-  "contractVersion": 2,
-  "engines": { "press": ">=3.4.123 <4.0.0" },
+  "version": "3.4.2",
+  "contractVersion": 3,
+  "engines": { "press": ">=3.4.127 <4.0.0" },
   "styles": ["theme.css"],
   "modules": ["modules/layout.js", "modules/interactions.js", "modules/views.js"],
   "views": {
@@ -71,11 +71,10 @@ content shapes, and archive file-type rules.
 ```
 
 - `name` and `version`: Human-facing theme identity.
-- `contractVersion`: Press runtime contract version. The current and only
-  supported value is `2`. Contract v2 uses the `<press-theme-controls>`
-  component contract. Sites with older contract v1 themes must pass through
-  Press v3.4.122, update installed themes to contract v2, and then install
-  Press v3.4.123 or later.
+- `contractVersion`: Press runtime contract version. Contract v3 is the current
+  public chrome/runtime helper contract. The v3 transition release still accepts
+  v2 themes so sites can install v3-compatible themes before the clean release
+  requires installed themes to declare contract v3.
 - `engines.press`: Press system SemVer range the theme supports. Theme Manager
   rejects official and manually imported themes outside the current Press
   version.
@@ -105,8 +104,8 @@ changes to it through Publish, and Press system updates do not overwrite it.
   "value": "arcus",
   "label": "Arcus",
   "version": "3.4.0",
-  "contractVersion": 2,
-  "engines": { "press": ">=3.4.123 <4.0.0" },
+  "contractVersion": 3,
+  "engines": { "press": ">=3.4.127 <4.0.0" },
   "builtIn": false,
   "removable": true,
   "source": {
@@ -144,9 +143,9 @@ Official theme repositories publish a root `theme-release.json`:
   "type": "press-theme",
   "value": "arcus",
   "label": "Arcus",
-  "version": "3.4.0",
-  "contractVersion": 2,
-  "engines": { "press": ">=3.4.123 <4.0.0" },
+  "version": "3.4.5",
+  "contractVersion": 3,
+  "engines": { "press": ">=3.4.127 <4.0.0" },
   "release": {
     "tag": "v3.4.0",
     "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.0",
@@ -227,7 +226,8 @@ no global adapter object or fixed-ID compatibility layer.
 View render calls receive `ctx` alongside the view payload:
 
 - `ctx.document` and `ctx.window`
-- `ctx.router` with route key, query, language-aware links, and navigation
+- `ctx.router` with route key, query, language-aware links, navigation,
+  `getHomeSlug()`, `getHomeLabel()`, `postsEnabled()`, and `searchEnabled()`
 - `ctx.i18n` with `t`, `withLangParam`, `getCurrentLang`,
   `switchLanguage`, `ensureLanguageBundle`, `getAvailableLangs`,
   `getLanguageLabel`, and current `lang`
@@ -242,6 +242,11 @@ Theme modules must read translation state from `ctx.i18n`. Do not import
 `assets/js/i18n.js` directly from a theme module, with or without a cache
 version query; doing so creates a separate ES module instance and splits the
 runtime language state.
+
+Contract v3 themes must also respect `ctx.features.isEnabled(key)` for public
+chrome. Use runtime helpers for home/posts/search links instead of hard-coding
+article-site assumptions such as a brand link to `?tab=posts`. When search is
+disabled, tag navigation is disabled too.
 
 ## Region Registry
 Theme modules register DOM handles through the registry:

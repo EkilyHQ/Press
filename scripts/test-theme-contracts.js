@@ -161,11 +161,18 @@ const themeLayoutSource = read(path.join(root, 'assets', 'js', 'theme-layout.js'
 const themeManagerSource = read(path.join(root, 'assets', 'js', 'theme-manager.js'));
 const themePackageCoreSource = read(path.join(root, 'assets', 'js', 'theme-package-core.js'));
 const mainSource = read(path.join(root, 'assets', 'main.js'));
+const editorPreviewRuntimeSource = read(path.join(root, 'assets', 'js', 'editor-preview-runtime.js'));
 const contentModelSource = read(path.join(root, 'assets', 'js', 'content-model.js'));
 const themeContractSource = read(path.join(root, 'wwwroot', 'post', 'theme-contract', 'theme-contract_en.md'));
 
 if (PRESS_THEME_CONTRACT.schemaVersion !== 1 || PRESS_THEME_CONTRACT.type !== 'press-theme-contract') {
   fail('assets/js/theme-contract-surface.mjs must declare the press-theme-contract surface');
+}
+if (PRESS_THEME_CONTRACT.contractVersion !== 3) {
+  fail('assets/js/theme-contract-surface.mjs must declare contractVersion 3 as the current theme contract');
+}
+if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([2, 3])) {
+  fail('the v3 transition release must support theme contract versions [2, 3]');
 }
 if (PRESS_THEME_CONTRACT.manifestSchemaPath !== 'assets/schema/theme.json') {
   fail('theme contract surface must point at assets/schema/theme.json');
@@ -240,6 +247,29 @@ if (!mainSource.includes('getThemeApiHandler')) {
 if (!/i18n:\s*createThemeI18nContext\(\)/.test(mainSource)) {
   fail('assets/main.js must pass the standard ctx.i18n shape to theme view handlers');
 }
+[
+  ['getHomeSlug', /function createThemeRouterContext\(\)[\s\S]*getHomeSlug:\s*\(\)\s*=>\s*getHomeSlug\(\)/],
+  ['getHomeLabel', /function createThemeRouterContext\(\)[\s\S]*getHomeLabel:\s*\(\)\s*=>\s*getHomeLabel\(\)/],
+  ['postsEnabled', /function createThemeRouterContext\(\)[\s\S]*postsEnabled:\s*\(\)\s*=>\s*postsEnabled\(\)/],
+  ['searchEnabled', /function createThemeRouterContext\(\)[\s\S]*searchEnabled:\s*\(\)\s*=>\s*searchEnabled\(\)/],
+  ['withLangParam', /function createThemeRouterContext\(\)[\s\S]*withLangParam/]
+].forEach(([name, re]) => {
+  if (!re.test(mainSource)) fail(`assets/main.js must expose ctx.router.${name} for contract v3 themes`);
+});
+if (!/router:\s*createThemeRouterContext\(\)/.test(mainSource)) {
+  fail('assets/main.js createThemeRuntimeContext must use the shared v3 router helper context');
+}
+if (!/function renderSiteIdentity[\s\S]*\bctx,?[\s\S]*getHomeSlug:\s*\(\)\s*=>\s*getHomeSlug\(\)[\s\S]*postsEnabled:\s*\(\)\s*=>\s*postsEnabled\(\)[\s\S]*searchEnabled:\s*\(\)\s*=>\s*searchEnabled\(\)/.test(mainSource)) {
+  fail('assets/main.js renderSiteIdentity must pass v3 home/posts/search helpers to theme effects');
+}
+[
+  ['getHomeSlug', /router:\s*\{[\s\S]*getHomeSlug:\s*\(\)\s*=>\s*getPreviewHomeSlug\(payload,\s*features\)/],
+  ['getHomeLabel', /router:\s*\{[\s\S]*getHomeLabel:\s*\(\)\s*=>\s*getPreviewHomeLabel\(payload,\s*features\)/],
+  ['postsEnabled', /router:\s*\{[\s\S]*postsEnabled:\s*\(\)\s*=>\s*previewPostsEnabled\(features\)/],
+  ['searchEnabled', /router:\s*\{[\s\S]*searchEnabled:\s*\(\)\s*=>\s*previewSearchEnabled\(features\)/]
+].forEach(([name, re]) => {
+  if (!re.test(editorPreviewRuntimeSource)) fail(`assets/js/editor-preview-runtime.js must expose ctx.router.${name} for contract v3 themes`);
+});
 if (!/renderPostView[\s\S]*content,[\s\S]*rawMarkdown/.test(mainSource)) {
   fail('assets/main.js must pass the structured content model into post view rendering');
 }

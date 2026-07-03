@@ -23,8 +23,8 @@
     },
     "contractVersion": {
       "type": "integer",
-      "enum": [2],
-      "description": "Press theme contract version this manifest targets. Contract v2 is the current component contract."
+      "enum": [2, 3],
+      "description": "Press theme contract version this manifest targets. Contract v3 is the current public chrome/runtime helper contract; v2 remains accepted during the v3 transition release."
     },
     "engines": {
       "type": "object",

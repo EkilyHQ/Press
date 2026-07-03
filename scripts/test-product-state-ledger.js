@@ -795,6 +795,19 @@ test('buildProductState accepts supported theme contract versions', async () => 
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 3)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.themes.entries[0].contractVersion, 3);
+  assert.notEqual(state.themes.entries[0].status, 'drift');
+});
+
+test('buildProductState accepts transition theme contract v2', async () => {
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
       'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 2)
     })),
     generatedAt: '2026-05-25T00:00:00Z'

@@ -73,7 +73,7 @@ async function sha256(buffer) {
 function makeThemeManifest({
   name = 'Test',
   version = '1.0.0',
-  contractVersion = 2,
+  contractVersion = 3,
   engines = { press: '>=3.4.0 <4.0.0' },
   styles = ['theme.css'],
   modules = ['modules/layout.js'],
@@ -110,7 +110,7 @@ function makeThemeManifest({
   };
 }
 
-function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contractVersion = 2, files = {} } = {}) {
+function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contractVersion = 3, files = {} } = {}) {
   const manifest = makeThemeManifest({ name, version, contractVersion });
   return makeZip({
     [`press-theme-${slug}/theme.json`]: JSON.stringify(manifest, null, 2),
@@ -520,7 +520,11 @@ await run('normalizes registry and catalog metadata', async () => {
 
 await run('keeps Press repository installed registry native-only', async () => {
   const packs = JSON.parse(readFileSync(new URL('../assets/themes/packs.json', import.meta.url), 'utf8'));
+  const nativeManifest = JSON.parse(readFileSync(new URL('../assets/themes/native/theme.json', import.meta.url), 'utf8'));
   assert.deepEqual(packs.map((entry) => entry.value), ['native']);
+  assert.equal(packs[0].version, nativeManifest.version);
+  assert.equal(packs[0].contractVersion, nativeManifest.contractVersion);
+  assert.equal(packs[0].engines.press, nativeManifest.engines.press);
 });
 
 await run('loads official theme catalog from the remote catalog URL', async () => {
@@ -699,7 +703,7 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
     value: 'arcus',
     label: 'Arcus',
     version: '1.2.3',
-    contractVersion: 2,
+    contractVersion: 3,
     engines: { press: '>=3.4.0 <4.0.0' },
     release: { tag: 'v1.2.3' },
     asset: {
@@ -712,9 +716,10 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
   });
   assert.equal(manifest.value, 'arcus');
   assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
-  assert.equal(manifest.contractVersion, 2);
+  assert.equal(manifest.contractVersion, 3);
+  assert.equal(normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }).contractVersion, 2);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 1 }), /contractVersion/i);
-  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 3 }), /contractVersion/i);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 4 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, engines: {} }), /engines\.press/i);
 });
 
@@ -760,7 +765,7 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
     /contractVersion/i
   );
   assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })),
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 4 })),
     /contractVersion/i
   );
 });
@@ -1222,7 +1227,7 @@ await run('failed replacement staging keeps uninstall fallback active', async ()
   assert.equal(themePack, 'native');
   assert(getThemeManagerCommitFiles().some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
   await assert.rejects(
-    () => analyzeThemeArchive(makeThemeZip({ slug: 'replacement', contractVersion: 3 }), 'press-theme-replacement-v1.0.0.zip'),
+    () => analyzeThemeArchive(makeThemeZip({ slug: 'replacement', contractVersion: 4 }), 'press-theme-replacement-v1.0.0.zip'),
     /contractVersion/i
   );
   assert.equal(themePack, 'native');
@@ -1250,7 +1255,7 @@ await run('failed import keeps existing uninstall staging active', async () => {
   try {
     await handleImportFile({
       name: 'press-theme-bad-v1.0.0.zip',
-      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 3 })
+      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 4 })
     });
   } finally {
     console.error = originalError;

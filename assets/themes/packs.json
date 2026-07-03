@@ -2,10 +2,10 @@
   {
     "value": "native",
     "label": "Native",
-    "version": "3.4.1",
-    "contractVersion": 2,
+    "version": "3.4.2",
+    "contractVersion": 3,
     "engines": {
-      "press": ">=3.4.123 <4.0.0"
+      "press": ">=3.4.127 <4.0.0"
     },
     "builtIn": true,
     "removable": false,
@@ -13,7 +13,7 @@
       "type": "builtin"
     },
     "release": {
-      "tag": "v3.4.1"
+      "tag": "v3.4.2"
     },
     "files": [
       "base.css",

@@ -1093,6 +1093,20 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     }
     return false;
   };
+  const callIsShadowedInNestedScope = (name, scope, scopedCallIndex) => {
+    const globalCallIndex = scope.start + scopedCallIndex;
+    const rootName = String(name || '').split(/\s*\.\s*/).filter(Boolean)[0] || '';
+    if (!rootName) return false;
+    const scopeDepth = braceDepthAt(text, scope.start);
+    const before = text.slice(scope.start, globalCallIndex);
+    const shadowRe = new RegExp(`\\b(?:const|let|var|function)\\s+${escapeRe(rootName)}\\b`, 'g');
+    let shadow = shadowRe.exec(before);
+    while (shadow) {
+      if (braceDepthAt(text, scope.start + shadow.index) > scopeDepth) return true;
+      shadow = shadowRe.exec(before);
+    }
+    return false;
+  };
   const callbackCallSuffix = /^\s*(?:\)\s*\(\s*new\s+URL\s*\(|\)\s*\.\s*call\s*\(\s*[\s\S]*?,\s*new\s+URL\s*\(|\)\s*\.\s*apply\s*\(\s*[\s\S]*?,\s*\[\s*new\s+URL\s*\()/;
   const re = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\(([\\s\\S]*?)\\)\\s*\\)\\s*\\(\\s*new\\s+URL\\s*\\(`, 'g');
   let match = re.exec(text);
@@ -1219,7 +1233,8 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     match = directCallRe.exec(scopedText);
     while (match) {
       const parsed = extractCallArgs(scopedText, directCallRe.lastIndex);
-      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) return true;
+      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)
+        && !callIsShadowedInNestedScope(name, scope, match.index)) return true;
       if (parsed.end > directCallRe.lastIndex) directCallRe.lastIndex = parsed.end;
       match = directCallRe.exec(scopedText);
     }
@@ -1232,7 +1247,7 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
       const relative = method === 'apply'
         ? applyArrayFirstArgIsRelativeNewUrl(parts[1] || '')
         : expressionIsRelativeNewUrl(parts[1] || '');
-      if (relative) return true;
+      if (relative && !callIsShadowedInNestedScope(name, scope, match.index)) return true;
       if (parsed.end > methodCallRe.lastIndex) methodCallRe.lastIndex = parsed.end;
       match = methodCallRe.exec(scopedText);
     }
@@ -1386,6 +1401,7 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file imported external URL helper mutator context', 'import { endpoint } from "./config.js"; const mutate = (url) => { url.searchParams.set("id", sku); return url.href; }; mutate(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL object and bound helper mutator context', 'import { endpoint } from "./config.js"; const helper = { mutate(url) { url.searchParams.set("id", sku); return url.href; } }; function mutate(url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null); helper.mutate(new URL(endpoint)); bound(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-scope helper mutator name does not leak', 'function setup() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } function route() { function mutate(url) { return url.href; } return mutate(new URL(location.href)); }', false],
+  ['nested helper mutator shadow does not leak', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }; if (ok) { function mutate(url) { return url.href; } const helper = { mutate(url) { return url.href; } }; mutate(new URL(location.href)); helper.mutate(new URL(location.href)); }', false],
   ['semicolonless expression arrow does not shadow later external route', 'import { endpoint } from "./config.js"; const helper = endpoint => endpoint\nconst url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL relative concat with base context', 'import { endpoint } from "./config.js"; const url = new URL("?id=" + sku, endpoint); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file unrelated import does not allow alias', 'import { endpoint } from "./internal.js"; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }, { path: 'modules/internal.js', source: 'export const endpoint = location.href;' }] }],

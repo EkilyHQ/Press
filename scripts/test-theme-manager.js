@@ -1765,6 +1765,12 @@ export const route = ({ endpoint }, post) => (
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
     contractVersion: 4,
     files: {
+      'modules/layout.js': 'export default { mount(ok) { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }; if (ok) { function mutate(url) { return url.href; } const helper = { mutate(url) { return url.href; } }; return { direct: mutate(new URL(location.href)), member: helper.mutate(new URL(location.href)) }; } return null; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
       'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
       'modules/layout.js': 'import { endpoint } from "./config.js"; const helper = endpoint => endpoint\nexport default { mount() { const url = new URL(endpoint); url.searchParams.set("id", sku); return { url: url.href, helper }; }, views: {}, components: {}, effects: {} };'
     }

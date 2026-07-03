@@ -1259,6 +1259,26 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/config.js': 'export const key = "id";',
+        'modules/interactions.js': 'import { key } from "./config.js"; export function mount() { const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function route(endpoint, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/interactions.js': 'export function mount() { const routeKey = "id"; return `?${routeKey}=${post.location}`; }'
       }
     })),

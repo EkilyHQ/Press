@@ -219,6 +219,73 @@ function collectStaticRelativeUrlAliases(source) {
   return aliases;
 }
 
+function collectImportedAliasMap(source) {
+  const text = safeString(source);
+  const imports = new Map();
+  const re = /\bimport\s*\{([\s\S]*?)\}\s*from\s*(['"])[^'"]+\2/g;
+  let match = re.exec(text);
+  while (match) {
+    (match[1] || '').split(',').forEach((part) => {
+      const spec = part.trim();
+      if (!spec) return;
+      const alias = spec.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+      if (alias) {
+        imports.set(alias[2], alias[1]);
+      } else if (/^[A-Za-z_$][\w$]*$/.test(spec)) {
+        imports.set(spec, spec);
+      }
+    });
+    match = re.exec(text);
+  }
+  return imports;
+}
+
+function collectLocalBindingNames(source) {
+  const text = safeString(source);
+  const bindings = new Set();
+  const declarationRe = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g;
+  let match = declarationRe.exec(text);
+  while (match) {
+    bindings.add(match[1]);
+    match = declarationRe.exec(text);
+  }
+  const addParams = (params) => {
+    safeString(params).split(',').forEach((part) => {
+      const name = part.trim().match(/^([A-Za-z_$][\w$]*)$/);
+      if (name) bindings.add(name[1]);
+    });
+  };
+  const functionRe = /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)/g;
+  match = functionRe.exec(text);
+  while (match) {
+    addParams(match[1]);
+    match = functionRe.exec(text);
+  }
+  const arrowRe = /\(([^)]*)\)\s*=>/g;
+  match = arrowRe.exec(text);
+  while (match) {
+    addParams(match[1]);
+    match = arrowRe.exec(text);
+  }
+  const singleArrowRe = /(?:^|[=(:,]\s*)([A-Za-z_$][\w$]*)\s*=>/g;
+  match = singleArrowRe.exec(text);
+  while (match) {
+    bindings.add(match[1]);
+    match = singleArrowRe.exec(text);
+  }
+  return bindings;
+}
+
+function mergeImportedContextAliases(localAliases, contextAliases, source) {
+  const out = new Set(localAliases || []);
+  const imports = collectImportedAliasMap(source);
+  const shadowed = collectLocalBindingNames(source);
+  imports.forEach((importedName, localName) => {
+    if (contextAliases.has(importedName) && !shadowed.has(localName)) out.add(localName);
+  });
+  return out;
+}
+
 function sourceArgIsRouteKey(arg, aliases) {
   const value = safeString(arg).trim();
   return new RegExp(`^(?:${routeKeyExpressionPattern(aliases)})$`).test(value);
@@ -776,9 +843,9 @@ function containsForbiddenLocationSearchAssignment(source, aliases = new Set()) 
 function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const text = safeString(source);
   const context = safeString(contextSource);
-  const aliases = collectRouteKeyAliases(text);
-  const externalAliases = collectExternalUrlAliases(context);
-  const staticRelativeAliases = collectStaticRelativeUrlAliases(context);
+  const aliases = mergeImportedContextAliases(collectRouteKeyAliases(text), collectRouteKeyAliases(context), text);
+  const externalAliases = mergeImportedContextAliases(collectExternalUrlAliases(text), collectExternalUrlAliases(context), text);
+  const staticRelativeAliases = mergeImportedContextAliases(collectStaticRelativeUrlAliases(text), collectStaticRelativeUrlAliases(context), text);
   const inlineSearchParamsAliases = collectInlineUrlSearchParamsAliases(text);
   return containsForbiddenRouteLiteral(text, externalAliases)
     || containsForbiddenLocationSearchAssignment(text, aliases)

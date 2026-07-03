@@ -85,7 +85,7 @@ function pressManifest(version = '3.4.51') {
   };
 }
 
-function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0', contractVersion = 2) {
+function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0', contractVersion = 3) {
   return {
     schemaVersion: 1,
     type: 'press-theme',
@@ -488,8 +488,8 @@ test('buildProductState reports ok when all declared and observed facts agree', 
 test('buildProductState preserves release upgrade metadata for release intent validation', async () => {
   const release = systemRelease();
   release.themeContractUpgrade = {
-    requiresInstalledThemeContractVersion: 2,
-    message: 'Update installed themes to contract v2 first.'
+    requiresInstalledThemeContractVersion: 3,
+    message: 'Update installed themes to contract v3 first.'
   };
   release.contentModelUpgrade = {
     requiresUnifiedIndexTabs: true,
@@ -804,7 +804,7 @@ test('buildProductState accepts supported theme contract versions', async () => 
   assert.notEqual(state.themes.entries[0].status, 'drift');
 });
 
-test('buildProductState accepts transition theme contract v2', async () => {
+test('buildProductState rejects transition theme contract v2 after cleanup', async () => {
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
@@ -814,7 +814,9 @@ test('buildProductState accepts transition theme contract v2', async () => {
   });
 
   assert.equal(state.themes.entries[0].contractVersion, 2);
-  assert.notEqual(state.themes.entries[0].status, 'drift');
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themes.entries[0].status, 'drift');
+  assert.match(state.themes.entries[0].problems.join('\n'), /supported contractVersion/);
 });
 
 test('buildProductState rejects legacy theme contract versions', async () => {

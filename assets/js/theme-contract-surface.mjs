@@ -14,7 +14,7 @@ const REQUIRED_THEME_CONTENT_SHAPES = Object.freeze([
 ]);
 const REQUIRED_THEME_MANIFEST_FIELDS = Object.freeze(['contractVersion', 'engines', 'content', 'modules']);
 const DEFAULT_THEME_STYLES = Object.freeze(['theme.css']);
-const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([2, 3]);
+const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([3]);
 const THEME_ARCHIVE_ALLOWED_EXTENSIONS = Object.freeze([
   '.avif', '.css', '.gif', '.ico', '.jpeg', '.jpg', '.js', '.json', '.mjs', '.otf',
   '.png', '.svg', '.ttf', '.txt', '.webp', '.woff', '.woff2'

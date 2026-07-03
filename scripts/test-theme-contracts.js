@@ -171,8 +171,8 @@ if (PRESS_THEME_CONTRACT.schemaVersion !== 1 || PRESS_THEME_CONTRACT.type !== 'p
 if (PRESS_THEME_CONTRACT.contractVersion !== 3) {
   fail('assets/js/theme-contract-surface.mjs must declare contractVersion 3 as the current theme contract');
 }
-if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([2, 3])) {
-  fail('the v3 transition release must support theme contract versions [2, 3]');
+if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([3])) {
+  fail('the v3 cleanup release must support only theme contract version 3');
 }
 if (PRESS_THEME_CONTRACT.manifestSchemaPath !== 'assets/schema/theme.json') {
   fail('theme contract surface must point at assets/schema/theme.json');

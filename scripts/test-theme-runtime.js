@@ -170,7 +170,7 @@ function makeManifest(pack, modules) {
   return {
     name: pack,
     version: '1.0.0',
-    contractVersion: 2,
+    contractVersion: 3,
     styles: ['theme.css', 'extra.css'],
     modules,
     views: { post: {}, posts: {}, search: {}, tab: {} },

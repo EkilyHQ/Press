@@ -664,10 +664,10 @@ await run('renders product-state release metadata for official themes', async ()
   assert.match(availableText, /release ok v1\.2\.3/);
 });
 
-await run('renders installed v1 themes as contract migration candidates', async () => {
+await run('renders installed legacy themes as contract migration candidates', async () => {
   const documentRef = makeThemeManagerDocument();
   mockFetchRegistry([
-    { value: 'native', label: 'Native', builtIn: true, removable: false, contractVersion: 2, files: [] },
+    { value: 'native', label: 'Native', builtIn: true, removable: false, contractVersion: 3, files: [] },
     { value: 'arcus', label: 'Arcus', version: '3.4.2', contractVersion: 1, files: ['theme.json'] },
     { value: 'legacy', label: 'Legacy', version: '0.9.0', files: ['theme.json'] },
     { value: 'cartograph', label: 'Cartograph', version: '3.4.3', contractVersion: 2, files: ['theme.json'] }
@@ -696,7 +696,7 @@ await run('renders installed v1 themes as contract migration candidates', async 
   assert.match(installedText, /contract v2/i);
 });
 
-await run('normalizes release manifests and rejects contract mismatch', async () => {
+await run('normalizes release manifests and rejects unsupported contracts', async () => {
   const manifest = normalizeThemeReleaseManifest({
     schemaVersion: 1,
     type: 'press-theme',
@@ -717,7 +717,7 @@ await run('normalizes release manifests and rejects contract mismatch', async ()
   assert.equal(manifest.value, 'arcus');
   assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
   assert.equal(manifest.contractVersion, 3);
-  assert.equal(normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }).contractVersion, 2);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 1 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 4 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, engines: {} }), /engines\.press/i);
@@ -730,21 +730,21 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      '../theme.json': '{"name":"Test","version":"1.0.0","contractVersion":2}',
+      '../theme.json': '{"name":"Test","version":"1.0.0","contractVersion":3}',
       '../theme.css': 'body{}'
     })),
     /unsafe/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      './theme.json': '{"name":"Test","version":"1.0.0","contractVersion":2}',
+      './theme.json': '{"name":"Test","version":"1.0.0","contractVersion":3}',
       './theme.css': 'body{}'
     })),
     /unsafe/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      'press-theme-test/theme.json': '{"name":"Test","version":"1.0.0","contractVersion":2}',
+      'press-theme-test/theme.json': '{"name":"Test","version":"1.0.0","contractVersion":3}',
       'press-theme-test/modules//layout.js': 'export {};'
     })),
     /unsafe/i
@@ -755,10 +755,14 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      'arcus/theme.json': '{"name":"Arcus","contractVersion":2}',
-      'solstice/theme.json': '{"name":"Solstice","contractVersion":2}'
+      'arcus/theme.json': '{"name":"Arcus","contractVersion":3}',
+      'solstice/theme.json': '{"name":"Solstice","contractVersion":3}'
     })),
     /theme\.json|single|root/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 2 })),
+    /contractVersion/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 1 })),
@@ -777,7 +781,7 @@ await run('rejects invalid theme manifests before staging', async () => {
       'press-theme-bad/theme.json': JSON.stringify({
         name: 'Bad',
         version: '1.0.0',
-        contractVersion: 2,
+        contractVersion: 3,
         styles: ['theme.css']
       }, null, 2),
       'press-theme-bad/theme.css': ':root{}'
@@ -854,7 +858,7 @@ await run('blocks official theme releases outside the current Press engine range
         value: 'cataloged',
         label: 'Cataloged',
         version: '1.0.0',
-        contractVersion: 2,
+        contractVersion: 3,
         engines: { press: '>=4.0.0 <5.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',
@@ -1167,7 +1171,7 @@ await run('filters catalog-inferred inventory to existing files during uninstall
         value: 'cataloged',
         label: 'Cataloged',
         version: '1.0.0',
-        contractVersion: 2,
+        contractVersion: 3,
         engines: { press: '>=3.4.0 <4.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',

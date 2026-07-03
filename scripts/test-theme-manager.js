@@ -1441,6 +1441,26 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { const helper = { mutate(url) { url.searchParams.set("id", post.location); return url.href; } }; return helper.mutate(new URL(endpoint)); };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } const bound = mutate.bind(null); return bound(new URL(endpoint)); };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
         'modules/interactions.js': `import { endpoint } from "./config.js";
 export const route = ({ endpoint }, post) => (
   endpoint + "?id=" + post.location
@@ -1727,6 +1747,13 @@ export const route = ({ endpoint }, post) => (
     files: {
       'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
       'modules/layout.js': 'import { endpoint } from "./config.js"; export default { mount() { const mutate = (url) => { url.searchParams.set("id", sku); return url.href; }; return { url: mutate(new URL(endpoint)) }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
+      'modules/layout.js': 'import { endpoint } from "./config.js"; export default { mount() { const helper = { mutate(url) { url.searchParams.set("id", sku); return url.href; } }; function mutate(url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null); return { objectUrl: helper.mutate(new URL(endpoint)), boundUrl: bound(new URL(endpoint)) }; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({

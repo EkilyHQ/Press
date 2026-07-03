@@ -2188,7 +2188,7 @@ function scriptTypeAllowsRouteScan(attrs) {
 
 function containsForbiddenHtmlInlineRouteCode(source, aliases, externalAliases, staticRelativeAliases) {
   const text = stripHtmlCommentsForRouteGuard(source);
-  const re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+  const re = /<script\b([^>]*)>([\s\S]*?)<\/script(?=[\s>])[^>]*>/gi;
   let match = re.exec(text);
   while (match) {
     if (!scriptTypeAllowsRouteScan(match[1] || '')) {

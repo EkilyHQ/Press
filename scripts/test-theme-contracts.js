@@ -2240,7 +2240,7 @@ function scriptTypeAllowsRouteScan(attrs) {
 
 function containsForbiddenHtmlInlineRouteCode(source, aliases, externalAliases, staticRelativeAliases) {
   const text = stripHtmlCommentsForRouteGuard(source);
-  const re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+  const re = /<script\b([^>]*)>([\s\S]*?)<\/script(?=[\s>])[^>]*>/gi;
   let match = re.exec(text);
   while (match) {
     if (!scriptTypeAllowsRouteScan(match[1] || '')) {
@@ -2354,6 +2354,7 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['HTML https text before public route attribute', '<p>https://example.test</p><a href="?id=post.md">Post</a>', true, { path: 'assets/link.html', files: [] }],
   ['HTML srcset public route attribute', '<img srcset="?id=post.md 1x, ?tab=posts 2x">', true, { path: 'assets/card.html', files: [] }],
   ['HTML inline script public route builder', '<script>location.search = "id=" + post.location;</script>', true, { path: 'assets/card.html', files: [] }],
+  ['HTML inline script public route builder with loose end tag', '<script>location.search = "id=" + post.location;</script\t\n data-x>', true, { path: 'assets/card.html', files: [] }],
   ['HTML JSON script route data is ignored', '<script type="application/json">{"href":"?id=post.md"}</script>', false, { path: 'assets/data.html', files: [] }],
   ['JS comment with HTML route attribute is ignored', '// <a href="?id=post.md">old</a>\nreturn router.getPostHref(post);', false, { path: 'modules/layout.js', files: [] }],
   ['JS regex literal does not hide later route literal', 'const re = /^https?:\\/\\//; return "?id=post.md";', true, { path: 'modules/layout.js', files: [] }],

@@ -219,20 +219,21 @@ function collectStaticRelativeUrlAliases(source) {
   return aliases;
 }
 
-function collectImportedAliasMap(source) {
+function collectNamedImports(source) {
   const text = safeString(source);
-  const imports = new Map();
+  const imports = [];
   const re = /\bimport\s*\{([\s\S]*?)\}\s*from\s*(['"])[^'"]+\2/g;
   let match = re.exec(text);
   while (match) {
+    const specifier = (match[0].match(/\bfrom\s*(['"])([^'"]+)\1/) || [])[2] || '';
     (match[1] || '').split(',').forEach((part) => {
       const spec = part.trim();
       if (!spec) return;
       const alias = spec.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
       if (alias) {
-        imports.set(alias[2], alias[1]);
+        imports.push({ importedName: alias[1], localName: alias[2], specifier });
       } else if (/^[A-Za-z_$][\w$]*$/.test(spec)) {
-        imports.set(spec, spec);
+        imports.push({ importedName: spec, localName: spec, specifier });
       }
     });
     match = re.exec(text);
@@ -276,11 +277,49 @@ function collectLocalBindingNames(source) {
   return bindings;
 }
 
-function mergeImportedContextAliases(localAliases, contextAliases, source) {
+function normalizeRouteGuardContext(contextSource, fallbackSource = '', fallbackPath = '') {
+  if (contextSource && typeof contextSource === 'object' && Array.isArray(contextSource.files)) {
+    const files = contextSource.files.map((file) => ({
+      path: safeString(file && file.path).replace(/\\+/g, '/'),
+      source: safeString(file && file.source)
+    }));
+    return {
+      path: safeString(contextSource.path || fallbackPath).replace(/\\+/g, '/'),
+      files,
+      source: files.map((file) => file.source).join('\n')
+    };
+  }
+  return {
+    path: safeString(fallbackPath).replace(/\\+/g, '/'),
+    files: [],
+    source: safeString(contextSource || fallbackSource)
+  };
+}
+
+function resolveImportPath(fromPath, specifier) {
+  const spec = safeString(specifier).trim();
+  if (!spec.startsWith('.')) return '';
+  const fromDir = safeString(fromPath).split('/').slice(0, -1).join('/');
+  const normalized = `${fromDir ? `${fromDir}/` : ''}${spec}`.split('/');
+  const out = [];
+  normalized.forEach((part) => {
+    if (!part || part === '.') return;
+    if (part === '..') out.pop();
+    else out.push(part);
+  });
+  const joined = out.join('/');
+  return /\.[a-z0-9]+$/i.test(joined) ? joined : `${joined}.js`;
+}
+
+function mergeImportedContextAliases(localAliases, collector, source, context, options = {}) {
   const out = new Set(localAliases || []);
-  const imports = collectImportedAliasMap(source);
-  const shadowed = collectLocalBindingNames(source);
-  imports.forEach((importedName, localName) => {
+  const imports = collectNamedImports(source);
+  const shadowed = options.shadow === false ? new Set() : collectLocalBindingNames(source);
+  imports.forEach(({ importedName, localName, specifier }) => {
+    const targetPath = resolveImportPath(context.path, specifier);
+    const target = targetPath ? context.files.find((file) => file.path === targetPath) : null;
+    if (!target) return;
+    const contextAliases = collector(target.source);
     if (contextAliases.has(importedName) && !shadowed.has(localName)) out.add(localName);
   });
   return out;
@@ -842,10 +881,10 @@ function containsForbiddenLocationSearchAssignment(source, aliases = new Set()) 
 
 function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const text = safeString(source);
-  const context = safeString(contextSource);
-  const aliases = mergeImportedContextAliases(collectRouteKeyAliases(text), collectRouteKeyAliases(context), text);
-  const externalAliases = mergeImportedContextAliases(collectExternalUrlAliases(text), collectExternalUrlAliases(context), text);
-  const staticRelativeAliases = mergeImportedContextAliases(collectStaticRelativeUrlAliases(text), collectStaticRelativeUrlAliases(context), text);
+  const context = normalizeRouteGuardContext(contextSource, text);
+  const aliases = mergeImportedContextAliases(collectRouteKeyAliases(text), collectRouteKeyAliases, text, context, { shadow: false });
+  const externalAliases = mergeImportedContextAliases(collectExternalUrlAliases(text), collectExternalUrlAliases, text, context);
+  const staticRelativeAliases = mergeImportedContextAliases(collectStaticRelativeUrlAliases(text), collectStaticRelativeUrlAliases, text, context);
   const inlineSearchParamsAliases = collectInlineUrlSearchParamsAliases(text);
   return containsForbiddenRouteLiteral(text, externalAliases)
     || containsForbiddenLocationSearchAssignment(text, aliases)
@@ -1055,15 +1094,14 @@ function validateThemeManifestContract(themeManifest, availablePaths) {
 
 function validateThemeRouteHelperContract(entries, contractVersion) {
   if (Number(contractVersion) < ROUTE_HELPER_CONTRACT_VERSION) return;
-  const routeGuardContext = entries
+  const routeGuardFiles = entries
     .filter((entry) => entry && entry.path && isThemeTextPath(entry.path) && entry.path !== 'theme.json')
-    .map((entry) => strFromU8(entry.data))
-    .join('\n');
+    .map((entry) => ({ path: entry.path, source: strFromU8(entry.data) }));
   entries.forEach((entry) => {
     if (!entry || !entry.path || !isThemeTextPath(entry.path)) return;
     if (entry.path === 'theme.json') return;
     const source = strFromU8(entry.data);
-    if (containsForbiddenV4RouteConstruction(source, routeGuardContext)) {
+    if (containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles })) {
       throw new Error(`Theme contractVersion 4 requires router href helpers instead of public route construction in ${entry.path}.`);
     }
   });

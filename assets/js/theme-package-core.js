@@ -255,7 +255,7 @@ function collectLocalBindingNames(source) {
     }
     match = functionRe.exec(text);
   }
-  const arrowRe = /(?:^|[=(:,]\s*)(?:async\s*)?\(([^)]*)\)\s*=>\s*\{/g;
+  const arrowRe = /(?:^|[^\w$])(?:async\s*)?\(([^)]*)\)\s*=>\s*\{/g;
   match = arrowRe.exec(text);
   while (match) {
     const body = extractBlockText(text, arrowRe.lastIndex - 1);
@@ -265,7 +265,7 @@ function collectLocalBindingNames(source) {
     }
     match = arrowRe.exec(text);
   }
-  const singleArrowRe = /(?:^|[=(:,]\s*)([A-Za-z_$][\w$]*)\s*=>\s*\{/g;
+  const singleArrowRe = /(?:^|[^\w$])(?:async\s+)?([A-Za-z_$][\w$]*)\s*=>\s*\{/g;
   match = singleArrowRe.exec(text);
   while (match) {
     const body = extractBlockText(text, singleArrowRe.lastIndex - 1);
@@ -392,6 +392,15 @@ function collectContextFileAliases(file, collector, context, seen = new Set(), c
   if (seen.has(key)) return new Set();
   seen.add(key);
   const out = new Set(collector(file.source));
+  const importedAliases = new Set();
+  collectNamedImports(file.source).forEach(({ importedName, localName, specifier }) => {
+    const targetPath = resolveImportPath(file.path, specifier);
+    const target = targetPath ? context.files.find((entry) => entry.path === targetPath) : null;
+    if (!target) return;
+    const targetAliases = collectContextFileAliases(target, collector, context, seen, cache);
+    if (targetAliases.has(importedName)) importedAliases.add(localName);
+  });
+  const exportableAliases = new Set([...out, ...importedAliases]);
   const reExportRe = /\bexport\s*\{([\s\S]*?)\}\s*from\s*(['"])([^'"]+)\2/g;
   let match = reExportRe.exec(file.source);
   while (match) {
@@ -411,6 +420,33 @@ function collectContextFileAliases(file, collector, context, seen = new Set(), c
       if (/^[A-Za-z_$][\w$]*$/.test(importedName) && targetAliases.has(importedName)) out.add(exportedName);
     });
     match = reExportRe.exec(file.source);
+  }
+  const localExportRe = /\bexport\s*\{([\s\S]*?)\}/g;
+  match = localExportRe.exec(file.source);
+  while (match) {
+    const after = file.source.slice(localExportRe.lastIndex);
+    if (!/^\s*from\b/.test(after)) {
+      (match[1] || '').split(',').forEach((part) => {
+        const spec = part.trim();
+        if (!spec) return;
+        const alias = spec.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+        const localName = alias ? alias[1] : spec;
+        const exportedName = alias ? alias[2] : spec;
+        if (/^[A-Za-z_$][\w$]*$/.test(localName) && exportableAliases.has(localName)) out.add(exportedName);
+      });
+    }
+    match = localExportRe.exec(file.source);
+  }
+  const starRe = /\bexport\s+\*\s+from\s*(['"])([^'"]+)\1/g;
+  match = starRe.exec(file.source);
+  while (match) {
+    const targetPath = resolveImportPath(file.path, match[2]);
+    const target = targetPath ? context.files.find((entry) => entry.path === targetPath) : null;
+    if (target) {
+      const targetAliases = collectContextFileAliases(target, collector, context, seen, cache);
+      targetAliases.forEach((alias) => out.add(alias));
+    }
+    match = starRe.exec(file.source);
   }
   seen.delete(key);
   cache.set(key, out);

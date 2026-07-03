@@ -385,7 +385,7 @@ function containsRelativeParamsSerialization(source, name) {
     if (!templateRouteContentHasExternalPrefix(text, match[1])) return true;
     match = templateRe.exec(text);
   }
-  const locationSearchRe = new RegExp(`\\b(?:window\\s*\\.\\s*)?location\\s*\\.\\s*search\\s*=\\s*${escapedName}(?:\\b|\\s*\\.\\s*toString\\s*\\()`, 'g');
+  const locationSearchRe = new RegExp(`\\b(?:window\\s*\\.\\s*)?location\\s*\\.\\s*search\\s*(?:\\+=|=(?!=|>))\\s*${escapedName}(?:\\b|\\s*\\.\\s*toString\\s*\\()`, 'g');
   if (locationSearchRe.test(text)) return true;
   return false;
 }

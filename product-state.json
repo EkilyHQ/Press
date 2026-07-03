@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-07-03T08:13:50.125Z",
+  "generatedAt": "2026-07-03T11:00:38.980Z",
   "status": "ok",
   "desired": {
     "source": "press-release-intent",
@@ -355,16 +355,16 @@
         "repository": "EkilyHQ/Press-Theme-Glasswing",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/main/theme-release.json",
         "status": "ok",
-        "version": "0.1.13",
+        "version": "0.1.14",
         "contractVersion": 3,
         "engines": {
           "press": ">=3.4.127 <4.0.0"
         },
         "artifact": {
-          "name": "press-theme-glasswing-v0.1.13.zip",
-          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.13/press-theme-glasswing-v0.1.13.zip",
-          "size": 15654,
-          "digest": "sha256:1cf6a2b5f9f288a9c0e7bb349cce3a8070d61c0d7cb041d42838cfdcf70047c2"
+          "name": "press-theme-glasswing-v0.1.14.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.14/press-theme-glasswing-v0.1.14.zip",
+          "size": 15678,
+          "digest": "sha256:8821972ce1df54a4709a16523cae26a9f298283e3ab4a6a87ef8f4ab1b48ce0b"
         },
         "problems": []
       }
@@ -379,8 +379,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1782980031,
-        "until": 1783066431,
+        "since": 1782990040,
+        "until": 1783076440,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -395,7 +395,7 @@
   },
   "problems": [],
   "observed": {
-    "checkedAt": "2026-07-03T08:13:50.125Z",
+    "checkedAt": "2026-07-03T11:00:38.980Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.129/system-release.json",
@@ -563,16 +563,16 @@
           "repository": "EkilyHQ/Press-Theme-Glasswing",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/main/theme-release.json",
           "status": "ok",
-          "version": "0.1.13",
+          "version": "0.1.14",
           "contractVersion": 3,
           "engines": {
             "press": ">=3.4.127 <4.0.0"
           },
           "artifact": {
-            "name": "press-theme-glasswing-v0.1.13.zip",
-            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.13/press-theme-glasswing-v0.1.13.zip",
-            "size": 15654,
-            "digest": "sha256:1cf6a2b5f9f288a9c0e7bb349cce3a8070d61c0d7cb041d42838cfdcf70047c2"
+            "name": "press-theme-glasswing-v0.1.14.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/release-artifacts/v0.1.14/press-theme-glasswing-v0.1.14.zip",
+            "size": 15678,
+            "digest": "sha256:8821972ce1df54a4709a16523cae26a9f298283e3ab4a6a87ef8f4ab1b48ce0b"
           },
           "problems": []
         }
@@ -587,8 +587,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1782980031,
-          "until": 1783066431,
+          "since": 1782990040,
+          "until": 1783076440,
           "seconds": 86400
         },
         "totalEvents": 0,

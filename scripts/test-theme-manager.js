@@ -966,6 +966,15 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/interactions.js': 'export function mount() { const routeKey = "id"; location.search += routeKey + "=" + post.location; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/interactions.js': 'export function mount() { return "?" + "id=" + post.location; }'
       }
     })),
@@ -1241,6 +1250,12 @@ await run('rejects v4 theme packages with public route literals', async () => {
     contractVersion: 4,
     files: {
       'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test"; const url = new URL("/product", externalBase); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test"; const url = new URL("/product?id=sku-123", externalBase); return url.href; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({

@@ -251,9 +251,39 @@ function collectLocalBindingNames(source) {
     const body = extractBlockText(text, functionRe.lastIndex - 1);
     if (routeGuardBodyLooksRelevant(body)) {
       addBindingNamesFromPattern(bindings, match[1]);
-      addLocalDeclarationBindings(bindings, body);
+      addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
     }
     match = functionRe.exec(text);
+  }
+  const arrowRe = /(?:^|[=(:,]\s*)(?:async\s*)?\(([^)]*)\)\s*=>\s*\{/g;
+  match = arrowRe.exec(text);
+  while (match) {
+    const body = extractBlockText(text, arrowRe.lastIndex - 1);
+    if (routeGuardBodyLooksRelevant(body)) {
+      addBindingNamesFromPattern(bindings, match[1]);
+      addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
+    }
+    match = arrowRe.exec(text);
+  }
+  const singleArrowRe = /(?:^|[=(:,]\s*)([A-Za-z_$][\w$]*)\s*=>\s*\{/g;
+  match = singleArrowRe.exec(text);
+  while (match) {
+    const body = extractBlockText(text, singleArrowRe.lastIndex - 1);
+    if (routeGuardBodyLooksRelevant(body)) {
+      bindings.add(match[1]);
+      addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
+    }
+    match = singleArrowRe.exec(text);
+  }
+  const methodRe = /(?:^|[,{]\s*)(?:async\s+)?[A-Za-z_$][\w$]*\s*\(([^)]*)\)\s*\{/g;
+  match = methodRe.exec(text);
+  while (match) {
+    const body = extractBlockText(text, methodRe.lastIndex - 1);
+    if (routeGuardBodyLooksRelevant(body)) {
+      addBindingNamesFromPattern(bindings, match[1]);
+      addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
+    }
+    match = methodRe.exec(text);
   }
   return bindings;
 }
@@ -286,7 +316,7 @@ function addBindingNamesFromPattern(bindings, pattern) {
     const alias = clean.match(/^[A-Za-z_$][\w$]*\s*:\s*([A-Za-z_$][\w$]*)$/);
     if (alias) bindings.add(alias[1]);
   });
-  const shorthandRe = /(?:^|[,{]\s*)([A-Za-z_$][\w$]*)\s*(?=[,}])/g;
+  const shorthandRe = /(?:^|[,{]\s*)([A-Za-z_$][\w$]*)(?:\s*=\s*[^,}]+)?\s*(?=[,}])/g;
   let match = shorthandRe.exec(text);
   while (match) {
     bindings.add(match[1]);
@@ -356,6 +386,37 @@ function resolveImportPath(fromPath, specifier) {
   return /\.[a-z0-9]+$/i.test(joined) ? joined : `${joined}.js`;
 }
 
+function collectContextFileAliases(file, collector, context, seen = new Set(), cache = new Map()) {
+  const key = `${file.path}:${collector.name || 'collector'}`;
+  if (cache.has(key)) return new Set(cache.get(key));
+  if (seen.has(key)) return new Set();
+  seen.add(key);
+  const out = new Set(collector(file.source));
+  const reExportRe = /\bexport\s*\{([\s\S]*?)\}\s*from\s*(['"])([^'"]+)\2/g;
+  let match = reExportRe.exec(file.source);
+  while (match) {
+    const targetPath = resolveImportPath(file.path, match[3]);
+    const target = targetPath ? context.files.find((entry) => entry.path === targetPath) : null;
+    if (!target) {
+      match = reExportRe.exec(file.source);
+      continue;
+    }
+    const targetAliases = collectContextFileAliases(target, collector, context, seen, cache);
+    (match[1] || '').split(',').forEach((part) => {
+      const spec = part.trim();
+      if (!spec) return;
+      const alias = spec.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+      const importedName = alias ? alias[1] : spec;
+      const exportedName = alias ? alias[2] : spec;
+      if (/^[A-Za-z_$][\w$]*$/.test(importedName) && targetAliases.has(importedName)) out.add(exportedName);
+    });
+    match = reExportRe.exec(file.source);
+  }
+  seen.delete(key);
+  cache.set(key, out);
+  return out;
+}
+
 function mergeImportedContextAliases(localAliases, collector, source, context, options = {}) {
   const out = new Set(localAliases || []);
   const imports = collectNamedImports(source);
@@ -364,7 +425,7 @@ function mergeImportedContextAliases(localAliases, collector, source, context, o
     const targetPath = resolveImportPath(context.path, specifier);
     const target = targetPath ? context.files.find((file) => file.path === targetPath) : null;
     if (!target) return;
-    const contextAliases = collector(target.source);
+    const contextAliases = collectContextFileAliases(target, collector, context);
     if (contextAliases.has(importedName) && !shadowed.has(localName)) out.add(localName);
   });
   return out;

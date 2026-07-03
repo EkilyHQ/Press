@@ -316,6 +316,12 @@ function collectLocalBindingNames(source) {
     }
     match = arrowRe.exec(text);
   }
+  const expressionArrowRe = /(?:^|[^\w$])(?:async\s*)?\(([^)]*)\)\s*=>\s*(?!\s*\{)([^;\n]+)/g;
+  match = expressionArrowRe.exec(text);
+  while (match) {
+    if (routeGuardBodyLooksRelevant(match[2])) addBindingNamesFromPattern(bindings, match[1]);
+    match = expressionArrowRe.exec(text);
+  }
   const singleArrowRe = /(?:^|[^\w$])(?:async\s+)?([A-Za-z_$][\w$]*)\s*=>\s*\{/g;
   match = singleArrowRe.exec(text);
   while (match) {
@@ -325,6 +331,12 @@ function collectLocalBindingNames(source) {
       addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
     }
     match = singleArrowRe.exec(text);
+  }
+  const singleExpressionArrowRe = /(?:^|[^\w$])(?:async\s+)?([A-Za-z_$][\w$]*)\s*=>\s*(?!\s*\{)([^;\n]+)/g;
+  match = singleExpressionArrowRe.exec(text);
+  while (match) {
+    if (routeGuardBodyLooksRelevant(match[2])) bindings.add(match[1]);
+    match = singleExpressionArrowRe.exec(text);
   }
   const methodRe = /(?:^|[,{]\s*)(?:async\s+)?[A-Za-z_$][\w$]*\s*\(([^)]*)\)\s*\{/g;
   match = methodRe.exec(text);
@@ -376,7 +388,7 @@ function addBindingNamesFromPattern(bindings, pattern) {
 }
 
 function routeGuardBodyLooksRelevant(body) {
-  return /\b(?:new\s+URL|URLSearchParams|searchParams|location)\b/.test(String(body || ''));
+  return /\b(?:new\s+URL|URLSearchParams|searchParams|location)\b|[?&](?:tab|id)=/.test(String(body || ''));
 }
 
 function braceDepthAt(source, index) {
@@ -1115,6 +1127,8 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file external URL destructured param shadowing', 'import { endpoint } from "./config.js"; function route({ endpoint }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL arrow destructured param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL default arrow param shadowing', 'import { endpoint } from "./config.js"; export default (endpoint, post) => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
+  ['cross-file external URL expression arrow param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => endpoint + "?id=" + post.location;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
+  ['cross-file external URL single expression arrow param shadowing', 'import { endpoint } from "./config.js"; export default endpoint => endpoint + "?tab=posts";', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL async single arrow param shadowing', 'import { endpoint } from "./config.js"; const route = async endpoint => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL defaulted destructured param shadowing', 'import { endpoint } from "./config.js"; function route({ endpoint = location.href }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL object method destructured param shadowing', 'import { endpoint } from "./config.js"; export default { route({ endpoint }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; } };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],

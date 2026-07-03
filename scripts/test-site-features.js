@@ -108,6 +108,17 @@ assert.doesNotMatch(mainSource, /if \(!q && !tagFilter\) return displayHomeFallb
 assert.doesNotMatch(mainSource, /if \(!q && !tagFilter\) return displayIndex\(postsIndexCache\);/, 'empty search should not render All Posts directly');
 assert.doesNotMatch(mainSource, /Object\.keys\(tabsBySlug \|\| \{\}\)\[0\] \|\| \(searchEnabled\(\) \? 'search' : ''\)/, 'search should not be used as a synthetic home fallback');
 assert.match(mainSource, /if \(!postsEnabled\(\) && tab === 'posts'\) tab = homeSlug;/, 'disabled posts route should fall back to home');
+assert.doesNotMatch(mainSource, /withLangParam\(`\?tab=\$\{encodeURIComponent\(getHomeSlug\(\)\)\}`\)/, 'post error actions should not bypass the v4 home href helper');
+assert.match(
+  mainSource,
+  /protectedPostInvalid[\s\S]*const backHref = createThemeRouterContext\(\)\.getHomeHref\(\);[\s\S]*actions: backHref \? \[\{ href: backHref, label: backText \}\] : \[\]/,
+  'invalid protected-post action should use getHomeHref and disappear when home is unreachable'
+);
+assert.match(
+  mainSource,
+  /postNotFound[\s\S]*const backHref = createThemeRouterContext\(\)\.getHomeHref\(\);[\s\S]*actions: backHref \? \[\{ href: backHref, label: backText \}\] : \[\]/,
+  'missing-post action should use getHomeHref and disappear when home is unreachable'
+);
 assert.match(
   mainSource,
   /callThemeEffect\('setupFooter', \{[\s\S]*features: getSiteFeatureContext\(\)[\s\S]*getHomeSlug: \(\) => getHomeSlug\(\)[\s\S]*postsEnabled: \(\) => postsEnabled\(\)/,

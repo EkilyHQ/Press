@@ -767,6 +767,21 @@ function createThemeRouterContext() {
   };
 }
 
+function renderPostNavForSite(container, postsIndex, postname, options = {}) {
+  return renderPostNav(container, postsIndex, postname, {
+    router: createThemeRouterContext(),
+    ...options
+  });
+}
+
+function renderTagSidebarForSite(indexMap, options = {}) {
+  if (!tagNavigationEnabled()) return false;
+  return renderTagSidebar(indexMap, {
+    router: createThemeRouterContext(),
+    ...options
+  });
+}
+
 // Expose a minimal API that other modules can consult if needed
 try { window.__press_get_home_slug = () => getHomeSlug(); } catch (_) {}
 try { window.__press_posts_enabled = () => postsEnabled(); } catch (_) {}
@@ -901,7 +916,7 @@ function refreshTagSidebar({
     features: getSiteFeatureContext(),
     utilities: {
       aggregateTags,
-      renderTagSidebar,
+      renderTagSidebar: renderTagSidebarForSite,
       setupTagTooltips
     },
     document,
@@ -972,7 +987,7 @@ function enhanceIndexLayout(params = {}) {
     debounce,
     renderTagSidebar: (...args) => {
       if (!tagNavigationEnabled()) return false;
-      return renderTagSidebar(...args);
+      return renderTagSidebarForSite(...args);
     },
     setupSearch: setupSearchForSite,
     features: getSiteFeatureContext(),
@@ -1048,7 +1063,7 @@ function createThemeRuntimeContext({
     containers,
     utilities: {
       getRegion: getThemeRegion,
-      renderPostNav,
+      renderPostNav: renderPostNavForSite,
       hydratePostImages,
       hydratePostVideos,
       hydrateInternalLinkCards,
@@ -1057,7 +1072,7 @@ function createThemeRuntimeContext({
       renderPostTOC: (opts) => renderPostTOCBlock(opts),
       renderTagSidebar: (...args) => {
         if (!tagNavigationEnabled()) return false;
-        return renderTagSidebar(...args);
+        return renderTagSidebarForSite(...args);
       },
       setupAnchors,
       setupTOC,
@@ -1287,12 +1302,12 @@ function displayPost(postname, options = {}) {
         );
         const publicMetadata = publicInfo.metadata || {};
         const invalidTitle = t('errors.protectedPostInvalidTitle');
-        const backHref = withLangParam(`?tab=${encodeURIComponent(getHomeSlug())}`);
+        const backHref = createThemeRouterContext().getHomeHref();
         const backText = postsEnabled() ? t('ui.backToAllPosts') : (t('ui.backToHome') || t('ui.backToAllPosts'));
         renderErrorState(containers.mainElement || getViewContainer('post', 'main'), {
           title: invalidTitle,
           message: t('errors.protectedPostInvalidBody'),
-          actions: [{ href: backHref, label: backText }],
+          actions: backHref ? [{ href: backHref, label: backText }] : [],
           view: 'post',
           containers
         });
@@ -1421,7 +1436,7 @@ function displayPost(postname, options = {}) {
       document,
       window,
       utilities: {
-        renderPostNav,
+        renderPostNav: renderPostNavForSite,
         hydratePostImages,
         hydratePostVideos,
         hydrateInternalLinkCards,
@@ -1430,7 +1445,7 @@ function displayPost(postname, options = {}) {
         renderPostTOC: (opts) => renderPostTOCBlock(opts),
         renderTagSidebar: (...args) => {
           if (!tagNavigationEnabled()) return false;
-          return renderTagSidebar(...args);
+          return renderTagSidebarForSite(...args);
         },
         getArticleTitleFromMain,
         setupAnchors,
@@ -1549,12 +1564,12 @@ function displayPost(postname, options = {}) {
     } catch (_) {}
 
     resetTOCView('post', containers, { reason: 'postError' });
-    const backHref = withLangParam(`?tab=${encodeURIComponent(getHomeSlug())}`);
+    const backHref = createThemeRouterContext().getHomeHref();
     const backText = postsEnabled() ? t('ui.backToAllPosts') : (t('ui.backToHome') || t('ui.backToAllPosts'));
     renderErrorState(containers.mainElement || getViewContainer('post', 'main'), {
       title: t('errors.postNotFoundTitle'),
       message: t('errors.postNotFoundBody'),
-      actions: [{ href: backHref, label: backText }],
+      actions: backHref ? [{ href: backHref, label: backText }] : [],
       view: 'post',
       containers
     });
@@ -1703,6 +1718,7 @@ function displayIndex(parsed) {
   setDocTitle(t('titles.allPosts'));
 
   callThemeEffect('afterIndexRender', {
+    ctx: createThemeRuntimeContext({ view: 'posts' }),
     entries: pageEntries,
     translate: t,
     getFile,
@@ -1859,6 +1875,7 @@ function displaySearch(query) {
   setDocTitle(tagFilter ? t('ui.tagSearch', tagFilter) : t('titles.search', q));
 
   callThemeEffect('afterSearchRender', {
+    ctx: createThemeRuntimeContext({ view: 'search' }),
     entries: pageEntries,
     translate: t,
     getFile,
@@ -1956,7 +1973,7 @@ function displayStaticTab(slug) {
           renderPostTOC: (opts) => renderPostTOCBlock(opts),
           renderTagSidebar: (...args) => {
             if (!tagNavigationEnabled()) return false;
-            return renderTagSidebar(...args);
+            return renderTagSidebarForSite(...args);
           },
           getArticleTitleFromMain,
           setupAnchors,

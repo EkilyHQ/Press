@@ -226,8 +226,8 @@ function navigateNativeHref(params = {}, runtimeState = null, href, documentRef 
   const navigate = getRuntimeRouterFunction(params, runtimeState, 'navigate');
   if (navigate) {
     try {
-      navigate(cleanHref);
-      return true;
+      const result = navigate(cleanHref);
+      if (result !== false) return true;
     } catch (_) {}
   }
   const win = windowRef || (documentRef && documentRef.defaultView) || defaultWindow;
@@ -1023,7 +1023,12 @@ function renderTagSidebarNative(params = {}, documentRef = defaultDocument, runt
   }
   const renderer = getUtility(params, 'renderTagSidebar');
   if (typeof renderer !== 'function') return false;
-  try { renderer(params.postsIndex || {}); } catch (_) {}
+  try {
+    renderer(params.postsIndex || {}, {
+      router: getRuntimeRouter(params, runtimeState),
+      getRegion: (name) => getRegion(name, documentRef, runtimeState)
+    });
+  } catch (_) {}
   return true;
 }
 
@@ -1052,7 +1057,12 @@ function enhanceIndexLayoutNative(params = {}, documentRef = defaultDocument, wi
     try { params.setupSearch(Array.isArray(params.allEntries) ? params.allEntries : []); } catch (_) {}
   }
   if (featureEnabled(params, runtimeState, 'tags') && featureEnabled(params, runtimeState, 'search') && typeof params.renderTagSidebar === 'function') {
-    try { params.renderTagSidebar(params.postsIndexMap || {}); } catch (_) {}
+    try {
+      params.renderTagSidebar(params.postsIndexMap || {}, {
+        router: getRuntimeRouter(params, runtimeState),
+        getRegion: (name) => getRegion(name, documentRef, runtimeState)
+      });
+    } catch (_) {}
   }
   const runMasonry = () => {
     if (typeof params.applyMasonry === 'function') {
@@ -1444,7 +1454,11 @@ function renderPostViewNative(params = {}, documentRef = defaultDocument, window
   appendTrustedHtml(container, bottomMeta, documentRef);
 
   const renderNav = getUtility(params, 'renderPostNav', renderPostNav);
-  try { renderNav(container, postsIndex, postId); } catch (_) {}
+  try {
+    renderNav(container, postsIndex, postId, {
+      router: getRuntimeRouter(params, runtimeState)
+    });
+  } catch (_) {}
 
   const hydrateImages = getUtility(params, 'hydratePostImages', (selector) => hydratePostImages(selector));
   try { hydrateImages(container); } catch (_) {}

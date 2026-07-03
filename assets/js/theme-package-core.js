@@ -28,8 +28,12 @@ const REQUIRED_THEME_CONTENT_SHAPES = getRequiredThemeContentShapes();
 const ROUTE_HELPER_CONTRACT_VERSION = 4;
 const STRING_LITERAL_PATTERN = /(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1/g;
 const ROUTE_QUERY_PATTERN = /[?&](?:tab|id)\s*=/g;
-const URL_SEARCH_PARAMS_LITERAL_PATTERN = /\bnew\s+URLSearchParams\s*\(\s*(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1\s*\)/g;
-const STATIC_ROUTE_SEARCH_PARAM_PATTERN = /\bsearchParams\s*\.\s*(?:set|append)\(\s*(['"`])(?:tab|id)\1\s*,/;
+const ROUTE_KEY_OBJECT_INIT_PATTERN = /(?:^|[,{]\s*)(?:(['"`])(?:tab|id)\1|(?:tab|id))\s*:/;
+const ROUTE_KEY_OBJECT_SHORTHAND_PATTERN = /(?:^|[,{]\s*)(?:tab|id)\s*(?=[,}])/;
+const ROUTE_KEY_ARRAY_INIT_PATTERN = /\[\s*(['"`])(?:tab|id)\1\s*,/;
+const SPLIT_ROUTE_QUERY_LITERAL_PATTERN = /(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?[?&])\1\s*\+\s*(?:(['"`])(?:tab|id)\s*=\3|(['"`])(?:tab|id)\4\s*\+\s*(['"`])=\5)/g;
+const IDENTIFIER_PATTERN = /[A-Za-z_$][\w$]*/;
+const ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE = `(?:"(?:tab|id)"|'(?:tab|id)'|\`(?:tab|id)\`)`;
 
 export function getBuffer(view) {
   if (view instanceof Uint8Array) {
@@ -122,22 +126,352 @@ function containsForbiddenRouteLiteral(source) {
   return false;
 }
 
-function containsForbiddenUrlSearchParamsLiteral(source) {
+function escapeRegExp(value) {
+  return safeString(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function collectRouteKeyAliases(source) {
   const text = safeString(source);
-  URL_SEARCH_PARAMS_LITERAL_PATTERN.lastIndex = 0;
-  let match = URL_SEARCH_PARAMS_LITERAL_PATTERN.exec(text);
+  const aliases = new Set();
+  const re = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(['"`])(tab|id)\2\s*;?/g;
+  let match = re.exec(text);
   while (match) {
-    if (/(?:^|[?&])(?:tab|id)\s*=/i.test(match[2])) return true;
-    match = URL_SEARCH_PARAMS_LITERAL_PATTERN.exec(text);
+    aliases.add(match[1]);
+    match = re.exec(text);
+  }
+  return aliases;
+}
+
+function collectExternalUrlAliases(source) {
+  const text = safeString(source);
+  const aliases = new Set();
+  const re = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(['"`])((?:\\[\s\S]|(?!\2)[\s\S])*?)\2\s*;?/g;
+  let match = re.exec(text);
+  while (match) {
+    if (isExternalUrlPrefix(match[3])) aliases.add(match[1]);
+    match = re.exec(text);
+  }
+  return aliases;
+}
+
+function sourceArgIsRouteKey(arg, aliases) {
+  const value = safeString(arg).trim();
+  return new RegExp(`^(?:${routeKeyExpressionPattern(aliases)})$`).test(value);
+}
+
+function routeKeyWritePattern(owner, property = '') {
+  const escapedOwner = escapeRegExp(owner);
+  const suffix = property ? `\\s*\\.\\s*${escapeRegExp(property)}` : '';
+  const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
+  return new RegExp(`\\b${escapedOwner}${suffix}\\s*\\.\\s*(?:set|append)\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
+}
+
+function containsRouteKeyWriteForOwner(source, owner, aliases, property = '') {
+  const text = safeString(source);
+  const re = routeKeyWritePattern(owner, property);
+  let match = re.exec(text);
+  while (match) {
+    if (sourceArgIsRouteKey(match[1], aliases)) return true;
+    match = re.exec(text);
+  }
+  return false;
+}
+
+function collectUrlSearchParamsVariables(source) {
+  const text = safeString(source);
+  const out = new Set();
+  const re = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URLSearchParams\\s*\\(`, 'g');
+  let match = re.exec(text);
+  while (match) {
+    out.add(match[1]);
+    match = re.exec(text);
+  }
+  return out;
+}
+
+function collectUrlSearchParamsInitializers(source) {
+  const text = safeString(source);
+  const out = [];
+  const re = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URLSearchParams\\s*\\(`, 'g');
+  let match = re.exec(text);
+  while (match) {
+    const parsed = extractCallArgs(text, re.lastIndex);
+    out.push({ name: match[1], args: parsed.args || '' });
+    if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+    match = re.exec(text);
+  }
+  return out;
+}
+
+function extractCallArgs(source, argsStart) {
+  const text = safeString(source);
+  let depth = 1;
+  let quote = '';
+  let escaped = false;
+  for (let i = argsStart; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(') {
+      depth += 1;
+      continue;
+    }
+    if (ch === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return { args: text.slice(argsStart, i), end: i + 1 };
+      }
+    }
+  }
+  return { args: text.slice(argsStart), end: text.length };
+}
+
+function aliasAlternation(aliases) {
+  return Array.from(aliases || []).map(escapeRegExp).join('|');
+}
+
+function aliasExpressionPattern(aliases) {
+  const aliasPattern = aliasAlternation(aliases);
+  return aliasPattern ? `(?:${aliasPattern}|\\(\\s*(?:${aliasPattern})\\s*\\))` : '';
+}
+
+function routeKeyExpressionPattern(aliases = new Set()) {
+  const aliasExpression = aliasExpressionPattern(aliases);
+  const core = aliasExpression
+    ? `(?:${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE}|${aliasExpression})`
+    : ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE;
+  return `(?:\\(\\s*)*${core}(?:\\s*\\))*`;
+}
+
+function urlSearchParamsInitializerHasRouteKey(args, aliases = new Set()) {
+  const text = safeString(args).trim();
+  if (text.startsWith('{')) {
+    if (ROUTE_KEY_OBJECT_INIT_PATTERN.test(text) || ROUTE_KEY_OBJECT_SHORTHAND_PATTERN.test(text)) return true;
+    const routeKeyExpression = routeKeyExpressionPattern(aliases);
+    return new RegExp(`(?:^|[,\\{]\\s*)\\[\\s*(?:${routeKeyExpression})\\s*\\]\\s*:`).test(text);
+  }
+  if (text.startsWith('[')) {
+    if (ROUTE_KEY_ARRAY_INIT_PATTERN.test(text)) return true;
+    const routeKeyExpression = routeKeyExpressionPattern(aliases);
+    return new RegExp(`\\[\\s*(?:${routeKeyExpression})\\s*,`).test(text);
+  }
+  if (/^(['"`])(?:tab|id)\s*=/.test(text)) return true;
+  if (/^(['"`])(?:tab|id)\1\s*\+\s*(['"`])=\2/.test(text)) return true;
+  const routeKeyExpression = routeKeyExpressionPattern(aliases);
+  return new RegExp(`^(?:${routeKeyExpression})\\s*\\+\\s*(['"\`])=\\1`).test(text)
+    || new RegExp(`^\`\\s*\\$\\{\\s*(?:${routeKeyExpression})\\s*\\}\\s*=`).test(text);
+}
+
+function containsRelativeParamsSerialization(source, name) {
+  const text = safeString(source);
+  const escapedName = escapeRegExp(name);
+  const concatRe = new RegExp(`(['"\`])((?:\\\\[\\s\\S]|(?!\\1)[\\s\\S])*?[?&])\\1\\s*\\+\\s*${escapedName}(?:\\b|\\s*\\.\\s*toString\\s*\\()`, 'g');
+  let match = concatRe.exec(text);
+  while (match) {
+    const content = match[2];
+    const queryIndex = Math.max(content.lastIndexOf('?'), content.lastIndexOf('&'));
+    const prefix = queryIndex >= 0 ? routeCandidatePrefix(content, queryIndex) : '';
+    if (!isExternalUrlPrefix(prefix) && !inlineParamsConcatHasExternalPrefix(text, match)) return true;
+    match = concatRe.exec(text);
+  }
+  const templateRe = new RegExp(`\`((?:\\\\[\\s\\S]|(?!\`)[\\s\\S])*?[?&])\\$\\{\\s*${escapedName}(?:\\s*\\.\\s*toString\\s*\\(\\s*\\))?\\s*\\}`, 'g');
+  match = templateRe.exec(text);
+  while (match) {
+    if (!templateRouteContentHasExternalPrefix(text, match[1])) return true;
+    match = templateRe.exec(text);
+  }
+  const locationSearchRe = new RegExp(`\\b(?:window\\s*\\.\\s*)?location\\s*\\.\\s*search\\s*=\\s*${escapedName}(?:\\b|\\s*\\.\\s*toString\\s*\\()`, 'g');
+  if (locationSearchRe.test(text)) return true;
+  return false;
+}
+
+function containsForbiddenUrlSearchParamsVariable(source, aliases) {
+  const text = safeString(source);
+  const vars = collectUrlSearchParamsVariables(text);
+  for (const name of vars) {
+    if (containsRouteKeyWriteForOwner(text, name, aliases) && containsRelativeParamsSerialization(text, name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function containsForbiddenUrlSearchParamsInitializer(source, aliases = new Set()) {
+  const text = safeString(source);
+  const initializers = collectUrlSearchParamsInitializers(text);
+  for (const { name, args } of initializers) {
+    if (urlSearchParamsInitializerHasRouteKey(args, aliases) && containsRelativeParamsSerialization(text, name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function inlineParamsConcatHasExternalPrefix(text, literalMatch) {
+  const content = safeString(literalMatch[2]);
+  const queryIndex = Math.max(content.lastIndexOf('?'), content.lastIndexOf('&'));
+  const prefix = queryIndex >= 0 ? routeCandidatePrefix(content, queryIndex) : '';
+  if (isExternalUrlPrefix(prefix)) return true;
+  const before = safeString(text).slice(0, literalMatch.index);
+  const literalPrefix = before.match(/(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1\s*\+\s*$/);
+  if (literalPrefix && isExternalUrlPrefix(literalPrefix[2])) return true;
+  const aliasPrefix = before.match(/\b([A-Za-z_$][\w$]*)\s*\+\s*$/);
+  if (aliasPrefix) {
+    const externalAliases = collectExternalUrlAliases(text);
+    if (externalAliases.has(aliasPrefix[1])) return true;
+  }
+  return false;
+}
+
+function templateRouteContentHasExternalPrefix(source, content) {
+  const value = safeString(content);
+  const queryIndex = Math.max(value.lastIndexOf('?'), value.lastIndexOf('&'));
+  const prefix = queryIndex >= 0 ? routeCandidatePrefix(value, queryIndex) : '';
+  if (isExternalUrlPrefix(prefix)) return true;
+  const beforeQuery = queryIndex >= 0 ? value.slice(0, queryIndex).trim() : '';
+  const aliasPrefix = beforeQuery.match(/^\$\{\s*([A-Za-z_$][\w$]*)\s*\}/);
+  if (!aliasPrefix) return false;
+  const aliases = collectExternalUrlAliases(source);
+  return aliases.has(aliasPrefix[1]);
+}
+
+function inlineUrlSearchParamsHasRelativeSink(source, callStart) {
+  const text = safeString(source);
+  const before = text.slice(0, callStart);
+  const concat = before.match(/(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?[?&])\1\s*\+\s*\(?\s*$/);
+  if (concat) {
+    concat.index = before.length - concat[0].length;
+    return !inlineParamsConcatHasExternalPrefix(text, concat);
+  }
+  const template = before.match(/`((?:\\[\s\S]|(?!`)[\s\S])*?[?&])\$\{\s*$/);
+  if (template) {
+    return !templateRouteContentHasExternalPrefix(text, template[1]);
+  }
+  return /\b(?:window\s*\.\s*)?location\s*\.\s*search\s*=\s*$/.test(before);
+}
+
+function containsForbiddenInlineUrlSearchParamsInitializer(source, aliases = new Set()) {
+  const text = safeString(source);
+  const re = /\bnew\s+URLSearchParams\s*\(/g;
+  let match = re.exec(text);
+  while (match) {
+    const parsed = extractCallArgs(text, re.lastIndex);
+    if (urlSearchParamsInitializerHasRouteKey(parsed.args, aliases)
+      && inlineUrlSearchParamsHasRelativeSink(text, match.index)) {
+      return true;
+    }
+    if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+    match = re.exec(text);
+  }
+  return false;
+}
+
+function splitRouteQueryHasExternalPrefix(text, match) {
+  const content = safeString(match[2]);
+  const queryIndex = Math.max(content.lastIndexOf('?'), content.lastIndexOf('&'));
+  const prefix = queryIndex >= 0 ? routeCandidatePrefix(content, queryIndex) : '';
+  if (isExternalUrlPrefix(prefix)) return true;
+  const before = safeString(text).slice(0, match.index);
+  const literalPrefix = before.match(/(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1\s*\+\s*$/);
+  if (literalPrefix && isExternalUrlPrefix(literalPrefix[2])) return true;
+  const aliasPrefix = before.match(/\b([A-Za-z_$][\w$]*)\s*\+\s*$/);
+  if (aliasPrefix) {
+    const aliases = collectExternalUrlAliases(text);
+    if (aliases.has(aliasPrefix[1])) return true;
+  }
+  return false;
+}
+
+function containsForbiddenSplitRouteQueryLiteral(source) {
+  const text = safeString(source);
+  SPLIT_ROUTE_QUERY_LITERAL_PATTERN.lastIndex = 0;
+  let match = SPLIT_ROUTE_QUERY_LITERAL_PATTERN.exec(text);
+  while (match) {
+    if (!splitRouteQueryHasExternalPrefix(text, match)) return true;
+    match = SPLIT_ROUTE_QUERY_LITERAL_PATTERN.exec(text);
+  }
+  return false;
+}
+
+function containsForbiddenRouteKeyAliasConstruction(source, aliases = new Set()) {
+  const routeKeyExpression = routeKeyExpressionPattern(aliases);
+  const text = safeString(source);
+  const concatRe = new RegExp(`(['"\`])((?:\\\\[\\s\\S]|(?!\\1)[\\s\\S])*?[?&])\\1\\s*\\+\\s*(?:${routeKeyExpression})\\s*\\+\\s*(['"\`])=\\3`, 'g');
+  let match = concatRe.exec(text);
+  while (match) {
+    if (!inlineParamsConcatHasExternalPrefix(text, match)) return true;
+    match = concatRe.exec(text);
+  }
+  const templateRe = new RegExp(`\`((?:\\\\[\\s\\S]|(?!\`)[\\s\\S])*?[?&])\\$\\{\\s*(?:${routeKeyExpression})\\s*\\}\\s*=`, 'g');
+  match = templateRe.exec(text);
+  while (match) {
+    if (!templateRouteContentHasExternalPrefix(text, match[1])) return true;
+    match = templateRe.exec(text);
+  }
+  return false;
+}
+
+function urlConstructorArgsAreExternal(args, aliases = new Set()) {
+  const value = safeString(args).split(',')[0].trim();
+  const match = value.match(/^(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1/);
+  if (match) {
+    if (isExternalUrlPrefix(match[2]) || aliases.has(match[2])) return true;
+    const aliasExpression = aliasExpressionPattern(aliases);
+    return match[1] === '`' && aliasExpression
+      ? new RegExp(`^\\s*\\$\\{\\s*(?:${aliasExpression})\\s*\\}`).test(match[2])
+      : false;
+  }
+  if (aliases.has(value)) return true;
+  const aliasExpression = aliasExpressionPattern(aliases);
+  if (!aliasExpression) return false;
+  return new RegExp(`^(?:${aliasExpression})\\s*\\+`).test(value)
+    || new RegExp(`^\`\\s*\\$\\{\\s*(?:${aliasExpression})\\s*\\}`).test(value);
+}
+
+function collectRouteUrlVariables(source) {
+  const text = safeString(source);
+  const out = new Set();
+  const aliases = collectExternalUrlAliases(text);
+  const re = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(([^;\\n\\r]*)\\)\\s*;?`, 'g');
+  let match = re.exec(text);
+  while (match) {
+    if (!urlConstructorArgsAreExternal(match[2], aliases)) out.add(match[1]);
+    match = re.exec(text);
+  }
+  return out;
+}
+
+function containsForbiddenRouteUrlMutation(source, aliases) {
+  const text = safeString(source);
+  const vars = collectRouteUrlVariables(text);
+  for (const name of vars) {
+    if (containsRouteKeyWriteForOwner(text, name, aliases, 'searchParams')) return true;
   }
   return false;
 }
 
 function containsForbiddenV4RouteConstruction(source) {
   const text = safeString(source);
+  const aliases = collectRouteKeyAliases(text);
   return containsForbiddenRouteLiteral(text)
-    || containsForbiddenUrlSearchParamsLiteral(text)
-    || STATIC_ROUTE_SEARCH_PARAM_PATTERN.test(text);
+    || containsForbiddenUrlSearchParamsInitializer(text, aliases)
+    || containsForbiddenInlineUrlSearchParamsInitializer(text, aliases)
+    || containsForbiddenSplitRouteQueryLiteral(text)
+    || containsForbiddenRouteKeyAliasConstruction(text, aliases)
+    || containsForbiddenUrlSearchParamsVariable(text, aliases)
+    || containsForbiddenRouteUrlMutation(text, aliases);
 }
 
 export function normalizeDigest(value, options = {}) {

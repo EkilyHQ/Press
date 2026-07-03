@@ -155,8 +155,18 @@ function setupPreviewTOC() {
   return setupTOC({ getRegion: getPreviewThemeRegion });
 }
 
-function renderPreviewTagSidebar(indexMap) {
-  return renderTagSidebar(indexMap, { getRegion: getPreviewThemeRegion });
+function renderPreviewPostNav(router, container, postsIndex, postname, options = {}) {
+  return renderPostNav(container, postsIndex, postname, {
+    router,
+    ...options
+  });
+}
+
+function renderPreviewTagSidebar(indexMap, options = {}) {
+  return renderTagSidebar(indexMap, {
+    getRegion: getPreviewThemeRegion,
+    ...options
+  });
 }
 
 function normalizeAssetKey(value) {
@@ -333,7 +343,7 @@ function createRuntimeContext({ payload, containers, content, features }) {
     containers,
     utilities: {
       getRegion: getPreviewThemeRegion,
-      renderPostNav,
+      renderPostNav: (...args) => renderPreviewPostNav(router, args[0], args[1], args[2], args[3] || {}),
       hydratePostImages,
       hydratePostVideos,
       hydrateInternalLinkCards,
@@ -342,7 +352,7 @@ function createRuntimeContext({ payload, containers, content, features }) {
       renderPostTOC: () => {},
       renderTagSidebar: (...args) => {
         if (!previewFeatureEnabled(features, 'tags') || !previewSearchEnabled(features)) return false;
-        return renderPreviewTagSidebar(...args);
+        return renderPreviewTagSidebar(args[0], { router, ...(args[1] || {}) });
       },
       setupAnchors: setupPreviewAnchors,
       setupTOC: setupPreviewTOC,
@@ -434,7 +444,7 @@ async function renderPreview(payload = {}) {
       document: previewRuntime.documentRef,
       window: previewRuntime.windowRef,
       utilities: {
-        renderPostNav,
+        renderPostNav: (...args) => renderPreviewPostNav(ctx.router, args[0], args[1], args[2], args[3] || {}),
         hydratePostImages,
         hydratePostVideos,
         hydrateInternalLinkCards,
@@ -443,7 +453,7 @@ async function renderPreview(payload = {}) {
         renderPostTOC: () => {},
         renderTagSidebar: (...args) => {
           if (!previewFeatureEnabled(features, 'tags') || !previewSearchEnabled(features)) return false;
-          return renderPreviewTagSidebar(...args);
+          return renderPreviewTagSidebar(args[0], { router: ctx.router, ...(args[1] || {}) });
         },
         getArticleTitleFromMain,
         setupAnchors: setupPreviewAnchors,

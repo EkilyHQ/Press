@@ -289,6 +289,82 @@ function extractCallArgs(source, argsStart) {
   return { args: text.slice(argsStart), end: text.length };
 }
 
+function extractAssignmentExpression(source, valueStart) {
+  const text = String(source || '');
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  for (let i = valueStart; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(' || ch === '[' || ch === '{') {
+      depth += 1;
+      continue;
+    }
+    if (ch === ')' || ch === ']' || ch === '}') {
+      if (depth > 0) depth -= 1;
+      continue;
+    }
+    if (depth === 0 && (ch === ';' || ch === '\n' || ch === '\r')) {
+      return text.slice(valueStart, i);
+    }
+  }
+  return text.slice(valueStart);
+}
+
+function splitTopLevelArgs(args) {
+  const text = String(args || '');
+  const out = [];
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  let start = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(' || ch === '[' || ch === '{') {
+      depth += 1;
+      continue;
+    }
+    if (ch === ')' || ch === ']' || ch === '}') {
+      if (depth > 0) depth -= 1;
+      continue;
+    }
+    if (depth === 0 && ch === ',') {
+      out.push(text.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  out.push(text.slice(start).trim());
+  return out.filter(Boolean);
+}
+
 function aliasAlternation(aliases) {
   return Array.from(aliases || []).map(escapeRe).join('|');
 }
@@ -474,9 +550,9 @@ function containsForbiddenRouteKeyAliasConstruction(source, aliases = new Set())
   return false;
 }
 
-function urlConstructorArgsAreExternal(args, aliases = new Set()) {
-  const value = String(args || '').split(',')[0].trim();
-  const match = value.match(/^(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1/);
+function expressionIsExternalUrl(value, aliases = new Set()) {
+  const text = String(value || '').trim();
+  const match = text.match(/^(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1/);
   if (match) {
     if (isExternalUrlPrefix(match[2]) || aliases.has(match[2])) return true;
     const aliasExpression = aliasExpressionPattern(aliases);
@@ -484,23 +560,43 @@ function urlConstructorArgsAreExternal(args, aliases = new Set()) {
       ? new RegExp(`^\\s*\\$\\{\\s*(?:${aliasExpression})\\s*\\}`).test(match[2])
       : false;
   }
-  if (aliases.has(value)) return true;
+  if (aliases.has(text)) return true;
   const aliasExpression = aliasExpressionPattern(aliases);
   if (!aliasExpression) return false;
-  return new RegExp(`^(?:${aliasExpression})\\s*\\+`).test(value)
-    || new RegExp(`^\`\\s*\\$\\{\\s*(?:${aliasExpression})\\s*\\}`).test(value);
+  return new RegExp(`^(?:${aliasExpression})\\s*\\+`).test(text)
+    || new RegExp(`^\`\\s*\\$\\{\\s*(?:${aliasExpression})\\s*\\}`).test(text);
+}
+
+function expressionIsStaticRelativeUrl(value) {
+  const text = String(value || '').trim();
+  const match = text.match(/^(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1$/);
+  return Boolean(match && !isExternalUrlPrefix(match[2]));
+}
+
+function urlConstructorArgsAreExternal(args, aliases = new Set()) {
+  const parts = splitTopLevelArgs(args);
+  if (expressionIsExternalUrl(parts[0], aliases)) return true;
+  return parts.length > 1
+    && expressionIsStaticRelativeUrl(parts[0])
+    && expressionIsExternalUrl(parts[1], aliases);
 }
 
 function collectRouteUrlVariables(source) {
   const text = String(source || '');
   const out = new Set();
   const aliases = collectExternalUrlAliases(text);
-  const re = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(([^;\\n\\r]*)\\)\\s*;?`, 'g');
-  let match = re.exec(text);
-  while (match) {
-    if (!urlConstructorArgsAreExternal(match[2], aliases)) out.add(match[1]);
-    match = re.exec(text);
-  }
+  [
+    new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g'),
+    new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+URL\\s*\\(`, 'g')
+  ].forEach((re) => {
+    let match = re.exec(text);
+    while (match) {
+      const parsed = extractCallArgs(text, re.lastIndex);
+      if (!urlConstructorArgsAreExternal(parsed.args, aliases)) out.add(match[1]);
+      if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+      match = re.exec(text);
+    }
+  });
   return out;
 }
 
@@ -513,10 +609,23 @@ function containsForbiddenRouteUrlMutation(source, aliases) {
   return false;
 }
 
+function containsForbiddenLocationSearchAssignment(source, aliases = new Set()) {
+  const text = String(source || '');
+  const re = /\b(?:window\s*\.\s*)?location\s*\.\s*search\s*=/g;
+  let match = re.exec(text);
+  while (match) {
+    const expression = extractAssignmentExpression(text, re.lastIndex);
+    if (urlSearchParamsInitializerHasRouteKey(expression, aliases)) return true;
+    match = re.exec(text);
+  }
+  return false;
+}
+
 function containsForbiddenV4RouteConstruction(source) {
   const text = String(source || '');
   const aliases = collectRouteKeyAliases(text);
   return containsForbiddenRouteLiteral(text)
+    || containsForbiddenLocationSearchAssignment(text, aliases)
     || containsForbiddenUrlSearchParamsInitializer(text, aliases)
     || containsForbiddenInlineUrlSearchParamsInitializer(text, aliases)
     || containsForbiddenSplitRouteQueryLiteral(text)

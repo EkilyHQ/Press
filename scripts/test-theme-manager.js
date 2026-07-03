@@ -816,6 +816,39 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/interactions.js': `export function mount() {
+  const url = new URL(
+    location.href
+  );
+  url.searchParams.set("id", "post.md");
+  return url.href;
+}`
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { let url; url = new URL(location.href); url.searchParams.set("id", "post.md"); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { const externalBase = "https://api.example.test"; const url = new URL(location.href, externalBase); url.searchParams.set("id", "post.md"); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/interactions.js': 'export function mount() { const params = new URLSearchParams("tab=posts"); return "?" + params; }'
       }
     })),
@@ -907,6 +940,24 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export function mount() { const params = new URLSearchParams(); params.set("tab", "posts"); location.search = params.toString(); }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { location.search = "id=" + post.location; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { const routeKey = "id"; location.search = `${routeKey}=${post.location}`; }'
       }
     })),
     /router href helpers/i
@@ -1184,6 +1235,12 @@ await run('rejects v4 theme packages with public route literals', async () => {
     contractVersion: 4,
     files: {
       'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test/product"; const url = new URL(externalBase, window.location.href); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test"; const url = new URL("/product", externalBase); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({

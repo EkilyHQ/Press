@@ -1525,6 +1525,15 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/interactions.js': 'export default { mount(post) { const url = new URL(location.href); url.searchParams.set?.("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/interactions.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate((new URL(location.href))); }, views: {}, components: {}, effects: {} };'
       }
     })),

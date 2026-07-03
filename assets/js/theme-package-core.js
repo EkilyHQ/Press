@@ -525,7 +525,7 @@ function routeKeyWritePattern(owner, property = '') {
   const suffix = property ? propertyAccessorPattern(property) : '';
   const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')})`;
   const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
-  return new RegExp(`${ownerPattern}${suffix}${mutator}\\s*\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
+  return new RegExp(`${ownerPattern}${suffix}${mutator}\\s*(?:\\?\\.\\s*)?\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*,`, 'g');
 }
 
 function containsRouteKeyWriteForOwner(source, owner, aliases, property = '') {

@@ -170,7 +170,7 @@ function makeManifest(pack, modules) {
   return {
     name: pack,
     version: '1.0.0',
-    contractVersion: 3,
+    contractVersion: 4,
     styles: ['theme.css', 'extra.css'],
     modules,
     views: { post: {}, posts: {}, search: {}, tab: {} },
@@ -215,6 +215,11 @@ async function freshThemeLayout() {
 async function freshThemeHelpers() {
   importCounter += 1;
   return import(`../assets/js/theme.js?theme-runtime-test=${importCounter}`);
+}
+
+async function freshThemeRouterHelpers() {
+  importCounter += 1;
+  return import(`../assets/js/theme-router-helpers.js?theme-runtime-test=${importCounter}`);
 }
 
 async function withQuietConsole(fn) {
@@ -298,11 +303,58 @@ await run('cached theme layout contexts refresh public feature context', async (
   const { ensureThemeLayout } = await freshThemeLayout();
   const firstFeatures = { flags: { search: true }, isEnabled: (key) => key !== 'search' };
   const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
-  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures });
+  const firstRouter = { getHomeHref: () => '?tab=first' };
+  const secondRouter = { getHomeHref: () => '?tab=second' };
+  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures, router: firstRouter });
   assert.equal(first.features, firstFeatures);
-  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures });
+  assert.equal(first.router, firstRouter);
+  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures, router: secondRouter });
   assert.equal(second, first);
   assert.equal(second.features, secondFeatures);
+  assert.equal(second.router, secondRouter);
+});
+
+await run('theme router href helpers gate routes and apply language parameters', async () => {
+  installGlobals({ savedPack: 'native' });
+  const { createThemeRouterHrefHelpers } = await freshThemeRouterHelpers();
+  const helpers = createThemeRouterHrefHelpers({
+    withLangParam: (href) => `${href}${href.includes('?') ? '&' : '?'}lang=ja`,
+    getHomeSlug: () => 'overview',
+    postsEnabled: () => false,
+    searchEnabled: () => true,
+    tagsEnabled: () => false
+  });
+  assert.equal(helpers.getHomeHref(), '?tab=overview&lang=ja');
+  assert.equal(helpers.getTabHref('overview'), '?tab=overview&lang=ja');
+  assert.equal(helpers.getPostHref('post/demo.md'), '?id=post%2Fdemo.md&lang=ja');
+  assert.equal(helpers.getPostsHref({ page: 2 }), null);
+  assert.equal(helpers.getSearchHref({ q: 'press', tag: 'alpha', page: 3 }), '?tab=search&q=press&page=3&lang=ja');
+});
+
+await run('theme layout mount context exposes router href helpers', async () => {
+  let mountedRouter = null;
+  installGlobals({
+    savedPack: 'routepack',
+    manifests: {
+      routepack: makeManifest('routepack', ['modules/layout.js'])
+    }
+  });
+  const router = {
+    getHomeHref: () => '?tab=home',
+    getTabHref: (slug) => `?tab=${slug}`,
+    getPostHref: (loc) => `?id=${loc}`,
+    getPostsHref: () => null,
+    getSearchHref: () => null
+  };
+  window.__pressThemeModuleLoader = async () => ({
+    mount(ctx) {
+      mountedRouter = ctx && ctx.router;
+    }
+  });
+  const { ensureThemeLayout } = await freshThemeLayout();
+  await ensureThemeLayout({ pack: 'routepack', persist: false, reset: true, router });
+  assert.equal(mountedRouter, router);
+  assert.equal(mountedRouter.getHomeHref(), '?tab=home');
 });
 
 await run('theme controls ignore retired legacy DOM bridge hints from the active theme context', async () => {

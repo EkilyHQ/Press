@@ -11,6 +11,7 @@ import { applySavedTheme, bindThemeToggle, bindThemePackPicker, mountThemeContro
 import { createThemeI18nContext, ensureThemeLayout, getThemeApiHandler, getThemeLayoutContext, getThemeRegion } from './js/theme-layout.js';
 import { setupSearch } from './js/search.js';
 import { createSiteFeatureContext, isSiteFeatureEnabled } from './js/site-features.js';
+import { createThemeRouterHrefHelpers } from './js/theme-router-helpers.js';
 import { extractExcerpt, computeReadTime, parseFrontMatter } from './js/content.js';
 import { getContentRoot, setSafeHtml } from './js/safe-html.js';
 import { getQueryVariable, setDocTitle, setBaseSiteTitle, slugifyTab, isModifiedClick } from './js/utils.js';
@@ -734,6 +735,13 @@ function getHomeLabel() {
 }
 
 function createThemeRouterContext() {
+  const hrefHelpers = createThemeRouterHrefHelpers({
+    withLangParam,
+    getHomeSlug: () => getHomeSlug(),
+    postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled(),
+    tagsEnabled: () => siteFeatureEnabled('tags')
+  });
   return {
     getRouteKey: getCurrentRouteKey,
     withLangParam,
@@ -742,6 +750,11 @@ function createThemeRouterContext() {
     getHomeLabel: () => getHomeLabel(),
     postsEnabled: () => postsEnabled(),
     searchEnabled: () => searchEnabled(),
+    getHomeHref: hrefHelpers.getHomeHref,
+    getTabHref: hrefHelpers.getTabHref,
+    getPostHref: hrefHelpers.getPostHref,
+    getPostsHref: hrefHelpers.getPostsHref,
+    getSearchHref: hrefHelpers.getSearchHref,
     navigate(href) {
       try {
         history.pushState({}, '', String(href || ''));
@@ -1428,7 +1441,7 @@ function displayPost(postname, options = {}) {
         setSafeHtml,
         withLangParam,
         fetchMarkdown: (loc) => getFile(`${getContentRoot()}/${loc}`),
-        makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
+        makeLangHref: (loc) => createThemeRouterContext().getPostHref(loc)
       }
     }) || {};
 
@@ -1954,7 +1967,7 @@ function displayStaticTab(slug) {
           setSafeHtml,
           withLangParam,
           fetchMarkdown: (loc) => getFile(`${getContentRoot()}/${loc}`),
-          makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
+          makeLangHref: (loc) => createThemeRouterContext().getPostHref(loc)
         }
       }) || {};
 
@@ -2258,7 +2271,7 @@ try {
 } catch (_) {}
 
 // Build layout according to the active theme pack before binding UI logic
-await ensureThemeLayout({ features: getSiteFeatureContext() });
+await ensureThemeLayout({ features: getSiteFeatureContext(), router: createThemeRouterContext() });
 setBootProgress(0.6);
 
 // Ensure theme controls are present, then apply and bind
@@ -2640,6 +2653,7 @@ try {
 // Footer: set dynamic year once
 try {
   callThemeEffect('setupFooter', {
+    ctx: createThemeRuntimeContext({ view: 'footer' }),
     translate: t,
     document,
     window,
@@ -2652,6 +2666,7 @@ try {
     withLangParam,
     getHomeSlug: () => getHomeSlug(),
     getHomeLabel: () => getHomeLabel(),
-    postsEnabled: () => postsEnabled()
+    postsEnabled: () => postsEnabled(),
+    searchEnabled: () => searchEnabled()
   });
 } catch (_) {}

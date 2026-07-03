@@ -506,6 +506,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     i18n: createThemeI18nContext(),
     regions: createThemeRegionRegistry(),
     features: options.features || null,
+    router: options.router || null,
     pack,
     manifest,
     theme: createThemeApi(pack, manifest),
@@ -563,6 +564,9 @@ async function ensureThemeLayoutWithState(themeLayoutState, options = {}) {
   if (cachedContext && document.body.dataset.themeLayout === pack) {
     if (options && Object.prototype.hasOwnProperty.call(options, 'features')) {
       cachedContext.features = options.features || null;
+    }
+    if (options && Object.prototype.hasOwnProperty.call(options, 'router')) {
+      cachedContext.router = options.router || null;
     }
     return cachedContext;
   }

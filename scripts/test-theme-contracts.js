@@ -24,6 +24,11 @@ const REQUIRED_COMPONENTS = getRequiredThemeComponents();
 const REQUIRED_MANIFEST_FIELDS = getRequiredThemeManifestFields();
 const DEFAULT_THEME_STYLES = getDefaultThemeStyles();
 const REQUIRED_STYLE_TOKENS = ['--press-color-text', '--press-color-surface', '--press-font-body', '--press-radius-card', '--press-space-page'];
+const FORBIDDEN_V4_ROUTE_CONSTRUCTION_PATTERNS = [
+  /[?&](?:tab|id)=/,
+  /\bnew\s+URLSearchParams\s*\(\s*['"`][^'"`]*(?:[?&]?(?:tab|id)=)/,
+  /\bsearchParams\s*\.\s*(?:set|append)\(\s*(?!['"`]lang['"`])/
+];
 const FORMER_DOM_IDS = [
   ['main', 'view'],
   ['toc', 'view'],
@@ -168,11 +173,11 @@ const themeContractSource = read(path.join(root, 'wwwroot', 'post', 'theme-contr
 if (PRESS_THEME_CONTRACT.schemaVersion !== 1 || PRESS_THEME_CONTRACT.type !== 'press-theme-contract') {
   fail('assets/js/theme-contract-surface.mjs must declare the press-theme-contract surface');
 }
-if (PRESS_THEME_CONTRACT.contractVersion !== 3) {
-  fail('assets/js/theme-contract-surface.mjs must declare contractVersion 3 as the current theme contract');
+if (PRESS_THEME_CONTRACT.contractVersion !== 4) {
+  fail('assets/js/theme-contract-surface.mjs must declare contractVersion 4 as the current theme contract');
 }
-if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([3])) {
-  fail('the v3 cleanup release must support only theme contract version 3');
+if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([3, 4])) {
+  fail('the v4 transition release must support theme contract versions 3 and 4');
 }
 if (PRESS_THEME_CONTRACT.manifestSchemaPath !== 'assets/schema/theme.json') {
   fail('theme contract surface must point at assets/schema/theme.json');
@@ -234,6 +239,9 @@ if (!/const direct = \([\s\S]*asObject\(mod\.effects\)[\s\S]*\) \? mod : null;/.
 if (!/i18n:\s*createThemeI18nContext\(\)/.test(themeLayoutSource)) {
   fail('assets/js/theme-layout.js must inject ctx.i18n into theme mount context');
 }
+if (!/router:\s*options\.router \|\| null/.test(themeLayoutSource)) {
+  fail('assets/js/theme-layout.js must inject ctx.router into theme mount context');
+}
 
 ['createContentModel', 'blocks', 'tocTree', 'headings', 'assets', 'links'].forEach((needle) => {
   if (!contentModelSource.includes(needle)) {
@@ -252,23 +260,33 @@ if (!/i18n:\s*createThemeI18nContext\(\)/.test(mainSource)) {
   ['getHomeLabel', /function createThemeRouterContext\(\)[\s\S]*getHomeLabel:\s*\(\)\s*=>\s*getHomeLabel\(\)/],
   ['postsEnabled', /function createThemeRouterContext\(\)[\s\S]*postsEnabled:\s*\(\)\s*=>\s*postsEnabled\(\)/],
   ['searchEnabled', /function createThemeRouterContext\(\)[\s\S]*searchEnabled:\s*\(\)\s*=>\s*searchEnabled\(\)/],
+  ['getHomeHref', /function createThemeRouterContext\(\)[\s\S]*getHomeHref/],
+  ['getTabHref', /function createThemeRouterContext\(\)[\s\S]*getTabHref/],
+  ['getPostHref', /function createThemeRouterContext\(\)[\s\S]*getPostHref/],
+  ['getPostsHref', /function createThemeRouterContext\(\)[\s\S]*getPostsHref/],
+  ['getSearchHref', /function createThemeRouterContext\(\)[\s\S]*getSearchHref/],
   ['withLangParam', /function createThemeRouterContext\(\)[\s\S]*withLangParam/]
 ].forEach(([name, re]) => {
-  if (!re.test(mainSource)) fail(`assets/main.js must expose ctx.router.${name} for contract v3 themes`);
+  if (!re.test(mainSource)) fail(`assets/main.js must expose ctx.router.${name} for contract v4 themes`);
 });
 if (!/router:\s*createThemeRouterContext\(\)/.test(mainSource)) {
-  fail('assets/main.js createThemeRuntimeContext must use the shared v3 router helper context');
+  fail('assets/main.js createThemeRuntimeContext must use the shared v4 router helper context');
 }
 if (!/function renderSiteIdentity[\s\S]*\bctx,?[\s\S]*getHomeSlug:\s*\(\)\s*=>\s*getHomeSlug\(\)[\s\S]*postsEnabled:\s*\(\)\s*=>\s*postsEnabled\(\)[\s\S]*searchEnabled:\s*\(\)\s*=>\s*searchEnabled\(\)/.test(mainSource)) {
   fail('assets/main.js renderSiteIdentity must pass v3 home/posts/search helpers to theme effects');
 }
 [
-  ['getHomeSlug', /router:\s*\{[\s\S]*getHomeSlug:\s*\(\)\s*=>\s*getPreviewHomeSlug\(payload,\s*features\)/],
-  ['getHomeLabel', /router:\s*\{[\s\S]*getHomeLabel:\s*\(\)\s*=>\s*getPreviewHomeLabel\(payload,\s*features\)/],
-  ['postsEnabled', /router:\s*\{[\s\S]*postsEnabled:\s*\(\)\s*=>\s*previewPostsEnabled\(features\)/],
-  ['searchEnabled', /router:\s*\{[\s\S]*searchEnabled:\s*\(\)\s*=>\s*previewSearchEnabled\(features\)/]
+  ['getHomeSlug', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getHomeSlug:\s*\(\)\s*=>\s*getPreviewHomeSlug\(payload,\s*features\)/],
+  ['getHomeLabel', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getHomeLabel:\s*\(\)\s*=>\s*getPreviewHomeLabel\(payload,\s*features\)/],
+  ['postsEnabled', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*postsEnabled:\s*\(\)\s*=>\s*previewPostsEnabled\(features\)/],
+  ['searchEnabled', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*searchEnabled:\s*\(\)\s*=>\s*previewSearchEnabled\(features\)/],
+  ['getHomeHref', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getHomeHref/],
+  ['getTabHref', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getTabHref/],
+  ['getPostHref', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getPostHref/],
+  ['getPostsHref', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getPostsHref/],
+  ['getSearchHref', /function createPreviewRouterContext\(payload,\s*features\)[\s\S]*getSearchHref/]
 ].forEach(([name, re]) => {
-  if (!re.test(editorPreviewRuntimeSource)) fail(`assets/js/editor-preview-runtime.js must expose ctx.router.${name} for contract v3 themes`);
+  if (!re.test(editorPreviewRuntimeSource)) fail(`assets/js/editor-preview-runtime.js must expose ctx.router.${name} for contract v4 themes`);
 });
 if (!/renderPostView[\s\S]*content,[\s\S]*rawMarkdown/.test(mainSource)) {
   fail('assets/main.js must pass the structured content model into post view rendering');
@@ -381,6 +399,9 @@ themeNames.forEach((themeName) => {
     || /import\s*\([^)]*js\/i18n\.js/.test(moduleSource)
   ) {
     fail(`${relManifest} theme modules must read i18n from ctx.i18n instead of importing js/i18n.js directly`);
+  }
+  if (Number(manifest.contractVersion) >= 4 && FORBIDDEN_V4_ROUTE_CONSTRUCTION_PATTERNS.some((pattern) => pattern.test(moduleSource))) {
+    fail(`${relManifest} contract v4 theme modules must use ctx.router href helpers instead of public route construction`);
   }
   FORMER_DOM_IDS.forEach((id) => {
     const directId = new RegExp(`getElementById\\(\\s*['"]${escapeRe(id)}['"]\\s*\\)`);

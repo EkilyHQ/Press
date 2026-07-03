@@ -73,7 +73,7 @@ async function sha256(buffer) {
 function makeThemeManifest({
   name = 'Test',
   version = '1.0.0',
-  contractVersion = 3,
+  contractVersion = 4,
   engines = { press: '>=3.4.0 <4.0.0' },
   styles = ['theme.css'],
   modules = ['modules/layout.js'],
@@ -110,7 +110,7 @@ function makeThemeManifest({
   };
 }
 
-function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contractVersion = 3, files = {} } = {}) {
+function makeThemeZip({ slug = 'test', name = 'Test', version = '1.0.0', contractVersion = 4, files = {} } = {}) {
   const manifest = makeThemeManifest({ name, version, contractVersion });
   return makeZip({
     [`press-theme-${slug}/theme.json`]: JSON.stringify(manifest, null, 2),
@@ -667,7 +667,7 @@ await run('renders product-state release metadata for official themes', async ()
 await run('renders installed legacy themes as contract migration candidates', async () => {
   const documentRef = makeThemeManagerDocument();
   mockFetchRegistry([
-    { value: 'native', label: 'Native', builtIn: true, removable: false, contractVersion: 3, files: [] },
+    { value: 'native', label: 'Native', builtIn: true, removable: false, contractVersion: 4, files: [] },
     { value: 'arcus', label: 'Arcus', version: '3.4.2', contractVersion: 1, files: ['theme.json'] },
     { value: 'legacy', label: 'Legacy', version: '0.9.0', files: ['theme.json'] },
     { value: 'cartograph', label: 'Cartograph', version: '3.4.3', contractVersion: 2, files: ['theme.json'] }
@@ -703,7 +703,7 @@ await run('normalizes release manifests and rejects unsupported contracts', asyn
     value: 'arcus',
     label: 'Arcus',
     version: '1.2.3',
-    contractVersion: 3,
+    contractVersion: 4,
     engines: { press: '>=3.4.0 <4.0.0' },
     release: { tag: 'v1.2.3' },
     asset: {
@@ -716,10 +716,11 @@ await run('normalizes release manifests and rejects unsupported contracts', asyn
   });
   assert.equal(manifest.value, 'arcus');
   assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
-  assert.equal(manifest.contractVersion, 3);
+  assert.equal(manifest.contractVersion, 4);
+  assert.equal(normalizeThemeReleaseManifest({ ...manifest, contractVersion: 3 }).contractVersion, 3);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 1 }), /contractVersion/i);
-  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 4 }), /contractVersion/i);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 5 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, engines: {} }), /engines\.press/i);
 });
 
@@ -730,21 +731,21 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      '../theme.json': '{"name":"Test","version":"1.0.0","contractVersion":3}',
+      '../theme.json': '{"name":"Test","version":"1.0.0","contractVersion":4}',
       '../theme.css': 'body{}'
     })),
     /unsafe/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      './theme.json': '{"name":"Test","version":"1.0.0","contractVersion":3}',
+      './theme.json': '{"name":"Test","version":"1.0.0","contractVersion":4}',
       './theme.css': 'body{}'
     })),
     /unsafe/i
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      'press-theme-test/theme.json': '{"name":"Test","version":"1.0.0","contractVersion":3}',
+      'press-theme-test/theme.json': '{"name":"Test","version":"1.0.0","contractVersion":4}',
       'press-theme-test/modules//layout.js': 'export {};'
     })),
     /unsafe/i
@@ -755,8 +756,8 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
   );
   assert.throws(
     () => collectThemeArchiveEntries(makeZip({
-      'arcus/theme.json': '{"name":"Arcus","contractVersion":3}',
-      'solstice/theme.json': '{"name":"Solstice","contractVersion":3}'
+      'arcus/theme.json': '{"name":"Arcus","contractVersion":4}',
+      'solstice/theme.json': '{"name":"Solstice","contractVersion":4}'
     })),
     /theme\.json|single|root/i
   );
@@ -769,9 +770,58 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
     /contractVersion/i
   );
   assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 4 })),
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 5 })),
     /contractVersion/i
   );
+});
+
+await run('rejects v4 theme packages with public route literals', async () => {
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/layout.js': 'export default { mount() { return "?tab=posts"; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/layout.js': 'export default { mount() { return "?lang=en&tab=posts"; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/views.js': 'export default { render() { return "?lang=en&id=post.md"; } };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { const url = new URL(location.href); url.searchParams.set("id", "post.md"); return { views: {}, components: {}, effects: {} }; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount() { const routeKey = "tab"; const url = new URL(location.href); url.searchParams.set(routeKey, "posts"); return { views: {}, components: {}, effects: {} }; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })));
 });
 
 await run('rejects invalid theme manifests before staging', async () => {
@@ -1231,7 +1281,7 @@ await run('failed replacement staging keeps uninstall fallback active', async ()
   assert.equal(themePack, 'native');
   assert(getThemeManagerCommitFiles().some((file) => file.path === 'assets/themes/test/theme.json' && file.deleted));
   await assert.rejects(
-    () => analyzeThemeArchive(makeThemeZip({ slug: 'replacement', contractVersion: 4 }), 'press-theme-replacement-v1.0.0.zip'),
+    () => analyzeThemeArchive(makeThemeZip({ slug: 'replacement', contractVersion: 5 }), 'press-theme-replacement-v1.0.0.zip'),
     /contractVersion/i
   );
   assert.equal(themePack, 'native');
@@ -1259,7 +1309,7 @@ await run('failed import keeps existing uninstall staging active', async () => {
   try {
     await handleImportFile({
       name: 'press-theme-bad-v1.0.0.zip',
-      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 4 })
+      arrayBuffer: async () => makeThemeZip({ slug: 'bad', contractVersion: 5 })
     });
   } finally {
     console.error = originalError;

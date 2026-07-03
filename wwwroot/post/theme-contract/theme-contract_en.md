@@ -40,9 +40,9 @@ content shapes, and archive file-type rules.
 {
   "$schema": "../../schema/theme.json",
   "name": "Native",
-  "version": "3.4.2",
-  "contractVersion": 3,
-  "engines": { "press": ">=3.4.127 <4.0.0" },
+  "version": "3.4.3",
+  "contractVersion": 4,
+  "engines": { "press": ">=3.4.130 <4.0.0" },
   "styles": ["theme.css"],
   "modules": ["modules/layout.js", "modules/interactions.js", "modules/views.js"],
   "views": {
@@ -71,9 +71,10 @@ content shapes, and archive file-type rules.
 ```
 
 - `name` and `version`: Human-facing theme identity.
-- `contractVersion`: Press runtime contract version. Contract v3 is the current
-  and only supported public chrome/runtime helper contract. Press rejects new
-  imports and official releases that declare older contract versions.
+- `contractVersion`: Press runtime contract version. Contract v4 is the current
+  route href helper contract. During the v4 transition Press accepts v3 and v4
+  themes, while new v4 themes must use runtime route helpers instead of public
+  route literals.
 - `engines.press`: Press system SemVer range the theme supports. Theme Manager
   rejects official and manually imported themes outside the current Press
   version.
@@ -103,8 +104,8 @@ changes to it through Publish, and Press system updates do not overwrite it.
   "value": "arcus",
   "label": "Arcus",
   "version": "3.4.0",
-  "contractVersion": 3,
-  "engines": { "press": ">=3.4.127 <4.0.0" },
+  "contractVersion": 4,
+  "engines": { "press": ">=3.4.130 <4.0.0" },
   "builtIn": false,
   "removable": true,
   "source": {
@@ -142,18 +143,18 @@ Official theme repositories publish a root `theme-release.json`:
   "type": "press-theme",
   "value": "arcus",
   "label": "Arcus",
-  "version": "3.4.5",
-  "contractVersion": 3,
-  "engines": { "press": ">=3.4.127 <4.0.0" },
+  "version": "3.4.6",
+  "contractVersion": 4,
+  "engines": { "press": ">=3.4.130 <4.0.0" },
   "release": {
-    "tag": "v3.4.5",
-    "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.5",
+    "tag": "v3.4.6",
+    "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.6",
     "publishedAt": "2026-05-07T00:00:00Z",
     "notes": ""
   },
   "asset": {
-    "name": "press-theme-arcus-v3.4.5.zip",
-    "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.5/press-theme-arcus-v3.4.5.zip",
+    "name": "press-theme-arcus-v3.4.6.zip",
+    "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.6/press-theme-arcus-v3.4.6.zip",
     "size": 12345,
     "digest": "sha256:..."
   },
@@ -225,8 +226,11 @@ no global adapter object or fixed-ID compatibility layer.
 View render calls receive `ctx` alongside the view payload:
 
 - `ctx.document` and `ctx.window`
-- `ctx.router` with route key, query, language-aware links, navigation,
-  `getHomeSlug()`, `getHomeLabel()`, `postsEnabled()`, and `searchEnabled()`
+- `ctx.router` with route key, query, navigation, `withLangParam()`,
+  `getHomeSlug()`, `getHomeLabel()`, `postsEnabled()`, `searchEnabled()`,
+  and v4 route href helpers: `getHomeHref()`, `getTabHref(slug)`,
+  `getPostHref(location)`, `getPostsHref({ page })`, and
+  `getSearchHref({ q, tag, page })`
 - `ctx.i18n` with `t`, `withLangParam`, `getCurrentLang`,
   `switchLanguage`, `ensureLanguageBundle`, `getAvailableLangs`,
   `getLanguageLabel`, and current `lang`
@@ -242,10 +246,12 @@ Theme modules must read translation state from `ctx.i18n`. Do not import
 version query; doing so creates a separate ES module instance and splits the
 runtime language state.
 
-Contract v3 themes must also respect `ctx.features.isEnabled(key)` for public
-chrome. Use runtime helpers for home/posts/search links instead of hard-coding
-article-site assumptions such as a brand link to `?tab=posts`. When search is
-disabled, tag navigation is disabled too.
+Themes must also respect `ctx.features.isEnabled(key)` for public chrome.
+Contract v4 themes must use `ctx.router` href helpers for all public Press
+routes. Packaged v4 source is rejected if it constructs public route literals
+directly, including route strings for tabs or posts. When search is disabled,
+`getSearchHref()` returns `null` and tag navigation is disabled too; themes
+should omit the corresponding links and controls.
 
 ## Region Registry
 Theme modules register DOM handles through the registry:

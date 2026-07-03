@@ -26,8 +26,8 @@ const SIGNED_URL_QUERY_KEYS = [
   'x-goog-signature'
 ];
 const DEFAULT_RELEASE_SOURCES = getReleaseProductStateSources(DEFAULT_RAW_ROOT);
-const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([3]);
-const CURRENT_THEME_CONTRACT_VERSION = 3;
+const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([3, 4]);
+const CURRENT_THEME_CONTRACT_VERSION = 4;
 const DEFAULT_SOURCES = {
   systemRelease: `${DEFAULT_RAW_ROOT}/${DEFAULT_PRESS_REPOSITORY}/release-artifacts/system-release.json`,
   downstream: DEFAULT_RELEASE_SOURCES.downstream,

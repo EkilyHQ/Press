@@ -25,6 +25,12 @@ const OPTIONAL_THEME_VIEWS = getOptionalThemeViews();
 const REQUIRED_THEME_REGIONS = getRequiredThemeRegions();
 const REQUIRED_THEME_COMPONENTS = getRequiredThemeComponents();
 const REQUIRED_THEME_CONTENT_SHAPES = getRequiredThemeContentShapes();
+const ROUTE_HELPER_CONTRACT_VERSION = 4;
+const FORBIDDEN_V4_ROUTE_CONSTRUCTION_PATTERNS = [
+  /[?&](?:tab|id)=/,
+  /\bnew\s+URLSearchParams\s*\(\s*['"`][^'"`]*(?:[?&]?(?:tab|id)=)/,
+  /\bsearchParams\s*\.\s*(?:set|append)\(\s*(?!['"`]lang['"`])/
+];
 
 export function getBuffer(view) {
   if (view instanceof Uint8Array) {
@@ -268,6 +274,18 @@ function validateThemeManifestContract(themeManifest, availablePaths) {
   return contractVersion;
 }
 
+function validateThemeRouteHelperContract(entries, contractVersion) {
+  if (Number(contractVersion) < ROUTE_HELPER_CONTRACT_VERSION) return;
+  entries.forEach((entry) => {
+    if (!entry || !entry.path || !isThemeTextPath(entry.path)) return;
+    if (entry.path === 'theme.json') return;
+    const source = strFromU8(entry.data);
+    if (FORBIDDEN_V4_ROUTE_CONSTRUCTION_PATTERNS.some((pattern) => pattern.test(source))) {
+      throw new Error(`Theme contractVersion 4 requires router href helpers instead of public route construction in ${entry.path}.`);
+    }
+  });
+}
+
 function normalizeRegistrySource(input, fallbackType) {
   const source = input && typeof input === 'object' ? input : {};
   const type = safeString(source.type || fallbackType || 'manual').trim().toLowerCase() || 'manual';
@@ -481,6 +499,7 @@ export function collectThemeArchiveEntries(buffer, options = {}) {
     throw new Error('Theme ZIP slug does not match the selected release manifest.');
   }
   const contractVersion = validateThemeManifestContract(themeManifest, availablePaths);
+  validateThemeRouteHelperContract(entries, contractVersion);
 
   const seen = new Set();
   const normalizedEntries = entries.map((entry) => {

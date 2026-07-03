@@ -300,6 +300,7 @@ assert.doesNotMatch(nativeInteractions, /if \(helper\.hasHelper\) return helper\
 assert.doesNotMatch(nativeInteractions, /searchParams\.set\('id'/, 'native v4 theme should not manually construct post routes');
 assert.doesNotMatch(nativeInteractions, /ROUTE_(?:TAB|POST)_KEY|buildRouteUrl|searchParams\.set\(\s*['"`](?:tab|id)['"`]/, 'native v4 theme should not keep manual public route construction fallbacks');
 assert.match(nativeInteractions, /const href = getNativePostHref\([\s\S]*\);\n\s*if \(!href\) continue;\n\s*html \+= renderPressPostCardHtml\(/, 'native index/search cards should skip unreachable post routes instead of emitting hash links');
+assert.match(nativeInteractions, /function filterEntriesWithNativePostHref[\s\S]*getNativePostHref\([\s\S]*function afterIndexRenderNative[\s\S]*updateCardMetadata\(filterEntriesWithNativePostHref\([\s\S]*function afterSearchRenderNative[\s\S]*updateCardMetadata\(filterEntriesWithNativePostHref\(/, 'native card metadata hydration should ignore entries whose post href helper returns null');
 assert.match(nativeInteractions, /aria-disabled="true"/, 'native route helper null results should render disabled controls when a label remains visible');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/theme\.js'/, 'native interactions should cache-bust theme helper imports');
 assert.match(nativeInteractions, /from '\.\.\/\.\.\/\.\.\/js\/tags\.js'/, 'native interactions should cache-bust tag helper imports');

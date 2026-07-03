@@ -224,6 +224,14 @@ function getNativePostHref(params = {}, runtimeState = null, location, documentR
   return helper.href;
 }
 
+function filterEntriesWithNativePostHref(entries = [], params = {}, runtimeState = null, documentRef = defaultDocument, windowRef = defaultWindow) {
+  return (Array.isArray(entries) ? entries : []).filter((entry) => {
+    const value = Array.isArray(entry) ? entry[1] : null;
+    const location = value && value.location ? String(value.location) : '';
+    return Boolean(getNativePostHref(params, runtimeState, location, documentRef, windowRef));
+  });
+}
+
 function navigateNativeHref(params = {}, runtimeState = null, href, documentRef = defaultDocument, windowRef = defaultWindow) {
   const cleanHref = String(href || '').trim();
   if (!cleanHref) return false;
@@ -1863,7 +1871,7 @@ function updateCardMetadata(entries = [], context = {}) {
 
 function afterIndexRenderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
-  updateCardMetadata(params.entries || [], {
+  updateCardMetadata(filterEntriesWithNativePostHref(params.entries || [], params, runtimeState, documentRef, documentRef.defaultView || defaultWindow), {
     ...params,
     document: documentRef,
     translate: getTranslator(params, runtimeState),
@@ -1959,7 +1967,7 @@ function renderSearchResultsNative(params = {}, documentRef = defaultDocument, w
 
 function afterSearchRenderNative(params = {}, documentRef = defaultDocument, runtimeState = null) {
   if (!documentRef) return false;
-  updateCardMetadata(params.entries || [], {
+  updateCardMetadata(filterEntriesWithNativePostHref(params.entries || [], params, runtimeState, documentRef, documentRef.defaultView || defaultWindow), {
     ...params,
     document: documentRef,
     translate: getTranslator(params, runtimeState),

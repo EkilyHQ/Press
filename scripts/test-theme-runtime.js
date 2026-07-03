@@ -314,6 +314,68 @@ await run('cached theme layout contexts refresh public feature context', async (
   assert.equal(second.router, secondRouter);
 });
 
+await run('in-flight theme layout reuse refreshes public feature context', async () => {
+  installGlobals({
+    savedPack: 'featurepack',
+    manifests: {
+      featurepack: makeManifest('featurepack', ['modules/layout.js'])
+    }
+  });
+  let releaseModule = () => {};
+  const moduleReady = new Promise((resolve) => { releaseModule = resolve; });
+  window.__pressThemeModuleLoader = async () => {
+    await moduleReady;
+    return { mount() {} };
+  };
+  const { ensureThemeLayout, getThemeLayoutContext } = await freshThemeLayout();
+  const firstFeatures = { flags: { search: true }, isEnabled: (key) => key !== 'search' };
+  const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
+  const firstRouter = { getHomeHref: () => '?tab=first' };
+  const secondRouter = { getHomeHref: () => '?tab=second' };
+  const firstPromise = ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures, router: firstRouter });
+  const secondPromise = ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures, router: secondRouter });
+  releaseModule();
+  const [first, second] = await Promise.all([firstPromise, secondPromise]);
+  assert.equal(second, first);
+  assert.equal(first.features, secondFeatures);
+  assert.equal(first.router, secondRouter);
+  assert.equal(getThemeLayoutContext().features, secondFeatures);
+  assert.equal(getThemeLayoutContext().router, secondRouter);
+});
+
+await run('stale in-flight theme layout reuse does not refresh after reset', async () => {
+  installGlobals({
+    savedPack: 'featurepack',
+    manifests: {
+      featurepack: makeManifest('featurepack', ['modules/slow.js']),
+      otherpack: makeManifest('otherpack', ['modules/fast.js'])
+    }
+  });
+  let releaseSlowModule = () => {};
+  const slowModuleReady = new Promise((resolve) => { releaseSlowModule = resolve; });
+  window.__pressThemeModuleLoader = async (_path, { entry } = {}) => {
+    if (entry === 'modules/slow.js') await slowModuleReady;
+    return { mount() {} };
+  };
+  const { ensureThemeLayout, getThemeLayoutContext } = await freshThemeLayout();
+  const staleRouter = { getHomeHref: () => '?tab=stale' };
+  const reusedRouter = { getHomeHref: () => '?tab=reused' };
+  const currentRouter = { getHomeHref: () => '?tab=current' };
+  const staleFeatures = { flags: { search: true }, isEnabled: () => true };
+  const reusedFeatures = { flags: { search: false }, isEnabled: () => false };
+  const currentFeatures = { flags: { footerNav: true }, isEnabled: (key) => key === 'footerNav' };
+  const stalePromise = ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: staleFeatures, router: staleRouter });
+  const reusedPromise = ensureThemeLayout({ pack: 'featurepack', persist: false, features: reusedFeatures, router: reusedRouter });
+  const current = await ensureThemeLayout({ pack: 'otherpack', persist: false, reset: true, features: currentFeatures, router: currentRouter });
+  assert.equal(current.features, currentFeatures);
+  assert.equal(current.router, currentRouter);
+  releaseSlowModule();
+  await Promise.all([stalePromise, reusedPromise]);
+  assert.equal(getThemeLayoutContext().pack, 'otherpack');
+  assert.equal(getThemeLayoutContext().features, currentFeatures);
+  assert.equal(getThemeLayoutContext().router, currentRouter);
+});
+
 await run('cached native layout effects use refreshed router context', async () => {
   installGlobals({
     savedPack: 'native',

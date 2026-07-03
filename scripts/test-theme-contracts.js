@@ -1116,6 +1116,31 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     }
     return false;
   };
+  const callbackOwnerIndexes = (paramsText, body) => {
+    const out = [];
+    splitTopLevelArgs(paramsText).forEach((param, ownerIndex) => {
+      const simple = String(param || '').trim().match(/^([A-Za-z_$][\w$]*)$/);
+      if (simple && callbackMutatesRouteUrl(body, simple[1])) out.push(ownerIndex);
+    });
+    return out;
+  };
+  const callbackInvocationArgs = (method, argsText) => {
+    const parts = splitTopLevelArgs(argsText);
+    if (method === 'direct') return parts;
+    if (method === 'call') return parts.slice(1);
+    const arrayArg = String(parts[1] || '').trim();
+    if (!arrayArg.startsWith('[')) return [];
+    const close = arrayArg.lastIndexOf(']');
+    return splitTopLevelArgs(close >= 0 ? arrayArg.slice(1, close) : arrayArg.slice(1));
+  };
+  const inlineCallbackInvocationIsForbidden = (paramsText, body, method, argsStart) => {
+    const parsed = extractCallArgs(text, argsStart);
+    const actualArgs = callbackInvocationArgs(method, parsed.args);
+    return {
+      end: parsed.end,
+      forbidden: callbackOwnerIndexes(paramsText, body).some((ownerIndex) => expressionIsRelativeNewUrl(actualArgs[ownerIndex] || ''))
+    };
+  };
   const callIsShadowedInNestedScope = (name, scope, scopedCallIndex) => {
     const globalCallIndex = scope.start + scopedCallIndex;
     const rootName = String(name || '').split(/\s*\.\s*/).filter(Boolean)[0] || '';
@@ -1162,6 +1187,21 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     if (parsed.relative && callbackMutatesRouteUrl(match[2] || '', match[1])) return true;
     if (parsed.end > applyRe.lastIndex) applyRe.lastIndex = parsed.end;
     match = applyRe.exec(text);
+  }
+  const expressionMethodRe = /\(\s*(?:async\s*)?\(([^)]*)\)\s*=>\s*\(/g;
+  match = expressionMethodRe.exec(text);
+  while (match) {
+    const bodyParsed = extractCallArgs(text, expressionMethodRe.lastIndex);
+    const suffix = text.slice(bodyParsed.end).match(/^\s*\)\s*\.\s*(call|apply)\s*\(/);
+    if (suffix) {
+      const argsStart = bodyParsed.end + suffix[0].length;
+      const parsed = inlineCallbackInvocationIsForbidden(match[1], bodyParsed.args, suffix[1], argsStart);
+      if (parsed.forbidden) return true;
+      if (parsed.end > expressionMethodRe.lastIndex) expressionMethodRe.lastIndex = parsed.end;
+    } else if (bodyParsed.end > expressionMethodRe.lastIndex) {
+      expressionMethodRe.lastIndex = bodyParsed.end;
+    }
+    match = expressionMethodRe.exec(text);
   }
   const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
   match = blockArrowRe.exec(text);
@@ -1267,12 +1307,11 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     const objectScope = containingBlockSpan(match.index);
     const objectSpan = extractBlockSpan(text, objectLiteralRe.lastIndex - 1);
     const objectBodyStart = objectLiteralRe.lastIndex;
-    const methodRe = new RegExp(`\\b(${IDENTIFIER_PATTERN.source})\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+    const methodRe = new RegExp(`\\b(${IDENTIFIER_PATTERN.source})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
     let method = methodRe.exec(objectSpan.body);
     while (method) {
       const methodOpenBrace = objectBodyStart + methodRe.lastIndex - 1;
       const methodSpan = extractBlockSpan(text, methodOpenBrace);
-      addMutator(`${objectName}.${method[1]}`, method[2], methodSpan.body, match.index, objectScope);
       addMutatorsForParams(`${objectName}.${method[1]}`, method[2], methodSpan.body, match.index, objectScope);
       methodRe.lastIndex = Math.max(methodRe.lastIndex, methodSpan.end - objectBodyStart);
       method = methodRe.exec(objectSpan.body);
@@ -1299,7 +1338,7 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
   for (const { name, scope, ownerIndex } of mutators) {
     const scopedText = text.slice(scope.start, scope.end);
     const calleePattern = expressionReferencePattern(name);
-    const directCallRe = new RegExp(`${calleePattern}\\s*\\(`, 'g');
+    const directCallRe = new RegExp(`(^|[^\\w$.])${calleePattern}\\s*\\(`, 'g');
     match = directCallRe.exec(scopedText);
     while (match) {
       const parsed = extractCallArgs(scopedText, directCallRe.lastIndex);
@@ -1466,6 +1505,9 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file external URL prebound helper mutator param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } const bound = mutate.bind(null, new URL(endpoint)); return bound(); };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL second-arg helper mutator param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => { function mutate(ctx, url) { url.searchParams.set("id", post.location); return url.href; } return mutate(null, new URL(endpoint)); };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['sibling helper shadow does not hide active mutator', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } if (a) { function mutate(url) { return url.href; } } if (b) { return mutate(new URL(location.href)); }', true],
+  ['multi-arg object helper mutator is rejected', 'const helper = { mutate(ctx, url) { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(null, new URL(location.href));', true],
+  ['multi-arg inline callback call is rejected', 'return ((ctx, url) => (url.searchParams.set("id", "post.md"), url.href)).call(null, "ctx", new URL(location.href));', true],
+  ['multi-arg inline callback apply is rejected', 'return ((ctx, url) => (url.searchParams.set("id", "post.md"), url.href)).apply(null, ["ctx", new URL(location.href)]);', true],
   ['cross-file external URL multiline expression arrow param shadowing', 'import { endpoint } from "./config.js"; const route = ({ endpoint }, post) => (\n  endpoint + "?id=" + post.location\n);', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL single expression arrow param shadowing', 'import { endpoint } from "./config.js"; export default endpoint => endpoint + "?tab=posts";', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file external URL async single arrow param shadowing', 'import { endpoint } from "./config.js"; const route = async endpoint => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
@@ -1478,6 +1520,7 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file imported external URL second-arg and bound helper mutator context', 'import { endpoint } from "./config.js"; function mutate(ctx, url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null, "ctx"); mutate("ctx", new URL(endpoint)); bound(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-scope helper mutator name does not leak', 'function setup() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } function route() { function mutate(url) { return url.href; } return mutate(new URL(location.href)); }', false],
   ['nested helper mutator shadow does not leak', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }; if (ok) { function mutate(url) { return url.href; } const helper = { mutate(url) { return url.href; } }; mutate(new URL(location.href)); helper.mutate(new URL(location.href)); }', false],
+  ['simple helper name does not reject safe object method', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { return url.href; } }; return helper.mutate(new URL(location.href));', false],
   ['semicolonless expression arrow does not shadow later external route', 'import { endpoint } from "./config.js"; const helper = endpoint => endpoint\nconst url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL relative concat with base context', 'import { endpoint } from "./config.js"; const url = new URL("?id=" + sku, endpoint); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file unrelated import does not allow alias', 'import { endpoint } from "./internal.js"; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }, { path: 'modules/internal.js', source: 'export const endpoint = location.href;' }] }],

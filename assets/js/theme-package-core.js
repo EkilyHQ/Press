@@ -1065,6 +1065,31 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     }
     return false;
   };
+  const callbackOwnerIndexes = (paramsText, body) => {
+    const out = [];
+    splitTopLevelArgs(paramsText).forEach((param, ownerIndex) => {
+      const simple = safeString(param).trim().match(/^([A-Za-z_$][\w$]*)$/);
+      if (simple && callbackMutatesRouteUrl(body, simple[1])) out.push(ownerIndex);
+    });
+    return out;
+  };
+  const callbackInvocationArgs = (method, argsText) => {
+    const parts = splitTopLevelArgs(argsText);
+    if (method === 'direct') return parts;
+    if (method === 'call') return parts.slice(1);
+    const arrayArg = safeString(parts[1] || '').trim();
+    if (!arrayArg.startsWith('[')) return [];
+    const close = arrayArg.lastIndexOf(']');
+    return splitTopLevelArgs(close >= 0 ? arrayArg.slice(1, close) : arrayArg.slice(1));
+  };
+  const inlineCallbackInvocationIsForbidden = (paramsText, body, method, argsStart) => {
+    const parsed = extractCallArgs(text, argsStart);
+    const actualArgs = callbackInvocationArgs(method, parsed.args);
+    return {
+      end: parsed.end,
+      forbidden: callbackOwnerIndexes(paramsText, body).some((ownerIndex) => expressionIsRelativeNewUrl(actualArgs[ownerIndex] || ''))
+    };
+  };
   const callIsShadowedInNestedScope = (name, scope, scopedCallIndex) => {
     const globalCallIndex = scope.start + scopedCallIndex;
     const rootName = safeString(name).split(/\s*\.\s*/).filter(Boolean)[0] || '';
@@ -1111,6 +1136,21 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     if (parsed.relative && callbackMutatesRouteUrl(match[2] || '', match[1])) return true;
     if (parsed.end > applyRe.lastIndex) applyRe.lastIndex = parsed.end;
     match = applyRe.exec(text);
+  }
+  const expressionMethodRe = /\(\s*(?:async\s*)?\(([^)]*)\)\s*=>\s*\(/g;
+  match = expressionMethodRe.exec(text);
+  while (match) {
+    const bodyParsed = extractCallArgs(text, expressionMethodRe.lastIndex);
+    const suffix = text.slice(bodyParsed.end).match(/^\s*\)\s*\.\s*(call|apply)\s*\(/);
+    if (suffix) {
+      const argsStart = bodyParsed.end + suffix[0].length;
+      const parsed = inlineCallbackInvocationIsForbidden(match[1], bodyParsed.args, suffix[1], argsStart);
+      if (parsed.forbidden) return true;
+      if (parsed.end > expressionMethodRe.lastIndex) expressionMethodRe.lastIndex = parsed.end;
+    } else if (bodyParsed.end > expressionMethodRe.lastIndex) {
+      expressionMethodRe.lastIndex = bodyParsed.end;
+    }
+    match = expressionMethodRe.exec(text);
   }
   const blockArrowRe = new RegExp(`\\(\\s*(?:async\\s*)?\\(?\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)?\\s*=>\\s*\\{`, 'g');
   match = blockArrowRe.exec(text);
@@ -1216,12 +1256,11 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     const objectScope = containingBlockSpan(match.index);
     const objectSpan = extractBlockSpan(text, objectLiteralRe.lastIndex - 1);
     const objectBodyStart = objectLiteralRe.lastIndex;
-    const methodRe = new RegExp(`\\b(${IDENTIFIER_PATTERN.source})\\s*\\(\\s*(${IDENTIFIER_PATTERN.source})\\s*\\)\\s*\\{`, 'g');
+    const methodRe = new RegExp(`\\b(${IDENTIFIER_PATTERN.source})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
     let method = methodRe.exec(objectSpan.body);
     while (method) {
       const methodOpenBrace = objectBodyStart + methodRe.lastIndex - 1;
       const methodSpan = extractBlockSpan(text, methodOpenBrace);
-      addMutator(`${objectName}.${method[1]}`, method[2], methodSpan.body, match.index, objectScope);
       addMutatorsForParams(`${objectName}.${method[1]}`, method[2], methodSpan.body, match.index, objectScope);
       methodRe.lastIndex = Math.max(methodRe.lastIndex, methodSpan.end - objectBodyStart);
       method = methodRe.exec(objectSpan.body);
@@ -1248,7 +1287,7 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
   for (const { name, scope, ownerIndex } of mutators) {
     const scopedText = text.slice(scope.start, scope.end);
     const calleePattern = expressionReferencePattern(name);
-    const directCallRe = new RegExp(`${calleePattern}\\s*\\(`, 'g');
+    const directCallRe = new RegExp(`(^|[^\\w$.])${calleePattern}\\s*\\(`, 'g');
     match = directCallRe.exec(scopedText);
     while (match) {
       const parsed = extractCallArgs(scopedText, directCallRe.lastIndex);

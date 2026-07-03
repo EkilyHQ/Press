@@ -637,4 +637,28 @@ assert.ok(searchTab, 'native search tab should render search tab chrome');
 assert.match(searchTab.getAttribute('href') || '', /q=foo/, 'native search tab should preserve q when a stale tag is ignored');
 assert.doesNotMatch(`${searchTab.getAttribute('href') || ''} ${searchTab.textContent || ''}`, /tag=bar|ui\.tagSearch:bar/, 'native search tab should ignore stale tag chrome when tags are disabled');
 
+const profileLinksProbe = new ElementProbe();
+const nativeLinksApi = mountNativeTheme({
+  document: {
+    querySelector: (selector) => (selector === '.site-card .social-links' ? profileLinksProbe : null),
+    createElement: (tagName) => new ElementProbe(tagName),
+    body: new ElementProbe()
+  },
+  window: {},
+  features: createSiteFeatureContext({}),
+  i18n: { t: (key) => key }
+});
+nativeLinksApi.effects.renderSiteLinks({
+  config: {
+    profileLinks: [
+      { label: 'Unsafe', href: 'javascript:alert(1)' },
+      { label: 'Mail', href: 'mailto:hello@example.test' }
+    ]
+  },
+  features: createSiteFeatureContext({})
+});
+assert.match(profileLinksProbe.innerHTML, /href="#"/, 'native profile links should replace unsafe URL schemes');
+assert.match(profileLinksProbe.innerHTML, /href="mailto:hello@example.test"/, 'native profile links should preserve safe URL schemes');
+assert.doesNotMatch(profileLinksProbe.innerHTML, /javascript:/i, 'native profile links should not render javascript URLs');
+
 console.log('ok - site feature controls resolve and serialize');

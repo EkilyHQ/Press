@@ -29,9 +29,12 @@ const ROUTE_QUERY_PATTERN = /[?&]([^=&#\s]+)\s*=/g;
 const ROUTE_KEY_OBJECT_INIT_PATTERN = /(?:^|[,{]\s*)(?:(['"`])(?:tab|id)\1|(?:tab|id))\s*:/;
 const ROUTE_KEY_OBJECT_SHORTHAND_PATTERN = /(?:^|[,{]\s*)(?:tab|id)\s*(?=[,}])/;
 const ROUTE_KEY_ARRAY_INIT_PATTERN = /\[\s*(['"`])(?:tab|id)\1\s*,/;
-const SPLIT_ROUTE_QUERY_LITERAL_PATTERN = /(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?[?&])\1\s*\+\s*(?:(['"`])(?:tab|id)\s*=\3|(['"`])(?:tab|id)\4\s*\+\s*(['"`])=\5)/g;
+const SPLIT_ROUTE_QUERY_LITERAL_PATTERN = /(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?[?&])\1\s*\+\s*(?:\(\s*)*(?:(['"`])(?:tab|id)\s*=|(['"`])(?:tab|id)\4\s*\+\s*(?:\(\s*)*(['"`])=\5)/g;
 const IDENTIFIER_PATTERN = /[A-Za-z_$][\w$]*/;
 const MEMBER_EXPRESSION_PATTERN_SOURCE = `(?:this|${IDENTIFIER_PATTERN.source})(?:\\s*\\.\\s*${IDENTIFIER_PATTERN.source})+`;
+const STATIC_MEMBER_STRING_PATTERN_SOURCE = `(?:"(?:\\\\[\\s\\S]|[^"\\\\])*"|'(?:\\\\[\\s\\S]|[^'\\\\])*'|\`(?:\\\\[\\s\\S]|[^\`\\\\])*\`)`;
+const STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE = `(?:${IDENTIFIER_PATTERN.source}|${STATIC_MEMBER_STRING_PATTERN_SOURCE}|\\[\\s*${STATIC_MEMBER_STRING_PATTERN_SOURCE}\\s*\\])`;
+const MEMBER_EXPRESSION_WITH_STATIC_KEYS_PATTERN_SOURCE = `(?:this|${IDENTIFIER_PATTERN.source})(?:(?:\\s*\\.\\s*${IDENTIFIER_PATTERN.source})|(?:\\s*\\[\\s*${STATIC_MEMBER_STRING_PATTERN_SOURCE}\\s*\\]))+`;
 const ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE = `(?:"(?:tab|id)"|'(?:tab|id)'|\`(?:tab|id)\`)`;
 const URL_CONSTRUCTOR_PATTERN_SOURCE = `(?:URL|(?:window|globalThis)\\s*\\.\\s*URL)`;
 const FORMER_DOM_IDS = [
@@ -152,6 +155,24 @@ function expressionReferencePattern(expression) {
     return `\\b${escapeRe(root)}${properties.map((property) => propertyAccessorPattern(property)).join('')}`;
   }
   return `\\b${escapeRe(text)}`;
+}
+
+function expressionReferencePatternForSource(expression, source = '') {
+  const text = String(expression || '').trim();
+  const parts = text.split(/\s*\.\s*/).filter(Boolean);
+  if (parts.length && parts.every((part, index) => (
+    part === 'this' ? index === 0 : new RegExp(`^${IDENTIFIER_PATTERN.source}$`).test(part)
+  ))) {
+    const [root, ...properties] = parts;
+    return `\\b${escapeRe(root)}${properties.map((property) => (
+      propertyAccessorPattern(property, collectStaticStringAliases(source, property))
+    )).join('')}`;
+  }
+  return expressionReferencePattern(expression);
+}
+
+function functionInvocationStartPattern(calleePattern) {
+  return `(?:${calleePattern}\\s*(?:\\?\\.\\s*)?\\(|${calleePattern}(?:\\s*(?:\\?\\.\\s*|\\.\\s*)(?:call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](?:call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](?:call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\()`;
 }
 
 function isExternalUrlPrefix(value) {
@@ -332,6 +353,62 @@ function stripCommentsForRouteGuard(source) {
   return out;
 }
 
+function maskNonCodeForRouteGuard(source) {
+  const text = String(source || '');
+  let out = '';
+  let quote = '';
+  let escaped = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1] || '';
+    if (quote) {
+      out += ch === '\n' || ch === '\r' ? ch : ' ';
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      out += ' ';
+      continue;
+    }
+    if (ch === '/' && next !== '/' && next !== '*' && routeGuardPreviousTokenAllowsRegex(text, i)) {
+      const end = routeGuardRegexLiteralEnd(text, i);
+      out += text.slice(i, end).replace(/[^\n\r]/g, ' ');
+      i = end - 1;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      out += '  ';
+      i += 1;
+      while (i + 1 < text.length && text[i + 1] !== '\n' && text[i + 1] !== '\r') {
+        out += ' ';
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      out += '  ';
+      i += 1;
+      while (i + 1 < text.length) {
+        const blockCh = text[i + 1];
+        const blockNext = text[i + 2] || '';
+        if (blockCh === '*' && blockNext === '/') {
+          out += '  ';
+          i += 2;
+          break;
+        }
+        out += blockCh === '\n' || blockCh === '\r' ? blockCh : ' ';
+        i += 1;
+      }
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 function stripHtmlCommentsForRouteGuard(source) {
   return String(source || '').replace(/<!--[\s\S]*?-->/g, (match) => (
     match.replace(/[^\n\r]/g, ' ')
@@ -431,6 +508,134 @@ function decodeJsStringLiteralContent(value) {
     .replace(/\\([\\'"`?&=])/g, '$1');
 }
 
+function splitTopLevelConcatParts(value) {
+  const text = String(value || '');
+  const out = [];
+  let depth = 0;
+  let quote = '';
+  let escaped = false;
+  let start = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(' || ch === '[' || ch === '{') {
+      depth += 1;
+      continue;
+    }
+    if (ch === ')' || ch === ']' || ch === '}') {
+      if (depth > 0) depth -= 1;
+      continue;
+    }
+    if (depth === 0 && ch === '+') {
+      out.push(text.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  out.push(text.slice(start).trim());
+  return out.filter(Boolean);
+}
+
+function staticStringExpressionValue(expression) {
+  const text = stripWrappingParentheses(expression);
+  const literal = text.match(/^(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1$/);
+  if (literal) {
+    if (literal[1] === '`' && /\$\{/.test(literal[2])) return null;
+    return decodeJsStringLiteralContent(literal[2]);
+  }
+  const parts = splitTopLevelConcatParts(text);
+  if (parts.length < 2) return null;
+  let value = '';
+  for (const part of parts) {
+    const partValue = staticStringExpressionValue(part);
+    if (partValue == null) return null;
+    value += partValue;
+  }
+  return value;
+}
+
+function normalizeStaticMemberExpression(expression) {
+  const value = String(expression || '').trim();
+  const root = value.match(new RegExp(`^(?:this|${IDENTIFIER_PATTERN.source})`));
+  if (!root) return value;
+  const parts = [root[0]];
+  const tokenRe = new RegExp(`\\s*(?:\\.\\s*(${IDENTIFIER_PATTERN.source})|\\[\\s*(${STATIC_MEMBER_STRING_PATTERN_SOURCE})\\s*\\])`, 'y');
+  let index = root[0].length;
+  while (index < value.length) {
+    tokenRe.lastIndex = index;
+    const token = tokenRe.exec(value);
+    if (!token) return value;
+    const property = token[1] || staticStringExpressionValue(token[2]);
+    if (!new RegExp(`^${IDENTIFIER_PATTERN.source}$`).test(property || '')) return value;
+    parts.push(property);
+    index = tokenRe.lastIndex;
+  }
+  return parts.join('.');
+}
+
+function normalizeStaticObjectPropertyKey(key) {
+  const text = String(key || '').trim();
+  let value = '';
+  if (new RegExp(`^${IDENTIFIER_PATTERN.source}$`).test(text)) {
+    value = text;
+  } else if (text.startsWith('[') && text.endsWith(']')) {
+    value = staticStringExpressionValue(text.slice(1, -1));
+  } else {
+    value = staticStringExpressionValue(text);
+  }
+  return new RegExp(`^${IDENTIFIER_PATTERN.source}$`).test(value || '') ? value : '';
+}
+
+function collectDestructuredStaticPropertyAliases(body, property) {
+  const text = String(body || '');
+  const out = new Set();
+  const escaped = escapeRe(property);
+  const aliasRe = new RegExp(`(?:^|,)\\s*${escaped}\\s*:\\s*(${IDENTIFIER_PATTERN.source})(?:\\s*=\\s*[^,}]*)?`, 'g');
+  let alias = aliasRe.exec(text);
+  while (alias) {
+    out.add(alias[1]);
+    alias = aliasRe.exec(text);
+  }
+  const computedAliasRe = new RegExp(`(?:^|,)\\s*\\[\\s*(${STATIC_MEMBER_STRING_PATTERN_SOURCE})\\s*\\]\\s*:\\s*(${IDENTIFIER_PATTERN.source})(?:\\s*=\\s*[^,}]*)?`, 'g');
+  alias = computedAliasRe.exec(text);
+  while (alias) {
+    if (staticStringExpressionValue(alias[1]) === property) out.add(alias[2]);
+    alias = computedAliasRe.exec(text);
+  }
+  const shorthandRe = new RegExp(`(?:^|,)\\s*${escaped}\\s*(?:=\\s*[^,}]*)?(?:,|$)`);
+  if (shorthandRe.test(text)) out.add(property);
+  return out;
+}
+
+function collectStaticStringAliases(source, expectedValue) {
+  const text = String(source || '');
+  const aliases = new Set();
+  const re = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*`, 'g');
+  let match = re.exec(text);
+  while (match) {
+    const expression = extractAssignmentExpression(text, re.lastIndex);
+    if (staticStringExpressionValue(expression) === expectedValue
+      && (match[1] === 'const' || !bindingIsReassigned(text, match[2], re.lastIndex + expression.length))) {
+      aliases.add(match[2]);
+    }
+    re.lastIndex += expression.length;
+    match = re.exec(text);
+  }
+  return aliases;
+}
+
 function shouldScanHtmlRouteAttributes(path, source) {
   const clean = String(path || '').toLowerCase();
   if (/\.(?:html?|svg)$/i.test(clean)) return true;
@@ -498,7 +703,7 @@ function addExternalUrlObjectAliases(aliases, name, initializer) {
 
 function bindingIsReassigned(source, name, fromIndex = 0) {
   const text = String(source || '');
-  const re = new RegExp(`(?:^|[^\\w$.])${escapeRegExp(name)}\\s*(?:[+\\-*/%&|^]?=)(?!=|>)`, 'g');
+  const re = new RegExp(`(?:^|[^\\w$.])${escapeRe(name)}\\s*(?:[+\\-*/%&|^]?=)(?!=|>)`, 'g');
   re.lastIndex = Math.max(0, fromIndex);
   return re.test(text);
 }
@@ -771,17 +976,101 @@ function collectLocalBindingNames(source) {
 
 function addLocalDeclarationBindings(bindings, source, options = {}) {
   const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
   const declarationRe = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g;
-  let match = declarationRe.exec(text);
+  let match = declarationRe.exec(scan);
   while (match) {
     if (!options.topLevelOnly || braceDepthAt(text, match.index) === 0) bindings.add(match[1]);
-    match = declarationRe.exec(text);
+    match = declarationRe.exec(scan);
   }
   const destructuredRe = /\b(?:const|let|var)\s*\{([\s\S]*?)\}/g;
-  match = destructuredRe.exec(text);
+  match = destructuredRe.exec(scan);
   while (match) {
     if (!options.topLevelOnly || braceDepthAt(text, match.index) === 0) addBindingNamesFromPattern(bindings, match[1]);
-    match = destructuredRe.exec(text);
+    match = destructuredRe.exec(scan);
+  }
+  const arrayDestructuredRe = /\b(?:const|let|var)\s*\[([\s\S]*?)\]/g;
+  match = arrayDestructuredRe.exec(scan);
+  while (match) {
+    if (!options.topLevelOnly || braceDepthAt(text, match.index) === 0) addBindingNamesFromPattern(bindings, match[1]);
+    match = arrayDestructuredRe.exec(scan);
+  }
+}
+
+function stackStartsWith(stack, prefix) {
+  if (prefix.length > stack.length) return false;
+  return prefix.every((value, index) => stack[index] === value);
+}
+
+function collectNestedFunctionBodyRanges(source) {
+  const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
+  const ranges = [];
+  const addRange = (openBraceIndex) => {
+    if (openBraceIndex < 0) return;
+    const span = extractBlockSpan(text, openBraceIndex);
+    ranges.push({ start: openBraceIndex, end: span.end });
+  };
+  const functionRe = /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\([^)]*\)\s*\{/g;
+  let match = functionRe.exec(scan);
+  while (match) {
+    addRange(functionRe.lastIndex - 1);
+    match = functionRe.exec(scan);
+  }
+  const arrowBlockRe = /=>\s*\{/g;
+  match = arrowBlockRe.exec(scan);
+  while (match) {
+    addRange(arrowBlockRe.lastIndex - 1);
+    match = arrowBlockRe.exec(scan);
+  }
+  const controlNames = new Set(['catch', 'for', 'if', 'switch', 'while', 'with']);
+  const methodRe = new RegExp(`(?:^|[,\\{]\\s*)(?:async\\s+)?(${IDENTIFIER_PATTERN.source})\\s*\\([^)]*\\)\\s*\\{`, 'g');
+  match = methodRe.exec(scan);
+  while (match) {
+    if (!controlNames.has(match[1])) addRange(methodRe.lastIndex - 1);
+    match = methodRe.exec(scan);
+  }
+  return ranges;
+}
+
+function indexIsInsideRange(index, ranges) {
+  return ranges.some((range) => index > range.start && index < range.end);
+}
+
+function addVisibleLocalDeclarationBindings(bindings, source, index) {
+  const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
+  const visibleStack = blockStackAt(text, index);
+  const nestedFunctionRanges = collectNestedFunctionBodyRanges(text);
+  const declarationRe = /\b(const|let|var)\s+([A-Za-z_$][\w$]*)/g;
+  let match = declarationRe.exec(scan);
+  while (match) {
+    const declarationStack = blockStackAt(text, match.index);
+    if ((match[1] === 'var' && !indexIsInsideRange(match.index, nestedFunctionRanges))
+      || stackStartsWith(visibleStack, declarationStack)) {
+      bindings.add(match[2]);
+    }
+    match = declarationRe.exec(scan);
+  }
+  const destructuredRe = /\b(const|let|var)\s*\{([\s\S]*?)\}/g;
+  match = destructuredRe.exec(scan);
+  while (match) {
+    const declarationStack = blockStackAt(text, match.index);
+    if ((match[1] === 'var' && !indexIsInsideRange(match.index, nestedFunctionRanges))
+      || stackStartsWith(visibleStack, declarationStack)) {
+      addBindingNamesFromPattern(bindings, match[2]);
+    }
+    match = destructuredRe.exec(scan);
+  }
+  const arrayDestructuredRe = /\b(const|let|var)\s*\[([\s\S]*?)\]/g;
+  match = arrayDestructuredRe.exec(scan);
+  while (match) {
+    const declarationStack = blockStackAt(text, match.index);
+    if ((match[1] === 'var' && !indexIsInsideRange(match.index, nestedFunctionRanges))
+      || stackStartsWith(visibleStack, declarationStack)) {
+      addBindingNamesFromPattern(bindings, match[2]);
+    }
+    match = arrayDestructuredRe.exec(scan);
   }
 }
 
@@ -817,9 +1106,54 @@ function routeGuardBodyLooksRelevant(body) {
 function braceDepthAt(source, index) {
   const text = String(source || '').slice(0, Math.max(0, index));
   let depth = 0;
+  let quote = '';
+  let escaped = false;
+  let regex = false;
+  let inClass = false;
   for (let i = 0; i < text.length; i += 1) {
-    if (text[i] === '{') depth += 1;
-    else if (text[i] === '}' && depth > 0) depth -= 1;
+    const ch = text[i];
+    const next = text[i + 1];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === quote) quote = '';
+      continue;
+    }
+    if (regex) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '[') inClass = true;
+      else if (ch === ']' && inClass) inClass = false;
+      else if (ch === '/' && !inClass) regex = false;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      i += 1;
+      while (i + 1 < text.length && text[i + 1] !== '\n' && text[i + 1] !== '\r') i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      i += 1;
+      while (i + 1 < text.length) {
+        if (text[i + 1] === '*' && text[i + 2] === '/') {
+          i += 2;
+          break;
+        }
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '/' && routeGuardPreviousTokenAllowsRegex(text, i)) {
+      regex = true;
+      inClass = false;
+      continue;
+    }
+    if (ch === '{') depth += 1;
+    else if (ch === '}' && depth > 0) depth -= 1;
   }
   return depth;
 }
@@ -829,22 +1163,78 @@ function blockStackAt(source, index) {
   const stack = [];
   let quote = '';
   let escaped = false;
+  let regex = false;
+  let inClass = false;
   for (let i = 0; i < Math.min(text.length, Math.max(0, index)); i += 1) {
     const ch = text[i];
+    const next = text[i + 1];
     if (quote) {
       if (escaped) escaped = false;
       else if (ch === '\\') escaped = true;
       else if (ch === quote) quote = '';
       continue;
     }
+    if (regex) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '[') inClass = true;
+      else if (ch === ']' && inClass) inClass = false;
+      else if (ch === '/' && !inClass) regex = false;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      i += 1;
+      while (i + 1 < text.length && text[i + 1] !== '\n' && text[i + 1] !== '\r') i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      i += 1;
+      while (i + 1 < text.length) {
+        if (text[i + 1] === '*' && text[i + 2] === '/') {
+          i += 2;
+          break;
+        }
+        i += 1;
+      }
+      continue;
+    }
     if (ch === '"' || ch === "'" || ch === '`') {
       quote = ch;
+      continue;
+    }
+    if (ch === '/' && routeGuardPreviousTokenAllowsRegex(text, i)) {
+      regex = true;
+      inClass = false;
       continue;
     }
     if (ch === '{') stack.push(i);
     else if (ch === '}' && stack.length) stack.pop();
   }
   return stack;
+}
+
+function referenceIsShadowedInScope(source, name, scope, scopedIndex) {
+  const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
+  const normalizedScope = scope || { start: 0, end: text.length };
+  const globalIndex = normalizedScope.start + scopedIndex;
+  const rootName = String(name || '').split(/\s*\.\s*/).filter(Boolean)[0] || '';
+  if (!rootName) return false;
+  const before = scan.slice(normalizedScope.start, globalIndex);
+  const scopeStack = blockStackAt(text, normalizedScope.start);
+  const referenceStack = blockStackAt(text, globalIndex);
+  const stackIsReferenceAncestor = (stack) => (
+    stack.length > scopeStack.length
+    && stack.length <= referenceStack.length
+    && stack.every((open, index) => referenceStack[index] === open)
+  );
+  const shadowRe = new RegExp(`\\b(?:const|let|var|function)\\s+${escapeRe(rootName)}\\b`, 'g');
+  let shadow = shadowRe.exec(before);
+  while (shadow) {
+    if (stackIsReferenceAncestor(blockStackAt(text, normalizedScope.start + shadow.index))) return true;
+    shadow = shadowRe.exec(before);
+  }
+  return false;
 }
 
 function extractBlockText(source, openBraceIndex) {
@@ -1021,7 +1411,28 @@ function collectContextFileAliases(file, collector, context, seen = new Set(), c
   if (cache.has(key)) return new Set(cache.get(key));
   if (seen.has(key)) return new Set();
   seen.add(key);
-  const out = new Set(collector(file.source));
+  const collectFileAliases = () => {
+    if (collector === collectRouteUrlFactoryAliases) {
+      const fileContext = { ...context, path: file.path };
+      const externalAliases = mergeImportedContextAliases(
+        collectExternalUrlAliases(file.source),
+        collectExternalUrlAliases,
+        file.source,
+        fileContext,
+        { shadow: false }
+      );
+      const staticRelativeAliases = mergeImportedContextAliases(
+        collectStaticRelativeUrlAliases(file.source),
+        collectStaticRelativeUrlAliases,
+        file.source,
+        fileContext,
+        { shadow: false }
+      );
+      return collector(file.source, externalAliases, staticRelativeAliases);
+    }
+    return collector(file.source);
+  };
+  const out = new Set(collectFileAliases());
   const importedAliases = new Set();
   collectNamedImports(file.source).forEach(({ importedName, localName, specifier }) => {
     const targetPath = resolveImportPath(file.path, specifier);
@@ -1103,72 +1514,202 @@ function mergeImportedContextAliases(localAliases, collector, source, context, o
   return out;
 }
 
-function sourceArgIsRouteKey(arg, aliases) {
+function routeKeyAliasParamIsShadowedAt(source, name, index) {
+  const text = String(source || '');
+  const rootName = String(name || '').split(/\s*\.\s*/).filter(Boolean)[0] || '';
+  if (!rootName) return false;
+  const paramsShadow = (paramsText) => {
+    const bindings = new Set();
+    addBindingNamesFromPattern(bindings, paramsText);
+    return bindings.has(rootName);
+  };
+  const bodyContainsIndex = (openBraceIndex) => {
+    const span = extractBlockSpan(text, openBraceIndex);
+    return index > openBraceIndex && index < span.end;
+  };
+  const functionRe = /\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)\s*\{/g;
+  let match = functionRe.exec(text);
+  while (match) {
+    if (match.index <= index && bodyContainsIndex(functionRe.lastIndex - 1) && paramsShadow(match[1])) return true;
+    match = functionRe.exec(text);
+  }
+  const methodRe = new RegExp(`(?:^|[,\\{])\\s*(?:async\\s+)?${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE}\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  match = methodRe.exec(text);
+  while (match) {
+    if (match.index <= index && bodyContainsIndex(methodRe.lastIndex - 1) && paramsShadow(match[1])) return true;
+    match = methodRe.exec(text);
+  }
+  const arrowBlockRe = /(?:^|[^\w$])(?:async\s*)?\(([^)]*)\)\s*=>\s*\{/g;
+  match = arrowBlockRe.exec(text);
+  while (match) {
+    if (match.index <= index && bodyContainsIndex(arrowBlockRe.lastIndex - 1) && paramsShadow(match[1])) return true;
+    match = arrowBlockRe.exec(text);
+  }
+  const singleArrowBlockRe = new RegExp(`(?:^|[^\\w$])(?:async\\s+)?(${IDENTIFIER_PATTERN.source})\\s*=>\\s*\\{`, 'g');
+  match = singleArrowBlockRe.exec(text);
+  while (match) {
+    if (match.index <= index && bodyContainsIndex(singleArrowBlockRe.lastIndex - 1) && paramsShadow(match[1])) return true;
+    match = singleArrowBlockRe.exec(text);
+  }
+  return false;
+}
+
+function routeKeyAliasIsShadowedAt(value, aliases, source, index) {
+  const expression = stripWrappingParentheses(value);
+  const importedAliases = aliases && aliases.importedAliases instanceof Set ? aliases.importedAliases : new Set();
+  const localAliases = aliases && aliases.localAliases instanceof Set ? aliases.localAliases : new Set();
+  if (!importedAliases.has(expression) || localAliases.has(expression)) return false;
+  const text = String(source || '');
+  return referenceIsShadowedInScope(text, expression, { start: 0, end: text.length }, index)
+    || routeKeyAliasParamIsShadowedAt(text, expression, index);
+}
+
+function sourceArgIsRouteKey(arg, aliases, source = '', index = 0) {
   const value = String(arg || '').trim();
-  const literal = value.match(/^(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?)\1$/);
-  if (literal && /^(?:tab|id)$/.test(decodeJsStringLiteralContent(literal[2]))) return true;
-  return new RegExp(`^(?:${routeKeyExpressionPattern(aliases)})$`).test(value);
+  const staticValue = staticStringExpressionValue(value);
+  if (/^(?:tab|id)$/.test(staticValue || '')) return true;
+  const matchesAlias = new RegExp(`^(?:${routeKeyExpressionPattern(aliases)})$`).test(value);
+  return matchesAlias && !routeKeyAliasIsShadowedAt(value, aliases, source, index);
 }
 
-function propertyAccessorPattern(name) {
+const STATIC_STRING_CONCAT_PATTERN_CACHE = new Map();
+
+function quotedStaticPropertyPartPattern(value) {
+  const escaped = escapeRe(value);
+  return `(?:"${escaped}"|'${escaped}'|\`${escaped}\`)`;
+}
+
+function staticStringConcatExpressionPattern(value) {
+  const text = String(value || '');
+  if (!text) return '';
+  if (STATIC_STRING_CONCAT_PATTERN_CACHE.has(text)) return STATIC_STRING_CONCAT_PATTERN_CACHE.get(text);
+  const expressions = new Set([quotedStaticPropertyPartPattern(text)]);
+  for (let first = 1; first < text.length; first += 1) {
+    expressions.add([
+      text.slice(0, first),
+      text.slice(first)
+    ].map(quotedStaticPropertyPartPattern).join('\\s*\\+\\s*'));
+    for (let second = first + 1; second < text.length; second += 1) {
+      expressions.add([
+        text.slice(0, first),
+        text.slice(first, second),
+        text.slice(second)
+      ].map(quotedStaticPropertyPartPattern).join('\\s*\\+\\s*'));
+    }
+  }
+  const pattern = `(?:${Array.from(expressions).join('|')})`;
+  STATIC_STRING_CONCAT_PATTERN_CACHE.set(text, pattern);
+  return pattern;
+}
+
+function propertyAccessorPattern(name, aliases = new Set()) {
   const escaped = escapeRe(name);
-  return `(?:\\s*\\?\\.\\s*${escaped}|\\s*\\.\\s*${escaped}|\\s*\\?\\.\\s*\\[\\s*["'\`]${escaped}["'\`]\\s*\\]|\\s*\\[\\s*["'\`]${escaped}["'\`]\\s*\\])`;
+  const aliasPattern = Array.from(aliases || []).map(escapeRe).join('|');
+  const staticExpressionPattern = staticStringConcatExpressionPattern(name);
+  const aliasAccess = aliasPattern
+    ? `|\\s*(?:\\?\\.\\s*)?\\[\\s*(?:${aliasPattern})\\s*\\]`
+    : '';
+  return `(?:\\s*\\?\\.\\s*${escaped}|\\s*\\.\\s*${escaped}|\\s*\\?\\.\\s*\\[\\s*(?:${staticExpressionPattern})\\s*\\]|\\s*\\[\\s*(?:${staticExpressionPattern})\\s*\\]${aliasAccess})`;
 }
 
-function routeKeyWritePattern(owner, property = '') {
+function routeKeyWritePattern(owner, property = '', propertyAliases = new Set(), mutatorAliases = {}) {
   const ownerPattern = expressionReferencePattern(owner);
-  const suffix = property ? propertyAccessorPattern(property) : '';
-  const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')}|${propertyAccessorPattern('delete')})`;
+  const suffix = property ? propertyAccessorPattern(property, propertyAliases) : '';
+  const mutator = `(?:${propertyAccessorPattern('set', mutatorAliases.set)}|${propertyAccessorPattern('append', mutatorAliases.append)}|${propertyAccessorPattern('delete', mutatorAliases.delete)})`;
   const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
   return new RegExp(`${ownerPattern}${suffix}${mutator}\\s*(?:\\?\\.\\s*)?\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*(?:,|\\))`, 'g');
 }
 
-function routeKeyDispatchPattern(owner, property = '') {
+function routeKeyDispatchPattern(owner, property = '', propertyAliases = new Set(), mutatorAliases = {}) {
   const ownerPattern = expressionReferencePattern(owner);
-  const suffix = property ? propertyAccessorPattern(property) : '';
+  const suffix = property ? propertyAccessorPattern(property, propertyAliases) : '';
   const target = `${ownerPattern}${suffix}`;
-  const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')}|${propertyAccessorPattern('delete')})`;
-  const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
-  return new RegExp(`${target}${mutator}\\s*(?:\\?\\.\\s*|\\.\\s*)(?:call|apply)\\s*\\(\\s*${target}\\s*,\\s*(?:\\[\\s*)?(${parenthesizedRouteKey}|[^,\\]\\)]+)`, 'g');
+  const mutator = `(?:${propertyAccessorPattern('set', mutatorAliases.set)}|${propertyAccessorPattern('append', mutatorAliases.append)}|${propertyAccessorPattern('delete', mutatorAliases.delete)})`;
+  return new RegExp(`${target}${mutator}(?:\\s*(?:\\?\\.\\s*|\\.\\s*)(call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\(`, 'g');
 }
 
-function collectBoundRouteMutators(source, owner, property = '') {
+function collectBoundRouteMutators(source, owner, property = '', propertyAliases = new Set(), mutatorAliases = {}) {
   const text = String(source || '');
   const out = new Set();
   const ownerPattern = expressionReferencePattern(owner);
-  const suffix = property ? propertyAccessorPattern(property) : '';
+  const suffix = property ? propertyAccessorPattern(property, propertyAliases) : '';
   const target = `${ownerPattern}${suffix}`;
-  const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')}|${propertyAccessorPattern('delete')})`;
+  const mutator = `(?:${propertyAccessorPattern('set', mutatorAliases.set)}|${propertyAccessorPattern('append', mutatorAliases.append)}|${propertyAccessorPattern('delete', mutatorAliases.delete)})`;
   const re = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*${target}${mutator}\\s*\\.\\s*bind\\s*\\(\\s*${target}\\s*\\)`, 'g');
   let match = re.exec(text);
   while (match) {
     out.add(match[1]);
     match = re.exec(text);
   }
+  const unboundRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*${target}${mutator}\\s*;?`, 'g');
+  match = unboundRe.exec(text);
+  while (match) {
+    if (match[1] === 'const' || !bindingIsReassigned(text, match[2], unboundRe.lastIndex)) out.add(match[2]);
+    match = unboundRe.exec(text);
+  }
+  const destructureRe = new RegExp(`\\b(const|let|var)\\s*\\{([\\s\\S]*?)\\}\\s*=\\s*${target}\\b`, 'g');
+  match = destructureRe.exec(text);
+  while (match) {
+    const kind = match[1];
+    const body = match[2] || '';
+    ['set', 'append', 'delete'].forEach((key) => {
+      for (const alias of collectDestructuredStaticPropertyAliases(body, key)) {
+        if (kind === 'const' || !bindingIsReassigned(text, alias, destructureRe.lastIndex)) out.add(alias);
+      }
+    });
+    match = destructureRe.exec(text);
+  }
   return out;
 }
 
 function containsRouteKeyWriteForOwner(source, owner, aliases, property = '') {
   const text = String(source || '');
-  const re = routeKeyWritePattern(owner, property);
+  const propertyAliases = property ? collectStaticStringAliases(text, property) : new Set();
+  const mutatorAliases = {
+    set: collectStaticStringAliases(text, 'set'),
+    append: collectStaticStringAliases(text, 'append'),
+    delete: collectStaticStringAliases(text, 'delete')
+  };
+  const re = routeKeyWritePattern(owner, property, propertyAliases, mutatorAliases);
   let match = re.exec(text);
   while (match) {
-    if (sourceArgIsRouteKey(match[1], aliases)) return true;
+    if (sourceArgIsRouteKey(match[1], aliases, text, match.index)) return true;
     match = re.exec(text);
   }
-  const dispatchRe = routeKeyDispatchPattern(owner, property);
+  const dispatchRe = routeKeyDispatchPattern(owner, property, propertyAliases, mutatorAliases);
   match = dispatchRe.exec(text);
   while (match) {
-    if (sourceArgIsRouteKey(match[1], aliases)) return true;
+    const method = match[1] || match[2] || match[3];
+    const parsed = extractCallArgs(text, dispatchRe.lastIndex);
+    const parts = splitTopLevelArgs(parsed.args);
+    const applyArgs = method === 'apply' ? splitTopLevelArgs((parts[1] || '').trim().replace(/^\[\s*|\s*\]$/g, '')) : [];
+    const routeKeyArg = method === 'apply' ? applyArgs[0] : parts[1];
+    if (sourceArgIsRouteKey(routeKeyArg || '', aliases, text, match.index)) return true;
+    if (parsed.end > dispatchRe.lastIndex) dispatchRe.lastIndex = parsed.end;
     match = dispatchRe.exec(text);
   }
   const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
-  for (const mutator of collectBoundRouteMutators(text, owner, property)) {
+  const ownerPattern = expressionReferencePattern(owner);
+  const suffix = property ? propertyAccessorPattern(property, propertyAliases) : '';
+  const target = `${ownerPattern}${suffix}`;
+  for (const mutator of collectBoundRouteMutators(text, owner, property, propertyAliases, mutatorAliases)) {
     const mutatorRe = new RegExp(`(?:^|[^\\w$.])${escapeRe(mutator)}\\s*(?:\\?\\.\\s*)?\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*(?:,|\\))`, 'g');
     match = mutatorRe.exec(text);
     while (match) {
-      if (sourceArgIsRouteKey(match[1], aliases)) return true;
+      if (!hasMemberAccessPrefix(text, match.index) && sourceArgIsRouteKey(match[1], aliases, text, match.index)) return true;
       match = mutatorRe.exec(text);
+    }
+    const mutatorDispatchRe = new RegExp(`(?:^|[^\\w$.])${escapeRe(mutator)}(?:\\s*(?:\\?\\.\\s*|\\.\\s*)(call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\(`, 'g');
+    match = mutatorDispatchRe.exec(text);
+    while (match) {
+      const method = match[1] || match[2] || match[3];
+      const parsed = extractCallArgs(text, mutatorDispatchRe.lastIndex);
+      const parts = splitTopLevelArgs(parsed.args);
+      const applyArgs = method === 'apply' ? splitTopLevelArgs((parts[1] || '').trim().replace(/^\[\s*|\s*\]$/g, '')) : [];
+      const routeKeyArg = method === 'apply' ? applyArgs[0] : parts[1];
+      if (!hasMemberAccessPrefix(text, match.index) && sourceArgIsRouteKey(routeKeyArg || '', aliases, text, match.index)) return true;
+      if (parsed.end > mutatorDispatchRe.lastIndex) mutatorDispatchRe.lastIndex = parsed.end;
+      match = mutatorDispatchRe.exec(text);
     }
   }
   return false;
@@ -1401,6 +1942,157 @@ function aliasExpressionPattern(aliases) {
   return aliasPattern ? `(?:${aliasPattern}|\\(\\s*(?:${aliasPattern})\\s*\\))` : '';
 }
 
+function hasMemberAccessPrefix(source, index) {
+  const text = String(source || '');
+  let cursor = Math.max(0, index) - 1;
+  while (cursor >= 0 && /\s/.test(text[cursor])) cursor -= 1;
+  return text[cursor] === '.';
+}
+
+function objectPropertyNameFromPart(part) {
+  const text = String(part || '').trim();
+  const computed = text.match(new RegExp(`^\\[\\s*(${STATIC_MEMBER_STRING_PATTERN_SOURCE})\\s*\\]\\s*:`));
+  if (computed) {
+    const value = staticStringExpressionValue(computed[1]);
+    return new RegExp(`^${IDENTIFIER_PATTERN.source}$`).test(value || '') ? value : '';
+  }
+  const quoted = text.match(new RegExp(`^(${STATIC_MEMBER_STRING_PATTERN_SOURCE})\\s*:`));
+  if (quoted) {
+    const value = staticStringExpressionValue(quoted[1]);
+    return new RegExp(`^${IDENTIFIER_PATTERN.source}$`).test(value || '') ? value : '';
+  }
+  const named = text.match(new RegExp(`^(${IDENTIFIER_PATTERN.source})\\s*:`));
+  if (named) return named[1];
+  const shorthand = text.match(new RegExp(`^(${IDENTIFIER_PATTERN.source})$`));
+  return shorthand ? shorthand[1] : '';
+}
+
+function objectPropertyValueFromPart(part) {
+  const text = String(part || '').trim();
+  const computed = text.match(new RegExp(`^\\[\\s*${STATIC_MEMBER_STRING_PATTERN_SOURCE}\\s*\\]\\s*:\\s*([\\s\\S]+)$`));
+  if (computed) return computed[1].trim();
+  const quoted = text.match(new RegExp(`^${STATIC_MEMBER_STRING_PATTERN_SOURCE}\\s*:\\s*([\\s\\S]+)$`));
+  if (quoted) return quoted[1].trim();
+  const named = text.match(new RegExp(`^${IDENTIFIER_PATTERN.source}\\s*:\\s*([\\s\\S]+)$`));
+  if (named) return named[1].trim();
+  const shorthand = text.match(new RegExp(`^(${IDENTIFIER_PATTERN.source})$`));
+  return shorthand ? shorthand[1] : '';
+}
+
+function expressionReferencesRouteFactory(expression, factories) {
+  const value = stripWrappingParentheses(expression);
+  for (const factory of factories || []) {
+    if (new RegExp(`^${expressionReferencePattern(factory)}$`).test(value)) return true;
+  }
+  return false;
+}
+
+function routeFactoryReferenceName(expression, factories, isReferenceShadowed = null, index = 0, source = '') {
+  const value = stripWrappingParentheses(expression);
+  for (const factory of factories || []) {
+    if (new RegExp(`^${expressionReferencePatternForSource(factory, source)}$`).test(value)
+      && !(isReferenceShadowed && isReferenceShadowed(factory, index))) {
+      return factory;
+    }
+  }
+  return '';
+}
+
+function routeFactoryBindReferenceName(expression, factories, isReferenceShadowed = null, index = 0, source = '') {
+  const value = stripWrappingParentheses(expression);
+  for (const factory of factories || []) {
+    if (new RegExp(`^(?:\\(\\s*)*${expressionReferencePatternForSource(factory, source)}\\s*(?:\\))*\\s*(?:\\?\\.\\s*|\\.\\s*)bind\\s*\\(`).test(value)
+      && !(isReferenceShadowed && isReferenceShadowed(factory, index))) {
+      return factory;
+    }
+  }
+  return '';
+}
+
+function expandRouteUrlFactoryAliases(source, factories, options = {}) {
+  const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
+  const out = new Set(factories || []);
+  const isReferenceShadowed = typeof options.isReferenceShadowed === 'function' ? options.isReferenceShadowed : null;
+  const rootFactories = new Set(factories || []);
+  const referenceIsShadowed = (factory, index) => (
+    rootFactories.has(factory) && isReferenceShadowed && isReferenceShadowed(factory, index)
+  );
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if (!out.size) break;
+    const bindingAliasRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*`, 'g');
+    let alias = bindingAliasRe.exec(scan);
+    while (alias) {
+      const expression = extractAssignmentExpression(text, bindingAliasRe.lastIndex);
+      const directFactory = routeFactoryReferenceName(expression, out, referenceIsShadowed, alias.index, text);
+      const bindFactory = directFactory ? '' : routeFactoryBindReferenceName(expression, out, referenceIsShadowed, alias.index, text);
+      if ((directFactory || bindFactory) && !out.has(alias[2]) && (alias[1] === 'const' || !bindingIsReassigned(text, alias[2], bindingAliasRe.lastIndex + expression.length))) {
+        out.add(alias[2]);
+        changed = true;
+      }
+      bindingAliasRe.lastIndex += expression.length;
+      alias = bindingAliasRe.exec(scan);
+    }
+    const memberAliasRe = new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_WITH_STATIC_KEYS_PATTERN_SOURCE})\\s*=\\s*(?!=|>)`, 'g');
+    alias = memberAliasRe.exec(scan);
+    while (alias) {
+      const expression = extractAssignmentExpression(text, memberAliasRe.lastIndex);
+      const aliasName = normalizeStaticMemberExpression(alias[1]);
+      if (routeFactoryReferenceName(expression, out, referenceIsShadowed, alias.index, text) && !out.has(aliasName)) {
+        out.add(aliasName);
+        changed = true;
+      }
+      memberAliasRe.lastIndex += expression.length;
+      alias = memberAliasRe.exec(scan);
+    }
+    const objectAliasRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*\\{`, 'g');
+    let objectAlias = objectAliasRe.exec(scan);
+    while (objectAlias) {
+      const kind = objectAlias[1];
+      const objectName = objectAlias[2];
+      const objectSpan = extractBlockSpan(text, objectAliasRe.lastIndex - 1);
+      if (kind === 'const' || !bindingIsReassigned(text, objectName, objectAliasRe.lastIndex)) {
+        for (const part of splitTopLevelArgs(objectSpan.body)) {
+          const property = objectPropertyNameFromPart(part);
+          const value = objectPropertyValueFromPart(part);
+          if (property && value && routeFactoryReferenceName(value, out, referenceIsShadowed, objectAlias.index, text)) {
+            const aliasName = `${objectName}.${property}`;
+            if (!out.has(aliasName)) {
+              out.add(aliasName);
+              changed = true;
+            }
+          }
+        }
+      }
+      if (objectSpan.end > objectAliasRe.lastIndex) objectAliasRe.lastIndex = objectSpan.end;
+      objectAlias = objectAliasRe.exec(scan);
+    }
+    for (const factory of Array.from(out)) {
+      const parts = String(factory || '').split('.');
+      if (parts.length < 2 || !parts.every((part) => new RegExp(`^(?:this|${IDENTIFIER_PATTERN.source})$`).test(part))) continue;
+      const owner = parts.slice(0, -1).join('.');
+      const property = parts[parts.length - 1];
+      const destructureRe = new RegExp(`\\b(const|let|var)\\s*\\{([\\s\\S]*?)\\}\\s*=\\s*${expressionReferencePattern(owner)}\\b`, 'g');
+      let destructure = destructureRe.exec(scan);
+      while (destructure) {
+        const kind = destructure[1];
+        for (const aliasName of collectDestructuredStaticPropertyAliases(destructure[2] || '', property)) {
+          if (!out.has(aliasName)
+            && !referenceIsShadowed(factory, destructure.index)
+            && (kind === 'const' || !bindingIsReassigned(text, aliasName, destructureRe.lastIndex))) {
+            out.add(aliasName);
+            changed = true;
+          }
+        }
+        destructure = destructureRe.exec(scan);
+      }
+    }
+  }
+  return out;
+}
+
 function routeKeyExpressionPattern(aliases = new Set()) {
   const aliasExpression = aliasExpressionPattern(aliases);
   const core = aliasExpression
@@ -1424,12 +2116,25 @@ function urlSearchParamsInitializerHasRouteKey(args, aliases = new Set()) {
   if (text.startsWith('{')) {
     if (ROUTE_KEY_OBJECT_INIT_PATTERN.test(text) || ROUTE_KEY_OBJECT_SHORTHAND_PATTERN.test(text)) return true;
     const routeKeyExpression = routeKeyExpressionPattern(aliases);
-    return new RegExp(`(?:^|[,\\{]\\s*)\\[\\s*(?:${routeKeyExpression})\\s*\\]\\s*:`).test(text);
+    if (new RegExp(`(?:^|[,\\{]\\s*)\\[\\s*(?:${routeKeyExpression})\\s*\\]\\s*:`).test(text)) return true;
+    const body = text.endsWith('}') ? text.slice(1, -1) : text.slice(1);
+    return splitTopLevelArgs(body).some((part) => {
+      const computed = String(part || '').trim().match(/^\[([\s\S]+?)\]\s*:/);
+      return Boolean(computed && sourceArgIsRouteKey(computed[1], aliases));
+    });
   }
   if (text.startsWith('[')) {
     if (ROUTE_KEY_ARRAY_INIT_PATTERN.test(text)) return true;
     const routeKeyExpression = routeKeyExpressionPattern(aliases);
-    return new RegExp(`\\[\\s*(?:${routeKeyExpression})\\s*,`).test(text);
+    if (new RegExp(`\\[\\s*(?:${routeKeyExpression})\\s*,`).test(text)) return true;
+    const body = text.endsWith(']') ? text.slice(1, -1) : text.slice(1);
+    return splitTopLevelArgs(body).some((part) => {
+      const tuple = stripWrappingParentheses(part);
+      if (!tuple.startsWith('[')) return false;
+      const inner = tuple.endsWith(']') ? tuple.slice(1, -1) : tuple.slice(1);
+      const [key] = splitTopLevelArgs(inner);
+      return sourceArgIsRouteKey(key, aliases);
+    });
   }
   if (/^(['"`])(?:tab|id)\s*=/.test(text)) return true;
   if (/^(['"`])(?:tab|id)\1\s*\+\s*(['"`])=\2/.test(text)) return true;
@@ -1462,8 +2167,25 @@ function expressionContainsRouteQueryStringBuilder(expression, aliases = new Set
   const text = String(expression || '');
   if (/(?:^|[^\w$])(['"`])(?:tab|id)=/.test(text)) return true;
   const routeKeyExpression = routeKeyExpressionPattern(aliases);
-  return new RegExp(`(?:${routeKeyExpression})\\s*\\+\\s*(['"\`])=\\1`).test(text)
-    || new RegExp(`\\$\\{\\s*(?:${routeKeyExpression})\\s*\\}\\s*=`).test(text);
+  if (new RegExp(`(?:${routeKeyExpression})\\s*\\+\\s*(['"\`])=\\1`).test(text)
+    || new RegExp(`\\$\\{\\s*(?:${routeKeyExpression})\\s*\\}\\s*=`).test(text)) {
+    return true;
+  }
+  const parts = splitTopLevelConcatParts(text);
+  if (parts.length >= 2) {
+    let staticPrefix = '';
+    for (const part of parts) {
+      const partValue = staticStringExpressionValue(part);
+      if (partValue == null) break;
+      staticPrefix += partValue;
+      if (/^(?:tab|id)=/.test(staticPrefix)) return true;
+    }
+    const first = staticStringExpressionValue(parts[0]);
+    const second = staticStringExpressionValue(parts[1]);
+    if (/^(?:tab|id)=/.test(first || '')) return true;
+    if (/^(?:tab|id)$/.test(first || '') && String(second || '').startsWith('=')) return true;
+  }
+  return false;
 }
 
 function expressionBuildsRouteQuery(expression, aliases = new Set(), queryAliases = new Set(), constructorAliases = new Set()) {
@@ -1660,13 +2382,22 @@ function splitRouteQueryHasExternalPrefix(text, match, externalAliases = null) {
   return false;
 }
 
-function containsForbiddenSplitRouteQueryLiteral(source, externalAliases = null) {
+function containsForbiddenSplitRouteQueryLiteral(source, externalAliases = null, aliases = new Set()) {
   const text = String(source || '');
   SPLIT_ROUTE_QUERY_LITERAL_PATTERN.lastIndex = 0;
   let match = SPLIT_ROUTE_QUERY_LITERAL_PATTERN.exec(text);
   while (match) {
     if (!splitRouteQueryHasExternalPrefix(text, match, externalAliases)) return true;
     match = SPLIT_ROUTE_QUERY_LITERAL_PATTERN.exec(text);
+  }
+  const splitPrefixRe = /(['"`])((?:\\[\s\S]|(?!\1)[\s\S])*?[?&])\1\s*\+\s*/g;
+  match = splitPrefixRe.exec(text);
+  while (match) {
+    if (!splitRouteQueryHasExternalPrefix(text, match, externalAliases)) {
+      const expression = extractAssignmentExpression(text, splitPrefixRe.lastIndex);
+      if (expressionBuildsRouteQuery(expression, aliases)) return true;
+    }
+    match = splitPrefixRe.exec(text);
   }
   return false;
 }
@@ -1726,100 +2457,707 @@ function urlConstructorArgsAreExternal(args, aliases = new Set(), staticRelative
 
 function collectRouteUrlFactoryAliases(source, externalAliases = collectExternalUrlAliases(source), staticRelativeAliases = collectStaticRelativeUrlAliases(source)) {
   const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
   const out = new Set();
   const constructorPattern = urlConstructorPattern(collectUrlConstructorAliases(text));
-  const bodyReturnsRouteUrl = (body) => {
+  const addFactoryAlias = (name, index) => {
+    if (braceDepthAt(text, index) === 0) out.add(name);
+  };
+  const scopedUrlAliases = (body, paramsText = '', offset = null) => {
+    const scopedExternalAliases = new Set(externalAliases);
+    const scopedStaticRelativeAliases = new Set(staticRelativeAliases);
+    const bindings = new Set();
+    addBindingNamesFromPattern(bindings, paramsText);
+    if (offset == null) addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
+    else addVisibleLocalDeclarationBindings(bindings, body, offset);
+    bindings.forEach((name) => {
+      scopedExternalAliases.delete(name);
+      scopedStaticRelativeAliases.delete(name);
+    });
+    return { scopedExternalAliases, scopedStaticRelativeAliases };
+  };
+  const bodyReturnsRouteUrl = (body, paramsText = '') => {
+    const nestedFunctionRanges = collectNestedFunctionBodyRanges(body);
+    const routeUrlVariables = new Map();
+    const variableRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+(?:${constructorPattern})\\s*\\(`, 'g');
+    let variable = variableRe.exec(body);
+    while (variable) {
+      if (indexIsInsideRange(variable.index, nestedFunctionRanges)) {
+        variable = variableRe.exec(body);
+        continue;
+      }
+      const { scopedExternalAliases, scopedStaticRelativeAliases } = scopedUrlAliases(body, paramsText, variable.index);
+      const parsed = extractCallArgs(body, variableRe.lastIndex);
+      if (!urlConstructorArgsAreExternal(parsed.args, scopedExternalAliases, scopedStaticRelativeAliases)) {
+        routeUrlVariables.set(variable[2], { kind: variable[1], end: parsed.end });
+      }
+      if (parsed.end > variableRe.lastIndex) variableRe.lastIndex = parsed.end;
+      variable = variableRe.exec(body);
+    }
+    const returnedAliasRe = new RegExp(`\\breturn\\s+(?:\\(\\s*)*(${IDENTIFIER_PATTERN.source})(?:\\s*\\))*\\s*;?`, 'g');
+    let returnedAlias = returnedAliasRe.exec(body);
+    while (returnedAlias) {
+      if (indexIsInsideRange(returnedAlias.index, nestedFunctionRanges)) {
+        returnedAlias = returnedAliasRe.exec(body);
+        continue;
+      }
+      const routeUrlVariable = routeUrlVariables.get(returnedAlias[1]);
+      if (routeUrlVariable
+        && (routeUrlVariable.kind === 'const'
+          || !bindingIsReassigned(body.slice(0, returnedAlias.index), returnedAlias[1], routeUrlVariable.end))) {
+        return true;
+      }
+      returnedAlias = returnedAliasRe.exec(body);
+    }
     const re = new RegExp(`\\breturn\\s+(?:\\(\\s*)*new\\s+(?:${constructorPattern})\\s*\\(`, 'g');
     let match = re.exec(body);
     while (match) {
+      if (indexIsInsideRange(match.index, nestedFunctionRanges)) {
+        match = re.exec(body);
+        continue;
+      }
+      const { scopedExternalAliases, scopedStaticRelativeAliases } = scopedUrlAliases(body, paramsText, match.index);
       const parsed = extractCallArgs(body, re.lastIndex);
-      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) return true;
+      if (!urlConstructorArgsAreExternal(parsed.args, scopedExternalAliases, scopedStaticRelativeAliases)) return true;
       if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
       match = re.exec(body);
     }
     return false;
   };
-  const expressionReturnsRouteUrl = (expression) => {
+  const expressionReturnsRouteUrl = (expression, paramsText = '') => {
+    const { scopedExternalAliases, scopedStaticRelativeAliases } = scopedUrlAliases('', paramsText);
     const value = stripWrappingParentheses(expression);
     const match = value.match(new RegExp(`^new\\s+(?:${constructorPattern})\\s*\\(`));
     if (!match) return false;
     const parsed = extractCallArgs(value, match[0].length);
-    return !urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases);
+    return !urlConstructorArgsAreExternal(parsed.args, scopedExternalAliases, scopedStaticRelativeAliases);
   };
-  const functionRe = new RegExp(`\\bfunction\\s+(${IDENTIFIER_PATTERN.source})\\s*\\([^)]*\\)\\s*\\{`, 'g');
-  let match = functionRe.exec(text);
+  const functionRe = new RegExp(`\\b(?:async\\s+)?function\\s+(${IDENTIFIER_PATTERN.source})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  let match = functionRe.exec(scan);
   while (match) {
-    if (bodyReturnsRouteUrl(extractBlockText(text, functionRe.lastIndex - 1))) out.add(match[1]);
-    match = functionRe.exec(text);
+    if (bodyReturnsRouteUrl(extractBlockText(text, functionRe.lastIndex - 1), match[2])) addFactoryAlias(match[1], match.index);
+    match = functionRe.exec(scan);
   }
-  const functionExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\([^)]*\\)\\s*\\{`, 'g');
-  match = functionExpressionRe.exec(text);
+  const functionExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  match = functionExpressionRe.exec(scan);
   while (match) {
-    if (bodyReturnsRouteUrl(extractBlockText(text, functionExpressionRe.lastIndex - 1))) out.add(match[1]);
-    match = functionExpressionRe.exec(text);
+    if (bodyReturnsRouteUrl(extractBlockText(text, functionExpressionRe.lastIndex - 1), match[2])) addFactoryAlias(match[1], match.index);
+    match = functionExpressionRe.exec(scan);
   }
-  const arrowBlockRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>\\s*\\{`, 'g');
-  match = arrowBlockRe.exec(text);
+  const arrowBlockRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)\\s*=>\\s*\\{`, 'g');
+  match = arrowBlockRe.exec(scan);
   while (match) {
-    if (bodyReturnsRouteUrl(extractBlockText(text, arrowBlockRe.lastIndex - 1))) out.add(match[1]);
-    match = arrowBlockRe.exec(text);
+    if (bodyReturnsRouteUrl(extractBlockText(text, arrowBlockRe.lastIndex - 1), match[2])) addFactoryAlias(match[1], match.index);
+    match = arrowBlockRe.exec(scan);
   }
-  const arrowExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>\\s*`, 'g');
-  match = arrowExpressionRe.exec(text);
+  const arrowExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)\\s*=>\\s*`, 'g');
+  match = arrowExpressionRe.exec(scan);
   while (match) {
     const expression = extractAssignmentExpression(text, arrowExpressionRe.lastIndex);
-    if (expressionReturnsRouteUrl(expression)) out.add(match[1]);
+    if (expressionReturnsRouteUrl(expression, match[2])) addFactoryAlias(match[1], match.index);
     arrowExpressionRe.lastIndex += expression.length;
-    match = arrowExpressionRe.exec(text);
+    match = arrowExpressionRe.exec(scan);
   }
-  const singleArrowBlockRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?${IDENTIFIER_PATTERN.source}\\s*=>\\s*\\{`, 'g');
-  match = singleArrowBlockRe.exec(text);
+  const singleArrowBlockRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?(${IDENTIFIER_PATTERN.source})\\s*=>\\s*\\{`, 'g');
+  match = singleArrowBlockRe.exec(scan);
   while (match) {
-    if (bodyReturnsRouteUrl(extractBlockText(text, singleArrowBlockRe.lastIndex - 1))) out.add(match[1]);
-    match = singleArrowBlockRe.exec(text);
+    if (bodyReturnsRouteUrl(extractBlockText(text, singleArrowBlockRe.lastIndex - 1), match[2])) addFactoryAlias(match[1], match.index);
+    match = singleArrowBlockRe.exec(scan);
   }
-  const singleArrowExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?${IDENTIFIER_PATTERN.source}\\s*=>\\s*`, 'g');
-  match = singleArrowExpressionRe.exec(text);
+  const singleArrowExpressionRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?(${IDENTIFIER_PATTERN.source})\\s*=>\\s*`, 'g');
+  match = singleArrowExpressionRe.exec(scan);
   while (match) {
     const expression = extractAssignmentExpression(text, singleArrowExpressionRe.lastIndex);
-    if (expressionReturnsRouteUrl(expression)) out.add(match[1]);
+    if (expressionReturnsRouteUrl(expression, match[2])) addFactoryAlias(match[1], match.index);
     singleArrowExpressionRe.lastIndex += expression.length;
-    match = singleArrowExpressionRe.exec(text);
+    match = singleArrowExpressionRe.exec(scan);
+  }
+  const scanObjectRouteFactoryMembers = (baseName, objectBody, objectBodyStart, objectIndex) => {
+    const objectBodyScan = maskNonCodeForRouteGuard(objectBody);
+    const memberIsTopLevel = (index) => braceDepthAt(objectBody, index) === 0;
+    const memberIsScannable = (index) => (
+      (index === 0 || objectBodyScan[index] === ',')
+      && memberIsTopLevel(index)
+    );
+    const methodRe = new RegExp(`(?:^|[,\\{])\\s*(?:async\\s+)?(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+    let method = methodRe.exec(objectBody);
+    while (method) {
+      if (!memberIsScannable(method.index)) {
+        method = methodRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(method[1]);
+      const methodOpenBrace = objectBodyStart + methodRe.lastIndex - 1;
+      if (property && bodyReturnsRouteUrl(extractBlockText(text, methodOpenBrace), method[2])) {
+        addFactoryAlias(`${baseName}.${property}`, objectIndex);
+      }
+      const methodSpan = extractBlockSpan(text, methodOpenBrace);
+      methodRe.lastIndex = Math.max(methodRe.lastIndex, methodSpan.end - objectBodyStart);
+      method = methodRe.exec(objectBody);
+    }
+    const propertyFunctionRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+    let propertyFunction = propertyFunctionRe.exec(objectBody);
+    while (propertyFunction) {
+      if (!memberIsScannable(propertyFunction.index)) {
+        propertyFunction = propertyFunctionRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyFunction[1]);
+      const functionOpenBrace = objectBodyStart + propertyFunctionRe.lastIndex - 1;
+      if (property && bodyReturnsRouteUrl(extractBlockText(text, functionOpenBrace), propertyFunction[2])) {
+        addFactoryAlias(`${baseName}.${property}`, objectIndex);
+      }
+      const functionSpan = extractBlockSpan(text, functionOpenBrace);
+      propertyFunctionRe.lastIndex = Math.max(propertyFunctionRe.lastIndex, functionSpan.end - objectBodyStart);
+      propertyFunction = propertyFunctionRe.exec(objectBody);
+    }
+    const propertyArrowRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*`, 'g');
+    let propertyArrow = propertyArrowRe.exec(objectBody);
+    while (propertyArrow) {
+      if (!memberIsScannable(propertyArrow.index)) {
+        propertyArrow = propertyArrowRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyArrow[1]);
+      const params = propertyArrow[2] || propertyArrow[3] || '';
+      const valueStart = objectBodyStart + propertyArrowRe.lastIndex;
+      if (text[valueStart] === '{') {
+        const arrowSpan = extractBlockSpan(text, valueStart);
+        if (property && bodyReturnsRouteUrl(arrowSpan.body, params)) addFactoryAlias(`${baseName}.${property}`, objectIndex);
+        propertyArrowRe.lastIndex = Math.max(propertyArrowRe.lastIndex, arrowSpan.end - objectBodyStart);
+      } else {
+        const expression = extractAssignmentExpression(text, valueStart);
+        if (property && expressionReturnsRouteUrl(expression, params)) addFactoryAlias(`${baseName}.${property}`, objectIndex);
+        propertyArrowRe.lastIndex += expression.length;
+      }
+      propertyArrow = propertyArrowRe.exec(objectBody);
+    }
+    const propertyObjectRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*\\{`, 'g');
+    let propertyObject = propertyObjectRe.exec(objectBody);
+    while (propertyObject) {
+      if (!memberIsScannable(propertyObject.index)) {
+        propertyObject = propertyObjectRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyObject[1]);
+      const nestedOpenBrace = text.indexOf('{', objectBodyStart + propertyObject.index);
+      if (!property || nestedOpenBrace < 0) {
+        propertyObject = propertyObjectRe.exec(objectBody);
+        continue;
+      }
+      const nestedSpan = extractBlockSpan(text, nestedOpenBrace);
+      scanObjectRouteFactoryMembers(`${baseName}.${property}`, nestedSpan.body, nestedOpenBrace + 1, objectIndex);
+      propertyObjectRe.lastIndex = Math.max(propertyObjectRe.lastIndex, nestedSpan.end - objectBodyStart);
+      propertyObject = propertyObjectRe.exec(objectBody);
+    }
+  };
+  const defaultExportedIdentifierNames = (() => {
+    const names = new Set();
+    const defaultIdentifierRe = new RegExp(`\\bexport\\s+default\\s*(?:\\(\\s*)*(${IDENTIFIER_PATTERN.source})(?:\\s*\\))*\\s*;?`, 'g');
+    let defaultIdentifier = defaultIdentifierRe.exec(scan);
+    while (defaultIdentifier) {
+      names.add(defaultIdentifier[1]);
+      defaultIdentifier = defaultIdentifierRe.exec(scan);
+    }
+    const localDefaultExportRe = /\bexport\s*\{([\s\S]*?)\}/g;
+    let localDefaultExport = localDefaultExportRe.exec(scan);
+    while (localDefaultExport) {
+      const after = scan.slice(localDefaultExportRe.lastIndex);
+      if (/^\s*from\b/.test(after)) {
+        localDefaultExport = localDefaultExportRe.exec(scan);
+        continue;
+      }
+      (localDefaultExport[1] || '').split(',').forEach((part) => {
+        const spec = part.trim();
+        const alias = spec.match(/^([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/);
+        if (alias && alias[2] === 'default') names.add(alias[1]);
+      });
+      localDefaultExport = localDefaultExportRe.exec(scan);
+    }
+    return names;
+  })();
+  const objectLiteralRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*\\{`, 'g');
+  match = objectLiteralRe.exec(scan);
+  while (match) {
+    const objectName = match[1];
+    const objectSpan = extractBlockSpan(text, objectLiteralRe.lastIndex - 1);
+    scanObjectRouteFactoryMembers(objectName, objectSpan.body, objectLiteralRe.lastIndex, match.index);
+    if (defaultExportedIdentifierNames.has(objectName)) {
+      scanObjectRouteFactoryMembers('this', objectSpan.body, objectLiteralRe.lastIndex, match.index);
+    }
+    if (objectSpan.end > objectLiteralRe.lastIndex) objectLiteralRe.lastIndex = objectSpan.end;
+    match = objectLiteralRe.exec(scan);
+  }
+  const defaultObjectRe = /\bexport\s+default\s*(?:\(\s*)*\{/g;
+  match = defaultObjectRe.exec(scan);
+  while (match) {
+    const objectSpan = extractBlockSpan(text, defaultObjectRe.lastIndex - 1);
+    scanObjectRouteFactoryMembers('this', objectSpan.body, defaultObjectRe.lastIndex, match.index);
+    if (objectSpan.end > defaultObjectRe.lastIndex) defaultObjectRe.lastIndex = objectSpan.end;
+    match = defaultObjectRe.exec(scan);
+  }
+  const defaultParenthesizedFunctionRe = new RegExp(`\\bexport\\s+default\\s*(?:\\(\\s*)+(?:async\\s+)?function(?:\\s+${IDENTIFIER_PATTERN.source})?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  match = defaultParenthesizedFunctionRe.exec(scan);
+  while (match) {
+    if (bodyReturnsRouteUrl(extractBlockText(text, defaultParenthesizedFunctionRe.lastIndex - 1), match[1])) out.add('default');
+    match = defaultParenthesizedFunctionRe.exec(scan);
+  }
+  const defaultFunctionRe = new RegExp(`\\bexport\\s+default\\s+(?:async\\s+)?function(?:\\s+${IDENTIFIER_PATTERN.source})?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  match = defaultFunctionRe.exec(scan);
+  while (match) {
+    if (bodyReturnsRouteUrl(extractBlockText(text, defaultFunctionRe.lastIndex - 1), match[1])) out.add('default');
+    match = defaultFunctionRe.exec(scan);
+  }
+  const defaultParenthesizedArrowBlockRe = new RegExp(`\\bexport\\s+default\\s*(?:\\(\\s*)+(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*\\{`, 'g');
+  match = defaultParenthesizedArrowBlockRe.exec(scan);
+  while (match) {
+    if (bodyReturnsRouteUrl(extractBlockText(text, defaultParenthesizedArrowBlockRe.lastIndex - 1), match[1] || match[2] || '')) out.add('default');
+    match = defaultParenthesizedArrowBlockRe.exec(scan);
+  }
+  const defaultArrowBlockRe = new RegExp(`\\bexport\\s+default\\s+(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*\\{`, 'g');
+  match = defaultArrowBlockRe.exec(scan);
+  while (match) {
+    if (bodyReturnsRouteUrl(extractBlockText(text, defaultArrowBlockRe.lastIndex - 1), match[1] || match[2] || '')) out.add('default');
+    match = defaultArrowBlockRe.exec(scan);
+  }
+  const defaultParenthesizedArrowExpressionRe = new RegExp(`\\bexport\\s+default\\s*(?:\\(\\s*)+(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*`, 'g');
+  match = defaultParenthesizedArrowExpressionRe.exec(scan);
+  while (match) {
+    if (scan[defaultParenthesizedArrowExpressionRe.lastIndex] !== '{') {
+      const expression = extractAssignmentExpression(text, defaultParenthesizedArrowExpressionRe.lastIndex);
+      if (expressionReturnsRouteUrl(expression, match[1] || match[2] || '')) out.add('default');
+      defaultParenthesizedArrowExpressionRe.lastIndex += expression.length;
+    }
+    match = defaultParenthesizedArrowExpressionRe.exec(scan);
+  }
+  const defaultArrowExpressionRe = new RegExp(`\\bexport\\s+default\\s+(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*`, 'g');
+  match = defaultArrowExpressionRe.exec(scan);
+  while (match) {
+    if (scan[defaultArrowExpressionRe.lastIndex] !== '{') {
+      const expression = extractAssignmentExpression(text, defaultArrowExpressionRe.lastIndex);
+      if (expressionReturnsRouteUrl(expression, match[1] || match[2] || '')) out.add('default');
+      defaultArrowExpressionRe.lastIndex += expression.length;
+    }
+    match = defaultArrowExpressionRe.exec(scan);
+  }
+  const defaultIdentifierRe = new RegExp(`\\bexport\\s+default\\s*(?:\\(\\s*)*(${IDENTIFIER_PATTERN.source})(?:\\s*\\))*\\s*;?`, 'g');
+  match = defaultIdentifierRe.exec(scan);
+  while (match) {
+    if (out.has(match[1])) out.add('default');
+    match = defaultIdentifierRe.exec(scan);
+  }
+  const localDefaultExportRe = /\bexport\s*\{([\s\S]*?)\}/g;
+  match = localDefaultExportRe.exec(scan);
+  while (match) {
+    const after = scan.slice(localDefaultExportRe.lastIndex);
+    if (/^\s*from\b/.test(after)) {
+      match = localDefaultExportRe.exec(scan);
+      continue;
+    }
+    (match[1] || '').split(',').forEach((part) => {
+      const spec = part.trim();
+      const alias = spec.match(/^([A-Za-z_$][\w$]*)(?:\s+as\s+([A-Za-z_$][\w$]*))?$/);
+      if (alias && alias[2] === 'default' && out.has(alias[1])) out.add('default');
+    });
+    match = localDefaultExportRe.exec(scan);
   }
   return out;
 }
 
-function collectRouteUrlVariables(source, externalAliases = collectExternalUrlAliases(source), staticRelativeAliases = collectStaticRelativeUrlAliases(source)) {
+function containsForbiddenScopedRouteUrlFactoryMutation(source, aliases, externalAliases, staticRelativeAliases) {
+  const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
+  const constructorPattern = urlConstructorPattern(collectUrlConstructorAliases(text));
+  const containingBlockSpan = (index) => {
+    const stack = blockStackAt(text, index);
+    const open = stack.length ? stack[stack.length - 1] : -1;
+    if (open < 0) return { start: 0, end: text.length };
+    const span = extractBlockSpan(text, open);
+    return { start: open + 1, end: Math.max(open + 1, span.end - 1) };
+  };
+  const containingFunctionSpan = (index) => {
+    const stack = blockStackAt(text, index);
+    const controlBlockNames = new Set(['catch', 'for', 'if', 'switch', 'while', 'with']);
+    for (let i = stack.length - 1; i >= 0; i -= 1) {
+      const open = stack[i];
+      const before = text.slice(Math.max(0, open - 160), open);
+      const methodBlock = before.match(/(?:^|[,{]\s*)(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*$/);
+      if (/\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\([^)]*\)\s*$/.test(before)
+        || /=>\s*$/.test(before)
+        || (methodBlock && !controlBlockNames.has(methodBlock[1]))) {
+        const span = extractBlockSpan(text, open);
+        return { start: open + 1, end: Math.max(open + 1, span.end - 1) };
+      }
+    }
+    return { start: 0, end: text.length };
+  };
+  const scopedUrlAliases = (body, paramsText = '', offset = null) => {
+    const scopedExternalAliases = new Set(externalAliases);
+    const scopedStaticRelativeAliases = new Set(staticRelativeAliases);
+    const bindings = new Set();
+    addBindingNamesFromPattern(bindings, paramsText);
+    if (offset == null) addLocalDeclarationBindings(bindings, body, { topLevelOnly: true });
+    else addVisibleLocalDeclarationBindings(bindings, body, offset);
+    bindings.forEach((name) => {
+      scopedExternalAliases.delete(name);
+      scopedStaticRelativeAliases.delete(name);
+    });
+    return { scopedExternalAliases, scopedStaticRelativeAliases };
+  };
+  const bodyReturnsRouteUrl = (body, paramsText = '') => {
+    const nestedFunctionRanges = collectNestedFunctionBodyRanges(body);
+    const routeUrlVariables = new Map();
+    const variableRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+(?:${constructorPattern})\\s*\\(`, 'g');
+    let variable = variableRe.exec(body);
+    while (variable) {
+      if (indexIsInsideRange(variable.index, nestedFunctionRanges)) {
+        variable = variableRe.exec(body);
+        continue;
+      }
+      const { scopedExternalAliases, scopedStaticRelativeAliases } = scopedUrlAliases(body, paramsText, variable.index);
+      const parsed = extractCallArgs(body, variableRe.lastIndex);
+      if (!urlConstructorArgsAreExternal(parsed.args, scopedExternalAliases, scopedStaticRelativeAliases)) {
+        routeUrlVariables.set(variable[2], { kind: variable[1], end: parsed.end });
+      }
+      if (parsed.end > variableRe.lastIndex) variableRe.lastIndex = parsed.end;
+      variable = variableRe.exec(body);
+    }
+    const returnedAliasRe = new RegExp(`\\breturn\\s+(?:\\(\\s*)*(${IDENTIFIER_PATTERN.source})(?:\\s*\\))*\\s*;?`, 'g');
+    let returnedAlias = returnedAliasRe.exec(body);
+    while (returnedAlias) {
+      if (indexIsInsideRange(returnedAlias.index, nestedFunctionRanges)) {
+        returnedAlias = returnedAliasRe.exec(body);
+        continue;
+      }
+      const routeUrlVariable = routeUrlVariables.get(returnedAlias[1]);
+      if (routeUrlVariable
+        && (routeUrlVariable.kind === 'const'
+          || !bindingIsReassigned(body.slice(0, returnedAlias.index), returnedAlias[1], routeUrlVariable.end))) {
+        return true;
+      }
+      returnedAlias = returnedAliasRe.exec(body);
+    }
+    const re = new RegExp(`\\breturn\\s+(?:\\(\\s*)*new\\s+(?:${constructorPattern})\\s*\\(`, 'g');
+    let match = re.exec(body);
+    while (match) {
+      if (indexIsInsideRange(match.index, nestedFunctionRanges)) {
+        match = re.exec(body);
+        continue;
+      }
+      const { scopedExternalAliases, scopedStaticRelativeAliases } = scopedUrlAliases(body, paramsText, match.index);
+      const parsed = extractCallArgs(body, re.lastIndex);
+      if (!urlConstructorArgsAreExternal(parsed.args, scopedExternalAliases, scopedStaticRelativeAliases)) return true;
+      if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+      match = re.exec(body);
+    }
+    return false;
+  };
+  const expressionReturnsRouteUrl = (expression, paramsText = '') => {
+    const { scopedExternalAliases, scopedStaticRelativeAliases } = scopedUrlAliases('', paramsText);
+    const value = stripWrappingParentheses(expression);
+    const match = value.match(new RegExp(`^new\\s+(?:${constructorPattern})\\s*\\(`));
+    if (!match) return false;
+    const parsed = extractCallArgs(value, match[0].length);
+    return !urlConstructorArgsAreExternal(parsed.args, scopedExternalAliases, scopedStaticRelativeAliases);
+  };
+  const factories = [];
+  const addFactory = (name, index, body, paramsText = '', scopeKind = 'block') => {
+    if (braceDepthAt(text, index) === 0) return;
+    if (bodyReturnsRouteUrl(body, paramsText)) {
+      factories.push({ name, scope: scopeKind === 'function' ? containingFunctionSpan(index) : containingBlockSpan(index) });
+    }
+  };
+  const addExpressionFactory = (name, index, expression, paramsText = '', scopeKind = 'block') => {
+    if (braceDepthAt(text, index) === 0) return;
+    if (expressionReturnsRouteUrl(expression, paramsText)) {
+      factories.push({ name, scope: scopeKind === 'function' ? containingFunctionSpan(index) : containingBlockSpan(index) });
+    }
+  };
+  const functionRe = new RegExp(`\\b(?:async\\s+)?function\\s+(${IDENTIFIER_PATTERN.source})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  let match = functionRe.exec(scan);
+  while (match) {
+    addFactory(match[1], match.index, extractBlockText(text, functionRe.lastIndex - 1), match[2]);
+    match = functionRe.exec(scan);
+  }
+  const functionExpressionRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+  match = functionExpressionRe.exec(scan);
+  while (match) {
+    addFactory(match[2], match.index, extractBlockText(text, functionExpressionRe.lastIndex - 1), match[3], match[1] === 'var' ? 'function' : 'block');
+    match = functionExpressionRe.exec(scan);
+  }
+  const arrowBlockRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)\\s*=>\\s*\\{`, 'g');
+  match = arrowBlockRe.exec(scan);
+  while (match) {
+    addFactory(match[2], match.index, extractBlockText(text, arrowBlockRe.lastIndex - 1), match[3], match[1] === 'var' ? 'function' : 'block');
+    match = arrowBlockRe.exec(scan);
+  }
+  const singleArrowBlockRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?(${IDENTIFIER_PATTERN.source})\\s*=>\\s*\\{`, 'g');
+  match = singleArrowBlockRe.exec(scan);
+  while (match) {
+    addFactory(match[2], match.index, extractBlockText(text, singleArrowBlockRe.lastIndex - 1), match[3], match[1] === 'var' ? 'function' : 'block');
+    match = singleArrowBlockRe.exec(scan);
+  }
+  const arrowExpressionRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)\\s*=>\\s*`, 'g');
+  match = arrowExpressionRe.exec(scan);
+  while (match) {
+    const expression = extractAssignmentExpression(text, arrowExpressionRe.lastIndex);
+    addExpressionFactory(match[2], match.index, expression, match[3], match[1] === 'var' ? 'function' : 'block');
+    arrowExpressionRe.lastIndex += expression.length;
+    match = arrowExpressionRe.exec(scan);
+  }
+  const singleArrowExpressionRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:async\\s+)?(${IDENTIFIER_PATTERN.source})\\s*=>\\s*`, 'g');
+  match = singleArrowExpressionRe.exec(scan);
+  while (match) {
+    const expression = extractAssignmentExpression(text, singleArrowExpressionRe.lastIndex);
+    addExpressionFactory(match[2], match.index, expression, match[3], match[1] === 'var' ? 'function' : 'block');
+    singleArrowExpressionRe.lastIndex += expression.length;
+    match = singleArrowExpressionRe.exec(scan);
+  }
+  const scanObjectRouteFactoryMembers = (baseName, objectBody, objectBodyStart, objectIndex) => {
+    const objectBodyScan = maskNonCodeForRouteGuard(objectBody);
+    const memberIsTopLevel = (index) => braceDepthAt(objectBody, index) === 0;
+    const memberIsScannable = (index) => (
+      (index === 0 || objectBodyScan[index] === ',')
+      && memberIsTopLevel(index)
+    );
+    const methodRe = new RegExp(`(?:^|[,\\{])\\s*(?:async\\s+)?(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+    let method = methodRe.exec(objectBody);
+    while (method) {
+      if (!memberIsScannable(method.index)) {
+        method = methodRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(method[1]);
+      const methodOpenBrace = objectBodyStart + methodRe.lastIndex - 1;
+      const methodSpan = extractBlockSpan(text, methodOpenBrace);
+      if (property) addFactory(`${baseName}.${property}`, objectIndex, methodSpan.body, method[2]);
+      methodRe.lastIndex = Math.max(methodRe.lastIndex, methodSpan.end - objectBodyStart);
+      method = methodRe.exec(objectBody);
+    }
+    const propertyFunctionRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+    let propertyFunction = propertyFunctionRe.exec(objectBody);
+    while (propertyFunction) {
+      if (!memberIsScannable(propertyFunction.index)) {
+        propertyFunction = propertyFunctionRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyFunction[1]);
+      const functionOpenBrace = objectBodyStart + propertyFunctionRe.lastIndex - 1;
+      const functionSpan = extractBlockSpan(text, functionOpenBrace);
+      if (property) addFactory(`${baseName}.${property}`, objectIndex, functionSpan.body, propertyFunction[2]);
+      propertyFunctionRe.lastIndex = Math.max(propertyFunctionRe.lastIndex, functionSpan.end - objectBodyStart);
+      propertyFunction = propertyFunctionRe.exec(objectBody);
+    }
+    const propertyArrowRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*`, 'g');
+    let propertyArrow = propertyArrowRe.exec(objectBody);
+    while (propertyArrow) {
+      if (!memberIsScannable(propertyArrow.index)) {
+        propertyArrow = propertyArrowRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyArrow[1]);
+      const params = propertyArrow[2] || propertyArrow[3] || '';
+      const valueStart = objectBodyStart + propertyArrowRe.lastIndex;
+      if (text[valueStart] === '{') {
+        const arrowSpan = extractBlockSpan(text, valueStart);
+        if (property) addFactory(`${baseName}.${property}`, objectIndex, arrowSpan.body, params);
+        propertyArrowRe.lastIndex = Math.max(propertyArrowRe.lastIndex, arrowSpan.end - objectBodyStart);
+      } else {
+        const expression = extractAssignmentExpression(text, valueStart);
+        if (property) addExpressionFactory(`${baseName}.${property}`, objectIndex, expression, params);
+        propertyArrowRe.lastIndex += expression.length;
+      }
+      propertyArrow = propertyArrowRe.exec(objectBody);
+    }
+    const propertyObjectRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*\\{`, 'g');
+    let propertyObject = propertyObjectRe.exec(objectBody);
+    while (propertyObject) {
+      if (!memberIsScannable(propertyObject.index)) {
+        propertyObject = propertyObjectRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyObject[1]);
+      const nestedOpenBrace = text.indexOf('{', objectBodyStart + propertyObject.index);
+      if (!property || nestedOpenBrace < 0) {
+        propertyObject = propertyObjectRe.exec(objectBody);
+        continue;
+      }
+      const nestedSpan = extractBlockSpan(text, nestedOpenBrace);
+      scanObjectRouteFactoryMembers(`${baseName}.${property}`, nestedSpan.body, nestedOpenBrace + 1, objectIndex);
+      propertyObjectRe.lastIndex = Math.max(propertyObjectRe.lastIndex, nestedSpan.end - objectBodyStart);
+      propertyObject = propertyObjectRe.exec(objectBody);
+    }
+  };
+  const objectLiteralRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*\\{`, 'g');
+  match = objectLiteralRe.exec(scan);
+  while (match) {
+    const objectSpan = extractBlockSpan(text, objectLiteralRe.lastIndex - 1);
+    scanObjectRouteFactoryMembers(match[1], objectSpan.body, objectLiteralRe.lastIndex, match.index);
+    if (objectSpan.end > objectLiteralRe.lastIndex) objectLiteralRe.lastIndex = objectSpan.end;
+    match = objectLiteralRe.exec(scan);
+  }
+  const seenFactoryScopes = new Set(factories.map((factory) => `${factory.scope.start}:${factory.scope.end}:${factory.name}`));
+  for (let i = 0; i < factories.length; i += 1) {
+    const { name, scope } = factories[i];
+    const scopedText = text.slice(scope.start, scope.end);
+    const aliasIsShadowed = (factory, scopedIndex) => referenceIsShadowedInScope(text, factory, scope, scopedIndex);
+    for (const alias of expandRouteUrlFactoryAliases(scopedText, new Set([name]), { isReferenceShadowed: aliasIsShadowed })) {
+      const key = `${scope.start}:${scope.end}:${alias}`;
+      if (!seenFactoryScopes.has(key)) {
+        seenFactoryScopes.add(key);
+        factories.push({ name: alias, scope });
+      }
+    }
+  }
+  for (const { name, scope } of factories) {
+    const scopedText = text.slice(scope.start, scope.end);
+    const callIsShadowed = (scopedCallIndex) => {
+      return referenceIsShadowedInScope(text, name, scope, scopedCallIndex);
+    };
+    const callableNamePattern = `(?:\\(\\s*)*${expressionReferencePatternForSource(name, scopedText)}\\s*(?:\\))*`;
+    const callStartPattern = functionInvocationStartPattern(callableNamePattern);
+    const parenthesizedCallStartPattern = `(?:\\(\\s*)*${callStartPattern}`;
+    const vars = new Set();
+    [
+      new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:await\\s+)?${parenthesizedCallStartPattern}`, 'g'),
+      new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:await\\s+)?${parenthesizedCallStartPattern}`, 'g'),
+      new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_WITH_STATIC_KEYS_PATTERN_SOURCE})\\s*=\\s*(?:await\\s+)?${parenthesizedCallStartPattern}`, 'g')
+    ].forEach((re) => {
+      let assigned = re.exec(scopedText);
+      while (assigned) {
+        const parsed = extractCallArgs(scopedText, re.lastIndex);
+        if (!callIsShadowed(assigned.index)) vars.add(normalizeStaticMemberExpression(assigned[1]));
+        if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+        assigned = re.exec(scopedText);
+      }
+    });
+    for (const variable of vars) {
+      if (containsRouteKeyWriteForOwner(scopedText, variable, aliases, 'searchParams')) return true;
+      if (containsForbiddenSearchAssignment(scopedText, searchWritePatternForOwner(variable, scopedText), aliases)) return true;
+      const paramsAliases = collectSearchParamsAliasesForRouteUrl(scopedText, variable);
+      for (const paramsAlias of paramsAliases) {
+        if (containsRouteKeyWriteForOwner(scopedText, paramsAlias, aliases)) return true;
+      }
+    }
+    const searchParamsAccess = propertyAccessorPattern('searchParams', collectStaticStringAliases(scopedText, 'searchParams'));
+    const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')}|${propertyAccessorPattern('delete')})`;
+    const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
+    const searchAccess = propertyAccessorPattern('search', collectStaticStringAliases(scopedText, 'search'));
+    const directSearchConstructorAliases = collectUrlSearchParamsConstructorAliases(scopedText);
+    const directSearchQueryAliases = collectRouteQueryAliases(scopedText, aliases, directSearchConstructorAliases);
+    const factoryParamsAliases = new Set();
+    const collectFactoryParamsAlias = (re) => {
+      let alias = re.exec(scopedText);
+      while (alias) {
+        const parsed = extractCallArgs(scopedText, re.lastIndex);
+        const suffix = scopedText.slice(parsed.end).match(new RegExp(`^\\s*(?:\\))*${searchParamsAccess}`));
+        if (!callIsShadowed(alias.index) && suffix) factoryParamsAliases.add(alias[1]);
+        if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+        alias = re.exec(scopedText);
+      }
+    };
+    collectFactoryParamsAlias(new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:await\\s+)?${parenthesizedCallStartPattern}`, 'g'));
+    collectFactoryParamsAlias(new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:await\\s+)?${parenthesizedCallStartPattern}`, 'g'));
+    const destructuredParamsRe = new RegExp(`\\b(?:const|let|var)\\s*\\{([\\s\\S]*?)\\}\\s*=\\s*(?:await\\s+)?${parenthesizedCallStartPattern}`, 'g');
+    let destructuredParams = destructuredParamsRe.exec(scopedText);
+    while (destructuredParams) {
+      const parsed = extractCallArgs(scopedText, destructuredParamsRe.lastIndex);
+      if (!callIsShadowed(destructuredParams.index)) {
+        const body = destructuredParams[1] || '';
+        for (const alias of collectDestructuredStaticPropertyAliases(body, 'searchParams')) {
+          factoryParamsAliases.add(alias);
+        }
+      }
+      if (parsed.end > destructuredParamsRe.lastIndex) destructuredParamsRe.lastIndex = parsed.end;
+      destructuredParams = destructuredParamsRe.exec(scopedText);
+    }
+    for (const paramsAlias of factoryParamsAliases) {
+      if (containsRouteKeyWriteForOwner(scopedText, paramsAlias, aliases)) return true;
+    }
+    const scanFactoryCallSuffix = (callIndex, callEnd) => {
+      if (callIsShadowed(callIndex)) return false;
+      const suffixText = scopedText.slice(callEnd);
+      const directParams = suffixText.match(new RegExp(`^\\s*(?:\\))*${searchParamsAccess}${mutator}\\s*(?:\\?\\.\\s*)?\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*(?:,|\\))`));
+      if (directParams && sourceArgIsRouteKey(directParams[1], aliases)) return true;
+      const dispatch = suffixText.match(new RegExp(`^\\s*(?:\\))*${searchParamsAccess}${mutator}(?:\\s*(?:\\?\\.\\s*|\\.\\s*)(call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\(`));
+      if (dispatch) {
+        const method = dispatch[1] || dispatch[2] || dispatch[3];
+        const parsed = extractCallArgs(suffixText, dispatch[0].length);
+        const parts = splitTopLevelArgs(parsed.args);
+        const applyArgs = method === 'apply' ? splitTopLevelArgs((parts[1] || '').trim().replace(/^\[\s*|\s*\]$/g, '')) : [];
+        const routeKeyArg = method === 'apply' ? applyArgs[0] : parts[1];
+        if (sourceArgIsRouteKey(routeKeyArg || '', aliases)) return true;
+      }
+      const searchAssignment = suffixText.match(new RegExp(`^\\s*(?:\\))*${searchAccess}\\s*(?:\\+=|=(?!=|>))`));
+      if (searchAssignment) {
+        const expression = extractAssignmentExpression(scopedText, callEnd + searchAssignment[0].length);
+        if (expressionBuildsRouteQuery(expression, aliases, directSearchQueryAliases, directSearchConstructorAliases)) return true;
+      }
+      return false;
+    };
+    const directCallRe = new RegExp(`(?:^|[^\\w$.])${callStartPattern}`, 'g');
+    let directCall = directCallRe.exec(scopedText);
+    while (directCall) {
+      const parsed = extractCallArgs(scopedText, directCallRe.lastIndex);
+      if (!hasMemberAccessPrefix(scopedText, directCall.index) && scanFactoryCallSuffix(directCall.index, parsed.end)) {
+        return true;
+      }
+      if (parsed.end > directCallRe.lastIndex) directCallRe.lastIndex = parsed.end;
+      directCall = directCallRe.exec(scopedText);
+    }
+  }
+  return false;
+}
+
+function collectRouteUrlVariables(
+  source,
+  externalAliases = collectExternalUrlAliases(source),
+  staticRelativeAliases = collectStaticRelativeUrlAliases(source),
+  routeUrlFactoryAliases = null
+) {
   const text = String(source || '');
   const out = new Set();
-  const factories = collectRouteUrlFactoryAliases(text, externalAliases, staticRelativeAliases);
+  const fullScope = { start: 0, end: text.length };
+  const baseFactories = routeUrlFactoryAliases || collectRouteUrlFactoryAliases(text, externalAliases, staticRelativeAliases);
+  const factories = expandRouteUrlFactoryAliases(
+    text,
+    baseFactories,
+    { isReferenceShadowed: (factory, index) => referenceIsShadowedInScope(text, factory, fullScope, index) }
+  );
+  const baseFactorySet = new Set(baseFactories);
   const constructorPattern = urlConstructorPattern(collectUrlConstructorAliases(text));
   [
     new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+(?:${constructorPattern})\\s*\\(`, 'g'),
     new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*new\\s+(?:${constructorPattern})\\s*\\(`, 'g'),
-    new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_PATTERN_SOURCE})\\s*=\\s*new\\s+(?:${constructorPattern})\\s*\\(`, 'g')
+    new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_WITH_STATIC_KEYS_PATTERN_SOURCE})\\s*=\\s*new\\s+(?:${constructorPattern})\\s*\\(`, 'g')
   ].forEach((re) => {
     let match = re.exec(text);
     while (match) {
       const parsed = extractCallArgs(text, re.lastIndex);
-      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) out.add(match[1]);
+      if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) out.add(normalizeStaticMemberExpression(match[1]));
       if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
       match = re.exec(text);
     }
   });
   if (factories.size) {
-    const factoryPattern = aliasExpressionPattern(factories);
-    [
-      new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:${factoryPattern})\\s*(?:\\?\\.\\s*)?\\(`, 'g'),
-      new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:${factoryPattern})\\s*(?:\\?\\.\\s*)?\\(`, 'g'),
-      new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_PATTERN_SOURCE})\\s*=\\s*(?:${factoryPattern})\\s*(?:\\?\\.\\s*)?\\(`, 'g')
-    ].forEach((re) => {
-      let match = re.exec(text);
-      while (match) {
-        out.add(match[1]);
-        match = re.exec(text);
-      }
-    });
+    for (const factory of factories) {
+      const factoryCallPattern = functionInvocationStartPattern(expressionReferencePatternForSource(factory, text));
+      [
+        new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:await\\s+)?${factoryCallPattern}`, 'g'),
+        new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:await\\s+)?${factoryCallPattern}`, 'g'),
+        new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_WITH_STATIC_KEYS_PATTERN_SOURCE})\\s*=\\s*(?:await\\s+)?${factoryCallPattern}`, 'g')
+      ].forEach((re) => {
+        let match = re.exec(text);
+        while (match) {
+          const parsed = extractCallArgs(text, re.lastIndex);
+          if (!referenceIsShadowedInScope(text, factory, fullScope, match.index)) {
+            out.add(normalizeStaticMemberExpression(match[1]));
+          }
+          if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
+          match = re.exec(text);
+        }
+      });
+    }
   }
   return out;
 }
@@ -1860,21 +3198,24 @@ function locationSearchWritePattern(locationAliases = new Set()) {
   return searchWritePatternForOwnerPattern(ownerPattern);
 }
 
-function searchWritePatternForOwnerPattern(ownerPattern) {
-  const searchProperty = `(?:\\.\\s*search|\\[\\s*(['"\`])search\\1\\s*\\])`;
+function searchWritePatternForOwnerPattern(ownerPattern, propertyAliases = new Set()) {
+  const searchProperty = propertyAccessorPattern('search', propertyAliases);
   return new RegExp(`${ownerPattern}\\s*${searchProperty}\\s*(?:\\+=|=(?!=|>))`, 'g');
 }
 
-function searchWritePatternForOwner(owner) {
-  return searchWritePatternForOwnerPattern(expressionReferencePattern(owner));
+function searchWritePatternForOwner(owner, source = '') {
+  return searchWritePatternForOwnerPattern(
+    expressionReferencePattern(owner),
+    collectStaticStringAliases(source, 'search')
+  );
 }
 
-function containsForbiddenRouteUrlMutation(source, aliases, externalAliases, staticRelativeAliases) {
+function containsForbiddenRouteUrlMutation(source, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases = null) {
   const text = String(source || '');
-  const vars = collectRouteUrlVariables(text, externalAliases, staticRelativeAliases);
+  const vars = collectRouteUrlVariables(text, externalAliases, staticRelativeAliases, routeUrlFactoryAliases);
   for (const name of vars) {
     if (containsRouteKeyWriteForOwner(text, name, aliases, 'searchParams')) return true;
-    if (containsForbiddenSearchAssignment(text, searchWritePatternForOwner(name), aliases)) return true;
+    if (containsForbiddenSearchAssignment(text, searchWritePatternForOwner(name, text), aliases)) return true;
     const paramsAliases = collectSearchParamsAliasesForRouteUrl(text, name);
     for (const paramsAlias of paramsAliases) {
       if (containsRouteKeyWriteForOwner(text, paramsAlias, aliases)) return true;
@@ -1885,10 +3226,11 @@ function containsForbiddenRouteUrlMutation(source, aliases, externalAliases, sta
 
 function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, externalAliases, staticRelativeAliases) {
   const text = String(source || '');
+  const scan = maskNonCodeForRouteGuard(text);
   const constructorPattern = urlConstructorPattern(collectUrlConstructorAliases(text));
   const callbackMutatesRouteUrl = (body, owner) => {
     if (containsRouteKeyWriteForOwner(body, owner, aliases, 'searchParams')) return true;
-    if (containsForbiddenSearchAssignment(body, searchWritePatternForOwner(owner), aliases)) return true;
+    if (containsForbiddenSearchAssignment(body, searchWritePatternForOwner(owner, body), aliases)) return true;
     const paramsAliases = collectSearchParamsAliasesForRouteUrl(body, owner);
     for (const paramsAlias of paramsAliases) {
       if (containsRouteKeyWriteForOwner(body, paramsAlias, aliases)) return true;
@@ -2050,9 +3392,17 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     match = functionRe.exec(text);
   }
   const mutators = [];
+  const mutatorKeys = new Set();
+  const addMutatorAlias = (name, scope, ownerIndex = 0) => {
+    const normalizedScope = scope || { start: 0, end: text.length };
+    const key = `${normalizedScope.start}:${normalizedScope.end}:${ownerIndex}:${name}`;
+    if (mutatorKeys.has(key)) return;
+    mutatorKeys.add(key);
+    mutators.push({ name, scope: normalizedScope, ownerIndex });
+  };
   const addMutator = (name, owner, body, index, scope = null, ownerIndex = 0) => {
     if (!callbackMutatesRouteUrl(body, owner)) return;
-    mutators.push({ name, scope: scope || containingBlockSpan(index), ownerIndex });
+    addMutatorAlias(name, scope || containingBlockSpan(index), ownerIndex);
   };
   const addMutatorsForParams = (name, paramsText, body, index, scope = null) => {
     splitTopLevelArgs(paramsText).forEach((param, ownerIndex) => {
@@ -2116,80 +3466,188 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
     addMutatorsForParams(match[1], match[2], span.body, match.index);
     match = mutatorFunctionParamsRe.exec(text);
   }
+  const scanObjectMutatorMembers = (baseName, objectBody, objectBodyStart, objectIndex, objectScope) => {
+    const objectBodyScan = maskNonCodeForRouteGuard(objectBody);
+    const memberIsTopLevel = (index) => braceDepthAt(objectBody, index) === 0;
+    const memberIsScannable = (index) => (
+      (index === 0 || objectBodyScan[index] === ',')
+      && memberIsTopLevel(index)
+    );
+    const methodRe = new RegExp(`(?:^|[,\\{])\\s*(?:async\\s+)?(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+    let method = methodRe.exec(objectBody);
+    while (method) {
+      if (!memberIsScannable(method.index)) {
+        method = methodRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(method[1]);
+      const methodOpenBrace = objectBodyStart + methodRe.lastIndex - 1;
+      const methodSpan = extractBlockSpan(text, methodOpenBrace);
+      if (property) addMutatorsForParams(`${baseName}.${property}`, method[2], methodSpan.body, objectIndex, objectScope);
+      methodRe.lastIndex = Math.max(methodRe.lastIndex, methodSpan.end - objectBodyStart);
+      method = methodRe.exec(objectBody);
+    }
+    const propertyFunctionRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
+    let propertyFunction = propertyFunctionRe.exec(objectBody);
+    while (propertyFunction) {
+      if (!memberIsScannable(propertyFunction.index)) {
+        propertyFunction = propertyFunctionRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyFunction[1]);
+      const functionOpenBrace = objectBodyStart + propertyFunctionRe.lastIndex - 1;
+      const functionSpan = extractBlockSpan(text, functionOpenBrace);
+      if (property) addMutatorsForParams(`${baseName}.${property}`, propertyFunction[2], functionSpan.body, objectIndex, objectScope);
+      propertyFunctionRe.lastIndex = Math.max(propertyFunctionRe.lastIndex, functionSpan.end - objectBodyStart);
+      propertyFunction = propertyFunctionRe.exec(objectBody);
+    }
+    const propertyArrowRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*`, 'g');
+    let propertyArrow = propertyArrowRe.exec(objectBody);
+    while (propertyArrow) {
+      if (!memberIsScannable(propertyArrow.index)) {
+        propertyArrow = propertyArrowRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyArrow[1]);
+      const params = propertyArrow[2] || propertyArrow[3] || '';
+      const valueStart = objectBodyStart + propertyArrowRe.lastIndex;
+      if (text[valueStart] === '{') {
+        const arrowSpan = extractBlockSpan(text, valueStart);
+        if (property) addMutatorsForParams(`${baseName}.${property}`, params, arrowSpan.body, objectIndex, objectScope);
+        propertyArrowRe.lastIndex = Math.max(propertyArrowRe.lastIndex, arrowSpan.end - objectBodyStart);
+      } else {
+        const expression = extractAssignmentExpression(text, valueStart);
+        if (property) addMutatorsForParams(`${baseName}.${property}`, params, expression, objectIndex, objectScope);
+        propertyArrowRe.lastIndex += expression.length;
+      }
+      propertyArrow = propertyArrowRe.exec(objectBody);
+    }
+    const propertyObjectRe = new RegExp(`(?:^|[,\\{])\\s*(${STATIC_OBJECT_PROPERTY_KEY_PATTERN_SOURCE})\\s*:\\s*\\{`, 'g');
+    let propertyObject = propertyObjectRe.exec(objectBody);
+    while (propertyObject) {
+      if (!memberIsScannable(propertyObject.index)) {
+        propertyObject = propertyObjectRe.exec(objectBody);
+        continue;
+      }
+      const property = normalizeStaticObjectPropertyKey(propertyObject[1]);
+      const nestedOpenBrace = text.indexOf('{', objectBodyStart + propertyObject.index);
+      if (!property || nestedOpenBrace < 0) {
+        propertyObject = propertyObjectRe.exec(objectBody);
+        continue;
+      }
+      const nestedSpan = extractBlockSpan(text, nestedOpenBrace);
+      scanObjectMutatorMembers(
+        `${baseName}.${property}`,
+        nestedSpan.body,
+        nestedOpenBrace + 1,
+        objectIndex,
+        objectScope
+      );
+      propertyObjectRe.lastIndex = Math.max(propertyObjectRe.lastIndex, nestedSpan.end - objectBodyStart);
+      propertyObject = propertyObjectRe.exec(objectBody);
+    }
+  };
   const objectLiteralRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*\\{`, 'g');
-  match = objectLiteralRe.exec(text);
+  match = objectLiteralRe.exec(scan);
   while (match) {
     const objectName = match[1];
     const objectScope = containingBlockSpan(match.index);
     const objectSpan = extractBlockSpan(text, objectLiteralRe.lastIndex - 1);
     const objectBodyStart = objectLiteralRe.lastIndex;
-    const methodRe = new RegExp(`\\b(${IDENTIFIER_PATTERN.source})\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
-    let method = methodRe.exec(objectSpan.body);
-    while (method) {
-      const methodOpenBrace = objectBodyStart + methodRe.lastIndex - 1;
-      const methodSpan = extractBlockSpan(text, methodOpenBrace);
-      addMutatorsForParams(`${objectName}.${method[1]}`, method[2], methodSpan.body, match.index, objectScope);
-      methodRe.lastIndex = Math.max(methodRe.lastIndex, methodSpan.end - objectBodyStart);
-      method = methodRe.exec(objectSpan.body);
-    }
-    const propertyFunctionRe = new RegExp(`(?:^|[,\\{])\\s*(${IDENTIFIER_PATTERN.source})\\s*:\\s*(?:async\\s+)?function(?:\\s+[A-Za-z_$][\\w$]*)?\\s*\\(([^)]*)\\)\\s*\\{`, 'g');
-    let propertyFunction = propertyFunctionRe.exec(objectSpan.body);
-    while (propertyFunction) {
-      const functionOpenBrace = objectBodyStart + propertyFunctionRe.lastIndex - 1;
-      const functionSpan = extractBlockSpan(text, functionOpenBrace);
-      addMutatorsForParams(`${objectName}.${propertyFunction[1]}`, propertyFunction[2], functionSpan.body, match.index, objectScope);
-      propertyFunctionRe.lastIndex = Math.max(propertyFunctionRe.lastIndex, functionSpan.end - objectBodyStart);
-      propertyFunction = propertyFunctionRe.exec(objectSpan.body);
-    }
-    const propertyArrowRe = new RegExp(`(?:^|[,\\{])\\s*(${IDENTIFIER_PATTERN.source})\\s*:\\s*(?:async\\s*)?(?:\\(([^)]*)\\)|(${IDENTIFIER_PATTERN.source}))\\s*=>\\s*`, 'g');
-    let propertyArrow = propertyArrowRe.exec(objectSpan.body);
-    while (propertyArrow) {
-      const params = propertyArrow[2] || propertyArrow[3] || '';
-      const valueStart = objectBodyStart + propertyArrowRe.lastIndex;
-      if (text[valueStart] === '{') {
-        const arrowSpan = extractBlockSpan(text, valueStart);
-        addMutatorsForParams(`${objectName}.${propertyArrow[1]}`, params, arrowSpan.body, match.index, objectScope);
-        propertyArrowRe.lastIndex = Math.max(propertyArrowRe.lastIndex, arrowSpan.end - objectBodyStart);
-      } else {
-        const expression = extractAssignmentExpression(text, valueStart);
-        addMutatorsForParams(`${objectName}.${propertyArrow[1]}`, params, expression, match.index, objectScope);
-        propertyArrowRe.lastIndex += expression.length;
-      }
-      propertyArrow = propertyArrowRe.exec(objectSpan.body);
-    }
+    scanObjectMutatorMembers(objectName, objectSpan.body, objectBodyStart, match.index, objectScope);
     if (objectSpan.end > objectLiteralRe.lastIndex) objectLiteralRe.lastIndex = objectSpan.end;
-    match = objectLiteralRe.exec(text);
+    match = objectLiteralRe.exec(scan);
   }
   for (let i = 0; i < mutators.length; i += 1) {
     const { name, scope, ownerIndex } = mutators[i];
     const scopedText = text.slice(scope.start, scope.end);
-    const bindRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*${expressionReferencePattern(name)}${propertyAccessorPattern('bind')}\\s*(?:\\?\\.\\s*)?\\(`, 'g');
+    const scopedScan = maskNonCodeForRouteGuard(scopedText);
+    const captureStartsInCode = (match, capture) => {
+      const offset = match[0].indexOf(capture);
+      const index = offset >= 0 ? match.index + offset : match.index;
+      return /\S/.test(scopedScan[index] || '');
+    };
+    const objectAliasRe = new RegExp(`\\b(const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*\\{`, 'g');
+    let objectAlias = objectAliasRe.exec(scopedText);
+    while (objectAlias) {
+      const kind = objectAlias[1];
+      const objectName = objectAlias[2];
+      if (!captureStartsInCode(objectAlias, kind)) {
+        objectAlias = objectAliasRe.exec(scopedText);
+        continue;
+      }
+      const objectSpan = extractBlockSpan(scopedText, objectAliasRe.lastIndex - 1);
+      if (kind === 'const' || !bindingIsReassigned(scopedText, objectName, objectAliasRe.lastIndex)) {
+        for (const part of splitTopLevelArgs(objectSpan.body)) {
+          const property = objectPropertyNameFromPart(part);
+          const value = objectPropertyValueFromPart(part);
+          if (property
+            && value
+            && expressionReferencesRouteFactory(value, new Set([name]))
+            && !callIsShadowedInNestedScope(name, scope, objectAlias.index)) {
+            addMutatorAlias(`${objectName}.${property}`, containingBlockSpan(scope.start + objectAlias.index), ownerIndex);
+          }
+        }
+      }
+      if (objectSpan.end > objectAliasRe.lastIndex) objectAliasRe.lastIndex = objectSpan.end;
+      objectAlias = objectAliasRe.exec(scopedText);
+    }
+    const memberAliasRe = new RegExp(`(?:^|[^\\w$])(${MEMBER_EXPRESSION_WITH_STATIC_KEYS_PATTERN_SOURCE})\\s*=\\s*(?!=|>)(?:\\(\\s*)*${expressionReferencePatternForSource(name, scopedText)}\\s*(?:\\))*`, 'g');
+    let memberAlias = memberAliasRe.exec(scopedText);
+    while (memberAlias) {
+      if (captureStartsInCode(memberAlias, memberAlias[1]) && !callIsShadowedInNestedScope(name, scope, memberAlias.index)) {
+        addMutatorAlias(normalizeStaticMemberExpression(memberAlias[1]), scope, ownerIndex);
+      }
+      memberAlias = memberAliasRe.exec(scopedText);
+    }
+    const parts = String(name || '').split('.');
+    if (parts.length > 1 && parts.every((part) => new RegExp(`^(?:this|${IDENTIFIER_PATTERN.source})$`).test(part))) {
+      const owner = parts.slice(0, -1).join('.');
+      const property = parts[parts.length - 1];
+      const destructureRe = new RegExp(`\\b(const|let|var)\\s*\\{([\\s\\S]*?)\\}\\s*=\\s*${expressionReferencePattern(owner)}\\b`, 'g');
+      let destructure = destructureRe.exec(scopedText);
+      while (destructure) {
+        const kind = destructure[1];
+        if (captureStartsInCode(destructure, kind)) {
+          for (const aliasName of collectDestructuredStaticPropertyAliases(destructure[2] || '', property)) {
+            if (!callIsShadowedInNestedScope(name, scope, destructure.index)
+              && (kind === 'const' || !bindingIsReassigned(scopedText, aliasName, destructureRe.lastIndex))) {
+              addMutatorAlias(aliasName, scope, ownerIndex);
+            }
+          }
+        }
+        destructure = destructureRe.exec(scopedText);
+      }
+    }
+    const bindRe = new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*${expressionReferencePatternForSource(name, scopedText)}${propertyAccessorPattern('bind')}\\s*(?:\\?\\.\\s*)?\\(`, 'g');
     let bind = bindRe.exec(scopedText);
     while (bind) {
       const parsed = extractCallArgs(scopedText, bindRe.lastIndex);
       const boundArgs = splitTopLevelArgs(parsed.args).slice(1);
-      if (expressionIsRelativeNewUrl(boundArgs[ownerIndex] || '')
+      if (captureStartsInCode(bind, bind[1])
+        && expressionIsRelativeNewUrl(boundArgs[ownerIndex] || '')
         && !callIsShadowedInNestedScope(name, scope, bind.index)) return true;
       const remainingOwnerIndex = ownerIndex - boundArgs.length;
-      if (remainingOwnerIndex >= 0) mutators.push({ name: bind[1], scope, ownerIndex: remainingOwnerIndex });
+      if (captureStartsInCode(bind, bind[1]) && remainingOwnerIndex >= 0) addMutatorAlias(bind[1], scope, remainingOwnerIndex);
       if (parsed.end > bindRe.lastIndex) bindRe.lastIndex = parsed.end;
       bind = bindRe.exec(scopedText);
     }
   }
   for (const { name, scope, ownerIndex } of mutators) {
     const scopedText = text.slice(scope.start, scope.end);
-    const calleePattern = expressionReferencePattern(name);
+    const calleePattern = expressionReferencePatternForSource(name, scopedText);
     const directCallRe = new RegExp(`(^|[^\\w$.])${calleePattern}\\s*(?:\\?\\.\\s*)?\\(`, 'g');
     match = directCallRe.exec(scopedText);
     while (match) {
       const parsed = extractCallArgs(scopedText, directCallRe.lastIndex);
       const parts = splitTopLevelArgs(parsed.args);
       if (expressionIsRelativeNewUrl(parts[ownerIndex] || '')
+        && !hasMemberAccessPrefix(scopedText, match.index)
         && !callIsShadowedInNestedScope(name, scope, match.index)) return true;
       if (parsed.end > directCallRe.lastIndex) directCallRe.lastIndex = parsed.end;
       match = directCallRe.exec(scopedText);
     }
-    const methodCallRe = new RegExp(`${calleePattern}(?:\\s*(?:\\?\\.\\s*)?\\.\\s*(call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\(`, 'g');
+    const methodCallRe = new RegExp(`${calleePattern}(?:\\s*(?:\\?\\.\\s*|\\.\\s*)(call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\(`, 'g');
     match = methodCallRe.exec(scopedText);
     while (match) {
       const method = match[1] || match[2] || match[3];
@@ -2199,7 +3657,9 @@ function containsForbiddenInlineRouteUrlCallbackMutation(source, aliases, extern
       const relative = method === 'apply'
         ? expressionIsRelativeNewUrl(applyArgs[ownerIndex] || '')
         : expressionIsRelativeNewUrl(parts[ownerIndex + 1] || '');
-      if (relative && !callIsShadowedInNestedScope(name, scope, match.index)) return true;
+      if (relative
+        && !hasMemberAccessPrefix(scopedText, match.index)
+        && !callIsShadowedInNestedScope(name, scope, match.index)) return true;
       if (parsed.end > methodCallRe.lastIndex) methodCallRe.lastIndex = parsed.end;
       match = methodCallRe.exec(scopedText);
     }
@@ -2211,7 +3671,7 @@ function collectSearchParamsAliasesForRouteUrl(source, owner) {
   const text = String(source || '');
   const out = new Set();
   const ownerPattern = expressionReferencePattern(owner);
-  const searchParamsAccess = propertyAccessorPattern('searchParams');
+  const searchParamsAccess = propertyAccessorPattern('searchParams', collectStaticStringAliases(text, 'searchParams'));
   [
     new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:\\(\\s*)*${ownerPattern}${searchParamsAccess}(?:\\s*\\))*`, 'g'),
     new RegExp(`(?:^|[^\\w$.])(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:\\(\\s*)*${ownerPattern}${searchParamsAccess}(?:\\s*\\))*`, 'g')
@@ -2226,13 +3686,9 @@ function collectSearchParamsAliasesForRouteUrl(source, owner) {
   let destructure = destructureRe.exec(text);
   while (destructure) {
     const body = destructure[1] || '';
-    const aliasRe = /(?:^|,)\s*searchParams\s*:\s*([A-Za-z_$][\w$]*)/g;
-    let alias = aliasRe.exec(body);
-    while (alias) {
-      out.add(alias[1]);
-      alias = aliasRe.exec(body);
+    for (const alias of collectDestructuredStaticPropertyAliases(body, 'searchParams')) {
+      out.add(alias);
     }
-    if (/(?:^|,)\s*searchParams\s*(?:,|$)/.test(body)) out.add('searchParams');
     destructure = destructureRe.exec(text);
   }
   return out;
@@ -2241,7 +3697,7 @@ function collectSearchParamsAliasesForRouteUrl(source, owner) {
 function collectInlineUrlSearchParamsAliases(source) {
   const text = String(source || '');
   const out = new Set();
-  const searchParamsAccess = propertyAccessorPattern('searchParams');
+  const searchParamsAccess = propertyAccessorPattern('searchParams', collectStaticStringAliases(text, 'searchParams'));
   const constructorPattern = urlConstructorPattern(collectUrlConstructorAliases(text));
   [
     new RegExp(`\\b(?:const|let|var)\\s+(${IDENTIFIER_PATTERN.source})\\s*=\\s*(?:\\(\\s*)*new\\s+(?:${constructorPattern})\\s*\\(`, 'g'),
@@ -2261,39 +3717,84 @@ function collectInlineUrlSearchParamsAliases(source) {
   while (destructure) {
     const parsed = extractCallArgs(text, destructureRe.lastIndex);
     const body = destructure[1] || '';
-    const aliasRe = /(?:^|,)\s*searchParams\s*:\s*([A-Za-z_$][\w$]*)/g;
-    let alias = aliasRe.exec(body);
-    while (alias) {
-      out.add(alias[1]);
-      alias = aliasRe.exec(body);
+    for (const alias of collectDestructuredStaticPropertyAliases(body, 'searchParams')) {
+      out.add(alias);
     }
-    if (/(?:^|,)\s*searchParams\s*(?:,|$)/.test(body)) out.add('searchParams');
     if (parsed.end > destructureRe.lastIndex) destructureRe.lastIndex = parsed.end;
     destructure = destructureRe.exec(text);
   }
   return out;
 }
 
-function containsForbiddenInlineRouteUrlSearchParamsMutation(source, aliases, externalAliases, staticRelativeAliases) {
+function containsForbiddenInlineRouteUrlSearchParamsMutation(
+  source,
+  aliases,
+  externalAliases,
+  staticRelativeAliases,
+  routeUrlFactoryAliases = null
+) {
   const text = String(source || '');
-  const searchParamsAccess = propertyAccessorPattern('searchParams');
+  const searchParamsAccess = propertyAccessorPattern('searchParams', collectStaticStringAliases(text, 'searchParams'));
+  const searchAccess = propertyAccessorPattern('search', collectStaticStringAliases(text, 'search'));
   const mutator = `(?:${propertyAccessorPattern('set')}|${propertyAccessorPattern('append')}|${propertyAccessorPattern('delete')})`;
   const parenthesizedRouteKey = `(?:\\(\\s*)*(?:${IDENTIFIER_PATTERN.source}|${ROUTE_KEY_LITERAL_EXPRESSION_PATTERN_SOURCE})(?:\\s*\\))*`;
+  const constructorAliases = collectUrlSearchParamsConstructorAliases(text);
+  const queryAliases = collectRouteQueryAliases(text, aliases, constructorAliases);
+  const checkRouteUrlCallSuffix = (callEnd) => {
+    const suffixRe = new RegExp(`^\\s*(?:\\))*${searchParamsAccess}${mutator}\\s*(?:\\?\\.\\s*)?\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*(?:,|\\))`);
+    const suffix = text.slice(callEnd).match(suffixRe);
+    if (suffix && sourceArgIsRouteKey(suffix[1], aliases)) return true;
+    const dispatchRe = new RegExp(`^\\s*(?:\\))*${searchParamsAccess}${mutator}(?:\\s*(?:\\?\\.\\s*|\\.\\s*)(call|apply)|\\s*\\?\\.\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\]|\\s*\\[\\s*["'\`](call|apply)["'\`]\\s*\\])\\s*(?:\\?\\.\\s*)?\\(`);
+    const dispatch = text.slice(callEnd).match(dispatchRe);
+    if (dispatch) {
+      const method = dispatch[1] || dispatch[2] || dispatch[3];
+      const parsed = extractCallArgs(text, callEnd + dispatch[0].length);
+      const parts = splitTopLevelArgs(parsed.args);
+      const applyArgs = method === 'apply' ? splitTopLevelArgs((parts[1] || '').trim().replace(/^\[\s*|\s*\]$/g, '')) : [];
+      const routeKeyArg = method === 'apply' ? applyArgs[0] : parts[1];
+      if (sourceArgIsRouteKey(routeKeyArg || '', aliases)) return true;
+    }
+    const searchAssignmentRe = new RegExp(`^\\s*(?:\\))*${searchAccess}\\s*(?:\\+=|=(?!=|>))`);
+    const searchAssignment = text.slice(callEnd).match(searchAssignmentRe);
+    if (searchAssignment) {
+      const expression = extractAssignmentExpression(text, callEnd + searchAssignment[0].length);
+      if (expressionBuildsRouteQuery(expression, aliases, queryAliases, constructorAliases)) return true;
+    }
+    return false;
+  };
   const constructorPattern = urlConstructorPattern(collectUrlConstructorAliases(text));
   const re = new RegExp(`\\bnew\\s+(?:${constructorPattern})\\s*\\(`, 'g');
   let match = re.exec(text);
   while (match) {
     const parsed = extractCallArgs(text, re.lastIndex);
     if (!urlConstructorArgsAreExternal(parsed.args, externalAliases, staticRelativeAliases)) {
-      const suffixRe = new RegExp(`^\\s*(?:\\))*${searchParamsAccess}${mutator}\\s*(?:\\?\\.\\s*)?\\(\\s*(${parenthesizedRouteKey}|[^,\\)]+)\\s*(?:,|\\))`);
-      const suffix = text.slice(parsed.end).match(suffixRe);
-      if (suffix && sourceArgIsRouteKey(suffix[1], aliases)) return true;
-      const dispatchRe = new RegExp(`^\\s*(?:\\))*${searchParamsAccess}${mutator}\\s*(?:\\?\\.\\s*|\\.\\s*)(?:call|apply)\\s*\\(\\s*[^,]*,\\s*(?:\\[\\s*)?(${parenthesizedRouteKey}|[^,\\]\\)]+)`);
-      const dispatch = text.slice(parsed.end).match(dispatchRe);
-      if (dispatch && sourceArgIsRouteKey(dispatch[1], aliases)) return true;
+      if (checkRouteUrlCallSuffix(parsed.end)) return true;
     }
     if (parsed.end > re.lastIndex) re.lastIndex = parsed.end;
     match = re.exec(text);
+  }
+  const fullScope = { start: 0, end: text.length };
+  const baseFactories = routeUrlFactoryAliases || collectRouteUrlFactoryAliases(text, externalAliases, staticRelativeAliases);
+  const factories = expandRouteUrlFactoryAliases(
+    text,
+    baseFactories,
+    { isReferenceShadowed: (factory, index) => referenceIsShadowedInScope(text, factory, fullScope, index) }
+  );
+  const baseFactorySet = new Set(baseFactories);
+  if (factories.size) {
+    for (const factory of factories) {
+      const callableNamePattern = `(?:\\(\\s*)*${expressionReferencePatternForSource(factory, text)}\\s*(?:\\))*`;
+      const factoryCallRe = new RegExp(`(?:^|[^\\w$.])${functionInvocationStartPattern(callableNamePattern)}`, 'g');
+      match = factoryCallRe.exec(text);
+      while (match) {
+        const parsed = extractCallArgs(text, factoryCallRe.lastIndex);
+        if (!hasMemberAccessPrefix(text, match.index)
+          && !(baseFactorySet.has(factory) && referenceIsShadowedInScope(text, factory, fullScope, match.index))
+          && checkRouteUrlCallSuffix(parsed.end)) return true;
+        if (parsed.end > factoryCallRe.lastIndex) factoryCallRe.lastIndex = parsed.end;
+        match = factoryCallRe.exec(text);
+      }
+    }
   }
   return false;
 }
@@ -2319,7 +3820,13 @@ function containsForbiddenLocationSearchAssignment(source, aliases = new Set()) 
   );
 }
 
-function containsForbiddenExecutableRouteCode(text, aliases, externalAliases, staticRelativeAliases) {
+function containsForbiddenExecutableRouteCode(
+  text,
+  aliases,
+  externalAliases,
+  staticRelativeAliases,
+  routeUrlFactoryAliases = null
+) {
   const constructorAliases = collectUrlSearchParamsConstructorAliases(text);
   const inlineSearchParamsAliases = collectInlineUrlSearchParamsAliases(text);
   const queryAliases = collectRouteQueryAliases(text, aliases, constructorAliases);
@@ -2328,11 +3835,12 @@ function containsForbiddenExecutableRouteCode(text, aliases, externalAliases, st
     || containsRelativeQueryAliasSerialization(text, queryAliases, externalAliases)
     || containsForbiddenUrlSearchParamsInitializer(text, aliases, externalAliases)
     || containsForbiddenInlineUrlSearchParamsInitializer(text, aliases, externalAliases)
-    || containsForbiddenSplitRouteQueryLiteral(text, externalAliases)
+    || containsForbiddenSplitRouteQueryLiteral(text, externalAliases, aliases)
     || containsForbiddenRouteKeyAliasConstruction(text, aliases, externalAliases)
     || containsForbiddenUrlSearchParamsVariable(text, aliases, externalAliases)
-    || containsForbiddenRouteUrlMutation(text, aliases, externalAliases, staticRelativeAliases)
-    || containsForbiddenInlineRouteUrlSearchParamsMutation(text, aliases, externalAliases, staticRelativeAliases)
+    || containsForbiddenRouteUrlMutation(text, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
+    || containsForbiddenScopedRouteUrlFactoryMutation(text, aliases, externalAliases, staticRelativeAliases)
+    || containsForbiddenInlineRouteUrlSearchParamsMutation(text, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
     || containsForbiddenInlineRouteUrlCallbackMutation(text, aliases, externalAliases, staticRelativeAliases)
     || Array.from(inlineSearchParamsAliases).some((name) => (
       containsRouteKeyWriteForOwner(text, name, aliases) && containsRelativeParamsSerialization(text, name, new Set(), externalAliases)
@@ -2356,12 +3864,22 @@ function routeBodyShadowsExternalAlias(params, body, externalAliases, shadowCand
   return shadowed ? scopedExternalAliases : null;
 }
 
-function containsForbiddenShadowedExternalAliasRouteCode(source, aliases, externalAliases, shadowCandidates, staticRelativeAliases) {
+function containsForbiddenShadowedExternalAliasRouteCode(
+  source,
+  aliases,
+  externalAliases,
+  shadowCandidates,
+  staticRelativeAliases,
+  routeUrlFactoryAliases = null
+) {
   const text = String(source || '');
   const scanBody = (params, body) => {
     const scopedExternalAliases = routeBodyShadowsExternalAlias(params, body, externalAliases, shadowCandidates);
+    const scopedSource = String(params || '').trim()
+      ? `function __pressRouteGuard(${params}) {${body}}`
+      : body;
     return scopedExternalAliases
-      ? containsForbiddenExecutableRouteCode(body, aliases, scopedExternalAliases, staticRelativeAliases)
+      ? containsForbiddenExecutableRouteCode(scopedSource, aliases, scopedExternalAliases, staticRelativeAliases, null)
       : false;
   };
   const catchParamsBeforeBlock = (openBraceIndex) => {
@@ -2441,7 +3959,7 @@ function scriptTypeAllowsRouteScan(attrs) {
   ].includes(type);
 }
 
-function containsForbiddenHtmlInlineRouteCode(source, aliases, externalAliases, staticRelativeAliases) {
+function containsForbiddenHtmlInlineRouteCode(source, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases = null) {
   const text = stripHtmlCommentsForRouteGuard(source);
   const re = /<script\b([^>]*)>([\s\S]*?)<\/script(?=[\s>])[^>]*>/gi;
   let match = re.exec(text);
@@ -2451,8 +3969,8 @@ function containsForbiddenHtmlInlineRouteCode(source, aliases, externalAliases, 
       continue;
     }
     const script = stripCommentsForRouteGuard(match[2] || '');
-    if (containsForbiddenExecutableRouteCode(script, aliases, externalAliases, staticRelativeAliases)
-      || containsForbiddenShadowedExternalAliasRouteCode(script, aliases, externalAliases, externalAliases, staticRelativeAliases)) {
+    if (containsForbiddenExecutableRouteCode(script, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
+      || containsForbiddenShadowedExternalAliasRouteCode(script, aliases, externalAliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)) {
       return true;
     }
     match = re.exec(text);
@@ -2460,14 +3978,14 @@ function containsForbiddenHtmlInlineRouteCode(source, aliases, externalAliases, 
   return false;
 }
 
-function containsForbiddenHtmlEventHandlerRouteCode(source, aliases, externalAliases, staticRelativeAliases) {
+function containsForbiddenHtmlEventHandlerRouteCode(source, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases = null) {
   const text = stripHtmlCommentsForRouteGuard(source);
   const re = /\bon[a-z][\w:-]*\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`<>]+))/gi;
   let match = re.exec(text);
   while (match) {
     const handler = stripCommentsForRouteGuard(decodeHtmlAttributeValue(match[1] || match[2] || match[3] || ''));
-    if (containsForbiddenExecutableRouteCode(handler, aliases, externalAliases, staticRelativeAliases)
-      || containsForbiddenShadowedExternalAliasRouteCode(handler, aliases, externalAliases, externalAliases, staticRelativeAliases)) {
+    if (containsForbiddenExecutableRouteCode(handler, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
+      || containsForbiddenShadowedExternalAliasRouteCode(handler, aliases, externalAliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)) {
       return true;
     }
     match = re.exec(text);
@@ -2479,21 +3997,28 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const rawText = String(source || '');
   const text = stripCommentsForRouteGuard(rawText);
   const context = normalizeRouteGuardContext(contextSource, text);
-  const aliases = mergeImportedContextAliases(collectRouteKeyAliases(text), collectRouteKeyAliases, text, context, { shadow: false });
+  const localRouteKeyAliases = collectRouteKeyAliases(text);
+  const importedRouteKeyAliases = mergeImportedContextAliases(new Set(), collectRouteKeyAliases, text, context, { shadow: false });
+  const aliases = new Set([...localRouteKeyAliases, ...importedRouteKeyAliases]);
+  aliases.localAliases = localRouteKeyAliases;
+  aliases.importedAliases = importedRouteKeyAliases;
   const localExternalAliases = collectExternalUrlAliases(text);
   const importedExternalAliases = mergeImportedContextAliases(new Set(), collectExternalUrlAliases, text, context, { shadow: false });
   const externalAliases = new Set([...localExternalAliases, ...importedExternalAliases]);
   const staticRelativeAliases = mergeImportedContextAliases(collectStaticRelativeUrlAliases(text), collectStaticRelativeUrlAliases, text, context, { shadow: false });
+  const localRouteUrlFactoryAliases = collectRouteUrlFactoryAliases(text, externalAliases, staticRelativeAliases);
+  const importedRouteUrlFactoryAliases = mergeImportedContextAliases(new Set(), collectRouteUrlFactoryAliases, text, context, { shadow: false });
+  const routeUrlFactoryAliases = new Set([...localRouteUrlFactoryAliases, ...importedRouteUrlFactoryAliases]);
   const hasForbiddenCode = shouldScanExecutableRouteCode(context.path) && (
-    containsForbiddenExecutableRouteCode(text, aliases, externalAliases, staticRelativeAliases)
-    || containsForbiddenShadowedExternalAliasRouteCode(text, aliases, externalAliases, externalAliases, staticRelativeAliases)
+    containsForbiddenExecutableRouteCode(text, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
+    || containsForbiddenShadowedExternalAliasRouteCode(text, aliases, externalAliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
   );
   return hasForbiddenCode
     || (shouldScanHtmlRouteAttributes(context.path, rawText)
       && containsForbiddenHtmlRouteAttribute(stripHtmlCommentsForRouteGuard(rawText)))
     || ((/\.(?:html?|svg)$/i.test(String(context.path || '')))
-      && (containsForbiddenHtmlInlineRouteCode(rawText, aliases, externalAliases, staticRelativeAliases)
-        || containsForbiddenHtmlEventHandlerRouteCode(rawText, aliases, externalAliases, staticRelativeAliases)));
+      && (containsForbiddenHtmlInlineRouteCode(rawText, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
+        || containsForbiddenHtmlEventHandlerRouteCode(rawText, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)));
 }
 
 [
@@ -2527,6 +4052,11 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['inline URL searchParams alias builder', 'const params = new URL(location.href).searchParams; params.set("id", post.location); return "?" + params;', true],
   ['parenthesized URL.searchParams alias mutation', 'const url = new URL(location.href); const params = (url.searchParams); params.set("id", post.location); return url.href;', true],
   ['destructured URL.searchParams alias mutation', 'const url = new URL(location.href); const { searchParams } = url; searchParams.set("id", post.location); return url.href;', true],
+  ['computed destructured URL.searchParams alias mutation', 'const url = new URL(location.href); const { ["searchParams"]: params } = url; params.set("id", post.location); return url.href;', true],
+  ['inline computed destructured URL.searchParams alias mutation', 'const { ["searchParams"]: params } = new URL(location.href); params.set("id", post.location); return "?" + params;', true],
+  ['destructured URL.searchParams mutator alias dispatch', 'const url = new URL(location.href); const { set } = url.searchParams; set.call(url.searchParams, "id", post.location); return url.href;', true],
+  ['destructured URL.searchParams mutator alias bracket dispatch', 'const url = new URL(location.href); const { set } = url.searchParams; set["call"](getTarget(a, b), "id", post.location); return url.href;', true],
+  ['computed destructured URL.searchParams mutator alias', 'const url = new URL(location.href); const { ["append"]: appendParam } = url.searchParams; appendParam("tab", "posts"); return url.href;', true],
   ['bracket URL.searchParams route key mutation', 'const url = new URL(location.href); url.searchParams["set"]("id", post.location); return url.href;', true],
   ['optional URL.searchParams route key mutation', 'const url = new URL(location.href); url.searchParams?.set("tab", "posts"); return url.href;', true],
   ['optional bracket URL.searchParams route key mutation', 'const url = new URL(location.href); url["searchParams"]?.["append"]("id", post.location); return url.href;', true],
@@ -2534,9 +4064,12 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['URL.search route key assignment', 'const key = "id"; const url = new URL(location.href); url.search = key + "=" + post.location; return url.href;', true],
   ['URL.search operator line continuation', 'const key = "id"; const url = new URL(location.href); url.search = key +\n  "=" + post.location; return url.href;', true],
   ['URL.search URLSearchParams route assignment', 'const url = new URL(location.href); url.search = new URLSearchParams({ id: post.location }); return url.href;', true],
+  ['split route literal with assembled static key', 'return "?" + ("i" + "d" + "=" + post.location);', true],
   ['route URL member assignment', 'state.url = new URL(location.href); state.url.searchParams.set("id", post.location); return state.url.href;', true],
+  ['route URL bracket member assignment', 'state["url"] = new URL(location.href); state["url"].searchParams.set("id", post.location); return state["url"].href;', true],
   ['route URL factory helper result', 'function currentUrl() { return new URL(location.href); } const url = currentUrl(); url.searchParams.set("id", post.location); return url.href;', true],
   ['route URL function expression factory result', 'const currentUrl = function() { return new URL(location.href); }; const url = currentUrl(); url.searchParams.set("id", post.location); return url.href;', true],
+  ['direct route URL factory helper mutation', 'function currentUrl() { return new URL(location.href); } currentUrl().searchParams.set("id", post.location);', true],
   ['window URLSearchParams route builder', 'const params = new window.URLSearchParams({ id: post.location }); return "?" + params;', true],
   ['URLSearchParams constructor alias route builder', 'const Params = URLSearchParams; const params = new Params({ id: post.location }); return "?" + params;', true],
   ['globalThis URLSearchParams constructor alias route builder', 'const Params = globalThis.URLSearchParams; const params = new Params({ id: post.location }); return "?" + params;', true],
@@ -2544,6 +4077,8 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['conditional URLSearchParams route builder', 'const params = enabled ? new URLSearchParams({ id: post.location }) : new URLSearchParams(); return "?" + params;', true],
   ['URL.searchParams delete route key', 'const url = new URL(location.href); url.searchParams.delete("id"); return url.href;', true],
   ['URL.searchParams call route key mutation', 'const url = new URL(location.href); url.searchParams.set.call(url.searchParams, "id", post.location); return url.href;', true],
+  ['URL.searchParams call route key mutation with comma receiver', 'const url = new URL(location.href); url.searchParams.set.call(getTarget(a, b), "id", post.location); return url.href;', true],
+  ['URL.searchParams bracket call route key mutation', 'const url = new URL(location.href); url.searchParams.set["call"](url.searchParams, "id", post.location); return url.href;', true],
   ['URL.searchParams apply route key mutation', 'const url = new URL(location.href); url.searchParams.set.apply(url.searchParams, ["id", post.location]); return url.href;', true],
   ['bracket optional call URL.searchParams route key mutation', 'const url = new URL(location.href); url.searchParams["append"]?.("tab", "posts"); return url.href;', true],
   ['bracket URL.searchParams alias route key mutation', 'const url = new URL(location.href); const params = url.searchParams; params["append"]("tab", "posts"); return url.href;', true],
@@ -2564,6 +4099,19 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file escaped default route key alias', 'import routeKey from "./config.js"; const url = new URL(location.href); url.searchParams.set(routeKey, post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export default "\\u0069d";' }] }],
   ['cross-file const default route key alias', 'import routeKey from "./config.js"; const url = new URL(location.href); url.searchParams.set(routeKey, post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'const routeKey = "id"; export default routeKey;' }] }],
   ['cross-file local default export route key alias', 'import routeKey from "./config.js"; const url = new URL(location.href); url.searchParams.set(routeKey, post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'const routeKey = "id"; export { routeKey as default };' }] }],
+  ['cross-file default route URL factory assignment', 'import makeUrl from "./url.js"; const url = makeUrl(); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export default function makeUrl() { return new URL(location.href); }' }] }],
+  ['cross-file parenthesized default route URL factory assignment', 'import makeUrl from "./url.js"; const url = makeUrl(); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export default (function makeUrl() { return new URL(location.href); });' }] }],
+  ['cross-file parenthesized default arrow route URL factory assignment', 'import makeUrl from "./url.js"; const url = makeUrl(); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export default (() => new URL(location.href));' }] }],
+  ['cross-file default route URL factory direct mutation', 'import makeUrl from "./url.js"; makeUrl().searchParams.set("id", post.location);', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'const makeUrl = () => new URL(location.href); export { makeUrl as default };' }] }],
+  ['cross-file default route URL factory alias direct mutation', 'import makeUrl from "./url.js"; const routeFactory = makeUrl; routeFactory().searchParams.set("id", post.location);', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'const makeUrl = () => new URL(location.href); export { makeUrl as default };' }] }],
+  ['cross-file route URL factory object property alias direct mutation', 'import { makeUrl } from "./url.js"; const helper = { makeUrl }; helper.makeUrl().searchParams.set("id", post.location);', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeUrl() { return new URL(location.href); }' }] }],
+  ['cross-file route URL factory quoted object property alias direct mutation', 'import { makeUrl } from "./url.js"; const helper = { "routeFactory": makeUrl }; helper.routeFactory().searchParams.set("id", post.location);', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeUrl() { return new URL(location.href); }' }] }],
+  ['cross-file route URL factory bracket member assignment', 'import { makeUrl } from "./url.js"; state["url"] = makeUrl(); state["url"].searchParams.set("id", post.location);', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeUrl() { return new URL(location.href); }' }] }],
+  ['cross-file route URL factory return after fake function string', 'import { makeUrl } from "./url.js"; makeUrl().searchParams.set("id", post.location);', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeUrl() { const marker = "function fake() {"; return new URL(location.href); }' }] }],
+  ['cross-file imported external URL factory shadowed param', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(location.href); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl(externalRoot) { return new URL("/product", externalRoot); }' }] }],
+  ['cross-file imported external URL factory shadowed after string brace', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { const marker = "{"; const externalRoot = location.href; return new URL("/product", externalRoot); }' }] }],
+  ['cross-file imported external URL factory shadowed in return block', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { if (ok) { const externalRoot = location.href; return new URL("/product", externalRoot); } return new URL("/fallback", "https://api.example.test"); }' }] }],
+  ['cross-file imported external URL factory shadowed by array destructuring', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { const [externalRoot] = [location.href]; return new URL("/product", externalRoot); }' }] }],
   ['cross-file imported external template route context', 'import { endpoint } from "./config.js"; return `${endpoint}?id=sku-123`;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external query alias context', 'import { endpoint } from "./config.js"; const qs = "id=" + sku; return `${endpoint}?${qs}`;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external query alias concat context', 'import { endpoint } from "./config.js"; const qs = "id=" + sku; return endpoint + "?" + qs;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
@@ -2597,6 +4145,7 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['catch imported external alias shadowing', 'import { endpoint } from "./config.js"; try { throw location.href; } catch (endpoint) { const url = new URL(endpoint); url.searchParams.set("id", post.location); }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['nested helper external alias does not mask parameter shadowing', 'import { endpoint } from "./config.js"; export function route(endpoint, post) { function helper() { const endpoint = "https://api.example.test/product"; return endpoint; } const url = new URL(endpoint); url.searchParams.set("id", post.location); return helper() || url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['array destructured external alias shadowing', 'import { endpoint } from "./config.js"; export function route([endpoint], post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
+  ['body array destructured external alias shadowing', 'import { endpoint } from "./config.js"; export function route(post) { const [endpoint] = [location.href]; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['renamed default destructured external alias shadowing', 'import { endpoint } from "./config.js"; export function route({ endpoint: endpoint = location.href }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['for-loop external alias shadowing', 'import { endpoint } from "./config.js"; for (const endpoint of [location.href]) { const url = new URL(endpoint); url.searchParams.set("id", post.location); }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['string brace does not truncate shadowed body scan', 'import { endpoint } from "./config.js"; export function route(endpoint, post) { const marker = "}"; return endpoint + "?id=" + post.id; }', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
@@ -2632,6 +4181,14 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['parenthesized apply helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate.apply(null, [(new URL(location.href))]);', true],
   ['parenthesized inline callback direct URL is rejected', 'return ((url) => (url.searchParams.set("id", "post.md"), url.href))((new URL(location.href)));', true],
   ['optional direct helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate?.(new URL(location.href));', true],
+  ['optional call helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } mutate?.call(null, new URL(location.href)); mutate?.apply(null, [new URL(location.href)]);', true],
+  ['object property helper mutator alias is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate }; return helper.mutate(new URL(location.href));', true],
+  ['quoted object property helper mutator alias is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { "routeMutator": mutate }; return helper.routeMutator(new URL(location.href));', true],
+  ['quoted object helper mutator key is rejected', 'const helper = { "mutate": (url) => { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(new URL(location.href));', true],
+  ['computed object helper mutator key is rejected', 'const helper = { ["mutate"](url) { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(new URL(location.href));', true],
+  ['static key object helper mutator call is rejected', 'const helper = { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }; const key = "mutate"; return helper[key](new URL(location.href));', true],
+  ['member assignment helper mutator alias is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } helper.routeMutator = mutate; return helper.routeMutator(new URL(location.href));', true],
+  ['destructured member helper mutator alias is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate }; const { mutate: routeMutator } = helper; return routeMutator(new URL(location.href));', true],
   ['bracket call helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate["call"](null, new URL(location.href));', true],
   ['bracket bind helper mutator URL is rejected', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const bound = mutate["bind"](null); return bound(new URL(location.href));', true],
   ['optional inline callback direct URL is rejected', 'return ((url) => (url.searchParams.set("id", "post.md"), url.href))?.(new URL(location.href));', true],
@@ -2648,12 +4205,76 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file external URL nested local does not shadow mount', 'import { endpoint } from "./config.js"; function helper() { const endpoint = "local"; return endpoint; } const url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL inline callback context', 'import { endpoint } from "./config.js"; ((url) => (url.searchParams.set("id", sku), url.href))(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL helper mutator context', 'import { endpoint } from "./config.js"; const mutate = (url) => { url.searchParams.set("id", sku); return url.href; }; mutate(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
+  ['cross-file imported external URL factory context', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { return new URL("/product", externalRoot); }' }] }],
+  ['cross-file imported external URL factory ignores sibling shadow context', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { if (ok) { const externalRoot = location.href; void externalRoot; } return new URL("/product", externalRoot); }' }] }],
+  ['cross-file imported external URL factory ignores nested helper var context', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { function helper() { var externalRoot = location.href; return externalRoot; } void helper; return new URL("/product", externalRoot); }' }] }],
+  ['cross-file imported external URL factory ignores fake declaration string context', 'import { makeProductUrl } from "./url.js"; const url = makeProductUrl(); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const externalRoot = "https://api.example.test";' }, { path: 'modules/url.js', source: 'import { externalRoot } from "./config.js"; export function makeProductUrl() { const marker = "const externalRoot = x"; return new URL("/product", externalRoot); }' }] }],
+  ['cross-file imported external URL factory ignores nested imported-name route helper context', 'import { makeProductUrl } from "./url.js"; function setup() { function makeProductUrl() { return new URL(location.href); } void makeProductUrl; } void setup; const url = makeProductUrl(); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeProductUrl() { return new URL("/product", "https://api.example.test"); }' }] }],
+  ['cross-file imported external URL factory rejects active nested imported-name route helper', 'import { makeProductUrl } from "./url.js"; function setup(post) { function makeProductUrl() { return new URL(location.href); } makeProductUrl().searchParams.set("id", post.location); } void setup;', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeProductUrl() { return new URL("/product", "https://api.example.test"); }' }] }],
+  ['nested route factory does not leak into safe sibling local factory', 'function setup() { function makeUrl() { return new URL(location.href); } void makeUrl; } function route() { const makeUrl = () => new URL("https://api.example.test/product"); const url = makeUrl(); url.searchParams.set("id", sku); return url.href; }', false],
+  ['nested route factory member assignment is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } state.url = makeUrl(); state.url.searchParams.set("id", post.location); return state.url.href; }', true],
+  ['nested route factory descendant same-name shadow stays safe', 'function route() { function makeUrl() { return new URL(location.href); } function inner() { function makeUrl() { return new URL("https://api.example.test/product"); } const url = makeUrl(); url.searchParams.set("id", sku); return url.href; } return inner; }', false],
+  ['nested route factory descendant same-name search assignment stays safe', 'function route() { function makeUrl() { return new URL(location.href); } function inner() { function makeUrl() { return new URL("https://api.example.test/product"); } makeUrl().search = "id=" + sku; } return inner; }', false],
+  ['single-param block arrow route factory direct mutation is rejected', 'function route(post) { const makeUrl = base => { return new URL(location.href); }; makeUrl(location.href).searchParams.set("id", post.location); }', true],
+  ['var route factory shadows imported factory for whole function', 'import { makeProductUrl } from "./url.js"; export function mount(post) { if (post) { var makeProductUrl = () => new URL(location.href); } makeProductUrl().searchParams.set("id", post.location); }', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeProductUrl() { return new URL("/product", "https://api.example.test"); }' }] }],
+  ['nested route factory nested call args direct mutation is rejected', 'function route(post) { function makeUrl(base) { return new URL(location.href); } makeUrl(getBase()).searchParams.set("id", post.location); }', true],
+  ['nested route factory direct searchParams alias is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const params = makeUrl().searchParams; params.set("id", post.location); }', true],
+  ['nested route factory parenthesized searchParams alias is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const params = (makeUrl()).searchParams; params.set("id", post.location); }', true],
+  ['nested route factory parenthesized destructured searchParams alias is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const { searchParams } = (makeUrl()); searchParams.set("id", post.location); }', true],
+  ['nested route factory destructured searchParams default is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const url = makeUrl(); const { searchParams = new URLSearchParams() } = url; searchParams.set("id", post.location); }', true],
+  ['nested route factory direct destructured searchParams default is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const { searchParams = new URLSearchParams() } = makeUrl(); searchParams.set("id", post.location); }', true],
+  ['nested route factory computed destructured searchParams alias is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const { ["searchParams"]: params } = makeUrl(); params.set("id", post.location); }', true],
+  ['nested route factory direct searchParams dispatch is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } makeUrl().searchParams.set.call(makeUrl().searchParams, "id", post.location); makeUrl().searchParams.set.apply(makeUrl().searchParams, ["tab", "posts"]); }', true],
+  ['nested route factory searchParams dispatch with comma receiver is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } makeUrl().searchParams.set.call(getTarget(a, b), "id", post.location); makeUrl().searchParams.set.apply(getTarget(a, b), ["tab", "posts"]); }', true],
+  ['nested route factory optional searchParams dispatch is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } makeUrl().searchParams.set?.call(getTarget(a, b), "id", post.location); makeUrl().searchParams.set?.apply(getTarget(a, b), ["tab", "posts"]); }', true],
+  ['nested route factory parenthesized callee mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } (makeUrl)().searchParams.set("id", post.location); ((makeUrl))().search = "tab=posts"; }', true],
+  ['nested route factory call direct mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } makeUrl.call(null).searchParams.set("id", post.location); }', true],
+  ['nested route factory apply assignment mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const url = makeUrl.apply(null, []); url.searchParams.set("id", post.location); }', true],
+  ['nested route factory bracket member assignment is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } state["url"] = makeUrl(); state["url"].searchParams.set("id", post.location); }', true],
+  ['nested route factory alias direct mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const routeFactory = makeUrl; routeFactory().searchParams.set("id", post.location); }', true],
+  ['nested route factory member assignment alias direct mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } helper.routeFactory = makeUrl; helper.routeFactory().searchParams.set("id", post.location); }', true],
+  ['nested route factory object property alias direct mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const helper = { makeUrl }; helper.makeUrl().searchParams.set("id", post.location); }', true],
+  ['nested route factory quoted object property alias direct mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const helper = { "routeFactory": makeUrl }; helper.routeFactory().searchParams.set("id", post.location); }', true],
+  ['nested route factory destructured member alias direct mutation is rejected', 'function route(post) { function makeUrl() { return new URL(location.href); } const helper = { makeUrl }; const { makeUrl: routeFactory } = helper; routeFactory().searchParams.set("id", post.location); }', true],
+  ['object method route factory direct mutation is rejected', 'function route(post) { const helper = { makeUrl() { return new URL(location.href); } }; helper.makeUrl().searchParams.set("id", post.location); }', true],
+  ['quoted object method route factory direct mutation is rejected', 'function route(post) { const helper = { "makeUrl"() { return new URL(location.href); } }; helper.makeUrl().searchParams.set("id", post.location); }', true],
+  ['computed object method route factory direct mutation is rejected', 'function route(post) { const helper = { ["makeUrl"]() { return new URL(location.href); } }; helper.makeUrl().searchParams.set("id", post.location); }', true],
+  ['static key object method route factory direct mutation is rejected', 'function route(post) { const helper = { makeUrl() { return new URL(location.href); } }; const key = "makeUrl"; helper[key]().searchParams.set("id", post.location); }', true],
+  ['inline new URL searchParams dispatch with comma receiver is rejected', 'new URL(location.href).searchParams.set.call(getTarget(a, b), "id", post.location);', true],
+  ['inline new URL optional searchParams dispatch is rejected', 'new URL(location.href).searchParams.set?.call(getTarget(a, b), "id", post.location);', true],
+  ['cross-file imported route factory parenthesized callee mutation is rejected', 'import { makeUrl } from "./url.js"; export function route(post) { (makeUrl)().searchParams.set("id", post.location); }', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeUrl() { return new URL(location.href); }' }] }],
+  ['returned route URL variable factory mutation is rejected', 'function makeUrl() { const url = new URL(location.href); return url; } makeUrl().searchParams.set("id", post.location);', true],
+  ['cross-file returned route URL variable factory mutation is rejected', 'import { makeUrl } from "./url.js"; export function route(post) { makeUrl().searchParams.set("id", post.location); }', true, { path: 'modules/layout.js', files: [{ path: 'modules/url.js', source: 'export function makeUrl() { const url = new URL(location.href); return url; }' }] }],
+  ['async route URL factory mutation is rejected', 'async function makeUrl() { return new URL(location.href); } makeUrl().searchParams.set("id", post.location);', true],
+  ['awaited route URL factory assignment mutation is rejected', 'function makeUrl() { return new URL(location.href); } export async function route(post) { const url = await makeUrl(); url.searchParams.set("id", post.location); }', true],
+  ['default export object route factory helper is rejected', 'export default { makeUrl() { return new URL(location.href); }, mount(post) { this.makeUrl().searchParams.set("id", post.location); } };', true],
+  ['named default export object route factory helper is rejected', 'const theme = { makeUrl() { return new URL(location.href); }, mount(post) { this.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} }; export default theme;', true],
+  ['local named default export object route factory helper is rejected', 'const theme = { makeUrl() { return new URL(location.href); }, mount(post) { this.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} }; export { theme as default };', true],
+  ['computed searchParams access is rejected', 'const url = new URL(location.href); url["search" + "Params"].set("id", post.location);', true],
+  ['computed route factory searchParams access is rejected', 'function makeUrl() { return new URL(location.href); } makeUrl()["search" + "Params"].set("id", post.location);', true],
+  ['computed searchParams mutator access is rejected', 'const url = new URL(location.href); url.searchParams["se" + "t"]("id", post.location);', true],
+  ['aliased searchParams mutator access is rejected', 'const method = "set"; const url = new URL(location.href); url.searchParams[method]("id", post.location);', true],
+  ['computed location search assignment is rejected', 'location["se" + "arch"] = "id=" + post.location;', true],
+  ['imported route key alias shadowed by local const stays safe', 'import { key } from "./config.js"; export function route(post) { const key = "sku"; const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href; }', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const key = "id";' }] }],
+  ['imported route key alias shadowed by function param stays safe', 'import { key } from "./config.js"; export function route(key, post) { const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href; }', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const key = "id";' }] }],
+  ['same-name object method route factory stays safe', 'function route() { function makeUrl() { return new URL(location.href); } const helper = { makeUrl() { return new URL("https://api.example.test/product"); } }; helper.makeUrl().searchParams.set("id", sku); }', false],
+  ['spaced same-name object method route factory stays safe', 'function route() { function makeUrl() { return new URL(location.href); } const helper = { makeUrl() { return new URL("https://api.example.test/product"); } }; helper . makeUrl().searchParams.set("id", sku); helper ?. makeUrl().searchParams.set("tab", "posts"); }', false],
+  ['route factory alias local shadow stays safe', 'function makeUrl() { return new URL(location.href); } function route() { function makeUrl() { return new URL("https://api.example.test/product"); } const routeFactory = makeUrl; routeFactory().searchParams.set("id", sku); }', false],
+  ['route factory member alias local shadow stays safe', 'function makeUrl() { return new URL(location.href); } function route() { function makeUrl() { return new URL("https://api.example.test/product"); } const helper = {}; helper.routeFactory = makeUrl; helper.routeFactory().searchParams.set("id", sku); }', false],
+  ['route factory member alias string fixture stays safe', 'function makeUrl() { return new URL(location.href); } const helper = {}; const marker = "helper.routeFactory = makeUrl"; helper.routeFactory = () => new URL("https://api.example.test/product"); helper.routeFactory().searchParams.set("id", sku);', false],
   ['cross-file imported external URL object and bound helper mutator context', 'import { endpoint } from "./config.js"; const helper = { mutate(url) { url.searchParams.set("id", sku); return url.href; } }; function mutate(url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null); helper.mutate(new URL(endpoint)); bound(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL second-arg and bound helper mutator context', 'import { endpoint } from "./config.js"; function mutate(ctx, url) { url.searchParams.set("id", sku); return url.href; } const bound = mutate.bind(null, "ctx"); mutate("ctx", new URL(endpoint)); bound(new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL optional helper mutator context', 'import { endpoint } from "./config.js"; function mutate(url) { url.searchParams.set("id", sku); return url.href; } mutate?.(new URL(endpoint)); mutate["call"](null, new URL(endpoint));', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-scope helper mutator name does not leak', 'function setup() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } function route() { function mutate(url) { return url.href; } return mutate(new URL(location.href)); }', false],
   ['nested helper mutator shadow does not leak', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }; if (ok) { function mutate(url) { return url.href; } const helper = { mutate(url) { return url.href; } }; mutate(new URL(location.href)); helper.mutate(new URL(location.href)); }', false],
+  ['nested shorthand helper mutator shadow does not leak', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } function route() { function mutate(url) { return url.href; } const helper = { mutate }; return helper.mutate(new URL(location.href)); }', false],
+  ['nested member assignment helper mutator shadow does not leak', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } function route() { function mutate(url) { return url.href; } helper.routeMutator = mutate; return helper.routeMutator(new URL(location.href)); }', false],
+  ['destructured member helper mutator shadow does not leak', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate }; function route() { const helper = { mutate: (url) => url.href }; const { mutate: routeMutator } = helper; return routeMutator(new URL(location.href)); }', false],
   ['simple helper name does not reject safe object method', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { return url.href; } }; return helper.mutate(new URL(location.href));', false],
+  ['spaced helper name does not reject safe object method', 'function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate(url) { return url.href; } }; return helper . mutate(new URL(location.href)) || helper ?. mutate(new URL(location.href));', false],
+  ['nested object mutator does not reject safe root method', 'const helper = { routes: { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }, mutate(url) { return url.href; } }; return helper.mutate(new URL(location.href));', false],
+  ['nested object mutator after regex marker rejects route method', 'const helper = { marker: /{/, routes: { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } }; return helper.routes.mutate(new URL(location.href));', true],
+  ['wrapped nested object mutator after regex marker rejects route method', 'export function route() { const helper = { marker: /{/, routes: { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } }; return helper.routes.mutate(new URL(location.href)); }', true, { path: 'modules/interactions.js', files: [{ path: 'modules/interactions.js', source: 'export function route() { const helper = { marker: /{/, routes: { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } }; return helper.routes.mutate(new URL(location.href)); }' }] }],
   ['semicolonless expression arrow does not shadow later external route', 'import { endpoint } from "./config.js"; const helper = endpoint => endpoint\nconst url = new URL(endpoint); url.searchParams.set("id", sku); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file imported external URL relative concat with base context', 'import { endpoint } from "./config.js"; const url = new URL("?id=" + sku, endpoint); return url.href;', false, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }] }],
   ['cross-file unrelated import does not allow alias', 'import { endpoint } from "./internal.js"; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const endpoint = "https://api.example.test/product";' }, { path: 'modules/internal.js', source: 'export const endpoint = location.href;' }] }],

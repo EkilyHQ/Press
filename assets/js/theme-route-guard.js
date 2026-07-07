@@ -659,6 +659,7 @@ function newUrlConstructsPublicRoute(node, state, ancestors) {
 function expressionIsRelativeUrl(node, state, ancestors) {
   const value = unwrap(node);
   if (!value) return false;
+  if (expressionIsLocationUrl(value)) return true;
   if (value.type === 'AwaitExpression') return expressionIsRelativeUrl(value.argument, state, ancestors);
   if (value.type === 'NewExpression' && calleeIsUrlConstructor(value.callee)) return newUrlIsRelativeRoute(value, state, ancestors);
   const path = memberPath(value);
@@ -682,6 +683,15 @@ function collectRouteUrlAliases(ast, state) {
     if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && expressionIsRelativeUrl(node.init, state, ancestors)) {
       state.routeUrlAliases.add(node.id.name);
       addAliasBinding(state, node.id.name, 'routeUrl', node, ancestors);
+    }
+    if (node.type === 'VariableDeclarator' && node.id.type === 'ObjectPattern' && ['window', 'globalThis'].includes(memberPath(node.init))) {
+      node.id.properties.forEach((prop) => {
+        if (!prop || prop.type !== 'Property' || propertyName(prop.key) !== 'location') return;
+        bindingNames(prop.value).forEach((name) => {
+          state.routeUrlAliases.add(name);
+          addAliasBinding(state, name, 'routeUrl', node, ancestors);
+        });
+      });
     }
     if (node.type === 'AssignmentExpression' && expressionIsRelativeUrl(node.right, state, ancestors)) {
       const left = memberPath(node.left);
@@ -795,11 +805,37 @@ function isUrlSearchParamsConstructor(node) {
   return memberPath(node).endsWith('URLSearchParams');
 }
 
+function propertyIsRouteKey(prop, state, ancestors) {
+  if (!prop || prop.type !== 'Property') return false;
+  return prop.computed
+    ? expressionIsRouteKey(prop.key, state, ancestors)
+    : isRouteKey(propertyName(prop.key));
+}
+
 function expressionBuildsRouteQuery(node, state, ancestors) {
   const value = unwrap(node);
   if (!value) return false;
   if (expressionHasRouteQueryLiteral(value)) return true;
   if (expressionHasRoutePairLiteral(value)) return true;
+  if (value.type === 'ObjectExpression') {
+    return value.properties.some((prop) => {
+      if (propertyIsRouteKey(prop, state, ancestors)) return true;
+      return prop && prop.type === 'SpreadElement' && expressionIsRouteQuery(prop.argument, state, ancestors);
+    });
+  }
+  if (value.type === 'ArrayExpression') {
+    return value.elements.some((item) => {
+      const element = unwrap(item);
+      if (!element) return false;
+      if (element.type === 'SpreadElement') return expressionIsRouteQuery(element.argument, state, ancestors);
+      return element.type === 'ArrayExpression' && element.elements.length && expressionIsRouteKey(element.elements[0], state, ancestors);
+    });
+  }
+  if (value.type === 'CallExpression') {
+    const callee = memberPath(value.callee);
+    if ((callee === 'Object.entries' || callee === 'Object.fromEntries') && expressionIsRouteQuery(value.arguments[0], state, ancestors)) return true;
+  }
+  if (value.type === 'NewExpression' && memberPath(value.callee) === 'Map' && expressionIsRouteQuery(value.arguments[0], state, ancestors)) return true;
   if (value.type === 'TemplateLiteral') {
     const firstQuasi = value.quasis[0] && (value.quasis[0].value.cooked ?? value.quasis[0].value.raw ?? '');
     return stringHasRoutePairLiteral(firstQuasi)
@@ -815,9 +851,9 @@ function expressionBuildsRouteQuery(node, state, ancestors) {
   if (value.type === 'NewExpression' && isUrlSearchParamsConstructor(value.callee)) {
     const first = value.arguments[0];
     if (!first) return false;
-    if (expressionBuildsRouteQuery(first, state, ancestors)) return true;
+    if (expressionIsRouteQuery(first, state, ancestors)) return true;
     if (first.type === 'ObjectExpression') {
-      return first.properties.some((prop) => prop && prop.type === 'Property' && isRouteKey(propertyName(prop.key)));
+      return first.properties.some((prop) => propertyIsRouteKey(prop, state, ancestors));
     }
     if (first.type === 'ArrayExpression') {
       return first.elements.some((item) => item && item.type === 'ArrayExpression' && item.elements.length && expressionIsRouteKey(item.elements[0], state, ancestors));
@@ -1036,7 +1072,10 @@ export function containsForbiddenV4RouteConstructionAst(source, contextSource = 
           || memberPath(left.object) === 'location'
           || memberPath(left.object) === 'window.location'
           || memberPath(left.object) === 'globalThis.location';
-        if (ownerIsRouteUrl && expressionIsRouteQuery(node.right, state, ancestors)) forbidden = true;
+        if (ownerIsRouteUrl
+          && (expressionIsRouteQuery(node.right, state, ancestors)
+            || expressionSerializesPublicRouteQuery(node.right, state, ancestors))) forbidden = true;
+        if (ownerIsRouteUrl || expressionIsExternalUrl(left.object, state, ancestors)) return;
       }
       if (!forbidden && expressionSerializesPublicRouteQuery(node.right, state, ancestors)) forbidden = true;
       return;

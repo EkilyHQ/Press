@@ -1385,24 +1385,43 @@ function expressionSerializesPublicRouteQuery(node, state, ancestors) {
   }
   if (value.type === 'TemplateLiteral') {
     let templateHasExternalPrefix = false;
+    let templateStaticPrefix = '';
     for (let i = 0; i < value.expressions.length; i += 1) {
       const before = value.quasis[i] && (value.quasis[i].value.cooked ?? value.quasis[i].value.raw ?? '');
       const after = value.quasis[i + 1] && (value.quasis[i + 1].value.cooked ?? value.quasis[i + 1].value.raw ?? '');
       const markerIndex = Math.max(safeString(before).lastIndexOf('?'), safeString(before).lastIndexOf('&'));
+      const markerPrefix = markerIndex >= 0 ? `${templateStaticPrefix}${safeString(before).slice(0, markerIndex)}` : '';
       if (i > 0 && expressionIsExternalUrl(value.expressions[i - 1], state, ancestors)) templateHasExternalPrefix = true;
       if (markerIndex >= 0
         && !templateHasExternalPrefix
-        && !isExternalUrlPrefix(before.slice(0, markerIndex))
+        && !isExternalUrlPrefix(markerPrefix)
+        && stringHasRouteQueryLiteral(before)) {
+        return true;
+      }
+      if (markerIndex >= 0
+        && !templateHasExternalPrefix
+        && !isExternalUrlPrefix(markerPrefix)
         && expressionIsRouteQuery(value.expressions[i], state, ancestors)) {
         return true;
       }
       if (markerIndex >= 0
         && !templateHasExternalPrefix
-        && !isExternalUrlPrefix(before.slice(0, markerIndex))
+        && !isExternalUrlPrefix(markerPrefix)
         && expressionIsRouteKey(value.expressions[i], state, ancestors)
         && safeString(after).trimStart().startsWith('=')) {
         return true;
       }
+      templateStaticPrefix += safeString(before);
+      if (isExternalUrlPrefix(templateStaticPrefix)) templateHasExternalPrefix = true;
+      if (expressionIsExternalUrl(value.expressions[i], state, ancestors)) templateHasExternalPrefix = true;
+    }
+    const finalQuasi = value.quasis[value.quasis.length - 1] && (value.quasis[value.quasis.length - 1].value.cooked ?? value.quasis[value.quasis.length - 1].value.raw ?? '');
+    const markerIndex = Math.max(safeString(finalQuasi).lastIndexOf('?'), safeString(finalQuasi).lastIndexOf('&'));
+    if (markerIndex >= 0
+      && !templateHasExternalPrefix
+      && !isExternalUrlPrefix(`${templateStaticPrefix}${safeString(finalQuasi).slice(0, markerIndex)}`)
+      && stringHasRouteQueryLiteral(finalQuasi)) {
+      return true;
     }
     return false;
   }

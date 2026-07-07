@@ -16,6 +16,47 @@ assert.equal(sourceManifest.publishConfig && sourceManifest.publishConfig.regist
 
 const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'press-theme-contract-package-'));
 try {
+  const sourceImport = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {
+      PRESS_THEME_CONTRACT,
+      containsForbiddenV4RouteConstruction,
+      validateThemeRouteHelperContract
+    } from './packages/press-theme-contract/index.mjs';
+
+    assert.equal(PRESS_THEME_CONTRACT.contractVersion, 4);
+    assert.equal(typeof containsForbiddenV4RouteConstruction, 'function');
+    assert.equal(typeof validateThemeRouteHelperContract, 'function');
+  `], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  if (sourceImport.status !== 0) {
+    throw new Error(`source package import failed:\n${sourceImport.stdout}\n${sourceImport.stderr}`);
+  }
+
+  const sourcePackDir = path.join(tempDir, 'source-pack');
+  await fs.mkdir(sourcePackDir);
+  const sourcePack = spawnSync('npm', ['pack', './packages/press-theme-contract', '--json', '--pack-destination', sourcePackDir], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  if (sourcePack.status !== 0) {
+    throw new Error(`source npm pack failed:\n${sourcePack.stdout}\n${sourcePack.stderr}`);
+  }
+  const sourcePacked = JSON.parse(sourcePack.stdout);
+  const sourceFiles = new Set((sourcePacked[0].files || []).map((file) => file.path));
+  [
+    'index.mjs',
+    'scripts/sync-assets.mjs',
+    'assets/js/theme-package-core.js',
+    'assets/js/theme-route-guard.js',
+    'assets/js/vendor/acorn.mjs',
+    'assets/js/vendor/acorn-walk.mjs'
+  ].forEach((file) => {
+    assert.ok(sourceFiles.has(file), `source package pack must include ${file}`);
+  });
+
   const build = spawnSync(process.execPath, ['scripts/build-theme-contract-package.mjs', '--out', path.join(tempDir, 'build')], {
     cwd: root,
     encoding: 'utf8'
@@ -48,6 +89,7 @@ try {
   [
     'package.json',
     'index.mjs',
+    'scripts/sync-assets.mjs',
     'assets/js/theme-contract-surface.mjs',
     'assets/js/theme-package-core.js',
     'assets/js/theme-route-guard.js',
@@ -89,6 +131,10 @@ try {
     assert.equal(containsForbiddenV4RouteConstruction('const Url = window.URL; const url = new Url(location.href); url.searchParams.set("id", post.location);', { path: 'modules/layout.js', files: [] }), true);
     assert.equal(containsForbiddenV4RouteConstruction('let Url; Url = globalThis.URL; const url = new Url(location.href); url.searchParams.set("id", post.location);', { path: 'modules/layout.js', files: [] }), true);
     assert.equal(containsForbiddenV4RouteConstruction('const entries = [["id", post.location]]; const params = new URLSearchParams(Object.fromEntries(entries)); const href = "?" + params;', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('export const href = \`?id=\${post.location}\`;', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('export const href = \`https://example.test/products?id=\${sku}\`;', { path: 'modules/layout.js', files: [] }), false);
+    assert.equal(containsForbiddenV4RouteConstruction('export const href = \`https://\${host}/products?id=\${sku}\`;', { path: 'modules/layout.js', files: [] }), false);
+    assert.equal(containsForbiddenV4RouteConstruction('export const href = \`https://example.test/\${path}?id=\${sku}\`;', { path: 'modules/layout.js', files: [] }), false);
     assert.equal(containsForbiddenV4RouteConstruction('const endpoints = { product: "https://example.test/products" }; const href = endpoints.product + "?foo=1" + "&id=" + sku;', { path: 'modules/layout.js', files: [] }), false);
 
     const v3 = validateThemeRouteHelperContract([{ path: 'modules/layout.js', source: 'export const href = "?tab=posts";' }], { contractVersion: 3 });

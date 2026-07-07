@@ -12,11 +12,16 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "scripts": {
+    "prepack": "node scripts/sync-assets.mjs",
+    "postpack": "node scripts/sync-assets.mjs --clean"
+  },
   "exports": {
     ".": "./index.mjs"
   },
   "files": [
     "index.mjs",
+    "scripts/sync-assets.mjs",
     "assets/js/press-version.js",
     "assets/js/theme-contract-surface.mjs",
     "assets/js/theme-package-core.js",

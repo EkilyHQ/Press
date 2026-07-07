@@ -27,6 +27,7 @@ if (systemManifest.tag !== `v${systemManifest.version}`) {
 const files = [
   ['packages/press-theme-contract/package.json', 'package.json'],
   ['packages/press-theme-contract/index.mjs', 'index.mjs'],
+  ['packages/press-theme-contract/scripts/sync-assets.mjs', 'scripts/sync-assets.mjs'],
   ['assets/js/press-version.js', 'assets/js/press-version.js'],
   ['assets/js/theme-contract-surface.mjs', 'assets/js/theme-contract-surface.mjs'],
   ['assets/js/theme-package-core.js', 'assets/js/theme-package-core.js'],

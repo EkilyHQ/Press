@@ -1,5 +1,23 @@
-import { PRESS_THEME_CONTRACT } from './assets/js/theme-contract-surface.mjs';
-import { containsForbiddenV4RouteConstruction } from './assets/js/theme-package-core.js';
+async function importPackagedOrSourceModule(packagePath, sourcePath) {
+  try {
+    return await import(packagePath);
+  } catch (err) {
+    if (!err || err.code !== 'ERR_MODULE_NOT_FOUND') throw err;
+    return import(sourcePath);
+  }
+}
+
+const contractSurface = await importPackagedOrSourceModule(
+  './assets/js/theme-contract-surface.mjs',
+  '../../assets/js/theme-contract-surface.mjs'
+);
+const themePackageCore = await importPackagedOrSourceModule(
+  './assets/js/theme-package-core.js',
+  '../../assets/js/theme-package-core.js'
+);
+
+const { PRESS_THEME_CONTRACT } = contractSurface;
+const { containsForbiddenV4RouteConstruction } = themePackageCore;
 
 export { PRESS_THEME_CONTRACT, containsForbiddenV4RouteConstruction };
 

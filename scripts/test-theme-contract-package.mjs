@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+
+const root = process.cwd();
+const system = JSON.parse(await fs.readFile(path.join(root, 'assets', 'press-system.json'), 'utf8'));
+const sourceManifest = JSON.parse(await fs.readFile(path.join(root, 'packages', 'press-theme-contract', 'package.json'), 'utf8'));
+
+assert.equal(sourceManifest.name, '@ekilyhq/press-theme-contract');
+assert.equal(sourceManifest.version, system.version);
+assert.equal(system.version, '3.4.130');
+assert.equal(system.tag, `v${system.version}`);
+assert.equal(sourceManifest.publishConfig && sourceManifest.publishConfig.registry, 'https://npm.pkg.github.com');
+
+const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'press-theme-contract-package-'));
+try {
+  const build = spawnSync(process.execPath, ['scripts/build-theme-contract-package.mjs', '--out', path.join(tempDir, 'build')], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  if (build.status !== 0) {
+    throw new Error(`package build failed:\n${build.stdout}\n${build.stderr}`);
+  }
+  const packageRoot = build.stdout.trim().split(/\r?\n/).pop();
+  const manifest = JSON.parse(await fs.readFile(path.join(packageRoot, 'package.json'), 'utf8'));
+  assert.equal(manifest.name, '@ekilyhq/press-theme-contract');
+  assert.equal(manifest.version, system.version);
+
+  const pack = spawnSync('npm', ['pack', '--json', '--pack-destination', tempDir], {
+    cwd: packageRoot,
+    encoding: 'utf8'
+  });
+  if (pack.status !== 0) {
+    throw new Error(`npm pack failed:\n${pack.stdout}\n${pack.stderr}`);
+  }
+  const packed = JSON.parse(pack.stdout);
+  const tarball = path.join(tempDir, packed[0].filename);
+  const compare = spawnSync(process.execPath, ['scripts/compare-theme-contract-package.mjs', tarball, tarball], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  if (compare.status !== 0) {
+    throw new Error(`package compare self-check failed:\n${compare.stdout}\n${compare.stderr}`);
+  }
+  const files = new Set((packed[0].files || []).map((file) => file.path));
+  [
+    'package.json',
+    'index.mjs',
+    'assets/js/theme-contract-surface.mjs',
+    'assets/js/theme-package-core.js',
+    'assets/js/theme-route-guard.js',
+    'assets/js/vendor/acorn.mjs',
+    'assets/js/vendor/acorn-walk.mjs',
+    'assets/js/vendor/fflate.browser.js'
+  ].forEach((file) => {
+    assert.ok(files.has(file), `package must include ${file}`);
+  });
+
+  const installDir = path.join(tempDir, 'consumer');
+  await fs.mkdir(installDir);
+  await fs.writeFile(path.join(installDir, 'package.json'), '{"type":"module"}\n');
+  const install = spawnSync('npm', ['install', '--ignore-scripts', tarball], {
+    cwd: installDir,
+    encoding: 'utf8'
+  });
+  if (install.status !== 0) {
+    throw new Error(`npm install failed:\n${install.stdout}\n${install.stderr}`);
+  }
+
+  await fs.writeFile(path.join(installDir, 'check.mjs'), `
+    import assert from 'node:assert/strict';
+    import {
+      PRESS_THEME_CONTRACT,
+      containsForbiddenV4RouteConstruction,
+      validateThemeRouteHelperContract
+    } from '@ekilyhq/press-theme-contract';
+
+    assert.equal(PRESS_THEME_CONTRACT.contractVersion, 4);
+    assert.deepEqual(PRESS_THEME_CONTRACT.supportedContractVersions, [3, 4]);
+    assert.equal(typeof containsForbiddenV4RouteConstruction, 'function');
+    assert.equal(typeof validateThemeRouteHelperContract, 'function');
+    assert.equal(containsForbiddenV4RouteConstruction('export const href = "?id=post.md";', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('export const href = "https://example.test/products?id=sku";', { path: 'modules/layout.js', files: [] }), false);
+    assert.equal(containsForbiddenV4RouteConstruction('<a href="?tab=posts">Posts</a>', { path: 'assets/link.html', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('const route = new URL(location.href); const prop = "searchParams"; const method = "set"; route[prop][method]("id", post.location);', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('const url = new URL(location.href); const set = url.searchParams.set; set.apply(url.searchParams, ["id", post.location]);', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('const Url = window.URL; const url = new Url(location.href); url.searchParams.set("id", post.location);', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('let Url; Url = globalThis.URL; const url = new Url(location.href); url.searchParams.set("id", post.location);', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('const entries = [["id", post.location]]; const params = new URLSearchParams(Object.fromEntries(entries)); const href = "?" + params;', { path: 'modules/layout.js', files: [] }), true);
+    assert.equal(containsForbiddenV4RouteConstruction('const endpoints = { product: "https://example.test/products" }; const href = endpoints.product + "?foo=1" + "&id=" + sku;', { path: 'modules/layout.js', files: [] }), false);
+
+    const v3 = validateThemeRouteHelperContract([{ path: 'modules/layout.js', source: 'export const href = "?tab=posts";' }], { contractVersion: 3 });
+    assert.equal(v3.ok, true);
+    assert.deepEqual(v3.failures, []);
+
+    const v4 = validateThemeRouteHelperContract([{ path: 'modules/layout.js', source: 'export const href = "?tab=posts";' }], { contractVersion: 4, label: 'arcus' });
+    assert.equal(v4.ok, false);
+    assert.match(v4.failures.join('\\n'), /arcus: contract v4 source must use router href helpers/);
+  `);
+  const check = spawnSync(process.execPath, ['check.mjs'], {
+    cwd: installDir,
+    encoding: 'utf8'
+  });
+  if (check.status !== 0) {
+    throw new Error(`package consumer import failed:\n${check.stdout}\n${check.stderr}`);
+  }
+} finally {
+  await fs.rm(tempDir, { recursive: true, force: true });
+}

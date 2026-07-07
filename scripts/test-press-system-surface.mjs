@@ -43,6 +43,11 @@ assert.deepEqual(
 );
 assert(!getPressSystemReleasePlanPaths().includes('scripts/build-pages-artifact.sh'));
 assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/build-pages-artifact.sh'));
+assert(getPressSystemReleasePlanPaths().includes('packages/press-theme-contract'));
+assert(getPressSystemReleasePlanPaths().includes('scripts/build-theme-contract-package.mjs'));
+assert(getPressSystemReleasePlanPaths().includes('scripts/compare-theme-contract-package.mjs'));
+assert(getPressSystemReleasePlanPaths().includes('scripts/test-theme-contract-package.mjs'));
+assert(!packagePaths.includes('packages/press-theme-contract'));
 
 assert(getPressSystemRuntimeRoots({ includeRuntimeManifest: true }).includes('assets/press-runtime-manifest.json'));
 assert(isPressSystemManagedRuntimePath('assets/main.js'));

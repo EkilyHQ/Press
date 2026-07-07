@@ -10,6 +10,13 @@ const SYSTEM_PACKAGE_PATHS = Object.freeze([
   'assets/themes/native'
 ]);
 
+const SYSTEM_RELEASE_PLAN_ONLY_PATHS = Object.freeze([
+  'packages/press-theme-contract',
+  'scripts/build-theme-contract-package.mjs',
+  'scripts/compare-theme-contract-package.mjs',
+  'scripts/test-theme-contract-package.mjs'
+]);
+
 const SYSTEM_UPDATE_ALLOWED_FILES = Object.freeze([
   'index.html',
   'index_editor.html',
@@ -60,7 +67,7 @@ export function getPressSystemRuntimeRoots(options = {}) {
 }
 
 export function getPressSystemReleasePlanPaths(options = {}) {
-  const paths = new Set(SYSTEM_PACKAGE_PATHS);
+  const paths = new Set([...SYSTEM_PACKAGE_PATHS, ...SYSTEM_RELEASE_PLAN_ONLY_PATHS]);
   if (options.includePagesMaterializer) {
     paths.add('scripts/build-pages-artifact.sh');
     paths.add('scripts/sync-runtime-cache-keys.mjs');

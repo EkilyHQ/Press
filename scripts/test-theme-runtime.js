@@ -170,7 +170,7 @@ function makeManifest(pack, modules) {
   return {
     name: pack,
     version: '1.0.0',
-    contractVersion: 3,
+    contractVersion: 4,
     styles: ['theme.css', 'extra.css'],
     modules,
     views: { post: {}, posts: {}, search: {}, tab: {} },
@@ -215,6 +215,11 @@ async function freshThemeLayout() {
 async function freshThemeHelpers() {
   importCounter += 1;
   return import(`../assets/js/theme.js?theme-runtime-test=${importCounter}`);
+}
+
+async function freshThemeRouterHelpers() {
+  importCounter += 1;
+  return import(`../assets/js/theme-router-helpers.js?theme-runtime-test=${importCounter}`);
 }
 
 async function withQuietConsole(fn) {
@@ -298,11 +303,170 @@ await run('cached theme layout contexts refresh public feature context', async (
   const { ensureThemeLayout } = await freshThemeLayout();
   const firstFeatures = { flags: { search: true }, isEnabled: (key) => key !== 'search' };
   const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
-  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures });
+  const firstRouter = { getHomeHref: () => '?tab=first' };
+  const secondRouter = { getHomeHref: () => '?tab=second' };
+  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures, router: firstRouter });
   assert.equal(first.features, firstFeatures);
-  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures });
+  assert.equal(first.router, firstRouter);
+  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures, router: secondRouter });
   assert.equal(second, first);
   assert.equal(second.features, secondFeatures);
+  assert.equal(second.router, secondRouter);
+});
+
+await run('in-flight theme layout reuse refreshes public feature context', async () => {
+  installGlobals({
+    savedPack: 'featurepack',
+    manifests: {
+      featurepack: makeManifest('featurepack', ['modules/layout.js'])
+    }
+  });
+  let releaseModule = () => {};
+  const moduleReady = new Promise((resolve) => { releaseModule = resolve; });
+  window.__pressThemeModuleLoader = async () => {
+    await moduleReady;
+    return { mount() {} };
+  };
+  const { ensureThemeLayout, getThemeLayoutContext } = await freshThemeLayout();
+  const firstFeatures = { flags: { search: true }, isEnabled: (key) => key !== 'search' };
+  const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
+  const firstRouter = { getHomeHref: () => '?tab=first' };
+  const secondRouter = { getHomeHref: () => '?tab=second' };
+  const firstPromise = ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures, router: firstRouter });
+  const secondPromise = ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures, router: secondRouter });
+  releaseModule();
+  const [first, second] = await Promise.all([firstPromise, secondPromise]);
+  assert.equal(second, first);
+  assert.equal(first.features, secondFeatures);
+  assert.equal(first.router, secondRouter);
+  assert.equal(getThemeLayoutContext().features, secondFeatures);
+  assert.equal(getThemeLayoutContext().router, secondRouter);
+});
+
+await run('stale in-flight theme layout reuse does not refresh after reset', async () => {
+  installGlobals({
+    savedPack: 'featurepack',
+    manifests: {
+      featurepack: makeManifest('featurepack', ['modules/slow.js']),
+      otherpack: makeManifest('otherpack', ['modules/fast.js'])
+    }
+  });
+  let releaseSlowModule = () => {};
+  const slowModuleReady = new Promise((resolve) => { releaseSlowModule = resolve; });
+  window.__pressThemeModuleLoader = async (_path, { entry } = {}) => {
+    if (entry === 'modules/slow.js') await slowModuleReady;
+    return { mount() {} };
+  };
+  const { ensureThemeLayout, getThemeLayoutContext } = await freshThemeLayout();
+  const staleRouter = { getHomeHref: () => '?tab=stale' };
+  const reusedRouter = { getHomeHref: () => '?tab=reused' };
+  const currentRouter = { getHomeHref: () => '?tab=current' };
+  const staleFeatures = { flags: { search: true }, isEnabled: () => true };
+  const reusedFeatures = { flags: { search: false }, isEnabled: () => false };
+  const currentFeatures = { flags: { footerNav: true }, isEnabled: (key) => key === 'footerNav' };
+  const stalePromise = ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: staleFeatures, router: staleRouter });
+  const reusedPromise = ensureThemeLayout({ pack: 'featurepack', persist: false, features: reusedFeatures, router: reusedRouter });
+  const current = await ensureThemeLayout({ pack: 'otherpack', persist: false, reset: true, features: currentFeatures, router: currentRouter });
+  assert.equal(current.features, currentFeatures);
+  assert.equal(current.router, currentRouter);
+  releaseSlowModule();
+  await Promise.all([stalePromise, reusedPromise]);
+  assert.equal(getThemeLayoutContext().pack, 'otherpack');
+  assert.equal(getThemeLayoutContext().features, currentFeatures);
+  assert.equal(getThemeLayoutContext().router, currentRouter);
+});
+
+await run('cached native layout effects use refreshed router context', async () => {
+  installGlobals({
+    savedPack: 'native',
+    manifests: {
+      native: makeManifest('native', ['modules/interactions.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async (_path, { entry } = {}) => {
+    if (entry === 'modules/interactions.js') {
+      importCounter += 1;
+      return import(`../assets/themes/native/modules/interactions.js?theme-runtime-test=${importCounter}`);
+    }
+    return { mount() {} };
+  };
+  const { ensureThemeLayout } = await freshThemeLayout();
+  const firstRouter = {
+    getHomeSlug: () => 'first',
+    getHomeLabel: () => 'First',
+    postsEnabled: () => false,
+    getTabHref: (slug) => `?tab=first-${slug}`,
+    getSearchHref: () => null
+  };
+  const secondRouter = {
+    getHomeSlug: () => 'second',
+    getHomeLabel: () => 'Second',
+    postsEnabled: () => false,
+    getTabHref: (slug) => `?tab=second-${slug}`,
+    getSearchHref: () => null
+  };
+  const first = await withQuietConsole(() => ensureThemeLayout({ pack: 'native', persist: false, reset: true, router: firstRouter }));
+  const second = await withQuietConsole(() => ensureThemeLayout({ pack: 'native', persist: false, router: secondRouter }));
+  assert.equal(second, first);
+  window.requestAnimationFrame = () => 0;
+  window.cancelAnimationFrame = () => {};
+  const nav = document.createElement('nav');
+  second.theme.effects.renderTabs({
+    nav,
+    tabsBySlug: {
+      first: { label: 'First' },
+      second: { label: 'Second' }
+    },
+    activeSlug: 'second'
+  });
+  const track = nav.querySelector('.tabs-track');
+  const link = track && track.querySelector('a');
+  assert.ok(link);
+  assert.equal(link.getAttribute('data-slug'), 'second');
+  assert.equal(link.getAttribute('href'), '?tab=second-second');
+});
+
+await run('theme router href helpers gate routes and apply language parameters', async () => {
+  installGlobals({ savedPack: 'native' });
+  const { createThemeRouterHrefHelpers } = await freshThemeRouterHelpers();
+  const helpers = createThemeRouterHrefHelpers({
+    withLangParam: (href) => `${href}${href.includes('?') ? '&' : '?'}lang=ja`,
+    getHomeSlug: () => 'overview',
+    postsEnabled: () => false,
+    searchEnabled: () => true,
+    tagsEnabled: () => false
+  });
+  assert.equal(helpers.getHomeHref(), '?tab=overview&lang=ja');
+  assert.equal(helpers.getTabHref('overview'), '?tab=overview&lang=ja');
+  assert.equal(helpers.getPostHref('post/demo.md'), '?id=post%2Fdemo.md&lang=ja');
+  assert.equal(helpers.getPostsHref({ page: 2 }), null);
+  assert.equal(helpers.getSearchHref({ q: 'press', tag: 'alpha', page: 3 }), '?tab=search&q=press&page=3&lang=ja');
+});
+
+await run('theme layout mount context exposes router href helpers', async () => {
+  let mountedRouter = null;
+  installGlobals({
+    savedPack: 'routepack',
+    manifests: {
+      routepack: makeManifest('routepack', ['modules/layout.js'])
+    }
+  });
+  const router = {
+    getHomeHref: () => '?tab=home',
+    getTabHref: (slug) => `?tab=${slug}`,
+    getPostHref: (loc) => `?id=${loc}`,
+    getPostsHref: () => null,
+    getSearchHref: () => null
+  };
+  window.__pressThemeModuleLoader = async () => ({
+    mount(ctx) {
+      mountedRouter = ctx && ctx.router;
+    }
+  });
+  const { ensureThemeLayout } = await freshThemeLayout();
+  await ensureThemeLayout({ pack: 'routepack', persist: false, reset: true, router });
+  assert.equal(mountedRouter, router);
+  assert.equal(mountedRouter.getHomeHref(), '?tab=home');
 });
 
 await run('theme controls ignore retired legacy DOM bridge hints from the active theme context', async () => {

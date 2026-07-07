@@ -26,8 +26,9 @@ const SIGNED_URL_QUERY_KEYS = [
   'x-goog-signature'
 ];
 const DEFAULT_RELEASE_SOURCES = getReleaseProductStateSources(DEFAULT_RAW_ROOT);
-const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([3]);
-const CURRENT_THEME_CONTRACT_VERSION = 3;
+const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([3, 4]);
+const CURRENT_THEME_CONTRACT_VERSION = 4;
+const THEME_CONTRACT_V4_MIN_PRESS_VERSION = '3.4.130';
 const DEFAULT_SOURCES = {
   systemRelease: `${DEFAULT_RAW_ROOT}/${DEFAULT_PRESS_REPOSITORY}/release-artifacts/system-release.json`,
   downstream: DEFAULT_RELEASE_SOURCES.downstream,
@@ -223,6 +224,66 @@ function satisfiesSemverRange(version, range) {
     const tokens = clause.split(/\s+/).filter(Boolean);
     return tokens.length > 0 && tokens.every((token) => testComparator(normalizedVersion, token));
   });
+}
+
+function parseSemverParts(value) {
+  const normalized = normalizeSemver(value);
+  return normalized ? normalized.split('.').map(Number) : null;
+}
+
+function compareSemverParts(left, right) {
+  if (!left || !right) return null;
+  for (let i = 0; i < 3; i += 1) {
+    if (left[i] !== right[i]) return left[i] > right[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+function nextPatch(parts) {
+  return [parts[0], parts[1], parts[2] + 1];
+}
+
+function maxSemverParts(left, right) {
+  const comparison = compareSemverParts(left, right);
+  return comparison !== null && comparison >= 0 ? left : right;
+}
+
+function minSemverParts(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  const comparison = compareSemverParts(left, right);
+  return comparison !== null && comparison <= 0 ? left : right;
+}
+
+function semverClauseAllowsBefore(clause, boundary) {
+  const tokens = String(clause || '').split(/\s+/).filter(Boolean);
+  if (!tokens.length) return false;
+  if (tokens.includes('*')) return true;
+  let lower = [0, 0, 0];
+  let upper = boundary;
+  for (const token of tokens) {
+    const match = token.match(/^(>=|<=|>|<|=)?\s*(v?\d+\.\d+\.\d+)$/i);
+    if (!match) return false;
+    const op = match[1] || '=';
+    const version = parseSemverParts(match[2]);
+    if (!version) return false;
+    if (op === '>=') lower = maxSemverParts(lower, version);
+    else if (op === '>') lower = maxSemverParts(lower, nextPatch(version));
+    else if (op === '<') upper = minSemverParts(upper, version);
+    else if (op === '<=') upper = minSemverParts(upper, nextPatch(version));
+    else {
+      lower = maxSemverParts(lower, version);
+      upper = minSemverParts(upper, nextPatch(version));
+    }
+  }
+  return compareSemverParts(lower, upper) < 0;
+}
+
+function semverRangeAllowsBefore(range, boundaryVersion) {
+  const boundary = parseSemverParts(boundaryVersion);
+  if (!boundary) return false;
+  const clauses = String(range || '').split('||').map((part) => part.trim()).filter(Boolean);
+  return clauses.some((clause) => semverClauseAllowsBefore(clause, boundary));
 }
 
 function normalizeStatus(status) {
@@ -468,6 +529,10 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
   if (!out.engines.press || !satisfiesSemverRange(pressVersion, out.engines.press)) {
     out.status = 'drift';
     out.problems.push(`theme engines.press does not accept Press ${pressVersion}`);
+  }
+  if (out.contractVersion === 4 && out.engines.press && semverRangeAllowsBefore(out.engines.press, THEME_CONTRACT_V4_MIN_PRESS_VERSION)) {
+    out.status = 'drift';
+    out.problems.push(`theme contract v4 engines.press must not accept Press versions before ${THEME_CONTRACT_V4_MIN_PRESS_VERSION}`);
   }
   if (!out.artifact.url || !out.artifact.digest || !(out.artifact.size > 0)) {
     out.status = 'drift';

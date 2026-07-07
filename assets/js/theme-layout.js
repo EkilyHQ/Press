@@ -33,6 +33,7 @@ function createThemeLayoutState(options = {}) {
     activePack: null,
     layoutPromise: null,
     layoutMountGeneration: 0,
+    latestLayoutOptions: null,
     regionController: options.regionController || getDefaultThemeRegionController()
   };
 }
@@ -103,6 +104,20 @@ function firstDefined(...values) {
     if (value !== undefined && value !== null) return value;
   }
   return undefined;
+}
+
+function refreshThemeLayoutRuntimeContext(context, options = {}, regionController = null) {
+  if (!context || typeof context !== 'object') return context;
+  if (options && Object.prototype.hasOwnProperty.call(options, 'features')) {
+    context.features = options.features || null;
+  }
+  if (options && Object.prototype.hasOwnProperty.call(options, 'router')) {
+    context.router = options.router || null;
+  }
+  if (regionController && typeof regionController.setThemeLayoutContext === 'function') {
+    regionController.setThemeLayoutContext(context);
+  }
+  return context;
 }
 
 export function createThemeI18nContext() {
@@ -506,6 +521,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     i18n: createThemeI18nContext(),
     regions: createThemeRegionRegistry(),
     features: options.features || null,
+    router: options.router || null,
     pack,
     manifest,
     theme: createThemeApi(pack, manifest),
@@ -558,23 +574,27 @@ async function ensureThemeLayoutWithState(themeLayoutState, options = {}) {
     clearMountedThemeArtifacts({ themeLayoutState });
     themeLayoutState.activePack = null;
     themeLayoutState.layoutPromise = null;
+    themeLayoutState.latestLayoutOptions = null;
   }
   const cachedContext = themeLayoutState.regionController.getThemeLayoutContext();
   if (cachedContext && document.body.dataset.themeLayout === pack) {
-    if (options && Object.prototype.hasOwnProperty.call(options, 'features')) {
-      cachedContext.features = options.features || null;
-    }
-    return cachedContext;
+    return refreshThemeLayoutRuntimeContext(cachedContext, options, themeLayoutState.regionController);
   }
   if (themeLayoutState.layoutPromise && themeLayoutState.activePack === pack) {
-    return themeLayoutState.layoutPromise;
+    const reuseGeneration = mountGeneration;
+    themeLayoutState.latestLayoutOptions = options;
+    return themeLayoutState.layoutPromise.then((context) => {
+      if (!isCurrentMountGeneration(reuseGeneration, { themeLayoutState })) return context;
+      return refreshThemeLayoutRuntimeContext(context, themeLayoutState.latestLayoutOptions || options, themeLayoutState.regionController);
+    });
   }
   themeLayoutState.activePack = pack;
+  themeLayoutState.latestLayoutOptions = options;
   themeLayoutState.layoutPromise = mountPack(pack, true, { ...options, mountGeneration, themeLayoutState }).then((context) => {
     if (!isCurrentMountGeneration(mountGeneration, { themeLayoutState })) return context;
     const resolvedPack = (context && context.pack) || document.body.dataset.themeLayout || DEFAULT_PACK;
     themeLayoutState.activePack = resolvedPack;
-    return context;
+    return refreshThemeLayoutRuntimeContext(context, themeLayoutState.latestLayoutOptions || options, themeLayoutState.regionController);
   });
   return themeLayoutState.layoutPromise;
 }

@@ -11,6 +11,10 @@ import {
   getThemeTextExtensions,
   isPressThemeContractVersionSupported
 } from './theme-contract-surface.mjs';
+import {
+  collectV4RouteGuardFacts,
+  containsForbiddenV4RouteConstructionAst
+} from './theme-route-guard.js';
 import { unzipSync, strFromU8 } from './vendor/fflate.browser.js';
 
 export const REQUIRED_THEME_CONTRACT_VERSION = PRESS_THEME_CONTRACT.contractVersion;
@@ -559,7 +563,7 @@ function shouldScanHtmlRouteAttributes(path, source) {
 
 function shouldScanExecutableRouteCode(path) {
   const clean = safeString(path).toLowerCase();
-  return !clean || /\.(?:js|mjs)$/i.test(clean);
+  return !clean || /\.(?:js|mjs|cjs)$/i.test(clean);
 }
 
 function stringLiteralHasExternalRouteContext(source, literalMatch, externalAliases = new Set()) {
@@ -1362,6 +1366,7 @@ function collectContextFileAliases(file, collector, context, seen = new Set(), c
   const collectFileAliases = () => {
     if (collector === collectRouteUrlFactoryAliases) {
       const fileContext = { ...context, path: file.path };
+      const astFacts = collectV4RouteGuardFacts(file.source, fileContext);
       const externalAliases = mergeImportedContextAliases(
         collectExternalUrlAliases(file.source),
         collectExternalUrlAliases,
@@ -1376,7 +1381,7 @@ function collectContextFileAliases(file, collector, context, seen = new Set(), c
         fileContext,
         { shadow: false }
       );
-      return collector(file.source, externalAliases, staticRelativeAliases);
+      return collector(file.source, new Set([...externalAliases, ...astFacts.externalAliases]), staticRelativeAliases);
     }
     return collector(file.source);
   };
@@ -3945,18 +3950,20 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const rawText = safeString(source);
   const text = stripCommentsForRouteGuard(rawText);
   const context = normalizeRouteGuardContext(contextSource, text);
+  if (containsForbiddenV4RouteConstructionAst(rawText, context)) return true;
+  const astFacts = collectV4RouteGuardFacts(rawText, context);
   const localRouteKeyAliases = collectRouteKeyAliases(text);
   const importedRouteKeyAliases = mergeImportedContextAliases(new Set(), collectRouteKeyAliases, text, context, { shadow: false });
-  const aliases = new Set([...localRouteKeyAliases, ...importedRouteKeyAliases]);
+  const aliases = new Set([...localRouteKeyAliases, ...importedRouteKeyAliases, ...astFacts.routeKeyAliases]);
   aliases.localAliases = localRouteKeyAliases;
   aliases.importedAliases = importedRouteKeyAliases;
   const localExternalAliases = collectExternalUrlAliases(text);
   const importedExternalAliases = mergeImportedContextAliases(new Set(), collectExternalUrlAliases, text, context, { shadow: false });
-  const externalAliases = new Set([...localExternalAliases, ...importedExternalAliases]);
+  const externalAliases = new Set([...localExternalAliases, ...importedExternalAliases, ...astFacts.externalAliases]);
   const staticRelativeAliases = mergeImportedContextAliases(collectStaticRelativeUrlAliases(text), collectStaticRelativeUrlAliases, text, context, { shadow: false });
   const localRouteUrlFactoryAliases = collectRouteUrlFactoryAliases(text, externalAliases, staticRelativeAliases);
   const importedRouteUrlFactoryAliases = mergeImportedContextAliases(new Set(), collectRouteUrlFactoryAliases, text, context, { shadow: false });
-  const routeUrlFactoryAliases = new Set([...localRouteUrlFactoryAliases, ...importedRouteUrlFactoryAliases]);
+  const routeUrlFactoryAliases = new Set([...localRouteUrlFactoryAliases, ...importedRouteUrlFactoryAliases, ...astFacts.routeUrlFactoryAliases]);
   const hasForbiddenCode = shouldScanExecutableRouteCode(context.path) && (
     containsForbiddenExecutableRouteCode(text, aliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)
     || containsForbiddenShadowedExternalAliasRouteCode(text, aliases, externalAliases, externalAliases, staticRelativeAliases, routeUrlFactoryAliases)

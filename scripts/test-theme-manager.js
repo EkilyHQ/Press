@@ -1663,12 +1663,76 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/interactions.js': 'export function mount(post, postKey = "id") { const url = new URL(location.href); url.searchParams.set(postKey, post.location); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount(post) { const [postKey = "id"] = []; const url = new URL(location.href); url.searchParams.set(postKey, post.location); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/config.js': 'export const key = "id";',
         'modules/interactions.js': 'import { key } from "./config.js"; export function mount() { const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href; }'
       }
     })),
     /router href helpers/i
   );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const routeKeys = { post: "id" };',
+        'modules/barrel.js': 'export * as cfg from "./config.js";',
+        'modules/interactions.js': 'import { cfg } from "./barrel.js"; export function mount(post) { const url = new URL(location.href); url.searchParams.set(cfg.routeKeys.post, post.location); return url.href; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/config.js': 'export const routeKeys = { post: "id" };',
+        'modules/barrel.js': 'export * as cfg from "./config.js";',
+        'modules/interactions.js': 'import { cfg } from "./barrel.js"; export function mount(post) { return "?" + cfg.routeKeys.post + "=" + post.location; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/config.js': 'export const endpoints = { product: "https://api.example.test/product" };',
+      'modules/barrel.js': 'export * as cfg from "./config.js";',
+      'modules/interactions.js': 'import { cfg } from "./barrel.js"; export function mount() { const url = new URL(cfg.endpoints.product); url.searchParams.set("id", sku); return url.href; }'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/config.js': 'export const endpoints = { product: "https://api.example.test/product" };',
+      'modules/url.js': 'import { endpoints } from "./config.js"; export function makeProductUrl() { return new URL(endpoints.product); }',
+      'modules/interactions.js': 'import { makeProductUrl } from "./url.js"; export function mount() { const url = makeProductUrl(); url.searchParams.set("id", sku); return url.href; }'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/a.js': 'import { b } from "./b.js"; export const endpoint = "https://api.example.test/product"; void b;',
+      'modules/b.js': 'import { endpoint } from "./a.js"; export const b = endpoint;',
+      'modules/interactions.js': 'import { endpoint } from "./a.js"; export function mount() { const url = new URL(endpoint); url.searchParams.set("id", sku); return url.href; }'
+    }
+  })));
   assert.throws(
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,

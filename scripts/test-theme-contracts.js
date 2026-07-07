@@ -11,6 +11,7 @@ import {
   getRequiredThemeRegions,
   getRequiredThemeViews
 } from '../assets/js/theme-contract-surface.mjs';
+import { containsForbiddenV4RouteConstructionAst } from '../assets/js/theme-route-guard.js';
 
 const root = process.cwd();
 const themesDir = path.join(root, 'assets', 'themes');
@@ -4284,7 +4285,8 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   ['cross-file star barrel route key alias', 'import { key } from "./barrel.js"; const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const key = "id";' }, { path: 'modules/barrel.js', source: 'export * from "./config.js";' }] }],
   ['cross-file imported route key with unrelated shadow', 'import { key } from "./config.js"; function unrelated(key) { return key; } const url = new URL(location.href); url.searchParams.set(key, post.location); return url.href;', true, { path: 'modules/layout.js', files: [{ path: 'modules/config.js', source: 'export const key = "id";' }] }]
 ].forEach(([label, source, expected, contextSource]) => {
-  const actual = containsForbiddenV4RouteConstruction(source, contextSource || source);
+  const actual = containsForbiddenV4RouteConstruction(source, contextSource || source)
+    || containsForbiddenV4RouteConstructionAst(source, contextSource || source);
   if (actual !== expected) fail(`v4 route guard self-check failed for ${label}`);
 });
 
@@ -4564,7 +4566,9 @@ themeNames.forEach((themeName) => {
   if (Number(manifest.contractVersion) >= 4) {
     const routeGuardFiles = collectThemeRouteGuardFiles(themeDir);
     routeGuardFiles.forEach((file) => {
-      if (containsForbiddenV4RouteConstruction(file.source, { path: file.path, files: routeGuardFiles })) {
+      const routeContext = { path: file.path, files: routeGuardFiles };
+      if (containsForbiddenV4RouteConstruction(file.source, routeContext)
+        || containsForbiddenV4RouteConstructionAst(file.source, routeContext)) {
         fail(`${relManifest} contract v4 theme source must use ctx.router href helpers instead of public route construction in ${file.path}`);
       }
     });

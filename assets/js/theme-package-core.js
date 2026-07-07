@@ -12,6 +12,7 @@ import {
   isPressThemeContractVersionSupported
 } from './theme-contract-surface.mjs';
 import {
+  canParseV4RouteGuardSource,
   collectV4RouteGuardFacts,
   containsForbiddenV4RouteConstructionAst
 } from './theme-route-guard.js';
@@ -3951,6 +3952,7 @@ function containsForbiddenV4RouteConstruction(source, contextSource = source) {
   const text = stripCommentsForRouteGuard(rawText);
   const context = normalizeRouteGuardContext(contextSource, text);
   if (containsForbiddenV4RouteConstructionAst(rawText, context)) return true;
+  if (shouldScanExecutableRouteCode(context.path) && canParseV4RouteGuardSource(rawText)) return false;
   const astFacts = collectV4RouteGuardFacts(rawText, context);
   const localRouteKeyAliases = collectRouteKeyAliases(text);
   const importedRouteKeyAliases = mergeImportedContextAliases(new Set(), collectRouteKeyAliases, text, context, { shadow: false });

@@ -813,6 +813,60 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
+        'modules/interactions.js': 'export function mount(ctx, link) { ctx.router.navigate("?tab=posts"); link.setAttribute("href", "?id=post.md"); window.location.assign("?tab=posts"); }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/layout.js': 'export default { mount() { return { href: "?tab=posts", links: ["?id=post.md"] }; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/layout.js': 'export default { mount(enabled) { return enabled ? "?tab=posts" : "#"; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/layout.js': 'export default { mount(enabled) { return enabled && "?id=post.md"; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/interactions.js': 'export function mount(link) { link.href = "?tab=posts"; }'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
+        'modules/layout.js': 'export default { mount(post) { return new URL("?id=" + post.location, location.href).href; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /router href helpers/i
+  );
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 4,
+      files: {
         'modules/interactions.js': 'export function mount() { const url = new URL(location.href); url.searchParams.set("id", "post.md"); return { views: {}, components: {}, effects: {} }; }'
       }
     })),
@@ -972,24 +1026,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
-        'modules/interactions.js': 'export function mount() { const url = new URL(location.href); const set = url.searchParams.set.bind(url.searchParams); set("id", "post.md"); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const url = new URL(location.href); const { set } = url.searchParams; set.call(url.searchParams, "id", "post.md"); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
         'modules/interactions.js': 'export function mount() { const url = new URL(location.href); const { ["searchParams"]: params } = url; params.set("id", "post.md"); return url.href; }'
       }
     })),
@@ -1081,24 +1117,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export function mount(post) { new URL(location.href)["search"] = "id=" + post.location; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const Url = URL; const url = new Url(location.href); url.searchParams.set("id", "post.md"); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const { URL: Url } = window; const url = new Url(location.href); url.searchParams.set("id", "post.md"); return url.href; }'
       }
     })),
     /router href helpers/i
@@ -1294,6 +1312,12 @@ await run('rejects v4 theme packages with public route literals', async () => {
       'modules/interactions.js': 'export function mount() { const endpoints = { product: "https://api.example.test/product" }; const url = new URL(endpoints.product); url.searchParams.set("id", sku); return url.href; }'
     }
   })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/interactions.js': 'export function mount() { return new URL("?tab=posts", new URL("https://api.example.test/product")).href; }'
+    }
+  })));
   assert.throws(
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
@@ -1308,15 +1332,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export function mount() { const routeKey = "id"; const params = new URLSearchParams([[routeKey, post.location]]); return "?" + params; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const params = new URLSearchParams(Object.fromEntries([["id", post.location]])); return "?" + params; }'
       }
     })),
     /router href helpers/i
@@ -1424,43 +1439,7 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
-        'modules/interactions.js': 'export function mount() { const loc = location; const routeKey = "id"; const qs = routeKey + "=" + post.location; loc.search = qs; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
         'modules/interactions.js': 'export function mount() { const routeKey = "id"; window.location["search"] = routeKey + "=" + post.location; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const { location: loc } = window; const routeKey = "id"; const qs = routeKey + "=" + post.location; loc.search = qs; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const loc = location; const routeKey = "id"; loc["search"] = routeKey + "=" + post.location; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount() { const loc = window.location; const params = new URLSearchParams({ id: post.location }); loc.search = params; }'
       }
     })),
     /router href helpers/i
@@ -1737,295 +1716,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function route(endpoint, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount(endpoint) { function helper() { const endpoint = "https://api.example.test/product"; return endpoint; } const url = new URL(endpoint); url.searchParams.set("id", post.location); return helper() || url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount([endpoint]) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount({ endpoint: endpoint = location.href }) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount() { for (const endpoint of [location.href]) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; } }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount(endpoint) { const marker = "}"; return endpoint + "?id=" + post.location; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/internal.js': 'export const endpoint = location.href;',
-        'modules/interactions.js': 'import { endpoint } from "./internal.js"; export function mount() { const url = new URL(endpoint, window.location.href); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function route({ endpoint }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export default (endpoint, post) => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => endpoint + "?id=" + post.location;'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => ((url) => (url.searchParams.set("id", post.location), url.href))(new URL(endpoint));'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => ((url) => { url.searchParams.set("id", post.location); return url.href; })(new URL(endpoint));'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => (function(url) { url.searchParams.set("id", post.location); return url.href; })(new URL(endpoint));'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => (async function(url) { url.searchParams.set("id", post.location); return url.href; })(new URL(endpoint));'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { const mutate = (url) => { url.searchParams.set("id", post.location); return url.href; }; return mutate(new URL(endpoint)); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { const mutate = (url) => (url.searchParams.set("id", post.location), url.href); return mutate(new URL(endpoint)); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => ((url) => (url.searchParams.set("id", post.location), url.href)).call(null, new URL(endpoint));'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => ((url) => (url.searchParams.set("id", post.location), url.href)).call(getThis(a, b), new URL(endpoint));'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => ((url) => (url.searchParams.set("id", post.location), url.href)).apply(null, [new URL(endpoint)]);'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } return mutate.call(null, new URL(endpoint)); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } return mutate.apply(null, [new URL(endpoint)]); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = (post) => { const [endpoint] = [location.href]; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { const helper = { mutate(url) { url.searchParams.set("id", post.location); return url.href; } }; return helper.mutate(new URL(endpoint)); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } const bound = mutate.bind(null); return bound(new URL(endpoint)); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } const bound = mutate.bind(null, new URL(endpoint)); return bound(); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = ({ endpoint }, post) => { function mutate(ctx, url) { url.searchParams.set("id", post.location); return url.href; } return mutate(null, new URL(endpoint)); };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(a, b) { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } if (a) { function mutate(url) { return url.href; } } if (b) { return mutate(new URL(location.href)); } return null; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { function mutate(url) { url.searchParams.set("id", post.location); return url.href; } return mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
         'modules/interactions.js': 'export default { mount(post) { const currentUrl = _ => new URL(location.href); const url = currentUrl(); url.searchParams.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
       }
     })),
@@ -2045,96 +1735,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export default { async mount(post) { async function makeUrl() { return new URL(location.href); } const url = await makeUrl(); url.searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { function makeUrl() { return new URL(location.href); } makeUrl.call(null).searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { function makeUrl() { return new URL(location.href); } const url = makeUrl.apply(null, []); url.searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { const helper = { makeUrl() { return new URL(location.href); } }; helper.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { const helper = { "makeUrl"() { return new URL(location.href); } }; helper.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { const helper = { ["makeUrl"]() { return new URL(location.href); } }; helper.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { const helper = { makeUrl() { return new URL(location.href); } }; const key = "makeUrl"; helper[key]().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount(post) { function makeUrl() { const url = new URL(location.href); return url; } makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { makeUrl() { return new URL(location.href); }, mount(post) { this.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'const theme = { makeUrl() { return new URL(location.href); }, mount(post) { this.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} }; export default theme;'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'const theme = { makeUrl() { return new URL(location.href); }, mount(post) { this.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} }; export { theme as default };'
       }
     })),
     /router href helpers/i
@@ -2212,95 +1812,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
       files: {
-        'modules/config.js': 'export const externalRoot = "https://api.example.test";',
-        'modules/url.js': 'import { externalRoot } from "./config.js"; export function makeProductUrl(externalRoot) { return new URL("/product", externalRoot); }',
-        'modules/interactions.js': 'import { makeProductUrl } from "./url.js"; export default { mount(post) { const url = makeProductUrl(location.href); url.searchParams.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const externalRoot = "https://api.example.test";',
-        'modules/url.js': 'import { externalRoot } from "./config.js"; export function makeProductUrl() { const marker = "{"; const externalRoot = location.href; return new URL("/product", externalRoot); }',
-        'modules/interactions.js': 'import { makeProductUrl } from "./url.js"; export default { mount(post) { const url = makeProductUrl(); url.searchParams.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const externalRoot = "https://api.example.test";',
-        'modules/url.js': 'import { externalRoot } from "./config.js"; export function makeProductUrl() { if (ok) { const externalRoot = location.href; return new URL("/product", externalRoot); } return new URL("/fallback", "https://api.example.test"); }',
-        'modules/interactions.js': 'import { makeProductUrl } from "./url.js"; export default { mount(post) { const url = makeProductUrl(); url.searchParams.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const externalRoot = "https://api.example.test";',
-        'modules/url.js': 'import { externalRoot } from "./config.js"; export function makeProductUrl() { const [externalRoot] = [location.href]; return new URL("/product", externalRoot); }',
-        'modules/interactions.js': 'import { makeProductUrl } from "./url.js"; export default { mount(post) { const url = makeProductUrl(); url.searchParams.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const helper = { mutate(ctx, url) { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(null, new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const helper = { mutate: (url) => { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const helper = { mutate: function(url) { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const helper = { routes: { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } }; return helper.routes.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const helper = { marker: /{/, routes: { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } } }; return helper.routes.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
         'modules/interactions.js': 'export default { mount(post) { const url = new URL(location.href); url.searchParams["set"]("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
       }
     })),
@@ -2311,24 +1822,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export default { mount() { const url = new URL(location.href); url["searchParams"]?.["append"]("tab", "posts"); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const prop = "searchParams"; const url = new URL(location.href); url[prop].set("id", "post.md"); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { const params = new URLSearchParams(); const set = params.set; set.call(params, "id", "post.md"); return "?" + params; }, views: {}, components: {}, effects: {} };'
       }
     })),
     /router href helpers/i
@@ -2356,140 +1849,6 @@ await run('rejects v4 theme packages with public route literals', async () => {
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export default { mount(post) { const url = new URL(location.href); const params = url["searchParams"]; params.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate((new URL(location.href))); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate?.(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } mutate?.call(null, new URL(location.href)); mutate?.apply(null, [new URL(location.href)]); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } return mutate["call"](null, new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { return ((url) => (url.searchParams.set("id", "post.md"), url.href))((new URL(location.href))); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { return ((ctx, url) => { url.searchParams.set("id", "post.md"); return url.href; })("ctx", new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { return (function(ctx, url) { url.searchParams.set("id", "post.md"); return url.href; }).call(null, "ctx", new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { return ((ctx, url) => (url.searchParams.set("id", "post.md"), url.href)).call(null, "ctx", new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export default { mount() { return ((ctx, url) => (url.searchParams.set("id", "post.md"), url.href)).apply(null, ["ctx", new URL(location.href)]); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': `import { endpoint } from "./config.js";
-export const route = ({ endpoint }, post) => (
-  endpoint + "?id=" + post.location
-);`
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export default endpoint => endpoint + "?tab=posts";'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export const route = async endpoint => { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function route({ endpoint = location.href }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export default { route({ endpoint }, post) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }, views: {}, components: {}, effects: {} };'
       }
     })),
     /router href helpers/i
@@ -2605,44 +1964,6 @@ export const route = ({ endpoint }, post) => (
       contractVersion: 4,
       files: {
         'modules/interactions.js': 'export function mount() { const re = /^https?:\\/\\//; return "?id=post.md"; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount(ok) { if (ok) { const endpoint = location.href; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; } return null; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'const endpoint = "https://api.example.test/product"; export function mount(endpoint) { return endpoint + "?id=" + post.location; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/interactions.js': 'export function mount(post) { let endpoint = "https://api.example.test/product"; endpoint = location.href; const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; }'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
-        'modules/interactions.js': 'import { endpoint } from "./config.js"; export function mount() { try { throw location.href; } catch (endpoint) { const url = new URL(endpoint); url.searchParams.set("id", post.location); return url.href; } }'
       }
     })),
     /router href helpers/i
@@ -2784,6 +2105,12 @@ export const route = ({ endpoint }, post) => (
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
     contractVersion: 4,
     files: {
+      'modules/layout.js': 'export default { mount(link) { fetch("https://api.example.test/product?id=sku"); link.setAttribute("href", "https://api.example.test/product?tab=posts"); return new URL("?tab=posts", "https://api.example.test/product").href; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
       'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test/product"; const url = new URL(externalBase); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
     }
   })));
@@ -2829,6 +2156,31 @@ export const route = ({ endpoint }, post) => (
     files: {
       'modules/config.js': 'export const endpoint = "https://api.example.test/product";',
       'modules/layout.js': 'import { endpoint } from "./config.js"; export default { mount() { const mutate = (url) => { url.searchParams.set("id", sku); return url.href; }; return { url: mutate(new URL(endpoint)) }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { const url = new URL(location.href); function addExternalId(url, sku) { url.searchParams.set("id", sku); return url.href; } return { preview: url.href, product: addExternalId(new URL("https://api.example.test/product"), sku) }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { const url = new URL(location.href); function addExternalId(url, sku) { const params = url.searchParams; params.set("id", sku); return url.href; } return { preview: url.href, product: addExternalId(new URL("https://api.example.test/product"), sku) }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/layout.js': 'export default { mount() { const url = new URL(location.href); function addExternalId(sku) { const url = new URL("https://api.example.test/product"); const params = new URLSearchParams(); params.set("id", sku); url.search = params.toString(); return url.href; } return { preview: url.href, product: addExternalId(sku) }; }, views: {}, components: {}, effects: {} };'
+    }
+  })));
+  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
+    contractVersion: 4,
+    files: {
+      'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
+      'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount() { const url = makeUrl(new URL("https://api.example.test/product")); url.searchParams.set("id", sku); function makeUrl(url) { return url; } return url.href; }, views: {}, components: {}, effects: {} };'
     }
   })));
   assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
@@ -2912,16 +2264,6 @@ export const route = ({ endpoint }, post) => (
       contractVersion: 4,
       files: {
         'modules/layout.js': 'export default { mount(post) { const makeUrl = base => { return new URL(location.href); }; makeUrl(location.href).searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/url.js': 'export function makeProductUrl() { return new URL("/product", "https://api.example.test"); }',
-        'modules/layout.js': 'import { makeProductUrl } from "./url.js"; export default { mount(post) { if (post) { var makeProductUrl = () => new URL(location.href); } makeProductUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
       }
     })),
     /router href helpers/i
@@ -3040,56 +2382,6 @@ export const route = ({ endpoint }, post) => (
       contractVersion: 4,
       files: {
         'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
-        'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount(post) { const routeFactory = makeUrl; routeFactory().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
-        'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount(post) { helper.routeFactory = makeUrl; helper.routeFactory().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
-        'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount(post) { const helper = { makeUrl }; helper.makeUrl().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
-        'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount(post) { const helper = { "routeFactory": makeUrl }; helper.routeFactory().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
-        'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount(post) { const helper = { makeUrl }; const { makeUrl: routeFactory } = helper; routeFactory().searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/url.js': 'export function makeUrl() { return new URL(location.href); }',
         'modules/layout.js': 'import { makeUrl } from "./url.js"; export default { mount(post) { state["url"] = makeUrl(); state["url"].searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
       }
     })),
@@ -3100,51 +2392,6 @@ export const route = ({ endpoint }, post) => (
       contractVersion: 4,
       files: {
         'modules/layout.js': 'export default { mount(post) { function makeUrl() { return new URL(location.href); } state["url"] = makeUrl(); state["url"].searchParams.set("id", post.location); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/layout.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { mutate }; return helper.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/layout.js': 'export default { mount() { function mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } const helper = { "routeMutator": mutate }; return helper.routeMutator(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/layout.js': 'export default { mount() { const helper = { "mutate": (url) => { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/layout.js': 'export default { mount() { const helper = { ["mutate"](url) { url.searchParams.set("id", "post.md"); return url.href; } }; return helper.mutate(new URL(location.href)); }, views: {}, components: {}, effects: {} };'
-      }
-    })),
-    /router href helpers/i
-  );
-  assert.throws(
-    () => collectThemeArchiveEntries(makeThemeZip({
-      contractVersion: 4,
-      files: {
-        'modules/layout.js': 'export default { mount() { const helper = { mutate(url) { url.searchParams.set("id", "post.md"); return url.href; } }; const key = "mutate"; return helper[key](new URL(location.href)); }, views: {}, components: {}, effects: {} };'
       }
     })),
     /router href helpers/i

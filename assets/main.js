@@ -2301,7 +2301,12 @@ try {
 } catch (_) {}
 
 // Build layout according to the active theme pack before binding UI logic
-const bootThemeLayoutContext = await ensureThemeLayout({ features: getSiteFeatureContext(), router: createThemeRouterContext(), siteConfig });
+const bootThemeLayoutContext = await ensureThemeLayout({
+  features: getSiteFeatureContext(),
+  router: createThemeRouterContext(),
+  siteConfig,
+  reflectThemeConfig: false
+});
 setBootProgress(0.6);
 
 // Ensure theme controls are present, then apply and bind

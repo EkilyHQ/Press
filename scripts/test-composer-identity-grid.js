@@ -7664,6 +7664,12 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
+  /field\.control === 'color' && field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*unsetButton\.addEventListener\('click', \(\) => commitValue\(undefined\)\);/,
+  'Theme settings optional color controls should expose an unset path'
+);
+
+assert.match(
+  siteSettingsSource,
   /const renderAssetWarningsGrid = \(section\) => \{[\s\S]*dataKey: 'assetWarnings'[\s\S]*fields\.assetLargeImage[\s\S]*fields\.assetLargeImageThreshold/,
   'Asset warnings compact grid should include the warning toggle and threshold rows'
 );

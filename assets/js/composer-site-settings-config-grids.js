@@ -561,6 +561,16 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
             commitValue(nextValue);
           });
           controlCell.appendChild(input);
+          if (field.control === 'color' && field.defaultValue === undefined) {
+            const unsetButton = documentRef.createElement('button');
+            unsetButton.type = 'button';
+            unsetButton.className = 'btn-secondary btn-compact';
+            unsetButton.dataset.field = 'themeSettings';
+            unsetButton.dataset.subfield = field.key;
+            unsetButton.textContent = 'Not set';
+            unsetButton.addEventListener('click', () => commitValue(undefined));
+            controlCell.appendChild(unsetButton);
+          }
         });
       }
       themeSettingsBlock.hidden = false;

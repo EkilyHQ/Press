@@ -171,6 +171,95 @@ assert.equal(invalidBlankNumericOverride.settings.radiusScale, 1, 'blank strings
 assert.deepEqual(invalidBlankNumericOverride.overrides, {});
 assert.ok(invalidBlankNumericOverride.warnings.some(entry => entry.path === 'themeSettings.arcus.radiusScale'));
 
+const steppedMinimumResolution = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: {
+    configSchema: {
+      type: 'object',
+      properties: {
+        oddColumns: {
+          type: 'number',
+          minimum: 1,
+          maximum: 9,
+          step: 2,
+          default: 1,
+          'x-press': {
+            control: 'number'
+          }
+        }
+      }
+    }
+  },
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        oddColumns: 3
+      }
+    }
+  }
+});
+assert.equal(steppedMinimumResolution.settings.oddColumns, 3, 'schema.step should validate relative to non-zero minimum like native number inputs');
+assert.deepEqual(steppedMinimumResolution.overrides, { oddColumns: 3 });
+
+const invalidSteppedMinimumResolution = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: {
+    configSchema: {
+      type: 'object',
+      properties: {
+        oddColumns: {
+          type: 'number',
+          minimum: 1,
+          maximum: 9,
+          step: 2,
+          default: 1,
+          'x-press': {
+            control: 'number'
+          }
+        }
+      }
+    }
+  },
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        oddColumns: 2
+      }
+    }
+  }
+});
+assert.equal(invalidSteppedMinimumResolution.settings.oddColumns, 1, 'schema.step should still reject values off the min-relative step grid');
+assert.deepEqual(invalidSteppedMinimumResolution.overrides, {});
+assert.ok(invalidSteppedMinimumResolution.warnings.some(entry => entry.path === 'themeSettings.arcus.oddColumns'));
+
+const malformedTextResolution = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: {
+    configSchema: {
+      type: 'object',
+      properties: {
+        tagline: {
+          type: 'string',
+          default: 'Hello',
+          'x-press': {
+            control: 'text'
+          }
+        }
+      }
+    }
+  },
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        tagline: { raw: 'bad' }
+      }
+    }
+  }
+});
+assert.equal(malformedTextResolution.settings.tagline, 'Hello', 'object overrides should not be coerced into text settings');
+assert.deepEqual(malformedTextResolution.overrides, {});
+assert.ok(malformedTextResolution.warnings.some(entry => entry.path === 'themeSettings.arcus.tagline'));
+
 const normalizedMap = normalizeThemeSettingsMap({
   Arcus: { accentColor: '#abcdef' },
   'bad slug!': { accentColor: '#fedcba' },
@@ -201,6 +290,18 @@ const optionalNumberField = {
 assert.equal(setThemeSettingOverride(optionalNumberSite, 'arcus', 'maxWidth', undefined, optionalNumberField), true);
 assert.equal(optionalNumberSite.themeSettings, undefined, 'clearing an optional numeric setting should remove the persisted override');
 assert.notEqual(themeSettingValueSignature(1), themeSettingValueSignature('1'), 'select option signatures should preserve scalar types');
+
+const invalidDraftSite = { themePack: 'arcus' };
+assert.equal(setThemeSettingOverride(invalidDraftSite, 'arcus', 'accentColor', 'not-a-color', accentField), false);
+assert.equal(invalidDraftSite.themeSettings, undefined, 'invalid setting values should not create empty themeSettings maps');
+
+const optionalColorSite = { themePack: 'arcus', themeSettings: { arcus: { accentColor: '#112233' } } };
+const optionalColorField = {
+  ...accentField,
+  defaultValue: undefined
+};
+assert.equal(setThemeSettingOverride(optionalColorSite, 'arcus', 'accentColor', undefined, optionalColorField), true);
+assert.equal(optionalColorSite.themeSettings, undefined, 'clearing an optional color setting should remove the persisted override');
 
 const shortColorResolution = resolveThemeSettings({
   pack: 'arcus',
@@ -334,6 +435,23 @@ assert.throws(
     type: 'object',
     properties: {
       radiusScale: {
+        type: 'number',
+        default: 'wide',
+        'x-press': {
+          control: 'number'
+        }
+      }
+    }
+  }),
+  /Default value for theme setting "radiusScale" is invalid/,
+  'theme package validation should reject defaults that do not resolve through the declared setting'
+);
+
+assert.throws(
+  () => validateThemeConfigSchema({
+    type: 'object',
+    properties: {
+      radiusScale: {
         type: 'string',
         ui: 'range'
       }
@@ -377,6 +495,13 @@ assert.equal(
         ui: {
           order: 1
         },
+        properties: {
+          density: { type: 'string' }
+        }
+      },
+      nestedWithGenericStringUi: {
+        type: 'object',
+        ui: 'fieldset',
         properties: {
           density: { type: 'string' }
         }

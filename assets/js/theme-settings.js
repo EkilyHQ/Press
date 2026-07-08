@@ -92,13 +92,17 @@ export function getThemeSettingsForSlug(siteConfig = {}, slug = '') {
 }
 
 function hasPressUiMetadata(value) {
-  if (typeof value === 'string') return value.trim() !== '';
+  if (typeof value === 'string') return SUPPORTED_THEME_SETTING_CONTROLS.includes(value.trim().toLowerCase());
   if (!isPlainObject(value)) return false;
   return PRESS_UI_METADATA_KEYS.some(key => Object.prototype.hasOwnProperty.call(value, key));
 }
 
 function normalizeUiMetadata(value, allowGenericUi = false) {
-  if (typeof value === 'string') return { control: value };
+  if (typeof value === 'string') {
+    const control = value.trim().toLowerCase();
+    if (allowGenericUi || SUPPORTED_THEME_SETTING_CONTROLS.includes(control)) return { control: value };
+    return null;
+  }
   if (isPlainObject(value) && (allowGenericUi || hasPressUiMetadata(value))) return value;
   return null;
 }
@@ -231,7 +235,8 @@ function normalizeNumber(value, field) {
   if (field.minimum != null && num < field.minimum) return { ok: false, value: null };
   if (field.maximum != null && num > field.maximum) return { ok: false, value: null };
   if (field.step != null && Number.isFinite(field.step) && field.step > 0) {
-    const scaled = num / field.step;
+    const base = Number.isFinite(field.stepBase) ? field.stepBase : 0;
+    const scaled = (num - base) / field.step;
     if (Math.abs(scaled - Math.round(scaled)) > 1e-8) return { ok: false, value: null };
   }
   return { ok: true, value: field.integer ? Math.trunc(num) : num };
@@ -261,7 +266,8 @@ export function normalizeThemeSettingValue(field, value) {
     return byString ? { ok: true, value: byString.value } : { ok: false, value: null };
   }
   if (field.control === 'text') {
-    const text = String(value == null ? '' : value);
+    if (typeof value !== 'string') return { ok: false, value: null };
+    const text = value;
     if (field.minLength != null && text.length < field.minLength) return { ok: false, value: null };
     if (field.maxLength != null && text.length > field.maxLength) return { ok: false, value: null };
     if (field.pattern) {
@@ -347,6 +353,7 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       if (!SAFE_CSS_VARIABLE_PATTERN.test(name)) addIssue(`Theme setting "${key}" has an unsafe CSS variable "${name}".`, `${path}.${THEME_SETTINGS_META_KEY}.cssVariable`);
     });
     const rawStep = schema.multipleOf != null ? Number(schema.multipleOf) : (schema.step != null ? Number(schema.step) : null);
+    const rawStepBase = schema.multipleOf != null ? 0 : (schema.minimum != null ? Number(schema.minimum) : 0);
     if (rawStep != null && (!Number.isFinite(rawStep) || rawStep <= 0)) {
       addIssue(`Theme setting "${key}" step must be a positive finite number.`, `${path}.${schema.multipleOf != null ? 'multipleOf' : 'step'}`);
     }
@@ -364,11 +371,18 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       minimum: schema.minimum != null ? Number(schema.minimum) : null,
       maximum: schema.maximum != null ? Number(schema.maximum) : null,
       step: rawStep != null && Number.isFinite(rawStep) && rawStep > 0 ? rawStep : null,
+      stepBase: Number.isFinite(rawStepBase) ? rawStepBase : 0,
       integer: type === 'integer',
       minLength: schema.minLength != null ? Number(schema.minLength) : null,
       maxLength: schema.maxLength != null ? Number(schema.maxLength) : null,
       pattern: schema.pattern || ''
     };
+    if (strict && schema.default !== undefined) {
+      const normalizedDefault = normalizeThemeSettingValue(field, schema.default);
+      if (!normalizedDefault.ok) {
+        addIssue(`Default value for theme setting "${key}" is invalid.`, `${path}.default`);
+      }
+    }
     fields.push(field);
   });
 
@@ -456,14 +470,18 @@ export function setThemeSettingOverride(siteConfig, slug, key, value, field) {
   const safeSlug = sanitizeThemeSlug(slug || siteConfig.themePack || 'native');
   const safeKey = normalizeSettingKey(key);
   if (!safeSlug || !safeKey) return false;
-  if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY])) siteConfig[THEME_SETTINGS_ROOT_KEY] = {};
-  if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug] = {};
-  const target = siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
+  const cleanup = (target) => {
+    if (target && !Object.keys(target).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
+    if (isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY]) && !Object.keys(siteConfig[THEME_SETTINGS_ROOT_KEY]).length) {
+      delete siteConfig[THEME_SETTINGS_ROOT_KEY];
+    }
+  };
   if (value === undefined && (!field || field.defaultValue === undefined)) {
+    if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY]) || !isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) return false;
+    const target = siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
     const hadValue = Object.prototype.hasOwnProperty.call(target, safeKey);
     delete target[safeKey];
-    if (!Object.keys(target).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
-    if (!Object.keys(siteConfig[THEME_SETTINGS_ROOT_KEY]).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY];
+    cleanup(target);
     return hadValue;
   }
   const normalizedValue = normalizeThemeSettingValue(field, value);
@@ -471,13 +489,21 @@ export function setThemeSettingOverride(siteConfig, slug, key, value, field) {
   const defaultValue = field && field.defaultValue !== undefined
     ? normalizeThemeSettingValue(field, field.defaultValue)
     : { ok: false };
+  const root = isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY]) ? siteConfig[THEME_SETTINGS_ROOT_KEY] : null;
+  const existingTarget = root && isPlainObject(root[safeSlug]) ? root[safeSlug] : null;
   if (defaultValue.ok && stableSerialize(defaultValue.value) === stableSerialize(normalizedValue.value)) {
+    if (!existingTarget || !Object.prototype.hasOwnProperty.call(existingTarget, safeKey)) return false;
+    const target = existingTarget;
     delete target[safeKey];
+    cleanup(target);
+    return true;
   } else {
+    if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY])) siteConfig[THEME_SETTINGS_ROOT_KEY] = {};
+    if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug] = {};
+    const target = siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
+    if (Object.prototype.hasOwnProperty.call(target, safeKey) && stableSerialize(target[safeKey]) === stableSerialize(normalizedValue.value)) return false;
     target[safeKey] = normalizedValue.value;
   }
-  if (!Object.keys(target).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
-  if (!Object.keys(siteConfig[THEME_SETTINGS_ROOT_KEY]).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY];
   return true;
 }
 

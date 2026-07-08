@@ -138,6 +138,7 @@ function reflectThemeRuntimeConfig(context, options = {}, themeSettings = null) 
 
 function refreshThemeLayoutRuntimeContext(context, options = {}, regionController = null) {
   if (!context || typeof context !== 'object') return context;
+  const shouldReflectThemeConfig = !options || options.reflectThemeConfig !== false;
   if (options && Object.prototype.hasOwnProperty.call(options, 'features')) {
     context.features = options.features || null;
   }
@@ -156,7 +157,7 @@ function refreshThemeLayoutRuntimeContext(context, options = {}, regionControlle
     context.themeSettings = resolvedSettings;
     const documentRef = context.document || (typeof document !== 'undefined' ? document : null);
     applyThemeSettingsCssVariables(documentRef, resolvedSettings);
-    reflectThemeRuntimeConfig(context, options, resolvedSettings);
+    if (shouldReflectThemeConfig) reflectThemeRuntimeConfig(context, options, resolvedSettings);
   }
   if (regionController && typeof regionController.setThemeLayoutContext === 'function') {
     regionController.setThemeLayoutContext(context);
@@ -616,7 +617,6 @@ async function mountPack(pack, allowFallback = true, options = {}) {
 
   if (!isCurrentMountGeneration(mountGeneration, options)) return null;
   document.body.dataset.themeLayout = pack;
-  reflectThemeRuntimeConfig(context, runtimeOptions, themeSettings);
   warnMissingRegions(pack, manifest, context);
   regionController.setThemeLayoutContext(context);
   if (persist && pack !== DEFAULT_PACK) {

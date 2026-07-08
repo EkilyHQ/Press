@@ -7652,7 +7652,7 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /themeSettingValueSignature[\s\S]*option\.value = String\(index\);[\s\S]*option\.dataset\.valueSignature = themeSettingValueSignature\(optionData\.value\);[\s\S]*const selectedIndex = Number\(select\.value\);[\s\S]*commitValue\(selected \? selected\.value : select\.value\);/,
+  /themeSettingValueSignature[\s\S]*field\.defaultValue === undefined[\s\S]*unsetOption\.value = '';[\s\S]*option\.value = String\(index\);[\s\S]*option\.dataset\.valueSignature = themeSettingValueSignature\(optionData\.value\);[\s\S]*select\.value === ''[\s\S]*commitValue\(undefined\);[\s\S]*const selectedIndex = Number\(select\.value\);[\s\S]*commitValue\(selected \? selected\.value : select\.value\);/,
   'Theme settings select controls should preserve mixed scalar option types'
 );
 

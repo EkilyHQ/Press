@@ -500,6 +500,13 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
             const options = field.options || [];
             const currentSignature = themeSettingValueSignature(currentValue);
             let selectedOptionIndex = -1;
+            if (field.defaultValue === undefined) {
+              const unsetOption = documentRef.createElement('option');
+              unsetOption.value = '';
+              unsetOption.dataset.valueSignature = '';
+              unsetOption.textContent = 'Not set';
+              select.appendChild(unsetOption);
+            }
             options.forEach((optionData, index) => {
               const option = documentRef.createElement('option');
               option.value = String(index);
@@ -509,7 +516,12 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
               select.appendChild(option);
             });
             if (selectedOptionIndex >= 0) select.value = String(selectedOptionIndex);
+            else if (field.defaultValue === undefined) select.value = '';
             select.addEventListener('change', () => {
+              if (select.value === '') {
+                commitValue(undefined);
+                return;
+              }
               const selectedIndex = Number(select.value);
               const selected = Number.isInteger(selectedIndex) ? options[selectedIndex] : null;
               commitValue(selected ? selected.value : select.value);

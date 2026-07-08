@@ -141,6 +141,36 @@ assert.equal(invalidStepOverride.settings.radiusScale, 1, 'number overrides shou
 assert.deepEqual(invalidStepOverride.overrides, {});
 assert.ok(invalidStepOverride.warnings.some(entry => entry.path === 'themeSettings.arcus.radiusScale'));
 
+const invalidNumericScalarOverrides = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: arcusManifest,
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        radiusScale: false
+      }
+    }
+  }
+});
+assert.equal(invalidNumericScalarOverrides.settings.radiusScale, 1, 'boolean values should not be coerced into numeric theme settings');
+assert.deepEqual(invalidNumericScalarOverrides.overrides, {});
+assert.ok(invalidNumericScalarOverrides.warnings.some(entry => entry.path === 'themeSettings.arcus.radiusScale'));
+
+const invalidBlankNumericOverride = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: arcusManifest,
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        radiusScale: ''
+      }
+    }
+  }
+});
+assert.equal(invalidBlankNumericOverride.settings.radiusScale, 1, 'blank strings should not be coerced into numeric theme settings');
+assert.deepEqual(invalidBlankNumericOverride.overrides, {});
+assert.ok(invalidBlankNumericOverride.warnings.some(entry => entry.path === 'themeSettings.arcus.radiusScale'));
+
 const normalizedMap = normalizeThemeSettingsMap({
   Arcus: { accentColor: '#abcdef' },
   'bad slug!': { accentColor: '#fedcba' },
@@ -299,6 +329,34 @@ assert.throws(
   'theme package validation should reject controls incompatible with schema types'
 );
 
+assert.throws(
+  () => validateThemeConfigSchema({
+    type: 'object',
+    properties: {
+      radiusScale: {
+        type: 'string',
+        ui: 'range'
+      }
+    }
+  }),
+  /incompatible type "string"/,
+  'theme package validation should honor string ui control shorthands'
+);
+
+assert.throws(
+  () => validateThemeConfigSchema({
+    type: 'object',
+    properties: {
+      radiusScale: {
+        type: 'number',
+        ui: 'slider'
+      }
+    }
+  }),
+  /unsupported control "slider"/,
+  'theme package validation should reject unsupported string ui control shorthands'
+);
+
 assert.equal(
   validateThemeConfigSchema({
     type: 'object',
@@ -310,6 +368,15 @@ assert.equal(
         }
       },
       typelessNestedConfig: {
+        properties: {
+          density: { type: 'string' }
+        }
+      },
+      nestedWithGenericUi: {
+        type: 'object',
+        ui: {
+          order: 1
+        },
         properties: {
           density: { type: 'string' }
         }

@@ -4462,6 +4462,14 @@ const schemaContentShapes = schema.$defs && schema.$defs.contentShapeList && sch
 if (JSON.stringify(schemaContentShapes || []) !== JSON.stringify(REQUIRED_CONTENT_SHAPES)) {
   fail('assets/schema/theme.json content shape enum must match the shared theme contract surface');
 }
+const schemaThemeConfigProperty = schema.properties
+  && schema.properties.configSchema
+  && schema.properties.configSchema.properties
+  && schema.properties.configSchema.properties.properties
+  && schema.properties.configSchema.properties.properties.additionalProperties;
+if (!schemaThemeConfigProperty || schemaThemeConfigProperty.type !== 'object' || schemaThemeConfigProperty.additionalProperties !== true) {
+  fail('assets/schema/theme.json configSchema properties must allow nested non-Press object schemas');
+}
 if (!themeLayoutSource.includes('theme-contract-surface.mjs') || !themePackageCoreSource.includes('theme-contract-surface.mjs')) {
   fail('theme runtime and Theme Manager package core must import the shared theme contract surface');
 }

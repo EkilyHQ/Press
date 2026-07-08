@@ -14,6 +14,13 @@ export const SUPPORTED_THEME_SETTING_CONTROLS = Object.freeze([
 const SAFE_SETTING_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const SAFE_CSS_VARIABLE_PATTERN = /^--[A-Za-z][A-Za-z0-9_-]{0,95}$/;
 const SAFE_CSS_VALUE_PATTERN = /^[#A-Za-z0-9_\-.,%()\s]+$/;
+const PRESS_UI_METADATA_KEYS = Object.freeze([
+  'control',
+  'cssVariable',
+  'cssVariables',
+  'cssValues',
+  'options'
+]);
 
 function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -84,18 +91,29 @@ export function getThemeSettingsForSlug(siteConfig = {}, slug = '') {
   return map[safeSlug] && isPlainObject(map[safeSlug]) ? deepClone(map[safeSlug]) : {};
 }
 
-function getMeta(schema = {}) {
+function hasPressUiMetadata(value) {
+  if (typeof value === 'string') return value.trim() !== '';
+  if (!isPlainObject(value)) return false;
+  return PRESS_UI_METADATA_KEYS.some(key => Object.prototype.hasOwnProperty.call(value, key));
+}
+
+function normalizeUiMetadata(value, allowGenericUi = false) {
+  if (typeof value === 'string') return { control: value };
+  if (isPlainObject(value) && (allowGenericUi || hasPressUiMetadata(value))) return value;
+  return null;
+}
+
+function getMeta(schema = {}, options = {}) {
   const fromDash = isPlainObject(schema[THEME_SETTINGS_META_KEY]) ? schema[THEME_SETTINGS_META_KEY] : null;
   const fromCamel = isPlainObject(schema.xPress) ? schema.xPress : null;
-  const fromUi = isPlainObject(schema.ui) ? schema.ui : null;
+  const fromUi = normalizeUiMetadata(schema.ui, options.allowGenericUi === true);
   return fromDash || fromCamel || fromUi || {};
 }
 
 function hasPressSettingMetadata(schema = {}) {
   return isPlainObject(schema[THEME_SETTINGS_META_KEY])
     || isPlainObject(schema.xPress)
-    || isPlainObject(schema.ui)
-    || typeof schema.ui === 'string';
+    || hasPressUiMetadata(schema.ui);
 }
 
 function scalarOptionValue(value) {
@@ -204,6 +222,9 @@ function validateCssVariableValue(field, value) {
 }
 
 function normalizeNumber(value, field) {
+  if (value == null || typeof value === 'boolean') return { ok: false, value: null };
+  if (typeof value === 'string' && value.trim() === '') return { ok: false, value: null };
+  if (typeof value !== 'string' && typeof value !== 'number') return { ok: false, value: null };
   const num = Number(value);
   if (!Number.isFinite(num)) return { ok: false, value: null };
   if (field.integer && !Number.isInteger(num)) return { ok: false, value: null };
@@ -279,9 +300,9 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       addIssue(`Theme setting "${rawKey}" must be an object schema.`, path);
       return;
     }
-    const meta = getMeta(schema);
+    let meta = getMeta(schema);
     const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
-    const options = normalizeOptionList(schema, meta);
+    let options = normalizeOptionList(schema, meta);
     const hasMetadata = hasPressSettingMetadata(schema);
     const looksNested = isPlainObject(schema.properties) || schema.items != null;
     const scalarCandidate = (!type && !looksNested)
@@ -290,6 +311,10 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       || schema.format === 'hex-color'
       || options.length > 0;
     if (!hasMetadata && !scalarCandidate) return;
+    if (!hasMetadata && scalarCandidate) {
+      meta = getMeta(schema, { allowGenericUi: true });
+      options = normalizeOptionList(schema, meta);
+    }
     const key = normalizeSettingKey(rawKey);
     if (!key) {
       addIssue(`Unsupported theme setting key "${rawKey}".`, path);

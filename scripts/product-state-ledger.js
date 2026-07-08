@@ -569,12 +569,19 @@ function themeDemoChannelSource(source, key) {
   return channels[key] && channels[key].source ? channels[key].source : '';
 }
 
+function themeDemoChannelRequired(source, key) {
+  const channels = source && source.observedChannels && typeof source.observedChannels === 'object'
+    ? source.observedChannels
+    : {};
+  return !(channels[key] && channels[key].required === false);
+}
+
 function findThemePackEntry(packs, slug) {
   if (!Array.isArray(packs)) return null;
   return packs.find((entry) => String(entry && entry.value || '').trim() === slug) || null;
 }
 
-function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, packsResult, lockResult, pressVersion, systemRelease, releaseIntentSource }) {
+function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, packsResult, lockResult, lockRequired = true, pressVersion, systemRelease, releaseIntentSource }) {
   const slug = String(source.key || '').trim();
   const out = {
     status: 'unknown',
@@ -607,7 +614,7 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
     out.problems.push(`demo theme packs registry is unreachable: ${packsResult ? packsResult.error : 'missing source'}`);
     return out;
   }
-  if (!lockResult || !lockResult.ok) {
+  if ((!lockResult || !lockResult.ok) && lockRequired) {
     out.status = 'drift';
     out.problems.push(`demo release lock is unreachable: ${lockResult ? lockResult.error : 'missing source'}`);
     return out;
@@ -616,7 +623,8 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
   const manifest = manifestResult.value && typeof manifestResult.value === 'object' ? manifestResult.value : {};
   const manifestEngines = manifest.engines && typeof manifest.engines === 'object' ? manifest.engines : {};
   const packs = packsResult.value;
-  const lock = lockResult.value && typeof lockResult.value === 'object' ? lockResult.value : {};
+  const hasLock = !!(lockResult && lockResult.ok);
+  const lock = hasLock && lockResult.value && typeof lockResult.value === 'object' ? lockResult.value : {};
   const packEntry = findThemePackEntry(packs, slug);
   const packSource = packEntry && packEntry.source && typeof packEntry.source === 'object' ? packEntry.source : {};
   const packRelease = packEntry && packEntry.release && typeof packEntry.release === 'object' ? packEntry.release : {};
@@ -685,59 +693,61 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
       out.problems.push('demo packs registry digest does not match theme release');
     }
   }
-  if (lock.schemaVersion !== 1 || lock.type !== 'press-theme-demo-release-lock') {
-    out.problems.push('demo release lock must be schemaVersion 1 and type press-theme-demo-release-lock');
-  }
-  if (String(lock.slug || '').trim() !== slug || String(lockTheme.value || '').trim() !== slug) {
-    out.problems.push('demo release lock slug does not match theme demo target');
-  }
-  if (String(lockPress.version || '').trim() !== pressVersion || String(lockPress.tag || '').trim() !== semverToTag(pressVersion)) {
-    out.problems.push(`demo release lock Press system is ${String(lockPress.version || 'unknown')}, expected ${pressVersion}`);
-  }
-  if (String(lockPressAsset.name || '').trim() !== String(expectedPressAsset.name || '').trim()) {
-    out.problems.push('demo release lock Press asset name does not match system release');
-  }
-  if (String(lockPressAsset.url || '').trim() !== String(expectedPressAsset.url || '').trim()) {
-    out.problems.push('demo release lock Press asset url does not match system release');
-  }
-  if (Number(lockPressAsset.size || 0) !== Number(expectedPressAsset.size || 0)) {
-    out.problems.push('demo release lock Press asset size does not match system release');
-  }
-  if (normalizeDigest(lockPressAsset.digest) !== normalizeDigest(expectedPressAsset.digest)) {
-    out.problems.push('demo release lock Press asset digest does not match system release');
-  }
-  if (releaseIntentSource && String(lockReleaseIntent.source || '').trim() !== releaseIntentSource) {
-    out.problems.push('demo release lock Press releaseIntent source does not match release intent');
-  }
-  if (String(lockTheme.version || '').trim() !== expectedTheme.version) {
-    out.problems.push(`demo release lock theme is ${String(lockTheme.version || 'unknown')}, expected ${expectedTheme.version}`);
-  }
-  if (Number(lockTheme.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
-    out.problems.push(`demo release lock contractVersion is ${Number(lockTheme.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
-  }
-  if (String(lockThemeEngines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
-    out.problems.push('demo release lock theme engines.press does not match theme release');
-  }
-  if (String(lockTheme.release && lockTheme.release.tag || '').trim() !== expectedTheme.release.tag) {
-    out.problems.push('demo release lock theme tag does not match theme release');
-  }
-  if (String(lockTheme.release && lockTheme.release.htmlUrl || '').trim() !== expectedTheme.release.htmlUrl) {
-    out.problems.push('demo release lock theme release htmlUrl does not match theme release');
-  }
-  if (String(lockTheme.release && lockTheme.release.publishedAt || '').trim() !== expectedTheme.release.publishedAt) {
-    out.problems.push('demo release lock theme release publishedAt does not match theme release');
-  }
-  if (String(lockAsset.name || '').trim() !== expectedTheme.artifact.name) {
-    out.problems.push('demo release lock asset name does not match theme release');
-  }
-  if (String(lockAsset.url || '').trim() !== expectedTheme.artifact.url) {
-    out.problems.push('demo release lock asset url does not match theme release');
-  }
-  if (Number(lockAsset.size || 0) !== Number(expectedTheme.artifact.size || 0)) {
-    out.problems.push('demo release lock asset size does not match theme release');
-  }
-  if (normalizeDigest(lockAsset.digest) !== normalizeDigest(expectedTheme.artifact.digest)) {
-    out.problems.push('demo release lock asset digest does not match theme release');
+  if (hasLock) {
+    if (lock.schemaVersion !== 1 || lock.type !== 'press-theme-demo-release-lock') {
+      out.problems.push('demo release lock must be schemaVersion 1 and type press-theme-demo-release-lock');
+    }
+    if (String(lock.slug || '').trim() !== slug || String(lockTheme.value || '').trim() !== slug) {
+      out.problems.push('demo release lock slug does not match theme demo target');
+    }
+    if (String(lockPress.version || '').trim() !== pressVersion || String(lockPress.tag || '').trim() !== semverToTag(pressVersion)) {
+      out.problems.push(`demo release lock Press system is ${String(lockPress.version || 'unknown')}, expected ${pressVersion}`);
+    }
+    if (String(lockPressAsset.name || '').trim() !== String(expectedPressAsset.name || '').trim()) {
+      out.problems.push('demo release lock Press asset name does not match system release');
+    }
+    if (String(lockPressAsset.url || '').trim() !== String(expectedPressAsset.url || '').trim()) {
+      out.problems.push('demo release lock Press asset url does not match system release');
+    }
+    if (Number(lockPressAsset.size || 0) !== Number(expectedPressAsset.size || 0)) {
+      out.problems.push('demo release lock Press asset size does not match system release');
+    }
+    if (normalizeDigest(lockPressAsset.digest) !== normalizeDigest(expectedPressAsset.digest)) {
+      out.problems.push('demo release lock Press asset digest does not match system release');
+    }
+    if (releaseIntentSource && String(lockReleaseIntent.source || '').trim() !== releaseIntentSource) {
+      out.problems.push('demo release lock Press releaseIntent source does not match release intent');
+    }
+    if (String(lockTheme.version || '').trim() !== expectedTheme.version) {
+      out.problems.push(`demo release lock theme is ${String(lockTheme.version || 'unknown')}, expected ${expectedTheme.version}`);
+    }
+    if (Number(lockTheme.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
+      out.problems.push(`demo release lock contractVersion is ${Number(lockTheme.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
+    }
+    if (String(lockThemeEngines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+      out.problems.push('demo release lock theme engines.press does not match theme release');
+    }
+    if (String(lockTheme.release && lockTheme.release.tag || '').trim() !== expectedTheme.release.tag) {
+      out.problems.push('demo release lock theme tag does not match theme release');
+    }
+    if (String(lockTheme.release && lockTheme.release.htmlUrl || '').trim() !== expectedTheme.release.htmlUrl) {
+      out.problems.push('demo release lock theme release htmlUrl does not match theme release');
+    }
+    if (String(lockTheme.release && lockTheme.release.publishedAt || '').trim() !== expectedTheme.release.publishedAt) {
+      out.problems.push('demo release lock theme release publishedAt does not match theme release');
+    }
+    if (String(lockAsset.name || '').trim() !== expectedTheme.artifact.name) {
+      out.problems.push('demo release lock asset name does not match theme release');
+    }
+    if (String(lockAsset.url || '').trim() !== expectedTheme.artifact.url) {
+      out.problems.push('demo release lock asset url does not match theme release');
+    }
+    if (Number(lockAsset.size || 0) !== Number(expectedTheme.artifact.size || 0)) {
+      out.problems.push('demo release lock asset size does not match theme release');
+    }
+    if (normalizeDigest(lockAsset.digest) !== normalizeDigest(expectedTheme.artifact.digest)) {
+      out.problems.push('demo release lock asset digest does not match theme release');
+    }
   }
 
   out.status = out.problems.length ? 'drift' : 'ok';
@@ -1161,6 +1171,7 @@ async function buildProductState(options = {}) {
     const manifestSource = themeDemoChannelSource(source, 'themeManifest');
     const packsSource = themeDemoChannelSource(source, 'themePacks');
     const lockSource = themeDemoChannelSource(source, 'demoLock');
+    const lockRequired = themeDemoChannelRequired(source, 'demoLock');
     const manifestResult = manifestSource
       ? await loadJson(manifestSource)
       : { ok: false, source: '', error: 'theme demo target is missing themeManifest observed channel' };
@@ -1176,6 +1187,7 @@ async function buildProductState(options = {}) {
       manifestResult,
       packsResult,
       lockResult,
+      lockRequired,
       pressVersion,
       systemRelease,
       releaseIntentSource: canonicalReleaseIntentSource

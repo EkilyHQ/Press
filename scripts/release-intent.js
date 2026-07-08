@@ -84,7 +84,8 @@ function normalizeObservedChannels(input = {}) {
       ref: String(value.ref || '').trim(),
       path: String(value.path || '').trim(),
       type: String(value.type || '').trim(),
-      source: String(value.source || '').trim()
+      source: String(value.source || '').trim(),
+      required: value.required === false ? false : true
     }];
   }));
 }
@@ -120,7 +121,8 @@ function deriveThemeDemoObservedChannels(target, fallbackChannels = {}) {
       ref: String(channel.ref || 'demo').trim(),
       path: String(channel.path || '').trim(),
       type: String(channel.type || '').trim(),
-      source: String(channel.source || '').trim()
+      source: String(channel.source || '').trim(),
+      required: key === 'demoLock' ? false : true
     };
     normalized.source = deriveObservedChannelSource(target, normalized, normalized.source);
     return [key, normalized];

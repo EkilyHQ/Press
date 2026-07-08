@@ -816,6 +816,29 @@ test('buildProductState blocks convergence when demo release lock is missing', a
   assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
 });
 
+test('buildProductState allows missing demo locks while legacy fallback channels are optional', async () => {
+  const release = systemRelease();
+  const intent = releaseIntentFixture(release);
+  intent.targets.forEach((target) => {
+    if (target.category === 'themeDemo') {
+      target.observedChannels.demoLock.required = false;
+    }
+  });
+  const fixtures = makeFixtures({
+    'fixture:intent': intent
+  });
+  delete fixtures['fixture:arcus-demo-lock'];
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(fixtures),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'ok');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'ok');
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), false);
+});
+
 test('buildProductState blocks convergence when demo theme manifest is unreachable', async () => {
   const fixtures = makeFixtures();
   delete fixtures['fixture:arcus-theme-manifest'];

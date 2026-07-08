@@ -26,7 +26,7 @@ const SIGNED_URL_QUERY_KEYS = [
   'x-goog-signature'
 ];
 const DEFAULT_RELEASE_SOURCES = getReleaseProductStateSources(DEFAULT_RAW_ROOT);
-const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([3, 4]);
+const SUPPORTED_THEME_CONTRACT_VERSIONS = new Set([4]);
 const CURRENT_THEME_CONTRACT_VERSION = 4;
 const THEME_CONTRACT_V4_MIN_PRESS_VERSION = '3.4.130';
 const DEFAULT_SOURCES = {
@@ -598,6 +598,7 @@ function buildDesiredState({ sources, systemRelease, systemSource, releaseIntent
       tag: target.tag,
       asset: systemRelease.asset,
       runtime: systemRelease.runtime,
+      themeContractUpgrade: systemRelease.themeContractUpgrade,
       contentModelUpgrade: systemRelease.contentModelUpgrade
     },
     downstream: Object.fromEntries((sources.downstream || []).map((source) => {
@@ -631,6 +632,7 @@ function buildObservedState(state, checkedAt) {
       tag: state.pressSystem.tag,
       runtime: state.pressSystem.runtime,
       asset: state.pressSystem.asset,
+      themeContractUpgrade: state.pressSystem.themeContractUpgrade,
       contentModelUpgrade: state.pressSystem.contentModelUpgrade
     },
     releaseIntent: clone(state.releaseIntent),

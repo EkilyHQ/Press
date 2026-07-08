@@ -22,7 +22,7 @@ const { containsForbiddenV4RouteConstruction } = themePackageCore;
 export { PRESS_THEME_CONTRACT, containsForbiddenV4RouteConstruction };
 
 const ROUTE_HELPER_CONTRACT_VERSION = 4;
-const THEME_TEXT_EXTENSIONS = new Set(['.css', '.htm', '.html', '.js', '.mjs', '.cjs', '.svg']);
+const THEME_TEXT_EXTENSIONS = new Set(PRESS_THEME_CONTRACT.archive && PRESS_THEME_CONTRACT.archive.textExtensions);
 
 function safeString(value) {
   return value == null ? '' : String(value);

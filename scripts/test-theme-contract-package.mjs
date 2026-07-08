@@ -10,7 +10,7 @@ const sourceManifest = JSON.parse(await fs.readFile(path.join(root, 'packages', 
 
 assert.equal(sourceManifest.name, '@ekilyhq/press-theme-contract');
 assert.equal(sourceManifest.version, system.version);
-assert.equal(system.version, '3.4.130');
+assert.equal(system.version, '3.4.131');
 assert.equal(system.tag, `v${system.version}`);
 assert.equal(sourceManifest.publishConfig && sourceManifest.publishConfig.registry, 'https://npm.pkg.github.com');
 
@@ -120,9 +120,10 @@ try {
     } from '@ekilyhq/press-theme-contract';
 
     assert.equal(PRESS_THEME_CONTRACT.contractVersion, 4);
-    assert.deepEqual(PRESS_THEME_CONTRACT.supportedContractVersions, [3, 4]);
+    assert.deepEqual(PRESS_THEME_CONTRACT.supportedContractVersions, [4]);
     assert.equal(typeof containsForbiddenV4RouteConstruction, 'function');
     assert.equal(typeof validateThemeRouteHelperContract, 'function');
+    assert.deepEqual(PRESS_THEME_CONTRACT.archive.textExtensions, ['.css', '.htm', '.html', '.js', '.json', '.mjs', '.svg', '.txt']);
     assert.equal(containsForbiddenV4RouteConstruction('export const href = "?id=post.md";', { path: 'modules/layout.js', files: [] }), true);
     assert.equal(containsForbiddenV4RouteConstruction('export const href = "https://example.test/products?id=sku";', { path: 'modules/layout.js', files: [] }), false);
     assert.equal(containsForbiddenV4RouteConstruction('<a href="?tab=posts">Posts</a>', { path: 'assets/link.html', files: [] }), true);

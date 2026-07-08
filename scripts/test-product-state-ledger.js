@@ -40,7 +40,7 @@ function makeSources() {
   return sources;
 }
 
-function systemRelease(version = '3.4.51') {
+function systemRelease(version = '3.4.131') {
   return {
     schemaVersion: 1,
     name: `v${version}`,
@@ -48,7 +48,7 @@ function systemRelease(version = '3.4.51') {
     version,
     publishedAt: '2026-05-25T00:00:00Z',
     upgradeFrom: {
-      ranges: ['>=3.4.50 <3.4.51'],
+      ranges: ['>=3.4.130 <3.4.131'],
       allowUnknownSource: false
     },
     runtime: {
@@ -76,7 +76,7 @@ function systemRelease(version = '3.4.51') {
   };
 }
 
-function pressManifest(version = '3.4.51') {
+function pressManifest(version = '3.4.131') {
   return {
     schemaVersion: 1,
     type: 'press-system',
@@ -85,7 +85,7 @@ function pressManifest(version = '3.4.51') {
   };
 }
 
-function themeRelease(slug, version = '3.4.2', pressRange = '>=3.4.0 <4.0.0', contractVersion = 3) {
+function themeRelease(slug, version = '3.4.6', pressRange = '>=3.4.130 <4.0.0', contractVersion = 4) {
   return {
     schemaVersion: 1,
     type: 'press-theme',
@@ -306,7 +306,7 @@ test('loadJsonSource falls back to raw GitHub URLs when the Contents API is unav
     }
   });
 
-  assert.equal(payload.version, '3.4.51');
+  assert.equal(payload.version, '3.4.131');
   assert.equal(calls.length, 2);
   assert.equal(new URL(calls[0].url).origin, 'https://api.github.com');
   const fallbackUrl = new URL(calls[1].url);
@@ -449,22 +449,22 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   });
 
   assert.equal(state.status, 'ok');
-  assert.equal(state.pressSystem.version, '3.4.51');
+  assert.equal(state.pressSystem.version, '3.4.131');
   assert.equal(state.pressSystem.runtime.type, 'press-runtime-assets');
   assert.equal(state.pressSystem.runtime.edgeCount, 300);
   assert.equal(state.releaseIntent.status, 'ok');
   assert.equal(state.releaseIntent.targetCount, 6);
   assert.equal(state.desired.source, 'press-release-intent');
   assert.equal(state.desired.releaseIntent.source, 'fixture:intent');
-  assert.equal(state.desired.pressSystem.tag, 'v3.4.51');
+  assert.equal(state.desired.pressSystem.tag, 'v3.4.131');
   assert.equal(state.desired.pressSystem.asset.digest, 'sha256:abc123');
-  assert.equal(state.desired.downstream.yap.expectedVersion, '3.4.51');
+  assert.equal(state.desired.downstream.yap.expectedVersion, '3.4.131');
   assert.equal(state.desired.downstream.yap.reconciler.eventType, 'press-system-release');
   assert.equal(state.desired.downstream.yap.reconciler.idempotent, true);
   assert.equal(state.desired.downstream.themeStarter.reconciler.kind, 'theme-starter-marker-sync');
   assert.equal(state.desired.themeDemos.arcus.reconciler.kind, 'theme-demo-runtime-sync');
   assert.equal(state.desired.themes.catalog.expectedCount, 1);
-  assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.51');
+  assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.131');
   assert.equal(state.desired.themes.entries[0].expectedContractVersion, 4);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
@@ -488,8 +488,8 @@ test('buildProductState reports ok when all declared and observed facts agree', 
 test('buildProductState preserves release upgrade metadata for release intent validation', async () => {
   const release = systemRelease();
   release.themeContractUpgrade = {
-    requiresInstalledThemeContractVersion: 3,
-    message: 'Update installed themes to contract v3 first.'
+    requiresInstalledThemeContractVersion: 4,
+    message: 'Update installed themes to contract v4 first.'
   };
   release.contentModelUpgrade = {
     requiresUnifiedIndexTabs: true,
@@ -508,7 +508,10 @@ test('buildProductState preserves release upgrade metadata for release intent va
 
   assert.equal(state.status, 'ok');
   assert.equal(state.releaseIntent.status, 'ok');
+  assert.deepEqual(state.desired.pressSystem.themeContractUpgrade, release.themeContractUpgrade);
+  assert.deepEqual(state.observed.pressSystem.themeContractUpgrade, release.themeContractUpgrade);
   assert.deepEqual(state.desired.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
+  assert.deepEqual(state.observed.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
 });
 
 test('buildProductState preserves legacy theme-starter reconciler fallback', async () => {
@@ -551,9 +554,9 @@ test('buildProductState marks invalid release intent as drift', async () => {
 
 test('buildProductState records canonical release intent source even when loaded from a local file', async () => {
   const intent = releaseIntentFixture(systemRelease());
-  intent.source = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.51/release-intent.json';
+  intent.source = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.131/release-intent.json';
   intent.latestSource = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json';
-  intent.systemRelease.source = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.51/system-release.json';
+  intent.systemRelease.source = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.131/system-release.json';
 
   const state = await buildProductState({
     sources: makeSources(),
@@ -719,17 +722,17 @@ test('buildProductState marks downstream version lag as pending, not a new sourc
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
-      'fixture:yap': pressManifest('3.4.50')
+      'fixture:yap': pressManifest('3.4.130')
     })),
     generatedAt: '2026-05-25T00:00:00Z'
   });
 
   assert.equal(state.status, 'pending');
   assert.equal(state.downstream.yap.status, 'pending');
-  assert.equal(state.downstream.yap.expectedVersion, '3.4.51');
-  assert.equal(state.downstream.yap.observedVersion, '3.4.50');
-  assert.equal(state.desired.downstream.yap.expectedTag, 'v3.4.51');
-  assert.equal(state.observed.downstream.yap.observedVersion, '3.4.50');
+  assert.equal(state.downstream.yap.expectedVersion, '3.4.131');
+  assert.equal(state.downstream.yap.observedVersion, '3.4.130');
+  assert.equal(state.desired.downstream.yap.expectedTag, 'v3.4.131');
+  assert.equal(state.observed.downstream.yap.observedVersion, '3.4.130');
   assert.equal(state.verdict.status, 'pending');
   assert.equal(state.verdict.converged, false);
   assert.equal(state.verdict.counts.pending, 1);
@@ -741,7 +744,7 @@ test('buildProductState marks downstream version lag as pending, not a new sourc
 
 test('shouldFailCheck keeps pending and unknown allowances independent', async () => {
   const fixtures = makeFixtures({
-    'fixture:yap': pressManifest('3.4.50')
+    'fixture:yap': pressManifest('3.4.130')
   });
   delete fixtures['fixture:starter'];
   const state = await buildProductState({
@@ -791,7 +794,7 @@ test('buildProductState marks incompatible theme release manifests as drift', as
   assert.equal(shouldFailCheck(state, { allowPending: true, allowUnknown: true }), true);
 });
 
-test('buildProductState accepts supported transition theme contract versions', async () => {
+test('buildProductState rejects transition theme contract v3 after cleanup', async () => {
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
@@ -801,20 +804,22 @@ test('buildProductState accepts supported transition theme contract versions', a
   });
 
   assert.equal(state.themes.entries[0].contractVersion, 3);
-  assert.notEqual(state.themes.entries[0].status, 'drift');
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themes.entries[0].status, 'drift');
+  assert.match(state.themes.entries[0].problems.join('\n'), /supported contractVersion/);
 
-  const transitionRelease = systemRelease('3.4.130');
-  const transitionFixtures = {
-    'fixture:system': transitionRelease,
-    'fixture:intent': releaseIntentFixture(transitionRelease),
-    'fixture:yap': pressManifest('3.4.130'),
-    'fixture:starter': systemRelease('3.4.130'),
-    'fixture:arcus-demo': pressManifest('3.4.130')
+  const cleanupRelease = systemRelease('3.4.131');
+  const cleanupFixtures = {
+    'fixture:system': cleanupRelease,
+    'fixture:intent': releaseIntentFixture(cleanupRelease),
+    'fixture:yap': pressManifest('3.4.131'),
+    'fixture:starter': systemRelease('3.4.131'),
+    'fixture:arcus-demo': pressManifest('3.4.131')
   };
   const v4State = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
-      ...transitionFixtures,
+      ...cleanupFixtures,
       'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.130 <4.0.0', 4)
     })),
     generatedAt: '2026-05-25T00:00:00Z'
@@ -826,7 +831,7 @@ test('buildProductState accepts supported transition theme contract versions', a
   const tooWideV4State = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
-      ...transitionFixtures,
+      ...cleanupFixtures,
       'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 4)
     })),
     generatedAt: '2026-05-25T00:00:00Z'

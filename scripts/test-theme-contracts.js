@@ -4436,8 +4436,8 @@ if (PRESS_THEME_CONTRACT.schemaVersion !== 1 || PRESS_THEME_CONTRACT.type !== 'p
 if (PRESS_THEME_CONTRACT.contractVersion !== 4) {
   fail('assets/js/theme-contract-surface.mjs must declare contractVersion 4 as the current theme contract');
 }
-if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([3, 4])) {
-  fail('the v4 transition release must support theme contract versions 3 and 4');
+if (JSON.stringify(PRESS_THEME_CONTRACT.supportedContractVersions) !== JSON.stringify([4])) {
+  fail('the v4 cleanup release must support only theme contract version 4');
 }
 if (PRESS_THEME_CONTRACT.manifestSchemaPath !== 'assets/schema/theme.json') {
   fail('theme contract surface must point at assets/schema/theme.json');

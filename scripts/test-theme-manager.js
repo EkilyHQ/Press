@@ -717,7 +717,7 @@ await run('normalizes release manifests and rejects unsupported contracts', asyn
   assert.equal(manifest.value, 'arcus');
   assert.equal(manifest.engines.press, '>=3.4.0 <4.0.0');
   assert.equal(manifest.contractVersion, 4);
-  assert.equal(normalizeThemeReleaseManifest({ ...manifest, contractVersion: 3 }).contractVersion, 3);
+  assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 3 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 2 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 1 }), /contractVersion/i);
   assert.throws(() => normalizeThemeReleaseManifest({ ...manifest, contractVersion: 5 }), /contractVersion/i);
@@ -766,6 +766,10 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
     /contractVersion/i
   );
   assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })),
+    /contractVersion/i
+  );
+  assert.throws(
     () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 1 })),
     /contractVersion/i
   );
@@ -776,12 +780,15 @@ await run('rejects unsafe and multi-theme ZIP archives', async () => {
 });
 
 await run('rejects v4 theme packages with public route literals', async () => {
-  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({
-    contractVersion: 3,
-    files: {
-      'modules/layout.js': 'export default { mount() { return "?tab=posts"; }, views: {}, components: {}, effects: {} };'
-    }
-  })));
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({
+      contractVersion: 3,
+      files: {
+        'modules/layout.js': 'export default { mount() { return "?tab=posts"; }, views: {}, components: {}, effects: {} };'
+      }
+    })),
+    /contractVersion/i
+  );
   assert.throws(
     () => collectThemeArchiveEntries(makeThemeZip({
       contractVersion: 4,
@@ -2669,7 +2676,10 @@ await run('rejects v4 theme packages with public route literals', async () => {
       'modules/layout.js': 'export default { mount() { const externalBase = "https://api.example.test"; const url = new URL(`${externalBase}/product`, window.location.href); url.searchParams.set("id", sku); return url.href; }, views: {}, components: {}, effects: {} };'
     }
   })));
-  assert.doesNotThrow(() => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })));
+  assert.throws(
+    () => collectThemeArchiveEntries(makeThemeZip({ contractVersion: 3 })),
+    /contractVersion/i
+  );
 });
 
 await run('rejects invalid theme manifests before staging', async () => {
@@ -2679,7 +2689,7 @@ await run('rejects invalid theme manifests before staging', async () => {
       'press-theme-bad/theme.json': JSON.stringify({
         name: 'Bad',
         version: '1.0.0',
-        contractVersion: 3,
+        contractVersion: 4,
         styles: ['theme.css']
       }, null, 2),
       'press-theme-bad/theme.css': ':root{}'
@@ -2756,7 +2766,7 @@ await run('blocks official theme releases outside the current Press engine range
         value: 'cataloged',
         label: 'Cataloged',
         version: '1.0.0',
-        contractVersion: 3,
+        contractVersion: 4,
         engines: { press: '>=4.0.0 <5.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',
@@ -3069,8 +3079,8 @@ await run('filters catalog-inferred inventory to existing files during uninstall
         value: 'cataloged',
         label: 'Cataloged',
         version: '1.0.0',
-        contractVersion: 3,
-        engines: { press: '>=3.4.0 <4.0.0' },
+        contractVersion: 4,
+        engines: { press: '>=3.4.130 <4.0.0' },
         asset: {
           name: 'press-theme-cataloged-v1.0.0.zip',
           url: 'https://example.test/press-theme-cataloged-v1.0.0.zip',

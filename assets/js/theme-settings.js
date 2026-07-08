@@ -14,7 +14,6 @@ export const SUPPORTED_THEME_SETTING_CONTROLS = Object.freeze([
 const SAFE_SETTING_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const SAFE_CSS_VARIABLE_PATTERN = /^--[A-Za-z][A-Za-z0-9_-]{0,95}$/;
 const SAFE_CSS_VALUE_PATTERN = /^[#A-Za-z0-9_\-.,%()\s]+$/;
-const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -36,6 +35,10 @@ function stableSerialize(value) {
     return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
   }
   return '';
+}
+
+export function themeSettingValueSignature(value) {
+  return stableSerialize(value);
 }
 
 function warning(message, path = '') {
@@ -88,6 +91,13 @@ function getMeta(schema = {}) {
   return fromDash || fromCamel || fromUi || {};
 }
 
+function hasPressSettingMetadata(schema = {}) {
+  return isPlainObject(schema[THEME_SETTINGS_META_KEY])
+    || isPlainObject(schema.xPress)
+    || isPlainObject(schema.ui)
+    || typeof schema.ui === 'string';
+}
+
 function scalarOptionValue(value) {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
   return undefined;
@@ -136,6 +146,16 @@ function inferControl(schema = {}, meta = {}) {
   return '';
 }
 
+function typeMatchesControl(type, control) {
+  const normalizedType = Array.isArray(type) ? type[0] : type;
+  if (!normalizedType) return true;
+  if (control === 'boolean') return normalizedType === 'boolean';
+  if (control === 'number' || control === 'range') return normalizedType === 'number' || normalizedType === 'integer';
+  if (control === 'color' || control === 'text') return normalizedType === 'string';
+  if (control === 'select') return normalizedType !== 'object' && normalizedType !== 'array';
+  return false;
+}
+
 function getRequestedControl(meta = {}) {
   const raw = meta.control || (typeof meta.ui === 'string' ? meta.ui : '');
   return String(raw || '').trim().toLowerCase();
@@ -157,12 +177,19 @@ function normalizeCssValueMap(meta = {}) {
   return out;
 }
 
+function normalizeHexColor(value) {
+  const color = String(value == null ? '' : value).trim().toLowerCase();
+  const short = color.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+  if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`.toLowerCase();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : '';
+}
+
 function validateCssVariableValue(field, value) {
   const signature = stableSerialize(value);
   if (field.cssValues && Object.prototype.hasOwnProperty.call(field.cssValues, String(value))) {
     return field.cssValues[String(value)];
   }
-  if (field.control === 'color') return typeof value === 'string' && HEX_COLOR_PATTERN.test(value) ? value.toLowerCase() : '';
+  if (field.control === 'color') return normalizeHexColor(value);
   if (field.control === 'number' || field.control === 'range') return Number.isFinite(Number(value)) ? String(Number(value)) : '';
   if (field.control === 'boolean') return value === true ? '1' : (value === false ? '0' : '');
   if (field.options && field.options.some(option => stableSerialize(option.value) === signature)) {
@@ -202,8 +229,8 @@ export function normalizeThemeSettingValue(field, value) {
   }
   if (field.control === 'number' || field.control === 'range') return normalizeNumber(value, field);
   if (field.control === 'color') {
-    const color = String(value == null ? '' : value).trim();
-    return HEX_COLOR_PATTERN.test(color) ? { ok: true, value: color.toLowerCase() } : { ok: false, value: null };
+    const color = normalizeHexColor(value);
+    return color ? { ok: true, value: color } : { ok: false, value: null };
   }
   if (field.control === 'select') {
     const signature = stableSerialize(value);
@@ -247,17 +274,27 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
   const fields = [];
   Object.keys(properties).forEach((rawKey) => {
     const path = `configSchema.properties.${rawKey}`;
-    const key = normalizeSettingKey(rawKey);
     const schema = properties[rawKey];
-    if (!key) {
-      addIssue(`Unsupported theme setting key "${rawKey}".`, path);
-      return;
-    }
     if (!isPlainObject(schema)) {
       addIssue(`Theme setting "${rawKey}" must be an object schema.`, path);
       return;
     }
     const meta = getMeta(schema);
+    const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+    const options = normalizeOptionList(schema, meta);
+    const hasMetadata = hasPressSettingMetadata(schema);
+    const looksNested = isPlainObject(schema.properties) || schema.items != null;
+    const scalarCandidate = (!type && !looksNested)
+      || ['boolean', 'number', 'integer', 'string'].includes(type)
+      || schema.format === 'color'
+      || schema.format === 'hex-color'
+      || options.length > 0;
+    if (!hasMetadata && !scalarCandidate) return;
+    const key = normalizeSettingKey(rawKey);
+    if (!key) {
+      addIssue(`Unsupported theme setting key "${rawKey}".`, path);
+      return;
+    }
     const requestedControl = getRequestedControl(meta);
     if (requestedControl && !SUPPORTED_THEME_SETTING_CONTROLS.includes(requestedControl)) {
       addIssue(`Theme setting "${key}" uses unsupported control "${requestedControl}".`, `${path}.${THEME_SETTINGS_META_KEY}.control`);
@@ -268,12 +305,14 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       addIssue(`Theme setting "${key}" uses an unsupported type or control.`, path);
       return;
     }
-    const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
     if (type === 'object' || type === 'array') {
       addIssue(`Theme setting "${key}" must be a scalar setting.`, path);
       return;
     }
-    const options = normalizeOptionList(schema, meta);
+    if (!typeMatchesControl(type, control)) {
+      addIssue(`Theme setting "${key}" uses control "${control}" with incompatible type "${type}".`, `${path}.${THEME_SETTINGS_META_KEY}.control`);
+      return;
+    }
     if (control === 'select' && !options.length) {
       addIssue(`Theme setting "${key}" select controls require enum/options.`, path);
       return;
@@ -395,6 +434,13 @@ export function setThemeSettingOverride(siteConfig, slug, key, value, field) {
   if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY])) siteConfig[THEME_SETTINGS_ROOT_KEY] = {};
   if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug] = {};
   const target = siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
+  if (value === undefined && (!field || field.defaultValue === undefined)) {
+    const hadValue = Object.prototype.hasOwnProperty.call(target, safeKey);
+    delete target[safeKey];
+    if (!Object.keys(target).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
+    if (!Object.keys(siteConfig[THEME_SETTINGS_ROOT_KEY]).length) delete siteConfig[THEME_SETTINGS_ROOT_KEY];
+    return hadValue;
+  }
   const normalizedValue = normalizeThemeSettingValue(field, value);
   if (!normalizedValue.ok) return false;
   const defaultValue = field && field.defaultValue !== undefined

@@ -2,7 +2,8 @@ import { SITE_FEATURE_KEYS, isSiteFeatureEnabled } from './site-features.js';
 import {
   resolveThemeSettings,
   sanitizeThemeSlug,
-  setThemeSettingOverride
+  setThemeSettingOverride,
+  themeSettingValueSignature
 } from './theme-settings.js';
 
 export function createComposerSiteSettingsConfigGrids(options = {}) {
@@ -496,15 +497,21 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
             select.className = 'cs-select';
             select.dataset.field = 'themeSettings';
             select.dataset.subfield = field.key;
-            (field.options || []).forEach((optionData) => {
+            const options = field.options || [];
+            const currentSignature = themeSettingValueSignature(currentValue);
+            let selectedOptionIndex = -1;
+            options.forEach((optionData, index) => {
               const option = documentRef.createElement('option');
-              option.value = safeString(optionData.value);
+              option.value = String(index);
+              option.dataset.valueSignature = themeSettingValueSignature(optionData.value);
               option.textContent = safeString(optionData.label || optionData.value);
+              if (option.dataset.valueSignature === currentSignature) selectedOptionIndex = index;
               select.appendChild(option);
             });
-            select.value = safeString(currentValue);
+            if (selectedOptionIndex >= 0) select.value = String(selectedOptionIndex);
             select.addEventListener('change', () => {
-              const selected = (field.options || []).find(option => safeString(option.value) === select.value);
+              const selectedIndex = Number(select.value);
+              const selected = Number.isInteger(selectedIndex) ? options[selectedIndex] : null;
               commitValue(selected ? selected.value : select.value);
             });
             controlCell.appendChild(select);
@@ -536,8 +543,8 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
             input.value = currentValue == null ? '' : String(currentValue);
           }
           input.addEventListener('input', () => {
-            const nextValue = input.type === 'number' || input.type === 'range'
-              ? Number(input.value)
+            const nextValue = (input.type === 'number' || input.type === 'range')
+              ? (input.value === '' ? undefined : Number(input.value))
               : input.value;
             commitValue(nextValue);
           });

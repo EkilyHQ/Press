@@ -7652,6 +7652,18 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
+  /themeSettingValueSignature[\s\S]*option\.value = String\(index\);[\s\S]*option\.dataset\.valueSignature = themeSettingValueSignature\(optionData\.value\);[\s\S]*const selectedIndex = Number\(select\.value\);[\s\S]*commitValue\(selected \? selected\.value : select\.value\);/,
+  'Theme settings select controls should preserve mixed scalar option types'
+);
+
+assert.match(
+  siteSettingsSource,
+  /input\.type === 'number' \|\| input\.type === 'range'[\s\S]*input\.value === '' \? undefined : Number\(input\.value\)[\s\S]*commitValue\(nextValue\);/,
+  'Theme settings numeric controls should allow optional overrides to be cleared'
+);
+
+assert.match(
+  siteSettingsSource,
   /const renderAssetWarningsGrid = \(section\) => \{[\s\S]*dataKey: 'assetWarnings'[\s\S]*fields\.assetLargeImage[\s\S]*fields\.assetLargeImageThreshold/,
   'Asset warnings compact grid should include the warning toggle and threshold rows'
 );

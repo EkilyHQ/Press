@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const themeSource = readFileSync(resolve(here, '../assets/js/theme.js'), 'utf8');
+const mainSource = readFileSync(resolve(here, '../assets/main.js'), 'utf8');
 let importCounter = 0;
 
 assert.doesNotMatch(
@@ -16,6 +17,16 @@ assert.match(
   themeSource,
   /function createThemePackState\(\) \{[\s\S]*suppressedThemePacks: new Set\(\)[\s\S]*export function createThemePackController\(\) \{[\s\S]*const runtime = createThemePackRuntime\(\)[\s\S]*isSuppressed\(name\)/,
   'theme-pack suppression state should be scoped to explicit controller runtimes'
+);
+assert.match(
+  mainSource,
+  /function reflectActiveThemeConfig\(themeContext = getThemeLayoutContext\(\)\) \{[\s\S]*return callThemeEffect\('reflectThemeConfig', \{[\s\S]*ctx: themeContext \|\| null,[\s\S]*themeSettings: themeContext && themeContext\.themeSettings \? themeContext\.themeSettings : null,/,
+  'main boot reflection should preserve resolved theme settings when reflecting theme config'
+);
+assert.doesNotMatch(
+  mainSource,
+  /callThemeEffect\('reflectThemeConfig', \{\s*config: siteConfig,\s*features: getSiteFeatureContext\(\),/,
+  'main boot reflection should not call reflectThemeConfig without ctx/themeSettings'
 );
 
 class TestElement {

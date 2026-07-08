@@ -767,6 +767,19 @@ function createThemeRouterContext() {
   };
 }
 
+function reflectActiveThemeConfig(themeContext = getThemeLayoutContext()) {
+  return callThemeEffect('reflectThemeConfig', {
+    config: siteConfig,
+    siteConfig,
+    ctx: themeContext || null,
+    themeSettings: themeContext && themeContext.themeSettings ? themeContext.themeSettings : null,
+    features: getSiteFeatureContext(),
+    router: createThemeRouterContext(),
+    document,
+    window
+  });
+}
+
 function renderPostNavForSite(container, postsIndex, postname, options = {}) {
   return renderPostNav(container, postsIndex, postname, {
     router: createThemeRouterContext(),
@@ -2288,7 +2301,7 @@ try {
 } catch (_) {}
 
 // Build layout according to the active theme pack before binding UI logic
-await ensureThemeLayout({ features: getSiteFeatureContext(), router: createThemeRouterContext(), siteConfig });
+const bootThemeLayoutContext = await ensureThemeLayout({ features: getSiteFeatureContext(), router: createThemeRouterContext(), siteConfig });
 setBootProgress(0.6);
 
 // Ensure theme controls are present, then apply and bind
@@ -2326,12 +2339,7 @@ callThemeEffect('setupResponsiveTabsObserver', {
 
 // Reflect theme config in the layout (e.g., data attributes)
 try {
-  callThemeEffect('reflectThemeConfig', {
-    config: siteConfig,
-    features: getSiteFeatureContext(),
-    document,
-    window
-  });
+  reflectActiveThemeConfig(bootThemeLayoutContext);
 } catch (_) {}
 
 // Soft reset to the site's default language without full reload
@@ -2589,12 +2597,7 @@ try {
     // Apply site-controlled theme after loading config
     try {
       applyThemeConfig(siteConfig);
-      callThemeEffect('reflectThemeConfig', {
-        config: siteConfig,
-        features: getSiteFeatureContext(),
-        document,
-        window
-      });
+      reflectActiveThemeConfig();
     } catch (_) {}
 
     // Initialize global error reporter with optional report URL from site config

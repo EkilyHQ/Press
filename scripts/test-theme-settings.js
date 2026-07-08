@@ -4,6 +4,7 @@ import {
   normalizeThemeSettingsMap,
   resolveThemeSettings,
   setThemeSettingOverride,
+  themeSettingValueSignature,
   themeSettingsForOutput,
   validateThemeConfigSchema
 } from '../assets/js/theme-settings.js';
@@ -160,6 +161,47 @@ assert.deepEqual(draftSite.themeSettings, { arcus: { accentColor: '#112233' } })
 assert.equal(setThemeSettingOverride(draftSite, 'arcus', 'accentColor', '#7b8bff', accentField), true);
 assert.equal(draftSite.themeSettings, undefined, 'setting a schema default should remove the persisted override');
 
+const optionalNumberSite = { themePack: 'arcus', themeSettings: { arcus: { maxWidth: 72 } } };
+const optionalNumberField = {
+  key: 'maxWidth',
+  control: 'number',
+  type: 'number',
+  defaultValue: undefined
+};
+assert.equal(setThemeSettingOverride(optionalNumberSite, 'arcus', 'maxWidth', undefined, optionalNumberField), true);
+assert.equal(optionalNumberSite.themeSettings, undefined, 'clearing an optional numeric setting should remove the persisted override');
+assert.notEqual(themeSettingValueSignature(1), themeSettingValueSignature('1'), 'select option signatures should preserve scalar types');
+
+const shortColorResolution = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: {
+    configSchema: {
+      type: 'object',
+      properties: {
+        accentColor: {
+          type: 'string',
+          format: 'color',
+          default: '#abc',
+          'x-press': {
+            control: 'color',
+            cssVariable: '--arcus-short-accent'
+          }
+        }
+      }
+    }
+  },
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        accentColor: '#aabbcc'
+      }
+    }
+  }
+});
+assert.equal(shortColorResolution.defaults.accentColor, '#aabbcc', 'short color defaults should normalize to the browser color input form');
+assert.deepEqual(shortColorResolution.overrides, {}, 'expanded short color defaults should not persist as overrides');
+assert.deepEqual(shortColorResolution.cssVariables, [], 'expanded short color defaults should not emit CSS override variables');
+
 const cssValues = new Map();
 const fakeDocument = {
   documentElement: {
@@ -239,6 +281,43 @@ assert.throws(
   }),
   /unsupported control "slider"/,
   'theme package validation should reject unsupported explicit controls'
+);
+
+assert.throws(
+  () => validateThemeConfigSchema({
+    type: 'object',
+    properties: {
+      radiusScale: {
+        type: 'string',
+        'x-press': {
+          control: 'range'
+        }
+      }
+    }
+  }),
+  /incompatible type "string"/,
+  'theme package validation should reject controls incompatible with schema types'
+);
+
+assert.equal(
+  validateThemeConfigSchema({
+    type: 'object',
+    properties: {
+      nestedLegacyConfig: {
+        type: 'object',
+        properties: {
+          tone: { type: 'string' }
+        }
+      },
+      typelessNestedConfig: {
+        properties: {
+          density: { type: 'string' }
+        }
+      }
+    }
+  }),
+  true,
+  'theme package validation should ignore non-Press nested config schemas'
 );
 
 console.log('ok - theme settings contract');

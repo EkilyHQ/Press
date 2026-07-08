@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-07-08T11:30:36.818Z",
+  "generatedAt": "2026-07-08T11:57:44.834Z",
   "status": "ok",
   "desired": {
     "source": "press-release-intent",
@@ -302,16 +302,16 @@
         "repository": "EkilyHQ/Press-Theme-Arcus",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/main/theme-release.json",
         "status": "ok",
-        "version": "3.4.6",
+        "version": "3.4.7",
         "contractVersion": 4,
         "engines": {
-          "press": ">=3.4.130 <4.0.0"
+          "press": ">=3.4.132 <4.0.0"
         },
         "artifact": {
-          "name": "press-theme-arcus-v3.4.6.zip",
-          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.6/press-theme-arcus-v3.4.6.zip",
-          "size": 31994,
-          "digest": "sha256:a201673b282b01937b4f7480cf1f0ebfba1bc5e5aa98dfabfac21f6455a91005"
+          "name": "press-theme-arcus-v3.4.7.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.7/press-theme-arcus-v3.4.7.zip",
+          "size": 33582,
+          "digest": "sha256:7f81fac2735ad93d89067b25faf5b2b2283fcf85256149d1b2c86128c74e1094"
         },
         "problems": []
       },
@@ -383,8 +383,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1783423838,
-        "until": 1783510238,
+        "since": 1783425466,
+        "until": 1783511866,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -399,7 +399,7 @@
   },
   "problems": [],
   "observed": {
-    "checkedAt": "2026-07-08T11:30:36.818Z",
+    "checkedAt": "2026-07-08T11:57:44.834Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.132/system-release.json",
@@ -514,16 +514,16 @@
           "repository": "EkilyHQ/Press-Theme-Arcus",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/main/theme-release.json",
           "status": "ok",
-          "version": "3.4.6",
+          "version": "3.4.7",
           "contractVersion": 4,
           "engines": {
-            "press": ">=3.4.130 <4.0.0"
+            "press": ">=3.4.132 <4.0.0"
           },
           "artifact": {
-            "name": "press-theme-arcus-v3.4.6.zip",
-            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.6/press-theme-arcus-v3.4.6.zip",
-            "size": 31994,
-            "digest": "sha256:a201673b282b01937b4f7480cf1f0ebfba1bc5e5aa98dfabfac21f6455a91005"
+            "name": "press-theme-arcus-v3.4.7.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.7/press-theme-arcus-v3.4.7.zip",
+            "size": 33582,
+            "digest": "sha256:7f81fac2735ad93d89067b25faf5b2b2283fcf85256149d1b2c86128c74e1094"
           },
           "problems": []
         },
@@ -595,8 +595,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1783423838,
-          "until": 1783510238,
+          "since": 1783425466,
+          "until": 1783511866,
           "seconds": 86400
         },
         "totalEvents": 0,

@@ -7664,6 +7664,12 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
+  /field\.control === 'text' && field\.defaultValue === undefined && input\.value === '' \? undefined : input\.value[\s\S]*commitValue\(nextValue\);/,
+  'Theme settings optional text controls should allow blank values to clear persisted overrides'
+);
+
+assert.match(
+  siteSettingsSource,
   /field\.control === 'color' && field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*unsetButton\.addEventListener\('click', \(\) => commitValue\(undefined\)\);/,
   'Theme settings optional color controls should expose an unset path'
 );

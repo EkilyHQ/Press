@@ -557,7 +557,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
           input.addEventListener('input', () => {
             const nextValue = (input.type === 'number' || input.type === 'range')
               ? (input.value === '' ? undefined : Number(input.value))
-              : input.value;
+              : (field.control === 'text' && field.defaultValue === undefined && input.value === '' ? undefined : input.value);
             commitValue(nextValue);
           });
           controlCell.appendChild(input);

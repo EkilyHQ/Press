@@ -4470,6 +4470,17 @@ const schemaThemeConfigProperty = schema.properties
 if (!schemaThemeConfigProperty || schemaThemeConfigProperty.type !== 'object' || schemaThemeConfigProperty.additionalProperties !== true) {
   fail('assets/schema/theme.json configSchema properties must allow nested non-Press object schemas');
 }
+const schemaThemeConfigAdditionalProperties = schema.properties
+  && schema.properties.configSchema
+  && schema.properties.configSchema.properties
+  && schema.properties.configSchema.properties.additionalProperties;
+const schemaThemeConfigAdditionalPropertiesAllowsSchemas = schemaThemeConfigAdditionalProperties
+  && Array.isArray(schemaThemeConfigAdditionalProperties.oneOf)
+  && schemaThemeConfigAdditionalProperties.oneOf.some(entry => entry && entry.type === 'boolean')
+  && schemaThemeConfigAdditionalProperties.oneOf.some(entry => entry && entry.type === 'object' && entry.additionalProperties === true);
+if (!schemaThemeConfigAdditionalPropertiesAllowsSchemas) {
+  fail('assets/schema/theme.json configSchema.additionalProperties must allow boolean values and schema object values');
+}
 if (!themeLayoutSource.includes('theme-contract-surface.mjs') || !themePackageCoreSource.includes('theme-contract-surface.mjs')) {
   fail('theme runtime and Theme Manager package core must import the shared theme contract surface');
 }

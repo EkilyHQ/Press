@@ -119,7 +119,13 @@
           }
         },
         "additionalProperties": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "additionalProperties": true
+            }
+          ]
         }
       }
     },

@@ -94,7 +94,11 @@ export function getThemeSettingsForSlug(siteConfig = {}, slug = '') {
 function hasPressUiMetadata(value) {
   if (typeof value === 'string') return SUPPORTED_THEME_SETTING_CONTROLS.includes(value.trim().toLowerCase());
   if (!isPlainObject(value)) return false;
-  return PRESS_UI_METADATA_KEYS.some(key => Object.prototype.hasOwnProperty.call(value, key));
+  if (Object.prototype.hasOwnProperty.call(value, 'control')) {
+    const control = String(value.control || '').trim().toLowerCase();
+    if (SUPPORTED_THEME_SETTING_CONTROLS.includes(control)) return true;
+  }
+  return PRESS_UI_METADATA_KEYS.some(key => key !== 'control' && Object.prototype.hasOwnProperty.call(value, key));
 }
 
 function normalizeUiMetadata(value, allowGenericUi = false) {
@@ -155,11 +159,18 @@ function normalizeOptionList(schema = {}, meta = {}) {
   return options;
 }
 
+function normalizeSchemaType(type) {
+  if (!Array.isArray(type)) return type;
+  const scalar = type.find(entry => ['boolean', 'number', 'integer', 'string'].includes(entry));
+  if (scalar) return scalar;
+  return type.find(entry => entry && entry !== 'null') || type[0];
+}
+
 function inferControl(schema = {}, meta = {}) {
   const requested = String(meta.control || meta.ui || '').trim().toLowerCase();
   if (SUPPORTED_THEME_SETTING_CONTROLS.includes(requested)) return requested;
   const options = normalizeOptionList(schema, meta);
-  const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+  const type = normalizeSchemaType(schema.type);
   if (options.length) return 'select';
   if (type === 'boolean') return 'boolean';
   if (type === 'number' || type === 'integer') return requested === 'range' ? 'range' : 'number';
@@ -169,7 +180,7 @@ function inferControl(schema = {}, meta = {}) {
 }
 
 function typeMatchesControl(type, control) {
-  const normalizedType = Array.isArray(type) ? type[0] : type;
+  const normalizedType = normalizeSchemaType(type);
   if (!normalizedType) return true;
   if (control === 'boolean') return normalizedType === 'boolean';
   if (control === 'number' || control === 'range') return normalizedType === 'number' || normalizedType === 'integer';
@@ -307,7 +318,7 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       return;
     }
     let meta = getMeta(schema);
-    const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+    const type = normalizeSchemaType(schema.type);
     let options = normalizeOptionList(schema, meta);
     const hasMetadata = hasPressSettingMetadata(schema);
     const looksNested = isPlainObject(schema.properties) || schema.items != null;

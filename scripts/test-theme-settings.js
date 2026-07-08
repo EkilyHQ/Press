@@ -260,6 +260,33 @@ assert.equal(malformedTextResolution.settings.tagline, 'Hello', 'object override
 assert.deepEqual(malformedTextResolution.overrides, {});
 assert.ok(malformedTextResolution.warnings.some(entry => entry.path === 'themeSettings.arcus.tagline'));
 
+const nullableTextResolution = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: {
+    configSchema: {
+      type: 'object',
+      properties: {
+        eyebrow: {
+          type: ['null', 'string'],
+          'x-press': {
+            control: 'text'
+          }
+        }
+      }
+    }
+  },
+  siteConfig: {
+    themeSettings: {
+      arcus: {
+        eyebrow: 'Launch'
+      }
+    }
+  }
+});
+assert.equal(nullableTextResolution.fields[0].type, 'string', 'nullable schema arrays should normalize to the supported scalar type');
+assert.equal(nullableTextResolution.settings.eyebrow, 'Launch');
+assert.deepEqual(nullableTextResolution.overrides, { eyebrow: 'Launch' });
+
 const normalizedMap = normalizeThemeSettingsMap({
   Arcus: { accentColor: '#abcdef' },
   'bad slug!': { accentColor: '#fedcba' },
@@ -302,6 +329,16 @@ const optionalColorField = {
 };
 assert.equal(setThemeSettingOverride(optionalColorSite, 'arcus', 'accentColor', undefined, optionalColorField), true);
 assert.equal(optionalColorSite.themeSettings, undefined, 'clearing an optional color setting should remove the persisted override');
+
+const optionalTextSite = { themePack: 'arcus', themeSettings: { arcus: { eyebrow: 'Launch' } } };
+const optionalTextField = {
+  key: 'eyebrow',
+  control: 'text',
+  type: 'string',
+  defaultValue: undefined
+};
+assert.equal(setThemeSettingOverride(optionalTextSite, 'arcus', 'eyebrow', undefined, optionalTextField), true);
+assert.equal(optionalTextSite.themeSettings, undefined, 'clearing an optional text setting should remove the persisted override');
 
 const shortColorResolution = resolveThemeSettings({
   pack: 'arcus',
@@ -502,6 +539,15 @@ assert.equal(
       nestedWithGenericStringUi: {
         type: 'object',
         ui: 'fieldset',
+        properties: {
+          density: { type: 'string' }
+        }
+      },
+      nestedWithGenericControlUi: {
+        type: 'object',
+        ui: {
+          control: 'fieldset'
+        },
         properties: {
           density: { type: 'string' }
         }

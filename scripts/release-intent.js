@@ -97,6 +97,36 @@ function hasCompleteThemeDemoObservedChannels(channels) {
   });
 }
 
+function deriveObservedChannelSource(target, channel, fallbackSource = '') {
+  const observedSource = String(target && target.observed && target.observed.source || '').trim();
+  const repository = String(target && target.repository || '').trim();
+  const observed = target && target.observed && typeof target.observed === 'object' ? target.observed : {};
+  if (!observedSource || !repository || !observed.ref || !observed.path || !channel.ref || !channel.path) {
+    return fallbackSource;
+  }
+  const observedSuffix = `/${repository}/${observed.ref}/${observed.path}`;
+  const channelSuffix = `/${repository}/${channel.ref}/${channel.path}`;
+  if (observedSource.endsWith(observedSuffix)) {
+    return `${observedSource.slice(0, -observedSuffix.length)}${channelSuffix}`;
+  }
+  return fallbackSource;
+}
+
+function deriveThemeDemoObservedChannels(target, fallbackChannels = {}) {
+  const channels = fallbackChannels && typeof fallbackChannels === 'object' ? fallbackChannels : {};
+  return Object.fromEntries(THEME_DEMO_OBSERVED_CHANNELS.map((key) => {
+    const channel = channels[key] && typeof channels[key] === 'object' ? channels[key] : {};
+    const normalized = {
+      ref: String(channel.ref || 'demo').trim(),
+      path: String(channel.path || '').trim(),
+      type: String(channel.type || '').trim(),
+      source: String(channel.source || '').trim()
+    };
+    normalized.source = deriveObservedChannelSource(target, normalized, normalized.source);
+    return [key, normalized];
+  }));
+}
+
 function normalizeSystemRelease(input = {}) {
   const source = input && typeof input === 'object' ? input : {};
   const version = normalizeSemver(source.version);
@@ -387,7 +417,7 @@ function releaseIntentToProductStateSources(intentInput) {
     const observedChannels = target.category === 'themeDemo'
       ? hasCompleteThemeDemoObservedChannels(target.observedChannels)
         ? target.observedChannels
-        : clone(fallback.observedChannels || {})
+        : deriveThemeDemoObservedChannels(target, fallback.observedChannels)
       : clone(target.observedChannels || {});
     const source = {
       key: target.key,

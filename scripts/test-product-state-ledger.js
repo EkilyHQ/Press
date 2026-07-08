@@ -657,6 +657,25 @@ test('buildProductState preserves release upgrade metadata for release intent va
   assert.deepEqual(state.observed.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
 });
 
+test('buildProductState honors top-level theme release metadata fallbacks', async () => {
+  const release = themeRelease('arcus');
+  release.tag = release.release.tag;
+  release.htmlUrl = release.release.htmlUrl;
+  release.publishedAt = release.release.publishedAt;
+  delete release.release;
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:theme-arcus': release
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'ok');
+  assert.equal(state.themes.entries.find((entry) => entry.slug === 'arcus').release.tag, 'v3.4.6');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'ok');
+});
+
 test('buildProductState blocks convergence when a demo installed theme is stale', async () => {
   const staleManifest = themeManifest('arcus', '3.4.5');
   const state = await buildProductState({
@@ -761,6 +780,24 @@ test('buildProductState blocks convergence when demo lock Press artifact drifts'
   assert.equal(state.status, 'drift');
   assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
   assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /release lock Press asset digest does not match/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo lock theme asset URL drifts', async () => {
+  const release = themeRelease('arcus');
+  const lock = themeDemoLock('arcus', release);
+  lock.theme.asset.url = 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/release-artifacts/v3.4.5/press-theme-arcus-v3.4.6.zip';
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-demo-lock': lock
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /release lock asset url does not match/u);
   assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
 });
 

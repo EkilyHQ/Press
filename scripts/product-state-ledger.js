@@ -514,9 +514,9 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
   out.engines = manifest.engines && typeof manifest.engines === 'object' ? manifest.engines : {};
   const release = manifest.release && typeof manifest.release === 'object' ? manifest.release : {};
   out.release = {
-    tag: String(release.tag || '').trim(),
-    htmlUrl: String(release.htmlUrl || '').trim(),
-    publishedAt: String(release.publishedAt || '').trim()
+    tag: String(release.tag || manifest.tag || '').trim(),
+    htmlUrl: String(release.htmlUrl || manifest.htmlUrl || manifest.html_url || manifest.releaseUrl || '').trim(),
+    publishedAt: String(release.publishedAt || manifest.publishedAt || manifest.published_at || '').trim()
   };
   const asset = manifest.asset && typeof manifest.asset === 'object' ? manifest.asset : {};
   out.artifact = {
@@ -729,6 +729,9 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
   }
   if (String(lockAsset.name || '').trim() !== expectedTheme.artifact.name) {
     out.problems.push('demo release lock asset name does not match theme release');
+  }
+  if (String(lockAsset.url || '').trim() !== expectedTheme.artifact.url) {
+    out.problems.push('demo release lock asset url does not match theme release');
   }
   if (Number(lockAsset.size || 0) !== Number(expectedTheme.artifact.size || 0)) {
     out.problems.push('demo release lock asset size does not match theme release');

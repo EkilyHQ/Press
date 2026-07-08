@@ -159,6 +159,24 @@ test('releaseIntentToProductStateSources restores standard theme demo channels f
   assert.equal(arcus.observedChannels.demoLock.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
 });
 
+test('releaseIntentToProductStateSources restores legacy theme demo channels from the observed source root', () => {
+  const intent = buildReleaseIntent({
+    systemRelease: systemRelease(),
+    rawRoot: 'https://raw.example.test/staging',
+    source: 'https://raw.example.test/staging/EkilyHQ/Press/release-artifacts/v3.4.62/release-intent.json'
+  });
+  intent.targets.forEach((target) => {
+    if (target.category === 'themeDemo') delete target.observedChannels;
+  });
+  const sources = releaseIntentToProductStateSources(intent);
+  const arcus = sources.themeDemos.find((source) => source.key === 'arcus');
+
+  assert.equal(arcus.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json');
+  assert.equal(arcus.observedChannels.themeManifest.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/arcus/theme.json');
+  assert.equal(arcus.observedChannels.themePacks.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json');
+  assert.equal(arcus.observedChannels.demoLock.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
+});
+
 test('validateReleaseIntent rejects partial theme demo observed channels', () => {
   const release = systemRelease();
   const intent = buildReleaseIntent({ systemRelease: release });

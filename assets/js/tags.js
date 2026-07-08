@@ -7,6 +7,35 @@ function getRegionReader(options = {}) {
   return options && typeof options.getRegion === 'function' ? options.getRegion : getThemeRegion;
 }
 
+function setTagsHidden(root, hidden) {
+  if (!root) return;
+  try { root.hidden = !!hidden; } catch (_) {}
+  try {
+    if (hidden) root.setAttribute('aria-hidden', 'true');
+    else root.removeAttribute('aria-hidden');
+  } catch (_) {}
+}
+
+function getSearchHrefResolver(options = {}) {
+  const direct = typeof options.getSearchHref === 'function' ? options.getSearchHref : null;
+  const router = options.router || (options.ctx && options.ctx.router) || {};
+  const helper = direct || (typeof router.getSearchHref === 'function' ? router.getSearchHref.bind(router) : null);
+  const lang = typeof options.withLangParam === 'function' ? options.withLangParam : withLangParam;
+  return (params = {}) => {
+    if (helper) {
+      try {
+        const href = helper(params);
+        return href ? String(href) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    const tag = params && params.tag ? String(params.tag) : '';
+    const suffix = tag ? `&tag=${encodeURIComponent(tag)}` : '';
+    return lang(`?tab=search${suffix}`);
+  };
+}
+
 // Build a sorted list of tags with counts from an index map
 export function aggregateTags(indexMap) {
   const counts = new Map();
@@ -33,17 +62,25 @@ export function aggregateTags(indexMap) {
 export function renderTagSidebar(indexMap, options = {}) {
   const root = getRegionReader(options)('tags');
   if (!root) return;
+  const getSearchHref = getSearchHrefResolver(options);
+  const allHref = getSearchHref({});
+  if (!allHref) {
+    root.innerHTML = '';
+    setTagsHidden(root, true);
+    return false;
+  }
+  setTagsHidden(root, false);
   const items = aggregateTags(indexMap);
   const currentTag = (getQueryVariable('tag') || '').trim().toLowerCase();
   const total = items.reduce((s, x) => s + x.count, 0);
-  const allHref = withLangParam('?tab=search');
   const header = `<div class="section-title">${t('ui.tags')}</div>`;
   if (!items.length) { root.innerHTML = header + `<div class="muted">${t('ui.allTags')}</div>`; return; }
   const lis = items.map(({ label, count }) => {
     const isActive = label.trim().toLowerCase() === currentTag;
-    const href = withLangParam(`?tab=search&tag=${encodeURIComponent(label)}`);
+    const href = getSearchHref({ tag: label });
+    if (!href) return '';
     return `<li><a class="tag-link${isActive ? ' active' : ''}" href="${href}" data-tag="${escapeHtml(label)}"><span class="tag-name">${escapeHtml(label)}</span><span class="tag-count">${count}</span></a></li>`;
-  }).join('');
+  }).filter(Boolean).join('');
   const allItem = `<li><a class="tag-link all${currentTag ? '' : ' active'}" href="${allHref}" data-tag=""><span class="tag-name">${t('ui.allTags')}</span><span class="tag-count">${total}</span></a></li>`;
   root.innerHTML = header + `
     <div class="tagbox">

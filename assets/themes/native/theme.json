@@ -1,10 +1,10 @@
 {
   "$schema": "../../schema/theme.json",
   "name": "Native",
-  "version": "3.4.2",
-  "contractVersion": 3,
+  "version": "3.4.3",
+  "contractVersion": 4,
   "engines": {
-    "press": ">=3.4.127 <4.0.0"
+    "press": ">=3.4.130 <4.0.0"
   },
   "styles": [
     "theme.css"

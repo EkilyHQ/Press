@@ -47,7 +47,7 @@ const entries = themes.map((slug) => {
     value: slug,
     label: manifest.name || slug,
     version: manifest.version || 'local',
-    contractVersion: manifest.contractVersion || 3,
+    contractVersion: manifest.contractVersion || 4,
     source: {
       type: 'local-dev',
       symlink: `../../Press-Theme-${manifest.name || slug}/theme`

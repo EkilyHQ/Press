@@ -1,0 +1,33 @@
+{
+  "name": "@ekilyhq/press-theme-contract",
+  "version": "3.4.130",
+  "description": "Press theme contract helpers and packaged theme validation rules.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EkilyHQ/Press.git",
+    "directory": "packages/press-theme-contract"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "prepack": "node scripts/sync-assets.mjs",
+    "postpack": "node scripts/sync-assets.mjs --clean"
+  },
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "scripts/sync-assets.mjs",
+    "assets/js/press-version.js",
+    "assets/js/theme-contract-surface.mjs",
+    "assets/js/theme-package-core.js",
+    "assets/js/theme-route-guard.js",
+    "assets/js/vendor/acorn.mjs",
+    "assets/js/vendor/acorn-walk.mjs",
+    "assets/js/vendor/fflate.browser.js"
+  ]
+}

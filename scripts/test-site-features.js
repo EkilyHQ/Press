@@ -108,6 +108,17 @@ assert.doesNotMatch(mainSource, /if \(!q && !tagFilter\) return displayHomeFallb
 assert.doesNotMatch(mainSource, /if \(!q && !tagFilter\) return displayIndex\(postsIndexCache\);/, 'empty search should not render All Posts directly');
 assert.doesNotMatch(mainSource, /Object\.keys\(tabsBySlug \|\| \{\}\)\[0\] \|\| \(searchEnabled\(\) \? 'search' : ''\)/, 'search should not be used as a synthetic home fallback');
 assert.match(mainSource, /if \(!postsEnabled\(\) && tab === 'posts'\) tab = homeSlug;/, 'disabled posts route should fall back to home');
+assert.doesNotMatch(mainSource, /withLangParam\(`\?tab=\$\{encodeURIComponent\(getHomeSlug\(\)\)\}`\)/, 'post error actions should not bypass the v4 home href helper');
+assert.match(
+  mainSource,
+  /protectedPostInvalid[\s\S]*const backHref = createThemeRouterContext\(\)\.getHomeHref\(\);[\s\S]*actions: backHref \? \[\{ href: backHref, label: backText \}\] : \[\]/,
+  'invalid protected-post action should use getHomeHref and disappear when home is unreachable'
+);
+assert.match(
+  mainSource,
+  /postNotFound[\s\S]*const backHref = createThemeRouterContext\(\)\.getHomeHref\(\);[\s\S]*actions: backHref \? \[\{ href: backHref, label: backText \}\] : \[\]/,
+  'missing-post action should use getHomeHref and disappear when home is unreachable'
+);
 assert.match(
   mainSource,
   /callThemeEffect\('setupFooter', \{[\s\S]*features: getSiteFeatureContext\(\)[\s\S]*getHomeSlug: \(\) => getHomeSlug\(\)[\s\S]*postsEnabled: \(\) => postsEnabled\(\)/,
@@ -188,7 +199,7 @@ assert.match(
 );
 assert.match(
   nativeThemeSource,
-  /if \(activeSlug === 'search' && featureEnabled\(params, runtimeState, 'search'\)\) \{[\s\S]*compact \+= `<a class="tab active" data-slug="search"/,
+  /if \(activeSlug === 'search' && featureEnabled\(params, runtimeState, 'search'\)\) \{[\s\S]*compact \+= makeSearchTab\(tag, q, label\)/,
   'native compact tabs should only render stale search chrome when search is enabled'
 );
 assert.match(
@@ -213,13 +224,13 @@ assert.match(
 );
 assert.match(
   nativeThemeSource,
-  /function afterIndexRenderNative[\s\S]*updateCardMetadata\(params\.entries \|\| \[\], \{[\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
-  'native after-index metadata hydration should receive the postMeta feature gate'
+  /function afterIndexRenderNative[\s\S]*updateCardMetadata\(filterEntriesWithNativePostHref\(params\.entries \|\| \[\][\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
+  'native after-index metadata hydration should filter unreachable post hrefs and receive the postMeta feature gate'
 );
 assert.match(
   nativeThemeSource,
-  /function afterSearchRenderNative[\s\S]*updateCardMetadata\(params\.entries \|\| \[\], \{[\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
-  'native after-search metadata hydration should receive the postMeta feature gate'
+  /function afterSearchRenderNative[\s\S]*updateCardMetadata\(filterEntriesWithNativePostHref\(params\.entries \|\| \[\][\s\S]*showPostMeta: featureEnabled\(params, runtimeState, 'postMeta'\)/,
+  'native after-search metadata hydration should filter unreachable post hrefs and receive the postMeta feature gate'
 );
 
 assert.doesNotMatch(
@@ -488,9 +499,14 @@ assert.equal(footerSepProbe.hidden, true, 'disabled native footer nav should hid
 assert.equal(footerSepProbe.attributes.get('aria-hidden'), 'true', 'disabled native footer nav separator should be aria-hidden');
 nativeApi.effects.renderFooterNav({
   tabsBySlug: { overview: { title: 'Overview' } },
-  getHomeSlug: () => 'overview',
-  getHomeLabel: () => 'Overview',
-  postsEnabled: () => false,
+  ctx: {
+    router: {
+      getHomeSlug: () => 'overview',
+      getHomeLabel: () => 'Overview',
+      postsEnabled: () => false,
+      getTabHref: (slug) => `?tab=${slug}`
+    }
+  },
   getQueryVariable: () => 'overview',
   withLangParam: (href) => href,
   features: createSiteFeatureContext({ features: { footerNav: { enabled: true } } })
@@ -550,6 +566,11 @@ const cardProbe = {
 };
 fakeDocument.querySelectorAll = (selector) => (selector === '.index a' ? [cardProbe] : []);
 nativeApi.effects.afterIndexRender({
+  ctx: {
+    router: {
+      getPostHref: (location) => `?id=${encodeURIComponent(location)}`
+    }
+  },
   entries: [['Product', {
     location: 'product.md',
     readTime: 4,
@@ -562,6 +583,11 @@ assert.equal(cardMetaProbe.textContent, '', 'disabled native postMeta should cle
 assert.equal(cardMetaAppended, false, 'disabled native postMeta should not append hydrated read-time/version/draft metadata');
 cardMetaProbe.textContent = 'Jul 2 • 4 min read';
 nativeApi.effects.afterSearchRender({
+  ctx: {
+    router: {
+      getPostHref: (location) => `?id=${encodeURIComponent(location)}`
+    }
+  },
   entries: [['Product', {
     location: 'product.md',
     readTime: 4,
@@ -612,6 +638,13 @@ const nativeTabsApi = mountNativeTheme({
       tags: { enabled: false }
     }
   }),
+  router: {
+    getHomeSlug: () => 'overview',
+    getHomeLabel: () => 'Overview',
+    postsEnabled: () => false,
+    getTabHref: (slug) => `?tab=${slug}`,
+    getSearchHref: ({ q } = {}) => (q ? `?tab=search&q=${encodeURIComponent(q)}` : '?tab=search')
+  },
   i18n: {
     t: (key, value) => (value ? `${key}:${value}` : key),
     withLangParam: (href) => href

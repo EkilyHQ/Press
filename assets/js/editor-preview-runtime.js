@@ -16,6 +16,7 @@ import { getArticleTitleFromMain } from './dom-utils.js';
 import { createThemeLayoutController, createThemeI18nContext } from './theme-layout.js';
 import { createEditorPreviewAppRuntime } from './editor-preview-app-runtime.js';
 import { createSiteFeatureContext } from './site-features.js';
+import { createThemeRouterHrefHelpers } from './theme-router-helpers.js';
 
 const RENDER_MESSAGE = 'press-editor-preview-render';
 const READY_MESSAGE = 'press-editor-preview-ready';
@@ -154,8 +155,18 @@ function setupPreviewTOC() {
   return setupTOC({ getRegion: getPreviewThemeRegion });
 }
 
-function renderPreviewTagSidebar(indexMap) {
-  return renderTagSidebar(indexMap, { getRegion: getPreviewThemeRegion });
+function renderPreviewPostNav(router, container, postsIndex, postname, options = {}) {
+  return renderPostNav(container, postsIndex, postname, {
+    router,
+    ...options
+  });
+}
+
+function renderPreviewTagSidebar(indexMap, options = {}) {
+  return renderTagSidebar(indexMap, {
+    getRegion: getPreviewThemeRegion,
+    ...options
+  });
 }
 
 function normalizeAssetKey(value) {
@@ -292,22 +303,39 @@ function getPreviewHomeLabel(payload, features) {
   return (tabsBySlug[slug] && tabsBySlug[slug].title) || slug;
 }
 
+function createPreviewRouterContext(payload, features) {
+  const hrefHelpers = createThemeRouterHrefHelpers({
+    withLangParam,
+    getHomeSlug: () => getPreviewHomeSlug(payload, features),
+    postsEnabled: () => previewPostsEnabled(features),
+    searchEnabled: () => previewSearchEnabled(features),
+    tagsEnabled: () => previewFeatureEnabled(features, 'tags')
+  });
+  return {
+    getRouteKey: () => (payload.currentPath ? `post:${payload.currentPath}` : 'editor-preview'),
+    withLangParam,
+    getHomeSlug: () => getPreviewHomeSlug(payload, features),
+    getHomeLabel: () => getPreviewHomeLabel(payload, features),
+    postsEnabled: () => previewPostsEnabled(features),
+    searchEnabled: () => previewSearchEnabled(features),
+    getHomeHref: hrefHelpers.getHomeHref,
+    getTabHref: hrefHelpers.getTabHref,
+    getPostHref: hrefHelpers.getPostHref,
+    getPostsHref: hrefHelpers.getPostsHref,
+    getSearchHref: hrefHelpers.getSearchHref,
+    navigate() { return false; }
+  };
+}
+
 function createRuntimeContext({ payload, containers, content, features }) {
   const layout = themeLayout.getThemeLayoutContext();
+  const router = createPreviewRouterContext(payload, features);
   return {
     document: previewRuntime.documentRef,
     window: previewRuntime.windowRef,
     view: 'post',
     route: { key: payload.currentPath ? `post:${payload.currentPath}` : 'editor-preview', id: payload.currentPath || '' },
-    router: {
-      getRouteKey: () => (payload.currentPath ? `post:${payload.currentPath}` : 'editor-preview'),
-      withLangParam,
-      getHomeSlug: () => getPreviewHomeSlug(payload, features),
-      getHomeLabel: () => getPreviewHomeLabel(payload, features),
-      postsEnabled: () => previewPostsEnabled(features),
-      searchEnabled: () => previewSearchEnabled(features),
-      navigate() { return false; }
-    },
+    router,
     i18n: createThemeI18nContext(),
     features,
     content,
@@ -315,7 +343,7 @@ function createRuntimeContext({ payload, containers, content, features }) {
     containers,
     utilities: {
       getRegion: getPreviewThemeRegion,
-      renderPostNav,
+      renderPostNav: (...args) => renderPreviewPostNav(router, args[0], args[1], args[2], args[3] || {}),
       hydratePostImages,
       hydratePostVideos,
       hydrateInternalLinkCards,
@@ -324,7 +352,7 @@ function createRuntimeContext({ payload, containers, content, features }) {
       renderPostTOC: () => {},
       renderTagSidebar: (...args) => {
         if (!previewFeatureEnabled(features, 'tags') || !previewSearchEnabled(features)) return false;
-        return renderPreviewTagSidebar(...args);
+        return renderPreviewTagSidebar(args[0], { router, ...(args[1] || {}) });
       },
       setupAnchors: setupPreviewAnchors,
       setupTOC: setupPreviewTOC,
@@ -354,11 +382,13 @@ async function renderPreview(payload = {}) {
   try {
     const reset = previewRuntime.shouldResetThemePack(requestedPack);
     const features = createSiteFeatureContext(payload.siteConfig || {});
+    const previewRouter = createPreviewRouterContext(payload, features);
     const layout = await themeLayout.ensureThemeLayout({
       pack: requestedPack,
       persist: false,
       reset,
-      features
+      features,
+      router: previewRouter
     });
     if (!isCurrentPreviewRender(requestId)) return;
     const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);
@@ -414,7 +444,7 @@ async function renderPreview(payload = {}) {
       document: previewRuntime.documentRef,
       window: previewRuntime.windowRef,
       utilities: {
-        renderPostNav,
+        renderPostNav: (...args) => renderPreviewPostNav(ctx.router, args[0], args[1], args[2], args[3] || {}),
         hydratePostImages,
         hydratePostVideos,
         hydrateInternalLinkCards,
@@ -423,7 +453,7 @@ async function renderPreview(payload = {}) {
         renderPostTOC: () => {},
         renderTagSidebar: (...args) => {
           if (!previewFeatureEnabled(features, 'tags') || !previewSearchEnabled(features)) return false;
-          return renderPreviewTagSidebar(...args);
+          return renderPreviewTagSidebar(args[0], { router: ctx.router, ...(args[1] || {}) });
         },
         getArticleTitleFromMain,
         setupAnchors: setupPreviewAnchors,
@@ -441,7 +471,7 @@ async function renderPreview(payload = {}) {
         setSafeHtml: setPreviewSafeHtml,
         withLangParam,
         fetchMarkdown: (loc) => previewRuntime.fetchText(`${getContentRoot()}/${loc}`),
-        makeLangHref: (loc) => withLangParam(`?id=${encodeURIComponent(loc)}`)
+        makeLangHref: (loc) => (ctx.router && ctx.router.getPostHref(loc))
       }
     }));
     if (!isCurrentPreviewRender(requestId)) return;

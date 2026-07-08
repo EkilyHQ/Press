@@ -167,7 +167,7 @@ function hydrateInternalLinkCardsWithRuntime(runtime, container, options = {}) {
     siteConfig = {},
     fetchMarkdown = (loc) => defaultFetchMarkdown(runtime, loc),
     translate = defaultTranslate,
-    makeHref = defaultMakeHref
+    makeHref = null
   } = options || {};
 
   try {
@@ -211,17 +211,19 @@ function hydrateInternalLinkCardsWithRuntime(runtime, container, options = {}) {
     };
 
     const buildCardHref = (loc, parsed) => {
+      const hasCustomMakeHref = typeof makeHref === 'function';
       let baseHref = '';
       try {
-        baseHref = makeHref ? makeHref(loc, parsed) : defaultMakeHref(loc);
+        baseHref = hasCustomMakeHref ? makeHref(loc, parsed) : defaultMakeHref(loc);
       } catch (_) {
-        baseHref = defaultMakeHref(loc);
+        baseHref = hasCustomMakeHref ? '' : defaultMakeHref(loc);
       }
       if (baseHref == null || baseHref === false) baseHref = '';
-      baseHref = String(baseHref);
+      baseHref = String(baseHref).trim();
+      if (!baseHref || baseHref === '#') return '';
 
       if (!parsed || !parsed.url) {
-        return baseHref || defaultMakeHref(loc);
+        return baseHref;
       }
 
       let extras = '';
@@ -242,24 +244,7 @@ function hydrateInternalLinkCardsWithRuntime(runtime, container, options = {}) {
         base = base.slice(0, hashIdx);
       }
 
-      if (!base) {
-        try {
-          const clone = new URL(parsed.url.href);
-          clone.searchParams.set('id', loc);
-          if (!extras) {
-            // extras already included via clone search params
-          }
-          if (parsed.startsWithQuery) {
-            return `${clone.search || ''}${clone.hash || ''}` || defaultMakeHref(loc);
-          }
-          if (clone.origin === windowRef.location.origin) {
-            return `${clone.pathname}${clone.search}${clone.hash || ''}` || defaultMakeHref(loc);
-          }
-          return clone.href || defaultMakeHref(loc);
-        } catch (_) {
-          return parsed.originalHref || defaultMakeHref(loc);
-        }
-      }
+      if (!base) return '';
 
       if (extras) {
         if (base.includes('?')) {
@@ -292,6 +277,7 @@ function hydrateInternalLinkCardsWithRuntime(runtime, container, options = {}) {
 
       const { title: resolvedTitle = loc, meta = {} } = resolveMetaForLocation(loc, postsIndexCache, postsByLocationTitle) || {};
       const href = buildCardHref(loc, parsed);
+      if (!href) return;
       const tagsHtml = renderTags(meta.tag);
       const dateHtml = meta && meta.date ? `<span class="card-date">${escapeHtml(formatDisplayDate(meta.date))}</span>` : '';
       const protectedHtml = meta && meta.protected ? `<span class="card-draft">${escapeHtml(translate('ui.protectedBadge'))}</span>` : '';

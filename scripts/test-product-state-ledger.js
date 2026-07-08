@@ -465,7 +465,7 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.desired.themeDemos.arcus.reconciler.kind, 'theme-demo-runtime-sync');
   assert.equal(state.desired.themes.catalog.expectedCount, 1);
   assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.51');
-  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 3);
+  assert.equal(state.desired.themes.entries[0].expectedContractVersion, 4);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
   assert.equal(state.themes.catalog.status, 'ok');
@@ -791,7 +791,7 @@ test('buildProductState marks incompatible theme release manifests as drift', as
   assert.equal(shouldFailCheck(state, { allowPending: true, allowUnknown: true }), true);
 });
 
-test('buildProductState accepts supported theme contract versions', async () => {
+test('buildProductState accepts supported transition theme contract versions', async () => {
   const state = await buildProductState({
     sources: makeSources(),
     loadJson: loader(makeFixtures({
@@ -802,6 +802,39 @@ test('buildProductState accepts supported theme contract versions', async () => 
 
   assert.equal(state.themes.entries[0].contractVersion, 3);
   assert.notEqual(state.themes.entries[0].status, 'drift');
+
+  const transitionRelease = systemRelease('3.4.130');
+  const transitionFixtures = {
+    'fixture:system': transitionRelease,
+    'fixture:intent': releaseIntentFixture(transitionRelease),
+    'fixture:yap': pressManifest('3.4.130'),
+    'fixture:starter': systemRelease('3.4.130'),
+    'fixture:arcus-demo': pressManifest('3.4.130')
+  };
+  const v4State = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      ...transitionFixtures,
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.130 <4.0.0', 4)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(v4State.themes.entries[0].contractVersion, 4);
+  assert.notEqual(v4State.themes.entries[0].status, 'drift');
+
+  const tooWideV4State = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      ...transitionFixtures,
+      'fixture:theme-arcus': themeRelease('arcus', '3.4.2', '>=3.4.0 <4.0.0', 4)
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(tooWideV4State.themes.entries[0].contractVersion, 4);
+  assert.equal(tooWideV4State.themes.entries[0].status, 'drift');
+  assert.match(tooWideV4State.themes.entries[0].problems.join('\n'), /before 3\.4\.130/);
 });
 
 test('buildProductState rejects transition theme contract v2 after cleanup', async () => {

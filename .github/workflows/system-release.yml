@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 concurrency:
   group: release-artifacts
@@ -49,6 +50,7 @@ jobs:
           node scripts/test-release-targets.js
           node scripts/test-release-intent.js
           node scripts/test-dispatch-system-release.js
+          node scripts/test-theme-contract-package.mjs
           node scripts/test-product-state-ledger.js
           node scripts/test-product-state-dashboard.js
           node --experimental-default-type=module scripts/test-system-updates.js
@@ -272,6 +274,30 @@ jobs:
           if digest and digest != f"sha256:{expected_sha}":
               sys.exit(f"asset digest mismatch: expected sha256:{expected_sha}, got {digest}")
           PY
+
+      - name: Publish theme contract package
+        if: steps.plan.outputs.should_release == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          NEXT_TAG: ${{ steps.plan.outputs.next_tag }}
+        run: |
+          set -euo pipefail
+          package_version="${NEXT_TAG#v}"
+          package_root="$(node scripts/build-theme-contract-package.mjs --out dist/theme-contract-package)"
+          npm config set @ekilyhq:registry https://npm.pkg.github.com
+          npm config set //npm.pkg.github.com/:_authToken "${NODE_AUTH_TOKEN}"
+          package_pack_dir="$(mktemp -d)"
+          npm pack "${package_root}" --json --pack-destination "${package_pack_dir}" > dist/theme-contract-package-local.json
+          built_tarball="$(node -e 'const fs = require("fs"); const path = require("path"); const data = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); console.log(path.join(process.argv[2], data[0].filename));' dist/theme-contract-package-local.json "${package_pack_dir}")"
+          if npm view "@ekilyhq/press-theme-contract@${package_version}" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            published_pack_dir="$(mktemp -d)"
+            npm pack "@ekilyhq/press-theme-contract@${package_version}" --json --pack-destination "${published_pack_dir}" --registry=https://npm.pkg.github.com > dist/theme-contract-package-published.json
+            published_tarball="$(node -e 'const fs = require("fs"); const path = require("path"); const data = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); console.log(path.join(process.argv[2], data[0].filename));' dist/theme-contract-package-published.json "${published_pack_dir}")"
+            node scripts/compare-theme-contract-package.mjs "${built_tarball}" "${published_tarball}"
+            echo "@ekilyhq/press-theme-contract@${package_version} is already published and matches this build."
+          else
+            npm publish "${built_tarball}" --registry=https://npm.pkg.github.com
+          fi
 
       - name: Publish release
         if: steps.plan.outputs.should_release == 'true'

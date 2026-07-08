@@ -15,6 +15,11 @@ if grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
   exit 1
 fi
 
+if ! grep -F 'packages: write' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish the Press-owned theme contract package" >&2
+  exit 1
+fi
+
 if ! grep -F 'group: release-artifacts' "${workflow}" >/dev/null; then
   echo "system release workflow must share the release-artifacts concurrency group with product-state refreshes" >&2
   exit 1
@@ -210,6 +215,11 @@ fi
 
 if ! grep -F 'node scripts/test-dispatch-system-release.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify release dispatch helpers before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-theme-contract-package.mjs' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the publishable theme contract package before publishing" >&2
   exit 1
 fi
 
@@ -481,8 +491,23 @@ fi
 publish_line="$(grep -nF -- '- name: Publish release' "${workflow}" | head -n 1 | cut -d: -f1)"
 artifact_line="$(grep -nF -- '- name: Publish fetchable artifact' "${workflow}" | head -n 1 | cut -d: -f1)"
 dispatch_line="$(grep -nF -- '- name: Dispatch release targets' "${workflow}" | head -n 1 | cut -d: -f1)"
+theme_contract_package_line="$(grep -nF -- '- name: Publish theme contract package' "${workflow}" | head -n 1 | cut -d: -f1)"
 if [[ -z "${publish_line}" || -z "${artifact_line}" || -z "${dispatch_line}" || "${publish_line}" -ge "${artifact_line}" || "${artifact_line}" -ge "${dispatch_line}" ]]; then
   echo "system release workflow must publish the release-artifacts manifest after release publication and before release dispatches" >&2
+  exit 1
+fi
+if [[ -z "${theme_contract_package_line}" || "${theme_contract_package_line}" -ge "${publish_line}" ]]; then
+  echo "system release workflow must publish the theme contract package before publishing the GitHub Release" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/build-theme-contract-package.mjs --out dist/theme-contract-package' "${workflow}" >/dev/null || ! grep -F 'npm pack "${package_root}" --json --pack-destination "${package_pack_dir}"' "${workflow}" >/dev/null || ! grep -F 'npm publish "${built_tarball}" --registry=https://npm.pkg.github.com' "${workflow}" >/dev/null || ! grep -F '@ekilyhq/press-theme-contract@${package_version}' "${workflow}" >/dev/null; then
+  echo "system release workflow must publish the Press-owned theme contract package to GitHub Packages" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/compare-theme-contract-package.mjs "${built_tarball}" "${published_tarball}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify an existing theme contract package matches the current build before skipping publish" >&2
   exit 1
 fi
 

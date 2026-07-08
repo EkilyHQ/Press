@@ -111,7 +111,7 @@ function firstDefined(...values) {
 }
 
 function reflectThemeRuntimeConfig(context, options = {}, themeSettings = null) {
-  if (!context || !context.theme || !context.theme.effects) return false;
+  if (!context.theme || !context.theme.effects) return false;
   const effect = context.theme.effects.reflectThemeConfig;
   if (typeof effect !== 'function') return false;
   const siteConfig = options && options.siteConfig && typeof options.siteConfig === 'object'

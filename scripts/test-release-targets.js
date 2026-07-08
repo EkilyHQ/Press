@@ -65,6 +65,9 @@ test('product-state defaults are derived from release targets', () => {
   assert.equal(DEFAULT_SOURCES.downstream[1].reconciler.kind, 'theme-starter-marker-sync');
   DEFAULT_SOURCES.themeDemos.forEach((source) => {
     assert.equal(source.reconciler.kind, 'theme-demo-runtime-sync');
+    assert.equal(source.observedChannels.themeManifest.source, `https://raw.githubusercontent.com/${source.repository}/demo/assets/themes/${source.key}/theme.json`);
+    assert.equal(source.observedChannels.themePacks.source, `https://raw.githubusercontent.com/${source.repository}/demo/assets/themes/packs.json`);
+    assert.equal(source.observedChannels.demoLock.source, `https://raw.githubusercontent.com/${source.repository}/demo/demo-release-lock.json`);
   });
 });
 

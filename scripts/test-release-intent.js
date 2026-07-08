@@ -78,6 +78,10 @@ test('buildReleaseIntent freezes Press release targets and artifact metadata', (
   assert.deepEqual(intent.targets.map((target) => target.key), getReleaseTargets().map((target) => target.key));
   assert.equal(intent.targets[0].expected.version, '3.4.62');
   assert.equal(intent.targets[0].observed.source, 'https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json');
+  const arcusTarget = intent.targets.find((target) => target.key === 'arcus');
+  assert.equal(arcusTarget.observedChannels.themeManifest.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/arcus/theme.json');
+  assert.equal(arcusTarget.observedChannels.themePacks.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json');
+  assert.equal(arcusTarget.observedChannels.demoLock.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
   assert.equal(intent.targets[0].reconciler.idempotent, true);
   assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);
 });
@@ -135,6 +139,57 @@ test('releaseIntentToProductStateSources derives downstream observation sources 
   ]);
   assert.equal(sources.downstream[0].reconciler.kind, 'press-runtime-sync');
   assert.equal(sources.themeDemos[0].reconciler.kind, 'theme-demo-runtime-sync');
+  assert.equal(sources.themeDemos[0].observedChannels.themeManifest.path, 'assets/themes/arcus/theme.json');
+  assert.equal(sources.themeDemos[0].observedChannels.demoLock.type, 'theme-demo-release-lock');
+});
+
+test('releaseIntentToProductStateSources restores standard theme demo channels for older intents', () => {
+  const intent = buildReleaseIntent({
+    systemRelease: systemRelease(),
+    source: 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.62/release-intent.json'
+  });
+  intent.targets.forEach((target) => {
+    delete target.observedChannels;
+  });
+  const sources = releaseIntentToProductStateSources(intent);
+  const arcus = sources.themeDemos.find((source) => source.key === 'arcus');
+
+  assert.equal(arcus.observedChannels.themeManifest.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/arcus/theme.json');
+  assert.equal(arcus.observedChannels.themePacks.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json');
+  assert.equal(arcus.observedChannels.demoLock.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
+  assert.equal(arcus.observedChannels.demoLock.required, false);
+});
+
+test('releaseIntentToProductStateSources restores legacy theme demo channels from the observed source root', () => {
+  const intent = buildReleaseIntent({
+    systemRelease: systemRelease(),
+    rawRoot: 'https://raw.example.test/staging',
+    source: 'https://raw.example.test/staging/EkilyHQ/Press/release-artifacts/v3.4.62/release-intent.json'
+  });
+  intent.targets.forEach((target) => {
+    if (target.category === 'themeDemo') delete target.observedChannels;
+  });
+  const sources = releaseIntentToProductStateSources(intent);
+  const arcus = sources.themeDemos.find((source) => source.key === 'arcus');
+
+  assert.equal(arcus.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json');
+  assert.equal(arcus.observedChannels.themeManifest.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/arcus/theme.json');
+  assert.equal(arcus.observedChannels.themePacks.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json');
+  assert.equal(arcus.observedChannels.demoLock.source, 'https://raw.example.test/staging/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
+  assert.equal(arcus.observedChannels.demoLock.required, false);
+});
+
+test('validateReleaseIntent rejects partial theme demo observed channels', () => {
+  const release = systemRelease();
+  const intent = buildReleaseIntent({ systemRelease: release });
+  const arcus = intent.targets.find((target) => target.key === 'arcus');
+  arcus.observedChannels = {
+    themeManifest: arcus.observedChannels.themeManifest
+  };
+
+  const failures = validateReleaseIntent(intent, { systemRelease: release }).join('\n');
+
+  assert.match(failures, /observedChannels must include complete themeManifest, themePacks, and demoLock channels/u);
 });
 
 test('validateReleaseIntent rejects release/system mismatches', () => {

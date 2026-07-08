@@ -188,6 +188,11 @@ function semverToTag(value) {
   return version ? `v${version}` : '';
 }
 
+function normalizeDigest(value) {
+  const text = String(value || '').trim().replace(/^sha256:/i, '').toLowerCase();
+  return text ? `sha256:${text}` : '';
+}
+
 function compareSemver(a, b) {
   const left = normalizeSemver(a);
   const right = normalizeSemver(b);
@@ -494,6 +499,7 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
     version: '',
     contractVersion: null,
     engines: {},
+    release: {},
     artifact: {},
     problems: []
   };
@@ -506,12 +512,18 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
   out.version = String(manifest.version || '').trim();
   out.contractVersion = Number(manifest.contractVersion);
   out.engines = manifest.engines && typeof manifest.engines === 'object' ? manifest.engines : {};
+  const release = manifest.release && typeof manifest.release === 'object' ? manifest.release : {};
+  out.release = {
+    tag: String(release.tag || manifest.tag || '').trim(),
+    htmlUrl: String(release.htmlUrl || manifest.htmlUrl || manifest.html_url || manifest.releaseUrl || '').trim(),
+    publishedAt: String(release.publishedAt || manifest.publishedAt || manifest.published_at || '').trim()
+  };
   const asset = manifest.asset && typeof manifest.asset === 'object' ? manifest.asset : {};
   out.artifact = {
     name: String(asset.name || '').trim(),
     url: String(asset.url || '').trim(),
     size: Number(asset.size || 0),
-    digest: String(asset.digest || '').trim()
+    digest: normalizeDigest(asset.digest)
   };
 
   if (manifest.schemaVersion !== 1 || manifest.type !== 'press-theme') {
@@ -526,6 +538,10 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
     out.status = 'drift';
     out.problems.push('theme release must declare version and supported contractVersion');
   }
+  if (out.release.tag !== semverToTag(out.version)) {
+    out.status = 'drift';
+    out.problems.push('theme release tag must match version');
+  }
   if (!out.engines.press || !satisfiesSemverRange(pressVersion, out.engines.press)) {
     out.status = 'drift';
     out.problems.push(`theme engines.press does not accept Press ${pressVersion}`);
@@ -539,6 +555,202 @@ function themeReleaseEntry(catalogEntry, result, pressVersion) {
     out.problems.push('theme release asset must declare url, size, and digest');
   }
   if (out.status !== 'drift') out.status = 'ok';
+  return out;
+}
+
+function channelResultLabel(result) {
+  return result && result.source ? result.source : 'unknown source';
+}
+
+function themeDemoChannelSource(source, key) {
+  const channels = source && source.observedChannels && typeof source.observedChannels === 'object'
+    ? source.observedChannels
+    : {};
+  return channels[key] && channels[key].source ? channels[key].source : '';
+}
+
+function themeDemoChannelRequired(source, key) {
+  const channels = source && source.observedChannels && typeof source.observedChannels === 'object'
+    ? source.observedChannels
+    : {};
+  return !(channels[key] && channels[key].required === false);
+}
+
+function findThemePackEntry(packs, slug) {
+  if (!Array.isArray(packs)) return null;
+  return packs.find((entry) => String(entry && entry.value || '').trim() === slug) || null;
+}
+
+function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, packsResult, lockResult, lockRequired = true, pressVersion, systemRelease, releaseIntentSource }) {
+  const slug = String(source.key || '').trim();
+  const out = {
+    status: 'unknown',
+    expectedVersion: expectedTheme && expectedTheme.version ? expectedTheme.version : '',
+    expectedTag: expectedTheme && expectedTheme.release ? expectedTheme.release.tag : '',
+    expectedDigest: expectedTheme && expectedTheme.artifact ? normalizeDigest(expectedTheme.artifact.digest) : '',
+    observedVersion: '',
+    observedTag: '',
+    observedDigest: '',
+    sources: {
+      manifest: manifestResult && manifestResult.source || '',
+      packs: packsResult && packsResult.source || '',
+      lock: lockResult && lockResult.source || ''
+    },
+    problems: []
+  };
+
+  if (!expectedTheme || expectedTheme.status !== 'ok') {
+    out.problems.push('expected theme release is unavailable or invalid');
+    return out;
+  }
+
+  if (!manifestResult || !manifestResult.ok) {
+    out.status = 'drift';
+    out.problems.push(`demo theme manifest is unreachable: ${manifestResult ? manifestResult.error : 'missing source'}`);
+    return out;
+  }
+  if (!packsResult || !packsResult.ok) {
+    out.status = 'drift';
+    out.problems.push(`demo theme packs registry is unreachable: ${packsResult ? packsResult.error : 'missing source'}`);
+    return out;
+  }
+  if ((!lockResult || !lockResult.ok) && lockRequired) {
+    out.status = 'drift';
+    out.problems.push(`demo release lock is unreachable: ${lockResult ? lockResult.error : 'missing source'}`);
+    return out;
+  }
+
+  const manifest = manifestResult.value && typeof manifestResult.value === 'object' ? manifestResult.value : {};
+  const manifestEngines = manifest.engines && typeof manifest.engines === 'object' ? manifest.engines : {};
+  const packs = packsResult.value;
+  const hasLock = !!(lockResult && lockResult.ok);
+  const lock = hasLock && lockResult.value && typeof lockResult.value === 'object' ? lockResult.value : {};
+  const packEntry = findThemePackEntry(packs, slug);
+  const packSource = packEntry && packEntry.source && typeof packEntry.source === 'object' ? packEntry.source : {};
+  const packRelease = packEntry && packEntry.release && typeof packEntry.release === 'object' ? packEntry.release : {};
+  const lockTheme = lock.theme && typeof lock.theme === 'object' ? lock.theme : {};
+  const lockThemeEngines = lockTheme.engines && typeof lockTheme.engines === 'object' ? lockTheme.engines : {};
+  const lockPress = lock.pressSystem && typeof lock.pressSystem === 'object' ? lock.pressSystem : {};
+  const lockAsset = lockTheme.asset && typeof lockTheme.asset === 'object' ? lockTheme.asset : {};
+  const lockPressAsset = lockPress.asset && typeof lockPress.asset === 'object' ? lockPress.asset : {};
+  const lockReleaseIntent = lockPress.releaseIntent && typeof lockPress.releaseIntent === 'object' ? lockPress.releaseIntent : {};
+  const expectedPressAsset = systemRelease && systemRelease.asset && typeof systemRelease.asset === 'object'
+    ? systemRelease.asset
+    : {};
+
+  out.observedVersion = String(manifest.version || '').trim();
+  out.observedTag = String(packRelease.tag || lockTheme.release && lockTheme.release.tag || '').trim();
+  out.observedDigest = normalizeDigest(packRelease.digest || lockAsset.digest);
+
+  if (String(manifest.version || '').trim() !== expectedTheme.version) {
+    out.problems.push(`demo theme manifest is ${String(manifest.version || 'unknown')}, expected ${expectedTheme.version}`);
+  }
+  if (Number(manifest.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
+    out.problems.push(`demo theme manifest contractVersion is ${Number(manifest.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
+  }
+  if (String(manifestEngines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+    out.problems.push('demo theme manifest engines.press does not match theme release');
+  } else if (!satisfiesSemverRange(pressVersion, manifestEngines.press)) {
+    out.problems.push(`demo theme manifest engines.press does not accept Press ${pressVersion}`);
+  }
+  if (!packEntry) {
+    out.problems.push('demo packs registry is missing the installed theme entry');
+  } else {
+    if (String(packEntry.version || '').trim() !== expectedTheme.version) {
+      out.problems.push(`demo packs registry is ${String(packEntry.version || 'unknown')}, expected ${expectedTheme.version}`);
+    }
+    if (Number(packEntry.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
+      out.problems.push(`demo packs registry contractVersion is ${Number(packEntry.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
+    }
+    if (String(packEntry.engines && packEntry.engines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+      out.problems.push('demo packs registry engines.press does not match theme release');
+    }
+    if (String(packSource.type || '').trim() !== 'official') {
+      out.problems.push('demo packs registry source type must be official');
+    }
+    if (String(packSource.repo || '').trim() !== expectedTheme.repository) {
+      out.problems.push('demo packs registry source repo does not match theme release');
+    }
+    if (String(packSource.manifestUrl || '').trim() !== expectedTheme.manifestUrl) {
+      out.problems.push('demo packs registry source manifestUrl does not match theme release');
+    }
+    if (String(packRelease.tag || '').trim() !== expectedTheme.release.tag) {
+      out.problems.push(`demo packs registry release tag is ${String(packRelease.tag || 'unknown')}, expected ${expectedTheme.release.tag}`);
+    }
+    if (String(packRelease.htmlUrl || '').trim() !== expectedTheme.release.htmlUrl) {
+      out.problems.push('demo packs registry release htmlUrl does not match theme release');
+    }
+    if (String(packRelease.publishedAt || '').trim() !== expectedTheme.release.publishedAt) {
+      out.problems.push('demo packs registry release publishedAt does not match theme release');
+    }
+    if (String(packRelease.assetName || '').trim() !== expectedTheme.artifact.name) {
+      out.problems.push('demo packs registry assetName does not match theme release');
+    }
+    if (Number(packRelease.size || 0) !== Number(expectedTheme.artifact.size || 0)) {
+      out.problems.push('demo packs registry size does not match theme release');
+    }
+    if (normalizeDigest(packRelease.digest) !== normalizeDigest(expectedTheme.artifact.digest)) {
+      out.problems.push('demo packs registry digest does not match theme release');
+    }
+  }
+  if (hasLock) {
+    if (lock.schemaVersion !== 1 || lock.type !== 'press-theme-demo-release-lock') {
+      out.problems.push('demo release lock must be schemaVersion 1 and type press-theme-demo-release-lock');
+    }
+    if (String(lock.slug || '').trim() !== slug || String(lockTheme.value || '').trim() !== slug) {
+      out.problems.push('demo release lock slug does not match theme demo target');
+    }
+    if (String(lockPress.version || '').trim() !== pressVersion || String(lockPress.tag || '').trim() !== semverToTag(pressVersion)) {
+      out.problems.push(`demo release lock Press system is ${String(lockPress.version || 'unknown')}, expected ${pressVersion}`);
+    }
+    if (String(lockPressAsset.name || '').trim() !== String(expectedPressAsset.name || '').trim()) {
+      out.problems.push('demo release lock Press asset name does not match system release');
+    }
+    if (String(lockPressAsset.url || '').trim() !== String(expectedPressAsset.url || '').trim()) {
+      out.problems.push('demo release lock Press asset url does not match system release');
+    }
+    if (Number(lockPressAsset.size || 0) !== Number(expectedPressAsset.size || 0)) {
+      out.problems.push('demo release lock Press asset size does not match system release');
+    }
+    if (normalizeDigest(lockPressAsset.digest) !== normalizeDigest(expectedPressAsset.digest)) {
+      out.problems.push('demo release lock Press asset digest does not match system release');
+    }
+    if (releaseIntentSource && String(lockReleaseIntent.source || '').trim() !== releaseIntentSource) {
+      out.problems.push('demo release lock Press releaseIntent source does not match release intent');
+    }
+    if (String(lockTheme.version || '').trim() !== expectedTheme.version) {
+      out.problems.push(`demo release lock theme is ${String(lockTheme.version || 'unknown')}, expected ${expectedTheme.version}`);
+    }
+    if (Number(lockTheme.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
+      out.problems.push(`demo release lock contractVersion is ${Number(lockTheme.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
+    }
+    if (String(lockThemeEngines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+      out.problems.push('demo release lock theme engines.press does not match theme release');
+    }
+    if (String(lockTheme.release && lockTheme.release.tag || '').trim() !== expectedTheme.release.tag) {
+      out.problems.push('demo release lock theme tag does not match theme release');
+    }
+    if (String(lockTheme.release && lockTheme.release.htmlUrl || '').trim() !== expectedTheme.release.htmlUrl) {
+      out.problems.push('demo release lock theme release htmlUrl does not match theme release');
+    }
+    if (String(lockTheme.release && lockTheme.release.publishedAt || '').trim() !== expectedTheme.release.publishedAt) {
+      out.problems.push('demo release lock theme release publishedAt does not match theme release');
+    }
+    if (String(lockAsset.name || '').trim() !== expectedTheme.artifact.name) {
+      out.problems.push('demo release lock asset name does not match theme release');
+    }
+    if (String(lockAsset.url || '').trim() !== expectedTheme.artifact.url) {
+      out.problems.push('demo release lock asset url does not match theme release');
+    }
+    if (Number(lockAsset.size || 0) !== Number(expectedTheme.artifact.size || 0)) {
+      out.problems.push('demo release lock asset size does not match theme release');
+    }
+    if (normalizeDigest(lockAsset.digest) !== normalizeDigest(expectedTheme.artifact.digest)) {
+      out.problems.push('demo release lock asset digest does not match theme release');
+    }
+  }
+
+  out.status = out.problems.length ? 'drift' : 'ok';
   return out;
 }
 
@@ -564,6 +776,7 @@ function downstreamTarget(source, pressVersion, fallbackReconcilerKind) {
     source: String(source.source || '').trim(),
     expectedVersion: target.version,
     expectedTag: target.tag,
+    observedChannels: clone(source.observedChannels || {}),
     reconciler: {
       eventType: String(sourceReconciler.eventType || source.eventType || 'press-system-release').trim(),
       kind: String(sourceReconciler.kind || fallbackReconcilerKind || legacyKind || 'press-runtime-sync').trim(),
@@ -940,6 +1153,54 @@ async function buildProductState(options = {}) {
           owner: theme.repository
         });
       }
+    }
+  }
+
+  const themesBySlug = new Map(state.themes.entries.map((entry) => [entry.slug, entry]));
+  for (const source of effectiveSources.themeDemos || []) {
+    const entry = state.themeDemos[source.key];
+    if (!entry) continue;
+    entry.pressSystem = {
+      status: entry.status,
+      source: entry.source,
+      expectedVersion: entry.expectedVersion,
+      observedVersion: entry.observedVersion,
+      expectedTag: semverToTag(entry.expectedVersion),
+      observedTag: entry.observedTag
+    };
+    const manifestSource = themeDemoChannelSource(source, 'themeManifest');
+    const packsSource = themeDemoChannelSource(source, 'themePacks');
+    const lockSource = themeDemoChannelSource(source, 'demoLock');
+    const lockRequired = themeDemoChannelRequired(source, 'demoLock');
+    const manifestResult = manifestSource
+      ? await loadJson(manifestSource)
+      : { ok: false, source: '', error: 'theme demo target is missing themeManifest observed channel' };
+    const packsResult = packsSource
+      ? await loadJson(packsSource)
+      : { ok: false, source: '', error: 'theme demo target is missing themePacks observed channel' };
+    const lockResult = lockSource
+      ? await loadJson(lockSource)
+      : { ok: false, source: '', error: 'theme demo target is missing demoLock observed channel' };
+    const installedTheme = themeDemoInstalledThemeEntry({
+      source,
+      expectedTheme: themesBySlug.get(source.key),
+      manifestResult,
+      packsResult,
+      lockResult,
+      lockRequired,
+      pressVersion,
+      systemRelease,
+      releaseIntentSource: canonicalReleaseIntentSource
+    });
+    entry.installedTheme = installedTheme;
+    entry.status = aggregateStatus([entry.pressSystem.status, installedTheme.status]);
+    if (installedTheme.status !== 'ok') {
+      addProblem(state, {
+        component: `themeDemos.${source.key}.theme`,
+        code: installedTheme.status === 'unknown' ? 'theme_demo_theme_unknown' : 'theme_demo_theme_drift',
+        message: installedTheme.problems.join('; ') || `theme demo installed theme could not be verified from ${channelResultLabel(manifestResult)}`,
+        owner: source.repository
+      });
     }
   }
 

@@ -32,7 +32,33 @@ function sampleState(overrides = {}) {
           }
         }
       },
-      themeDemos: {},
+      themeDemos: {
+        arcus: {
+          label: 'Arcus demo runtime',
+          repository: 'EkilyHQ/Press-Theme-Arcus',
+          expectedVersion: '3.4.52',
+          expectedTag: 'v3.4.52',
+          observedChannels: {
+            themeManifest: {
+              path: 'assets/themes/arcus/theme.json',
+              type: 'press-theme-manifest'
+            },
+            themePacks: {
+              path: 'assets/themes/packs.json',
+              type: 'press-theme-packs'
+            },
+            demoLock: {
+              path: 'demo-release-lock.json',
+              type: 'theme-demo-release-lock'
+            }
+          },
+          reconciler: {
+            eventType: 'press-system-release',
+            kind: 'theme-demo-runtime-sync',
+            idempotent: true
+          }
+        }
+      },
       themes: {
         entries: [
           {
@@ -67,7 +93,20 @@ function sampleState(overrides = {}) {
         repository: 'EkilyHQ/YAP'
       }
     },
-    themeDemos: {},
+    themeDemos: {
+      arcus: {
+        label: 'Arcus demo runtime',
+        status: 'ok',
+        expectedVersion: '3.4.52',
+        observedVersion: '3.4.52',
+        repository: 'EkilyHQ/Press-Theme-Arcus',
+        installedTheme: {
+          status: 'ok',
+          expectedVersion: '3.4.2',
+          observedVersion: '3.4.2'
+        }
+      }
+    },
     themes: {
       catalog: { status: 'ok', count: 1 },
       entries: [
@@ -129,6 +168,9 @@ test('renderProductStateDashboard renders human-readable product status sections
   assert.match(html, /press-runtime-sync/);
   assert.match(html, /theme-release-compatibility/);
   assert.match(html, /YAP starter runtime/);
+  assert.match(html, /Theme Demo Channels/);
+  assert.match(html, /Arcus demo runtime/);
+  assert.match(html, /Press v3\.4\.52 \/ Theme v3\.4\.2/);
   assert.match(html, /Official Themes/);
   assert.match(html, /Arcus/);
   assert.match(html, /ekily-connect/);

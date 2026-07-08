@@ -148,6 +148,29 @@ function themeRows(state) {
   }));
 }
 
+function themeDemoRows(state) {
+  return Object.entries(state && state.themeDemos && typeof state.themeDemos === 'object' ? state.themeDemos : {}).map(([key, entry]) => {
+    const installed = entry.installedTheme && typeof entry.installedTheme === 'object' ? entry.installedTheme : {};
+    const pressExpected = semverLabel(entry.expectedVersion);
+    const pressObserved = semverLabel(entry.observedVersion);
+    const themeExpected = semverLabel(installed.expectedVersion);
+    const themeObserved = semverLabel(installed.observedVersion);
+    return {
+      name: entry.label || key,
+      status: entry.status,
+      expected: [
+        pressExpected ? `Press ${pressExpected}` : '',
+        themeExpected ? `Theme ${themeExpected}` : ''
+      ].filter(Boolean).join(' / '),
+      observed: [
+        pressObserved ? `Press ${pressObserved}` : '',
+        themeObserved ? `Theme ${themeObserved}` : ''
+      ].filter(Boolean).join(' / '),
+      owner: entry.repository || ''
+    };
+  });
+}
+
 function renderProductStateDashboard(state) {
   const source = state && typeof state === 'object' ? state : {};
   const pressSystem = source.pressSystem && typeof source.pressSystem === 'object' ? source.pressSystem : {};
@@ -238,8 +261,8 @@ function renderProductStateDashboard(state) {
     </section>
 
     <section>
-      <h2>Theme Demo Runtime</h2>
-      ${renderRows(dashboardRowsFromMap(source.themeDemos))}
+      <h2>Theme Demo Channels</h2>
+      ${renderRows(themeDemoRows(source))}
     </section>
 
     <section>

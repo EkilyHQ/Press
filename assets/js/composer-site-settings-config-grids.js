@@ -488,6 +488,19 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
               commitValue(checkbox.checked);
               syncSwitchState(checkbox, toggle, checkbox.checked, false);
             });
+            if (field.defaultValue === undefined) {
+              const unsetButton = documentRef.createElement('button');
+              unsetButton.type = 'button';
+              unsetButton.className = 'btn-secondary btn-compact';
+              unsetButton.dataset.field = 'themeSettings';
+              unsetButton.dataset.subfield = field.key;
+              unsetButton.textContent = 'Not set';
+              unsetButton.addEventListener('click', () => {
+                commitValue(undefined);
+                syncSwitchState(checkbox, toggle, false, false);
+              });
+              controlCell.appendChild(unsetButton);
+            }
             return;
           }
 
@@ -561,7 +574,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
             commitValue(nextValue);
           });
           controlCell.appendChild(input);
-          if (field.control === 'color' && field.defaultValue === undefined) {
+          if ((field.control === 'color' || field.control === 'range') && field.defaultValue === undefined) {
             const unsetButton = documentRef.createElement('button');
             unsetButton.type = 'button';
             unsetButton.className = 'btn-secondary btn-compact';

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   applyThemeSettingsCssVariables,
+  getThemeSettingsForSlug,
   normalizeThemeSettingsMap,
   resolveThemeSettings,
   setThemeSettingOverride,
@@ -287,6 +288,30 @@ assert.equal(nullableTextResolution.fields[0].type, 'string', 'nullable schema a
 assert.equal(nullableTextResolution.settings.eyebrow, 'Launch');
 assert.deepEqual(nullableTextResolution.overrides, { eyebrow: 'Launch' });
 
+const nullableDefaultSchema = {
+  type: 'object',
+  properties: {
+    eyebrow: {
+      type: ['null', 'string'],
+      default: null,
+      'x-press': {
+        control: 'text'
+      }
+    }
+  }
+};
+assert.equal(validateThemeConfigSchema(nullableDefaultSchema), true, 'nullable settings may declare null as their JSON Schema default');
+const nullableDefaultResolution = resolveThemeSettings({
+  pack: 'arcus',
+  manifest: {
+    configSchema: nullableDefaultSchema
+  },
+  siteConfig: {}
+});
+assert.deepEqual(nullableDefaultResolution.defaults, {}, 'nullable null defaults should be treated as absent for scalar controls');
+assert.deepEqual(nullableDefaultResolution.settings, {}, 'nullable null defaults should not create a runtime setting');
+assert.deepEqual(nullableDefaultResolution.warnings, [], 'nullable null defaults should not warn during runtime resolution');
+
 const normalizedMap = normalizeThemeSettingsMap({
   Arcus: { accentColor: '#abcdef' },
   'bad slug!': { accentColor: '#fedcba' },
@@ -296,6 +321,17 @@ assert.deepEqual(normalizedMap, {
   arcus: { accentColor: '#abcdef' },
   badslug: { accentColor: '#fedcba' }
 });
+const prototypeSettings = JSON.parse('{"__proto__":{"accentColor":"#123456"},"constructor":{"accentColor":"#654321"},"arcus":{"accentColor":"#abcdef"}}');
+assert.deepEqual(
+  normalizeThemeSettingsMap(prototypeSettings),
+  { arcus: { accentColor: '#abcdef' } },
+  'theme settings maps should reject prototype-bearing slugs before indexing'
+);
+assert.deepEqual(
+  getThemeSettingsForSlug({ themeSettings: prototypeSettings }, '__proto__'),
+  {},
+  'prototype-bearing theme slugs should never resolve inherited settings'
+);
 assert.deepEqual(themeSettingsForOutput({ arcus: {}, solstice: { accentColor: '#123456' } }), {
   solstice: { accentColor: '#123456' }
 });
@@ -318,9 +354,37 @@ assert.equal(setThemeSettingOverride(optionalNumberSite, 'arcus', 'maxWidth', un
 assert.equal(optionalNumberSite.themeSettings, undefined, 'clearing an optional numeric setting should remove the persisted override');
 assert.notEqual(themeSettingValueSignature(1), themeSettingValueSignature('1'), 'select option signatures should preserve scalar types');
 
+const optionalBooleanSite = { themePack: 'arcus', themeSettings: { arcus: { showHero: false } } };
+const optionalBooleanField = {
+  key: 'showHero',
+  control: 'boolean',
+  type: 'boolean',
+  defaultValue: undefined
+};
+assert.equal(setThemeSettingOverride(optionalBooleanSite, 'arcus', 'showHero', undefined, optionalBooleanField), true);
+assert.equal(optionalBooleanSite.themeSettings, undefined, 'clearing an optional boolean setting should remove the persisted override');
+
+const optionalRangeSite = { themePack: 'arcus', themeSettings: { arcus: { radiusScale: 0.75 } } };
+const optionalRangeField = {
+  key: 'radiusScale',
+  control: 'range',
+  type: 'number',
+  defaultValue: undefined,
+  minimum: 0,
+  maximum: 2,
+  step: 0.25
+};
+assert.equal(setThemeSettingOverride(optionalRangeSite, 'arcus', 'radiusScale', undefined, optionalRangeField), true);
+assert.equal(optionalRangeSite.themeSettings, undefined, 'clearing an optional range setting should remove the persisted override');
+
 const invalidDraftSite = { themePack: 'arcus' };
 assert.equal(setThemeSettingOverride(invalidDraftSite, 'arcus', 'accentColor', 'not-a-color', accentField), false);
 assert.equal(invalidDraftSite.themeSettings, undefined, 'invalid setting values should not create empty themeSettings maps');
+
+const prototypeSlugSite = { themePack: '__proto__' };
+assert.equal(setThemeSettingOverride(prototypeSlugSite, '__proto__', 'accentColor', '#112233', accentField), false);
+assert.equal(prototypeSlugSite.themeSettings, undefined, 'prototype-bearing theme slugs should not create theme settings maps');
+assert.equal({}.accentColor, undefined, 'prototype-bearing theme slugs should not pollute object prototypes');
 
 const optionalColorSite = { themePack: 'arcus', themeSettings: { arcus: { accentColor: '#112233' } } };
 const optionalColorField = {

@@ -14,6 +14,7 @@ export const SUPPORTED_THEME_SETTING_CONTROLS = Object.freeze([
 const SAFE_SETTING_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const SAFE_CSS_VARIABLE_PATTERN = /^--[A-Za-z][A-Za-z0-9_-]{0,95}$/;
 const SAFE_CSS_VALUE_PATTERN = /^[#A-Za-z0-9_\-.,%()\s]+$/;
+const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const PRESS_UI_METADATA_KEYS = Object.freeze([
   'control',
   'cssVariable',
@@ -24,6 +25,14 @@ const PRESS_UI_METADATA_KEYS = Object.freeze([
 
 function isPlainObject(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasOwn(source, key) {
+  return Object.prototype.hasOwnProperty.call(source, key);
+}
+
+function isUnsafeObjectKey(value) {
+  return UNSAFE_OBJECT_KEYS.has(String(value || ''));
 }
 
 function deepClone(value) {
@@ -62,11 +71,16 @@ export function sanitizeThemeSlug(value) {
   return s.replace(/[^a-z0-9_-]/g, '') || 'native';
 }
 
+function normalizeThemeSettingsSlug(value) {
+  const slug = sanitizeThemeSlug(value);
+  return isUnsafeObjectKey(slug) ? '' : slug;
+}
+
 export function normalizeThemeSettingsMap(value) {
   const source = isPlainObject(value) ? value : {};
   const out = {};
   Object.keys(source).forEach((rawSlug) => {
-    const slug = sanitizeThemeSlug(rawSlug);
+    const slug = normalizeThemeSettingsSlug(rawSlug);
     const settings = source[rawSlug];
     if (!slug || !isPlainObject(settings)) return;
     out[slug] = deepClone(settings);
@@ -87,8 +101,8 @@ export function themeSettingsForOutput(value) {
 export function getThemeSettingsForSlug(siteConfig = {}, slug = '') {
   const cfg = isPlainObject(siteConfig) ? siteConfig : {};
   const map = normalizeThemeSettingsMap(cfg[THEME_SETTINGS_ROOT_KEY]);
-  const safeSlug = sanitizeThemeSlug(slug || cfg.themePack || 'native');
-  return map[safeSlug] && isPlainObject(map[safeSlug]) ? deepClone(map[safeSlug]) : {};
+  const safeSlug = normalizeThemeSettingsSlug(slug || cfg.themePack || 'native');
+  return safeSlug && hasOwn(map, safeSlug) && isPlainObject(map[safeSlug]) ? deepClone(map[safeSlug]) : {};
 }
 
 function hasPressUiMetadata(value) {
@@ -164,6 +178,10 @@ function normalizeSchemaType(type) {
   const scalar = type.find(entry => ['boolean', 'number', 'integer', 'string'].includes(entry));
   if (scalar) return scalar;
   return type.find(entry => entry && entry !== 'null') || type[0];
+}
+
+function isNullableSchemaType(type) {
+  return Array.isArray(type) && type.includes('null');
 }
 
 function inferControl(schema = {}, meta = {}) {
@@ -368,6 +386,9 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
     if (rawStep != null && (!Number.isFinite(rawStep) || rawStep <= 0)) {
       addIssue(`Theme setting "${key}" step must be a positive finite number.`, `${path}.${schema.multipleOf != null ? 'multipleOf' : 'step'}`);
     }
+    const defaultValue = schema.default === null && isNullableSchemaType(schema.type)
+      ? undefined
+      : schema.default;
     const field = {
       key,
       label: String(meta.label || schema.title || key),
@@ -375,7 +396,7 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       group: String(meta.group || ''),
       control,
       type: type || (control === 'boolean' ? 'boolean' : (control === 'number' || control === 'range' ? 'number' : 'string')),
-      defaultValue: schema.default,
+      defaultValue,
       options,
       cssVariables: cssVariables.filter(name => SAFE_CSS_VARIABLE_PATTERN.test(name)),
       cssValues: normalizeCssValueMap(meta),
@@ -388,8 +409,8 @@ export function normalizeThemeConfigSchema(configSchema = {}, options = {}) {
       maxLength: schema.maxLength != null ? Number(schema.maxLength) : null,
       pattern: schema.pattern || ''
     };
-    if (strict && schema.default !== undefined) {
-      const normalizedDefault = normalizeThemeSettingValue(field, schema.default);
+    if (strict && defaultValue !== undefined) {
+      const normalizedDefault = normalizeThemeSettingValue(field, defaultValue);
       if (!normalizedDefault.ok) {
         addIssue(`Default value for theme setting "${key}" is invalid.`, `${path}.default`);
       }
@@ -410,7 +431,7 @@ function buildCssVariables(fields, settings) {
   const variables = [];
   fields.forEach((field) => {
     if (!field.cssVariables || !field.cssVariables.length) return;
-    if (!Object.prototype.hasOwnProperty.call(settings, field.key)) return;
+    if (!hasOwn(settings, field.key)) return;
     const value = validateCssVariableValue(field, settings[field.key]);
     if (!value) return;
     field.cssVariables.forEach((name) => variables.push({ key: field.key, name, value }));
@@ -419,7 +440,7 @@ function buildCssVariables(fields, settings) {
 }
 
 export function resolveThemeSettings({ pack = 'native', manifest = {}, siteConfig = {} } = {}) {
-  const slug = sanitizeThemeSlug(pack || (siteConfig && siteConfig.themePack) || 'native');
+  const slug = normalizeThemeSettingsSlug(pack || (siteConfig && siteConfig.themePack) || 'native') || 'native';
   const schema = isPlainObject(manifest && manifest.configSchema) ? manifest.configSchema : {};
   const normalized = normalizeThemeConfigSchema(schema);
   const warnings = [...normalized.warnings];
@@ -478,7 +499,7 @@ export function resolveThemeSettings({ pack = 'native', manifest = {}, siteConfi
 
 export function setThemeSettingOverride(siteConfig, slug, key, value, field) {
   if (!isPlainObject(siteConfig)) return false;
-  const safeSlug = sanitizeThemeSlug(slug || siteConfig.themePack || 'native');
+  const safeSlug = normalizeThemeSettingsSlug(slug || siteConfig.themePack || 'native');
   const safeKey = normalizeSettingKey(key);
   if (!safeSlug || !safeKey) return false;
   const cleanup = (target) => {
@@ -488,9 +509,13 @@ export function setThemeSettingOverride(siteConfig, slug, key, value, field) {
     }
   };
   if (value === undefined && (!field || field.defaultValue === undefined)) {
-    if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY]) || !isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) return false;
+    if (
+      !isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY])
+      || !hasOwn(siteConfig[THEME_SETTINGS_ROOT_KEY], safeSlug)
+      || !isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])
+    ) return false;
     const target = siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
-    const hadValue = Object.prototype.hasOwnProperty.call(target, safeKey);
+    const hadValue = hasOwn(target, safeKey);
     delete target[safeKey];
     cleanup(target);
     return hadValue;
@@ -501,18 +526,20 @@ export function setThemeSettingOverride(siteConfig, slug, key, value, field) {
     ? normalizeThemeSettingValue(field, field.defaultValue)
     : { ok: false };
   const root = isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY]) ? siteConfig[THEME_SETTINGS_ROOT_KEY] : null;
-  const existingTarget = root && isPlainObject(root[safeSlug]) ? root[safeSlug] : null;
+  const existingTarget = root && hasOwn(root, safeSlug) && isPlainObject(root[safeSlug]) ? root[safeSlug] : null;
   if (defaultValue.ok && stableSerialize(defaultValue.value) === stableSerialize(normalizedValue.value)) {
-    if (!existingTarget || !Object.prototype.hasOwnProperty.call(existingTarget, safeKey)) return false;
+    if (!existingTarget || !hasOwn(existingTarget, safeKey)) return false;
     const target = existingTarget;
     delete target[safeKey];
     cleanup(target);
     return true;
   } else {
     if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY])) siteConfig[THEME_SETTINGS_ROOT_KEY] = {};
-    if (!isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug] = {};
+    if (!hasOwn(siteConfig[THEME_SETTINGS_ROOT_KEY], safeSlug) || !isPlainObject(siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug])) {
+      siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug] = {};
+    }
     const target = siteConfig[THEME_SETTINGS_ROOT_KEY][safeSlug];
-    if (Object.prototype.hasOwnProperty.call(target, safeKey) && stableSerialize(target[safeKey]) === stableSerialize(normalizedValue.value)) return false;
+    if (hasOwn(target, safeKey) && stableSerialize(target[safeKey]) === stableSerialize(normalizedValue.value)) return false;
     target[safeKey] = normalizedValue.value;
   }
   return true;

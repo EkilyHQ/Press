@@ -7670,8 +7670,14 @@ assert.match(
 
 assert.match(
   siteSettingsSource,
-  /field\.control === 'color' && field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*unsetButton\.addEventListener\('click', \(\) => commitValue\(undefined\)\);/,
-  'Theme settings optional color controls should expose an unset path'
+  /field\.control === 'boolean'[\s\S]*field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*commitValue\(undefined\);[\s\S]*syncSwitchState\(checkbox, toggle, false, false\);/,
+  'Theme settings optional boolean controls should expose an unset path'
+);
+
+assert.match(
+  siteSettingsSource,
+  /\(field\.control === 'color' \|\| field\.control === 'range'\) && field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*unsetButton\.addEventListener\('click', \(\) => commitValue\(undefined\)\);/,
+  'Theme settings optional color and range controls should expose an unset path'
 );
 
 assert.match(

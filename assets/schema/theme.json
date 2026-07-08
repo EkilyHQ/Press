@@ -105,8 +105,22 @@
     },
     "configSchema": {
       "type": "object",
-      "description": "JSON-schema fragment for theme-specific config.",
-      "additionalProperties": true
+      "description": "JSON-schema fragment for theme-specific scalar settings. Press supports boolean, color, number/range, select, and text controls with optional x-press CSS variable metadata.",
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/themeSettingDeclaration"
+          }
+        },
+        "additionalProperties": {
+          "type": "boolean"
+        }
+      }
     },
     "content": {
       "type": "object",
@@ -172,6 +186,127 @@
         },
         "handler": {
           "type": "string"
+        }
+      }
+    },
+    "themeSettingDeclaration": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["string", "number", "integer", "boolean"]
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["string", "number", "integer", "boolean"]
+              }
+            }
+          ]
+        },
+        "format": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": {},
+        "enum": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "multipleOf": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "x-press": {
+          "$ref": "#/$defs/themeSettingPressMetadata"
+        },
+        "xPress": {
+          "$ref": "#/$defs/themeSettingPressMetadata"
+        },
+        "ui": {
+          "$ref": "#/$defs/themeSettingPressMetadata"
+        }
+      }
+    },
+    "themeSettingPressMetadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "control": {
+          "type": "string",
+          "enum": ["boolean", "color", "number", "range", "select", "text"]
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "cssVariable": {
+          "oneOf": [
+            { "type": "string", "pattern": "^--[A-Za-z][A-Za-z0-9_-]{0,95}$" },
+            {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^--[A-Za-z][A-Za-z0-9_-]{0,95}$" },
+              "uniqueItems": true
+            }
+          ]
+        },
+        "cssVariables": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^--[A-Za-z][A-Za-z0-9_-]{0,95}$" },
+          "uniqueItems": true
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              {
+                "type": "object",
+                "required": ["value"],
+                "additionalProperties": true,
+                "properties": {
+                  "value": {
+                    "oneOf": [
+                      { "type": "string" },
+                      { "type": "number" },
+                      { "type": "boolean" }
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
         }
       }
     }

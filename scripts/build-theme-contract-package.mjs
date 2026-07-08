@@ -31,6 +31,7 @@ const files = [
   ['assets/js/press-version.js', 'assets/js/press-version.js'],
   ['assets/js/theme-contract-surface.mjs', 'assets/js/theme-contract-surface.mjs'],
   ['assets/js/theme-package-core.js', 'assets/js/theme-package-core.js'],
+  ['assets/js/theme-settings.js', 'assets/js/theme-settings.js'],
   ['assets/js/theme-route-guard.js', 'assets/js/theme-route-guard.js'],
   ['assets/js/vendor/acorn.mjs', 'assets/js/vendor/acorn.mjs'],
   ['assets/js/vendor/acorn-walk.mjs', 'assets/js/vendor/acorn-walk.mjs'],

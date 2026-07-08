@@ -118,6 +118,11 @@ if ! grep -qx "press-system-${version}/assets/js/theme-router-helpers.js" "${ent
   exit 1
 fi
 
+if ! grep -qx "press-system-${version}/assets/js/theme-settings.js" "${entries_file}"; then
+  echo "expected package to include theme settings resolver code" >&2
+  exit 1
+fi
+
 if ! grep -qx "press-system-${version}/assets/js/theme-install-service.js" "${entries_file}"; then
   echo "expected package to include theme install service code" >&2
   exit 1

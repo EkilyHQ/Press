@@ -11,7 +11,10 @@ import {
   getRequiredThemeRegions,
   getRequiredThemeViews
 } from '../assets/js/theme-contract-surface.mjs';
-import { containsForbiddenV4RouteConstruction as containsForbiddenV4RouteConstructionExport } from '../assets/js/theme-package-core.js';
+import {
+  containsForbiddenV4RouteConstruction as containsForbiddenV4RouteConstructionExport,
+  validateThemeConfigSchema
+} from '../assets/js/theme-package-core.js';
 import { containsForbiddenV4RouteConstructionAst } from '../assets/js/theme-route-guard.js';
 
 const root = process.cwd();
@@ -4716,6 +4719,11 @@ themeNames.forEach((themeName) => {
     fail(`${relManifest} must declare scrollContainer`);
   }
   requireObject(manifest.configSchema, 'configSchema', relManifest);
+  try {
+    validateThemeConfigSchema(manifest.configSchema);
+  } catch (err) {
+    fail(`${relManifest} configSchema contains unsupported theme setting metadata: ${err && err.message ? err.message : err}`);
+  }
   const content = requireObject(manifest.content, 'content', relManifest);
   const shapes = requireList(content, 'shapes', 'content.shapes', relManifest);
   REQUIRED_CONTENT_SHAPES.forEach((shape) => {

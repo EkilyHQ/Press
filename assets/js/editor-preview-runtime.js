@@ -388,7 +388,8 @@ async function renderPreview(payload = {}) {
       persist: false,
       reset,
       features,
-      router: previewRouter
+      router: previewRouter,
+      siteConfig: payload.siteConfig || {}
     });
     if (!isCurrentPreviewRender(requestId)) return;
     const activePack = previewRuntime.setActiveThemePack((layout && layout.pack) || previewRuntime.getThemeLayoutPackFallback() || requestedPack);

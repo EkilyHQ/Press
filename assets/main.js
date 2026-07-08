@@ -2288,7 +2288,7 @@ try {
 } catch (_) {}
 
 // Build layout according to the active theme pack before binding UI logic
-await ensureThemeLayout({ features: getSiteFeatureContext(), router: createThemeRouterContext() });
+await ensureThemeLayout({ features: getSiteFeatureContext(), router: createThemeRouterContext(), siteConfig });
 setBootProgress(0.6);
 
 // Ensure theme controls are present, then apply and bind

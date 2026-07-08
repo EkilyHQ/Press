@@ -17,9 +17,9 @@ const themePackageCore = await importPackagedOrSourceModule(
 );
 
 const { PRESS_THEME_CONTRACT } = contractSurface;
-const { containsForbiddenV4RouteConstruction } = themePackageCore;
+const { containsForbiddenV4RouteConstruction, validateThemeConfigSchema } = themePackageCore;
 
-export { PRESS_THEME_CONTRACT, containsForbiddenV4RouteConstruction };
+export { PRESS_THEME_CONTRACT, containsForbiddenV4RouteConstruction, validateThemeConfigSchema };
 
 const ROUTE_HELPER_CONTRACT_VERSION = 4;
 const THEME_TEXT_EXTENSIONS = new Set(PRESS_THEME_CONTRACT.archive && PRESS_THEME_CONTRACT.archive.textExtensions);

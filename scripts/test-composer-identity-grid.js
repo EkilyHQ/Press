@@ -1229,7 +1229,7 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteModelSource,
-  /export function prepareSiteState\(raw\)[\s\S]*site\.features = normalizeSiteFeatureSettings\(src\.features\)[\s\S]*'enableAllPosts', 'disableAllPosts', 'features', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.features[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)/,
+  /export function prepareSiteState\(raw\)[\s\S]*site\.themeSettings = normalizeThemeSettingsMap\(src\.themeSettings\)[\s\S]*site\.features = normalizeSiteFeatureSettings\(src\.features\)[\s\S]*'themeSettings'[\s\S]*'enableAllPosts', 'disableAllPosts', 'features', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.features[\s\S]*diff\.fields\.themeSettings[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)[\s\S]*'themeMode', 'themePack', 'themeOverride', 'themeSettings'/,
   'site model boundary should own site.yaml normalization, diffing, and serialization'
 );
 
@@ -7642,6 +7642,12 @@ assert.match(
   siteSettingsSource,
   /const renderThemeGrid = \(section\) => \{[\s\S]*dataKey: 'themeMode'[\s\S]*dataKey: 'themePack'[\s\S]*dataKey: 'themeOverride'/,
   'Theme compact grid should include all single-value theme fields'
+);
+
+assert.match(
+  siteSettingsSource,
+  /from '\.\/theme-settings\.js';[\s\S]*const themeSettingsBlock = documentRef\.createElement\('div'\)[\s\S]*setThemeSettingOverride\(site, pack, field\.key, value, field\)[\s\S]*resolveThemeSettings\(\{ pack, manifest, siteConfig: site \}\)/,
+  'Theme compact grid should render current theme settings from the shared theme settings contract'
 );
 
 assert.match(

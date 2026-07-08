@@ -1,4 +1,9 @@
 import { SITE_FEATURE_KEYS, isSiteFeatureEnabled } from './site-features.js';
+import {
+  resolveThemeSettings,
+  sanitizeThemeSlug,
+  setThemeSettingOverride
+} from './theme-settings.js';
 
 export function createComposerSiteSettingsConfigGrids(options = {}) {
   const noop = () => {};
@@ -287,6 +292,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
   const renderThemeGrid = (section) => {
     const { addRow } = createSingleGridFieldset(section);
     const rows = [];
+    let themeSettingsRenderToken = 0;
     const addThemeRow = (item) => {
       const row = addRow(item, rows.length);
       rows.push(row);
@@ -388,6 +394,181 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       options: []
     });
 
+    const themeSettingsBlock = documentRef.createElement('div');
+    themeSettingsBlock.className = 'cs-theme-settings';
+    themeSettingsBlock.hidden = true;
+
+    const clearThemeSettingsBlock = () => {
+      themeSettingsBlock.innerHTML = '';
+      themeSettingsBlock.hidden = true;
+    };
+
+    const appendThemeSettingsMessage = (message) => {
+      themeSettingsBlock.innerHTML = '';
+      const note = documentRef.createElement('p');
+      note.className = 'cs-field-help cs-theme-settings-warning';
+      note.textContent = message;
+      themeSettingsBlock.appendChild(note);
+      themeSettingsBlock.hidden = false;
+    };
+
+    const colorInputValue = (value) => {
+      const color = safeString(value).trim();
+      const short = color.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+      if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`.toLowerCase();
+      return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : '#000000';
+    };
+
+    const appendThemeSettingsHeader = (pack, manifest, warningCount) => {
+      const head = documentRef.createElement('div');
+      head.className = 'cs-config-subsection-head';
+      const title = documentRef.createElement('div');
+      title.className = 'cs-config-subsection-title';
+      title.textContent = 'Current theme settings';
+      head.appendChild(title);
+      const desc = documentRef.createElement('p');
+      desc.className = 'cs-config-subsection-description';
+      const label = safeString(manifest && manifest.name ? manifest.name : pack) || pack;
+      desc.textContent = warningCount
+        ? `${label}: ${warningCount} setting warning${warningCount === 1 ? '' : 's'}`
+        : label;
+      head.appendChild(desc);
+      themeSettingsBlock.appendChild(head);
+    };
+
+    const renderThemeSettingsFields = (pack, manifest, resolution) => {
+      themeSettingsBlock.innerHTML = '';
+      const fields = Array.isArray(resolution.fields) ? resolution.fields : [];
+      const warnings = Array.isArray(resolution.warnings) ? resolution.warnings : [];
+      if (!fields.length && !warnings.length) {
+        clearThemeSettingsBlock();
+        return;
+      }
+      appendThemeSettingsHeader(pack, manifest, warnings.length);
+      if (warnings.length) {
+        const warningList = documentRef.createElement('ul');
+        warningList.className = 'cs-extra-list';
+        warnings.slice(0, 5).forEach((entry) => {
+          const item = documentRef.createElement('li');
+          item.textContent = entry && entry.message ? entry.message : String(entry || '');
+          warningList.appendChild(item);
+        });
+        themeSettingsBlock.appendChild(warningList);
+      }
+      if (fields.length) {
+        const { addRow: addSettingRow } = createSingleGridFieldset(themeSettingsBlock);
+        fields.forEach((field, index) => {
+          const rowConfig = {
+            dataKey: `themeSettings-${field.key}`,
+            label: field.label || field.key,
+            description: field.description || field.key
+          };
+          const { row, controlCell, controlId } = addSettingRow(rowConfig, index);
+          row.dataset.field = 'themeSettings';
+          row.dataset.subfield = field.key;
+          const currentValue = Object.prototype.hasOwnProperty.call(resolution.settings || {}, field.key)
+            ? resolution.settings[field.key]
+            : field.defaultValue;
+          const commitValue = (value) => {
+            const changed = setThemeSettingOverride(site, pack, field.key, value, field);
+            if (changed) markDirty();
+          };
+
+          if (field.control === 'boolean') {
+            const { toggle, checkbox } = createSwitchControl(row, field.label || field.key, {
+              target: controlCell,
+              classes: ['cs-single-grid-switch']
+            });
+            toggle.dataset.field = 'themeSettings';
+            toggle.dataset.subfield = field.key;
+            const initial = currentValue === true;
+            syncSwitchState(checkbox, toggle, initial, false);
+            checkbox.addEventListener('change', () => {
+              commitValue(checkbox.checked);
+              syncSwitchState(checkbox, toggle, checkbox.checked, false);
+            });
+            return;
+          }
+
+          if (field.control === 'select') {
+            const select = documentRef.createElement('select');
+            select.id = controlId;
+            select.className = 'cs-select';
+            select.dataset.field = 'themeSettings';
+            select.dataset.subfield = field.key;
+            (field.options || []).forEach((optionData) => {
+              const option = documentRef.createElement('option');
+              option.value = safeString(optionData.value);
+              option.textContent = safeString(optionData.label || optionData.value);
+              select.appendChild(option);
+            });
+            select.value = safeString(currentValue);
+            select.addEventListener('change', () => {
+              const selected = (field.options || []).find(option => safeString(option.value) === select.value);
+              commitValue(selected ? selected.value : select.value);
+            });
+            controlCell.appendChild(select);
+            return;
+          }
+
+          const input = documentRef.createElement('input');
+          input.id = controlId;
+          input.className = 'cs-input';
+          input.dataset.field = 'themeSettings';
+          input.dataset.subfield = field.key;
+          if (field.control === 'color') {
+            input.type = 'color';
+            input.value = colorInputValue(currentValue);
+          } else if (field.control === 'range') {
+            input.type = 'range';
+            if (field.minimum != null && !Number.isNaN(field.minimum)) input.min = String(field.minimum);
+            if (field.maximum != null && !Number.isNaN(field.maximum)) input.max = String(field.maximum);
+            if (field.step != null && !Number.isNaN(field.step)) input.step = String(field.step);
+            input.value = currentValue == null ? '' : String(currentValue);
+          } else if (field.control === 'number') {
+            input.type = 'number';
+            if (field.minimum != null && !Number.isNaN(field.minimum)) input.min = String(field.minimum);
+            if (field.maximum != null && !Number.isNaN(field.maximum)) input.max = String(field.maximum);
+            if (field.step != null && !Number.isNaN(field.step)) input.step = String(field.step);
+            input.value = currentValue == null ? '' : String(currentValue);
+          } else {
+            input.type = 'text';
+            input.value = currentValue == null ? '' : String(currentValue);
+          }
+          input.addEventListener('input', () => {
+            const nextValue = input.type === 'number' || input.type === 'range'
+              ? Number(input.value)
+              : input.value;
+            commitValue(nextValue);
+          });
+          controlCell.appendChild(input);
+        });
+      }
+      themeSettingsBlock.hidden = false;
+    };
+
+    const renderThemeSettingsForCurrentPack = () => {
+      const token = ++themeSettingsRenderToken;
+      const pack = sanitizeThemeSlug(sanitizeThemePackValue(site.themePack || themePackSelect.value || 'native') || 'native');
+      clearThemeSettingsBlock();
+      if (!fetchContent) return;
+      fetchContent(`assets/themes/${encodeURIComponent(pack)}/theme.json`, { cache: 'no-store' })
+        .then((response) => {
+          if (!response || !response.ok) throw new Error(`HTTP ${response && response.status ? response.status : 0}`);
+          return response.json();
+        })
+        .then((manifest) => {
+          if (token !== themeSettingsRenderToken) return;
+          const resolution = resolveThemeSettings({ pack, manifest, siteConfig: site });
+          renderThemeSettingsFields(pack, manifest, resolution);
+        })
+        .catch((err) => {
+          if (token !== themeSettingsRenderToken) return;
+          const message = err && err.message ? err.message : 'Theme manifest is unavailable.';
+          appendThemeSettingsMessage(`Theme settings are unavailable for ${pack}: ${message}`);
+        });
+    };
+
     const fallbackThemePacks = [
       { value: 'native', label: 'Native' },
       { value: 'github', label: 'GitHub' },
@@ -419,6 +600,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       }
       const nextValue = current && seen.has(current) ? current : firstOption || '';
       themePackSelect.value = nextValue;
+      renderThemeSettingsForCurrentPack();
     };
 
     applyThemePackOptions(fallbackThemePacks);
@@ -434,6 +616,10 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       .catch(() => {
         applyThemePackOptions(fallbackThemePacks);
       });
+
+    themePackSelect.addEventListener('change', () => {
+      renderThemeSettingsForCurrentPack();
+    });
 
     const manageThemesRow = addThemeRow({
       dataKey: 'manageThemes',
@@ -464,6 +650,8 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
       markDirty();
     });
     syncSwitchState(checkbox, toggle, site.themeOverride, true);
+    section.appendChild(themeSettingsBlock);
+    renderThemeSettingsForCurrentPack();
   };
 
   const renderAnnotateGrid = (section) => {

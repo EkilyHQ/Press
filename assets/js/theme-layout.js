@@ -516,12 +516,13 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     if (result.loaded) loadedModules.push(result.loaded);
   }
 
+  const runtimeOptions = themeLayoutState.latestLayoutOptions || options;
   const context = {
     document: document,
     i18n: createThemeI18nContext(),
     regions: createThemeRegionRegistry(),
-    features: options.features || null,
-    router: options.router || null,
+    features: runtimeOptions.features || null,
+    router: runtimeOptions.router || null,
     pack,
     manifest,
     theme: createThemeApi(pack, manifest),

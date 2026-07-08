@@ -4,7 +4,7 @@ import { fullAncestor } from './vendor/acorn-walk.mjs';
 const ROUTE_KEYS = new Set(['tab', 'id']);
 const URL_MUTATORS = new Set(['set', 'append', 'delete']);
 const ROUTE_HREF_ATTRIBUTES = new Set(['href', 'src', 'srcset', 'action', 'formaction']);
-const FACT_KINDS = ['route', 'external', 'factories', 'urlConstructors', 'urlSearchParamsConstructors'];
+const FACT_KINDS = ['route', 'external', 'factories', 'routeQueryFactories', 'urlConstructors', 'urlSearchParamsConstructors'];
 
 function safeString(value) {
   return value == null ? '' : String(value);
@@ -279,6 +279,7 @@ function bindingsForFacts(facts = {}) {
   add(facts.route, 'route');
   add(facts.external, 'external');
   add(facts.factories, 'routeFactory');
+  add(facts.routeQueryFactories, 'routeQueryFactory');
   add(facts.urlConstructors, 'urlConstructor');
   add(facts.urlSearchParamsConstructors, 'urlSearchParamsConstructor');
   return out;
@@ -319,6 +320,103 @@ function functionReturnsRelativeUrl(node, localFacts = null) {
   return found;
 }
 
+function functionReturnsRouteQuery(node, localFacts = null) {
+  const value = unwrap(node);
+  if (!value || !['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(value.type)) return false;
+  const paramBindings = [];
+  (value.params || []).forEach((param) => {
+    bindingNames(param).forEach((name) => {
+      paramBindings.push({ name, kind: 'unknown', start: value.start || 0, end: value.end == null ? Infinity : value.end });
+    });
+  });
+  const minimalState = {
+    routeKeyAliases: new Set(localFacts ? localFacts.route || localFacts.routeKeyAliases || [] : []),
+    externalAliases: new Set(localFacts ? localFacts.external || localFacts.externalAliases || [] : []),
+    routeFactories: new Set(localFacts ? localFacts.factories || localFacts.routeFactories || [] : []),
+    routeQueryFactories: new Set(localFacts ? localFacts.routeQueryFactories || [] : []),
+    routeUrlAliases: new Set(),
+    searchParamsAliases: new Set(),
+    routeQueryAliases: new Set(),
+    urlSearchParamsAliases: new Set(),
+    urlConstructorAliases: new Set(localFacts ? localFacts.urlConstructors || localFacts.urlConstructorAliases || [] : []),
+    urlSearchParamsConstructorAliases: new Set(localFacts ? localFacts.urlSearchParamsConstructors || localFacts.urlSearchParamsConstructorAliases || [] : []),
+    boundSearchParamsMutatorAliases: new Set(),
+    routeUrlMutatorAliases: new Set(),
+    routeUrlMutatorArgIndexes: new Map(),
+    allowUnboundAliases: Boolean(localFacts && localFacts.allowUnboundAliases),
+    bindings: [
+      ...((localFacts && localFacts.bindings) || []),
+      ...paramBindings
+    ]
+  };
+  const addLocalStringMemberBindings = (root, node, start, end) => {
+    const objectValue = unwrap(node);
+    if (!root || !objectValue || objectValue.type !== 'ObjectExpression') return;
+    objectValue.properties.forEach((prop) => {
+      if (!prop || prop.type !== 'Property') return;
+      const key = objectPropertyName(prop, minimalState, []);
+      if (!key) return;
+      const path = /^[A-Za-z_$][\w$]*$/.test(key) ? `${root}.${key}` : `${root}[${JSON.stringify(key)}]`;
+      const stringValue = literalStringValue(prop.value);
+      if (stringValue != null) minimalState.bindings.push({ name: path, kind: 'unknown', stringValue, start, end });
+      addLocalStringMemberBindings(path, prop.value, start, end);
+    });
+  };
+  const isInsideNestedFunction = (child, ancestors) => ancestors.some((ancestor) => (
+    ancestor !== value
+    && ancestor !== child
+    && isFunctionNode(ancestor)
+  ));
+  const addLocalBinding = (name, kind, node, ancestors, stringValue = null, hoisted = false) => {
+    if (!name) return;
+    const scope = nearestBindingScope(ancestors);
+    const startNode = unwrap(node);
+    minimalState.bindings.push({
+      name,
+      kind: kind || 'unknown',
+      stringValue,
+      start: hoisted ? scope.start : (startNode && startNode.start != null ? startNode.start : 0),
+      end: scope.end
+    });
+  };
+  collectStringAliases(value, minimalState);
+  walk(value, (child, ancestors) => {
+    if (!child || isInsideNestedFunction(child, ancestors)) return;
+    if (child !== value && child.type === 'FunctionDeclaration' && child.id && child.id.name) {
+      addLocalBinding(
+        child.id.name,
+        functionReturnsRouteQuery(child, minimalState) ? 'routeQueryFactory' : 'unknown',
+        child.id,
+        ancestors,
+        null,
+        true
+      );
+      return;
+    }
+    if (child.type !== 'VariableDeclarator') return;
+    const scope = nearestBindingScope(ancestors);
+    bindingNames(child.id).forEach((name) => {
+      const stringValue = literalStringValue(child.init);
+      const kind = functionReturnsRouteQuery(child.init, minimalState) || expressionIsRouteQueryFactory(child.init, minimalState, ancestors)
+        ? 'routeQueryFactory'
+        : 'unknown';
+      addLocalBinding(name, kind, child, ancestors, stringValue);
+    });
+    if (child.id.type === 'Identifier') addLocalStringMemberBindings(child.id.name, child.init, child.start, scope.end);
+  });
+  collectRouteQueryAliases(value, minimalState);
+  if (value.type === 'ArrowFunctionExpression' && value.body && value.body.type !== 'BlockStatement') {
+    return expressionIsRouteQuery(value.body, minimalState, [value]);
+  }
+  let found = false;
+  walk(value, (child, ancestors) => {
+    if (found || !child || child.type !== 'ReturnStatement' || !child.argument) return;
+    if (isInsideNestedFunction(child, ancestors)) return;
+    if (expressionIsRouteQuery(child.argument, minimalState, ancestors)) found = true;
+  });
+  return found;
+}
+
 function newUrlHasStaticExternalArg(node, constructorAliases = new Set()) {
   const value = unwrap(node);
   const state = { urlConstructorAliases: constructorAliases, urlSearchParamsConstructorAliases: new Set(), bindings: [], allowUnboundAliases: true };
@@ -347,6 +445,7 @@ function createFacts() {
     route: new Set(),
     external: new Set(),
     factories: new Set(),
+    routeQueryFactories: new Set(),
     urlConstructors: new Set(),
     urlSearchParamsConstructors: new Set(),
     routeUrlMutators: new Map()
@@ -388,8 +487,17 @@ function mergeFacts(target, source) {
 function collectLocalFacts(ast, baseFacts = null) {
   const facts = createFacts();
   facts.allowUnboundAliases = true;
+  if (baseFacts && baseFacts.route) {
+    baseFacts.route.forEach((alias) => facts.route.add(alias));
+  }
   if (baseFacts && baseFacts.external) {
     baseFacts.external.forEach((alias) => facts.external.add(alias));
+  }
+  if (baseFacts && baseFacts.factories) {
+    baseFacts.factories.forEach((alias) => facts.factories.add(alias));
+  }
+  if (baseFacts && baseFacts.routeQueryFactories) {
+    baseFacts.routeQueryFactories.forEach((alias) => facts.routeQueryFactories.add(alias));
   }
   if (baseFacts && baseFacts.urlConstructors) {
     baseFacts.urlConstructors.forEach((alias) => facts.urlConstructors.add(alias));
@@ -401,6 +509,7 @@ function collectLocalFacts(ast, baseFacts = null) {
     routeKeyAliases: facts.route,
     externalAliases: facts.external,
     routeFactories: facts.factories,
+    routeQueryFactories: facts.routeQueryFactories,
     routeUrlAliases: new Set(),
     searchParamsAliases: new Set(),
     routeQueryAliases: new Set(),
@@ -410,6 +519,7 @@ function collectLocalFacts(ast, baseFacts = null) {
     boundSearchParamsMutatorAliases: new Set(),
     routeUrlMutatorAliases: new Set(),
     routeUrlMutatorArgIndexes: new Map(),
+    allowUnboundAliases: true,
     bindings: []
   };
   const addFactBinding = (name, kind, node, ancestors, stringValue = null) => {
@@ -442,6 +552,8 @@ function collectLocalFacts(ast, baseFacts = null) {
       addTopLevelExpressionFacts(path, prop.value);
       addConstructorFact(path, constructorKind(prop.value, factState, ancestors), prop.value, ancestors);
       addRouteUrlMutatorLocalFact(path, functionRouteUrlMutationParamIndexes(prop.value, factState), prop.value, ancestors);
+      addRouteQueryFactoryLocalFact(path, prop.value, ancestors);
+      addRouteQueryFactoryAliasLocalFact(path, prop.value, ancestors);
       addObjectFacts(path, prop.value, ancestors, clear);
     });
   };
@@ -454,6 +566,16 @@ function collectLocalFacts(ast, baseFacts = null) {
   const addRouteUrlMutatorLocalFact = (path, indexes, node, ancestors) => {
     addRouteUrlMutatorFact(facts, path, indexes);
     if (path && indexes && indexes.size) addFactBinding(path, 'routeUrlMutator', node, ancestors);
+  };
+  const addRouteQueryFactoryLocalFact = (path, node, ancestors) => {
+    if (!path || !functionReturnsRouteQuery(node, factState)) return;
+    facts.routeQueryFactories.add(path);
+    addFactBinding(path, 'routeQueryFactory', node, ancestors);
+  };
+  const addRouteQueryFactoryAliasLocalFact = (path, node, ancestors) => {
+    if (!path || !expressionIsRouteQueryFactory(node, factState, ancestors)) return;
+    facts.routeQueryFactories.add(path);
+    addFactBinding(path, 'routeQueryFactory', node, ancestors);
   };
   const addObjectRouteUrlMutatorLocalFacts = (root, node, ancestors, clear = false) => {
     const value = unwrap(node);
@@ -496,6 +618,8 @@ function collectLocalFacts(ast, baseFacts = null) {
         if (node.id.type === 'Identifier') {
           addObjectFacts(node.id.name, node.init, ancestors);
           addRouteUrlMutatorLocalFact(node.id.name, functionRouteUrlMutationParamIndexes(node.init, factState), node.id, ancestors);
+          addRouteQueryFactoryLocalFact(node.id.name, node.init, ancestors);
+          addRouteQueryFactoryAliasLocalFact(node.id.name, node.init, ancestors);
         }
         const initPath = memberPathResolved(node.init, factState, ancestors) || memberPath(node.init);
         if (node.id.type === 'ObjectPattern' && ['window', 'globalThis'].includes(initPath)) {
@@ -520,6 +644,8 @@ function collectLocalFacts(ast, baseFacts = null) {
       addTopLevelExpressionFacts(left, node.right);
       addConstructorFact(left, constructorKind(node.right, factState, ancestors), node.left, ancestors);
       addRouteUrlMutatorLocalFact(left, functionRouteUrlMutationParamIndexes(node.right, factState), node.left, ancestors);
+      addRouteQueryFactoryLocalFact(left, node.right, ancestors);
+      addRouteQueryFactoryAliasLocalFact(left, node.right, ancestors);
     }
     if (topLevel && node.type === 'CallExpression') {
       const callee = memberPathResolved(node.callee, factState, ancestors) || memberPath(node.callee);
@@ -540,6 +666,8 @@ function collectLocalFacts(ast, baseFacts = null) {
           addTopLevelExpressionFacts(path, node.arguments[2]);
           addConstructorFact(path, constructorKind(node.arguments[2], factState, ancestors), node.arguments[2], ancestors);
           addRouteUrlMutatorLocalFact(path, functionRouteUrlMutationParamIndexes(node.arguments[2], factState), node.arguments[2], ancestors);
+          addRouteQueryFactoryLocalFact(path, node.arguments[2], ancestors);
+          addRouteQueryFactoryAliasLocalFact(path, node.arguments[2], ancestors);
         }
       }
     }
@@ -548,6 +676,7 @@ function collectLocalFacts(ast, baseFacts = null) {
     }
     if (topLevel && node.type === 'FunctionDeclaration' && node.id && node.id.name) {
       addRouteUrlMutatorLocalFact(node.id.name, functionRouteUrlMutationParamIndexes(node, factState), node.id, ancestors);
+      addRouteQueryFactoryLocalFact(node.id.name, node, ancestors);
     }
     if (topLevel && node.type === 'Property' && node.value && functionReturnsRelativeUrl(node.value, facts)) {
       const parent = ancestors[ancestors.length - 2];
@@ -556,6 +685,12 @@ function collectLocalFacts(ast, baseFacts = null) {
         const declarator = ancestors.slice().reverse().find((candidate) => candidate.type === 'VariableDeclarator');
         if (declarator && declarator.id && declarator.id.type === 'Identifier') {
           facts.factories.add(`${declarator.id.name}.${key}`);
+        }
+      }
+      if (parent && parent.type === 'ObjectExpression' && key && functionReturnsRouteQuery(node.value, factState)) {
+        const declarator = ancestors.slice().reverse().find((candidate) => candidate.type === 'VariableDeclarator');
+        if (declarator && declarator.id && declarator.id.type === 'Identifier') {
+          facts.routeQueryFactories.add(`${declarator.id.name}.${key}`);
         }
       }
     }
@@ -588,6 +723,7 @@ function collectExportedFacts(file, context, seen = new Set(), cache = new Map()
   const exportableFacts = createFacts();
   mergeFacts(exportableFacts, localFacts);
   mergeFacts(exportableFacts, importedFacts);
+  exportableFacts.allowUnboundAliases = true;
   const out = createFacts();
   const addLocalExport = (localName, exportedName) => addMappedAliases(out, exportableFacts, localName, exportedName);
   const clearExportPath = (path) => {
@@ -615,6 +751,18 @@ function collectExportedFacts(file, context, seen = new Set(), cache = new Map()
       const name = root ? `${root}.${key}` : key;
       addRouteUrlMutatorFact(out, name, functionRouteUrlMutationParamIndexes(prop.value, exportableFacts));
       addObjectMemberRouteUrlMutatorExports(prop.value, name);
+    });
+  };
+  const addObjectMemberRouteQueryFactoryExports = (node, root = '') => {
+    const value = unwrap(node);
+    if (!value || value.type !== 'ObjectExpression') return;
+    value.properties.forEach((prop) => {
+      if (!prop || prop.type !== 'Property') return;
+      const key = propertyName(prop.key);
+      if (!key) return;
+      const name = root ? `${root}.${key}` : key;
+      if (functionReturnsRouteQuery(prop.value, exportableFacts) || expressionIsRouteQueryFactory(prop.value, exportableFacts, [])) out.routeQueryFactories.add(name);
+      addObjectMemberRouteQueryFactoryExports(prop.value, name);
     });
   };
   const addReExport = (specifier, importedName, exportedName) => {
@@ -647,8 +795,10 @@ function collectExportedFacts(file, context, seen = new Set(), cache = new Map()
       if (node.type === 'ExportDefaultDeclaration') {
         addExpressionAliases(out, 'default', node.declaration, exportableFacts.urlConstructors, exportableFacts.urlSearchParamsConstructors);
         if (functionReturnsRelativeUrl(node.declaration, localFacts)) out.factories.add('default');
+        if (functionReturnsRouteQuery(node.declaration, exportableFacts) || expressionIsRouteQueryFactory(node.declaration, exportableFacts, [])) out.routeQueryFactories.add('default');
         addRouteUrlMutatorFact(out, 'default', functionRouteUrlMutationParamIndexes(node.declaration, localFacts));
         addObjectMemberRouteUrlMutatorExports(node.declaration, 'default');
+        addObjectMemberRouteQueryFactoryExports(node.declaration, 'default');
         if (node.declaration && node.declaration.type === 'Identifier') addLocalExport(node.declaration.name, 'default');
       }
       if (node.type === 'ExportAllDeclaration') {
@@ -684,19 +834,23 @@ function collectExportedFacts(file, context, seen = new Set(), cache = new Map()
         addExpressionAliases(out, 'default', node.right, exportableFacts.urlConstructors, exportableFacts.urlSearchParamsConstructors);
         addObjectMemberAliases(out, node.right, exportableFacts.urlConstructors, exportableFacts.urlSearchParamsConstructors);
         if (functionReturnsRelativeUrl(node.right, localFacts)) out.factories.add('default');
+        if (functionReturnsRouteQuery(node.right, exportableFacts) || expressionIsRouteQueryFactory(node.right, exportableFacts, [])) out.routeQueryFactories.add('default');
         addRouteUrlMutatorFact(out, 'default', functionRouteUrlMutationParamIndexes(node.right, localFacts));
         addObjectMemberRouteUrlMutatorExports(node.right);
+        addObjectMemberRouteQueryFactoryExports(node.right);
         return;
       }
       if (left.startsWith('exports.')) {
         clearExportPath(left.slice('exports.'.length));
         addExpressionAliases(out, left.slice('exports.'.length), node.right, exportableFacts.urlConstructors, exportableFacts.urlSearchParamsConstructors);
         addRouteUrlMutatorFact(out, left.slice('exports.'.length), functionRouteUrlMutationParamIndexes(node.right, localFacts));
+        if (functionReturnsRouteQuery(node.right, exportableFacts) || expressionIsRouteQueryFactory(node.right, exportableFacts, [])) out.routeQueryFactories.add(left.slice('exports.'.length));
       }
       if (left.startsWith('module.exports.')) {
         clearExportPath(left.slice('module.exports.'.length));
         addExpressionAliases(out, left.slice('module.exports.'.length), node.right, exportableFacts.urlConstructors, exportableFacts.urlSearchParamsConstructors);
         addRouteUrlMutatorFact(out, left.slice('module.exports.'.length), functionRouteUrlMutationParamIndexes(node.right, localFacts));
+        if (functionReturnsRouteQuery(node.right, exportableFacts) || expressionIsRouteQueryFactory(node.right, exportableFacts, [])) out.routeQueryFactories.add(left.slice('module.exports.'.length));
       }
     });
   }
@@ -806,6 +960,7 @@ function collectBindings(ast, baseFacts) {
     add(baseFacts.route, 'route');
     add(baseFacts.external, 'external');
     add(baseFacts.factories, 'routeFactory');
+    add(baseFacts.routeQueryFactories, 'routeQueryFactory');
     add(baseFacts.urlConstructors, 'urlConstructor');
     add(baseFacts.urlSearchParamsConstructors, 'urlSearchParamsConstructor');
     (baseFacts.routeUrlMutators || new Map()).forEach((_, alias) => {
@@ -830,7 +985,11 @@ function collectBindings(ast, baseFacts) {
   walk(ast, (node, ancestors) => {
     if (node.type === 'FunctionDeclaration' && node.id && node.id.name) {
       const scope = nearestBindingScope(ancestors);
-      const kind = functionReturnsRelativeUrl(node, baseFacts) ? 'routeFactory' : 'unknown';
+      const kind = functionReturnsRelativeUrl(node, baseFacts)
+        ? 'routeFactory'
+        : functionReturnsRouteQuery(node, baseFacts)
+          ? 'routeQueryFactory'
+          : 'unknown';
       bindings.push({ name: node.id.name, kind, start: scope.start, end: scope.end });
       return;
     }
@@ -843,6 +1002,7 @@ function collectBindings(ast, baseFacts) {
         if (baseFacts.route && baseFacts.route.has(name)) kind = 'route';
         else if (baseFacts.external && baseFacts.external.has(name)) kind = 'external';
         else if (baseFacts.factories && baseFacts.factories.has(name)) kind = 'routeFactory';
+        else if (baseFacts.routeQueryFactories && baseFacts.routeQueryFactories.has(name)) kind = 'routeQueryFactory';
         else if (baseFacts.urlConstructors && baseFacts.urlConstructors.has(name)) kind = 'urlConstructor';
         else if (baseFacts.urlSearchParamsConstructors && baseFacts.urlSearchParamsConstructors.has(name)) kind = 'urlSearchParamsConstructor';
         else if (baseFacts.routeUrlMutators && baseFacts.routeUrlMutators.has(name)) kind = 'routeUrlMutator';
@@ -861,10 +1021,12 @@ function collectBindings(ast, baseFacts) {
         else if (ctorKind === 'urlSearchParams') kind = 'urlSearchParamsConstructor';
         else if (newUrlHasStaticExternalArg(node.init, baseFacts.urlConstructors || new Set())) kind = 'external';
         else if (functionReturnsRelativeUrl(node.init, baseFacts)) kind = 'routeFactory';
+        else if (functionReturnsRouteQuery(node.init, baseFacts)) kind = 'routeQueryFactory';
         else if (isRequireCall(node.init)) {
           if (baseFacts.route && baseFacts.route.has(name)) kind = 'route';
           else if (baseFacts.external && baseFacts.external.has(name)) kind = 'external';
           else if (baseFacts.factories && baseFacts.factories.has(name)) kind = 'routeFactory';
+          else if (baseFacts.routeQueryFactories && baseFacts.routeQueryFactories.has(name)) kind = 'routeQueryFactory';
           else if (baseFacts.routeUrlMutators && baseFacts.routeUrlMutators.has(name)) kind = 'routeUrlMutator';
           else kind = 'object';
           addScopedBaseFactBindings(name, node.start, scope.end);
@@ -881,6 +1043,7 @@ function collectBindings(ast, baseFacts) {
   baseFacts.route.forEach((name) => bindings.push({ name, kind: 'route', start: 0, end: Infinity }));
   baseFacts.external.forEach((name) => bindings.push({ name, kind: 'external', start: 0, end: Infinity }));
   (baseFacts.factories || new Set()).forEach((name) => bindings.push({ name, kind: 'routeFactory', start: 0, end: Infinity }));
+  (baseFacts.routeQueryFactories || new Set()).forEach((name) => bindings.push({ name, kind: 'routeQueryFactory', start: 0, end: Infinity }));
   (baseFacts.urlConstructors || new Set()).forEach((name) => bindings.push({ name, kind: 'urlConstructor', start: 0, end: Infinity }));
   (baseFacts.urlSearchParamsConstructors || new Set()).forEach((name) => bindings.push({ name, kind: 'urlSearchParamsConstructor', start: 0, end: Infinity }));
   (baseFacts.routeUrlMutators || new Map()).forEach((_, name) => bindings.push({ name, kind: 'routeUrlMutator', start: 0, end: Infinity }));
@@ -1764,8 +1927,8 @@ function expressionBuildsRouteQuery(node, state, ancestors) {
   }
   if (value.type === 'BinaryExpression' && value.operator === '+') {
     if (expressionBuildsRouteQuery(value.left, state, ancestors) || expressionBuildsRouteQuery(value.right, state, ancestors)) return true;
-    const left = literalStringValue(value.left);
-    const right = literalStringValue(value.right);
+    const left = expressionStringValue(value.left, state, ancestors);
+    const right = expressionStringValue(value.right, state, ancestors);
     return (left === '?' && expressionIsRouteKey(value.right, state, ancestors))
       || (right === '=' && expressionIsRouteKey(value.left, state, ancestors));
   }
@@ -1801,6 +1964,11 @@ function expressionIsRouteQuery(node, state, ancestors) {
   const path = memberPathResolved(value, state, ancestors) || memberPath(value);
   if (path && aliasPathIsActive(path, state.routeQueryAliases, 'routeQuery', state, ancestors, value.start)) return true;
   if (expressionBuildsRouteQuery(value, state, ancestors)) return true;
+  if (value.type === 'CallExpression') {
+    const callee = memberPathResolved(value.callee, state, ancestors) || memberPath(value.callee);
+    const calleeNode = unwrap(value.callee);
+    if (callee && aliasPathIsActive(callee, state.routeQueryFactories, 'routeQueryFactory', state, ancestors, calleeNode ? calleeNode.start : value.start)) return true;
+  }
   if (value.type === 'CallExpression' && memberPathResolved(value.callee, state, ancestors) === 'String') {
     return expressionIsRouteQuery(value.arguments[0], state, ancestors);
   }
@@ -1870,7 +2038,7 @@ function expressionSerializesPublicRouteQuery(node, state, ancestors) {
   let concatHasExternalPrefix = false;
   for (let index = 0; index < parts.length; index += 1) {
     const part = parts[index];
-    const literal = literalStringValue(part);
+    const literal = expressionStringValue(part, state, ancestors);
     if (literal != null) {
       const markerIndex = Math.max(literal.lastIndexOf('?'), literal.lastIndexOf('&'));
       if (markerIndex >= 0) {
@@ -1884,7 +2052,7 @@ function expressionSerializesPublicRouteQuery(node, state, ancestors) {
     }
     if (!concatHasExternalPrefix && sawPublicQueryMarker && expressionIsRouteQuery(part, state, ancestors)) return true;
     if (expressionIsRouteKey(part, state, ancestors)) {
-      const nextLiteral = literalStringValue(parts[index + 1]);
+      const nextLiteral = expressionStringValue(parts[index + 1], state, ancestors);
       if (!concatHasExternalPrefix && sawPublicQueryMarker && safeString(nextLiteral).trimStart().startsWith('=')) return true;
     }
     if (expressionIsExternalUrl(part, state, ancestors)) concatHasExternalPrefix = true;
@@ -1946,6 +2114,108 @@ function collectRouteQueryAliases(ast, state) {
   });
 }
 
+function expressionIsRouteQueryFactory(node, state, ancestors) {
+  const value = unwrap(node);
+  if (!value) return false;
+  const path = memberPathResolved(value, state, ancestors) || memberPath(value);
+  return Boolean(path && aliasPathIsActive(path, state.routeQueryFactories, 'routeQueryFactory', state, ancestors, value.start));
+}
+
+function collectRouteQueryFactories(ast, state) {
+  const clearRouteQueryFactory = (path) => {
+    if (!path) return;
+    Array.from(state.routeQueryFactories).forEach((alias) => {
+      if (alias === path || memberPathSuffix(alias, path)) state.routeQueryFactories.delete(alias);
+    });
+  };
+  const addRouteQueryFactory = (path, node, ancestors, hoisted = false) => {
+    if (!path || !functionReturnsRouteQuery(node, state)) return;
+    state.routeQueryFactories.add(path);
+    if (hoisted) {
+      const scope = nearestBindingScope(ancestors);
+      state.bindings.push({ name: path, kind: 'routeQueryFactory', start: scope.start, end: scope.end });
+    } else {
+      addAliasBinding(state, path, 'routeQueryFactory', node, ancestors);
+    }
+  };
+  const addRouteQueryFactoryAlias = (path, node, ancestors) => {
+    if (!path || !expressionIsRouteQueryFactory(node, state, ancestors)) return;
+    state.routeQueryFactories.add(path);
+    addAliasBinding(state, path, 'routeQueryFactory', node, ancestors);
+  };
+  const propertyOwnerPath = (property, ancestors) => {
+    const parent = ancestors[ancestors.length - 2];
+    if (!parent || parent.type !== 'ObjectExpression') return '';
+    const key = objectPropertyName(property, state, ancestors);
+    if (!key) return '';
+    const declarator = ancestors.slice().reverse().find((candidate) => (
+      candidate.type === 'VariableDeclarator'
+      && candidate.id
+      && candidate.id.type === 'Identifier'
+      && unwrap(candidate.init) === parent
+    ));
+    if (declarator) return `${declarator.id.name}.${key}`;
+    const assignment = ancestors.slice().reverse().find((candidate) => (
+      candidate.type === 'AssignmentExpression'
+      && unwrap(candidate.right) === parent
+    ));
+    const assignmentPath = assignment ? (memberPathResolved(assignment.left, state, ancestors) || memberPath(assignment.left)) : '';
+    return assignmentPath ? `${assignmentPath}.${key}` : '';
+  };
+  const addObjectRouteQueryFactories = (root, node, ancestors, clear = false) => {
+    const value = unwrap(node);
+    if (!root || !value || value.type !== 'ObjectExpression') return;
+    value.properties.forEach((prop) => {
+      if (!prop || prop.type !== 'Property') return;
+      const key = objectPropertyName(prop, state, ancestors);
+      if (!key) return;
+      const path = /^[A-Za-z_$][\w$]*$/.test(key) ? `${root}.${key}` : `${root}[${JSON.stringify(key)}]`;
+      if (clear) clearRouteQueryFactory(path);
+      addRouteQueryFactory(path, prop.value, ancestors);
+      addRouteQueryFactoryAlias(path, prop.value, ancestors);
+      addObjectRouteQueryFactories(path, prop.value, ancestors, clear);
+    });
+  };
+  walk(ast, (node, ancestors) => {
+    if (node.type === 'FunctionDeclaration' && node.id && node.id.name) {
+      addRouteQueryFactory(node.id.name, node, ancestors, true);
+    }
+    if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier') {
+      addRouteQueryFactory(node.id.name, node.init, ancestors);
+      addRouteQueryFactoryAlias(node.id.name, node.init, ancestors);
+      addObjectRouteQueryFactories(node.id.name, node.init, ancestors);
+    }
+    if (node.type === 'Property' && isFunctionNode(node.value)) {
+      addRouteQueryFactory(propertyOwnerPath(node, ancestors), node.value, ancestors);
+    }
+  });
+  walk(ast, (node, ancestors) => {
+    if (node.type === 'CallExpression') {
+      const callee = memberPathResolved(node.callee, state, ancestors) || memberPath(node.callee);
+      if (callee === 'Object.assign') {
+        const target = memberPathResolved(node.arguments[0], state, ancestors) || memberPath(node.arguments[0]);
+        (node.arguments || []).slice(1).forEach((source) => addObjectRouteQueryFactories(target, source, ancestors, true));
+      }
+      if (callee === 'Reflect.set') {
+        const target = memberPathResolved(node.arguments[0], state, ancestors) || memberPath(node.arguments[0]);
+        const key = expressionStringValue(node.arguments[1], state, ancestors);
+        if (target && key) {
+          const path = /^[A-Za-z_$][\w$]*$/.test(key) ? `${target}.${key}` : `${target}[${JSON.stringify(key)}]`;
+          clearRouteQueryFactory(path);
+          addRouteQueryFactory(path, node.arguments[2], ancestors);
+          addRouteQueryFactoryAlias(path, node.arguments[2], ancestors);
+        }
+      }
+    }
+    if (node.type === 'AssignmentExpression') {
+      const left = memberPathResolved(node.left, state, ancestors) || memberPath(node.left);
+      clearRouteQueryFactory(left);
+      addRouteQueryFactory(left, node.right, ancestors);
+      addRouteQueryFactoryAlias(left, node.right, ancestors);
+    }
+  });
+}
+
 function collectRouteFactories(ast, state) {
   const localFacts = {
     external: state.externalAliases,
@@ -1975,6 +2245,7 @@ function createScanState(ast, path, context) {
   const routeKeyAliases = new Set([...localFacts.route, ...importedFacts.route]);
   const externalAliases = new Set([...localFacts.external, ...importedFacts.external]);
   const routeFactories = new Set([...localFacts.factories, ...importedFacts.factories]);
+  const routeQueryFactories = new Set([...localFacts.routeQueryFactories, ...importedFacts.routeQueryFactories]);
   const urlConstructorAliases = new Set([...localFacts.urlConstructors, ...importedFacts.urlConstructors]);
   const urlSearchParamsConstructorAliases = new Set([...localFacts.urlSearchParamsConstructors, ...importedFacts.urlSearchParamsConstructors]);
   const routeUrlMutatorArgIndexes = new Map();
@@ -1992,6 +2263,7 @@ function createScanState(ast, path, context) {
     routeKeyAliases,
     externalAliases,
     routeFactories,
+    routeQueryFactories,
     routeUrlAliases: new Set(),
     searchParamsAliases: new Set(),
     routeQueryAliases: new Set(),
@@ -2005,6 +2277,7 @@ function createScanState(ast, path, context) {
       route: routeKeyAliases,
       external: externalAliases,
       factories: routeFactories,
+      routeQueryFactories,
       urlConstructors: urlConstructorAliases,
       urlSearchParamsConstructors: urlSearchParamsConstructorAliases,
       routeUrlMutators: routeUrlMutatorArgIndexes
@@ -2016,6 +2289,7 @@ function createScanState(ast, path, context) {
   collectRouteFactories(ast, state);
   collectRouteUrlAliases(ast, state);
   collectSearchParamsAliases(ast, state);
+  collectRouteQueryFactories(ast, state);
   collectRouteQueryAliases(ast, state);
   collectBoundSearchParamsMutators(ast, state);
   collectRouteUrlMutators(ast, state);

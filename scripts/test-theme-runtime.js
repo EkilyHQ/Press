@@ -325,9 +325,16 @@ await run('in-flight theme layout reuse refreshes public feature context', async
   const moduleReady = new Promise((resolve) => { releaseModule = resolve; });
   window.__pressThemeModuleLoader = async () => {
     await moduleReady;
-    return { mount() {} };
+    return {
+      mount(ctx) {
+        mountedFeatures = ctx && ctx.features;
+        mountedRouter = ctx && ctx.router;
+      }
+    };
   };
   const { ensureThemeLayout, getThemeLayoutContext } = await freshThemeLayout();
+  let mountedFeatures = null;
+  let mountedRouter = null;
   const firstFeatures = { flags: { search: true }, isEnabled: (key) => key !== 'search' };
   const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
   const firstRouter = { getHomeHref: () => '?tab=first' };
@@ -339,6 +346,8 @@ await run('in-flight theme layout reuse refreshes public feature context', async
   assert.equal(second, first);
   assert.equal(first.features, secondFeatures);
   assert.equal(first.router, secondRouter);
+  assert.equal(mountedFeatures, secondFeatures);
+  assert.equal(mountedRouter, secondRouter);
   assert.equal(getThemeLayoutContext().features, secondFeatures);
   assert.equal(getThemeLayoutContext().router, secondRouter);
 });

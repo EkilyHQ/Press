@@ -1229,7 +1229,7 @@ assert.doesNotMatch(
 
 assert.match(
   composerSiteModelSource,
-  /export function prepareSiteState\(raw\)[\s\S]*site\.features = normalizeSiteFeatureSettings\(src\.features\)[\s\S]*'enableAllPosts', 'disableAllPosts', 'features', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.features[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)/,
+  /export function prepareSiteState\(raw\)[\s\S]*site\.themeSettings = normalizeThemeSettingsMap\(src\.themeSettings\)[\s\S]*site\.features = normalizeSiteFeatureSettings\(src\.features\)[\s\S]*'themeSettings'[\s\S]*'enableAllPosts', 'disableAllPosts', 'features', 'connect'[\s\S]*export function computeSiteDiff\(current, baseline\)[\s\S]*diff\.fields\.features[\s\S]*diff\.fields\.themeSettings[\s\S]*diff\.fields\.annotate[\s\S]*export function toSiteYaml\(data\)[\s\S]*'themeMode', 'themePack', 'themeOverride', 'themeSettings'/,
   'site model boundary should own site.yaml normalization, diffing, and serialization'
 );
 
@@ -7642,6 +7642,42 @@ assert.match(
   siteSettingsSource,
   /const renderThemeGrid = \(section\) => \{[\s\S]*dataKey: 'themeMode'[\s\S]*dataKey: 'themePack'[\s\S]*dataKey: 'themeOverride'/,
   'Theme compact grid should include all single-value theme fields'
+);
+
+assert.match(
+  siteSettingsSource,
+  /from '\.\/theme-settings\.js';[\s\S]*const themeSettingsBlock = documentRef\.createElement\('div'\)[\s\S]*setThemeSettingOverride\(site, pack, field\.key, value, field\)[\s\S]*resolveThemeSettings\(\{ pack, manifest, siteConfig: site \}\)/,
+  'Theme compact grid should render current theme settings from the shared theme settings contract'
+);
+
+assert.match(
+  siteSettingsSource,
+  /themeSettingValueSignature[\s\S]*field\.defaultValue === undefined[\s\S]*unsetOption\.value = '';[\s\S]*option\.value = String\(index\);[\s\S]*option\.dataset\.valueSignature = themeSettingValueSignature\(optionData\.value\);[\s\S]*select\.value === ''[\s\S]*commitValue\(undefined\);[\s\S]*const selectedIndex = Number\(select\.value\);[\s\S]*commitValue\(selected \? selected\.value : select\.value\);/,
+  'Theme settings select controls should preserve mixed scalar option types'
+);
+
+assert.match(
+  siteSettingsSource,
+  /input\.type === 'number' \|\| input\.type === 'range'[\s\S]*input\.value === '' \? undefined : Number\(input\.value\)[\s\S]*commitValue\(nextValue\);/,
+  'Theme settings numeric controls should allow optional overrides to be cleared'
+);
+
+assert.match(
+  siteSettingsSource,
+  /field\.control === 'text' && field\.defaultValue === undefined && input\.value === '' \? undefined : input\.value[\s\S]*commitValue\(nextValue\);/,
+  'Theme settings optional text controls should allow blank values to clear persisted overrides'
+);
+
+assert.match(
+  siteSettingsSource,
+  /field\.control === 'boolean'[\s\S]*field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*commitValue\(undefined\);[\s\S]*syncSwitchState\(checkbox, toggle, false, false\);/,
+  'Theme settings optional boolean controls should expose an unset path'
+);
+
+assert.match(
+  siteSettingsSource,
+  /\(field\.control === 'color' \|\| field\.control === 'range'\) && field\.defaultValue === undefined[\s\S]*unsetButton\.textContent = 'Not set';[\s\S]*unsetButton\.addEventListener\('click', \(\) => commitValue\(undefined\)\);/,
+  'Theme settings optional color and range controls should expose an unset path'
 );
 
 assert.match(

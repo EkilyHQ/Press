@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const themeSource = readFileSync(resolve(here, '../assets/js/theme.js'), 'utf8');
+const mainSource = readFileSync(resolve(here, '../assets/main.js'), 'utf8');
+const themeLayoutSource = readFileSync(resolve(here, '../assets/js/theme-layout.js'), 'utf8');
 let importCounter = 0;
 
 assert.doesNotMatch(
@@ -16,6 +18,26 @@ assert.match(
   themeSource,
   /function createThemePackState\(\) \{[\s\S]*suppressedThemePacks: new Set\(\)[\s\S]*export function createThemePackController\(\) \{[\s\S]*const runtime = createThemePackRuntime\(\)[\s\S]*isSuppressed\(name\)/,
   'theme-pack suppression state should be scoped to explicit controller runtimes'
+);
+assert.match(
+  mainSource,
+  /function reflectActiveThemeConfig\(themeContext = getThemeLayoutContext\(\)\) \{[\s\S]*return callThemeEffect\('reflectThemeConfig', \{[\s\S]*ctx: themeContext \|\| null,[\s\S]*themeSettings: themeContext && themeContext\.themeSettings \? themeContext\.themeSettings : null,/,
+  'main boot reflection should preserve resolved theme settings when reflecting theme config'
+);
+assert.doesNotMatch(
+  mainSource,
+  /callThemeEffect\('reflectThemeConfig', \{\s*config: siteConfig,\s*features: getSiteFeatureContext\(\),/,
+  'main boot reflection should not call reflectThemeConfig without ctx/themeSettings'
+);
+assert.match(
+  mainSource,
+  /await ensureThemeLayout\(\{[\s\S]*features: getSiteFeatureContext\(\),[\s\S]*router: createThemeRouterContext\(\),[\s\S]*siteConfig,[\s\S]*reflectThemeConfig: false[\s\S]*\}\);/,
+  'main boot should let reflectActiveThemeConfig own the public boot reflect call'
+);
+assert.match(
+  themeLayoutSource,
+  /const shouldReflectThemeConfig = !options \|\| options\.reflectThemeConfig !== false;[\s\S]*if \(shouldReflectThemeConfig\) reflectThemeRuntimeConfig\(context, options, resolvedSettings\);/,
+  'theme layout runtime refresh should support explicit reflectThemeConfig opt-out'
 );
 
 class TestElement {
@@ -476,6 +498,50 @@ await run('theme layout mount context exposes router href helpers', async () => 
   await ensureThemeLayout({ pack: 'routepack', persist: false, reset: true, router });
   assert.equal(mountedRouter, router);
   assert.equal(mountedRouter.getHomeHref(), '?tab=home');
+});
+
+await run('theme layout reflects config once and honors opt-out', async () => {
+  const reflected = [];
+  installGlobals({
+    savedPack: 'reflectpack',
+    manifests: {
+      reflectpack: makeManifest('reflectpack', ['modules/layout.js']),
+      silentpack: makeManifest('silentpack', ['modules/layout.js'])
+    }
+  });
+  window.__pressThemeModuleLoader = async () => ({
+    theme: {
+      effects: {
+        reflectThemeConfig(payload) {
+          reflected.push(payload);
+        }
+      }
+    }
+  });
+  const { ensureThemeLayout } = await freshThemeLayout();
+  await ensureThemeLayout({
+    pack: 'reflectpack',
+    persist: false,
+    reset: true,
+    siteConfig: { themePack: 'reflectpack' }
+  });
+  assert.equal(reflected.length, 1, 'fresh theme layout mount should reflect config once by default');
+
+  await ensureThemeLayout({
+    pack: 'silentpack',
+    persist: false,
+    reset: true,
+    siteConfig: { themePack: 'silentpack' },
+    reflectThemeConfig: false
+  });
+  assert.equal(reflected.length, 1, 'reflectThemeConfig false should suppress fresh-mount reflection');
+
+  await ensureThemeLayout({
+    pack: 'silentpack',
+    persist: false,
+    siteConfig: { themePack: 'silentpack' }
+  });
+  assert.equal(reflected.length, 2, 'cached layout refresh should still reflect when not opted out');
 });
 
 await run('theme controls ignore retired legacy DOM bridge hints from the active theme context', async () => {

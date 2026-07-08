@@ -10,7 +10,7 @@ const sourceManifest = JSON.parse(await fs.readFile(path.join(root, 'packages', 
 
 assert.equal(sourceManifest.name, '@ekilyhq/press-theme-contract');
 assert.equal(sourceManifest.version, system.version);
-assert.equal(system.version, '3.4.131');
+assert.equal(system.version, '3.4.132');
 assert.equal(system.tag, `v${system.version}`);
 assert.equal(sourceManifest.publishConfig && sourceManifest.publishConfig.registry, 'https://npm.pkg.github.com');
 
@@ -21,11 +21,13 @@ try {
     import {
       PRESS_THEME_CONTRACT,
       containsForbiddenV4RouteConstruction,
+      validateThemeConfigSchema,
       validateThemeRouteHelperContract
     } from './packages/press-theme-contract/index.mjs';
 
     assert.equal(PRESS_THEME_CONTRACT.contractVersion, 4);
     assert.equal(typeof containsForbiddenV4RouteConstruction, 'function');
+    assert.equal(typeof validateThemeConfigSchema, 'function');
     assert.equal(typeof validateThemeRouteHelperContract, 'function');
   `], {
     cwd: root,
@@ -50,6 +52,7 @@ try {
     'index.mjs',
     'scripts/sync-assets.mjs',
     'assets/js/theme-package-core.js',
+    'assets/js/theme-settings.js',
     'assets/js/theme-route-guard.js',
     'assets/js/vendor/acorn.mjs',
     'assets/js/vendor/acorn-walk.mjs'

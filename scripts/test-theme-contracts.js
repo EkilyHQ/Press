@@ -11,7 +11,10 @@ import {
   getRequiredThemeRegions,
   getRequiredThemeViews
 } from '../assets/js/theme-contract-surface.mjs';
-import { containsForbiddenV4RouteConstruction as containsForbiddenV4RouteConstructionExport } from '../assets/js/theme-package-core.js';
+import {
+  containsForbiddenV4RouteConstruction as containsForbiddenV4RouteConstructionExport,
+  validateThemeConfigSchema
+} from '../assets/js/theme-package-core.js';
 import { containsForbiddenV4RouteConstructionAst } from '../assets/js/theme-route-guard.js';
 
 const root = process.cwd();
@@ -4459,6 +4462,25 @@ const schemaContentShapes = schema.$defs && schema.$defs.contentShapeList && sch
 if (JSON.stringify(schemaContentShapes || []) !== JSON.stringify(REQUIRED_CONTENT_SHAPES)) {
   fail('assets/schema/theme.json content shape enum must match the shared theme contract surface');
 }
+const schemaThemeConfigProperty = schema.properties
+  && schema.properties.configSchema
+  && schema.properties.configSchema.properties
+  && schema.properties.configSchema.properties.properties
+  && schema.properties.configSchema.properties.properties.additionalProperties;
+if (!schemaThemeConfigProperty || schemaThemeConfigProperty.type !== 'object' || schemaThemeConfigProperty.additionalProperties !== true) {
+  fail('assets/schema/theme.json configSchema properties must allow nested non-Press object schemas');
+}
+const schemaThemeConfigAdditionalProperties = schema.properties
+  && schema.properties.configSchema
+  && schema.properties.configSchema.properties
+  && schema.properties.configSchema.properties.additionalProperties;
+const schemaThemeConfigAdditionalPropertiesAllowsSchemas = schemaThemeConfigAdditionalProperties
+  && Array.isArray(schemaThemeConfigAdditionalProperties.oneOf)
+  && schemaThemeConfigAdditionalProperties.oneOf.some(entry => entry && entry.type === 'boolean')
+  && schemaThemeConfigAdditionalProperties.oneOf.some(entry => entry && entry.type === 'object' && entry.additionalProperties === true);
+if (!schemaThemeConfigAdditionalPropertiesAllowsSchemas) {
+  fail('assets/schema/theme.json configSchema.additionalProperties must allow boolean values and schema object values');
+}
 if (!themeLayoutSource.includes('theme-contract-surface.mjs') || !themePackageCoreSource.includes('theme-contract-surface.mjs')) {
   fail('theme runtime and Theme Manager package core must import the shared theme contract surface');
 }
@@ -4716,6 +4738,11 @@ themeNames.forEach((themeName) => {
     fail(`${relManifest} must declare scrollContainer`);
   }
   requireObject(manifest.configSchema, 'configSchema', relManifest);
+  try {
+    validateThemeConfigSchema(manifest.configSchema);
+  } catch (err) {
+    fail(`${relManifest} configSchema contains unsupported theme setting metadata: ${err && err.message ? err.message : err}`);
+  }
   const content = requireObject(manifest.content, 'content', relManifest);
   const shapes = requireList(content, 'shapes', 'content.shapes', relManifest);
   REQUIRED_CONTENT_SHAPES.forEach((shape) => {

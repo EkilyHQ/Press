@@ -72,6 +72,14 @@
       "type": "boolean",
       "description": "Allow theme override via UI or config."
     },
+    "themeSettings": {
+      "type": "object",
+      "description": "Theme-specific validated settings, scoped by theme slug. For example: themeSettings.arcus.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
     "cardCoverFallback": {
       "type": "boolean",
       "description": "Use card cover image as fallback when missing."

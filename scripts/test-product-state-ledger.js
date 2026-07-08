@@ -138,6 +138,7 @@ function themePacks(slug, release = themeRelease(slug)) {
       label: release.label,
       version: release.version,
       contractVersion: release.contractVersion,
+      engines: release.engines,
       source: {
         type: 'official',
         repo: `EkilyHQ/Press-Theme-${release.label}`,
@@ -688,6 +689,78 @@ test('buildProductState blocks convergence when demo packs metadata has stale ar
   assert.equal(state.status, 'drift');
   assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
   assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /packs registry digest does not match/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo theme engines drift', async () => {
+  const release = themeRelease('arcus');
+  const manifest = themeManifest('arcus', release.version, release.contractVersion);
+  manifest.engines.press = '>=3.4.0 <3.4.100';
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-theme-manifest': manifest
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /manifest engines\.press does not match/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo packs source metadata drifts', async () => {
+  const release = themeRelease('arcus');
+  const packs = themePacks('arcus', release);
+  packs[1].source.repo = 'EkilyHQ/Press-Theme-Stale';
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-packs': packs
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /packs registry source repo does not match/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo packs release provenance drifts', async () => {
+  const release = themeRelease('arcus');
+  const packs = themePacks('arcus', release);
+  packs[1].release.htmlUrl = 'https://github.com/EkilyHQ/Press-Theme-Arcus/releases/tag/v3.4.5';
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-packs': packs
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /packs registry release htmlUrl does not match/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo lock Press artifact drifts', async () => {
+  const release = themeRelease('arcus');
+  const lock = themeDemoLock('arcus', release);
+  lock.pressSystem.asset.digest = `sha256:${'c'.repeat(64)}`;
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-demo-lock': lock
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /release lock Press asset digest does not match/u);
   assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
 });
 

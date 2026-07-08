@@ -10,6 +10,7 @@ const {
 
 const DEFAULT_PRESS_REPOSITORY = 'EkilyHQ/Press';
 const RELEASE_INTENT_TYPE = 'press-release-intent';
+const THEME_DEMO_OBSERVED_CHANNELS = ['themeManifest', 'themePacks', 'demoLock'];
 
 function normalizeSemver(value) {
   const raw = String(value || '').trim();
@@ -86,6 +87,14 @@ function normalizeObservedChannels(input = {}) {
       source: String(value.source || '').trim()
     }];
   }));
+}
+
+function hasCompleteThemeDemoObservedChannels(channels) {
+  const source = channels && typeof channels === 'object' ? channels : {};
+  return THEME_DEMO_OBSERVED_CHANNELS.every((key) => {
+    const channel = source[key] && typeof source[key] === 'object' ? source[key] : {};
+    return !!(channel.ref && channel.path && channel.type && channel.source);
+  });
 }
 
 function normalizeSystemRelease(input = {}) {
@@ -329,6 +338,11 @@ function validateReleaseIntent(intentInput, options = {}) {
         failures.push(`${channelPrefix}.type is invalid`);
       }
     });
+    if (target.category === 'themeDemo'
+      && Object.keys(target.observedChannels || {}).length
+      && !hasCompleteThemeDemoObservedChannels(target.observedChannels)) {
+      failures.push(`${prefix}.observedChannels must include complete themeManifest, themePacks, and demoLock channels`);
+    }
     if (!target.reconciler.kind || target.reconciler.idempotent !== true) {
       failures.push(`${prefix}.reconciler must be idempotent and declare kind`);
     }
@@ -370,15 +384,18 @@ function releaseIntentToProductStateSources(intentInput) {
   };
   intent.targets.forEach((target) => {
     const fallback = defaultSourceMap.get(target.key) || {};
+    const observedChannels = target.category === 'themeDemo'
+      ? hasCompleteThemeDemoObservedChannels(target.observedChannels)
+        ? target.observedChannels
+        : clone(fallback.observedChannels || {})
+      : clone(target.observedChannels || {});
     const source = {
       key: target.key,
       label: target.label,
       repository: target.repository,
       source: target.observed.source,
       type: target.observed.type,
-      observedChannels: Object.keys(target.observedChannels || {}).length
-        ? target.observedChannels
-        : clone(fallback.observedChannels || {}),
+      observedChannels,
       eventType: target.eventType,
       reconciler: {
         eventType: target.eventType,

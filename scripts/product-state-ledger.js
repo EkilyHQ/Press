@@ -574,7 +574,7 @@ function findThemePackEntry(packs, slug) {
   return packs.find((entry) => String(entry && entry.value || '').trim() === slug) || null;
 }
 
-function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, packsResult, lockResult, pressVersion }) {
+function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, packsResult, lockResult, pressVersion, systemRelease, releaseIntentSource }) {
   const slug = String(source.key || '').trim();
   const out = {
     status: 'unknown',
@@ -614,13 +614,21 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
   }
 
   const manifest = manifestResult.value && typeof manifestResult.value === 'object' ? manifestResult.value : {};
+  const manifestEngines = manifest.engines && typeof manifest.engines === 'object' ? manifest.engines : {};
   const packs = packsResult.value;
   const lock = lockResult.value && typeof lockResult.value === 'object' ? lockResult.value : {};
   const packEntry = findThemePackEntry(packs, slug);
+  const packSource = packEntry && packEntry.source && typeof packEntry.source === 'object' ? packEntry.source : {};
   const packRelease = packEntry && packEntry.release && typeof packEntry.release === 'object' ? packEntry.release : {};
   const lockTheme = lock.theme && typeof lock.theme === 'object' ? lock.theme : {};
+  const lockThemeEngines = lockTheme.engines && typeof lockTheme.engines === 'object' ? lockTheme.engines : {};
   const lockPress = lock.pressSystem && typeof lock.pressSystem === 'object' ? lock.pressSystem : {};
   const lockAsset = lockTheme.asset && typeof lockTheme.asset === 'object' ? lockTheme.asset : {};
+  const lockPressAsset = lockPress.asset && typeof lockPress.asset === 'object' ? lockPress.asset : {};
+  const lockReleaseIntent = lockPress.releaseIntent && typeof lockPress.releaseIntent === 'object' ? lockPress.releaseIntent : {};
+  const expectedPressAsset = systemRelease && systemRelease.asset && typeof systemRelease.asset === 'object'
+    ? systemRelease.asset
+    : {};
 
   out.observedVersion = String(manifest.version || '').trim();
   out.observedTag = String(packRelease.tag || lockTheme.release && lockTheme.release.tag || '').trim();
@@ -632,6 +640,11 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
   if (Number(manifest.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
     out.problems.push(`demo theme manifest contractVersion is ${Number(manifest.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
   }
+  if (String(manifestEngines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+    out.problems.push('demo theme manifest engines.press does not match theme release');
+  } else if (!satisfiesSemverRange(pressVersion, manifestEngines.press)) {
+    out.problems.push(`demo theme manifest engines.press does not accept Press ${pressVersion}`);
+  }
   if (!packEntry) {
     out.problems.push('demo packs registry is missing the installed theme entry');
   } else {
@@ -641,8 +654,26 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
     if (Number(packEntry.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
       out.problems.push(`demo packs registry contractVersion is ${Number(packEntry.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
     }
+    if (String(packEntry.engines && packEntry.engines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+      out.problems.push('demo packs registry engines.press does not match theme release');
+    }
+    if (String(packSource.type || '').trim() !== 'official') {
+      out.problems.push('demo packs registry source type must be official');
+    }
+    if (String(packSource.repo || '').trim() !== expectedTheme.repository) {
+      out.problems.push('demo packs registry source repo does not match theme release');
+    }
+    if (String(packSource.manifestUrl || '').trim() !== expectedTheme.manifestUrl) {
+      out.problems.push('demo packs registry source manifestUrl does not match theme release');
+    }
     if (String(packRelease.tag || '').trim() !== expectedTheme.release.tag) {
       out.problems.push(`demo packs registry release tag is ${String(packRelease.tag || 'unknown')}, expected ${expectedTheme.release.tag}`);
+    }
+    if (String(packRelease.htmlUrl || '').trim() !== expectedTheme.release.htmlUrl) {
+      out.problems.push('demo packs registry release htmlUrl does not match theme release');
+    }
+    if (String(packRelease.publishedAt || '').trim() !== expectedTheme.release.publishedAt) {
+      out.problems.push('demo packs registry release publishedAt does not match theme release');
     }
     if (String(packRelease.assetName || '').trim() !== expectedTheme.artifact.name) {
       out.problems.push('demo packs registry assetName does not match theme release');
@@ -663,14 +694,38 @@ function themeDemoInstalledThemeEntry({ source, expectedTheme, manifestResult, p
   if (String(lockPress.version || '').trim() !== pressVersion || String(lockPress.tag || '').trim() !== semverToTag(pressVersion)) {
     out.problems.push(`demo release lock Press system is ${String(lockPress.version || 'unknown')}, expected ${pressVersion}`);
   }
+  if (String(lockPressAsset.name || '').trim() !== String(expectedPressAsset.name || '').trim()) {
+    out.problems.push('demo release lock Press asset name does not match system release');
+  }
+  if (String(lockPressAsset.url || '').trim() !== String(expectedPressAsset.url || '').trim()) {
+    out.problems.push('demo release lock Press asset url does not match system release');
+  }
+  if (Number(lockPressAsset.size || 0) !== Number(expectedPressAsset.size || 0)) {
+    out.problems.push('demo release lock Press asset size does not match system release');
+  }
+  if (normalizeDigest(lockPressAsset.digest) !== normalizeDigest(expectedPressAsset.digest)) {
+    out.problems.push('demo release lock Press asset digest does not match system release');
+  }
+  if (releaseIntentSource && String(lockReleaseIntent.source || '').trim() !== releaseIntentSource) {
+    out.problems.push('demo release lock Press releaseIntent source does not match release intent');
+  }
   if (String(lockTheme.version || '').trim() !== expectedTheme.version) {
     out.problems.push(`demo release lock theme is ${String(lockTheme.version || 'unknown')}, expected ${expectedTheme.version}`);
   }
   if (Number(lockTheme.contractVersion || 0) !== Number(expectedTheme.contractVersion || 0)) {
     out.problems.push(`demo release lock contractVersion is ${Number(lockTheme.contractVersion || 0)}, expected ${Number(expectedTheme.contractVersion || 0)}`);
   }
+  if (String(lockThemeEngines.press || '').trim() !== String(expectedTheme.engines && expectedTheme.engines.press || '').trim()) {
+    out.problems.push('demo release lock theme engines.press does not match theme release');
+  }
   if (String(lockTheme.release && lockTheme.release.tag || '').trim() !== expectedTheme.release.tag) {
     out.problems.push('demo release lock theme tag does not match theme release');
+  }
+  if (String(lockTheme.release && lockTheme.release.htmlUrl || '').trim() !== expectedTheme.release.htmlUrl) {
+    out.problems.push('demo release lock theme release htmlUrl does not match theme release');
+  }
+  if (String(lockTheme.release && lockTheme.release.publishedAt || '').trim() !== expectedTheme.release.publishedAt) {
+    out.problems.push('demo release lock theme release publishedAt does not match theme release');
   }
   if (String(lockAsset.name || '').trim() !== expectedTheme.artifact.name) {
     out.problems.push('demo release lock asset name does not match theme release');
@@ -1118,7 +1173,9 @@ async function buildProductState(options = {}) {
       manifestResult,
       packsResult,
       lockResult,
-      pressVersion
+      pressVersion,
+      systemRelease,
+      releaseIntentSource: canonicalReleaseIntentSource
     });
     entry.installedTheme = installedTheme;
     entry.status = aggregateStatus([entry.pressSystem.status, installedTheme.status]);

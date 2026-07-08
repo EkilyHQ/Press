@@ -159,6 +159,19 @@ test('releaseIntentToProductStateSources restores standard theme demo channels f
   assert.equal(arcus.observedChannels.demoLock.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
 });
 
+test('validateReleaseIntent rejects partial theme demo observed channels', () => {
+  const release = systemRelease();
+  const intent = buildReleaseIntent({ systemRelease: release });
+  const arcus = intent.targets.find((target) => target.key === 'arcus');
+  arcus.observedChannels = {
+    themeManifest: arcus.observedChannels.themeManifest
+  };
+
+  const failures = validateReleaseIntent(intent, { systemRelease: release }).join('\n');
+
+  assert.match(failures, /observedChannels must include complete themeManifest, themePacks, and demoLock channels/u);
+});
+
 test('validateReleaseIntent rejects release/system mismatches', () => {
   const release = systemRelease();
   const intent = buildReleaseIntent({ systemRelease: release });

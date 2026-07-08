@@ -1008,6 +1008,102 @@ await run('allows guarded system updates after installed themes reach the requir
   setPressSystemManifestForTests(null);
 });
 
+await run('blocks v4 cleanup system updates while installed themes are still contract v3', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.130',
+    tag: 'v3.4.130',
+    upgradeFrom: { ranges: ['>=3.4.129 <3.4.130'], allowUnknownSource: false, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v3.4.131/index.html': '<!doctype html><p>guarded</p>',
+    'press-system-v3.4.131/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '3.4.131',
+      tag: 'v3.4.131',
+      upgradeFrom: {
+        ranges: ['>=3.4.130 <3.4.131'],
+        allowUnknownSource: false,
+        message: ''
+      },
+      themeContractUpgrade: {
+        requiresInstalledThemeContractVersion: 4,
+        message: 'Update installed themes to contract v4 before installing v3.4.131.'
+      }
+    })
+  });
+  const controller = createSystemUpdatesController({
+    fetchImpl: async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'assets/themes/packs.json') {
+        return jsonResponse([
+          { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
+          { value: 'arcus', label: 'Arcus', version: '3.4.5', contractVersion: 3, files: ['theme.json'] }
+        ]);
+      }
+      return { ok: false, json: async () => ({}), arrayBuffer: async () => new ArrayBuffer(0) };
+    }
+  });
+
+  await assert.rejects(
+    () => controller.analyzeArchive(buffer, 'press-system-v3.4.131.zip'),
+    /contract v4|Arcus|contract v3|v3\.4\.131/i
+  );
+  assert.deepEqual(controller.getCommitFiles(), []);
+  setPressSystemManifestForTests(null);
+});
+
+await run('allows v4 cleanup system updates after installed themes reach contract v4', async () => {
+  clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
+  setPressSystemManifestForTests({
+    schemaVersion: 1,
+    type: 'press-system',
+    version: '3.4.130',
+    tag: 'v3.4.130',
+    upgradeFrom: { ranges: ['>=3.4.129 <3.4.130'], allowUnknownSource: false, message: '' }
+  });
+  const buffer = makeZip({
+    'press-system-v3.4.131/index.html': '<!doctype html><p>guarded</p>',
+    'press-system-v3.4.131/assets/press-system.json': JSON.stringify({
+      schemaVersion: 1,
+      type: 'press-system',
+      version: '3.4.131',
+      tag: 'v3.4.131',
+      upgradeFrom: {
+        ranges: ['>=3.4.130 <3.4.131'],
+        allowUnknownSource: false,
+        message: ''
+      },
+      themeContractUpgrade: {
+        requiresInstalledThemeContractVersion: 4,
+        message: 'Update installed themes to contract v4 before installing v3.4.131.'
+      }
+    })
+  });
+  const controller = createSystemUpdatesController({
+    fetchImpl: async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'assets/themes/packs.json') {
+        return jsonResponse([
+          { value: 'native', label: 'Native', builtIn: true, removable: false, files: [] },
+          { value: 'arcus', label: 'Arcus', version: '3.4.6', contractVersion: 4, files: ['theme.json'] }
+        ]);
+      }
+      return { ok: false, json: async () => ({}), arrayBuffer: async () => new ArrayBuffer(0) };
+    }
+  });
+
+  await controller.analyzeArchive(buffer, 'press-system-v3.4.131.zip');
+  assert.deepEqual(controller.getCommitFiles().map((file) => file.path).sort(), [
+    'assets/press-system.json',
+    'index.html'
+  ]);
+  setPressSystemManifestForTests(null);
+});
+
 await run('ignores stale stored theme packs that are no longer installed', async () => {
   clearSystemUpdateState({ clearReleaseCache: true, keepStatus: true });
   setPressSystemManifestForTests({

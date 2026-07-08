@@ -12,9 +12,19 @@ const REQUIRED_THEME_CONTENT_SHAPES = Object.freeze([
   'assets',
   'links'
 ]);
-const REQUIRED_THEME_MANIFEST_FIELDS = Object.freeze(['contractVersion', 'engines', 'content', 'modules']);
+const REQUIRED_THEME_MANIFEST_FIELDS = Object.freeze([
+  'contractVersion',
+  'engines',
+  'content',
+  'modules',
+  'views',
+  'regions',
+  'components',
+  'scrollContainer',
+  'configSchema'
+]);
 const DEFAULT_THEME_STYLES = Object.freeze(['theme.css']);
-const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([3, 4]);
+const SUPPORTED_THEME_CONTRACT_VERSIONS = Object.freeze([4]);
 const THEME_ARCHIVE_ALLOWED_EXTENSIONS = Object.freeze([
   '.avif', '.css', '.gif', '.htm', '.html', '.ico', '.jpeg', '.jpg', '.js', '.json', '.mjs', '.otf',
   '.png', '.svg', '.ttf', '.txt', '.webp', '.woff', '.woff2'

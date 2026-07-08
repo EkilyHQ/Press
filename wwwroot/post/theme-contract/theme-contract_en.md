@@ -72,9 +72,8 @@ content shapes, and archive file-type rules.
 
 - `name` and `version`: Human-facing theme identity.
 - `contractVersion`: Press runtime contract version. Contract v4 is the current
-  route href helper contract. During the v4 transition Press accepts v3 and v4
-  themes, while new v4 themes must use runtime route helpers instead of public
-  route literals.
+  and only supported route href helper contract. Themes must use runtime route
+  helpers instead of public route literals.
 - `engines.press`: Press system SemVer range the theme supports. Theme Manager
   rejects official and manually imported themes outside the current Press
   version.

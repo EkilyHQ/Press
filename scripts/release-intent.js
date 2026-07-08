@@ -58,6 +58,10 @@ function readJsonFile(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 function sha256File(file) {
   return `sha256:${crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')}`;
 }
@@ -69,6 +73,19 @@ function sourceMapFromReleaseTargets(rawRoot = DEFAULT_RAW_ROOT) {
     map.set(source.key, source);
   });
   return map;
+}
+
+function normalizeObservedChannels(input = {}) {
+  const source = input && typeof input === 'object' ? input : {};
+  return Object.fromEntries(Object.entries(source).map(([key, channel]) => {
+    const value = channel && typeof channel === 'object' ? channel : {};
+    return [key, {
+      ref: String(value.ref || '').trim(),
+      path: String(value.path || '').trim(),
+      type: String(value.type || '').trim(),
+      source: String(value.source || '').trim()
+    }];
+  }));
 }
 
 function normalizeSystemRelease(input = {}) {
@@ -141,6 +158,7 @@ function buildReleaseIntent(options = {}) {
         type: target.observed.type,
         source: source.source || ''
       },
+      observedChannels: normalizeObservedChannels(source.observedChannels),
       reconciler: {
         kind: target.reconciler.kind,
         idempotent: target.reconciler.idempotent !== false
@@ -229,6 +247,9 @@ function normalizeReleaseIntent(input = {}) {
       const expected = target && target.expected && typeof target.expected === 'object' ? target.expected : {};
       const observed = target && target.observed && typeof target.observed === 'object' ? target.observed : {};
       const reconciler = target && target.reconciler && typeof target.reconciler === 'object' ? target.reconciler : {};
+      const observedChannels = target && target.observedChannels && typeof target.observedChannels === 'object'
+        ? target.observedChannels
+        : {};
       return {
         key: String(target && target.key || '').trim(),
         category: String(target && target.category || '').trim(),
@@ -245,6 +266,7 @@ function normalizeReleaseIntent(input = {}) {
           type: String(observed.type || '').trim(),
           source: String(observed.source || '').trim()
         },
+        observedChannels: normalizeObservedChannels(observedChannels),
         reconciler: {
           kind: String(reconciler.kind || '').trim(),
           idempotent: reconciler.idempotent !== false
@@ -295,6 +317,18 @@ function validateReleaseIntent(intentInput, options = {}) {
     if (!target.observed.ref || !target.observed.path || !target.observed.type || !target.observed.source) {
       failures.push(`${prefix}.observed must declare ref, path, type, and source`);
     }
+    Object.entries(target.observedChannels || {}).forEach(([channelKey, channel]) => {
+      const channelPrefix = `${prefix}.observedChannels.${channelKey}`;
+      if (!['themeManifest', 'themePacks', 'demoLock'].includes(channelKey)) {
+        failures.push(`${channelPrefix} is not a supported observed channel`);
+      }
+      if (!channel.ref || !channel.path || !channel.type || !channel.source) {
+        failures.push(`${channelPrefix} must declare ref, path, type, and source`);
+      }
+      if (!['press-theme-manifest', 'press-theme-packs', 'theme-demo-release-lock'].includes(channel.type)) {
+        failures.push(`${channelPrefix}.type is invalid`);
+      }
+    });
     if (!target.reconciler.kind || target.reconciler.idempotent !== true) {
       failures.push(`${prefix}.reconciler must be idempotent and declare kind`);
     }
@@ -328,17 +362,23 @@ function validateReleaseIntent(intentInput, options = {}) {
 
 function releaseIntentToProductStateSources(intentInput) {
   const intent = normalizeReleaseIntent(intentInput);
+  const defaultSources = getReleaseProductStateSources(DEFAULT_RAW_ROOT);
+  const defaultSourceMap = new Map([...defaultSources.downstream, ...defaultSources.themeDemos].map((source) => [source.key, source]));
   const sources = {
     downstream: [],
     themeDemos: []
   };
   intent.targets.forEach((target) => {
+    const fallback = defaultSourceMap.get(target.key) || {};
     const source = {
       key: target.key,
       label: target.label,
       repository: target.repository,
       source: target.observed.source,
       type: target.observed.type,
+      observedChannels: Object.keys(target.observedChannels || {}).length
+        ? target.observedChannels
+        : clone(fallback.observedChannels || {}),
       eventType: target.eventType,
       reconciler: {
         eventType: target.eventType,

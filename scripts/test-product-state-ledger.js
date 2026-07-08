@@ -12,6 +12,8 @@ const {
   buildReleaseIntent
 } = require('./release-intent.js');
 
+const THEME_FIXTURES = ['arcus', 'cartograph', 'glasswing', 'solstice'];
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -27,7 +29,8 @@ function makeSources() {
     .filter((source) => source.key === 'arcus')
     .map((source) => ({
       ...source,
-      source: 'fixture:arcus-demo'
+      source: 'fixture:arcus-demo',
+      observedChannels: demoChannels('arcus')
     }));
   sources.catalog = {
     repository: 'EkilyHQ/Press-Theme-Catalog',
@@ -96,6 +99,12 @@ function themeRelease(slug, version = '3.4.6', pressRange = '>=3.4.130 <4.0.0', 
     engines: {
       press: pressRange
     },
+    release: {
+      tag: `v${version}`,
+      htmlUrl: `https://github.com/EkilyHQ/Press-Theme-${slug}/releases/tag/v${version}`,
+      publishedAt: '2026-05-25T00:00:00Z',
+      notes: ''
+    },
     asset: {
       name: `press-theme-${slug}-v${version}.zip`,
       url: `https://raw.githubusercontent.com/EkilyHQ/Press-Theme-${slug}/release-artifacts/v${version}/press-theme-${slug}-v${version}.zip`,
@@ -103,6 +112,126 @@ function themeRelease(slug, version = '3.4.6', pressRange = '>=3.4.130 <4.0.0', 
       digest: 'sha256:def456'
     },
     files: ['theme.json', 'theme.css']
+  };
+}
+
+function themeManifest(slug, version = '3.4.6', contractVersion = 4) {
+  return {
+    name: slug.charAt(0).toUpperCase() + slug.slice(1),
+    version,
+    contractVersion,
+    engines: {
+      press: '>=3.4.130 <4.0.0'
+    }
+  };
+}
+
+function themePacks(slug, release = themeRelease(slug)) {
+  return [
+    {
+      value: 'native',
+      version: '3.4.131',
+      builtIn: true
+    },
+    {
+      value: slug,
+      label: release.label,
+      version: release.version,
+      contractVersion: release.contractVersion,
+      source: {
+        type: 'official',
+        repo: `EkilyHQ/Press-Theme-${release.label}`,
+        manifestUrl: `fixture:theme-${slug}`
+      },
+      release: {
+        tag: release.release.tag,
+        htmlUrl: release.release.htmlUrl,
+        publishedAt: release.release.publishedAt,
+        assetName: release.asset.name,
+        size: release.asset.size,
+        digest: release.asset.digest
+      }
+    }
+  ];
+}
+
+function themeDemoLock(slug, release = themeRelease(slug), pressVersion = '3.4.131') {
+  return {
+    schemaVersion: 1,
+    type: 'press-theme-demo-release-lock',
+    repository: `EkilyHQ/Press-Theme-${release.label}`,
+    slug,
+    target: {
+      category: 'themeDemo',
+      ref: 'demo',
+      path: 'demo-release-lock.json',
+      type: 'theme-demo-release-lock',
+      reconciler: 'theme-demo-release-sync',
+      observed: {
+        pressSystem: {
+          path: 'assets/press-system.json',
+          type: 'press-system-manifest'
+        },
+        themeManifest: {
+          path: `assets/themes/${slug}/theme.json`,
+          type: 'press-theme-manifest'
+        },
+        themePacks: {
+          path: 'assets/themes/packs.json',
+          type: 'press-theme-packs'
+        }
+      }
+    },
+    pressSystem: {
+      version: pressVersion,
+      tag: `v${pressVersion}`,
+      sourceKind: 'release-intent',
+      asset: {
+        name: `press-system-v${pressVersion}.zip`,
+        url: `https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v${pressVersion}/press-system-v${pressVersion}.zip`,
+        size: 100,
+        digest: 'sha256:abc123'
+      },
+      releaseIntent: {
+        type: 'press-release-intent',
+        source: 'fixture:intent'
+      }
+    },
+    theme: {
+      value: slug,
+      label: release.label,
+      version: release.version,
+      contractVersion: release.contractVersion,
+      engines: release.engines,
+      release: release.release,
+      asset: release.asset,
+      releaseManifest: {
+        source: `fixture:theme-${slug}`
+      }
+    }
+  };
+}
+
+function demoChannels(slug) {
+  return {
+    themeManifest: {
+      ref: 'demo',
+      path: `assets/themes/${slug}/theme.json`,
+      type: 'press-theme-manifest',
+      source: `fixture:${slug}-theme-manifest`
+    },
+    themePacks: {
+      ref: 'demo',
+      path: 'assets/themes/packs.json',
+      type: 'press-theme-packs',
+      source: `fixture:${slug}-packs`
+    },
+    demoLock: {
+      ref: 'demo',
+      path: 'demo-release-lock.json',
+      type: 'theme-demo-release-lock',
+      source: `fixture:${slug}-demo-lock`
+    }
   };
 }
 
@@ -117,7 +246,10 @@ function releaseIntentFixture(release) {
   intent.targets.forEach((target) => {
     if (target.key === 'yap') target.observed.source = 'fixture:yap';
     else if (target.key === 'themeStarter') target.observed.source = 'fixture:starter';
-    else target.observed.source = `fixture:${target.key}-demo`;
+    else {
+      target.observed.source = `fixture:${target.key}-demo`;
+      target.observedChannels = demoChannels(target.key);
+    }
   });
   return intent;
 }
@@ -135,16 +267,22 @@ function makeFixtures(overrides = {}) {
     'fixture:solstice-demo': pressManifest(),
     'fixture:catalog': {
       schemaVersion: 1,
-      themes: [
-        {
-          value: 'arcus',
-          label: 'Arcus',
-          repo: 'EkilyHQ/Press-Theme-Arcus',
-          manifestUrl: 'fixture:theme-arcus'
-        }
-      ]
+      themes: THEME_FIXTURES.map((slug) => ({
+        value: slug,
+        label: slug.charAt(0).toUpperCase() + slug.slice(1),
+        repo: `EkilyHQ/Press-Theme-${slug.charAt(0).toUpperCase() + slug.slice(1)}`,
+        manifestUrl: `fixture:theme-${slug}`
+      }))
     },
-    'fixture:theme-arcus': themeRelease('arcus'),
+    ...Object.fromEntries(THEME_FIXTURES.flatMap((slug) => {
+      const release = themeRelease(slug);
+      return [
+        [`fixture:theme-${slug}`, release],
+        [`fixture:${slug}-theme-manifest`, themeManifest(slug, release.version, release.contractVersion)],
+        [`fixture:${slug}-packs`, themePacks(slug, release)],
+        [`fixture:${slug}-demo-lock`, themeDemoLock(slug, release)]
+      ];
+    })),
     'fixture:connect': {
       ok: true,
       service: 'ekily-connect',
@@ -463,11 +601,15 @@ test('buildProductState reports ok when all declared and observed facts agree', 
   assert.equal(state.desired.downstream.yap.reconciler.idempotent, true);
   assert.equal(state.desired.downstream.themeStarter.reconciler.kind, 'theme-starter-marker-sync');
   assert.equal(state.desired.themeDemos.arcus.reconciler.kind, 'theme-demo-runtime-sync');
-  assert.equal(state.desired.themes.catalog.expectedCount, 1);
+  assert.equal(state.desired.themes.catalog.expectedCount, 4);
   assert.equal(state.desired.themes.entries[0].expectedPressVersion, '3.4.131');
   assert.equal(state.desired.themes.entries[0].expectedContractVersion, 4);
   assert.equal(state.downstream.yap.status, 'ok');
   assert.equal(state.themeDemos.arcus.status, 'ok');
+  assert.equal(state.themeDemos.arcus.pressSystem.status, 'ok');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'ok');
+  assert.equal(state.themeDemos.arcus.installedTheme.observedVersion, '3.4.6');
+  assert.equal(state.themeDemos.arcus.installedTheme.observedDigest, 'sha256:def456');
   assert.equal(state.themes.catalog.status, 'ok');
   assert.equal(state.themes.entries[0].status, 'ok');
   assert.equal(state.connect.status, 'ok');
@@ -512,6 +654,71 @@ test('buildProductState preserves release upgrade metadata for release intent va
   assert.deepEqual(state.observed.pressSystem.themeContractUpgrade, release.themeContractUpgrade);
   assert.deepEqual(state.desired.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
   assert.deepEqual(state.observed.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
+});
+
+test('buildProductState blocks convergence when a demo installed theme is stale', async () => {
+  const staleManifest = themeManifest('arcus', '3.4.5');
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-theme-manifest': staleManifest
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /demo theme manifest is 3\.4\.5, expected 3\.4\.6/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo packs metadata has stale artifact digest', async () => {
+  const release = themeRelease('arcus');
+  const packs = themePacks('arcus', release);
+  packs[1].release.digest = `sha256:${'b'.repeat(64)}`;
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:arcus-packs': packs
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /packs registry digest does not match/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo release lock is missing', async () => {
+  const fixtures = makeFixtures();
+  delete fixtures['fixture:arcus-demo-lock'];
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(fixtures),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /demo release lock is unreachable/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
+});
+
+test('buildProductState blocks convergence when demo theme manifest is unreachable', async () => {
+  const fixtures = makeFixtures();
+  delete fixtures['fixture:arcus-theme-manifest'];
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(fixtures),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.status, 'drift');
+  assert.equal(state.themeDemos.arcus.installedTheme.status, 'drift');
+  assert.match(state.themeDemos.arcus.installedTheme.problems.join('\n'), /demo theme manifest is unreachable/u);
+  assert.equal(shouldFailCheck(state, { requireConverged: true }), true);
 });
 
 test('buildProductState preserves legacy theme-starter reconciler fallback', async () => {

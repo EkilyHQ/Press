@@ -1,6 +1,26 @@
 const DEFAULT_RAW_ROOT = 'https://raw.githubusercontent.com';
 const RELEASE_EVENT_TYPE = 'press-system-release';
 
+function themeDemoObservedChannels(slug) {
+  return {
+    themeManifest: {
+      ref: 'demo',
+      path: `assets/themes/${slug}/theme.json`,
+      type: 'press-theme-manifest'
+    },
+    themePacks: {
+      ref: 'demo',
+      path: 'assets/themes/packs.json',
+      type: 'press-theme-packs'
+    },
+    demoLock: {
+      ref: 'demo',
+      path: 'demo-release-lock.json',
+      type: 'theme-demo-release-lock'
+    }
+  };
+}
+
 const RELEASE_TARGETS = Object.freeze([
   {
     key: 'yap',
@@ -45,6 +65,7 @@ const RELEASE_TARGETS = Object.freeze([
       path: 'assets/press-system.json',
       type: 'press-system-manifest'
     },
+    observedChannels: themeDemoObservedChannels('arcus'),
     reconciler: {
       kind: 'theme-demo-runtime-sync',
       idempotent: true
@@ -61,6 +82,7 @@ const RELEASE_TARGETS = Object.freeze([
       path: 'assets/press-system.json',
       type: 'press-system-manifest'
     },
+    observedChannels: themeDemoObservedChannels('cartograph'),
     reconciler: {
       kind: 'theme-demo-runtime-sync',
       idempotent: true
@@ -77,6 +99,7 @@ const RELEASE_TARGETS = Object.freeze([
       path: 'assets/press-system.json',
       type: 'press-system-manifest'
     },
+    observedChannels: themeDemoObservedChannels('glasswing'),
     reconciler: {
       kind: 'theme-demo-runtime-sync',
       idempotent: true
@@ -93,6 +116,7 @@ const RELEASE_TARGETS = Object.freeze([
       path: 'assets/press-system.json',
       type: 'press-system-manifest'
     },
+    observedChannels: themeDemoObservedChannels('solstice'),
     reconciler: {
       kind: 'theme-demo-runtime-sync',
       idempotent: true
@@ -110,6 +134,25 @@ function rawRoot(value = DEFAULT_RAW_ROOT) {
 
 function observedSource(target, root = DEFAULT_RAW_ROOT) {
   return `${rawRoot(root)}/${target.repository}/${target.observed.ref}/${target.observed.path}`;
+}
+
+function observedChannelSource(target, channel, root = DEFAULT_RAW_ROOT) {
+  return `${rawRoot(root)}/${target.repository}/${channel.ref}/${channel.path}`;
+}
+
+function observedChannelsWithSources(target, root = DEFAULT_RAW_ROOT) {
+  const channels = target.observedChannels && typeof target.observedChannels === 'object'
+    ? target.observedChannels
+    : {};
+  return Object.fromEntries(Object.entries(channels).map(([key, channel]) => [
+    key,
+    {
+      ref: channel.ref,
+      path: channel.path,
+      type: channel.type,
+      source: observedChannelSource(target, channel, root)
+    }
+  ]));
 }
 
 function getReleaseTargets() {
@@ -131,6 +174,7 @@ function productStateSourceFromTarget(target, root = DEFAULT_RAW_ROOT) {
     repository: target.repository,
     source: observedSource(target, root),
     type: target.observed.type,
+    observedChannels: observedChannelsWithSources(target, root),
     eventType: target.eventType,
     reconciler: {
       eventType: target.eventType,
@@ -179,6 +223,20 @@ function validateReleaseTargets(targets = RELEASE_TARGETS) {
     if (!['press-system-manifest', 'press-release-marker'].includes(String(observed.type || '').trim())) {
       failures.push(`${prefix}.observed.type is invalid`);
     }
+    const observedChannels = target && target.observedChannels && typeof target.observedChannels === 'object'
+      ? target.observedChannels
+      : {};
+    Object.entries(observedChannels).forEach(([channelKey, channel]) => {
+      const channelPrefix = `${prefix}.observedChannels.${channelKey}`;
+      if (!['themeManifest', 'themePacks', 'demoLock'].includes(channelKey)) {
+        failures.push(`${channelPrefix} is not a supported observed channel`);
+      }
+      if (!['main', 'demo'].includes(String(channel.ref || '').trim())) failures.push(`${channelPrefix}.ref must be main or demo`);
+      if (!String(channel.path || '').trim()) failures.push(`${channelPrefix}.path is required`);
+      if (!['press-theme-manifest', 'press-theme-packs', 'theme-demo-release-lock'].includes(String(channel.type || '').trim())) {
+        failures.push(`${channelPrefix}.type is invalid`);
+      }
+    });
     if (!String(reconciler.kind || '').trim()) failures.push(`${prefix}.reconciler.kind is required`);
     if (reconciler.idempotent !== true) failures.push(`${prefix}.reconciler.idempotent must be true`);
   });

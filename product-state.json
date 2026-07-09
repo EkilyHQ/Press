@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-07-09T10:01:51.106Z",
-  "status": "drift",
+  "generatedAt": "2026-07-09T10:03:25.017Z",
+  "status": "ok",
   "desired": {
     "source": "press-release-intent",
     "generatedFrom": {
@@ -323,21 +323,21 @@
   },
   "downstream": {
     "yap": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
       "expectedVersion": "3.4.133",
-      "observedVersion": "3.4.132",
-      "observedTag": "v3.4.132",
+      "observedVersion": "3.4.133",
+      "observedTag": "v3.4.133",
       "label": "YAP starter runtime",
       "repository": "EkilyHQ/YAP",
       "type": "press-system-manifest"
     },
     "themeStarter": {
-      "status": "pending",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
       "expectedVersion": "3.4.133",
-      "observedVersion": "3.4.132",
-      "observedTag": "v3.4.132",
+      "observedVersion": "3.4.133",
+      "observedTag": "v3.4.133",
       "label": "Theme starter marker",
       "repository": "EkilyHQ/Press-Theme-Starter",
       "type": "press-release-marker"
@@ -345,23 +345,23 @@
   },
   "themeDemos": {
     "arcus": {
-      "status": "drift",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
       "expectedVersion": "3.4.133",
-      "observedVersion": "3.4.132",
-      "observedTag": "v3.4.132",
+      "observedVersion": "3.4.133",
+      "observedTag": "v3.4.133",
       "label": "Arcus demo runtime",
       "repository": "EkilyHQ/Press-Theme-Arcus",
       "pressSystem": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
+        "observedVersion": "3.4.133",
         "expectedTag": "v3.4.133",
-        "observedTag": "v3.4.132"
+        "observedTag": "v3.4.133"
       },
       "installedTheme": {
-        "status": "drift",
+        "status": "ok",
         "expectedVersion": "3.4.7",
         "expectedTag": "v3.4.7",
         "expectedDigest": "sha256:7f81fac2735ad93d89067b25faf5b2b2283fcf85256149d1b2c86128c74e1094",
@@ -373,34 +373,27 @@
           "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json",
           "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json"
         },
-        "problems": [
-          "demo release lock Press system is 3.4.132, expected 3.4.133",
-          "demo release lock Press asset name does not match system release",
-          "demo release lock Press asset url does not match system release",
-          "demo release lock Press asset size does not match system release",
-          "demo release lock Press asset digest does not match system release",
-          "demo release lock Press releaseIntent source does not match release intent"
-        ]
+        "problems": []
       }
     },
     "cartograph": {
-      "status": "drift",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
       "expectedVersion": "3.4.133",
-      "observedVersion": "3.4.132",
-      "observedTag": "v3.4.132",
+      "observedVersion": "3.4.133",
+      "observedTag": "v3.4.133",
       "label": "Cartograph demo runtime",
       "repository": "EkilyHQ/Press-Theme-Cartograph",
       "pressSystem": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
+        "observedVersion": "3.4.133",
         "expectedTag": "v3.4.133",
-        "observedTag": "v3.4.132"
+        "observedTag": "v3.4.133"
       },
       "installedTheme": {
-        "status": "drift",
+        "status": "ok",
         "expectedVersion": "3.4.6",
         "expectedTag": "v3.4.6",
         "expectedDigest": "sha256:ed332d0784dcdd1d0f7c6f28d2595098ec2864f8638e18e68fea67bbcc37f950",
@@ -412,34 +405,27 @@
           "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/themes/packs.json",
           "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/demo-release-lock.json"
         },
-        "problems": [
-          "demo release lock Press system is 3.4.132, expected 3.4.133",
-          "demo release lock Press asset name does not match system release",
-          "demo release lock Press asset url does not match system release",
-          "demo release lock Press asset size does not match system release",
-          "demo release lock Press asset digest does not match system release",
-          "demo release lock Press releaseIntent source does not match release intent"
-        ]
+        "problems": []
       }
     },
     "glasswing": {
-      "status": "drift",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
       "expectedVersion": "3.4.133",
-      "observedVersion": "3.4.132",
-      "observedTag": "v3.4.132",
+      "observedVersion": "3.4.133",
+      "observedTag": "v3.4.133",
       "label": "Glasswing demo runtime",
       "repository": "EkilyHQ/Press-Theme-Glasswing",
       "pressSystem": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
+        "observedVersion": "3.4.133",
         "expectedTag": "v3.4.133",
-        "observedTag": "v3.4.132"
+        "observedTag": "v3.4.133"
       },
       "installedTheme": {
-        "status": "drift",
+        "status": "ok",
         "expectedVersion": "0.1.15",
         "expectedTag": "v0.1.15",
         "expectedDigest": "sha256:42259769fba039a8229d17e98872c50858161653d961760fe007dabfcd1f67b2",
@@ -451,34 +437,27 @@
           "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/themes/packs.json",
           "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/demo-release-lock.json"
         },
-        "problems": [
-          "demo release lock Press system is 3.4.132, expected 3.4.133",
-          "demo release lock Press asset name does not match system release",
-          "demo release lock Press asset url does not match system release",
-          "demo release lock Press asset size does not match system release",
-          "demo release lock Press asset digest does not match system release",
-          "demo release lock Press releaseIntent source does not match release intent"
-        ]
+        "problems": []
       }
     },
     "solstice": {
-      "status": "drift",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
       "expectedVersion": "3.4.133",
-      "observedVersion": "3.4.132",
-      "observedTag": "v3.4.132",
+      "observedVersion": "3.4.133",
+      "observedTag": "v3.4.133",
       "label": "Solstice demo runtime",
       "repository": "EkilyHQ/Press-Theme-Solstice",
       "pressSystem": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
+        "observedVersion": "3.4.133",
         "expectedTag": "v3.4.133",
-        "observedTag": "v3.4.132"
+        "observedTag": "v3.4.133"
       },
       "installedTheme": {
-        "status": "drift",
+        "status": "ok",
         "expectedVersion": "3.4.6",
         "expectedTag": "v3.4.6",
         "expectedDigest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130",
@@ -490,14 +469,7 @@
           "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/packs.json",
           "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/demo-release-lock.json"
         },
-        "problems": [
-          "demo release lock Press system is 3.4.132, expected 3.4.133",
-          "demo release lock Press asset name does not match system release",
-          "demo release lock Press asset url does not match system release",
-          "demo release lock Press asset size does not match system release",
-          "demo release lock Press asset digest does not match system release",
-          "demo release lock Press releaseIntent source does not match release intent"
-        ]
+        "problems": []
       }
     }
   },
@@ -617,8 +589,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1783504916,
-        "until": 1783591316,
+        "since": 1783505008,
+        "until": 1783591408,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -631,90 +603,9 @@
     "service": "ekily-connect",
     "version": "0.3.0"
   },
-  "problems": [
-    {
-      "severity": "warning",
-      "component": "downstream.yap",
-      "code": "downstream_pending",
-      "message": "YAP starter runtime is 3.4.132, expected 3.4.133",
-      "owner": "EkilyHQ/YAP",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "downstream.themeStarter",
-      "code": "downstream_pending",
-      "message": "Theme starter marker is 3.4.132, expected 3.4.133",
-      "owner": "EkilyHQ/Press-Theme-Starter",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.arcus",
-      "code": "theme_demo_pending",
-      "message": "Arcus demo runtime is 3.4.132, expected 3.4.133",
-      "owner": "EkilyHQ/Press-Theme-Arcus",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.cartograph",
-      "code": "theme_demo_pending",
-      "message": "Cartograph demo runtime is 3.4.132, expected 3.4.133",
-      "owner": "EkilyHQ/Press-Theme-Cartograph",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.glasswing",
-      "code": "theme_demo_pending",
-      "message": "Glasswing demo runtime is 3.4.132, expected 3.4.133",
-      "owner": "EkilyHQ/Press-Theme-Glasswing",
-      "blocking": false
-    },
-    {
-      "severity": "warning",
-      "component": "themeDemos.solstice",
-      "code": "theme_demo_pending",
-      "message": "Solstice demo runtime is 3.4.132, expected 3.4.133",
-      "owner": "EkilyHQ/Press-Theme-Solstice",
-      "blocking": false
-    },
-    {
-      "severity": "error",
-      "component": "themeDemos.arcus.theme",
-      "code": "theme_demo_theme_drift",
-      "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-      "owner": "EkilyHQ/Press-Theme-Arcus",
-      "blocking": true
-    },
-    {
-      "severity": "error",
-      "component": "themeDemos.cartograph.theme",
-      "code": "theme_demo_theme_drift",
-      "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-      "owner": "EkilyHQ/Press-Theme-Cartograph",
-      "blocking": true
-    },
-    {
-      "severity": "error",
-      "component": "themeDemos.glasswing.theme",
-      "code": "theme_demo_theme_drift",
-      "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-      "owner": "EkilyHQ/Press-Theme-Glasswing",
-      "blocking": true
-    },
-    {
-      "severity": "error",
-      "component": "themeDemos.solstice.theme",
-      "code": "theme_demo_theme_drift",
-      "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-      "owner": "EkilyHQ/Press-Theme-Solstice",
-      "blocking": true
-    }
-  ],
+  "problems": [],
   "observed": {
-    "checkedAt": "2026-07-09T10:01:51.106Z",
+    "checkedAt": "2026-07-09T10:03:25.017Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.133/system-release.json",
@@ -756,21 +647,21 @@
     },
     "downstream": {
       "yap": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/YAP/main/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
-        "observedTag": "v3.4.132",
+        "observedVersion": "3.4.133",
+        "observedTag": "v3.4.133",
         "label": "YAP starter runtime",
         "repository": "EkilyHQ/YAP",
         "type": "press-system-manifest"
       },
       "themeStarter": {
-        "status": "pending",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Starter/main/press-system-release.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
-        "observedTag": "v3.4.132",
+        "observedVersion": "3.4.133",
+        "observedTag": "v3.4.133",
         "label": "Theme starter marker",
         "repository": "EkilyHQ/Press-Theme-Starter",
         "type": "press-release-marker"
@@ -778,23 +669,23 @@
     },
     "themeDemos": {
       "arcus": {
-        "status": "drift",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
-        "observedTag": "v3.4.132",
+        "observedVersion": "3.4.133",
+        "observedTag": "v3.4.133",
         "label": "Arcus demo runtime",
         "repository": "EkilyHQ/Press-Theme-Arcus",
         "pressSystem": {
-          "status": "pending",
+          "status": "ok",
           "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/press-system.json",
           "expectedVersion": "3.4.133",
-          "observedVersion": "3.4.132",
+          "observedVersion": "3.4.133",
           "expectedTag": "v3.4.133",
-          "observedTag": "v3.4.132"
+          "observedTag": "v3.4.133"
         },
         "installedTheme": {
-          "status": "drift",
+          "status": "ok",
           "expectedVersion": "3.4.7",
           "expectedTag": "v3.4.7",
           "expectedDigest": "sha256:7f81fac2735ad93d89067b25faf5b2b2283fcf85256149d1b2c86128c74e1094",
@@ -806,34 +697,27 @@
             "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json",
             "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json"
           },
-          "problems": [
-            "demo release lock Press system is 3.4.132, expected 3.4.133",
-            "demo release lock Press asset name does not match system release",
-            "demo release lock Press asset url does not match system release",
-            "demo release lock Press asset size does not match system release",
-            "demo release lock Press asset digest does not match system release",
-            "demo release lock Press releaseIntent source does not match release intent"
-          ]
+          "problems": []
         }
       },
       "cartograph": {
-        "status": "drift",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
-        "observedTag": "v3.4.132",
+        "observedVersion": "3.4.133",
+        "observedTag": "v3.4.133",
         "label": "Cartograph demo runtime",
         "repository": "EkilyHQ/Press-Theme-Cartograph",
         "pressSystem": {
-          "status": "pending",
+          "status": "ok",
           "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/press-system.json",
           "expectedVersion": "3.4.133",
-          "observedVersion": "3.4.132",
+          "observedVersion": "3.4.133",
           "expectedTag": "v3.4.133",
-          "observedTag": "v3.4.132"
+          "observedTag": "v3.4.133"
         },
         "installedTheme": {
-          "status": "drift",
+          "status": "ok",
           "expectedVersion": "3.4.6",
           "expectedTag": "v3.4.6",
           "expectedDigest": "sha256:ed332d0784dcdd1d0f7c6f28d2595098ec2864f8638e18e68fea67bbcc37f950",
@@ -845,34 +729,27 @@
             "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/themes/packs.json",
             "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/demo-release-lock.json"
           },
-          "problems": [
-            "demo release lock Press system is 3.4.132, expected 3.4.133",
-            "demo release lock Press asset name does not match system release",
-            "demo release lock Press asset url does not match system release",
-            "demo release lock Press asset size does not match system release",
-            "demo release lock Press asset digest does not match system release",
-            "demo release lock Press releaseIntent source does not match release intent"
-          ]
+          "problems": []
         }
       },
       "glasswing": {
-        "status": "drift",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
-        "observedTag": "v3.4.132",
+        "observedVersion": "3.4.133",
+        "observedTag": "v3.4.133",
         "label": "Glasswing demo runtime",
         "repository": "EkilyHQ/Press-Theme-Glasswing",
         "pressSystem": {
-          "status": "pending",
+          "status": "ok",
           "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/press-system.json",
           "expectedVersion": "3.4.133",
-          "observedVersion": "3.4.132",
+          "observedVersion": "3.4.133",
           "expectedTag": "v3.4.133",
-          "observedTag": "v3.4.132"
+          "observedTag": "v3.4.133"
         },
         "installedTheme": {
-          "status": "drift",
+          "status": "ok",
           "expectedVersion": "0.1.15",
           "expectedTag": "v0.1.15",
           "expectedDigest": "sha256:42259769fba039a8229d17e98872c50858161653d961760fe007dabfcd1f67b2",
@@ -884,34 +761,27 @@
             "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/themes/packs.json",
             "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/demo-release-lock.json"
           },
-          "problems": [
-            "demo release lock Press system is 3.4.132, expected 3.4.133",
-            "demo release lock Press asset name does not match system release",
-            "demo release lock Press asset url does not match system release",
-            "demo release lock Press asset size does not match system release",
-            "demo release lock Press asset digest does not match system release",
-            "demo release lock Press releaseIntent source does not match release intent"
-          ]
+          "problems": []
         }
       },
       "solstice": {
-        "status": "drift",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
         "expectedVersion": "3.4.133",
-        "observedVersion": "3.4.132",
-        "observedTag": "v3.4.132",
+        "observedVersion": "3.4.133",
+        "observedTag": "v3.4.133",
         "label": "Solstice demo runtime",
         "repository": "EkilyHQ/Press-Theme-Solstice",
         "pressSystem": {
-          "status": "pending",
+          "status": "ok",
           "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
           "expectedVersion": "3.4.133",
-          "observedVersion": "3.4.132",
+          "observedVersion": "3.4.133",
           "expectedTag": "v3.4.133",
-          "observedTag": "v3.4.132"
+          "observedTag": "v3.4.133"
         },
         "installedTheme": {
-          "status": "drift",
+          "status": "ok",
           "expectedVersion": "3.4.6",
           "expectedTag": "v3.4.6",
           "expectedDigest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130",
@@ -923,14 +793,7 @@
             "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/packs.json",
             "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/demo-release-lock.json"
           },
-          "problems": [
-            "demo release lock Press system is 3.4.132, expected 3.4.133",
-            "demo release lock Press asset name does not match system release",
-            "demo release lock Press asset url does not match system release",
-            "demo release lock Press asset size does not match system release",
-            "demo release lock Press asset digest does not match system release",
-            "demo release lock Press releaseIntent source does not match release intent"
-          ]
+          "problems": []
         }
       }
     },
@@ -1050,8 +913,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1783504916,
-          "until": 1783591316,
+          "since": 1783505008,
+          "until": 1783591408,
           "seconds": 86400
         },
         "totalEvents": 0,
@@ -1066,100 +929,18 @@
     }
   },
   "verdict": {
-    "status": "drift",
-    "converged": false,
+    "status": "ok",
+    "converged": true,
     "counts": {
-      "ok": 8,
-      "pending": 2,
+      "ok": 14,
+      "pending": 0,
       "unknown": 0,
-      "drift": 4
+      "drift": 0
     },
-    "problemCount": 10,
-    "blockingProblemCount": 4,
-    "nonBlockingProblemCount": 6,
-    "blockingProblems": [
-      {
-        "severity": "error",
-        "component": "themeDemos.arcus.theme",
-        "code": "theme_demo_theme_drift",
-        "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-        "owner": "EkilyHQ/Press-Theme-Arcus",
-        "blocking": true
-      },
-      {
-        "severity": "error",
-        "component": "themeDemos.cartograph.theme",
-        "code": "theme_demo_theme_drift",
-        "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-        "owner": "EkilyHQ/Press-Theme-Cartograph",
-        "blocking": true
-      },
-      {
-        "severity": "error",
-        "component": "themeDemos.glasswing.theme",
-        "code": "theme_demo_theme_drift",
-        "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-        "owner": "EkilyHQ/Press-Theme-Glasswing",
-        "blocking": true
-      },
-      {
-        "severity": "error",
-        "component": "themeDemos.solstice.theme",
-        "code": "theme_demo_theme_drift",
-        "message": "demo release lock Press system is 3.4.132, expected 3.4.133; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent",
-        "owner": "EkilyHQ/Press-Theme-Solstice",
-        "blocking": true
-      }
-    ],
-    "nonBlockingProblems": [
-      {
-        "severity": "warning",
-        "component": "downstream.yap",
-        "code": "downstream_pending",
-        "message": "YAP starter runtime is 3.4.132, expected 3.4.133",
-        "owner": "EkilyHQ/YAP",
-        "blocking": false
-      },
-      {
-        "severity": "warning",
-        "component": "downstream.themeStarter",
-        "code": "downstream_pending",
-        "message": "Theme starter marker is 3.4.132, expected 3.4.133",
-        "owner": "EkilyHQ/Press-Theme-Starter",
-        "blocking": false
-      },
-      {
-        "severity": "warning",
-        "component": "themeDemos.arcus",
-        "code": "theme_demo_pending",
-        "message": "Arcus demo runtime is 3.4.132, expected 3.4.133",
-        "owner": "EkilyHQ/Press-Theme-Arcus",
-        "blocking": false
-      },
-      {
-        "severity": "warning",
-        "component": "themeDemos.cartograph",
-        "code": "theme_demo_pending",
-        "message": "Cartograph demo runtime is 3.4.132, expected 3.4.133",
-        "owner": "EkilyHQ/Press-Theme-Cartograph",
-        "blocking": false
-      },
-      {
-        "severity": "warning",
-        "component": "themeDemos.glasswing",
-        "code": "theme_demo_pending",
-        "message": "Glasswing demo runtime is 3.4.132, expected 3.4.133",
-        "owner": "EkilyHQ/Press-Theme-Glasswing",
-        "blocking": false
-      },
-      {
-        "severity": "warning",
-        "component": "themeDemos.solstice",
-        "code": "theme_demo_pending",
-        "message": "Solstice demo runtime is 3.4.132, expected 3.4.133",
-        "owner": "EkilyHQ/Press-Theme-Solstice",
-        "blocking": false
-      }
-    ]
+    "problemCount": 0,
+    "blockingProblemCount": 0,
+    "nonBlockingProblemCount": 0,
+    "blockingProblems": [],
+    "nonBlockingProblems": []
   }
 }

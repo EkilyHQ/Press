@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-07-09T01:03:17.266Z",
+  "generatedAt": "2026-07-09T05:06:51.153Z",
   "status": "ok",
   "desired": {
     "source": "press-release-intent",
@@ -589,8 +589,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1783472600,
-        "until": 1783559000,
+        "since": 1783487216,
+        "until": 1783573616,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -605,7 +605,7 @@
   },
   "problems": [],
   "observed": {
-    "checkedAt": "2026-07-09T01:03:17.266Z",
+    "checkedAt": "2026-07-09T05:06:51.153Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.132/system-release.json",
@@ -913,8 +913,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1783472600,
-          "until": 1783559000,
+          "since": 1783487216,
+          "until": 1783573616,
           "seconds": 86400
         },
         "totalEvents": 0,

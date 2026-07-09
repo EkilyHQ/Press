@@ -13,6 +13,7 @@ import { isEncryptedMarkdown } from './encrypted-content.js';
 import { getContentRoot } from './utils.js';
 import { parseYAML } from './yaml.js';
 import { getThemeRegion } from './theme-regions.js';
+import { buildLanguageAvailability } from './language-availability.js';
 import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js';
 
 // Content fetch cache modes are normalized by cache-control.js.
@@ -562,7 +563,10 @@ async function initI18nWithRuntime(runtime, opts = {}) {
   const documentRef = runtime.getDocument();
   const storage = runtime.getLocalStorage();
   const desiredInput = (opts.lang || detectLang(runtime) || '').toLowerCase();
-  const def = (opts.defaultLang || DEFAULT_LANG).toLowerCase();
+  const defaultInput = Object.prototype.hasOwnProperty.call(opts, 'defaultLang')
+    ? opts.defaultLang
+    : state.baseDefaultLang;
+  const def = (defaultInput || DEFAULT_LANG).toLowerCase();
   const desired = desiredInput || def;
   await ensureLanguageBundlesLoaded(runtime, desired);
   state.currentLang = desiredInput || def;
@@ -655,6 +659,12 @@ export function normalizeLangKey(k) {
   return raw; // fallback to original
 }
 
+function addDefaultContentLang(runtime, langsSeen) {
+  const state = runtime.state || {};
+  const lang = normalizeLangKey(state.baseDefaultLang || 'en');
+  if (lang && lang !== 'default') langsSeen.add(lang);
+}
+
 // Attempt to transform a unified content JSON object into a flat map
 // for the current language with default fallback.
 function transformUnifiedContent(runtime, obj, lang) {
@@ -684,6 +694,7 @@ function transformUnifiedContent(runtime, obj, lang) {
       if (typeof v === 'object') return { ...v, title: v.title || null, location: v.location || v.path || null };
       return null;
     };
+    if (tryPick('default')) addDefaultContentLang(runtime, langsSeen);
     // Try requested lang, then site default, then common English code, then legacy 'default'
     const nlang = normalizeLangKey(lang);
     chosen = tryPick(nlang) || tryPick(state.baseDefaultLang) || tryPick('en') || tryPick('default');
@@ -698,6 +709,7 @@ function transformUnifiedContent(runtime, obj, lang) {
     if (!chosen && 'location' in val) {
       chosen = { title: key, location: String(val.location || '') };
     }
+    if (('location' in val || 'path' in val) && (val.location || val.path)) addDefaultContentLang(runtime, langsSeen);
     if (!chosen || !chosen.location) continue;
     title = chosen.title || key;
     location = chosen.location;
@@ -774,8 +786,12 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
     if (val && typeof val === 'object' && !Array.isArray(val)) {
       getIndexLanguageKeys(val).forEach(k => {
         const nk = normalizeLangKey(k);
-        if (nk !== 'default') langsSeen.add(nk);
+        if (nk === 'default') addDefaultContentLang(runtime, langsSeen);
+        else langsSeen.add(nk);
       });
+      if (isIndexVariantBucket(val)) addDefaultContentLang(runtime, langsSeen);
+    } else if (isIndexVariantBucket(val)) {
+      addDefaultContentLang(runtime, langsSeen);
     }
   }
 
@@ -948,6 +964,7 @@ function transformUnifiedTabs(runtime, obj, lang) {
       if (typeof v === 'object') return { title: v.title || null, location: v.location || null };
       return null;
     };
+    if (tryPick('default')) addDefaultContentLang(runtime, langsSeen);
     const nlang = normalizeLangKey(lang);
     let chosen = tryPick(nlang) || tryPick(state.baseDefaultLang) || tryPick('en') || tryPick('default');
     // If not found, fall back to the first available variant to ensure visibility
@@ -958,6 +975,7 @@ function transformUnifiedTabs(runtime, obj, lang) {
       }
     }
     if (!chosen && 'location' in val) chosen = { title: key, location: String(val.location || '') };
+    if (('location' in val || 'path' in val) && (val.location || val.path)) addDefaultContentLang(runtime, langsSeen);
     if (!chosen || !chosen.location) continue;
     const title = chosen.title || key;
     // Provide a stable slug derived from the base key so it stays consistent across languages
@@ -1022,7 +1040,11 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
         setContentLangs(runtime, availableLangs);
         return entries;
       }
-      return transformFlatTabs(obj);
+      const entries = transformFlatTabs(obj);
+      if (entries && Object.keys(entries).length) {
+        setContentLangs(runtime, [normalizeLangKey(runtime.state.baseDefaultLang || 'en')]);
+      }
+      return entries;
     }
   } catch (_) { /* return empty tabs */ }
   return {};
@@ -1092,6 +1114,24 @@ function getContentLangsWithRuntime(runtime) {
   return contentLangs && contentLangs.length ? contentLangs.slice() : [];
 }
 
+function getPublicLangsWithRuntime(runtime, siteConfig = {}, options = {}) {
+  const report = buildLanguageAvailability({
+    siteConfig,
+    uiLanguages: getAvailableLangsWithRuntime(runtime),
+    contentLanguages: getContentLangsWithRuntime(runtime),
+    indexState: options.indexState,
+    tabsState: options.tabsState
+  });
+  return report.publicLanguages;
+}
+
+function getPublicLanguageOptionsWithRuntime(runtime, siteConfig = {}, options = {}) {
+  return getPublicLangsWithRuntime(runtime, siteConfig, options).map((code) => ({
+    value: code,
+    label: getLanguageLabelWithRuntime(runtime, code)
+  }));
+}
+
 function getLanguageLabelWithRuntime(runtime, code) {
   const state = runtime.state;
   const normalized = String(code || '').toLowerCase();
@@ -1158,6 +1198,12 @@ export function createI18nController(options = {}) {
     getContentLangs() {
       return getContentLangsWithRuntime(runtime);
     },
+    getPublicLangs(siteConfig = {}, options = {}) {
+      return getPublicLangsWithRuntime(runtime, siteConfig, options);
+    },
+    getPublicLanguageOptions(siteConfig = {}, options = {}) {
+      return getPublicLanguageOptionsWithRuntime(runtime, siteConfig, options);
+    },
     getLanguageLabel(code) {
       return getLanguageLabelWithRuntime(runtime, code);
     },
@@ -1213,6 +1259,14 @@ export function getAvailableLangs() {
 
 export function getContentLangs() {
   return defaultI18nController.getContentLangs();
+}
+
+export function getPublicLangs(siteConfig = {}, options = {}) {
+  return defaultI18nController.getPublicLangs(siteConfig, options);
+}
+
+export function getPublicLanguageOptions(siteConfig = {}, options = {}) {
+  return defaultI18nController.getPublicLanguageOptions(siteConfig, options);
 }
 
 export function getLanguageLabel(code) {

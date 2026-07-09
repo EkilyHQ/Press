@@ -1,6 +1,6 @@
-import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle } from './i18n.js';
+import { t, getAvailableLangs, getLanguageLabel, getCurrentLang, switchLanguage, ensureLanguageBundle, getPublicLanguageOptions } from './i18n.js';
 import { getThemeRegion } from './theme-regions.js';
-import { siteFeatureContextEnabled } from './site-features.js';
+import { createSiteFeatureContext, siteFeatureContextEnabled } from './site-features.js';
 
 const PACK_LINK_ID = 'theme-pack';
 const THEME_CONTROLS_BOUND = Symbol('pressThemeControlsBound');
@@ -9,6 +9,7 @@ const NATIVE_STYLE_CACHE_KEY = '';
 const THEME_PACK_KEY = 'themePack';
 const THEME_PACK_PENDING_KEY = 'themePackPending';
 const COMPONENTS_READY = Symbol('pressComponentsReady');
+const defaultThemeControlsState = { siteConfig: {}, hiddenRoles: { editor: false, language: false } };
 
 function createThemePackState() {
   return {
@@ -373,12 +374,44 @@ function fetchThemePackList(path, optional = false) {
     });
 }
 
-function getLanguageOptions() {
+function rememberThemeControlsSiteConfig(siteConfig = {}) {
+  defaultThemeControlsState.siteConfig = siteConfig && typeof siteConfig === 'object' ? siteConfig : {};
+  return defaultThemeControlsState.siteConfig;
+}
+
+function getThemeControlsSiteConfig() {
+  return defaultThemeControlsState.siteConfig || {};
+}
+
+function rememberThemeControlsHiddenRoles(hiddenRoles = {}) {
+  defaultThemeControlsState.hiddenRoles = {
+    editor: hiddenRoles.editor === true,
+    language: hiddenRoles.language === true
+  };
+  return defaultThemeControlsState.hiddenRoles;
+}
+
+function getThemeControlsHiddenRoles() {
+  const roles = defaultThemeControlsState.hiddenRoles || {};
+  return {
+    editor: roles.editor === true,
+    language: roles.language === true
+  };
+}
+
+function getLanguageOptions(siteConfig = getThemeControlsSiteConfig()) {
   try { ensureLanguageBundle(getCurrentLang()).catch(() => {}); } catch (_) {}
-  return getAvailableLangs().map(code => ({
-    value: code,
-    label: getLanguageLabel(code)
-  }));
+  try {
+    return getPublicLanguageOptions(siteConfig).map(option => ({
+      value: option.value,
+      label: option.label || getLanguageLabel(option.value)
+    }));
+  } catch (_) {
+    return getAvailableLangs().map(code => ({
+      value: code,
+      label: getLanguageLabel(code)
+    }));
+  }
 }
 
 function refreshThemeControlsLanguages(component) {
@@ -482,10 +515,16 @@ function populateThemeControls(component) {
 }
 
 function getControlFeatures(options = {}) {
-  return (options && options.features)
+  const features = (options && options.features)
     || (options && options.themeContext && options.themeContext.features)
     || (options && options.context && options.context.features)
     || null;
+  if (features) return features;
+  const siteConfig = options.siteConfig
+    || (options.themeContext && options.themeContext.siteConfig)
+    || (options.context && options.context.siteConfig)
+    || getThemeControlsSiteConfig();
+  return siteConfig && typeof siteConfig === 'object' ? createSiteFeatureContext(siteConfig) : null;
 }
 
 function controlFeatureEnabled(options = {}, key) {
@@ -498,11 +537,25 @@ function removeThemeControlsComponent(component) {
   } catch (_) {}
 }
 
+function shouldHideLanguageControl(options = {}) {
+  if (!controlFeatureEnabled(options, 'languageSwitcher')) return true;
+  const siteConfig = options.siteConfig
+    || (options.themeContext && options.themeContext.siteConfig)
+    || (options.context && options.context.siteConfig)
+    || getThemeControlsSiteConfig();
+  const languages = getLanguageOptions(siteConfig);
+  if (languages.length >= 2) return false;
+  const current = String(getCurrentLang() || '').toLowerCase();
+  const hasCurrent = languages.some((option) => String((option && option.value) || '').toLowerCase() === current);
+  return !current || hasCurrent;
+}
+
 // Render theme tools UI through the current <press-theme-controls> contract.
 // Options are sourced from assets/themes/packs.json; legacy button/select
 // binders remain below for custom themes that still render their own controls.
 export function mountThemeControls(options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
+  rememberThemeControlsSiteConfig(opts.siteConfig || (opts.themeContext && opts.themeContext.siteConfig) || (opts.context && opts.context.siteConfig) || {});
   if (!controlFeatureEnabled(opts, 'visitorThemeControls')) {
     removeThemeControlsComponent(getThemeControlsElement(document));
     return null;
@@ -539,10 +592,10 @@ export function mountThemeControls(options = {}) {
     if (!upgraded && componentImport) return;
     try {
       if (typeof component.setHiddenRoles === 'function') {
-        component.setHiddenRoles({
+        component.setHiddenRoles(rememberThemeControlsHiddenRoles({
           editor: !controlFeatureEnabled(opts, 'editorEntry'),
-          language: !controlFeatureEnabled(opts, 'languageSwitcher')
-        });
+          language: shouldHideLanguageControl(opts)
+        }));
       }
     } catch (_) {}
     try { if (typeof component.render === 'function') component.render(); } catch (_) {}
@@ -560,9 +613,17 @@ export function mountThemeControls(options = {}) {
 
 // Rebuild language selector options based on supported UI languages
 export function refreshLanguageSelector() {
+  const siteConfig = getThemeControlsSiteConfig();
   const component = getThemeControlsElement(document);
   if (component && typeof component.setLanguages === 'function') {
     try {
+      if (typeof component.setHiddenRoles === 'function') {
+        const hiddenRoles = getThemeControlsHiddenRoles();
+        component.setHiddenRoles(rememberThemeControlsHiddenRoles({
+          editor: hiddenRoles.editor,
+          language: shouldHideLanguageControl({ siteConfig })
+        }));
+      }
       refreshThemeControlsLanguages(component);
       component.setCurrentPack(getSavedThemePack());
       return;
@@ -571,7 +632,7 @@ export function refreshLanguageSelector() {
   const sel = document.getElementById('langSelect');
   if (!sel) return;
   const current = getCurrentLang();
-  const langs = getAvailableLangs();
+  const langs = getLanguageOptions(siteConfig).map(option => option.value);
   sel.innerHTML = '';
   langs.forEach(code => {
     const opt = document.createElement('option');

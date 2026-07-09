@@ -7616,8 +7616,8 @@ assert.match(
 
 assert.match(
   composerSiteSettingsSchemaSource,
-  /behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'[\s\S]*contentOutdatedDays: field\('contentOutdatedDays'[\s\S]*pageSize: field\('pageSize'[\s\S]*landingTab: field\('landingTab'[\s\S]*cardCoverFallback: field\('cardCoverFallback'[\s\S]*errorOverlay: field\('errorOverlay'/,
-  'Behavior compact grid should include all single-value behavior fields'
+  /behavior: \{[\s\S]*defaultLanguage: field\('defaultLanguage'[\s\S]*publicLanguages: field\('publicLanguages'[\s\S]*publicLanguageList: field\('publicLanguageList'[\s\S]*contentOutdatedDays: field\('contentOutdatedDays'[\s\S]*pageSize: field\('pageSize'[\s\S]*landingTab: field\('landingTab'[\s\S]*cardCoverFallback: field\('cardCoverFallback'[\s\S]*errorOverlay: field\('errorOverlay'/,
+  'Behavior compact grid should include language policy and all single-value behavior fields'
 );
 
 assert.match(

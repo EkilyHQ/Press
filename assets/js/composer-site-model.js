@@ -7,6 +7,10 @@ import {
   normalizeThemeSettingsMap,
   themeSettingsForOutput
 } from './theme-settings.js';
+import {
+  normalizePublicLanguageSettings,
+  publicLanguageSettingsForOutput
+} from './language-availability.js';
 
 function deepClone(value) {
   try {
@@ -86,6 +90,7 @@ export function prepareSiteState(raw) {
   const pageSize = src.pageSize != null ? src.pageSize : src.postsPerPage;
   site.pageSize = normalizeNumber(pageSize);
   site.defaultLanguage = safeString(src.defaultLanguage || '');
+  site.languages = normalizePublicLanguageSettings(src.languages);
   site.themeMode = safeString(src.themeMode || '');
   site.themePack = safeString(src.themePack || '');
   site.themeOverride = normalizeBoolean(src.themeOverride);
@@ -122,7 +127,7 @@ export function prepareSiteState(raw) {
   const recognized = new Set([
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'resourceURL', 'contentRoot',
     'profileLinks', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'postsPerPage',
-    'defaultLanguage', 'themeMode', 'themePack', 'themeOverride', 'themeSettings', 'repo', 'annotate', 'assetWarnings', 'landingTab', 'showAllPosts',
+    'defaultLanguage', 'languages', 'themeMode', 'themePack', 'themeOverride', 'themeSettings', 'repo', 'annotate', 'assetWarnings', 'landingTab', 'showAllPosts',
     'enableAllPosts', 'disableAllPosts', 'features', 'connect'
   ]);
   const deprecated = new Set(['links']);
@@ -154,6 +159,7 @@ export function cloneSiteState(state) {
     errorOverlay: normalizeBoolean(state.errorOverlay),
     pageSize: state.pageSize != null ? Number(state.pageSize) : null,
     defaultLanguage: safeString(state.defaultLanguage || ''),
+    languages: normalizePublicLanguageSettings(state.languages),
     themeMode: safeString(state.themeMode || ''),
     themePack: safeString(state.themePack || ''),
     themeOverride: normalizeBoolean(state.themeOverride),
@@ -270,6 +276,8 @@ function buildSiteSnapshot(state) {
   if (site.errorOverlay != null) snapshot.errorOverlay = !!site.errorOverlay;
   if (site.pageSize != null && !Number.isNaN(site.pageSize)) snapshot.pageSize = Number(site.pageSize);
   if (site.defaultLanguage) snapshot.defaultLanguage = site.defaultLanguage;
+  const languages = publicLanguageSettingsForOutput(site.languages);
+  if (languages) snapshot.languages = languages;
   if (site.themeMode) snapshot.themeMode = site.themeMode;
   if (site.themePack) snapshot.themePack = site.themePack;
   if (site.themeOverride != null) snapshot.themeOverride = !!site.themeOverride;
@@ -381,6 +389,11 @@ export function computeSiteDiff(current, baseline) {
 
   if (stableSerialize(cur.themeSettings || {}) !== stableSerialize(base.themeSettings || {})) {
     diff.fields.themeSettings = { type: 'object' };
+    diff.hasChanges = true;
+  }
+
+  if (stableSerialize(cur.languages || {}) !== stableSerialize(base.languages || {})) {
+    diff.fields.languages = { type: 'object' };
     diff.hasChanges = true;
   }
 
@@ -545,7 +558,7 @@ export function toSiteYaml(data) {
   const keysInOrder = [
     'siteTitle', 'siteSubtitle', 'siteDescription', 'siteKeywords', 'avatar', 'profileLinks', 'resourceURL',
     'contentRoot', 'contentOutdatedDays', 'cardCoverFallback', 'errorOverlay', 'pageSize', 'defaultLanguage',
-    'themeMode', 'themePack', 'themeOverride', 'themeSettings', 'features', 'showAllPosts', 'landingTab', 'repo', 'annotate', 'connect', 'assetWarnings'
+    'languages', 'themeMode', 'themePack', 'themeOverride', 'themeSettings', 'features', 'showAllPosts', 'landingTab', 'repo', 'annotate', 'connect', 'assetWarnings'
   ];
   const ordered = {};
   keysInOrder.forEach((key) => {

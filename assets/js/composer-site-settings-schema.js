@@ -41,6 +41,8 @@ export function createComposerSiteSettingsSchema(options = {}) {
       ],
       behavior: {
         defaultLanguage: field('defaultLanguage', 'defaultLanguage', 'defaultLanguageHelp'),
+        publicLanguages: field('publicLanguages', 'publicLanguages', 'publicLanguagesHelp'),
+        publicLanguageList: field('publicLanguageList', 'publicLanguageList', 'publicLanguageListHelp'),
         contentOutdatedDays: field('contentOutdatedDays', 'contentOutdatedDays', 'contentOutdatedDaysHelp', { min: 0 }),
         pageSize: field('pageSize', 'pageSize', 'pageSizeHelp', { min: 1 }),
         landingTab: field('landingTab', 'landingTab', 'landingTabHelp'),

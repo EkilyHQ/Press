@@ -4510,7 +4510,7 @@ REQUIRED_COMPONENTS.forEach((component) => {
     fail(`assets/js/theme-layout.js must expose theme API support for ${needle}`);
   }
 });
-['createThemeI18nContext', 'switchLanguage', 'ensureLanguageBundle', 'getAvailableLangs', 'getLanguageLabel'].forEach((needle) => {
+['createThemeI18nContext', 'switchLanguage', 'ensureLanguageBundle', 'getAvailableLangs', 'getPublicLangs', 'getPublicLanguageOptions', 'getLanguageLabel'].forEach((needle) => {
   if (!themeLayoutSource.includes(needle)) {
     fail(`assets/js/theme-layout.js must expose theme i18n context support for ${needle}`);
   }

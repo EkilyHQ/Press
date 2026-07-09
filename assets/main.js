@@ -2289,8 +2289,11 @@ try {
     const hasSaved = !!savedLang;
     const htmlDefault = String(defaultLang || 'en').toLowerCase();
     const savedIsHtmlDefault = savedLang && savedLang.toLowerCase() === htmlDefault;
+    const normalizedConfigDefault = String(cfgDefaultLang);
     if (!hasUrlLang && (!hasSaved || savedIsHtmlDefault)) {
-      await initI18n({ lang: String(cfgDefaultLang) });
+      await initI18n({ lang: normalizedConfigDefault, defaultLang: normalizedConfigDefault });
+    } else {
+      await initI18n({ lang: getCurrentLang(), defaultLang: normalizedConfigDefault, persist: false });
     }
   }
 } catch (_) { /* ignore site default application errors */ }

@@ -552,6 +552,19 @@ const translations = {
           languageExists: '该语言已经存在。',
           languageDefault: '默认',
           languageAutoOption: '自动检测（浏览器语言）',
+          publicLanguagePolicies: {
+            ui: '界面语言',
+            content: '内容语言',
+            explicit: '指定列表'
+          },
+          languageWarnings: {
+            'public-language-missing-ui': ({ language }) => `公开语言 ${language} 没有界面翻译包，不会显示。`,
+            'content-language-missing-ui': ({ language }) => `内容语言 ${language} 没有界面翻译包，不会显示。`,
+            'default-language-missing-content': ({ language }) => `默认语言 ${language} 没有对应内容。`,
+            'public-language-missing-content': ({ language }) => `公开语言 ${language} 没有对应内容。`,
+            'public-language-empty-fallback': ({ language }) => `没有解析出公开语言，已回退到 ${language}。`,
+            'language-switcher-single-language': '语言切换已启用，但公开语言少于两种。'
+          },
           reset: '恢复默认',
           addLink: '添加链接',
           removeLink: '移除',
@@ -627,6 +640,10 @@ const translations = {
             profileLinksHelp: '显示在头像附近的个人或社交链接。',
             defaultLanguage: '默认语言',
             defaultLanguageHelp: '当浏览器首选语言不匹配时使用的语言代码。',
+            publicLanguages: '公开语言',
+            publicLanguagesHelp: '选择公开站点在控件和 SEO 中展示哪些语言。',
+            publicLanguageList: '公开语言列表',
+            publicLanguageListHelp: '当公开语言为“指定列表”时使用的逗号分隔语言代码。',
             contentOutdatedDays: '过期提醒（天）',
             contentOutdatedDaysHelp: '文章超过此天数会标记为可能过期。留空则禁用。',
             pageSize: '每页文章数',

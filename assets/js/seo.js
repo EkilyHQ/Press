@@ -1,10 +1,40 @@
 // seo.js - Dynamic SEO meta tag management for client-side routing
 // This maintains SEO benefits while keeping the "no compilation needed" philosophy
 
-import { getCurrentLang, DEFAULT_LANG } from './i18n.js';
-import { getAvailableLangs } from './i18n.js';
+import { getCurrentLang, DEFAULT_LANG, getAvailableLangs } from './i18n.js';
 import { parseFrontMatter } from './content.js';
 import { isSiteFeatureEnabled } from './site-features.js';
+import { buildLanguageAvailability, collectContentLanguages, normalizeLanguageCode } from './language-availability.js';
+
+const SITEMAP_METADATA_KEYS = new Set([
+  '__order',
+  'location',
+  'path',
+  'title',
+  'tag',
+  'tags',
+  'date',
+  'image',
+  'thumb',
+  'cover',
+  'excerpt',
+  'readTime',
+  'readMinutes',
+  'minutes',
+  'version',
+  'versionLabel',
+  'versions',
+  'ai',
+  'aiGenerated',
+  'llm',
+  'draft',
+  'wip',
+  'unfinished',
+  'inprogress',
+  'protected',
+  'encryption',
+  'slug'
+]);
 
 function ensureTrailingSlash(value) {
   const str = String(value == null ? '' : value).trim();
@@ -713,7 +743,54 @@ export function generateSitemapData(postsData = {}, tabsData = {}, siteConfig = 
   // Use site's base URL (remove current file path or respect configured URL)
   const baseUrl = resolveSiteBaseUrl(siteConfig);
   const urls = [];
-  const siteDefaultLang = (siteConfig && siteConfig.defaultLanguage) ? String(siteConfig.defaultLanguage).toLowerCase() : DEFAULT_LANG;
+  const siteDefaultLang = normalizeLanguageCode(siteConfig && (siteConfig.defaultLanguage || siteConfig.defaultLang)) || DEFAULT_LANG;
+  const contentLanguages = collectContentLanguages(postsData, tabsData, { defaultLanguage: siteDefaultLang });
+  const runtimeUiLanguages = (getAvailableLangs && getAvailableLangs()) || [];
+  const uiLanguages = (() => {
+    const langs = [];
+    const add = (value) => {
+      const normalized = normalizeLanguageCode(value);
+      if (!normalized || normalized === 'default' || langs.includes(normalized)) return;
+      langs.push(normalized);
+    };
+    runtimeUiLanguages.forEach(add);
+    const publicSettings = siteConfig && typeof siteConfig === 'object' && siteConfig.languages && typeof siteConfig.languages === 'object'
+      ? siteConfig.languages
+      : {};
+    const publicPolicy = normalizeLanguageCode(publicSettings.public || publicSettings.mode || '');
+    const explicitList = publicPolicy === 'explicit' && Array.isArray(publicSettings.publicList)
+      ? publicSettings.publicList
+      : [];
+    const runtimeLooksBootstrapOnly = langs.length <= 1 && (
+      contentLanguages.some((lang) => !langs.includes(lang))
+      || explicitList.some((lang) => !langs.includes(normalizeLanguageCode(lang)))
+    );
+    if (!langs.length || runtimeLooksBootstrapOnly) {
+      add(siteDefaultLang);
+      contentLanguages.forEach(add);
+      explicitList.forEach(add);
+    }
+    return langs.length ? langs : [siteDefaultLang];
+  })();
+  const languageAvailability = buildLanguageAvailability({
+    siteConfig,
+    uiLanguages,
+    contentLanguages,
+    indexState: postsData,
+    tabsState: tabsData
+  });
+  const publicLangs = languageAvailability.publicLanguages && languageAvailability.publicLanguages.length
+    ? languageAvailability.publicLanguages
+    : [siteDefaultLang];
+  const publicLangSet = new Set(publicLangs);
+  const normalizeSitemapLang = (lang) => {
+    const normalized = normalizeLanguageCode(lang);
+    return normalized === 'default' ? siteDefaultLang : normalized;
+  };
+  const isPublicContentLang = (lang) => {
+    const normalized = normalizeSitemapLang(lang);
+    return !!normalized && normalized !== 'default' && publicLangSet.has(normalized);
+  };
 
   const toSitemapHreflang = (lang) => {
     const code = String(lang || '').trim().toLowerCase();
@@ -769,8 +846,7 @@ export function generateSitemapData(postsData = {}, tabsData = {}, siteConfig = 
   
   // Add homepage + alternates for all languages
   try {
-    const allLangs = (getAvailableLangs && getAvailableLangs()) || [siteDefaultLang];
-    const alternates = Array.from(new Set(allLangs.map(l => String(l).toLowerCase()))).map(l => ({
+    const alternates = Array.from(new Set(publicLangs.map(l => String(l).toLowerCase()))).map(l => ({
       hreflang: toSitemapHreflang(l),
       href: l === siteDefaultLang ? `${baseUrl}` : `${baseUrl}?lang=${encodeURIComponent(l)}`
     }));
@@ -802,16 +878,33 @@ export function generateSitemapData(postsData = {}, tabsData = {}, siteConfig = 
     // Collect all versioned locations from all languages
     const extractVersion = (p) => { try { const m = String(p||'').match(/\/(v\d+(?:\.\d+){1,3})\//i); return (m && m[1]) || 'v0'; } catch(_) { return 'v0'; } };
     const versionToLangLoc = new Map(); // ver -> { lang: loc }
-    const add = (lang, loc) => { if (!loc) return; const ver = extractVersion(loc); if (!versionToLangLoc.has(ver)) versionToLangLoc.set(ver, {}); versionToLangLoc.get(ver)[lang] = loc; };
+    const add = (lang, loc) => {
+      const normalizedLang = normalizeSitemapLang(lang);
+      if (!loc || !isPublicContentLang(normalizedLang)) return;
+      const ver = extractVersion(loc);
+      if (!versionToLangLoc.has(ver)) versionToLangLoc.set(ver, {});
+      versionToLangLoc.get(ver)[normalizedLang] = loc;
+    };
+    const addFlatPost = () => {
+      if (!postMeta || typeof postMeta !== 'object') return;
+      const location = postMeta.location || postMeta.path;
+      if (location) add(siteDefaultLang, location);
+      if (Array.isArray(postMeta.versions)) {
+        postMeta.versions.forEach((version) => {
+          if (version && typeof version === 'object') add(siteDefaultLang, version.location || version.path);
+          else if (typeof version === 'string') add(siteDefaultLang, version);
+        });
+      }
+    };
     if (postMeta && typeof postMeta === 'object') {
       Object.entries(postMeta).forEach(([lang, val]) => {
+        if (SITEMAP_METADATA_KEYS.has(lang)) return;
         if (typeof val === 'string') add(lang, val);
         else if (Array.isArray(val)) val.forEach(it => { if (typeof it === 'string') add(lang, it); else if (it && it.location) add(lang, it.location); });
         else if (val && typeof val === 'object' && val.location) add(lang, val.location);
       });
+      addFlatPost();
     }
-    const currentLang = getCurrentLang();
-    const tryLangs = [currentLang, DEFAULT_LANG, 'en', 'chs', 'cht-tw', 'cht-hk', 'ja', 'default'];
     versionToLangLoc.forEach((langLocMap) => {
       const langs = Object.keys(langLocMap || {});
       if (!langs.length) return;
@@ -844,7 +937,15 @@ export function generateSitemapData(postsData = {}, tabsData = {}, siteConfig = 
     if (!tabMeta || typeof tabMeta !== 'object') return;
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     // Collect languages present for this tab
-    const langs = Object.keys(tabMeta).filter(k => !!tabMeta[k]);
+    let langs = Object.keys(tabMeta)
+      .filter(k => !SITEMAP_METADATA_KEYS.has(k))
+      .map(k => ({ source: k, lang: normalizeSitemapLang(k) }))
+      .filter(entry => isPublicContentLang(entry.lang) && !!tabMeta[entry.source])
+      .map(entry => entry.lang);
+    langs = Array.from(new Set(langs));
+    if (!langs.length && (tabMeta.location || tabMeta.path) && isPublicContentLang(siteDefaultLang)) {
+      langs = [siteDefaultLang];
+    }
     if (!langs.length) return;
     const alternates = langs.map(l => ({
       hreflang: toSitemapHreflang(l),

@@ -218,6 +218,35 @@ function installGlobals({ savedPack = 'native', manifests = {} } = {}) {
   globalThis.requestAnimationFrame = (fn) => setTimeout(fn, 0);
   globalThis.fetch = async (input) => {
     const url = String(input || '').split('?')[0];
+    if (url.endsWith('assets/i18n/languages.json')) {
+      return {
+        ok: true,
+        json: async () => [
+          { value: 'en', label: 'English', module: './en.js' },
+          { value: 'chs', label: '简体中文', module: './chs.js' },
+          { value: 'cht-tw', label: '正體中文（台灣）', module: './cht-tw.js' },
+          { value: 'cht-hk', label: '繁體中文（香港）', module: './cht-hk.js' },
+          { value: 'ja', label: '日本語', module: './ja.js' }
+        ]
+      };
+    }
+    if (url.endsWith('wwwroot/index.yaml')) {
+      return {
+        ok: true,
+        text: async () => [
+          'demo:',
+          '  en: post/demo.md',
+          '  chs: post/demo.chs.md',
+          ''
+        ].join('\n')
+      };
+    }
+    if (url.endsWith('.md')) {
+      return {
+        ok: true,
+        text: async () => '---\ntitle: Demo\n---\n\nDemo\n'
+      };
+    }
     const match = url.match(/^assets\/themes\/([^/]+)\/theme\.json$/);
     if (match) {
       const pack = decodeURIComponent(match[1]);
@@ -327,13 +356,17 @@ await run('cached theme layout contexts refresh public feature context', async (
   const secondFeatures = { flags: { search: false }, isEnabled: (key) => key === 'footerNav' };
   const firstRouter = { getHomeHref: () => '?tab=first' };
   const secondRouter = { getHomeHref: () => '?tab=second' };
-  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures, router: firstRouter });
+  const firstSiteConfig = { languages: { public: 'ui' } };
+  const secondSiteConfig = { languages: { public: 'content' } };
+  const first = await ensureThemeLayout({ pack: 'featurepack', persist: false, reset: true, features: firstFeatures, router: firstRouter, siteConfig: firstSiteConfig });
   assert.equal(first.features, firstFeatures);
   assert.equal(first.router, firstRouter);
-  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures, router: secondRouter });
+  assert.equal(first.siteConfig, firstSiteConfig);
+  const second = await ensureThemeLayout({ pack: 'featurepack', persist: false, features: secondFeatures, router: secondRouter, siteConfig: secondSiteConfig });
   assert.equal(second, first);
   assert.equal(second.features, secondFeatures);
   assert.equal(second.router, secondRouter);
+  assert.equal(second.siteConfig, secondSiteConfig);
 });
 
 await run('in-flight theme layout reuse refreshes public feature context', async () => {
@@ -600,6 +633,115 @@ await run('theme controls keep current component contract during legacy theme mo
   assert.equal(mountedComponent.getAttribute('contract-version'), null);
   assert.equal(legacyTools.parentElement && legacyTools.parentElement.matches('.sidebar'), true);
   assert.notEqual(legacyTools.parentElement.children[0], mountedComponent);
+});
+
+await run('theme controls hide language selector until public content languages resolve', async () => {
+  const { document } = installGlobals({ savedPack: 'native' });
+  const sidebar = document.createElement('aside');
+  sidebar.setAttribute('class', 'sidebar');
+  const component = document.createElement('press-theme-controls');
+  const hiddenRoleCalls = [];
+  const languageCalls = [];
+  component.setLabels = () => {};
+  component.render = () => {};
+  component.setCurrentPack = () => {};
+  component.setThemePacks = () => {};
+  component.setHiddenRoles = (roles) => hiddenRoleCalls.push({ ...roles });
+  component.setLanguages = (languages, current) => languageCalls.push({ languages, current });
+  sidebar.appendChild(component);
+  document.body.appendChild(sidebar);
+
+  const i18n = await import('../assets/js/i18n.js');
+  await i18n.initI18n({ lang: 'en', persist: false });
+  const { mountThemeControls, refreshLanguageSelector } = await freshThemeHelpers();
+  mountThemeControls({
+    variant: 'arcus',
+    siteConfig: {
+      defaultLanguage: 'en',
+      languages: { public: 'content' },
+      features: { languageSwitcher: { enabled: true } }
+    }
+  });
+  assert.equal(hiddenRoleCalls.at(-1).language, true, 'content policy should hide language controls before content languages resolve');
+
+  await i18n.loadContentJsonWithRaw('wwwroot', 'index');
+  refreshLanguageSelector();
+  assert.equal(hiddenRoleCalls.at(-1).language, false, 'content policy should show language controls after two public content languages resolve');
+  assert.deepEqual(
+    languageCalls.at(-1).languages.map(item => item.value),
+    ['en', 'chs'],
+    'language controls should receive only public content languages'
+  );
+});
+
+await run('theme controls keep disabled language switcher hidden after refresh', async () => {
+  const { document } = installGlobals({ savedPack: 'native' });
+  const sidebar = document.createElement('aside');
+  sidebar.setAttribute('class', 'sidebar');
+  const component = document.createElement('press-theme-controls');
+  const hiddenRoleCalls = [];
+  component.setLabels = () => {};
+  component.render = () => {};
+  component.setCurrentPack = () => {};
+  component.setThemePacks = () => {};
+  component.setHiddenRoles = (roles) => hiddenRoleCalls.push({ ...roles });
+  component.setLanguages = () => {};
+  sidebar.appendChild(component);
+  document.body.appendChild(sidebar);
+
+  const i18n = await import('../assets/js/i18n.js');
+  await i18n.initI18n({ lang: 'en', persist: false });
+  const { mountThemeControls, refreshLanguageSelector } = await freshThemeHelpers();
+  mountThemeControls({
+    variant: 'arcus',
+    siteConfig: {
+      defaultLanguage: 'en',
+      languages: { public: 'content' },
+      features: { languageSwitcher: { enabled: false } }
+    }
+  });
+  assert.equal(hiddenRoleCalls.at(-1).language, true);
+
+  await i18n.loadContentJsonWithRaw('wwwroot', 'index');
+  refreshLanguageSelector();
+  assert.equal(hiddenRoleCalls.at(-1).language, true, 'disabled language switcher should stay hidden even after content languages resolve');
+});
+
+await run('theme controls keep reset visible for stale non-public language', async () => {
+  const { document } = installGlobals({ savedPack: 'native' });
+  const sidebar = document.createElement('aside');
+  sidebar.setAttribute('class', 'sidebar');
+  const component = document.createElement('press-theme-controls');
+  const hiddenRoleCalls = [];
+  const languageCalls = [];
+  component.setLabels = () => {};
+  component.render = () => {};
+  component.setCurrentPack = () => {};
+  component.setThemePacks = () => {};
+  component.setHiddenRoles = (roles) => hiddenRoleCalls.push({ ...roles });
+  component.setLanguages = (languages, current) => languageCalls.push({ languages, current });
+  sidebar.appendChild(component);
+  document.body.appendChild(sidebar);
+
+  const i18n = await import('../assets/js/i18n.js');
+  await i18n.initI18n({ lang: 'ja', persist: false });
+  const { mountThemeControls } = await freshThemeHelpers();
+  mountThemeControls({
+    variant: 'arcus',
+    siteConfig: {
+      defaultLanguage: 'en',
+      languages: { public: 'explicit', publicList: ['en'] },
+      features: { languageSwitcher: { enabled: true } }
+    }
+  });
+
+  assert.equal(hiddenRoleCalls.at(-1).language, false, 'stale non-public language should keep reset controls visible');
+  assert.deepEqual(
+    languageCalls.at(-1).languages.map(item => item.value),
+    ['en'],
+    'single public fallback language should remain the only selectable public language'
+  );
+  assert.equal(languageCalls.at(-1).current, 'ja');
 });
 
 await run('theme modules load in parallel and mount in manifest order', async () => {

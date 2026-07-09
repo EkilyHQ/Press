@@ -195,6 +195,31 @@
       "type": "string",
       "description": "Default Press language code (e.g., en, chs, cht-tw)."
     },
+    "languages": {
+      "type": "object",
+      "description": "Public language availability policy. UI translation bundles still come from assets/i18n/languages.json.",
+      "properties": {
+        "public": {
+          "type": "string",
+          "enum": [
+            "ui",
+            "content",
+            "explicit"
+          ],
+          "default": "ui",
+          "description": "Which languages the public site advertises. Omitted means ui for compatibility."
+        },
+        "publicList": {
+          "type": "array",
+          "description": "Explicit public language codes when languages.public is explicit.",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
     "assetWarnings": {
       "type": "object",
       "description": "Settings for asset-related warnings.",

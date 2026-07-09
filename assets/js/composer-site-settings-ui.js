@@ -266,6 +266,7 @@ export function createComposerSiteSettingsUi(options = {}) {
       ensureAnnotate,
       ensureAssetWarnings,
       collectLanguageCodes,
+      getAvailableLangs,
       normalizeLangCode,
       displayLangName,
       fetchContent,

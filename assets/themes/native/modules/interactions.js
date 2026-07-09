@@ -539,7 +539,8 @@ function setupThemeControlsNative(params = {}) {
     mount({
       contractVersion: params.contractVersion,
       themeContext: params.themeContext || params.context,
-      features: params.features || (params.context && params.context.features)
+      features: params.features || (params.context && params.context.features),
+      siteConfig: params.siteConfig || (params.context && params.context.siteConfig) || {}
     });
   } catch (_) {}
   try { apply(); } catch (_) {}
@@ -1659,7 +1660,8 @@ function resetThemeControlsNative(params = {}, documentRef = defaultDocument) {
     mount({
       contractVersion: params.contractVersion,
       themeContext: params.themeContext || params.context,
-      features: params.features || (params.context && params.context.features)
+      features: params.features || (params.context && params.context.features),
+      siteConfig: params.siteConfig || (params.context && params.context.siteConfig) || {}
     });
   } catch (_) {}
   try { applyTheme(); } catch (_) {}

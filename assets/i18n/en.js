@@ -562,6 +562,19 @@ const translations = {
           languageExists: 'That language already exists.',
           languageDefault: 'Default',
           languageAutoOption: 'Auto-detect (browser language)',
+          publicLanguagePolicies: {
+            ui: 'UI languages',
+            content: 'Content languages',
+            explicit: 'Explicit list'
+          },
+          languageWarnings: {
+            'public-language-missing-ui': ({ language }) => `Public language ${language} has no UI translation bundle and will not be shown.`,
+            'content-language-missing-ui': ({ language }) => `Content language ${language} has no UI translation bundle and will not be shown.`,
+            'default-language-missing-content': ({ language }) => `Default language ${language} has no matching content.`,
+            'public-language-missing-content': ({ language }) => `Public language ${language} has no matching content.`,
+            'public-language-empty-fallback': ({ language }) => `No public languages resolved. Falling back to ${language}.`,
+            'language-switcher-single-language': 'Language switcher is enabled but fewer than two public languages are available.'
+          },
           addLink: 'Add link',
           removeLink: 'Remove',
           reorderLink: 'Drag to reorder link. Press Alt+Up or Alt+Down to move.',
@@ -640,6 +653,10 @@ const translations = {
             profileLinksHelp: 'List of profile or social links shown near the avatar.',
             defaultLanguage: 'Default language',
             defaultLanguageHelp: 'Language code to use when no browser preference is matched.',
+            publicLanguages: 'Public languages',
+            publicLanguagesHelp: 'Choose which languages the public site advertises in controls and SEO.',
+            publicLanguageList: 'Public language list',
+            publicLanguageListHelp: 'Comma-separated language codes used when Public languages is Explicit list.',
             contentOutdatedDays: 'Outdated threshold (days)',
             contentOutdatedDaysHelp: 'Highlight posts older than this many days. Leave blank to disable.',
             pageSize: 'Posts per page',

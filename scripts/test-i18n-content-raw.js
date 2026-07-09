@@ -46,6 +46,11 @@ assert.doesNotMatch(
   /\bloadLangJson\b/,
   'main runtime should not import the retired legacy sidecar loader'
 );
+assert.match(
+  mainSource,
+  /await initI18n\(\{\s*lang: normalizedConfigDefault,\s*defaultLang: normalizedConfigDefault\s*\}\)/,
+  'main should update i18n base default language when applying site-configured defaultLanguage'
+);
 
 globalThis.document = globalThis.document || {
   documentElement: { setAttribute() {}, getAttribute() { return 'en'; } },
@@ -261,8 +266,29 @@ const {
   loadContentJsonWithRaw,
   getAvailableLangs,
   getContentLangs,
+  getPublicLangs,
   getCurrentLang
 } = await import('../assets/js/i18n.js');
+
+const resetDefaultController = createI18nController({
+  windowRef: {
+    location: { href: 'https://example.test/', pathname: '/' },
+    navigator: { language: 'en-US' },
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() { return true; }
+  },
+  documentRef: globalThis.document,
+  localStorageRef: globalThis.localStorage
+});
+await resetDefaultController.init({ lang: 'chs', defaultLang: 'chs', persist: false });
+await resetDefaultController.init({ lang: 'chs', persist: false });
+await resetDefaultController.loadContentJsonWithRaw('wwwroot', 'flat-index');
+assert.deepEqual(
+  resetDefaultController.getContentLangs(),
+  ['chs'],
+  'reinitializing without defaultLang should preserve the configured default for flat/default content'
+);
 
 await initI18n({ lang: 'en', persist: false });
 const metadataReady = new Promise(resolve => {
@@ -279,6 +305,13 @@ assert.equal(result.entries.demo.location, 'post/demo.md');
 assert.equal(result.entries.secret.location, 'post/secret.md');
 assert.deepEqual(getContentLangs(), ['en']);
 assert.deepEqual(getAvailableLangs(), ['en', 'chs', 'cht-tw', 'cht-hk', 'ja']);
+assert.deepEqual(getPublicLangs({ languages: { public: 'content' }, defaultLanguage: 'en' }), ['en']);
+assert.deepEqual(getPublicLangs({ defaultLanguage: 'en' }), ['en', 'chs', 'cht-tw', 'cht-hk', 'ja']);
+
+const enrichedEntries = await metadataReady;
+assert.equal(enrichedEntries['Secret Title'].protected, true);
+assert.equal(enrichedEntries['Secret Title'].excerpt, 'Public summary only.');
+assert.equal(result.entries['Secret Title'].protected, true);
 
 const beforeLegacyContentRequests = requests.length;
 const legacyContent = await loadContentJsonWithRaw('wwwroot', 'legacy-only');
@@ -319,11 +352,6 @@ assert.equal(
   false,
   'clean content runtime should keep base flat index string entries without probing legacy per-language index YAML sidecars'
 );
-
-const enrichedEntries = await metadataReady;
-assert.equal(enrichedEntries['Secret Title'].protected, true);
-assert.equal(enrichedEntries['Secret Title'].excerpt, 'Public summary only.');
-assert.equal(result.entries['Secret Title'].protected, true);
 
 const unified = await loadContentJsonWithRaw('wwwroot', 'unified');
 assert.equal(unified.entries['Unified Secret'].protected, true);
@@ -426,7 +454,7 @@ const manifestFetch = async (url) => {
       ok: true,
       text: async () => [
         'runtime-title:',
-        '  en:',
+        '  default:',
         '    title: Runtime Title',
         '    location: post/runtime.md',
         '    excerpt: Runtime summary.',
@@ -472,5 +500,6 @@ const runtimeContent = await controllerA.loadContentJsonWithRaw('runtime-root', 
 assert.equal(runtimeContent.entries['Runtime Title'].location, 'post/runtime.md');
 assert.ok(runtimeRequests.some(url => url.endsWith('runtime-root/index.yaml')));
 assert.equal(requests.some(url => url.includes('runtime-root')), false);
+assert.deepEqual(controllerA.getPublicLangs({ languages: { public: 'content' }, defaultLanguage: 'en' }), ['en']);
 
 console.log('ok - loadContentJsonWithRaw returns raw index without a duplicate index fetch');

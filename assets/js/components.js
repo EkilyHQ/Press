@@ -538,9 +538,13 @@ export class PressThemeControls extends HTMLElement {
       const option = (this.ownerDocument || document).createElement('option');
       option.value = current;
       option.textContent = current;
-      select.appendChild(option);
+      option.disabled = true;
+      option.hidden = true;
+      select.insertBefore(option, select.firstChild);
+      select.value = current;
+    } else if (current) {
+      select.value = current;
     }
-    if (current) select.value = current;
   }
 }
 

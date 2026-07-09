@@ -67,12 +67,32 @@ assert.match(yaml, /search:\n\s+enabled: false/, 'site.yaml output should serial
 assert.match(yaml, /editorEntry:\n\s+enabled: false/, 'site.yaml output should serialize disabled editor entry');
 assert.match(yaml, /allPosts:\n\s+enabled: true/, 'site.yaml output should serialize feature allPosts precedence');
 
+const languagePolicyState = prepareSiteState({
+  languages: { public: 'explicit', publicList: ['en', 'chs'] }
+});
+const languagePolicyYaml = toSiteYaml(languagePolicyState);
+assert.match(languagePolicyYaml, /^languages:\n\s+public: explicit\n\s+publicList:\n\s+- en\n\s+- chs/m, 'site.yaml output should serialize public language policy');
+assert.deepEqual(languagePolicyState.__extras, {}, 'public language policy should be an editable site model field, not an extra key');
+
+const revertedLanguagePolicy = prepareSiteState({
+  languages: { public: 'ui', publicList: ['en', 'chs'] }
+});
+assert.doesNotMatch(toSiteYaml(revertedLanguagePolicy), /^languages:/m, 'ui public language policy should serialize as the omitted default even with a stale list');
+assert.equal(computeSiteDiff(revertedLanguagePolicy, prepareSiteState({})).hasChanges, false, 'ui public language policy should diff as the omitted default');
+
 const diff = computeSiteDiff(
   prepareSiteState({ features: { search: { enabled: false } } }),
   prepareSiteState({})
 );
 assert.equal(diff.hasChanges, true);
 assert.equal(diff.fields.features.fields.search, true);
+
+const languageDiff = computeSiteDiff(
+  prepareSiteState({ languages: { public: 'content' } }),
+  prepareSiteState({})
+);
+assert.equal(languageDiff.hasChanges, true);
+assert.equal(languageDiff.fields.languages.type, 'object');
 
 const seoSource = read('assets/js/seo.js');
 assert.match(

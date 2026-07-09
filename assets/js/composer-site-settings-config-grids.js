@@ -1,5 +1,10 @@
 import { SITE_FEATURE_KEYS, isSiteFeatureEnabled } from './site-features.js';
 import {
+  buildLanguageAvailability,
+  normalizeLanguageCode,
+  normalizePublicLanguageSettings
+} from './language-availability.js';
+import {
   resolveThemeSettings,
   sanitizeThemeSlug,
   setThemeSettingOverride,
@@ -23,6 +28,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
   const ensureAnnotate = typeof options.ensureAnnotate === 'function' ? options.ensureAnnotate : () => ({});
   const ensureAssetWarnings = typeof options.ensureAssetWarnings === 'function' ? options.ensureAssetWarnings : () => ({ largeImage: {} });
   const collectLanguageCodes = typeof options.collectLanguageCodes === 'function' ? options.collectLanguageCodes : () => [];
+  const getAvailableLangs = typeof options.getAvailableLangs === 'function' ? options.getAvailableLangs : () => [];
   const normalizeLangCode = typeof options.normalizeLangCode === 'function'
     ? options.normalizeLangCode
     : (code) => String(code || '').trim().toLowerCase();
@@ -34,6 +40,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
   const annotateDiscussionCategoryPresets = Array.isArray(options.annotateDiscussionCategoryPresets) ? options.annotateDiscussionCategoryPresets : [];
   const t = typeof options.t === 'function' ? options.t : (key) => key;
   let refreshLandingOptions = noop;
+  let refreshLanguageAvailabilityWarnings = noop;
 
   const ensureFeatures = () => {
     if (!site.features || typeof site.features !== 'object' || Array.isArray(site.features)) site.features = {};
@@ -41,6 +48,27 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
   };
 
   const getFeatureEnabled = (key) => isSiteFeatureEnabled(site, key);
+
+  const ensureLanguages = () => {
+    site.languages = normalizePublicLanguageSettings(site.languages);
+    return site.languages;
+  };
+
+  const languageWarningText = (entry) => {
+    const code = entry && entry.code ? entry.code : '';
+    const language = entry && entry.language ? displayLangName(entry.language) : '';
+    const count = entry && entry.count != null ? entry.count : 0;
+    const key = `editor.composer.site.languageWarnings.${code}`;
+    const translated = t(key, { language, count });
+    if (translated && translated !== key) return translated;
+    if (code === 'public-language-missing-ui') return `Public language ${language} has no UI translation bundle and will not be shown.`;
+    if (code === 'content-language-missing-ui') return `Content language ${language} has no UI translation bundle and will not be shown.`;
+    if (code === 'default-language-missing-content') return `Default language ${language} has no matching content.`;
+    if (code === 'public-language-missing-content') return `Public language ${language} has no matching content.`;
+    if (code === 'public-language-empty-fallback') return `No public languages resolved. Falling back to ${language}.`;
+    if (code === 'language-switcher-single-language') return 'Language switcher is enabled but fewer than two public languages are available.';
+    return code || 'Language availability warning.';
+  };
 
   const setFeatureEnabled = (key, value) => {
     ensureFeatures()[key] = !!value;
@@ -110,9 +138,82 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
 
     defaultLanguageSelect.addEventListener('change', () => {
       site.defaultLanguage = normalizeLangCode(defaultLanguageSelect.value);
+      refreshLanguageAvailabilityWarnings();
       markDirty();
     });
     applyDefaultLanguageOptions();
+
+    const publicLanguagesSelect = createSelectRow(behaviorSchema.publicLanguages);
+    [
+      ['ui', t('editor.composer.site.publicLanguagePolicies.ui')],
+      ['content', t('editor.composer.site.publicLanguagePolicies.content')],
+      ['explicit', t('editor.composer.site.publicLanguagePolicies.explicit')]
+    ].forEach(([value, label]) => {
+      const option = documentRef.createElement('option');
+      option.value = value;
+      option.textContent = label && label !== `editor.composer.site.publicLanguagePolicies.${value}` ? label : value;
+      publicLanguagesSelect.appendChild(option);
+    });
+
+    const explicitRow = addBehaviorRow(behaviorSchema.publicLanguageList);
+    const publicListInput = documentRef.createElement('textarea');
+    publicListInput.id = explicitRow.controlId;
+    publicListInput.className = 'cs-input';
+    publicListInput.rows = 2;
+    publicListInput.dataset.field = 'languages';
+    publicListInput.dataset.subfield = 'publicList';
+    explicitRow.controlCell.appendChild(publicListInput);
+
+    const warningList = documentRef.createElement('ul');
+    warningList.className = 'cs-extra-list cs-language-availability-warnings';
+    warningList.dataset.field = 'languages';
+
+    const syncPublicLanguageControls = () => {
+      const languages = ensureLanguages();
+      publicLanguagesSelect.value = languages.public || 'ui';
+      publicListInput.value = (languages.publicList || []).join(', ');
+      explicitRow.row.hidden = languages.public !== 'explicit';
+    };
+
+    refreshLanguageAvailabilityWarnings = () => {
+      const report = buildLanguageAvailability({
+        siteConfig: site,
+        uiLanguages: getAvailableLangs(),
+        indexState: state.index,
+        tabsState: state.tabs
+      });
+      warningList.innerHTML = '';
+      const warnings = Array.isArray(report.warnings) ? report.warnings : [];
+      warnings.forEach((entry) => {
+        const item = documentRef.createElement('li');
+        item.textContent = languageWarningText(entry);
+        warningList.appendChild(item);
+      });
+      warningList.hidden = !warnings.length;
+    };
+
+    publicLanguagesSelect.addEventListener('change', () => {
+      const languages = ensureLanguages();
+      languages.public = publicLanguagesSelect.value || 'ui';
+      if (languages.public !== 'explicit') languages.publicList = [];
+      syncPublicLanguageControls();
+      refreshLanguageAvailabilityWarnings();
+      markDirty();
+    });
+
+    publicListInput.addEventListener('input', () => {
+      const languages = ensureLanguages();
+      languages.publicList = publicListInput.value
+        .split(/[\s,]+/)
+        .map(value => normalizeLanguageCode(value))
+        .filter(Boolean);
+      refreshLanguageAvailabilityWarnings();
+      markDirty();
+    });
+
+    syncPublicLanguageControls();
+    refreshLanguageAvailabilityWarnings();
+    section.appendChild(warningList);
 
     const createNumberRow = (item) => {
       const { controlCell, controlId } = addBehaviorRow(item);
@@ -281,6 +382,7 @@ export function createComposerSiteSettingsConfigGrids(options = {}) {
         setFeatureEnabled(key, checkbox.checked);
         syncSwitchState(checkbox, toggle, checkbox.checked, false);
         if (key === 'allPosts') refreshLandingOptions();
+        if (key === 'languageSwitcher') refreshLanguageAvailabilityWarnings();
         updateHomeWarning();
         markDirty();
       });

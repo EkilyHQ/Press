@@ -552,6 +552,19 @@ const translations = {
           languageExists: 'その言語はすでに存在します。',
           languageDefault: 'デフォルト',
           languageAutoOption: '自動検出（ブラウザー言語）',
+          publicLanguagePolicies: {
+            ui: 'UI 言語',
+            content: 'コンテンツ言語',
+            explicit: '指定リスト'
+          },
+          languageWarnings: {
+            'public-language-missing-ui': ({ language }) => `公開言語 ${language} には UI 翻訳バンドルがないため表示されません。`,
+            'content-language-missing-ui': ({ language }) => `コンテンツ言語 ${language} には UI 翻訳バンドルがないため表示されません。`,
+            'default-language-missing-content': ({ language }) => `既定の言語 ${language} に対応するコンテンツがありません。`,
+            'public-language-missing-content': ({ language }) => `公開言語 ${language} に対応するコンテンツがありません。`,
+            'public-language-empty-fallback': ({ language }) => `公開言語を解決できません。${language} にフォールバックします。`,
+            'language-switcher-single-language': '言語切り替えが有効ですが、公開言語が 2 つ未満です。'
+          },
           reset: '上書きをリセット',
           addLink: 'リンクを追加',
           removeLink: '削除',
@@ -627,6 +640,10 @@ const translations = {
             profileLinksHelp: 'アバター付近に表示されるプロフィール / ソーシャルリンク。',
             defaultLanguage: '既定の言語',
             defaultLanguageHelp: 'ブラウザー設定が一致しない場合に使用する言語コード。',
+            publicLanguages: '公開言語',
+            publicLanguagesHelp: '公開サイトのコントロールと SEO に表示する言語を選択します。',
+            publicLanguageList: '公開言語リスト',
+            publicLanguageListHelp: '公開言語が「指定リスト」のときに使うカンマ区切りの言語コード。',
             contentOutdatedDays: '古い記事のしきい値（日）',
             contentOutdatedDaysHelp: '指定日数を超えた記事を古い可能性ありとして表示します。空欄で無効。',
             pageSize: '1 ページの投稿数',

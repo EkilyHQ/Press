@@ -12,6 +12,8 @@ import {
   switchLanguage,
   ensureLanguageBundle,
   getAvailableLangs,
+  getPublicLangs,
+  getPublicLanguageOptions,
   getLanguageLabel
 } from './i18n.js';
 import {
@@ -145,6 +147,9 @@ function refreshThemeLayoutRuntimeContext(context, options = {}, regionControlle
   if (options && Object.prototype.hasOwnProperty.call(options, 'router')) {
     context.router = options.router || null;
   }
+  if (options && Object.prototype.hasOwnProperty.call(options, 'siteConfig')) {
+    context.siteConfig = options.siteConfig || {};
+  }
   if (context.manifest && context.theme && typeof context.theme === 'object') {
     const resolvedSettings = resolveThemeSettings({
       pack: context.pack,
@@ -173,6 +178,8 @@ export function createThemeI18nContext() {
     switchLanguage,
     ensureLanguageBundle,
     getAvailableLangs,
+    getPublicLangs,
+    getPublicLanguageOptions,
     getLanguageLabel,
     lang: typeof getCurrentLang === 'function' ? getCurrentLang() : ''
   };
@@ -581,6 +588,7 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     regions: createThemeRegionRegistry(),
     features: runtimeOptions.features || null,
     router: runtimeOptions.router || null,
+    siteConfig: runtimeOptions.siteConfig || {},
     pack,
     manifest,
     theme: themeApi,

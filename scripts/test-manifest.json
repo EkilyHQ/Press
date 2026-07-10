@@ -1,0 +1,3142 @@
+{
+  "schemaVersion": 1,
+  "timeoutUnit": "milliseconds",
+  "expected": {
+    "logical": 176,
+    "physical": 177,
+    "aliases": 1
+  },
+  "tierOrder": {
+    "guard": [
+      "release-graph",
+      "system-release-transaction",
+      "system-release-package",
+      "system-release-workflow",
+      "composer-action-contract",
+      "composer-root-contract",
+      "composer-root-boundaries",
+      "editor-effects-boundary",
+      "composer-app-services",
+      "composer-service-registry",
+      "press-system-surface",
+      "editor-app-kernel",
+      "provider-adapters",
+      "provider-boundary",
+      "publish-receipt",
+      "publish-flow-smoke",
+      "site-features",
+      "official-theme-public-chrome-behavior",
+      "theme-contracts",
+      "release-targets",
+      "release-intent",
+      "dispatch-system-release",
+      "product-state-ledger",
+      "pages-workflow",
+      "pages-artifact"
+    ],
+    "release": [
+      "release-graph",
+      "system-release-transaction",
+      "composer-action-contract",
+      "composer-root-contract",
+      "composer-root-boundaries",
+      "editor-effects-boundary",
+      "composer-app-services",
+      "composer-service-registry",
+      "press-system-surface",
+      "editor-app-kernel",
+      "provider-adapters",
+      "provider-boundary",
+      "publish-receipt",
+      "publish-flow-smoke",
+      "site-features",
+      "official-theme-public-chrome-behavior",
+      "theme-contracts",
+      "system-release-package",
+      "system-release-workflow",
+      "pages-workflow",
+      "pages-artifact",
+      "product-state-workflow",
+      "release-targets",
+      "release-intent",
+      "dispatch-system-release",
+      "theme-contract-package",
+      "product-state-ledger",
+      "product-state-dashboard",
+      "system-updates"
+    ]
+  },
+  "tests": [
+    {
+      "id": "annotate",
+      "file": "scripts/test-annotate.js",
+      "command": [
+        "node",
+        "scripts/test-annotate.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "cache-control",
+      "file": "scripts/test-cache-control.js",
+      "command": [
+        "node",
+        "scripts/test-cache-control.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "card-cover-error-state",
+      "file": "scripts/test-card-cover-error-state.js",
+      "command": [
+        "node",
+        "scripts/test-card-cover-error-state.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-action-contract",
+      "file": "scripts/test-composer-action-contract.js",
+      "command": [
+        "node",
+        "scripts/test-composer-action-contract.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-app-services",
+      "file": "scripts/test-composer-app-services.js",
+      "command": [
+        "node",
+        "scripts/test-composer-app-services.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-bootstrap",
+      "file": "scripts/test-composer-bootstrap.js",
+      "command": [
+        "node",
+        "scripts/test-composer-bootstrap.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-content-mutations",
+      "file": "scripts/test-composer-content-mutations.js",
+      "command": [
+        "node",
+        "scripts/test-composer-content-mutations.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-content-staging",
+      "file": "scripts/test-composer-content-staging.js",
+      "command": [
+        "node",
+        "scripts/test-composer-content-staging.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-controller-graph",
+      "file": "scripts/test-composer-controller-graph.js",
+      "command": [
+        "node",
+        "scripts/test-composer-controller-graph.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-dialogs",
+      "file": "scripts/test-composer-dialogs.js",
+      "command": [
+        "node",
+        "scripts/test-composer-dialogs.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-editor-detail-panel-controller",
+      "file": "scripts/test-composer-editor-detail-panel-controller.js",
+      "command": [
+        "node",
+        "scripts/test-composer-editor-detail-panel-controller.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-editor-shell",
+      "file": "scripts/test-composer-editor-shell.js",
+      "command": [
+        "node",
+        "scripts/test-composer-editor-shell.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-file-panel-controller",
+      "file": "scripts/test-composer-file-panel-controller.js",
+      "command": [
+        "node",
+        "scripts/test-composer-file-panel-controller.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-grid",
+      "file": "scripts/test-composer-identity-grid.js",
+      "command": [
+        "node",
+        "scripts/test-composer-identity-grid.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-lifecycle",
+      "file": "scripts/test-composer-lifecycle.js",
+      "command": [
+        "node",
+        "scripts/test-composer-lifecycle.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-actions-ui",
+      "file": "scripts/test-composer-markdown-actions-ui.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-actions-ui.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-actions",
+      "file": "scripts/test-composer-markdown-actions.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-actions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-assets",
+      "file": "scripts/test-composer-markdown-assets.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-assets.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-drafts",
+      "file": "scripts/test-composer-markdown-drafts.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-drafts.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-loader",
+      "file": "scripts/test-composer-markdown-loader.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-loader.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-session",
+      "file": "scripts/test-composer-markdown-session.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-state",
+      "file": "scripts/test-composer-markdown-state.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-state.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-markdown-workspace",
+      "file": "scripts/test-composer-markdown-workspace.js",
+      "command": [
+        "node",
+        "scripts/test-composer-markdown-workspace.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-mode-controller",
+      "file": "scripts/test-composer-mode-controller.js",
+      "command": [
+        "node",
+        "scripts/test-composer-mode-controller.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-notifications",
+      "file": "scripts/test-composer-notifications.js",
+      "command": [
+        "node",
+        "scripts/test-composer-notifications.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-path-tools",
+      "file": "scripts/test-composer-path-tools.js",
+      "command": [
+        "node",
+        "scripts/test-composer-path-tools.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-post-commit-state",
+      "file": "scripts/test-composer-post-commit-state.js",
+      "command": [
+        "node",
+        "scripts/test-composer-post-commit-state.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-publish-flow",
+      "file": "scripts/test-composer-publish-flow.js",
+      "command": [
+        "node",
+        "scripts/test-composer-publish-flow.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-publish-service",
+      "file": "scripts/test-composer-publish-service.js",
+      "command": [
+        "node",
+        "scripts/test-composer-publish-service.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-publish-settings-ui",
+      "file": "scripts/test-composer-publish-settings-ui.js",
+      "command": [
+        "node",
+        "scripts/test-composer-publish-settings-ui.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-publish-state-service",
+      "file": "scripts/test-composer-publish-state-service.js",
+      "command": [
+        "node",
+        "scripts/test-composer-publish-state-service.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-remote-sync",
+      "file": "scripts/test-composer-remote-sync.js",
+      "command": [
+        "node",
+        "scripts/test-composer-remote-sync.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-root-boundaries",
+      "file": "scripts/test-composer-root-boundaries.js",
+      "command": [
+        "node",
+        "scripts/test-composer-root-boundaries.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-root-contract",
+      "file": "scripts/test-composer-root-contract.js",
+      "command": [
+        "node",
+        "scripts/test-composer-root-contract.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-runtime-styles",
+      "file": "scripts/test-composer-runtime-styles.js",
+      "command": [
+        "node",
+        "scripts/test-composer-runtime-styles.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-runtime",
+      "file": "scripts/test-composer-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-composer-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-seo-staging",
+      "file": "scripts/test-composer-seo-staging.js",
+      "command": [
+        "node",
+        "scripts/test-composer-seo-staging.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-service-registry",
+      "file": "scripts/test-composer-service-registry.js",
+      "command": [
+        "node",
+        "scripts/test-composer-service-registry.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-setup-verifier",
+      "file": "scripts/test-composer-setup-verifier.js",
+      "command": [
+        "node",
+        "scripts/test-composer-setup-verifier.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-site-config",
+      "file": "scripts/test-composer-site-config.js",
+      "command": [
+        "node",
+        "scripts/test-composer-site-config.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-site-settings-repo-section",
+      "file": "scripts/test-composer-site-settings-repo-section.js",
+      "command": [
+        "node",
+        "scripts/test-composer-site-settings-repo-section.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-site-settings-single-grids",
+      "file": "scripts/test-composer-site-settings-single-grids.js",
+      "command": [
+        "node",
+        "scripts/test-composer-site-settings-single-grids.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-staging",
+      "file": "scripts/test-composer-staging.js",
+      "command": [
+        "node",
+        "scripts/test-composer-staging.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-sync-commit-controller",
+      "file": "scripts/test-composer-sync-commit-controller.js",
+      "command": [
+        "node",
+        "scripts/test-composer-sync-commit-controller.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-system-theme-bridge",
+      "file": "scripts/test-composer-system-theme-bridge.js",
+      "command": [
+        "node",
+        "scripts/test-composer-system-theme-bridge.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-ui-motion",
+      "file": "scripts/test-composer-ui-motion.js",
+      "command": [
+        "node",
+        "scripts/test-composer-ui-motion.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-unsynced-summary",
+      "file": "scripts/test-composer-unsynced-summary.js",
+      "command": [
+        "node",
+        "scripts/test-composer-unsynced-summary.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-yaml-actions",
+      "file": "scripts/test-composer-yaml-actions.js",
+      "command": [
+        "node",
+        "scripts/test-composer-yaml-actions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-yaml-drafts",
+      "file": "scripts/test-composer-yaml-drafts.js",
+      "command": [
+        "node",
+        "scripts/test-composer-yaml-drafts.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "composer-yaml-panels-controller",
+      "file": "scripts/test-composer-yaml-panels-controller.js",
+      "command": [
+        "node",
+        "scripts/test-composer-yaml-panels-controller.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "content-model-migration",
+      "file": "scripts/test-content-model-migration.js",
+      "command": [
+        "node",
+        "scripts/test-content-model-migration.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "content-model",
+      "file": "scripts/test-content-model.js",
+      "command": [
+        "node",
+        "scripts/test-content-model.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "dispatch-system-release",
+      "file": "scripts/test-dispatch-system-release.js",
+      "command": [
+        "node",
+        "scripts/test-dispatch-system-release.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-app-kernel",
+      "file": "scripts/test-editor-app-kernel.mjs",
+      "command": [
+        "node",
+        "scripts/test-editor-app-kernel.mjs"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-app-runtime",
+      "file": "scripts/test-editor-app-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-editor-app-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-active-session",
+      "file": "scripts/test-editor-blocks-active-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-active-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-block-flow-model",
+      "file": "scripts/test-editor-blocks-block-flow-model.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-block-flow-model.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-block-type-sessions",
+      "file": "scripts/test-editor-blocks-block-type-sessions.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-block-type-sessions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-body-session",
+      "file": "scripts/test-editor-blocks-body-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-body-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-card-picker-session",
+      "file": "scripts/test-editor-blocks-card-picker-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-card-picker-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-caret-measurement",
+      "file": "scripts/test-editor-blocks-caret-measurement.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-caret-measurement.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-caret-session",
+      "file": "scripts/test-editor-blocks-caret-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-caret-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-code-session",
+      "file": "scripts/test-editor-blocks-code-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-code-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-command-session",
+      "file": "scripts/test-editor-blocks-command-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-command-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-control-factory",
+      "file": "scripts/test-editor-blocks-control-factory.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-control-factory.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-editable-session",
+      "file": "scripts/test-editor-blocks-editable-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-editable-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-focus-pointer-sessions",
+      "file": "scripts/test-editor-blocks-focus-pointer-sessions.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-focus-pointer-sessions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-focus-session",
+      "file": "scripts/test-editor-blocks-focus-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-focus-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-head-session",
+      "file": "scripts/test-editor-blocks-head-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-head-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-image-session",
+      "file": "scripts/test-editor-blocks-image-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-image-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-inline-command-session",
+      "file": "scripts/test-editor-blocks-inline-command-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-inline-command-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-inline-dom-session",
+      "file": "scripts/test-editor-blocks-inline-dom-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-inline-dom-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-inline-model",
+      "file": "scripts/test-editor-blocks-inline-model.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-inline-model.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-inline-sessions",
+      "file": "scripts/test-editor-blocks-inline-sessions.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-inline-sessions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-inline-toolbar-session",
+      "file": "scripts/test-editor-blocks-inline-toolbar-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-inline-toolbar-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-layout-session",
+      "file": "scripts/test-editor-blocks-layout-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-layout-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-link-session",
+      "file": "scripts/test-editor-blocks-link-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-link-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-list-model",
+      "file": "scripts/test-editor-blocks-list-model.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-list-model.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-list-session",
+      "file": "scripts/test-editor-blocks-list-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-list-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-math-session",
+      "file": "scripts/test-editor-blocks-math-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-math-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-menu-session",
+      "file": "scripts/test-editor-blocks-menu-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-menu-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-model",
+      "file": "scripts/test-editor-blocks-model.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-model.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-pointer-session",
+      "file": "scripts/test-editor-blocks-pointer-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-pointer-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-rich-text-session",
+      "file": "scripts/test-editor-blocks-rich-text-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-rich-text-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-roundtrip",
+      "file": "scripts/test-editor-blocks-roundtrip.js",
+      "command": [
+        "node",
+        "--experimental-default-type=module",
+        "scripts/test-editor-blocks-roundtrip.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-runtime",
+      "file": "scripts/test-editor-blocks-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-selection-session",
+      "file": "scripts/test-editor-blocks-selection-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-selection-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-session-registry",
+      "file": "scripts/test-editor-blocks-session-registry.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-session-registry.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-source-session",
+      "file": "scripts/test-editor-blocks-source-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-source-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-state",
+      "file": "scripts/test-editor-blocks-state.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-state.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-table-model",
+      "file": "scripts/test-editor-blocks-table-model.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-table-model.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-blocks-table-session",
+      "file": "scripts/test-editor-blocks-table-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-blocks-table-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-boot-runtime",
+      "file": "scripts/test-editor-boot-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-editor-boot-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-content-tree",
+      "file": "scripts/test-editor-content-tree.js",
+      "command": [
+        "node",
+        "scripts/test-editor-content-tree.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-effects-boundary",
+      "file": "scripts/test-editor-effects-boundary.js",
+      "command": [
+        "node",
+        "scripts/test-editor-effects-boundary.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-blocks-session",
+      "file": "scripts/test-editor-main-blocks-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-blocks-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-content-service",
+      "file": "scripts/test-editor-main-content-service.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-content-service.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-current-file-session",
+      "file": "scripts/test-editor-main-current-file-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-current-file-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-current-file-view",
+      "file": "scripts/test-editor-main-current-file-view.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-current-file-view.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-document-session",
+      "file": "scripts/test-editor-main-document-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-document-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-file-context-service",
+      "file": "scripts/test-editor-main-file-context-service.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-file-context-service.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-frontmatter-label-width",
+      "file": "scripts/test-editor-main-frontmatter-label-width.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-frontmatter-label-width.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-frontmatter-manager",
+      "file": "scripts/test-editor-main-frontmatter-manager.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-frontmatter-manager.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-image-session",
+      "file": "scripts/test-editor-main-image-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-image-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-language-session",
+      "file": "scripts/test-editor-main-language-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-language-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-link-card-context",
+      "file": "scripts/test-editor-main-link-card-context.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-link-card-context.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-metadata-panel",
+      "file": "scripts/test-editor-main-metadata-panel.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-metadata-panel.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-preview-assets",
+      "file": "scripts/test-editor-main-preview-assets.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-preview-assets.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-preview-session",
+      "file": "scripts/test-editor-main-preview-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-preview-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-preview-theme-picker",
+      "file": "scripts/test-editor-main-preview-theme-picker.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-preview-theme-picker.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-preview-viewport",
+      "file": "scripts/test-editor-main-preview-viewport.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-preview-viewport.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-runtime",
+      "file": "scripts/test-editor-main-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-scroll-session",
+      "file": "scripts/test-editor-main-scroll-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-scroll-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-service-registry",
+      "file": "scripts/test-editor-main-service-registry.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-service-registry.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-shell-service",
+      "file": "scripts/test-editor-main-shell-service.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-shell-service.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-sidebar-file-tree",
+      "file": "scripts/test-editor-main-sidebar-file-tree.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-sidebar-file-tree.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-sidebar-session",
+      "file": "scripts/test-editor-main-sidebar-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-sidebar-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-tabs-metadata-manager",
+      "file": "scripts/test-editor-main-tabs-metadata-manager.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-tabs-metadata-manager.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-toolbar-card-picker",
+      "file": "scripts/test-editor-main-toolbar-card-picker.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-toolbar-card-picker.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-toolbar-session",
+      "file": "scripts/test-editor-main-toolbar-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-toolbar-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-toolbar-text-actions",
+      "file": "scripts/test-editor-main-toolbar-text-actions.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-toolbar-text-actions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-main-workspace-session",
+      "file": "scripts/test-editor-main-workspace-session.js",
+      "command": [
+        "node",
+        "scripts/test-editor-main-workspace-session.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-preview-app-runtime",
+      "file": "scripts/test-editor-preview-app-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-editor-preview-app-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-preview-images",
+      "file": "scripts/test-editor-preview-images.js",
+      "command": [
+        "node",
+        "scripts/test-editor-preview-images.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "editor-shell-contract",
+      "file": "scripts/test-editor-shell-contract.js",
+      "command": [
+        "node",
+        "scripts/test-editor-shell-contract.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "encrypted-content",
+      "file": "scripts/test-encrypted-content.js",
+      "command": [
+        "node",
+        "scripts/test-encrypted-content.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "errors-runtime",
+      "file": "scripts/test-errors-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-errors-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "frontmatter-roundtrip",
+      "file": "scripts/test-frontmatter-roundtrip.js",
+      "command": [
+        "node",
+        "--experimental-default-type=module",
+        "scripts/test-frontmatter-roundtrip.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": [
+        "scripts/test-frontmatter-roundtrip.sh"
+      ]
+    },
+    {
+      "id": "i18n-content-raw",
+      "file": "scripts/test-i18n-content-raw.js",
+      "command": [
+        "node",
+        "--experimental-default-type=module",
+        "scripts/test-i18n-content-raw.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "language-availability",
+      "file": "scripts/test-language-availability.js",
+      "command": [
+        "node",
+        "scripts/test-language-availability.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "link-cards-runtime",
+      "file": "scripts/test-link-cards-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-link-cards-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "main-guard",
+      "file": "scripts/test-main-guard.sh",
+      "command": [
+        "bash",
+        "scripts/test-main-guard.sh"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "bash",
+        "git",
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "markdown-security",
+      "file": "scripts/test-markdown-security.js",
+      "command": [
+        "node",
+        "scripts/test-markdown-security.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "math-render-runtime",
+      "file": "scripts/test-math-render-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-math-render-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "native-cover-loading-unified",
+      "file": "scripts/test-native-cover-loading-unified.js",
+      "command": [
+        "node",
+        "scripts/test-native-cover-loading-unified.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "native-image-cache",
+      "file": "scripts/test-native-image-cache.js",
+      "command": [
+        "node",
+        "scripts/test-native-image-cache.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "official-theme-public-chrome-behavior",
+      "file": "scripts/test-official-theme-public-chrome-behavior.mjs",
+      "command": [
+        "node",
+        "scripts/test-official-theme-public-chrome-behavior.mjs"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "pages-artifact",
+      "file": "scripts/test-pages-artifact.sh",
+      "command": [
+        "bash",
+        "scripts/test-pages-artifact.sh"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 300000,
+      "exclusive": true,
+      "requires": [
+        "bash",
+        "cmp",
+        "git",
+        "node",
+        "tar",
+        "unzip",
+        "zip"
+      ],
+      "alias": []
+    },
+    {
+      "id": "pages-workflow",
+      "file": "scripts/test-pages-workflow.sh",
+      "command": [
+        "bash",
+        "scripts/test-pages-workflow.sh"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "bash"
+      ],
+      "alias": []
+    },
+    {
+      "id": "post-card-slot-safety",
+      "file": "scripts/test-post-card-slot-safety.js",
+      "command": [
+        "node",
+        "scripts/test-post-card-slot-safety.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "post-editor-popup-fallback",
+      "file": "scripts/test-post-editor-popup-fallback.js",
+      "command": [
+        "node",
+        "scripts/test-post-editor-popup-fallback.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "press-system-surface",
+      "file": "scripts/test-press-system-surface.mjs",
+      "command": [
+        "node",
+        "scripts/test-press-system-surface.mjs"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "press-version-runtime",
+      "file": "scripts/test-press-version-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-press-version-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "product-state-dashboard",
+      "file": "scripts/test-product-state-dashboard.js",
+      "command": [
+        "node",
+        "scripts/test-product-state-dashboard.js"
+      ],
+      "tier": [
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "product-state-ledger",
+      "file": "scripts/test-product-state-ledger.js",
+      "command": [
+        "node",
+        "scripts/test-product-state-ledger.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "product-state-workflow",
+      "file": "scripts/test-product-state-workflow.sh",
+      "command": [
+        "bash",
+        "scripts/test-product-state-workflow.sh"
+      ],
+      "tier": [
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "bash"
+      ],
+      "alias": []
+    },
+    {
+      "id": "progressive-image-visibility",
+      "file": "scripts/test-progressive-image-visibility.js",
+      "command": [
+        "node",
+        "scripts/test-progressive-image-visibility.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "provider-adapters",
+      "file": "scripts/test-provider-adapters.js",
+      "command": [
+        "node",
+        "scripts/test-provider-adapters.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "provider-boundary",
+      "file": "scripts/test-provider-boundary.js",
+      "command": [
+        "node",
+        "scripts/test-provider-boundary.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "publish-commit-transports",
+      "file": "scripts/test-publish-commit-transports.js",
+      "command": [
+        "node",
+        "scripts/test-publish-commit-transports.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "publish-flow-smoke",
+      "file": "scripts/test-publish-flow-smoke.js",
+      "command": [
+        "node",
+        "scripts/test-publish-flow-smoke.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "publish-propagation-watcher",
+      "file": "scripts/test-publish-propagation-watcher.js",
+      "command": [
+        "node",
+        "scripts/test-publish-propagation-watcher.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "publish-receipt",
+      "file": "scripts/test-publish-receipt.js",
+      "command": [
+        "node",
+        "scripts/test-publish-receipt.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "release-graph",
+      "file": "scripts/test-release-graph.js",
+      "command": [
+        "node",
+        "scripts/test-release-graph.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "release-intent",
+      "file": "scripts/test-release-intent.js",
+      "command": [
+        "node",
+        "scripts/test-release-intent.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "release-targets",
+      "file": "scripts/test-release-targets.js",
+      "command": [
+        "node",
+        "scripts/test-release-targets.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "remove-site-navigation-links",
+      "file": "scripts/test-remove-site-navigation-links.js",
+      "command": [
+        "node",
+        "scripts/test-remove-site-navigation-links.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "repository-deletions",
+      "file": "scripts/test-repository-deletions.js",
+      "command": [
+        "node",
+        "scripts/test-repository-deletions.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "search-runtime",
+      "file": "scripts/test-search-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-search-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "site-features",
+      "file": "scripts/test-site-features.js",
+      "command": [
+        "node",
+        "scripts/test-site-features.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "syntax-highlight",
+      "file": "scripts/test-syntax-highlight.js",
+      "command": [
+        "node",
+        "scripts/test-syntax-highlight.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "system-release-package",
+      "file": "scripts/test-system-release-package.sh",
+      "command": [
+        "bash",
+        "scripts/test-system-release-package.sh"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 300000,
+      "exclusive": true,
+      "requires": [
+        "bash",
+        "git",
+        "node",
+        "tar",
+        "unzip",
+        "zip"
+      ],
+      "alias": []
+    },
+    {
+      "id": "system-release-transaction",
+      "file": "scripts/test-system-release-transaction.mjs",
+      "command": [
+        "node",
+        "scripts/test-system-release-transaction.mjs"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "git",
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "system-release-workflow",
+      "file": "scripts/test-system-release-workflow.sh",
+      "command": [
+        "bash",
+        "scripts/test-system-release-workflow.sh"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "bash",
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "system-updates",
+      "file": "scripts/test-system-updates.js",
+      "command": [
+        "node",
+        "--experimental-default-type=module",
+        "scripts/test-system-updates.js"
+      ],
+      "tier": [
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "test-runner",
+      "file": "scripts/test-test-runner.mjs",
+      "command": [
+        "node",
+        "scripts/test-test-runner.mjs"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "theme-contract-package",
+      "file": "scripts/test-theme-contract-package.mjs",
+      "command": [
+        "node",
+        "scripts/test-theme-contract-package.mjs"
+      ],
+      "tier": [
+        "release",
+        "full"
+      ],
+      "timeout": 300000,
+      "exclusive": true,
+      "requires": [
+        "git",
+        "node",
+        "npm"
+      ],
+      "alias": []
+    },
+    {
+      "id": "theme-contracts",
+      "file": "scripts/test-theme-contracts.js",
+      "command": [
+        "node",
+        "--experimental-default-type=module",
+        "scripts/test-theme-contracts.js"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "theme-manager-data",
+      "file": "scripts/test-theme-manager-data.js",
+      "command": [
+        "node",
+        "scripts/test-theme-manager-data.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "theme-manager",
+      "file": "scripts/test-theme-manager.js",
+      "command": [
+        "node",
+        "--experimental-default-type=module",
+        "scripts/test-theme-manager.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "theme-runtime",
+      "file": "scripts/test-theme-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-theme-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "theme-settings",
+      "file": "scripts/test-theme-settings.js",
+      "command": [
+        "node",
+        "scripts/test-theme-settings.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "typography-runtime",
+      "file": "scripts/test-typography-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-typography-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "ui-components",
+      "file": "scripts/test-ui-components.js",
+      "command": [
+        "node",
+        "scripts/test-ui-components.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "utils-runtime",
+      "file": "scripts/test-utils-runtime.js",
+      "command": [
+        "node",
+        "scripts/test-utils-runtime.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "view-state-persistence",
+      "file": "scripts/test-view-state-persistence.js",
+      "command": [
+        "node",
+        "scripts/test-view-state-persistence.js"
+      ],
+      "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    }
+  ]
+}

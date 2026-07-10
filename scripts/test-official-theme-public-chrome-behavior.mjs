@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -7,6 +8,54 @@ import { createSiteFeatureContext } from '../assets/js/site-features.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pressRoot = resolve(here, '..');
+const fixtureRoot = resolve(here, 'fixtures/official-theme-public-chrome');
+const expectedFixtureRepositories = {
+  arcus: 'EkilyHQ/Press-Theme-Arcus',
+  solstice: 'EkilyHQ/Press-Theme-Solstice'
+};
+
+function loadPinnedFixtureSources() {
+  const provenancePath = resolve(fixtureRoot, 'provenance.json');
+  assert.equal(existsSync(provenancePath), true, 'official theme fixture provenance must exist');
+  const provenance = JSON.parse(readFileSync(provenancePath, 'utf8'));
+  assert.equal(provenance.schemaVersion, 1, 'official theme fixture provenance must use schema version 1');
+  assert.deepEqual(
+    Object.keys(provenance.fixtures || {}).sort(),
+    Object.keys(expectedFixtureRepositories).sort(),
+    'official theme fixture provenance must cover the tested themes exactly'
+  );
+
+  return new Map(Object.entries(expectedFixtureRepositories).map(([slug, repository]) => {
+    const record = provenance.fixtures[slug];
+    assert.equal(record.repository, repository, `${slug} fixture must name its official repository`);
+    assert.equal(record.sourcePath, 'theme/modules/interactions.js', `${slug} fixture must name the interactions source path`);
+    assert.match(record.sourceCommit || '', /^[0-9a-f]{40}$/u, `${slug} fixture must pin a full source commit`);
+    assert.match(record.sha256 || '', /^[0-9a-f]{64}$/u, `${slug} fixture must pin a SHA-256 digest`);
+    assert.equal(
+      record.fixturePath,
+      `scripts/fixtures/official-theme-public-chrome/${slug}/interactions.js`,
+      `${slug} fixture path must stay inside the Press-owned fixture directory`
+    );
+    const fixturePath = resolve(pressRoot, record.fixturePath);
+    assert.equal(existsSync(fixturePath), true, `${slug} pinned fixture must exist`);
+    const digest = createHash('sha256').update(readFileSync(fixturePath)).digest('hex');
+    assert.equal(digest, record.sha256, `${slug} pinned fixture digest must match provenance`);
+    return [slug, fixturePath];
+  }));
+}
+
+const pinnedFixtureSources = loadPinnedFixtureSources();
+const temporaryThemeRoots = new Set();
+
+function cleanupTemporaryThemeRoot(path) {
+  if (!path) return;
+  rmSync(path, { force: true, recursive: true });
+  temporaryThemeRoots.delete(path);
+}
+
+process.once('exit', () => {
+  temporaryThemeRoots.forEach((path) => cleanupTemporaryThemeRoot(path));
+});
 
 class TestElement {
   constructor(tagName = 'div') {
@@ -146,9 +195,7 @@ function tagsOffPostMetaOnContext() {
   });
 }
 
-function resolveThemeInteractionsPath(slug) {
-  const installed = resolve(pressRoot, 'assets/themes', slug, 'modules/interactions.js');
-  if (existsSync(installed)) return installed;
+function resolveThemeInteractionsSource(slug) {
   const repoNames = {
     arcus: 'Press-Theme-Arcus',
     cartograph: 'Press-Theme-Cartograph',
@@ -156,43 +203,50 @@ function resolveThemeInteractionsPath(slug) {
     solstice: 'Press-Theme-Solstice'
   };
   const repoName = repoNames[slug];
-  if (!repoName) return '';
+  if (!repoName) throw new Error(`no official theme source mapping for ${slug}`);
   const sibling = resolve(pressRoot, '..', repoName, 'theme/modules/interactions.js');
-  return existsSync(sibling) ? sibling : '';
+  if (existsSync(sibling)) return { kind: 'workspace', path: sibling };
+  const fixture = pinnedFixtureSources.get(slug);
+  if (fixture && existsSync(fixture)) return { kind: 'fixture', path: fixture };
+  throw new Error(`no workspace or pinned fixture source available for ${slug}`);
 }
 
 async function mountTheme(slug) {
-  const sourcePath = resolveThemeInteractionsPath(slug);
-  if (!sourcePath) return null;
+  const source = resolveThemeInteractionsSource(slug);
   globalThis.document = new TestDocument();
   globalThis.window = globalThis.document.defaultView;
   globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
   const tempRoot = mkdtempSync(resolve(tmpdir(), `press-theme-${slug}-`));
+  temporaryThemeRoots.add(tempRoot);
   const tempModuleDir = resolve(tempRoot, 'assets/themes', slug, 'modules');
   mkdirSync(tempModuleDir, { recursive: true });
   mkdirSync(resolve(tempRoot, 'assets'), { recursive: true });
   symlinkSync(resolve(pressRoot, 'assets/js'), resolve(tempRoot, 'assets/js'), 'dir');
   writeFileSync(
     resolve(tempModuleDir, 'interactions.js'),
-    readFileSync(sourcePath, 'utf8')
+    readFileSync(source.path, 'utf8')
   );
   const moduleUrl = pathToFileURL(resolve(tempModuleDir, 'interactions.js')).href;
   const module = await import(`${moduleUrl}?public-chrome-behavior=${Date.now()}-${Math.random()}`);
-  return module.mount({
-    document: globalThis.document,
-    window: globalThis.window,
-    features: disabledFeatureContext(),
-    i18n: {
-      t: (key) => key,
-      withLangParam: (href) => href,
-      getCurrentLang: () => 'en'
-    }
-  });
+  return {
+    api: module.mount({
+      document: globalThis.document,
+      window: globalThis.window,
+      features: disabledFeatureContext(),
+      i18n: {
+        t: (key) => key,
+        withLangParam: (href) => href,
+        getCurrentLang: () => 'en'
+      }
+    }),
+    cleanup: () => cleanupTemporaryThemeRoot(tempRoot),
+    source: source.kind
+  };
 }
 
 async function assertThemeChromeDisabled(slug) {
-  const api = await mountTheme(slug);
-  if (!api) return false;
+  const mounted = await mountTheme(slug);
+  const { api } = mounted;
   const main = new TestElement('main');
   const toc = new TestElement('press-toc');
   const features = disabledFeatureContext();
@@ -262,12 +316,14 @@ async function assertThemeChromeDisabled(slug) {
   }), true);
   assert.equal(toc.hidden, true, `${slug} static tab should hide TOC`);
   assert.equal(toc.innerHTML, '', `${slug} static tab should clear TOC`);
-  return true;
+  const source = mounted.source;
+  mounted.cleanup();
+  return source;
 }
 
-const testedSlugs = [];
+const testedSources = [];
 for (const slug of ['arcus', 'solstice']) {
-  if (await assertThemeChromeDisabled(slug)) testedSlugs.push(slug);
+  testedSources.push(`${slug}:${await assertThemeChromeDisabled(slug)}`);
 }
 
-console.log(`ok - official theme public chrome behavior${testedSlugs.length ? ` (${testedSlugs.join(', ')})` : ' (external theme fixtures unavailable)'}`);
+console.log(`ok - official theme public chrome behavior (${testedSources.join(', ')})`);

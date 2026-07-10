@@ -106,7 +106,7 @@ try {
   const installDir = path.join(tempDir, 'consumer');
   await fs.mkdir(installDir);
   await fs.writeFile(path.join(installDir, 'package.json'), '{"type":"module"}\n');
-  const install = spawnSync('npm', ['install', '--ignore-scripts', tarball], {
+  const install = spawnSync('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', tarball], {
     cwd: installDir,
     encoding: 'utf8'
   });

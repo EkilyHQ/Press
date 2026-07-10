@@ -5,9 +5,37 @@ cd "$(dirname "$0")/.."
 
 workflow=".github/workflows/system-release.yml"
 main_workflow=".github/workflows/main-guard.yml"
+full_workflow=".github/workflows/full-test-suite.yml"
 
 if [[ ! -f "${workflow}" ]]; then
   echo "expected ${workflow} to exist" >&2
+  exit 1
+fi
+
+if [[ ! -f "${full_workflow}" ]] \
+  || ! grep -F 'workflow_dispatch:' "${full_workflow}" >/dev/null \
+  || ! grep -F 'schedule:' "${full_workflow}" >/dev/null \
+  || ! grep -F 'persist-credentials: false' "${full_workflow}" >/dev/null \
+  || ! grep -F 'actions/setup-node@v6' "${full_workflow}" >/dev/null \
+  || ! grep -F 'node-version: 22.18.0' "${full_workflow}" >/dev/null \
+  || ! grep -F "npm_config_offline: 'true'" "${full_workflow}" >/dev/null \
+  || ! grep -F "npm_config_audit: 'false'" "${full_workflow}" >/dev/null \
+  || ! grep -F "npm_config_fund: 'false'" "${full_workflow}" >/dev/null \
+  || ! grep -F "npm_config_update_notifier: 'false'" "${full_workflow}" >/dev/null \
+  || ! grep -F 'if: always()' "${full_workflow}" >/dev/null \
+  || ! grep -F 'node scripts/run-tests.mjs --check-manifest' "${full_workflow}" >/dev/null \
+  || ! grep -F 'node scripts/run-tests.mjs --tier full' "${full_workflow}" >/dev/null; then
+  echo "full test workflow must support scheduled/manual manifest-driven runs" >&2
+  exit 1
+fi
+
+if [[ "$(grep -Fc 'git status --porcelain --untracked-files=all' "${full_workflow}")" -lt 2 ]]; then
+  echo "full test workflow must require a clean checkout before and after the suite" >&2
+  exit 1
+fi
+
+if ! grep -F "['install', '--ignore-scripts', '--no-audit', '--no-fund', tarball]" scripts/test-theme-contract-package.mjs >/dev/null; then
+  echo "theme contract package test must install its local tarball without audit or fund network calls" >&2
   exit 1
 fi
 
@@ -94,70 +122,81 @@ if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --check' "${workflow}" >/
   exit 1
 fi
 
-if ! grep -F 'node scripts/test-composer-app-services.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the composer app service lifecycle before publishing" >&2
+if ! grep -F 'node scripts/run-tests.mjs --tier release' "${workflow}" >/dev/null; then
+  echo "system release workflow must run the manifest release tier before publishing" >&2
   exit 1
 fi
 
-if ! grep -F 'node scripts/test-composer-action-contract.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the composer action contract before publishing" >&2
+if ! grep -F 'node scripts/run-tests.mjs --tier guard' "${main_workflow}" >/dev/null; then
+  echo "main guard workflow must run the manifest guard tier" >&2
   exit 1
 fi
 
-if ! grep -F 'node scripts/test-composer-root-contract.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the composer root import contract before publishing" >&2
-  exit 1
-fi
+node scripts/run-tests.mjs --check-manifest >/dev/null
+node - <<'NODE'
+const assert = require('node:assert/strict');
+const manifest = require('./scripts/test-manifest.json');
 
-if ! grep -F 'node scripts/test-composer-root-boundaries.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify composer root boundaries before publishing" >&2
-  exit 1
-fi
+assert.deepEqual(manifest.tierOrder.guard, [
+  'release-graph',
+  'system-release-transaction',
+  'system-release-package',
+  'system-release-workflow',
+  'composer-action-contract',
+  'composer-root-contract',
+  'composer-root-boundaries',
+  'editor-effects-boundary',
+  'composer-app-services',
+  'composer-service-registry',
+  'press-system-surface',
+  'editor-app-kernel',
+  'provider-adapters',
+  'provider-boundary',
+  'publish-receipt',
+  'publish-flow-smoke',
+  'site-features',
+  'official-theme-public-chrome-behavior',
+  'theme-contracts',
+  'release-targets',
+  'release-intent',
+  'dispatch-system-release',
+  'product-state-ledger',
+  'pages-workflow',
+  'pages-artifact'
+]);
 
-if ! grep -F 'node scripts/test-editor-effects-boundary.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the shared editor effects boundary before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-composer-service-registry.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the composer service registry before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-press-system-surface.mjs' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the shared Press system surface before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-editor-app-kernel.mjs' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the editor app lifecycle kernel before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-provider-adapters.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify provider adapter contracts before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-provider-boundary.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the editor provider boundary before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-publish-flow-smoke.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must run the publish flow smoke before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-publish-receipt.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify publish receipt contracts before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node --experimental-default-type=module scripts/test-theme-contracts.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the shared Press theme contract surface before publishing" >&2
-  exit 1
-fi
+assert.deepEqual(manifest.tierOrder.release, [
+  'release-graph',
+  'system-release-transaction',
+  'composer-action-contract',
+  'composer-root-contract',
+  'composer-root-boundaries',
+  'editor-effects-boundary',
+  'composer-app-services',
+  'composer-service-registry',
+  'press-system-surface',
+  'editor-app-kernel',
+  'provider-adapters',
+  'provider-boundary',
+  'publish-receipt',
+  'publish-flow-smoke',
+  'site-features',
+  'official-theme-public-chrome-behavior',
+  'theme-contracts',
+  'system-release-package',
+  'system-release-workflow',
+  'pages-workflow',
+  'pages-artifact',
+  'product-state-workflow',
+  'release-targets',
+  'release-intent',
+  'dispatch-system-release',
+  'theme-contract-package',
+  'product-state-ledger',
+  'product-state-dashboard',
+  'system-updates'
+]);
+NODE
 
 if ! grep -F -- '--materialize-root "${payload_dir}"' scripts/package-system-release.sh >/dev/null; then
   echo "system release package builder must materialize runtime cache keys into the payload" >&2
@@ -189,38 +228,8 @@ if ! grep -F 'graph: {' scripts/sync-runtime-cache-keys.mjs >/dev/null || ! grep
   exit 1
 fi
 
-if ! grep -F 'bash scripts/test-pages-workflow.sh' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the Pages deployment workflow contract before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'bash scripts/test-pages-artifact.sh' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify materialized Pages artifacts before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'bash scripts/test-product-state-workflow.sh' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the product-state refresh workflow contract before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-release-targets.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the release target registry before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-release-intent.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify release intent helpers before publishing" >&2
-  exit 1
-fi
-
 if ! grep -F "git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'" "${workflow}" >/dev/null; then
   echo "system release workflow must fetch the versioned release artifact registry before graph verification" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-release-graph.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must run focused release graph policy tests before publishing" >&2
   exit 1
 fi
 
@@ -235,11 +244,10 @@ if ! grep -F -- '--mode audit' "${workflow}" >/dev/null \
   exit 1
 fi
 
-if ! grep -F 'node scripts/test-release-graph.js' "${main_workflow}" >/dev/null \
-  || ! grep -F 'candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"' "${main_workflow}" >/dev/null \
+if ! grep -F 'candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"' "${main_workflow}" >/dev/null \
   || ! grep -F 'node scripts/release-graph.js --mode "${validation_mode}" --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --candidate-archive "${candidate_archive}" --check' "${main_workflow}" >/dev/null \
-  || ! grep -F 'bash scripts/test-system-release-workflow.sh' "${main_workflow}" >/dev/null; then
-  echo "main guard must run focused release graph tests, package the worktree, validate audit-or-candidate state, and check workflow wiring" >&2
+  || ! grep -F 'node scripts/run-tests.mjs --tier guard' "${main_workflow}" >/dev/null; then
+  echo "main guard must package the worktree, validate audit-or-candidate state, and run the manifest guard tier" >&2
   exit 1
 fi
 if ! grep -F 'validation_mode="candidate"' "${main_workflow}" >/dev/null \
@@ -254,12 +262,9 @@ if grep -F '${{ steps.plan.outputs.changed_files }}' "${workflow}" >/dev/null \
   exit 1
 fi
 
-if ! grep -F 'node scripts/test-system-release-transaction.mjs' "${main_workflow}" >/dev/null; then
-  echo "main guard must run the append-only release transaction tests" >&2
-  exit 1
-fi
-if ! grep -F 'bash scripts/test-system-release-package.sh' "${main_workflow}" >/dev/null; then
-  echo "main guard must prove system packages are reproducible before merge" >&2
+if grep -F 'node scripts/test-system-release-transaction.mjs' "${main_workflow}" >/dev/null \
+  || grep -F 'bash scripts/test-system-release-package.sh' "${main_workflow}" >/dev/null; then
+  echo "main guard local release tests must flow through the versioned manifest" >&2
   exit 1
 fi
 if grep -F 'git push' "${main_workflow}" >/dev/null; then
@@ -280,26 +285,6 @@ draft_line="$(grep -nF -- '- name: Ensure draft release and asset' "${workflow}"
 if [[ -z "${build_line}" || -z "${candidate_line}" || -z "${draft_line}"
   || "${candidate_line}" -le "${build_line}" || "${candidate_line}" -ge "${draft_line}" ]]; then
   echo "release graph candidate verification must run after package build and before draft release creation" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-dispatch-system-release.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify release dispatch helpers before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-theme-contract-package.mjs' "${workflow}" >/dev/null; then
-  echo "system release workflow must verify the publishable theme contract package before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-product-state-ledger.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must run product-state ledger tests before publishing" >&2
-  exit 1
-fi
-
-if ! grep -F 'node scripts/test-product-state-dashboard.js' "${workflow}" >/dev/null; then
-  echo "system release workflow must run product-state dashboard tests before publishing" >&2
   exit 1
 fi
 
@@ -364,7 +349,7 @@ if ! grep -F 'uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_i
 fi
 
 if ! grep -F 'node scripts/system-release-transaction.mjs inspect' "${workflow}" >/dev/null \
-  || ! grep -F 'node scripts/test-system-release-transaction.mjs' "${workflow}" >/dev/null; then
+  || ! grep -F 'node scripts/run-tests.mjs --tier release' "${workflow}" >/dev/null; then
   echo "release workflows must run the tested append-only transaction state machine" >&2
   exit 1
 fi

@@ -34,28 +34,12 @@ if "${repo_root}/scripts/check-main-safety.sh" >/dev/null 2>&1; then
 fi
 
 workflow="${repo_root}/.github/workflows/main-guard.yml"
-for command in \
-  'node scripts/test-release-targets.js' \
-  'node scripts/test-release-intent.js' \
-  'node scripts/test-dispatch-system-release.js' \
-  'node scripts/test-product-state-ledger.js' \
-  'node scripts/test-composer-action-contract.js' \
-  'node scripts/test-composer-root-contract.js' \
-  'node scripts/test-composer-root-boundaries.js' \
-  'node scripts/test-editor-effects-boundary.js' \
-  'node scripts/test-composer-app-services.js' \
-  'node scripts/test-composer-service-registry.js' \
-  'node scripts/test-provider-adapters.js' \
-  'node scripts/test-provider-boundary.js' \
-  'node scripts/test-publish-receipt.js' \
-  'node scripts/test-publish-flow-smoke.js' \
-  'bash scripts/test-pages-artifact.sh'
-do
-  if ! grep -F "${command}" "${workflow}" >/dev/null; then
-    echo "main guard workflow must run ${command}" >&2
-    exit 1
-  fi
-done
+if ! grep -F 'node scripts/run-tests.mjs --tier guard' "${workflow}" >/dev/null; then
+  echo "main guard workflow must run the manifest guard tier" >&2
+  exit 1
+fi
+
+(cd "${repo_root}" && node scripts/run-tests.mjs --check-manifest >/dev/null)
 
 cat > site.yaml <<'EOF'
 contentRoot: wwwroot

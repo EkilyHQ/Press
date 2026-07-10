@@ -201,6 +201,78 @@ globalThis.fetch = async (url) => {
       ].join('\n')
     };
   }
+  if (textUrl.endsWith('/legacy-only.en.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Legacy Guide: post/legacy.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-tabs.en.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Legacy Docs: docs/legacy.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-flat.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Guide: post/default.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-flat.chs.yaml')) {
+    return {
+      ok: true,
+      text: async () => '指南: post/chs.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-current-missing.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Current Base: post/default.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-current-missing.en.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Stale English Sidecar: post/legacy.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-tabs-current-missing.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Current Tabs: docs/index.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-tabs-current-missing.en.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Stale English Tabs: docs/legacy.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-default.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Stale Base: post/default.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-default.en.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Authoritative Default: post/legacy.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-tabs-default.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Stale Base Tab: docs/index.md\n'
+    };
+  }
+  if (textUrl.endsWith('/legacy-tabs-default.en.yaml')) {
+    return {
+      ok: true,
+      text: async () => 'Authoritative Default Tab: docs/legacy.md\n'
+    };
+  }
   if (textUrl.endsWith('/post/demo.md')) {
     return {
       ok: true,
@@ -225,6 +297,24 @@ globalThis.fetch = async (url) => {
         'Flat body.',
         ''
       ].join('\n')
+    };
+  }
+  if (textUrl.endsWith('/post/legacy.md')) {
+    return {
+      ok: true,
+      text: async () => '---\ntitle: Legacy Guide\n---\nLegacy body.\n'
+    };
+  }
+  if (textUrl.endsWith('/post/chs.md')) {
+    return {
+      ok: true,
+      text: async () => '---\ntitle: 指南\n---\n中文内容。\n'
+    };
+  }
+  if (textUrl.endsWith('/post/default.md')) {
+    return {
+      ok: true,
+      text: async () => '---\ntitle: Current Base\n---\nDefault content.\n'
     };
   }
   if (textUrl.endsWith('/post/secret.md')) {
@@ -315,20 +405,20 @@ assert.equal(result.entries['Secret Title'].protected, true);
 
 const beforeLegacyContentRequests = requests.length;
 const legacyContent = await loadContentJsonWithRaw('wwwroot', 'legacy-only');
-assert.deepEqual(legacyContent.entries, {});
+assert.equal(legacyContent.entries['Legacy Guide'].location, 'post/legacy.md');
 assert.equal(
   requests.slice(beforeLegacyContentRequests).some(url => /legacy-only\.[a-z0-9-]+\.ya?ml$/i.test(url)),
-  false,
-  'clean content runtime should not probe legacy per-language index YAML sidecars'
+  true,
+  'recovery runtime should read a legacy per-language index YAML sidecar when the base file is absent'
 );
 
 const beforeLegacyTabsRequests = requests.length;
 const legacyTabs = await loadTabsJson('wwwroot', 'legacy-tabs');
-assert.deepEqual(legacyTabs, {});
+assert.deepEqual(legacyTabs, { 'Legacy Docs': 'docs/legacy.md' });
 assert.equal(
   requests.slice(beforeLegacyTabsRequests).some(url => /legacy-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
-  false,
-  'clean content runtime should not probe legacy per-language tabs YAML sidecars'
+  true,
+  'recovery runtime should read a legacy per-language tabs YAML sidecar when the base file is absent'
 );
 
 const beforeFlatTabsRequests = requests.length;
@@ -339,8 +429,8 @@ assert.deepEqual(flatTabs, {
 });
 assert.equal(
   requests.slice(beforeFlatTabsRequests).some(url => /flat-tabs\.[a-z0-9-]+\.ya?ml$/i.test(url)),
-  false,
-  'clean content runtime should keep base flat tabs without probing legacy per-language tabs YAML sidecars'
+  true,
+  'Recovery should probe the exact current-language tabs sidecar before keeping a flat base'
 );
 
 const beforeFlatIndexRequests = requests.length;
@@ -349,9 +439,40 @@ assert.deepEqual(flatIndex.raw, { Guide: 'post/flat.md' });
 assert.equal(flatIndex.entries.Guide.location, 'post/flat.md');
 assert.equal(
   requests.slice(beforeFlatIndexRequests).some(url => /flat-index\.[a-z0-9-]+\.ya?ml$/i.test(url)),
-  false,
-  'clean content runtime should keep base flat index string entries without probing legacy per-language index YAML sidecars'
+  true,
+  'Recovery should probe the exact current-language index sidecar before keeping a flat base'
 );
+
+const recoveredDefaultIndex = await loadContentJsonWithRaw('wwwroot', 'legacy-default');
+assert.equal(recoveredDefaultIndex.entries['Legacy Guide'].location, 'post/legacy.md');
+assert.equal(recoveredDefaultIndex.entries['Stale Base'], undefined, 'the historical default-language sidecar must remain authoritative over a flat base');
+
+const recoveredDefaultTabs = await loadTabsJson('wwwroot', 'legacy-tabs-default');
+assert.deepEqual(recoveredDefaultTabs, { 'Authoritative Default Tab': 'docs/legacy.md' });
+
+const recoveryController = createI18nController({
+  windowRef: {
+    location: { href: 'https://example.test/', pathname: '/' },
+    navigator: { language: 'chs' },
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() { return true; }
+  },
+  documentRef: globalThis.document,
+  localStorageRef: globalThis.localStorage,
+  fetchImpl: globalThis.fetch
+});
+await recoveryController.init({ lang: 'chs', defaultLang: 'en', persist: false });
+const recoveredFlatIndex = await recoveryController.loadContentJsonWithRaw('wwwroot', 'legacy-flat');
+assert.equal(recoveredFlatIndex.entries['指南'].location, 'post/chs.md');
+assert.deepEqual(recoveredFlatIndex.raw, { Guide: 'post/default.md' });
+
+const currentMissingIndex = await recoveryController.loadContentJsonWithRaw('wwwroot', 'legacy-current-missing');
+assert.equal(currentMissingIndex.entries['Current Base'].location, 'post/default.md');
+assert.equal(currentMissingIndex.entries['Stale English Sidecar'], undefined, 'a stale default-language sidecar must not override a usable base file when the current-language sidecar is absent');
+
+const currentMissingTabs = await recoveryController.loadTabsJson('wwwroot', 'legacy-tabs-current-missing');
+assert.deepEqual(currentMissingTabs, { 'Current Tabs': 'docs/index.md' });
 
 const unified = await loadContentJsonWithRaw('wwwroot', 'unified');
 assert.equal(unified.entries['Unified Secret'].protected, true);

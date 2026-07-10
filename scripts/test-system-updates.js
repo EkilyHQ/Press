@@ -36,6 +36,7 @@ const {
   createSystemUpdatesController,
   getDisplayReleaseNotes,
   getSystemUpdateCommitFiles,
+  isSecurityUpdateReleaseName,
   normalizeSystemReleaseManifest,
   selectSystemUpdateAsset,
   stageLatestSystemUpdate,
@@ -269,6 +270,7 @@ await run('normalizes static system release manifests', async () => {
     version: '3.3.5',
     publishedAt: '2026-04-29T08:18:39Z',
     notes: 'Release notes',
+    securityUpdate: true,
     upgradeFrom: {
       ranges: ['>=3.3.0 <3.3.5'],
       allowUnknownSource: true,
@@ -285,6 +287,7 @@ await run('normalizes static system release manifests', async () => {
 
   assert.equal(release.tag, 'v3.3.5');
   assert.equal(release.version, '3.3.5');
+  assert.equal(release.securityUpdate, true);
   assert.deepEqual(release.upgradeFrom.ranges, ['>=3.3.0 <3.3.5']);
   assert.equal(release.asset.name, 'press-system-v3.3.5.zip');
   assert.throws(
@@ -303,6 +306,43 @@ await run('normalizes static system release manifests', async () => {
       schemaVersion: 1,
       name: 'v3.3.5',
       tag: 'v3.3.5',
+      version: '3.3.5',
+      publishedAt: '2026-04-29T08:18:39Z',
+      notes: '',
+      securityUpdate: 'yes',
+      htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.5',
+      asset: {
+        name: 'press-system-v3.3.5.zip',
+        url: 'https://github.com/EkilyHQ/Press/releases/download/v3.3.5/press-system-v3.3.5.zip',
+        size: 123,
+        digest: 'sha256:535de2ddd3c612310760365196c21bb7ab7a5ffacbebb0dcdbd17f59bedc861a'
+      }
+    }),
+    /securityUpdate/i
+  );
+  assert.throws(
+    () => normalizeSystemReleaseManifest({
+      schemaVersion: 1,
+      name: 'v3.4.134',
+      tag: 'v3.4.134',
+      version: '3.4.134',
+      publishedAt: '2026-07-10T00:00:00Z',
+      notes: '',
+      htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.4.134',
+      asset: {
+        name: 'press-system-v3.4.134.zip',
+        url: 'https://github.com/EkilyHQ/Press/releases/download/v3.4.134/press-system-v3.4.134.zip',
+        size: 123,
+        digest: 'sha256:535de2ddd3c612310760365196c21bb7ab7a5ffacbebb0dcdbd17f59bedc861a'
+      }
+    }),
+    /securityUpdate/i
+  );
+  assert.throws(
+    () => normalizeSystemReleaseManifest({
+      schemaVersion: 1,
+      name: 'v3.3.5',
+      tag: 'v3.3.5',
       publishedAt: '2026-04-29T08:18:39Z',
       notes: '',
       htmlUrl: 'https://github.com/EkilyHQ/Press/releases/tag/v3.3.5',
@@ -315,6 +355,12 @@ await run('normalizes static system release manifests', async () => {
     }),
     /manifest/i
   );
+});
+
+await run('recognizes deterministic security release titles in API fallback metadata', async () => {
+  assert.equal(isSecurityUpdateReleaseName('Press Security Update v3.4.134'), true);
+  assert.equal(isSecurityUpdateReleaseName('Security Update v3.4.134'), true);
+  assert.equal(isSecurityUpdateReleaseName('Press v3.4.134'), false);
 });
 
 await run('hides stale release notes when no Press system package is attached', async () => {
@@ -847,6 +893,7 @@ await run('blocks system updates outside the declared source range', async () =>
       type: 'press-system',
       version: '4.0.0',
       tag: 'v4.0.0',
+      securityUpdate: false,
       upgradeFrom: {
         ranges: ['>=3.5.0 <4.0.0'],
         allowUnknownSource: false,
@@ -886,6 +933,7 @@ await run('preserves custom upgradeFrom block messages', async () => {
       type: 'press-system',
       version: '4.0.0',
       tag: 'v4.0.0',
+      securityUpdate: false,
       upgradeFrom: {
         ranges: ['>=3.5.0 <4.0.0'],
         allowUnknownSource: false,

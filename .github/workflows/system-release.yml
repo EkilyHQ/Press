@@ -77,10 +77,7 @@ jobs:
           next_tag="v${source_version}"
 
           case "${TRANSACTION_ACTION}" in
-            resume-stage|resume-publish)
-              changed_files="Resume interrupted ${next_tag} release transaction"
-              ;;
-            resume-promote|dispatch)
+            dispatch)
               {
                 echo "should_release=false"
                 echo "latest_tag=${latest_tag}"
@@ -89,7 +86,7 @@ jobs:
               } >> "${GITHUB_OUTPUT}"
               exit 0
               ;;
-            new|settled)
+            new|settled|resume-stage|resume-publish|resume-promote)
               release_plan_paths_file="$(mktemp)"
               node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"
               release_plan_paths=()
@@ -110,6 +107,16 @@ jobs:
 
           mkdir -p dist
           printf '%s\n' "${changed_files}" > dist/release-changed-files.txt
+
+          if [[ "${TRANSACTION_ACTION}" == "resume-promote" ]]; then
+            {
+              echo "should_release=false"
+              echo "latest_tag=${latest_tag}"
+              echo "next_tag=${next_tag}"
+              echo "asset_name=press-system-${next_tag}.zip"
+            } >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
 
           if [[ -z "${changed_files}" ]]; then
             {
@@ -186,6 +193,53 @@ jobs:
           esac
           node scripts/release-graph.js "${graph_args[@]}"
 
+      - name: Prepare deterministic release presentation
+        if: steps.plan.outputs.should_release == 'true' || steps.transaction.outputs.action == 'resume-promote'
+        id: presentation
+        env:
+          NEXT_TAG: ${{ steps.plan.outputs.next_tag }}
+          LATEST_TAG: ${{ steps.plan.outputs.latest_tag }}
+          ASSET_NAME: ${{ steps.plan.outputs.asset_name }}
+          ARCHIVE_DIGEST: ${{ steps.package.outputs.archive_sha256 || steps.staged_package.outputs.archive_sha256 || steps.transaction.outputs.asset_digest }}
+        run: |
+          set -euo pipefail
+          archive_sha256="${ARCHIVE_DIGEST#sha256:}"
+          if [[ ! "${archive_sha256}" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "release presentation requires a valid SHA-256 digest" >&2
+            exit 1
+          fi
+          security_update="$(node -e "const system = require('./assets/press-system.json'); if (typeof system.securityUpdate !== 'boolean') throw new Error('assets/press-system.json securityUpdate must be an explicit boolean'); process.stdout.write(system.securityUpdate ? 'true' : 'false');")"
+          release_title="${NEXT_TAG}"
+          if [[ "${security_update}" == "true" ]]; then
+            release_title="Press Security Update ${NEXT_TAG}"
+          fi
+
+          notes_file="dist/release-notes.md"
+          {
+            if [[ "${security_update}" == "true" ]]; then
+              echo '> [!IMPORTANT]'
+              echo '> **Security update.** Apply this release promptly through the Press System Updates tool.'
+              echo
+            fi
+            echo "## Migration Guide"
+            echo
+            echo "Use the System Updates tool in Markdown Editor to download and apply \`${ASSET_NAME}\`."
+            echo
+            echo "## System Package"
+            echo
+            echo "- Asset: \`${ASSET_NAME}\`"
+            echo "- SHA-256: \`${archive_sha256}\`"
+            echo
+            echo "## Changed System Files"
+            echo
+            while IFS= read -r changed_file; do
+              printf -- '- %s\n' "${changed_file}"
+            done < dist/release-changed-files.txt
+            echo
+            echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LATEST_TAG}...${NEXT_TAG}"
+          } > "${notes_file}"
+          echo "release_title=${release_title}" >> "${GITHUB_OUTPUT}"
+
       - name: Ensure draft release and asset
         if: steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage')
         id: draft
@@ -197,28 +251,10 @@ jobs:
           ARCHIVE_PATH: ${{ steps.package.outputs.archive_path }}
           ARCHIVE_SIZE: ${{ steps.package.outputs.archive_size }}
           ARCHIVE_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+          RELEASE_TITLE: ${{ steps.presentation.outputs.release_title }}
+          RELEASE_NOTES_FILE: dist/release-notes.md
         run: |
           set -euo pipefail
-          notes_file="dist/release-notes.md"
-          {
-            echo "## Migration Guide"
-            echo
-            echo "Use the System Updates tool in Markdown Editor to download and apply \`${ASSET_NAME}\`."
-            echo
-            echo "## System Package"
-            echo
-            echo "- Asset: \`${ASSET_NAME}\`"
-            echo "- SHA-256: \`${ARCHIVE_SHA256}\`"
-            echo
-            echo "## Changed System Files"
-            echo
-            while IFS= read -r changed_file; do
-              printf -- '- %s\n' "${changed_file}"
-            done < dist/release-changed-files.txt
-            echo
-            echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LATEST_TAG}...${NEXT_TAG}"
-          } > "${notes_file}"
-
           git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
           git fetch --force --tags origin
           gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-before-draft.json
@@ -232,7 +268,6 @@ jobs:
           release_id="$(node -e "const state = require('./dist/pre-draft-transaction.json'); process.stdout.write(String(state.releaseId || ''));")"
 
           if [[ "${current_action}" == "new" ]]; then
-            export RELEASE_NOTES_FILE="${notes_file}"
             python3 - <<'PY' > dist/create-release.json
           import json
           import os
@@ -241,7 +276,7 @@ jobs:
           print(json.dumps({
               "tag_name": os.environ["NEXT_TAG"],
               "target_commitish": os.environ["GITHUB_SHA"],
-              "name": os.environ["NEXT_TAG"],
+              "name": os.environ["RELEASE_TITLE"],
               "body": Path(os.environ["RELEASE_NOTES_FILE"]).read_text(encoding="utf-8"),
               "draft": True,
               "prerelease": False
@@ -255,6 +290,7 @@ jobs:
           fi
 
           gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-before-asset.json
+          node -e "const fs = require('node:fs'); const release = require('./dist/release-before-asset.json'); const expectedBody = fs.readFileSync(process.env.RELEASE_NOTES_FILE, 'utf8'); if (String(release.name || '') !== process.env.RELEASE_TITLE || String(release.body || '') !== expectedBody) throw new Error('draft release title or body does not match deterministic presentation metadata');"
           asset_count="$(EXPECTED_ASSET="${ASSET_NAME}" node -e "const release = require('./dist/release-before-asset.json'); const matches = (release.assets || []).filter((asset) => asset.name === process.env.EXPECTED_ASSET); process.stdout.write(String(matches.length));")"
           if [[ "${asset_count}" == "0" ]]; then
             curl --fail-with-body --silent --show-error --request POST \
@@ -336,6 +372,8 @@ jobs:
         if: steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage' || steps.transaction.outputs.action == 'resume-publish')
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TITLE: ${{ steps.presentation.outputs.release_title }}
+          RELEASE_NOTES_FILE: dist/release-notes.md
         run: |
           set -euo pipefail
           tag="${{ steps.plan.outputs.next_tag }}"
@@ -354,6 +392,7 @@ jobs:
 
           if [[ "${publish_action}" == "resume-publish" ]]; then
             gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-before-publish.json
+            node -e "const fs = require('node:fs'); const release = require('./dist/release-before-publish.json'); const expectedBody = fs.readFileSync(process.env.RELEASE_NOTES_FILE, 'utf8'); if (String(release.name || '') !== process.env.RELEASE_TITLE || String(release.body || '') !== expectedBody) throw new Error('draft release title or body does not match deterministic presentation metadata');"
             tag_commit="$(git rev-parse -q --verify "${tag}^{commit}" 2>/dev/null || true)"
             node scripts/system-release-transaction.mjs verify-release \
               --release dist/release-before-publish.json \
@@ -385,6 +424,8 @@ jobs:
         if: (steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage' || steps.transaction.outputs.action == 'resume-publish')) || steps.transaction.outputs.action == 'resume-promote'
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TITLE: ${{ steps.presentation.outputs.release_title }}
+          RELEASE_NOTES_FILE: dist/release-notes.md
         run: |
           set -euo pipefail
           tag="${{ steps.transaction.outputs.tag }}"
@@ -424,6 +465,7 @@ jobs:
             exit 1
           fi
           gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-published.json
+          node -e "const fs = require('node:fs'); const release = require('./dist/release-published.json'); const expectedBody = fs.readFileSync(process.env.RELEASE_NOTES_FILE, 'utf8'); if (String(release.name || '') !== process.env.RELEASE_TITLE || String(release.body || '') !== expectedBody) throw new Error('published release title or body does not match deterministic presentation metadata');"
           tag_commit="$(git rev-parse --verify "${tag}^{commit}")"
           node scripts/system-release-transaction.mjs verify-release \
             --release dist/release-published.json \
@@ -470,6 +512,7 @@ jobs:
               "version": version,
               "publishedAt": published_at,
               "notes": release.get("body") or "",
+              "securityUpdate": system.get("securityUpdate") is True,
               "upgradeFrom": system.get("upgradeFrom") or {},
               "themeContractUpgrade": system.get("themeContractUpgrade") or {},
               "contentModelUpgrade": system.get("contentModelUpgrade") or {},

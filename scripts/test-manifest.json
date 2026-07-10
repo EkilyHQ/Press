@@ -2,13 +2,14 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 176,
-    "physical": 177,
+    "logical": 177,
+    "physical": 178,
     "aliases": 1
   },
   "tierOrder": {
     "guard": [
       "release-graph",
+      "recovery-updater-compatibility",
       "system-release-transaction",
       "system-release-package",
       "system-release-workflow",
@@ -36,6 +37,7 @@
     ],
     "release": [
       "release-graph",
+      "recovery-updater-compatibility",
       "system-release-transaction",
       "composer-action-contract",
       "composer-root-contract",
@@ -2714,6 +2716,29 @@
       "exclusive": false,
       "requires": [
         "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "recovery-updater-compatibility",
+      "file": "scripts/test-recovery-updater-compatibility.mjs",
+      "command": [
+        "node",
+        "scripts/test-recovery-updater-compatibility.mjs"
+      ],
+      "tier": [
+        "guard",
+        "release",
+        "full"
+      ],
+      "timeout": 300000,
+      "exclusive": false,
+      "requires": [
+        "bash",
+        "git",
+        "node",
+        "tar",
+        "zip"
       ],
       "alias": []
     },

@@ -420,6 +420,9 @@ async function loadManifest(pack) {
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const data = await resp.json();
   if (!data || typeof data !== 'object') throw new Error('Invalid manifest');
+  if (pack !== DEFAULT_PACK && !isPressThemeContractVersionSupported(data.contractVersion)) {
+    throw new Error(`Unsupported theme contract version: ${data.contractVersion || 'unknown'}`);
+  }
   const list = Array.isArray(data.modules) ? data.modules : [];
   if (!list.length) throw new Error('Empty module list');
   const manifest = { ...data, modules: list.map(x => String(x)) };

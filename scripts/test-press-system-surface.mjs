@@ -43,6 +43,9 @@ assert.deepEqual(
 );
 assert(!getPressSystemReleasePlanPaths().includes('scripts/build-pages-artifact.sh'));
 assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/build-pages-artifact.sh'));
+assert(!getPressSystemReleasePlanPaths().includes('scripts/resolve-pages-output-path.mjs'));
+assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/resolve-pages-output-path.mjs'));
+assert(!packagePaths.includes('scripts/resolve-pages-output-path.mjs'));
 assert(getPressSystemReleasePlanPaths().includes('packages/press-theme-contract'));
 assert(getPressSystemReleasePlanPaths().includes('scripts/build-theme-contract-package.mjs'));
 assert(getPressSystemReleasePlanPaths().includes('scripts/compare-theme-contract-package.mjs'));

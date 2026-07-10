@@ -59,6 +59,7 @@ assert.equal((await loadPressSystemManifest({ manifestLoader: secondLoader })).v
 
 const guardedManifest = normalizePressSystemManifest({
   ...manifest('3.4.123'),
+  securityUpdate: true,
   themeContractUpgrade: {
     requiresInstalledThemeContractVersion: 4,
     message: 'Update installed themes to contract v4 first.'
@@ -68,13 +69,21 @@ const guardedManifest = normalizePressSystemManifest({
     message: 'Publish content model migration first.'
   }
 });
+assert.equal(guardedManifest.securityUpdate, true);
 assert.equal(guardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 4);
 assert.equal(guardedManifest.themeContractUpgrade.message, 'Update installed themes to contract v4 first.');
 assert.equal(guardedManifest.contentModelUpgrade.requiresUnifiedIndexTabs, true);
 assert.equal(guardedManifest.contentModelUpgrade.message, 'Publish content model migration first.');
 
 const unguardedManifest = normalizePressSystemManifest(manifest('3.4.122'));
+assert.equal(unguardedManifest.securityUpdate, false);
 assert.equal(unguardedManifest.themeContractUpgrade.requiresInstalledThemeContractVersion, 0);
 assert.equal(unguardedManifest.contentModelUpgrade.requiresUnifiedIndexTabs, false);
+
+assert.throws(
+  () => normalizePressSystemManifest(manifest('3.4.134')),
+  /securityUpdate.*explicit boolean/i
+);
+assert.equal(normalizePressSystemManifest({ ...manifest('3.4.134'), securityUpdate: false }).securityUpdate, false);
 
 console.log('ok - press system manifest loader state is explicit per instance');

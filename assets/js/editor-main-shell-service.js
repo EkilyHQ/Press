@@ -16,7 +16,6 @@ export function createEditorMainShellService(options = {}) {
       }
       if (!textarea) return false;
       textarea.style.height = '0px';
-      // eslint-disable-next-line no-unused-expressions
       textarea.offsetHeight;
       textarea.style.height = `${textarea.scrollHeight}px`;
       return true;

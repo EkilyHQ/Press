@@ -876,11 +876,6 @@ const translations = {
             untitled: '無題のファイル'
           }
         },
-        dialogs: {
-          cancel: 'キャンセル',
-          confirm: '確認',
-          close: '閉じる'
-        },
         addEntryPrompt: {
           hint: '英数字のみを使用してください。',
           confirm: 'エントリーを追加',

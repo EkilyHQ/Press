@@ -455,13 +455,9 @@ function resolveModuleEntry(pack, entry, manifest) {
 async function loadThemeModule(pack, entry, manifest) {
   const path = resolveModuleEntry(pack, entry, manifest);
   if (!path) return null;
-  try {
-    if (typeof window !== 'undefined' && typeof window.__pressThemeModuleLoader === 'function') {
-      const mod = await window.__pressThemeModuleLoader(path, { pack, entry, manifest });
-      return { entry, mod };
-    }
-  } catch (err) {
-    throw err;
+  if (typeof window !== 'undefined' && typeof window.__pressThemeModuleLoader === 'function') {
+    const mod = await window.__pressThemeModuleLoader(path, { pack, entry, manifest });
+    return { entry, mod };
   }
   const mod = await import(path);
   return { entry, mod };

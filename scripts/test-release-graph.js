@@ -289,6 +289,26 @@ test('direct mode accepts a recovery candidate that admits every supported publi
   assert.deepEqual(result.directMissing, []);
 });
 
+test('auto mode audits the baseline and validates a newer worktree as a candidate', () => {
+  const baseline = baselineFixture();
+  baseline.validationMode = 'auto';
+  baseline.candidateArchive = candidateArchive(baseline.candidate);
+  const auditResult = analyzeReleaseGraph(baseline);
+
+  assert.deepEqual(auditResult.failures, []);
+  assert.equal(auditResult.validationMode, 'audit');
+
+  const recovery = baselineFixture();
+  enableDirectRecovery(recovery);
+  recovery.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  recovery.candidateArchive = candidateArchive(recovery.candidate);
+  recovery.validationMode = 'auto';
+  const candidateResult = analyzeReleaseGraph(recovery);
+
+  assert.deepEqual(candidateResult.failures, []);
+  assert.equal(candidateResult.validationMode, 'candidate');
+});
+
 test('direct recovery must close the active debt state in the same candidate policy', () => {
   const fixture = baselineFixture();
   fixture.policy.candidateGate.mode = 'direct';

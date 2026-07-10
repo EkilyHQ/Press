@@ -235,9 +235,10 @@ if ! grep -F 'node scripts/release-graph.js --mode audit --artifact-ref origin/r
 fi
 
 if ! grep -F 'node scripts/test-release-graph.js' "${main_workflow}" >/dev/null \
-  || ! grep -F 'node scripts/release-graph.js --mode audit --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --check' "${main_workflow}" >/dev/null \
+  || ! grep -F 'candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"' "${main_workflow}" >/dev/null \
+  || ! grep -F 'node scripts/release-graph.js --mode auto --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --candidate-archive "${candidate_archive}" --check' "${main_workflow}" >/dev/null \
   || ! grep -F 'bash scripts/test-system-release-workflow.sh' "${main_workflow}" >/dev/null; then
-  echo "main guard must run focused release graph tests, live audit, and workflow wiring checks" >&2
+  echo "main guard must run focused release graph tests, package the worktree, validate audit-or-candidate state, and check workflow wiring" >&2
   exit 1
 fi
 

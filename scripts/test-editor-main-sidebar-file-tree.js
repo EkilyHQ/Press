@@ -341,3 +341,37 @@ function createHarness({ openMarkdown } = {}) {
     ['tab/home.md', 'tab/home_chs.md']
   );
 }
+
+{
+  const h = createHarness();
+  const maliciousTitle = '<img src=x onerror="globalThis.__pressFileTreeXss = true">';
+  const maliciousPath = 'posts/\"><svg onload="globalThis.__pressFileTreeXss = true">.md';
+  h.tree.renderIndex({
+    [maliciousTitle]: maliciousPath
+  });
+
+  const item = h.listIndex.querySelector('.file-item');
+  assert.equal(item.innerHTML, '');
+  assert.equal(
+    item.querySelector('.file-label').textContent,
+    `${maliciousTitle} - "><svg onload="globalThis.__pressFileTreeXss = true">.md`
+  );
+  assert.equal(item.querySelector('.file-path').textContent, maliciousPath);
+  assert.equal(item.querySelector('img'), null);
+  assert.equal(item.querySelector('svg'), null);
+
+  const maliciousTabTitle = '<script>globalThis.__pressFileTreeXss = true</script>';
+  const maliciousTabPath = 'tab/\"><img src=x onerror="globalThis.__pressFileTreeXss = true">.md';
+  h.tree.renderTabs({
+    Unsafe: {
+      en: { title: maliciousTabTitle, location: maliciousTabPath }
+    }
+  });
+
+  const tabItem = h.listTabs.querySelector('.file-item');
+  assert.equal(tabItem.innerHTML, '');
+  assert.equal(tabItem.querySelector('.file-label').textContent, `EN - ${maliciousTabTitle}`);
+  assert.equal(tabItem.querySelector('.file-path').textContent, maliciousTabPath);
+  assert.equal(tabItem.querySelector('img'), null);
+  assert.equal(tabItem.querySelector('script'), null);
+}

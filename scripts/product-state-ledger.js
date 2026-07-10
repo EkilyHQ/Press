@@ -415,6 +415,7 @@ function normalizeSystemRelease(input) {
     tag,
     version,
     publishedAt: String(source.publishedAt || source.published_at || '').trim(),
+    securityUpdate: typeof source.securityUpdate === 'boolean' ? source.securityUpdate : undefined,
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
     themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
       ? source.themeContractUpgrade

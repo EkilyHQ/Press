@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PUBLIC_CONTENT_SECURITY_POLICY } from '../assets/js/content-security-policy.mjs';
 
 globalThis.document = {
   title: 'Press',
@@ -60,8 +61,16 @@ const robotsFile = files.find((file) => file.path === 'robots.txt');
 
 assert.ok(indexFile, 'SEO staging should include generated index.html when remote is missing');
 assert.match(indexFile.content, /<html lang="ja">/, 'SEO staging should use the injected document language fallback');
+assert.ok(
+  indexFile.content.includes(`<meta http-equiv="Content-Security-Policy" content="${PUBLIC_CONTENT_SECURITY_POLICY}">`),
+  'SEO staging fallback should preserve the materialized public CSP contract'
+);
 assert.ok(robotsFile, 'SEO staging should include generated robots.txt when remote is missing');
-assert.match(robotsFile.content, /Sitemap: https:\/\/example\.test\/docs\/sitemap\.xml/, 'robots.txt should use the configured site URL');
+assert.match(
+  robotsFile.content,
+  /Sitemap: https:\/\/example\.test\/docs\/sitemap\.xml/,
+  'robots.txt should use the configured site URL'
+);
 assert.deepEqual(fetchCalls.sort(), ['index.html', 'robots.txt', 'sitemap.xml']);
 assert.deepEqual(logCalls, []);
 

@@ -1,14 +1,12 @@
 {
   "schemaVersion": 1,
   "type": "press-system",
-  "version": "3.4.135",
-  "tag": "v3.4.135",
+  "version": "3.4.136",
+  "tag": "v3.4.136",
   "securityUpdate": true,
   "upgradeFrom": {
-    "ranges": [
-      ">=3.4.64 <3.4.135"
-    ],
+    "ranges": [">=3.4.64 <3.4.136"],
     "allowUnknownSource": false,
-    "message": "Press v3.4.64 through v3.4.134 can update directly to security update v3.4.135."
+    "message": "Press v3.4.64 through v3.4.135 can update directly to security update v3.4.136."
   }
 }

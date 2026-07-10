@@ -6,17 +6,24 @@ import { spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const system = JSON.parse(await fs.readFile(path.join(root, 'assets', 'press-system.json'), 'utf8'));
-const sourceManifest = JSON.parse(await fs.readFile(path.join(root, 'packages', 'press-theme-contract', 'package.json'), 'utf8'));
+const sourceManifest = JSON.parse(
+  await fs.readFile(path.join(root, 'packages', 'press-theme-contract', 'package.json'), 'utf8')
+);
 
 assert.equal(sourceManifest.name, '@ekilyhq/press-theme-contract');
 assert.equal(sourceManifest.version, system.version);
-assert.equal(system.version, '3.4.135');
+assert.equal(system.version, '3.4.136');
 assert.equal(system.tag, `v${system.version}`);
 assert.equal(sourceManifest.publishConfig && sourceManifest.publishConfig.registry, 'https://npm.pkg.github.com');
 
 const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'press-theme-contract-package-'));
 try {
-  const sourceImport = spawnSync(process.execPath, ['--input-type=module', '-e', `
+  const sourceImport = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `
     import assert from 'node:assert/strict';
     import {
       PRESS_THEME_CONTRACT,
@@ -29,20 +36,27 @@ try {
     assert.equal(typeof containsForbiddenV4RouteConstruction, 'function');
     assert.equal(typeof validateThemeConfigSchema, 'function');
     assert.equal(typeof validateThemeRouteHelperContract, 'function');
-  `], {
-    cwd: root,
-    encoding: 'utf8'
-  });
+  `
+    ],
+    {
+      cwd: root,
+      encoding: 'utf8'
+    }
+  );
   if (sourceImport.status !== 0) {
     throw new Error(`source package import failed:\n${sourceImport.stdout}\n${sourceImport.stderr}`);
   }
 
   const sourcePackDir = path.join(tempDir, 'source-pack');
   await fs.mkdir(sourcePackDir);
-  const sourcePack = spawnSync('npm', ['pack', './packages/press-theme-contract', '--json', '--pack-destination', sourcePackDir], {
-    cwd: root,
-    encoding: 'utf8'
-  });
+  const sourcePack = spawnSync(
+    'npm',
+    ['pack', './packages/press-theme-contract', '--json', '--pack-destination', sourcePackDir],
+    {
+      cwd: root,
+      encoding: 'utf8'
+    }
+  );
   if (sourcePack.status !== 0) {
     throw new Error(`source npm pack failed:\n${sourcePack.stdout}\n${sourcePack.stderr}`);
   }
@@ -60,10 +74,14 @@ try {
     assert.ok(sourceFiles.has(file), `source package pack must include ${file}`);
   });
 
-  const build = spawnSync(process.execPath, ['scripts/build-theme-contract-package.mjs', '--out', path.join(tempDir, 'build')], {
-    cwd: root,
-    encoding: 'utf8'
-  });
+  const build = spawnSync(
+    process.execPath,
+    ['scripts/build-theme-contract-package.mjs', '--out', path.join(tempDir, 'build')],
+    {
+      cwd: root,
+      encoding: 'utf8'
+    }
+  );
   if (build.status !== 0) {
     throw new Error(`package build failed:\n${build.stdout}\n${build.stderr}`);
   }
@@ -114,7 +132,9 @@ try {
     throw new Error(`npm install failed:\n${install.stdout}\n${install.stderr}`);
   }
 
-  await fs.writeFile(path.join(installDir, 'check.mjs'), `
+  await fs.writeFile(
+    path.join(installDir, 'check.mjs'),
+    `
     import assert from 'node:assert/strict';
     import {
       PRESS_THEME_CONTRACT,
@@ -169,7 +189,8 @@ try {
     const v4 = validateThemeRouteHelperContract([{ path: 'modules/layout.js', source: 'export const href = "?tab=posts";' }], { contractVersion: 4, label: 'arcus' });
     assert.equal(v4.ok, false);
     assert.match(v4.failures.join('\\n'), /arcus: contract v4 source must use router href helpers/);
-  `);
+  `
+  );
   const check = spawnSync(process.execPath, ['check.mjs'], {
     cwd: installDir,
     encoding: 'utf8'

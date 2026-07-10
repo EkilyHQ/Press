@@ -9,6 +9,10 @@ import {
   isPressSystemManagedRuntimePath,
   PRESS_SYSTEM_SURFACE
 } from '../assets/js/press-system-surface.mjs';
+import {
+  EDITOR_INLINE_SCRIPT_SHA256_SOURCES,
+  MATERIALIZED_CONTENT_SECURITY_POLICIES
+} from '../assets/js/content-security-policy.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..');
@@ -18,11 +22,8 @@ const MANAGED_EXTENSIONS = new Set(['.css', '.js', '.mjs']);
 const REWRITE_EXTENSIONS = new Set(['.css', '.html', '.js']);
 const LANGUAGE_MANIFEST = 'assets/i18n/languages.json';
 const RUNTIME_MANIFEST_PATH = PRESS_SYSTEM_SURFACE.runtimeManifestPath;
-const NATIVE_CACHE_CONSTANTS = [
-  'NATIVE_MODULE_CACHE_KEY',
-  'NATIVE_STYLE_CACHE_KEY',
-  'KATEX_VENDOR_CACHE_KEY'
-];
+const MATERIALIZED_CSP_PATHS = Object.freeze(Object.keys(MATERIALIZED_CONTENT_SECURITY_POLICIES));
+const NATIVE_CACHE_CONSTANTS = ['NATIVE_MODULE_CACHE_KEY', 'NATIVE_STYLE_CACHE_KEY', 'KATEX_VENDOR_CACHE_KEY'];
 
 const argv = process.argv.slice(2);
 const options = parseArgs(argv);
@@ -31,10 +32,8 @@ if (options.help) {
   usage(0);
 }
 
-const mode = options.materializeRoot ? 'materialize' : (options.write ? 'write' : 'check');
-const root = mode === 'materialize'
-  ? path.resolve(options.materializeRoot)
-  : repoRoot;
+const mode = options.materializeRoot ? 'materialize' : options.write ? 'write' : 'check';
+const root = mode === 'materialize' ? path.resolve(options.materializeRoot) : repoRoot;
 const tag = resolveTag(root, options.tag);
 const version = tag.slice(1);
 const cacheKey = `press-system-${tag}`;
@@ -158,10 +157,10 @@ function resolveAssetPath(fromFile, rawRef) {
   if (!withoutQuery) return '';
   if (withoutQuery.startsWith('/')) return withoutQuery.replace(/^\/+/, '');
   if (
-    withoutQuery.startsWith('assets/')
-    || withoutQuery === 'index.html'
-    || withoutQuery === 'index_editor.html'
-    || withoutQuery === 'index_editor_preview.html'
+    withoutQuery.startsWith('assets/') ||
+    withoutQuery === 'index.html' ||
+    withoutQuery === 'index_editor.html' ||
+    withoutQuery === 'index_editor_preview.html'
   ) {
     return normalizeSlash(withoutQuery).replace(/^\.\//, '');
   }
@@ -246,9 +245,7 @@ function ensurePressCacheParam(rawRef, cacheKey) {
 
 function transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue) {
   if (!isManagedRuntimeAsset(rootDir, relPath, rawRef)) return rawRef;
-  return mode === 'materialize'
-    ? ensurePressCacheParam(rawRef, cacheKeyValue)
-    : stripPressCacheParam(rawRef);
+  return mode === 'materialize' ? ensurePressCacheParam(rawRef, cacheKeyValue) : stripPressCacheParam(rawRef);
 }
 
 function transformImportRefs(rootDir, relPath, source, mode, cacheKeyValue) {
@@ -262,24 +259,18 @@ function transformImportRefs(rootDir, relPath, source, mode, cacheKeyValue) {
 }
 
 function transformHtmlAttributeRefs(rootDir, relPath, source, mode, cacheKeyValue) {
-  return source.replace(
-    /(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g,
-    (match, prefix, quote, rawRef, closeQuote) => {
-      const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
-      return nextRef === rawRef ? match : `${prefix}${quote}${nextRef}${closeQuote}`;
-    }
-  );
+  return source.replace(/(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g, (match, prefix, quote, rawRef, closeQuote) => {
+    const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
+    return nextRef === rawRef ? match : `${prefix}${quote}${nextRef}${closeQuote}`;
+  });
 }
 
 function transformLanguageManifestRefs(rootDir, relPath, source, mode, cacheKeyValue) {
   if (relPath !== LANGUAGE_MANIFEST) return source;
-  return source.replace(
-    /("module"\s*:\s*")([^"]+)(")/g,
-    (match, prefix, rawRef, suffix) => {
-      const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
-      return nextRef === rawRef ? match : `${prefix}${nextRef}${suffix}`;
-    }
-  );
+  return source.replace(/("module"\s*:\s*")([^"]+)(")/g, (match, prefix, rawRef, suffix) => {
+    const nextRef = transformRuntimeRef(rootDir, relPath, rawRef, mode, cacheKeyValue);
+    return nextRef === rawRef ? match : `${prefix}${nextRef}${suffix}`;
+  });
 }
 
 function transformNativeThemeBoot(source, mode, cacheKeyValue) {
@@ -292,10 +283,7 @@ function transformNativeCacheConstants(source, mode, cacheKeyValue) {
   let next = source;
   NATIVE_CACHE_CONSTANTS.forEach((name) => {
     const replacement = mode === 'materialize' ? cacheKeyValue : '';
-    next = next.replace(
-      new RegExp(`(const\\s+${name}\\s*=\\s*')[^']*(';)`, 'g'),
-      `$1${replacement}$2`
-    );
+    next = next.replace(new RegExp(`(const\\s+${name}\\s*=\\s*')[^']*(';)`, 'g'), `$1${replacement}$2`);
   });
   return next;
 }
@@ -308,6 +296,130 @@ function transformSource(rootDir, relPath, source, mode, cacheKeyValue = '') {
   if (relPath === 'assets/js/theme-boot.js') next = transformNativeThemeBoot(next, mode, cacheKeyValue);
   next = transformNativeCacheConstants(next, mode, cacheKeyValue);
   return next;
+}
+
+function readHtmlAttribute(tag, name) {
+  const escapedName = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = String(tag || '').match(
+    new RegExp(`(?:^|\\s)${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\\x60]+))`, 'iu')
+  );
+  return match ? (match[1] ?? match[2] ?? match[3] ?? '') : '';
+}
+
+function collectHtmlTags(source, name) {
+  const escapedName = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return [...String(source || '').matchAll(new RegExp(`<${escapedName}\\b[^>]*>`, 'giu'))].map((match) => ({
+    tag: match[0],
+    index: match.index
+  }));
+}
+
+function collectInlineScripts(source, relPath) {
+  const text = String(source || '');
+  const scriptElements = [...text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu)];
+  const openCount = (text.match(/<script\b/giu) || []).length;
+  const closeCount = (text.match(/<\/script\s*>/giu) || []).length;
+  if (scriptElements.length !== openCount || scriptElements.length !== closeCount) {
+    throw new Error(`${relPath} contains malformed script elements`);
+  }
+  return scriptElements.filter((match) => !readHtmlAttribute(match[1], 'src')).map((match) => match[2]);
+}
+
+function sha256Source(source) {
+  return `sha256-${crypto
+    .createHash('sha256')
+    .update(String(source || ''), 'utf8')
+    .digest('base64')}`;
+}
+
+function assertExpectedInlineScripts(source, relPath) {
+  const expected = relPath === 'index_editor.html' ? EDITOR_INLINE_SCRIPT_SHA256_SOURCES : [];
+  const actual = collectInlineScripts(source, relPath).map(sha256Source);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(
+      `${relPath} inline scripts must match the reviewed SHA-256 allowlist; expected ${expected.length}, found ${actual.length}`
+    );
+  }
+}
+
+function assertNoScriptAttributesOrJavascriptUrls(source, relPath) {
+  const startTags = [...String(source || '').matchAll(/<[a-z][a-z0-9:-]*\b[^>]*>/giu)].map((match) => match[0]);
+  for (const tag of startTags) {
+    if (/\son[a-z][a-z0-9:-]*\s*=/iu.test(tag)) {
+      throw new Error(`${relPath} contains an inline script event attribute`);
+    }
+    if (/\s(?:href|src|action|formaction|xlink:href)\s*=\s*(?:["']\s*)?javascript\s*:/iu.test(tag)) {
+      throw new Error(`${relPath} contains a javascript URL`);
+    }
+  }
+}
+
+function findContentSecurityPolicyMeta(source) {
+  return collectHtmlTags(source, 'meta').filter(({ tag }) => {
+    return readHtmlAttribute(tag, 'http-equiv').trim().toLowerCase() === 'content-security-policy';
+  });
+}
+
+function viewportMeta(source, relPath) {
+  const matches = collectHtmlTags(source, 'meta').filter(({ tag }) => {
+    return readHtmlAttribute(tag, 'name').toLowerCase() === 'viewport';
+  });
+  if (matches.length !== 1) throw new Error(`${relPath} must contain exactly one viewport meta tag`);
+  return matches[0];
+}
+
+function expectedCspMetaTag(relPath) {
+  const policy = MATERIALIZED_CONTENT_SECURITY_POLICIES[relPath];
+  if (!policy) throw new Error(`unsupported materialized CSP path: ${relPath}`);
+  return `<meta http-equiv="Content-Security-Policy" content="${policy}">`;
+}
+
+function assertMaterializedContentSecurityPolicy(source, relPath) {
+  const candidates = findContentSecurityPolicyMeta(source);
+  if (candidates.length !== 1) {
+    throw new Error(`${relPath} must contain exactly one materialized Content-Security-Policy meta tag`);
+  }
+  const expectedTag = expectedCspMetaTag(relPath);
+  if (candidates[0].tag !== expectedTag) {
+    throw new Error(`${relPath} contains a malformed or stale Content-Security-Policy meta tag`);
+  }
+  const viewport = viewportMeta(source, relPath);
+  const indentStart = source.lastIndexOf('\n', viewport.index) + 1;
+  const indent = source.slice(indentStart, viewport.index).match(/^[ \t]*/u)?.[0] || '';
+  const eol = source.includes('\r\n') ? '\r\n' : '\n';
+  const afterViewport = viewport.index + viewport.tag.length;
+  if (!source.slice(afterViewport).startsWith(`${eol}${indent}${expectedTag}`)) {
+    throw new Error(`${relPath} Content-Security-Policy must immediately follow the viewport meta tag`);
+  }
+}
+
+function assertHtmlSecurityBoundary(source, relPath, { materialized }) {
+  assertExpectedInlineScripts(source, relPath);
+  assertNoScriptAttributesOrJavascriptUrls(source, relPath);
+  const candidates = findContentSecurityPolicyMeta(source);
+  if (materialized) {
+    assertMaterializedContentSecurityPolicy(source, relPath);
+  } else if (candidates.length !== 0) {
+    throw new Error(`${relPath} source must not contain a materialized Content-Security-Policy meta tag`);
+  }
+}
+
+function materializeContentSecurityPolicy(source, relPath) {
+  assertExpectedInlineScripts(source, relPath);
+  assertNoScriptAttributesOrJavascriptUrls(source, relPath);
+  const candidates = findContentSecurityPolicyMeta(source);
+  if (candidates.length > 0) {
+    assertMaterializedContentSecurityPolicy(source, relPath);
+    return source;
+  }
+  const viewport = viewportMeta(source, relPath);
+  const indentStart = source.lastIndexOf('\n', viewport.index) + 1;
+  const indent = source.slice(indentStart, viewport.index).match(/^[ \t]*/u)?.[0] || '';
+  const eol = source.includes('\r\n') ? '\r\n' : '\n';
+  const insertAt = viewport.index + viewport.tag.length;
+  const materialized = `${source.slice(0, insertAt)}${eol}${indent}${expectedCspMetaTag(relPath)}${source.slice(insertAt)}`;
+  assertMaterializedContentSecurityPolicy(materialized, relPath);
+  return materialized;
 }
 
 function findSourceCacheKeys(rootDir) {
@@ -351,27 +463,42 @@ function checkOrCleanSource(rootDir, mode) {
     console.error('Run: node scripts/sync-runtime-cache-keys.mjs --write');
     process.exit(1);
   }
-  console.log(`${mode === 'write' ? 'cleaned' : 'checked'} runtime source cache keys${changed.length ? `: ${changed.length} files updated` : ''}`);
+  MATERIALIZED_CSP_PATHS.forEach((relPath) => {
+    assertHtmlSecurityBoundary(readText(rootDir, relPath), relPath, { materialized: false });
+  });
+  console.log(
+    `${mode === 'write' ? 'cleaned' : 'checked'} runtime source cache keys${changed.length ? `: ${changed.length} files updated` : ''}`
+  );
 }
 
 function materializeRuntime(rootDir, tagValue, versionValue, cacheKeyValue) {
-  const changed = [];
-  rewriteTargetFiles(rootDir).forEach((file) => {
+  const updates = rewriteTargetFiles(rootDir).map((file) => {
     const before = readText(rootDir, file);
-    const after = transformSource(rootDir, file, before, 'materialize', cacheKeyValue);
-    if (after !== before) {
-      writeText(rootDir, file, after);
-      changed.push(file);
-    }
+    let after = transformSource(rootDir, file, before, 'materialize', cacheKeyValue);
+    if (MATERIALIZED_CSP_PATHS.includes(file)) after = materializeContentSecurityPolicy(after, file);
+    return { file, before, after };
   });
-  const missing = findMaterializedGaps(rootDir, cacheKeyValue);
+  const materializedSources = new Map(updates.map(({ file, after }) => [file, after]));
+  MATERIALIZED_CSP_PATHS.forEach((relPath) => {
+    if (!materializedSources.has(relPath)) {
+      throw new Error(`materialized runtime is missing required CSP path: ${relPath}`);
+    }
+    assertHtmlSecurityBoundary(materializedSources.get(relPath), relPath, { materialized: true });
+  });
+  const missing = findMaterializedGaps(rootDir, cacheKeyValue, materializedSources);
   if (missing.length) {
     console.error(`Materialized runtime files must reference managed JS/CSS with ${cacheKeyValue}.`);
     missing.forEach((entry) => console.error(`  ${entry}`));
     process.exit(1);
   }
+  updates.forEach(({ file, before, after }) => {
+    if (after !== before) writeText(rootDir, file, after);
+  });
+  const changed = updates.filter(({ before, after }) => after !== before).map(({ file }) => file);
   writeRuntimeManifest(rootDir, tagValue, versionValue, cacheKeyValue);
-  console.log(`materialized runtime cache keys: ${cacheKeyValue}${changed.length ? ` (${changed.length} files updated)` : ''}`);
+  console.log(
+    `materialized runtime cache keys: ${cacheKeyValue}${changed.length ? ` (${changed.length} files updated)` : ''}`
+  );
 }
 
 function collectRefsForVerification(rootDir, relPath, source) {
@@ -383,15 +510,12 @@ function collectRefsForVerification(rootDir, relPath, source) {
       return match;
     }
   );
-  source.replace(
-    /(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g,
-    (match, prefix, _quote, rawRef) => {
-      const attrMatch = prefix.match(/\b(src|href)\s*=/i);
-      const attr = attrMatch ? attrMatch[1].toLowerCase() : 'attr';
-      pushRuntimeReference(refs, rootDir, relPath, rawRef, `html-${attr}`, match);
-      return match;
-    }
-  );
+  source.replace(/(\b(?:src|href)\s*=\s*)(["'])([^"']+)(\2)/g, (match, prefix, _quote, rawRef) => {
+    const attrMatch = prefix.match(/\b(src|href)\s*=/i);
+    const attr = attrMatch ? attrMatch[1].toLowerCase() : 'attr';
+    pushRuntimeReference(refs, rootDir, relPath, rawRef, `html-${attr}`, match);
+    return match;
+  });
   if (relPath === LANGUAGE_MANIFEST) {
     source.replace(/("module"\s*:\s*")([^"]+)(")/g, (match, _prefix, rawRef) => {
       pushRuntimeReference(refs, rootDir, relPath, rawRef, 'language-module', match);
@@ -401,10 +525,10 @@ function collectRefsForVerification(rootDir, relPath, source) {
   return refs;
 }
 
-function findMaterializedGaps(rootDir, cacheKeyValue) {
+function findMaterializedGaps(rootDir, cacheKeyValue, materializedSources = new Map()) {
   const gaps = [];
   rewriteTargetFiles(rootDir).forEach((file) => {
-    const source = readText(rootDir, file);
+    const source = materializedSources.has(file) ? materializedSources.get(file) : readText(rootDir, file);
     collectRefsForVerification(rootDir, file, source).forEach(({ specifier, match }) => {
       const { pathAndQuery } = splitHash(specifier);
       const { query } = splitQuery(pathAndQuery);
@@ -440,7 +564,9 @@ function collectNativeThemeManifestEdges(rootDir, cacheKeyValue) {
   const edges = [];
   const addEntries = (kind, entries) => {
     (Array.isArray(entries) ? entries : []).forEach((entry) => {
-      const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
+      const safeEntry = String(entry || '')
+        .replace(/^[./]+/, '')
+        .trim();
       if (!safeEntry || safeEntry.includes('..') || safeEntry.includes('\\')) return;
       const target = `assets/themes/native/${safeEntry}`;
       if (!isManagedRuntimeAssetPath(rootDir, target)) return;
@@ -473,12 +599,12 @@ function collectRuntimeGraphEdges(rootDir, cacheKeyValue) {
     });
   });
   edges.push(...collectNativeThemeManifestEdges(rootDir, cacheKeyValue));
-  return Array.from(new Map(edges.map((edge) => [
-    `${edge.from}\0${edge.kind}\0${edge.to}\0${edge.specifier}`,
-    edge
-  ])).values()).sort((a, b) => {
-    return `${a.from}\0${a.kind}\0${a.to}\0${a.specifier}`
-      .localeCompare(`${b.from}\0${b.kind}\0${b.to}\0${b.specifier}`);
+  return Array.from(
+    new Map(edges.map((edge) => [`${edge.from}\0${edge.kind}\0${edge.to}\0${edge.specifier}`, edge])).values()
+  ).sort((a, b) => {
+    return `${a.from}\0${a.kind}\0${a.to}\0${a.specifier}`.localeCompare(
+      `${b.from}\0${b.kind}\0${b.to}\0${b.specifier}`
+    );
   });
 }
 

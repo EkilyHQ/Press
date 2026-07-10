@@ -145,6 +145,58 @@ if ! cmp -s "${pages_dir}/assets/press-runtime-manifest.json" "${unzipped_manife
   exit 1
 fi
 
+for html_path in index.html index_editor.html index_editor_preview.html; do
+  system_html="${tmp_dir}/system-${html_path}"
+  unzip -p "${system_archive}" "press-system-${version}/${html_path}" > "${system_html}"
+  if ! cmp -s "${pages_dir}/${html_path}" "${system_html}"; then
+    echo "Pages and system archive must materialize identical ${html_path} CSP bytes" >&2
+    exit 1
+  fi
+done
+
+PAGES_ROOT="${pages_dir}" node <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const expectedEditorHashes = [
+  'sha256-7fumrKYNuNbU1bMOp1lfrFwq59C4I7qICkA4xSNfefQ=',
+  'sha256-78pVE5dzddjfImBn8Dh7Xu8/uUk4AqWtBgr0ofkwahs='
+];
+function attr(tag, name) {
+  const match = tag.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])(.*?)\\1`, 'iu'));
+  return match ? match[2] : '';
+}
+function sha256(value) {
+  return `sha256-${crypto.createHash('sha256').update(value, 'utf8').digest('base64')}`;
+}
+for (const file of ['index.html', 'index_editor.html', 'index_editor_preview.html']) {
+  const html = fs.readFileSync(path.join(process.env.PAGES_ROOT, file), 'utf8');
+  const csp = [...html.matchAll(/<meta\b[^>]*>/giu)]
+    .filter((match) => attr(match[0], 'http-equiv').toLowerCase() === 'content-security-policy');
+  if (csp.length !== 1) throw new Error(`Pages ${file} must contain exactly one CSP`);
+  const policy = attr(csp[0][0], 'content');
+  const scriptDirective = policy
+    .split(';')
+    .map((directive) => directive.trim())
+    .find((directive) => directive.startsWith('script-src '));
+  if (
+    !scriptDirective ||
+    !scriptDirective.split(/\s+/u).includes("'self'") ||
+    scriptDirective.includes("'unsafe-inline'") ||
+    scriptDirective.includes("'unsafe-eval'")
+  ) {
+    throw new Error(`Pages ${file} must enforce the reviewed script policy`);
+  }
+  const hashes = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu)]
+    .filter((match) => !attr(match[1], 'src'))
+    .map((match) => sha256(match[2]));
+  const expectedHashes = file === 'index_editor.html' ? expectedEditorHashes : [];
+  if (JSON.stringify(hashes) !== JSON.stringify(expectedHashes)) {
+    throw new Error(`Pages ${file} inline scripts must match the reviewed hashes`);
+  }
+}
+NODE
+
 if ! grep -F "src=\"assets/main.js?v=press-system-${version}\"" "${pages_dir}/index.html" >/dev/null; then
   echo "Pages artifact must materialize the public runtime cache key" >&2
   exit 1

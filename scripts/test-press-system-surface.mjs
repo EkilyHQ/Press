@@ -51,6 +51,10 @@ assert.deepEqual(
 );
 assert(!getPressSystemReleasePlanPaths().includes('scripts/build-pages-artifact.sh'));
 assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/build-pages-artifact.sh'));
+assert(!getPressSystemReleasePlanPaths().includes('scripts/pages-editor-exclusion.mjs'));
+assert(
+  getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/pages-editor-exclusion.mjs')
+);
 assert(!getPressSystemReleasePlanPaths().includes('scripts/resolve-pages-output-path.mjs'));
 assert(
   getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/resolve-pages-output-path.mjs')

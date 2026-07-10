@@ -74,6 +74,7 @@ export function getPressSystemReleasePlanPaths(options = {}) {
   const paths = new Set([...SYSTEM_PACKAGE_PATHS, ...SYSTEM_RELEASE_PLAN_ONLY_PATHS]);
   if (options.includePagesMaterializer) {
     paths.add('scripts/build-pages-artifact.sh');
+    paths.add('scripts/pages-editor-exclusion.mjs');
     paths.add('scripts/resolve-pages-output-path.mjs');
   }
   return [...paths];

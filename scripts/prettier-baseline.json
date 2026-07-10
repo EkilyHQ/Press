@@ -401,7 +401,6 @@
     "scripts/test-theme-settings.js",
     "scripts/test-typography-runtime.js",
     "scripts/test-ui-components.js",
-    "scripts/test-utils-runtime.js",
-    "scripts/verify-pages-artifact.mjs"
+    "scripts/test-utils-runtime.js"
   ]
 }

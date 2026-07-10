@@ -25,6 +25,12 @@ jobs:
           git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
           gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RUNNER_TEMP}/press-github-releases.json"
           candidate_tag="$(node -e "const manifest = require('./assets/press-system.json'); process.stdout.write(String(manifest.tag || '').trim());")"
+          latest_published_tag="$(gh release view --json tagName -q '.tagName')"
+          if [[ ! "${latest_published_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Latest published Press release tag is invalid: ${latest_published_tag}" >&2
+            exit 1
+          fi
+          git fetch --no-tags --force origin "refs/tags/${latest_published_tag}:refs/tags/${latest_published_tag}"
           candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"
           release_plan_paths_file="$(mktemp)"
           node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"
@@ -36,9 +42,20 @@ jobs:
             echo "Press system release-plan path list is empty" >&2
             exit 1
           fi
-          validation_mode="auto"
-          if [[ -n "$(git diff --name-only "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" -- "${release_plan_paths[@]}")" ]]; then
-            validation_mode="candidate"
+          pages_release_plan_paths_file="$(mktemp)"
+          node scripts/print-press-system-surface.mjs pages-release-plan-paths > "${pages_release_plan_paths_file}"
+          pages_release_plan_paths=()
+          while IFS= read -r pages_release_plan_path; do
+            pages_release_plan_paths+=("${pages_release_plan_path}")
+          done < "${pages_release_plan_paths_file}"
+          if [[ "${#pages_release_plan_paths[@]}" -eq 0 ]]; then
+            echo "Press Pages release-plan path list is empty" >&2
+            exit 1
+          fi
+          validation_mode="candidate"
+          if [[ "${candidate_tag}" == "${latest_published_tag}" ]] \
+            && [[ -z "$(git diff --name-only "${latest_published_tag}..HEAD" -- "${release_plan_paths[@]}" "${pages_release_plan_paths[@]}")" ]]; then
+            validation_mode="auto"
           fi
           node scripts/release-graph.js --mode "${validation_mode}" --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --candidate-archive "${candidate_archive}" --check
 

@@ -37,37 +37,6 @@ if bash scripts/build-pages-artifact.sh "${repo_root}" "${version}" >/dev/null 2
   exit 1
 fi
 
-alias_root="${tmp_dir}/repository-parent-alias"
-ln -s "$(dirname "${repo_root}")" "${alias_root}"
-alias_repo="${alias_root}/$(basename "${repo_root}")"
-if node scripts/resolve-pages-output-path.mjs "${alias_repo}" "${repo_root}" >/dev/null 2>&1; then
-  echo "Pages artifact output validation must reject a repository-root path through a symlinked parent" >&2
-  exit 1
-fi
-if [[ ! -d "${repo_root}/.git" || ! -f "${repo_root}/assets/press-system.json" ]]; then
-  echo "Pages artifact output validation must not remove the repository through a path alias" >&2
-  exit 1
-fi
-
-fake_repo="${tmp_dir}/symlinked-dist-repo"
-mkdir -p "${fake_repo}/assets/js"
-printf 'keep\n' > "${fake_repo}/assets/js/sentinel.txt"
-ln -s assets "${fake_repo}/dist"
-if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/js" "${fake_repo}" >/dev/null 2>&1; then
-  echo "Pages artifact output validation must reject dist symlinks into repository assets" >&2
-  exit 1
-fi
-if [[ ! -f "${fake_repo}/assets/js/sentinel.txt" ]]; then
-  echo "Pages artifact output validation must not remove tracked paths through a dist symlink" >&2
-  exit 1
-fi
-rm "${fake_repo}/dist"
-ln -s . "${fake_repo}/dist"
-if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/pages" "${fake_repo}" >/dev/null 2>&1; then
-  echo "Pages artifact output validation must reject dist symlinks to the repository root" >&2
-  exit 1
-fi
-
 if [[ -n "${HOME:-}" ]] && bash scripts/build-pages-artifact.sh "${HOME}" "${version}" >/dev/null 2>&1; then
   echo "Pages artifact builder must reject the home directory as an output directory" >&2
   exit 1

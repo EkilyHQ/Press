@@ -247,9 +247,12 @@ if ! grep -F 'candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/pa
   exit 1
 fi
 if ! grep -F 'validation_mode="candidate"' "${main_workflow}" >/dev/null \
-  || ! grep -F 'github.event.pull_request.base.sha' "${main_workflow}" >/dev/null \
-  || ! grep -F 'release_plan_paths[@]' "${main_workflow}" >/dev/null; then
-  echo "main guard must force candidate validation whenever the release-plan surface changes" >&2
+  || ! grep -F 'latest_published_tag="$(gh release view --json tagName' "${main_workflow}" >/dev/null \
+  || ! grep -F '${latest_published_tag}..HEAD' "${main_workflow}" >/dev/null \
+  || ! grep -F 'release_plan_paths[@]' "${main_workflow}" >/dev/null \
+  || ! grep -F 'pages-release-plan-paths' "${main_workflow}" >/dev/null \
+  || ! grep -F 'pages_release_plan_paths[@]' "${main_workflow}" >/dev/null; then
+  echo "main guard must force candidate validation whenever the final system or Pages surface differs from published latest" >&2
   exit 1
 fi
 if grep -F '${{ steps.plan.outputs.changed_files }}' "${workflow}" >/dev/null \

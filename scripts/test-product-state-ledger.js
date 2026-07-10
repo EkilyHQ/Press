@@ -657,6 +657,65 @@ test('buildProductState preserves release upgrade metadata for release intent va
   assert.deepEqual(state.observed.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
 });
 
+test('buildProductState preserves explicit security update markers for release intent validation', async () => {
+  const release = systemRelease('3.4.134');
+  release.securityUpdate = false;
+  release.upgradeFrom = {
+    ranges: ['>=3.4.64 <3.4.134'],
+    allowUnknownSource: false
+  };
+  const intent = releaseIntentFixture(release);
+  const fixtures = makeFixtures({
+    'fixture:system': release,
+    'fixture:intent': intent
+  });
+
+  const state = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(fixtures),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(state.pressSystem.securityUpdate, false);
+  assert.equal(state.releaseIntent.status, 'ok');
+  assert.equal(state.releaseIntent.problems, undefined);
+
+  const missingIntentMarker = clone(intent);
+  delete missingIntentMarker.pressSystem.securityUpdate;
+  const missingIntentState = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:system': release,
+      'fixture:intent': missingIntentMarker
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(missingIntentState.releaseIntent.status, 'drift');
+  assert.match(
+    missingIntentState.releaseIntent.problems.join('\n'),
+    /release intent pressSystem\.securityUpdate must be an explicit boolean/u
+  );
+
+  const missingMarker = clone(release);
+  delete missingMarker.securityUpdate;
+  const missingState = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:system': missingMarker,
+      'fixture:intent': intent
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(missingState.pressSystem.securityUpdate, undefined);
+  assert.equal(missingState.releaseIntent.status, 'drift');
+  assert.match(
+    missingState.releaseIntent.problems.join('\n'),
+    /system-release\.json securityUpdate must be an explicit boolean/u
+  );
+});
+
 test('buildProductState honors top-level theme release metadata fallbacks', async () => {
   const release = themeRelease('arcus');
   release.tag = release.release.tag;

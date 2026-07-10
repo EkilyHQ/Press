@@ -415,6 +415,7 @@ function normalizeSystemRelease(input) {
     tag,
     version,
     publishedAt: String(source.publishedAt || source.published_at || '').trim(),
+    securityUpdate: typeof source.securityUpdate === 'boolean' ? source.securityUpdate : undefined,
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
     themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
       ? source.themeContractUpgrade
@@ -912,7 +913,7 @@ async function buildProductState(options = {}) {
       ? releaseIntentResult.source
       : '';
   const releaseIntentFailures = normalizedReleaseIntent
-    ? validateReleaseIntent(normalizedReleaseIntent, { systemRelease })
+    ? validateReleaseIntent(releaseIntentResult.value, { systemRelease })
     : [];
   const effectiveSources = clone(sources);
   if (normalizedReleaseIntent && !releaseIntentFailures.length) {

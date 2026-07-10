@@ -13,6 +13,7 @@ if [[ ! -f "${workflow}" ]]; then
 fi
 
 if [[ ! -f "${full_workflow}" ]] \
+  || ! grep -F 'pull_request:' "${full_workflow}" >/dev/null \
   || ! grep -F 'workflow_dispatch:' "${full_workflow}" >/dev/null \
   || ! grep -F 'schedule:' "${full_workflow}" >/dev/null \
   || ! grep -F 'persist-credentials: false' "${full_workflow}" >/dev/null \
@@ -25,7 +26,7 @@ if [[ ! -f "${full_workflow}" ]] \
   || ! grep -F 'if: always()' "${full_workflow}" >/dev/null \
   || ! grep -F 'node scripts/run-tests.mjs --check-manifest' "${full_workflow}" >/dev/null \
   || ! grep -F 'node scripts/run-tests.mjs --tier full' "${full_workflow}" >/dev/null; then
-  echo "full test workflow must support scheduled/manual manifest-driven runs" >&2
+  echo "full test workflow must cover pull requests plus scheduled/manual manifest-driven runs" >&2
   exit 1
 fi
 

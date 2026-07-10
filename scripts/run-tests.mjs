@@ -351,7 +351,7 @@ function runTest(entry, index, total) {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      if (!timedOut) clearTimeout(forceKill);
+      clearTimeout(forceKill);
       activeChild = null;
       resolveRun({ duration: Date.now() - startedAt, error, ok: false, timedOut });
     });
@@ -359,7 +359,7 @@ function runTest(entry, index, total) {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      if (!timedOut) clearTimeout(forceKill);
+      clearTimeout(forceKill);
       activeChild = null;
       resolveRun({
         code,

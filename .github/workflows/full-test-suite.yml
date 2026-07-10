@@ -1,6 +1,9 @@
 name: Full Test Suite
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
   schedule:
     - cron: '17 8 * * *'
@@ -9,8 +12,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: full-test-suite
-  cancel-in-progress: false
+  group: full-test-suite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   full:

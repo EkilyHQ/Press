@@ -18,6 +18,9 @@ The old long-lived `doc` branch is retired. Do not use it for development, docum
 4. Run the focused checks before merging:
 
 ```bash
+npm ci --ignore-scripts
+npm run quality
+node scripts/run-tests.mjs --check-manifest
 bash scripts/test-main-guard.sh
 bash scripts/test-frontmatter-roundtrip.sh
 bash scripts/test-system-release-package.sh
@@ -25,9 +28,11 @@ bash scripts/test-system-release-workflow.sh
 node scripts/test-release-targets.js
 node scripts/test-dispatch-system-release.js
 node scripts/test-product-state-ledger.js
-node --experimental-default-type=module scripts/test-system-updates.js
-node --experimental-default-type=module scripts/test-theme-manager.js
+node scripts/test-system-updates.mjs
+node scripts/test-theme-manager.mjs
 ```
+
+The Prettier path baseline is historical and monotonic: it may shrink when a file is intentionally formatted, but a pull request must not add or re-add paths. Vendor updates must also update `scripts/vendor-manifest.json` and pass `npm run vendor:check`; use the manifest verifier's `--write-digests` mode only after reviewing the declared version, upstream artifact, transform, and file ownership.
 
 5. Merge back to `main` after review and verification.
 6. Delete the short-lived branch after it has landed.

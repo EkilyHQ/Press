@@ -2,6 +2,8 @@
 .vscode/
 .playwright-cli/
 .codex/
+node_modules/
+/dist/
 
 # Local-only development sandbox
 site.local.yaml

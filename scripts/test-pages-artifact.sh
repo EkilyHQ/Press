@@ -45,7 +45,7 @@ if node scripts/resolve-pages-output-path.mjs "${alias_repo}" "${repo_root}" >/d
   echo "Pages artifact output validation must reject a repository-root path through a symlinked parent" >&2
   exit 1
 fi
-if [[ ! -d "${repo_root}/.git" || ! -f "${repo_root}/assets/press-system.json" ]]; then
+if [[ ! -e "${repo_root}/.git" || ! -f "${repo_root}/assets/press-system.json" ]]; then
   echo "Pages artifact output validation must not remove the repository through a path alias" >&2
   exit 1
 fi

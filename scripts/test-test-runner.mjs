@@ -18,6 +18,25 @@ const full = selectTests(validation.tests, validation.tierOrder, {
 assert.equal(full.length, manifest.expected.logical);
 assert.equal(full.every((entry) => entry.tier.includes('full')), true);
 assert.equal(new Set(full.map((entry) => entry.id)).size, full.length);
+assert.equal(
+  validation.tests.every((entry) => !entry.command.includes('--experimental-default-type=module')),
+  true,
+  'the Node 22 test contract must not retain the retired experimental module flag'
+);
+for (const id of [
+  'editor-blocks-roundtrip',
+  'frontmatter-roundtrip',
+  'i18n-content-raw',
+  'system-updates',
+  'theme-contracts',
+  'theme-manager'
+]) {
+  assert.match(
+    validation.tests.find((entry) => entry.id === id)?.file || '',
+    /\.mjs$/u,
+    `${id} must retain an explicit ES module extension`
+  );
+}
 
 const injectedFullOrder = clone(manifest);
 injectedFullOrder.tierOrder.full = [manifest.tests[0].id];

@@ -313,7 +313,7 @@ through events such as `press:search`,
 Run:
 
 ```bash
-node --experimental-default-type=module scripts/test-theme-contracts.js
+node scripts/test-theme-contracts.mjs
 ```
 
 The verifier checks manifest shape, module/style paths, supported views,

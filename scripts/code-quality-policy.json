@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "scope": "Press first-party source and development tooling",
+  "eslint": {
+    "profile": "@eslint/js recommended",
+    "baseline": {
+      "decision": "accepted-no-action",
+      "excludedRules": [
+        {
+          "rule": "no-unused-vars",
+          "observedDiagnostics": 1517,
+          "observedAffectedFiles": 186,
+          "evidence": "1517 findings are dominated by dynamic service, options, browser callback, and test-harness signatures; enabling it would require a semantic cleanup campaign rather than a correctness gate."
+        },
+        {
+          "rule": "no-empty",
+          "observedDiagnostics": 862,
+          "observedAffectedFiles": 133,
+          "evidence": "862 findings primarily represent intentional best-effort browser cleanup and storage fallbacks whose failure must not replace the primary operation."
+        },
+        {
+          "rule": "no-useless-escape",
+          "observedDiagnostics": 80,
+          "observedAffectedFiles": 20,
+          "evidence": "80 findings occur in regular-expression and fixture literals where mechanical edits create churn without strengthening runtime correctness."
+        },
+        {
+          "rule": "no-regex-spaces",
+          "observedDiagnostics": 10,
+          "observedAffectedFiles": 4,
+          "evidence": "10 findings are deliberate regular-expression literals; the repository contract tests cover the accepted inputs more directly."
+        },
+        {
+          "rule": "no-control-regex",
+          "observedDiagnostics": 3,
+          "observedAffectedFiles": 3,
+          "evidence": "3 findings are deliberate parser and sanitization character ranges covered by focused behavior tests."
+        },
+        {
+          "rule": "no-useless-assignment",
+          "observedDiagnostics": 59,
+          "observedAffectedFiles": 33,
+          "evidence": "59 findings arise in stateful parser, DOM, and compatibility flows where a repository-wide rewrite is not an incremental lint boundary."
+        },
+        {
+          "rule": "preserve-caught-error",
+          "observedDiagnostics": 4,
+          "observedAffectedFiles": 3,
+          "evidence": "4 findings are compatibility error translations; the public error contract is tested and does not expose Error.cause."
+        }
+      ],
+      "observedAtCommit": "40d441f84ff17fd2a0edf17d00d27f42e62a8390",
+      "probeCommand": "node scripts/probe-eslint-debt.mjs"
+    },
+    "noGrowth": {
+      "mechanism": "zero-baseline",
+      "command": "eslint . --max-warnings 0",
+      "policy": "All enabled rules have a zero-violation baseline; any new error or warning fails CI. Excluded rules are explicit accepted-no-action decisions whose exact diagnostic and affected-file counts are remeasured on every quality run."
+    },
+    "removalCondition": "Re-evaluate an excluded rule only when its evidence no longer applies; do not replace repository contract tests with generic lint unless the same invariant remains covered."
+  },
+  "prettier": {
+    "baseline": {
+      "file": "scripts/prettier-baseline.json",
+      "initialFiles": 409
+    },
+    "noGrowth": {
+      "mechanism": "merge-base-shrinking-file-baseline",
+      "baseRefEnvironmentVariable": "CODE_QUALITY_BASE_REF",
+      "headShaEnvironmentVariable": "CODE_QUALITY_HEAD_SHA",
+      "policy": "New candidate files must pass Prettier. After bootstrap, an established path baseline may retain only untouched files or transfer through an exact-content rename; touching a legacy file requires formatting it and removing it from the baseline."
+    },
+    "removalCondition": "Remove a path after formatting that file intentionally; avoid release-bearing mass reformat commits."
+  },
+  "types": {
+    "decision": "accepted-no-action",
+    "evidence": {
+      "typescriptVersion": "5.9.3",
+      "command": "tsc --allowJs --checkJs --noEmit --skipLibCheck --target ES2023 --module preserve --moduleResolution bundler --lib ES2023,DOM,DOM.Iterable with 227 non-vendor assets/js JS/MJS root inputs",
+      "explicitInputFiles": 227,
+      "diagnostics": 1470,
+      "files": 87,
+      "firstPartyDiagnostics": 905,
+      "firstPartyFiles": 83,
+      "transitiveVendorDiagnostics": 565,
+      "transitiveVendorFiles": 4,
+      "reason": "Repository-wide checkJs would create a second large suppression baseline across dynamic browser boundaries; even after separating transitive vendor output, first-party code retains 905 diagnostics in 83 files."
+    },
+    "revisitWhen": [
+      "Composer and editor modules have been grouped behind stable directory and service boundaries",
+      "Each extracted module can adopt checkJs or ts-check without a repository-wide compatibility baseline"
+    ]
+  }
+}

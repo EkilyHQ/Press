@@ -1,0 +1,21 @@
+{
+  "name": "@ekilyhq/press-development",
+  "private": true,
+  "engines": {
+    "node": ">=22.18.0 <23"
+  },
+  "packageManager": "npm@10.9.3",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:debt-probe": "node scripts/probe-eslint-debt.mjs",
+    "format:check": "node scripts/check-format.mjs",
+    "vendor:check": "node scripts/test-vendor-manifest.mjs",
+    "quality": "node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run format:check && npm run vendor:check"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.6.0",
+    "globals": "17.7.0",
+    "prettier": "3.9.4"
+  }
+}

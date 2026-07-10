@@ -1,0 +1,76 @@
+name: Code Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '23 9 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      npm_config_audit: 'false'
+      npm_config_fund: 'false'
+      npm_config_update_notifier: 'false'
+      CODE_QUALITY_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+      CODE_QUALITY_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Use Node.js 22.18.0
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.18.0
+          cache: npm
+
+      - name: Require clean checkout
+        run: |
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            git status --short --untracked-files=all >&2
+            echo "code quality requires a clean checkout" >&2
+            exit 1
+          fi
+
+      - name: Install pinned quality tools
+        run: npm ci --ignore-scripts
+
+      - name: Require clean dependency install
+        run: |
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            git status --short --untracked-files=all >&2
+            echo "npm ci changed tracked or unignored files" >&2
+            exit 1
+          fi
+
+      - name: Run code quality gates
+        run: npm run quality
+
+      - name: Verify quality gate cleanup
+        if: always()
+        run: |
+          quality_base_sha="$(git merge-base "$CODE_QUALITY_BASE_REF" "$CODE_QUALITY_HEAD_SHA")"
+          git diff --check "$quality_base_sha" "$CODE_QUALITY_HEAD_SHA"
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            git status --short --untracked-files=all >&2
+            echo "code quality gates left the checkout dirty" >&2
+            exit 1
+          fi

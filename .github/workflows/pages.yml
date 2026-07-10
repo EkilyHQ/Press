@@ -26,6 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Use Node.js 22.18.0
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.18.0
+
       - name: Verify Pages workflow contract
         run: |
           node scripts/sync-runtime-cache-keys.mjs --check

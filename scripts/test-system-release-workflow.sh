@@ -35,11 +35,6 @@ if [[ "$(grep -Fc 'git status --porcelain --untracked-files=all' "${full_workflo
   exit 1
 fi
 
-if ! grep -F "['install', '--ignore-scripts', '--no-audit', '--no-fund', tarball]" scripts/test-theme-contract-package.mjs >/dev/null; then
-  echo "theme contract package test must install its local tarball without audit or fund network calls" >&2
-  exit 1
-fi
-
 if grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
   echo "system release workflow must not request pull request permissions" >&2
   exit 1

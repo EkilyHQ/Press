@@ -21,11 +21,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
           gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RUNNER_TEMP}/press-github-releases.json"
           candidate_tag="$(node -e "const manifest = require('./assets/press-system.json'); process.stdout.write(String(manifest.tag || '').trim());")"
-          node scripts/test-release-graph.js
-          node scripts/test-system-release-transaction.mjs
           candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"
           release_plan_paths_file="$(mktemp)"
           node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"
@@ -42,8 +41,6 @@ jobs:
             validation_mode="candidate"
           fi
           node scripts/release-graph.js --mode "${validation_mode}" --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --candidate-archive "${candidate_archive}" --check
-          bash scripts/test-system-release-package.sh
-          bash scripts/test-system-release-workflow.sh
 
       - name: Enforce main safety rules
         run: |
@@ -52,24 +49,4 @@ jobs:
       - name: Verify runtime cache keys
         run: |
           node scripts/sync-runtime-cache-keys.mjs --check
-          node scripts/test-composer-action-contract.js
-          node scripts/test-composer-root-contract.js
-          node scripts/test-composer-root-boundaries.js
-          node scripts/test-editor-effects-boundary.js
-          node scripts/test-composer-app-services.js
-          node scripts/test-composer-service-registry.js
-          node scripts/test-press-system-surface.mjs
-          node scripts/test-editor-app-kernel.mjs
-          node scripts/test-provider-adapters.js
-          node scripts/test-provider-boundary.js
-          node scripts/test-publish-receipt.js
-          node scripts/test-publish-flow-smoke.js
-          node scripts/test-site-features.js
-          node scripts/test-official-theme-public-chrome-behavior.mjs
-          node --experimental-default-type=module scripts/test-theme-contracts.js
-          node scripts/test-release-targets.js
-          node scripts/test-release-intent.js
-          node scripts/test-dispatch-system-release.js
-          node scripts/test-product-state-ledger.js
-          bash scripts/test-pages-workflow.sh
-          bash scripts/test-pages-artifact.sh
+          node scripts/run-tests.mjs --tier guard

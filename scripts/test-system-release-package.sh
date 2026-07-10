@@ -919,8 +919,12 @@ if grep -qx "press-system-${version}/assets/themes/catalog.json" "${entries_file
   exit 1
 fi
 
-untracked_probe="${repo_root}/assets/js/__untracked-system-release-probe.js"
-rm -f "${untracked_probe}"
+untracked_probe_path="${repo_root}/assets/js/__untracked-system-release-probe.js"
+if [[ -e "${untracked_probe_path}" || -L "${untracked_probe_path}" ]]; then
+  echo "refusing to overwrite existing untracked probe path: ${untracked_probe_path}" >&2
+  exit 1
+fi
+untracked_probe="${untracked_probe_path}"
 printf 'export const probe = true;\n' > "${untracked_probe}"
 probe_zip_dir="${tmp_dir}/probe"
 mkdir -p "${probe_zip_dir}"

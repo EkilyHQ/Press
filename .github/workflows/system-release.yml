@@ -49,8 +49,6 @@ jobs:
           CANDIDATE_VERSION: ${{ steps.transaction.outputs.version }}
         run: |
           set -euo pipefail
-          node scripts/test-release-graph.js
-          node scripts/test-system-release-transaction.mjs
           graph_args=(
             --mode audit
             --artifact-ref origin/release-artifacts
@@ -64,33 +62,7 @@ jobs:
           esac
           node scripts/release-graph.js "${graph_args[@]}"
           node scripts/sync-runtime-cache-keys.mjs --check
-          node scripts/test-composer-action-contract.js
-          node scripts/test-composer-root-contract.js
-          node scripts/test-composer-root-boundaries.js
-          node scripts/test-editor-effects-boundary.js
-          node scripts/test-composer-app-services.js
-          node scripts/test-composer-service-registry.js
-          node scripts/test-press-system-surface.mjs
-          node scripts/test-editor-app-kernel.mjs
-          node scripts/test-provider-adapters.js
-          node scripts/test-provider-boundary.js
-          node scripts/test-publish-receipt.js
-          node scripts/test-publish-flow-smoke.js
-          node scripts/test-site-features.js
-          node scripts/test-official-theme-public-chrome-behavior.mjs
-          node --experimental-default-type=module scripts/test-theme-contracts.js
-          bash scripts/test-system-release-package.sh
-          bash scripts/test-system-release-workflow.sh
-          bash scripts/test-pages-workflow.sh
-          bash scripts/test-pages-artifact.sh
-          bash scripts/test-product-state-workflow.sh
-          node scripts/test-release-targets.js
-          node scripts/test-release-intent.js
-          node scripts/test-dispatch-system-release.js
-          node scripts/test-theme-contract-package.mjs
-          node scripts/test-product-state-ledger.js
-          node scripts/test-product-state-dashboard.js
-          node --experimental-default-type=module scripts/test-system-updates.js
+          node scripts/run-tests.mjs --tier release
 
       - name: Plan release
         id: plan

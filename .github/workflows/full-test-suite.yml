@@ -1,0 +1,59 @@
+name: Full Test Suite
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-test-suite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      npm_config_offline: 'true'
+      npm_config_audit: 'false'
+      npm_config_fund: 'false'
+      npm_config_update_notifier: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js 22.18.0
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.18.0
+
+      - name: Require clean checkout
+        run: |
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            git status --short --untracked-files=all >&2
+            echo "full test suite requires a clean checkout" >&2
+            exit 1
+          fi
+
+      - name: Validate test inventory
+        run: node scripts/run-tests.mjs --check-manifest
+
+      - name: Run full test suite
+        run: node scripts/run-tests.mjs --tier full
+
+      - name: Verify full suite cleanup
+        if: always()
+        run: |
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            git status --short --untracked-files=all >&2
+            echo "full test suite left the checkout dirty" >&2
+            exit 1
+          fi

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const composer = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
 const composerBootstrap = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
+const composerControllerGraph = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
 const composerMarkdownSession = readFileSync(resolve(here, '../assets/js/composer-markdown-session.js'), 'utf8');
 const composerModeController = readFileSync(resolve(here, '../assets/js/composer-mode-controller.js'), 'utf8');
 const main = readFileSync(resolve(here, '../assets/main.js'), 'utf8');
@@ -36,8 +37,8 @@ assert.match(
 );
 
 assert.match(
-  `${composer}\n${composerBootstrap}`,
-  /setAllowEditorStatePersist: \(value\) => editorRuntime\.setAllowEditorStatePersist\(value\)[\s\S]*const restoredEditorState = restoreDynamicEditorState\(\);[\s\S]*setAllowEditorStatePersist\(true\);[\s\S]*scheduleTimer\(\(\) => persistDynamicEditorState\(\), 500\)/,
+  `${composerControllerGraph}\n${composerBootstrap}`,
+  /setAllowEditorStatePersist: \(value\) => getFunction\(editorRuntime, 'setAllowEditorStatePersist'\)\(value\)[\s\S]*const restoredEditorState = restoreDynamicEditorState\(\);[\s\S]*setAllowEditorStatePersist\(true\);[\s\S]*scheduleTimer\(\(\) => persistDynamicEditorState\(\), 500\)/,
   'editor should route persistence readiness through the app runtime and delay the first post-restore save'
 );
 

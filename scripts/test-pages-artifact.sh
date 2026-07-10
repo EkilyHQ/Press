@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+repo_root="$(cd "$(dirname "$0")/.." && pwd -P)"
 tmp_dir="$(mktemp -d)"
 untracked_paths=()
 
 cleanup() {
   for untracked_path in "${untracked_paths[@]}"; do
-    rm -rf "${repo_root}/${untracked_path}"
+    rm -f "${repo_root}/${untracked_path}"
   done
   rm -rf "${tmp_dir}"
 }
@@ -17,22 +17,54 @@ cd "${repo_root}"
 
 version="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(tag);")"
 
-untracked_paths=(
+probe_paths=(
   "assets/js/__untracked-pages-artifact-probe.js"
   "wwwroot/__untracked-pages-artifact-probe.md"
 )
-for untracked_path in "${untracked_paths[@]}"; do
-  if [[ -e "${repo_root}/${untracked_path}" ]]; then
+for untracked_path in "${probe_paths[@]}"; do
+  if [[ -e "${repo_root}/${untracked_path}" || -L "${repo_root}/${untracked_path}" ]]; then
     echo "refusing to overwrite existing untracked probe path: ${untracked_path}" >&2
     exit 1
   fi
 done
+untracked_paths=("${probe_paths[@]}")
 mkdir -p wwwroot
 printf 'export const probe = true;\n' > assets/js/__untracked-pages-artifact-probe.js
 printf 'local\n' > wwwroot/__untracked-pages-artifact-probe.md
 
 if bash scripts/build-pages-artifact.sh "${repo_root}" "${version}" >/dev/null 2>&1; then
   echo "Pages artifact builder must reject the repository root as an output directory" >&2
+  exit 1
+fi
+
+alias_root="${tmp_dir}/repository-parent-alias"
+ln -s "$(dirname "${repo_root}")" "${alias_root}"
+alias_repo="${alias_root}/$(basename "${repo_root}")"
+if node scripts/resolve-pages-output-path.mjs "${alias_repo}" "${repo_root}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject a repository-root path through a symlinked parent" >&2
+  exit 1
+fi
+if [[ ! -d "${repo_root}/.git" || ! -f "${repo_root}/assets/press-system.json" ]]; then
+  echo "Pages artifact output validation must not remove the repository through a path alias" >&2
+  exit 1
+fi
+
+fake_repo="${tmp_dir}/symlinked-dist-repo"
+mkdir -p "${fake_repo}/assets/js"
+printf 'keep\n' > "${fake_repo}/assets/js/sentinel.txt"
+ln -s assets "${fake_repo}/dist"
+if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/js" "${fake_repo}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject dist symlinks into repository assets" >&2
+  exit 1
+fi
+if [[ ! -f "${fake_repo}/assets/js/sentinel.txt" ]]; then
+  echo "Pages artifact output validation must not remove tracked paths through a dist symlink" >&2
+  exit 1
+fi
+rm "${fake_repo}/dist"
+ln -s . "${fake_repo}/dist"
+if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/pages" "${fake_repo}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject dist symlinks to the repository root" >&2
   exit 1
 fi
 

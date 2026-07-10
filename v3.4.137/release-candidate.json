@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "type": "press-system-release-candidate",
+  "repository": "EkilyHQ/Press",
+  "version": "3.4.137",
+  "tag": "v3.4.137",
+  "sourceCommit": "cc7699623e919240b28d9bf323468357a32d14e0",
+  "releaseId": 352363225,
+  "stagedAt": "2026-07-10T22:48:39.562Z",
+  "asset": {
+    "name": "press-system-v3.4.137.zip",
+    "path": "v3.4.137/press-system-v3.4.137.zip",
+    "size": 1981172,
+    "digest": "sha256:d318d17c687f0fc4587565a4df40f0539d1c6c82a42022c330ec9a21418b914f"
+  }
+}

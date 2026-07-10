@@ -7,13 +7,14 @@
   "packageManager": "npm@10.9.3",
   "scripts": {
     "lint": "eslint . --max-warnings 0",
+    "lint:inline-config": "node scripts/verify-eslint-inline-config.mjs",
     "lint:debt-probe": "node scripts/probe-eslint-debt.mjs",
     "types:probe:test": "node scripts/verify-typescript-debt-policy.mjs",
     "types:probe": "node scripts/probe-typescript-debt.mjs",
     "format:check": "node scripts/check-format.mjs",
     "vendor:check": "node scripts/test-vendor-manifest.mjs",
     "security:html-sinks": "node scripts/check-html-sink-policy.mjs",
-    "quality": "node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks"
+    "quality": "node scripts/test-code-quality-config.mjs && npm run lint:inline-config && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

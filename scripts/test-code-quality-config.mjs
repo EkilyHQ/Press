@@ -57,6 +57,11 @@ for (const [name, version] of Object.entries(packageJson.devDependencies)) {
 }
 assert.equal(packageJson.scripts?.lint, 'eslint . --max-warnings 0', 'ESLint must enforce a zero-warning baseline');
 assert.equal(
+  packageJson.scripts?.['lint:inline-config'],
+  'node scripts/verify-eslint-inline-config.mjs',
+  'the real project config must retain its inline-suppression regression probe'
+);
+assert.equal(
   packageJson.scripts?.['lint:debt-probe'],
   'node scripts/probe-eslint-debt.mjs',
   'excluded ESLint rules must retain an executable evidence probe'
@@ -83,7 +88,7 @@ assert.equal(
 );
 assert.equal(
   packageJson.scripts?.quality,
-  'node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks',
+  'node scripts/test-code-quality-config.mjs && npm run lint:inline-config && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks',
   'the quality gate must cover lint, type debt, formatting, vendored dependency provenance, and sink policy'
 );
 
@@ -237,6 +242,12 @@ for (const ignoredPath of [
 assert.match(eslintConfig, /js\.configs\.recommended/, 'ESLint recommended rules must remain enabled');
 assert.match(
   eslintConfig,
+  /rules:\s*\{\s*\.\.\.js\.configs\.recommended\.rules,/,
+  'reviewed exclusions must extend rather than replace the recommended rule map'
+);
+assert.match(eslintConfig, /noInlineConfig:\s*true/, 'source comments must not disable project lint rules');
+assert.match(
+  eslintConfig,
   /reportUnusedDisableDirectives:\s*'error'/,
   'stale ESLint disable directives must fail the gate'
 );
@@ -301,6 +312,24 @@ assert.equal(
   'eslint . --max-warnings 0',
   'the policy and package script must share the zero-warning command'
 );
+assert.deepEqual(policy.eslint?.inlineConfiguration, {
+  decision: 'prohibited',
+  mechanism: 'linterOptions.noInlineConfig',
+  probeCommand: 'node scripts/verify-eslint-inline-config.mjs',
+  policy:
+    'Source comments cannot disable project lint rules. The quality-only real-config probe proves a used eslint-disable-next-line cannot hide no-undef while a clean sample remains at zero errors and warnings.'
+});
+const eslintInlineConfigProbe = read('scripts/verify-eslint-inline-config.mjs');
+for (const token of [
+  'new ESLint({ cwd: repoRoot })',
+  'eslint-disable-next-line no-undef',
+  "message.ruleId === 'no-undef'",
+  'suppressedMessages',
+  'clean.errorCount',
+  'clean.warningCount'
+]) {
+  assert.ok(eslintInlineConfigProbe.includes(token), `inline-config probe must retain ${token}`);
+}
 assert.equal(policy.prettier?.baseline?.file, 'scripts/prettier-baseline.json');
 assert.equal(
   policy.prettier?.noGrowth?.mechanism,

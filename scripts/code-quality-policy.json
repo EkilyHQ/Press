@@ -57,6 +57,12 @@
       "command": "eslint . --max-warnings 0",
       "policy": "All enabled rules have a zero-violation baseline; any new error or warning fails CI. Excluded rules are explicit accepted-no-action decisions whose exact diagnostic and affected-file counts are remeasured on every quality run."
     },
+    "inlineConfiguration": {
+      "decision": "prohibited",
+      "mechanism": "linterOptions.noInlineConfig",
+      "probeCommand": "node scripts/verify-eslint-inline-config.mjs",
+      "policy": "Source comments cannot disable project lint rules. The quality-only real-config probe proves a used eslint-disable-next-line cannot hide no-undef while a clean sample remains at zero errors and warnings."
+    },
     "removalCondition": "Re-evaluate an excluded rule only when its evidence no longer applies; do not replace repository contract tests with generic lint unless the same invariant remains covered."
   },
   "prettier": {

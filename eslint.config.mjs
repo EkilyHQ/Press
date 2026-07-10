@@ -16,6 +16,7 @@ export default [
   },
   {
     linterOptions: {
+      noInlineConfig: true,
       reportUnusedDisableDirectives: 'error'
     }
   },
@@ -31,6 +32,7 @@ export default [
       }
     },
     rules: {
+      ...js.configs.recommended.rules,
       'no-control-regex': 'off',
       'no-empty': 'off',
       'no-regex-spaces': 'off',

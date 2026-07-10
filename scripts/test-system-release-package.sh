@@ -29,6 +29,15 @@ if [[ ! -f "${zip_path}" ]]; then
   exit 1
 fi
 
+deterministic_zip_dir="${tmp_dir}/deterministic"
+mkdir -p "${deterministic_zip_dir}"
+sleep 2
+bash "${repo_root}/scripts/package-system-release.sh" "${version}" "${deterministic_zip_dir}" >/dev/null
+if ! cmp "${zip_path}" "${deterministic_zip_dir}/press-system-${version}.zip"; then
+  echo "system release package must be byte-for-byte reproducible for retry validation" >&2
+  exit 1
+fi
+
 subdir_zip_dir="${tmp_dir}/subdir"
 mkdir -p "${subdir_zip_dir}"
 (

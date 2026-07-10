@@ -1,13 +1,51 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 
-const policySource = require('./release-graph-policy.json');
 const {
   analyzeReleaseGraph,
   expectedTargetMetadata,
+  loadPublishedReleaseRegistry,
   satisfiesSemverRange,
   sha256
 } = require('./release-graph.js');
+
+const recoveryDebtPolicySource = {
+  schemaVersion: 1,
+  type: 'press-release-graph-policy',
+  repository: 'EkilyHQ/Press',
+  support: {
+    floor: '3.4.64',
+    sourceRanges: ['>=3.4.64'],
+    updateStrategy: 'latest-only'
+  },
+  candidateGate: {
+    mode: 'recovery-required',
+    baselineVersion: '3.4.133',
+    reason: 'Historical fixture: v3.4.133 is not directly reachable from every supported source.',
+    removalCondition: 'The production policy may change after a direct recovery transition; this fixture must remain historical.'
+  },
+  legacyExceptions: [{
+    id: 'v3.4.108-missing-predecessor',
+    from: '3.4.64',
+    to: '3.4.108',
+    status: 'recovery-required',
+    unpublishedRange: '>3.4.64 <3.4.108',
+    targetRanges: ['>=3.4.107 <3.4.108'],
+    missingSources: ['3.4.107'],
+    reason: 'Historical fixture: v3.4.108 requires unpublished v3.4.107.',
+    removalCondition: 'Retain the immutable break while direct recovery behavior is tested separately.'
+  }],
+  artifactLayout: {
+    systemRelease: 'v{version}/system-release.json',
+    releaseIntent: 'v{version}/release-intent.json',
+    asset: 'v{version}/press-system-v{version}.zip',
+    rawRoot: 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts'
+  }
+};
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -129,6 +167,7 @@ function githubReleaseFor(release) {
   return {
     draft: false,
     prerelease: false,
+    immutable: true,
     assets: [{
       name: release.manifest.asset.name,
       size: release.manifest.asset.size,
@@ -138,7 +177,7 @@ function githubReleaseFor(release) {
 }
 
 function baselineFixture() {
-  const policy = clone(policySource);
+  const policy = clone(recoveryDebtPolicySource);
   const artifactPaths = new Set();
   const publishedReleases = [
     makePublishedRelease('3.4.64', '>=3.4.63 <3.4.64', policy, artifactPaths),
@@ -309,6 +348,15 @@ test('auto mode audits the baseline and validates a newer worktree as a candidat
   assert.equal(candidateResult.validationMode, 'candidate');
 });
 
+test('forced candidate mode rejects a release-surface change without a version bump', () => {
+  const fixture = baselineFixture();
+  fixture.validationMode = 'candidate';
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(result.failures.join('\n'), /release candidate must be newer than published latest v3\.4\.133/u);
+});
+
 test('direct recovery must close the active debt state in the same candidate policy', () => {
   const fixture = baselineFixture();
   fixture.policy.candidateGate.mode = 'direct';
@@ -339,6 +387,99 @@ test('recovered historical break remains auditable after the recovery release is
 
   assert.deepEqual(result.failures, []);
   assert.deepEqual(result.directMissing, []);
+});
+
+test('one explicit transient candidate tag can resume candidate validation without becoming latest', () => {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  fixture.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  fixture.validationMode = 'candidate';
+  fixture.gitTags.add('v3.4.134');
+  fixture.githubReleases.set('v3.4.134', { draft: true, prerelease: false, immutable: false, assets: [] });
+
+  const blocked = analyzeReleaseGraph(fixture);
+  assert.match(blocked.failures.join('\n'), /release candidate tag v3\.4\.134 already exists/u);
+
+  fixture.transientCandidateVersion = '3.4.134';
+  const resumed = analyzeReleaseGraph(fixture);
+  assert.deepEqual(resumed.failures, []);
+  assert.equal(resumed.latestPublishedVersion, '3.4.133');
+});
+
+test('transient candidate exception must identify an exact worktree version', () => {
+  const fixture = baselineFixture();
+  fixture.transientCandidateVersion = 'not-a-version';
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(result.failures.join('\n'), /transientCandidateVersion must be an exact semantic version/u);
+});
+
+test('transient candidate exception cannot hide a tag without a GitHub Release owner', () => {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  fixture.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  fixture.validationMode = 'candidate';
+  fixture.gitTags.add('v3.4.134');
+  fixture.transientCandidateVersion = '3.4.134';
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(result.failures.join('\n'), /must have one non-prerelease GitHub Release object/u);
+});
+
+test('registry loader keeps staged candidate bytes out of the published graph and rejects partial finalization', () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'press-release-graph-'));
+  const run = (args) => execFileSync('git', args, { cwd, stdio: 'ignore' });
+  const writeJson = (relativePath, value) => {
+    const absolutePath = path.join(cwd, relativePath);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, `${JSON.stringify(value, null, 2)}\n`);
+  };
+  run(['init', '-q']);
+  run(['config', 'user.name', 'Release Graph Test']);
+  run(['config', 'user.email', 'release-graph@example.test']);
+  writeJson('assets/press-system.json', candidateManifest('3.4.133', '>=3.4.132 <3.4.133'));
+  writeJson('v3.4.133/system-release.json', { version: '3.4.133', tag: 'v3.4.133' });
+  writeJson('v3.4.133/release-intent.json', { version: '3.4.133', tag: 'v3.4.133' });
+  writeJson('system-release.json', { version: '3.4.133', tag: 'v3.4.133' });
+  writeJson('release-intent.json', { version: '3.4.133', tag: 'v3.4.133' });
+  fs.writeFileSync(path.join(cwd, 'v3.4.133/press-system-v3.4.133.zip'), 'published');
+  run(['add', '.']);
+  run(['commit', '-qm', 'published baseline']);
+  run(['tag', 'v3.4.133']);
+
+  writeJson('assets/press-system.json', candidateManifest('3.4.134', '>=3.4.64 <3.4.134'));
+  writeJson('v3.4.134/release-candidate.json', { tag: 'v3.4.134' });
+  fs.mkdirSync(path.join(cwd, 'v3.4.134'), { recursive: true });
+  fs.writeFileSync(path.join(cwd, 'v3.4.134/press-system-v3.4.134.zip'), 'staged');
+  run(['add', '.']);
+  run(['commit', '-qm', 'staged candidate']);
+  run(['tag', 'v3.4.134']);
+
+  const policy = {
+    support: { floor: '3.4.133' },
+    artifactLayout: recoveryDebtPolicySource.artifactLayout
+  };
+  const registry = loadPublishedReleaseRegistry({
+    policy,
+    artifactRef: 'HEAD',
+    transientCandidateVersion: '3.4.134',
+    cwd
+  });
+  assert.deepEqual(registry.publishedReleases.map((release) => release.version), ['3.4.133']);
+  assert.equal(registry.gitTags.has('v3.4.134'), false);
+  assert.equal(registry.latestSystemReleaseText, `${JSON.stringify({ version: '3.4.133', tag: 'v3.4.133' }, null, 2)}\n`);
+
+  writeJson('v3.4.134/system-release.json', { version: '3.4.134', tag: 'v3.4.134' });
+  run(['add', '.']);
+  run(['commit', '-qm', 'partial finalization']);
+  assert.throws(() => loadPublishedReleaseRegistry({
+    policy,
+    artifactRef: 'HEAD',
+    transientCandidateVersion: '3.4.134',
+    cwd
+  }), /partial immutable manifest tuple/u);
 });
 
 test('v3.4.64 recovery candidate cannot retain cleanup-only migration prerequisites', () => {
@@ -433,7 +574,7 @@ test('published release requires a non-draft GitHub Release and matching asset',
   const failures = result.failures.join('\n');
 
   assert.match(failures, /v3\.4\.109 is missing a matching GitHub Release object/u);
-  assert.match(failures, /v3\.4\.132 GitHub Release must be published and non-prerelease/u);
+  assert.match(failures, /v3\.4\.132 GitHub Release must be published, non-prerelease, and immutable/u);
   assert.match(failures, /v3\.4\.133 GitHub Release asset size or digest does not match/u);
 });
 

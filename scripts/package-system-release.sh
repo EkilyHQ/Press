@@ -18,6 +18,7 @@ mkdir -p "${output_dir}"
 output_dir="$(cd "${output_dir}" && pwd)"
 archive_path="${output_dir}/${archive_name}"
 cd "${repo_root}"
+rm -f "${archive_path}"
 
 tmp_dir="$(mktemp -d)"
 cleanup() {
@@ -81,9 +82,18 @@ fi
 
 node scripts/sync-runtime-cache-keys.mjs --materialize-root "${payload_dir}" --tag "${version}" >&2
 
+if [[ -n "$(find "${payload_dir}" -type l -print -quit)" ]]; then
+  echo "Press system package must not contain symbolic links" >&2
+  exit 1
+fi
+while IFS= read -r -d '' payload_path; do
+  touch -t 198001010000 "${payload_path}"
+done < <(find "${payload_dir}" -print0)
+
 (
   cd "${tmp_dir}"
-  zip -qr "${archive_path}" "${prefix%/}"
+  LC_ALL=C find "${prefix%/}" -type f -print | LC_ALL=C sort > "${tmp_dir}/zip-files.txt"
+  TZ=UTC zip -q -X "${archive_path}" -@ < "${tmp_dir}/zip-files.txt"
 )
 
 printf '%s\n' "${archive_path}"

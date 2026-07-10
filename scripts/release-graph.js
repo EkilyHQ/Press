@@ -394,8 +394,8 @@ function validatePublishedRelease(release, policy, artifactPaths, githubReleases
   if (!githubRelease) {
     failures.push(`${label} is missing a matching GitHub Release object`);
   } else {
-    if (githubRelease.draft === true || githubRelease.prerelease === true) {
-      failures.push(`${label} GitHub Release must be published and non-prerelease`);
+    if (githubRelease.draft === true || githubRelease.prerelease === true || githubRelease.immutable !== true) {
+      failures.push(`${label} GitHub Release must be published, non-prerelease, and immutable`);
     }
     const releaseAssets = Array.isArray(githubRelease.assets) ? githubRelease.assets : [];
     const matchingAssets = releaseAssets.filter((entry) => String(entry && entry.name || '') === expected.assetName);
@@ -570,8 +570,17 @@ function analyzeReleaseGraph(input = {}) {
   const gitTags = input.gitTags instanceof Set ? input.gitTags : new Set(input.gitTags || []);
   const githubReleases = input.githubReleases instanceof Map ? input.githubReleases : new Map();
   const candidate = input.candidate;
+  const worktreeCandidateVersion = normalizeSemver(candidate && candidate.version);
+  const transientCandidateVersionInput = String(input.transientCandidateVersion || '').trim();
+  const transientCandidateVersion = normalizeSemver(transientCandidateVersionInput);
+  const effectiveGitTags = new Set(gitTags);
   const failures = validatePolicy(policy);
   if (failures.length) return { failures, publishedVersions: [], supportedSources: [], directMissing: [] };
+  if (transientCandidateVersionInput && !transientCandidateVersion) {
+    failures.push('transientCandidateVersion must be an exact semantic version');
+  } else if (transientCandidateVersion) {
+    effectiveGitTags.delete(semverToTag(transientCandidateVersion));
+  }
 
   const requestedMode = String(input.validationMode || 'audit').trim();
   if (!['audit', 'auto', 'candidate'].includes(requestedMode)) {
@@ -610,6 +619,18 @@ function analyzeReleaseGraph(input = {}) {
   });
   const latestPublishedVersion = publishedVersions[publishedVersions.length - 1];
   const latestPublishedRelease = publishedByVersion.get(latestPublishedVersion);
+  if (transientCandidateVersion) {
+    if (transientCandidateVersion !== worktreeCandidateVersion) {
+      failures.push('transientCandidateVersion must match the worktree candidate');
+    }
+    if (publishedByVersion.has(transientCandidateVersion)) {
+      failures.push(`transient candidate v${transientCandidateVersion} already has finalized immutable manifests`);
+    }
+    const transientRelease = githubReleases.get(semverToTag(transientCandidateVersion));
+    if (!transientRelease || transientRelease.prerelease === true) {
+      failures.push(`transient candidate v${transientCandidateVersion} must have one non-prerelease GitHub Release object`);
+    }
+  }
   if (!artifactPaths.has('system-release.json') || !String(input.latestSystemReleaseText || '')) {
     failures.push('release artifact registry is missing latest system-release.json');
   } else if (input.latestSystemReleaseText !== latestPublishedRelease.manifestText) {
@@ -671,7 +692,7 @@ function analyzeReleaseGraph(input = {}) {
       failures.push(`legacy exception ${exception.id} targetRanges do not match v${target} upgradeFrom`);
     }
     const unexpectedPublished = publishedVersions.filter((version) => satisfiesSemverRange(version, exception.unpublishedRange));
-    const unexpectedTags = [...gitTags].map(normalizeSemver).filter((version) => version
+    const unexpectedTags = [...effectiveGitTags].map(normalizeSemver).filter((version) => version
       && satisfiesSemverRange(version, exception.unpublishedRange));
     if (unexpectedPublished.length || unexpectedTags.length) {
       failures.push(`legacy exception ${exception.id} unpublishedRange contains a published tag or artifact`);
@@ -708,7 +729,6 @@ function analyzeReleaseGraph(input = {}) {
         failures.push(`published source v${sourceVersion} cannot reach published latest v${latestPublishedVersion}`);
       }
     });
-  const worktreeCandidateVersion = normalizeSemver(candidate && candidate.version);
   policy.legacyExceptions.forEach((exception) => {
     const from = normalizeSemver(exception.from);
     const reachesLatest = canReachPublishedLatest(from);
@@ -752,7 +772,7 @@ function analyzeReleaseGraph(input = {}) {
     if (!candidateVersion || compareSemver(candidateVersion, latestPublishedVersion) <= 0) {
       failures.push(`release candidate must be newer than published latest v${latestPublishedVersion}`);
     }
-    if (candidateVersion && gitTags.has(semverToTag(candidateVersion))) {
+    if (candidateVersion && effectiveGitTags.has(semverToTag(candidateVersion))) {
       failures.push(`release candidate tag ${semverToTag(candidateVersion)} already exists`);
     }
     failures.push(...validateCandidateArchive(candidate, input.candidateArchive));
@@ -835,8 +855,13 @@ function parseJsonBlob(text, label) {
 function loadPublishedReleaseRegistry(options = {}) {
   const policy = options.policy;
   const artifactRef = String(options.artifactRef || '').trim();
+  const transientCandidateVersionInput = String(options.transientCandidateVersion || '').trim();
+  const transientCandidateVersion = normalizeSemver(transientCandidateVersionInput);
   const cwd = options.cwd || process.cwd();
   if (!artifactRef) throw new Error('release artifact ref is required');
+  if (transientCandidateVersionInput && !transientCandidateVersion) {
+    throw new Error('transient candidate version must be an exact semantic version');
+  }
   try {
     gitOutput(['rev-parse', '--verify', artifactRef], { cwd });
   } catch (error) {
@@ -854,11 +879,23 @@ function loadPublishedReleaseRegistry(options = {}) {
     .split(/\r?\n/u)
     .map((value) => value.trim())
     .filter((value) => /^v\d+\.\d+\.\d+$/u.test(value)));
+  let transientCandidateFinalized = false;
+  if (transientCandidateVersion) {
+    const expected = expectedTargetMetadata(policy, transientCandidateVersion);
+    const hasManifest = artifactPaths.has(expected.systemReleasePath);
+    const hasIntent = artifactPaths.has(expected.releaseIntentPath);
+    if (hasManifest !== hasIntent) {
+      throw new Error(`transient candidate v${transientCandidateVersion} has a partial immutable manifest tuple`);
+    }
+    transientCandidateFinalized = hasManifest && hasIntent;
+    if (!transientCandidateFinalized) gitTags.delete(expected.tag);
+  }
   const floor = normalizeSemver(policy.support.floor);
   const versions = new Set();
   artifactPaths.forEach((artifactPath) => {
     const match = artifactPath.match(/^v(\d+\.\d+\.\d+)\//u);
     const version = normalizeSemver(match && match[1]);
+    if (version === transientCandidateVersion && !transientCandidateFinalized) return;
     if (version && compareSemver(version, floor) >= 0) versions.add(version);
   });
   gitTags.forEach((tag) => {
@@ -900,6 +937,7 @@ function loadPublishedReleaseRegistry(options = {}) {
     artifactRef,
     artifactPaths,
     gitTags,
+    transientCandidateFinalized,
     latestReleaseIntentText,
     latestSystemReleaseText,
     publishedReleases
@@ -918,6 +956,7 @@ function loadGitHubReleaseRegistry(file) {
     releases.set(tag, {
       draft: entry.draft === true,
       prerelease: entry.prerelease === true,
+      immutable: entry.immutable === true,
       assets: Array.isArray(entry.assets) ? entry.assets : []
     });
   });
@@ -966,6 +1005,7 @@ function parseArgs(argv) {
     artifactRef: 'origin/release-artifacts',
     githubReleasesPath: '',
     candidateArchivePath: '',
+    transientCandidateVersion: '',
     validationMode: 'audit',
     quiet: false,
     help: false
@@ -977,6 +1017,7 @@ function parseArgs(argv) {
     else if (arg === '--artifact-ref') options.artifactRef = argv[++index] || '';
     else if (arg === '--github-releases') options.githubReleasesPath = argv[++index] || '';
     else if (arg === '--candidate-archive') options.candidateArchivePath = argv[++index] || '';
+    else if (arg === '--transient-candidate-version') options.transientCandidateVersion = argv[++index] || '';
     else if (arg === '--mode') options.validationMode = argv[++index] || '';
     else if (arg === '--quiet') options.quiet = true;
     else if (arg === '--check') continue;
@@ -996,6 +1037,7 @@ function printHelp() {
     '  --artifact-ref <ref>  Git ref containing published release artifacts',
     '  --github-releases <path>  Paginated GitHub Releases API JSON (required)',
     '  --candidate-archive <path>  Built candidate ZIP required in candidate mode',
+    '  --transient-candidate-version <version>  Exclude one non-finalized candidate transaction',
     '  --mode <mode>          audit, auto, or candidate (default: audit)',
     '  --check               Validate and exit non-zero on failure',
     '  --quiet               Suppress the success summary'
@@ -1018,12 +1060,16 @@ function main(argv = process.argv.slice(2)) {
   const registry = loadPublishedReleaseRegistry({
     policy,
     artifactRef: options.artifactRef,
+    transientCandidateVersion: options.transientCandidateVersion,
     cwd: process.cwd()
   });
   const result = analyzeReleaseGraph({
     policy,
     candidate,
     candidateArchive,
+    transientCandidateVersion: registry.transientCandidateFinalized
+      ? ''
+      : options.transientCandidateVersion,
     validationMode: options.validationMode,
     publishedReleases: registry.publishedReleases,
     artifactPaths: registry.artifactPaths,

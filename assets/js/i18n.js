@@ -21,7 +21,7 @@ import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js';
 // Default language fallback when no user/browser preference is available.
 const DEFAULT_LANG = 'en';
 const STORAGE_KEY = 'lang';
-const FALLBACK_LANGUAGE_LABEL = (enLanguageMeta && enLanguageMeta.label) ? enLanguageMeta.label : 'English';
+const FALLBACK_LANGUAGE_LABEL = enLanguageMeta && enLanguageMeta.label ? enLanguageMeta.label : 'English';
 
 // Export the default language constant for use by other modules
 export { DEFAULT_LANG };
@@ -63,9 +63,15 @@ async function fetchConfigWithYamlFallbackForRuntime(runtime, names) {
       if (lower.endsWith('.json')) return await response.json();
       if (lower.endsWith('.yaml') || lower.endsWith('.yml')) {
         const text = await response.text();
-        try { return parseYAML(text); } catch (_) { /* try next */ }
+        try {
+          return parseYAML(text);
+        } catch (_) {
+          /* try next */
+        }
       }
-    } catch (_) { /* try next */ }
+    } catch (_) {
+      /* try next */
+    }
   }
   return {};
 }
@@ -75,9 +81,9 @@ async function fetchConfigWithYamlFallbackForRuntime(runtime, names) {
 // removed only after the support floor advances beyond sidecar-era sites.
 async function loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName, languageCandidates = null) {
   const state = runtime.state;
-  const languages = (Array.isArray(languageCandidates)
-    ? languageCandidates
-    : [state.currentLang, state.baseDefaultLang, DEFAULT_LANG])
+  const languages = (
+    Array.isArray(languageCandidates) ? languageCandidates : [state.currentLang, state.baseDefaultLang, DEFAULT_LANG]
+  )
     .map(normalizeLangKey)
     .filter((value, index, list) => value && list.indexOf(value) === index);
   for (const lang of languages) {
@@ -139,7 +145,9 @@ function createI18nRuntime(options = {}) {
     },
     getLocalStorage() {
       const win = runtime.getWindow();
-      return localStorageRef || (win && win.localStorage) || (typeof localStorage !== 'undefined' ? localStorage : null);
+      return (
+        localStorageRef || (win && win.localStorage) || (typeof localStorage !== 'undefined' ? localStorage : null)
+      );
     },
     getFetch() {
       if (fetchImpl) return fetchImpl;
@@ -158,7 +166,9 @@ function createI18nRuntime(options = {}) {
 
 function interpretTruthyFlag(v) {
   if (v === true) return true;
-  const s = String(v ?? '').trim().toLowerCase();
+  const s = String(v ?? '')
+    .trim()
+    .toLowerCase();
   return s === 'true' || s === '1' || s === 'yes' || s === 'y' || s === 'on' || s === 'enabled';
 }
 
@@ -201,7 +211,9 @@ function isPlainObject(value) {
 
 function hasIndexVariantMetadata(value) {
   if (!isPlainObject(value)) return false;
-  return Object.keys(value).some((key) => INDEX_METADATA_KEYS.has(key) && key !== 'location' && key !== 'path' && key !== 'versions');
+  return Object.keys(value).some(
+    (key) => INDEX_METADATA_KEYS.has(key) && key !== 'location' && key !== 'path' && key !== 'versions'
+  );
 }
 
 function hasCompleteIndexVariantMetadata(value) {
@@ -209,7 +221,8 @@ function hasCompleteIndexVariantMetadata(value) {
   const hasTitle = value.title != null && String(value.title).trim();
   const hasProtectionFlag = value.protected != null || value.encryption != null;
   const protectedValue = interpretTruthyFlag(value.protected) || !!value.encryption;
-  const hasCardBody = value.excerpt != null || value.readTime != null || value.readMinutes != null || value.minutes != null;
+  const hasCardBody =
+    value.excerpt != null || value.readTime != null || value.readMinutes != null || value.minutes != null;
   return !!hasTitle && hasProtectionFlag && (protectedValue || hasCardBody);
 }
 
@@ -224,16 +237,16 @@ function resolveIndexImagePath(image, location) {
 }
 
 function normalizeIndexVariant(raw, fallbackTitle, sharedMeta = {}) {
-  const source = isPlainObject(raw)
-    ? { ...sharedMeta, ...raw }
-    : { ...sharedMeta, location: raw };
+  const source = isPlainObject(raw) ? { ...sharedMeta, ...raw } : { ...sharedMeta, location: raw };
   const location = normalizeMarkdownPath(source.location || source.path);
   if (!location) return null;
   const item = { location };
   const image = resolveIndexImagePath(source.image || source.cover || source.thumb, location);
   const tag = source.tags != null ? source.tags : source.tag;
   const versionLabel = source.versionLabel != null ? source.versionLabel : source.version;
-  const readTime = Number(source.readTime != null ? source.readTime : (source.readMinutes != null ? source.readMinutes : source.minutes));
+  const readTime = Number(
+    source.readTime != null ? source.readTime : source.readMinutes != null ? source.readMinutes : source.minutes
+  );
   if (image) item.image = image;
   if (tag != null) item.tag = tag;
   if (source.date != null && String(source.date).trim()) item.date = source.date;
@@ -242,7 +255,8 @@ function normalizeIndexVariant(raw, fallbackTitle, sharedMeta = {}) {
   if (Number.isFinite(readTime) && readTime > 0) item.readTime = readTime;
   if (interpretTruthyFlag(source.ai || source.aiGenerated || source.llm)) item.ai = true;
   if (interpretTruthyFlag(source.draft || source.wip || source.unfinished || source.inprogress)) item.draft = true;
-  if (source.protected != null || source.encryption != null) item.protected = interpretTruthyFlag(source.protected) || !!source.encryption;
+  if (source.protected != null || source.encryption != null)
+    item.protected = interpretTruthyFlag(source.protected) || !!source.encryption;
   if (source.title != null && String(source.title).trim()) item.__title = String(source.title).trim();
   else if (fallbackTitle && hasIndexVariantMetadata(source)) item.__title = fallbackTitle;
   item.__indexMetadata = hasCompleteIndexVariantMetadata(source);
@@ -251,18 +265,15 @@ function normalizeIndexVariant(raw, fallbackTitle, sharedMeta = {}) {
 
 function normalizeIndexVariantList(raw, fallbackTitle, sharedMeta = {}) {
   const list = Array.isArray(raw) ? raw : [raw];
-  return list
-    .map(item => normalizeIndexVariant(item, fallbackTitle, sharedMeta))
-    .filter(Boolean);
+  return list.map((item) => normalizeIndexVariant(item, fallbackTitle, sharedMeta)).filter(Boolean);
 }
 
 function isIndexVariantBucket(value) {
   if (typeof value === 'string') return !!normalizeMarkdownPath(value);
   if (Array.isArray(value)) {
-    return value.every(item => (
-      typeof item === 'string'
-      || (isPlainObject(item) && (item.location != null || item.path != null))
-    ));
+    return value.every(
+      (item) => typeof item === 'string' || (isPlainObject(item) && (item.location != null || item.path != null))
+    );
   }
   return isPlainObject(value) && (value.location != null || value.path != null);
 }
@@ -345,7 +356,11 @@ async function performFrontMatterFetch(runtime, markdownPath) {
     assignDefinedMetadataField(meta, 'excerpt', fm.excerpt || undefined);
     assignDefinedMetadataField(meta, 'versionLabel', fm.version || undefined);
     assignDefinedMetadataField(meta, 'ai', interpretTruthyFlag(fm.ai || fm.aiGenerated || fm.llm) || undefined);
-    assignDefinedMetadataField(meta, 'draft', interpretTruthyFlag(fm.draft || fm.wip || fm.unfinished || fm.inprogress) || undefined);
+    assignDefinedMetadataField(
+      meta,
+      'draft',
+      interpretTruthyFlag(fm.draft || fm.wip || fm.unfinished || fm.inprogress) || undefined
+    );
     assignDefinedMetadataField(meta, 'protected', isProtected || undefined);
     assignDefinedMetadataField(meta, '__title', fm.title || undefined);
     return meta;
@@ -365,7 +380,9 @@ function processFrontMatterQueue(runtime) {
     }
     const path = normalizeMarkdownPath(job.path);
     if (!path) {
-      try { job.resolve({ location: path }); } catch (_) {}
+      try {
+        job.resolve({ location: path });
+      } catch (_) {}
       continue;
     }
     state.frontMatterActiveFetches += 1;
@@ -374,13 +391,17 @@ function processFrontMatterQueue(runtime) {
         const data = meta && meta.location ? meta : { location: path };
         const stable = Object.freeze({ ...data });
         state.frontMatterMetadataCache.set(path, stable);
-        try { job.resolve(stable); } catch (_) {}
+        try {
+          job.resolve(stable);
+        } catch (_) {}
       })
       .catch((err) => {
         console.warn(`Failed to load content from ${path}:`, err);
         const fallback = Object.freeze({ location: path });
         state.frontMatterMetadataCache.set(path, fallback);
-        try { job.resolve(fallback); } catch (_) {}
+        try {
+          job.resolve(fallback);
+        } catch (_) {}
       })
       .finally(() => {
         state.frontMatterActiveFetches = Math.max(0, state.frontMatterActiveFetches - 1);
@@ -413,7 +434,9 @@ function emitBundleLoaded(runtime, lang) {
   if (!windowRef || typeof windowRef.dispatchEvent !== 'function') return;
   try {
     windowRef.dispatchEvent(runtime.createCustomEvent('ns:i18n-bundle-loaded', { detail: { lang } }));
-  } catch (_) { /* ignore */ }
+  } catch (_) {
+    /* ignore */
+  }
 }
 
 function upsertManifestEntry(runtime, value, label, { preferFront = false } = {}) {
@@ -447,7 +470,8 @@ async function loadLanguageBundle(runtime, langCode) {
     // Attempt implicit fallback to ./<code>.js relative to manifest when not registered
     if (state.manifestBaseUrl) {
       try {
-        const implicitUrl = new URL(`./${code}.js`, state.manifestBaseUrl);
+        const implicitUrl = resolveLanguageModuleUrl(`./${code}.js`, state.manifestBaseUrl);
+        if (!implicitUrl) return null;
         state.languageModuleUrls.set(code, implicitUrl.href);
         return loadLanguageBundle(runtime, code);
       } catch (_) {
@@ -459,7 +483,12 @@ async function loadLanguageBundle(runtime, langCode) {
   const loader = (async () => {
     try {
       const mod = await import(moduleHref);
-      const bundle = (mod && typeof mod.default === 'object') ? mod.default : (mod && typeof mod.translations === 'object' ? mod.translations : null);
+      const bundle =
+        mod && typeof mod.default === 'object'
+          ? mod.default
+          : mod && typeof mod.translations === 'object'
+            ? mod.translations
+            : null;
       if (!bundle) {
         console.warn(`[i18n] Language module ${moduleHref} did not export a translations object`);
         return null;
@@ -471,7 +500,7 @@ async function loadLanguageBundle(runtime, langCode) {
       emitBundleLoaded(runtime, code);
       return state.translations[code];
     } catch (err) {
-      console.warn("[i18n] Failed to load language bundle for %s", code, err);
+      console.warn('[i18n] Failed to load language bundle for %s', code, err);
       return null;
     }
   })().finally(() => {
@@ -479,6 +508,21 @@ async function loadLanguageBundle(runtime, langCode) {
   });
   state.bundleLoadPromises.set(code, loader);
   return loader;
+}
+
+export function resolveLanguageModuleUrl(modulePath, manifestUrl) {
+  let resolved;
+  let manifestOrigin;
+  try {
+    resolved = new URL(String(modulePath || ''), manifestUrl);
+    manifestOrigin = manifestUrl instanceof URL ? manifestUrl.origin : new URL(manifestUrl).origin;
+  } catch {
+    return null;
+  }
+  if (resolved.origin !== manifestOrigin) return null;
+  if (resolved.username || resolved.password) return null;
+  if (!resolved.pathname.toLowerCase().endsWith('.js')) return null;
+  return resolved;
 }
 
 async function ensureLanguageBundlesLoaded(runtime, langToEnsure) {
@@ -504,14 +548,20 @@ async function ensureLanguageBundlesLoaded(runtime, langToEnsure) {
       state.languageManifest = [];
       for (const entry of manifest) {
         if (!entry) continue;
-        const value = String(entry.value || '').toLowerCase().trim();
+        const value = String(entry.value || '')
+          .toLowerCase()
+          .trim();
         if (!value || seen.has(value)) continue;
         const modulePath = entry.module || `./${value}.js`;
         let moduleUrl = null;
         try {
-          moduleUrl = new URL(modulePath, manifestUrl);
+          moduleUrl = resolveLanguageModuleUrl(modulePath, manifestUrl);
         } catch (err) {
           console.warn(`[i18n] Invalid module path for ${value}`, err);
+          continue;
+        }
+        if (!moduleUrl) {
+          console.warn(`[i18n] Rejected unsafe module path for ${value}`);
           continue;
         }
         state.languageModuleUrls.set(value, moduleUrl.href);
@@ -521,22 +571,28 @@ async function ensureLanguageBundlesLoaded(runtime, langToEnsure) {
       }
       if (!state.languageModuleUrls.has(DEFAULT_LANG)) {
         try {
-          const fallbackUrl = new URL('./en.js', manifestUrl);
+          const fallbackUrl = resolveLanguageModuleUrl('./en.js', manifestUrl);
+          if (!fallbackUrl) throw new Error('Unsafe fallback language module URL');
           state.languageModuleUrls.set(DEFAULT_LANG, fallbackUrl.href);
         } catch (err) {
           console.warn('[i18n] Unable to register fallback English bundle', err);
         }
       }
       if (!state.languageNames[DEFAULT_LANG]) state.languageNames[DEFAULT_LANG] = FALLBACK_LANGUAGE_LABEL;
-      upsertManifestEntry(runtime, DEFAULT_LANG, state.languageNames[DEFAULT_LANG] || FALLBACK_LANGUAGE_LABEL || DEFAULT_LANG, { preferFront: true });
+      upsertManifestEntry(
+        runtime,
+        DEFAULT_LANG,
+        state.languageNames[DEFAULT_LANG] || FALLBACK_LANGUAGE_LABEL || DEFAULT_LANG,
+        { preferFront: true }
+      );
       state.languageManifest = state.languageManifest.reduce((acc, entry) => {
         if (!entry || !entry.value) return acc;
         if (acc.find((item) => item.value === entry.value)) return acc;
         acc.push(entry);
         return acc;
       }, []);
-  })();
-}
+    })();
+  }
   await state.manifestLoadPromise;
 
   if (!state.translations[DEFAULT_LANG]) {
@@ -564,12 +620,14 @@ function detectLang(runtime) {
     const saved = storage && typeof storage.getItem === 'function' ? storage.getItem(STORAGE_KEY) : '';
     if (saved) return saved;
   } catch (_) {}
-  const nav = navigatorRef ? (navigatorRef.language || navigatorRef.userLanguage || '') : '';
+  const nav = navigatorRef ? navigatorRef.language || navigatorRef.userLanguage || '' : '';
   return normalizeBrowserLanguage(nav) || DEFAULT_LANG;
 }
 
 function normalizeBrowserLanguage(raw) {
-  const lower = String(raw || '').trim().toLowerCase();
+  const lower = String(raw || '')
+    .trim()
+    .toLowerCase();
   if (!lower) return '';
   const chineseBrowserPrefix = String.fromCharCode(122, 104);
   if (lower === chineseBrowserPrefix || lower.startsWith(`${chineseBrowserPrefix}-`)) {
@@ -597,7 +655,7 @@ async function initI18nWithRuntime(runtime, opts = {}) {
   if (!state.translations[state.currentLang]) state.currentLang = def;
   // Persist only when allowed (default: true). This enables callers to
   // perform a non-persistent bootstrap before site config is loaded.
-  const shouldPersist = (opts && Object.prototype.hasOwnProperty.call(opts, 'persist')) ? !!opts.persist : true;
+  const shouldPersist = opts && Object.prototype.hasOwnProperty.call(opts, 'persist') ? !!opts.persist : true;
   if (shouldPersist) {
     try {
       if (storage && typeof storage.setItem === 'function') storage.setItem(STORAGE_KEY, state.currentLang);
@@ -612,7 +670,9 @@ async function initI18nWithRuntime(runtime, opts = {}) {
   return state.currentLang;
 }
 
-function getCurrentLangWithRuntime(runtime) { return runtime.state.currentLang; }
+function getCurrentLangWithRuntime(runtime) {
+  return runtime.state.currentLang;
+}
 
 async function ensureLanguageBundleWithRuntime(runtime, langCode) {
   const state = runtime.state;
@@ -701,9 +761,9 @@ function transformUnifiedContent(runtime, obj, lang) {
     let title = null;
     let location = null;
     // Gather variant keys excluding reserved
-    const variantKeys = Object.keys(val).filter(k => !RESERVED.has(k));
+    const variantKeys = Object.keys(val).filter((k) => !RESERVED.has(k));
     // Track langs available on this entry
-    variantKeys.forEach(k => {
+    variantKeys.forEach((k) => {
       const nk = normalizeLangKey(k);
       if (nk !== 'default') langsSeen.add(nk);
     });
@@ -724,7 +784,10 @@ function transformUnifiedContent(runtime, obj, lang) {
     if (!chosen && variantKeys.length) {
       for (const vk of variantKeys) {
         const pick = tryPick(normalizeLangKey(vk));
-        if (pick) { chosen = pick; break; }
+        if (pick) {
+          chosen = pick;
+          break;
+        }
       }
     }
     // Fallback to legacy flat shape if not unified
@@ -738,10 +801,21 @@ function transformUnifiedContent(runtime, obj, lang) {
     const protectedValue = chosen && chosen.protected != null ? chosen.protected : val.protected;
     const meta = {
       location,
-      image: resolveIndexImagePath((chosen && (chosen.image || chosen.cover || chosen.thumb)) || val.image || val.cover || val.thumb, location) || undefined,
-      tag: chosen && (chosen.tag != null || chosen.tags != null)
-        ? (chosen.tags != null ? chosen.tags : chosen.tag)
-        : (val.tag != null ? val.tag : (val.tags != null ? val.tags : undefined)),
+      image:
+        resolveIndexImagePath(
+          (chosen && (chosen.image || chosen.cover || chosen.thumb)) || val.image || val.cover || val.thumb,
+          location
+        ) || undefined,
+      tag:
+        chosen && (chosen.tag != null || chosen.tags != null)
+          ? chosen.tags != null
+            ? chosen.tags
+            : chosen.tag
+          : val.tag != null
+            ? val.tag
+            : val.tags != null
+              ? val.tags
+              : undefined,
       date: (chosen && chosen.date) || val.date || undefined,
       // Prefer language-specific excerpt; fall back to top-level excerpt for legacy data
       excerpt: (chosen && chosen.excerpt) || val.excerpt || undefined,
@@ -806,7 +880,7 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
 
   for (const [, val] of entries) {
     if (val && typeof val === 'object' && !Array.isArray(val)) {
-      getIndexLanguageKeys(val).forEach(k => {
+      getIndexLanguageKeys(val).forEach((k) => {
         const nk = normalizeLangKey(k);
         if (nk === 'default') addDefaultContentLang(runtime, langsSeen);
         else langsSeen.add(nk);
@@ -828,7 +902,8 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
     const languageKeys = getIndexLanguageKeys(val);
     if (val && typeof val === 'object') {
       if (val[nlang] != null && isIndexVariantBucket(val[nlang])) chosenBucketKey = nlang;
-      else if (val[state.baseDefaultLang] != null && isIndexVariantBucket(val[state.baseDefaultLang])) chosenBucketKey = state.baseDefaultLang;
+      else if (val[state.baseDefaultLang] != null && isIndexVariantBucket(val[state.baseDefaultLang]))
+        chosenBucketKey = state.baseDefaultLang;
       else if (val['en'] != null && isIndexVariantBucket(val['en'])) chosenBucketKey = 'en';
       else if (val['default'] != null && isIndexVariantBucket(val['default'])) chosenBucketKey = 'default';
       if (!chosenBucketKey) {
@@ -839,7 +914,7 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
     }
 
     const declaredVariants = normalizeIndexVariantList(raw, key, sharedMeta);
-    const normalizedPaths = declaredVariants.map(variant => variant.location).filter(Boolean);
+    const normalizedPaths = declaredVariants.map((variant) => variant.location).filter(Boolean);
     if (!normalizedPaths.length) continue;
 
     const variantSources = declaredVariants.map((variant) => {
@@ -852,34 +927,40 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
 
     out[placeholderEntry.title] = placeholderEntry.meta;
 
-    const needsAsync = variantSources.some((variant) => !variant.__indexMetadata && !state.frontMatterMetadataCache.has(variant.location));
+    const needsAsync = variantSources.some(
+      (variant) => !variant.__indexMetadata && !state.frontMatterMetadataCache.has(variant.location)
+    );
     if (!needsAsync) continue;
 
     const fetchPromises = variantSources.map((variant) =>
       variant.__indexMetadata
         ? Promise.resolve(variant)
-        : getFrontMatterMetadata(runtime, variant.location).then(meta => mergeDefinedMetadata(variant, meta)).catch(() => variant)
+        : getFrontMatterMetadata(runtime, variant.location)
+            .then((meta) => mergeDefinedMetadata(variant, meta))
+            .catch(() => variant)
     );
 
     const previousTitle = placeholderEntry.title;
-    const enrichPromise = Promise.allSettled(fetchPromises).then((settled) => {
-      const resolvedVariants = settled.map((result, idx) => {
-        if (result.status === 'fulfilled' && result.value && result.value.location) {
-          return result.value;
+    const enrichPromise = Promise.allSettled(fetchPromises)
+      .then((settled) => {
+        const resolvedVariants = settled.map((result, idx) => {
+          if (result.status === 'fulfilled' && result.value && result.value.location) {
+            return result.value;
+          }
+          return variantSources[idx] || { location: normalizedPaths[idx] };
+        });
+        const finalEntry = buildEntryFromVariants(resolvedVariants, key);
+        if (!finalEntry) return;
+        const oldKey = previousTitle;
+        const newKey = finalEntry.title;
+        if (newKey !== oldKey && Object.prototype.hasOwnProperty.call(out, oldKey)) {
+          delete out[oldKey];
         }
-        return variantSources[idx] || { location: normalizedPaths[idx] };
+        out[newKey] = finalEntry.meta;
+      })
+      .catch((err) => {
+        console.warn(`[i18n] Failed to enrich metadata for ${key}`, err);
       });
-      const finalEntry = buildEntryFromVariants(resolvedVariants, key);
-      if (!finalEntry) return;
-      const oldKey = previousTitle;
-      const newKey = finalEntry.title;
-      if (newKey !== oldKey && Object.prototype.hasOwnProperty.call(out, oldKey)) {
-        delete out[oldKey];
-      }
-      out[newKey] = finalEntry.meta;
-    }).catch((err) => {
-      console.warn(`[i18n] Failed to enrich metadata for ${key}`, err);
-    });
     updatePromises.push(enrichPromise);
   }
 
@@ -888,19 +969,22 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
       const windowRef = runtime.getWindow();
       if (!windowRef || typeof windowRef.dispatchEvent !== 'function') return;
       try {
-        windowRef.dispatchEvent(runtime.createCustomEvent(POSTS_METADATA_READY_EVENT, {
-          detail: {
-            entries: out,
-            lang: nlang
-          }
-        }));
-      } catch (_) { /* ignore */ }
+        windowRef.dispatchEvent(
+          runtime.createCustomEvent(POSTS_METADATA_READY_EVENT, {
+            detail: {
+              entries: out,
+              lang: nlang
+            }
+          })
+        );
+      } catch (_) {
+        /* ignore */
+      }
     });
   }
 
   return { entries: out, availableLangs: Array.from(langsSeen).sort() };
 }
-
 
 // Load unified YAML (`base.yaml`) or simplified content mappings. Recovery
 // reads the exact current-language sidecar over a flat base, or falls back to
@@ -919,7 +1003,7 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
       const keys = Object.keys(obj || {});
       let isUnified = false;
       let isSimplified = false;
-      
+
       // Check if it's a simplified format (just path mappings) or unified format
       for (const k of keys) {
         const v = obj[k];
@@ -934,13 +1018,19 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
             isSimplified = true;
             break;
           }
-          
+
           // Check for unified format
-          if ('default' in v) { isUnified = true; break; }
-          if (innerKeys.some(ik => !INDEX_METADATA_KEYS.has(ik))) { isUnified = true; break; }
+          if ('default' in v) {
+            isUnified = true;
+            break;
+          }
+          if (innerKeys.some((ik) => !INDEX_METADATA_KEYS.has(ik))) {
+            isUnified = true;
+            break;
+          }
         }
       }
-      
+
       if (isSimplified) {
         // Handle simplified format - load metadata from front matter
         const current = getCurrentLangWithRuntime(runtime);
@@ -954,7 +1044,7 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
         setContentLangs(runtime, availableLangs);
         return { entries, raw };
       }
-      
+
       if (isUnified) {
         const current = getCurrentLangWithRuntime(runtime);
         const { entries, availableLangs } = transformUnifiedContent(runtime, obj, current);
@@ -963,7 +1053,9 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
         return { entries, raw };
       }
     }
-  } catch (_) { /* try the bounded recovery fallback */ }
+  } catch (_) {
+    /* try the bounded recovery fallback */
+  }
 
   const legacy = await loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName);
   if (legacy) {
@@ -989,7 +1081,7 @@ function transformUnifiedTabs(runtime, obj, lang) {
   for (const [key, val] of Object.entries(obj || {})) {
     if (!val || typeof val !== 'object' || Array.isArray(val)) continue;
     const variantKeys = Object.keys(val);
-    variantKeys.forEach(k => {
+    variantKeys.forEach((k) => {
       const nk = normalizeLangKey(k);
       if (nk !== 'default') langsSeen.add(nk);
     });
@@ -1008,7 +1100,10 @@ function transformUnifiedTabs(runtime, obj, lang) {
     if (!chosen && variantKeys.length) {
       for (const vk of variantKeys) {
         const pick = tryPick(normalizeLangKey(vk));
-        if (pick) { chosen = pick; break; }
+        if (pick) {
+          chosen = pick;
+          break;
+        }
       }
     }
     if (!chosen && 'location' in val) chosen = { title: key, location: String(val.location || '') };
@@ -1016,11 +1111,15 @@ function transformUnifiedTabs(runtime, obj, lang) {
     if (!chosen || !chosen.location) continue;
     const title = chosen.title || key;
     // Provide a stable slug derived from the base key so it stays consistent across languages
-    const stableSlug = String(key || '').toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9\-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '') || ('t-' + Math.abs(Array.from(String(key||'')).reduce((h,c)=>((h<<5)-h)+c.charCodeAt(0)|0,0)).toString(36));
+    const stableSlug =
+      String(key || '')
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9\-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '') ||
+      't-' +
+        Math.abs(Array.from(String(key || '')).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)).toString(36);
     out[title] = { location: chosen.location, slug: stableSlug };
   }
   return { entries: out, availableLangs: Array.from(langsSeen).sort() };
@@ -1065,9 +1164,15 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
       for (const [k, v] of Object.entries(obj || {})) {
         if (isFlatTabsEntry(v)) continue;
         if (v && typeof v === 'object' && !Array.isArray(v)) {
-          if ('default' in v) { isUnified = true; break; }
+          if ('default' in v) {
+            isUnified = true;
+            break;
+          }
           const inner = Object.keys(v);
-          if (inner.some(ik => !['location'].includes(ik))) { isUnified = true; break; }
+          if (inner.some((ik) => !['location'].includes(ik))) {
+            isUnified = true;
+            break;
+          }
         }
       }
       if (isUnified) {
@@ -1078,12 +1183,9 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
       }
       const entries = transformFlatTabs(obj);
       if (entries && Object.keys(entries).length) {
-        const legacy = await loadRecoveryContentSidecarWithRuntime(
-          runtime,
-          basePath,
-          baseName,
-          [getCurrentLangWithRuntime(runtime)]
-        );
+        const legacy = await loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName, [
+          getCurrentLangWithRuntime(runtime)
+        ]);
         if (legacy) {
           const legacyEntries = transformFlatTabs(legacy.raw);
           if (Object.keys(legacyEntries).length) {
@@ -1095,7 +1197,9 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
         return entries;
       }
     }
-  } catch (_) { /* try the bounded recovery fallback */ }
+  } catch (_) {
+    /* try the bounded recovery fallback */
+  }
   const legacy = await loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName);
   if (legacy) {
     const entries = transformFlatTabs(legacy.raw);
@@ -1131,9 +1235,11 @@ function applyStaticTranslations(runtime) {
     return;
   }
   const searchRegion = getThemeRegion('search');
-  const input = searchRegion && searchRegion.matches && searchRegion.matches('input')
-    ? searchRegion
-    : ((searchRegion && searchRegion.input) || (searchRegion && searchRegion.querySelector && searchRegion.querySelector('input[type="search"]')));
+  const input =
+    searchRegion && searchRegion.matches && searchRegion.matches('input')
+      ? searchRegion
+      : (searchRegion && searchRegion.input) ||
+        (searchRegion && searchRegion.querySelector && searchRegion.querySelector('input[type="search"]'));
   if (input) input.setAttribute('placeholder', tWithRuntime(runtime, 'sidebar.searchPlaceholder'));
 }
 
@@ -1145,10 +1251,12 @@ function setContentLangs(runtime, list) {
       state.contentLangs = add.length ? add : null;
     } else if (add.length) {
       const s = new Set(state.contentLangs);
-      add.forEach(x => s.add(x));
+      add.forEach((x) => s.add(x));
       state.contentLangs = Array.from(s);
     }
-  } catch (_) { /* ignore */ }
+  } catch (_) {
+    /* ignore */
+  }
 }
 
 function getAvailableLangsWithRuntime(runtime) {
@@ -1160,7 +1268,8 @@ function getAvailableLangsWithRuntime(runtime) {
   if (current && !state.translations[current]) {
     ensureLanguageBundleWithRuntime(runtime, current).catch(() => {});
   }
-  if (state.languageManifest && state.languageManifest.length) return state.languageManifest.map((entry) => entry.value);
+  if (state.languageManifest && state.languageManifest.length)
+    return state.languageManifest.map((entry) => entry.value);
   return Object.keys(state.translations);
 }
 
@@ -1216,7 +1325,9 @@ function switchLanguageWithRuntime(runtime, langCode) {
     windowRef.location.assign(url.toString());
   } catch (_) {
     const joiner = windowRef.location.search ? '&' : '?';
-    windowRef.location.assign(windowRef.location.pathname + windowRef.location.search + `${joiner}lang=${encodeURIComponent(code)}`);
+    windowRef.location.assign(
+      windowRef.location.pathname + windowRef.location.search + `${joiner}lang=${encodeURIComponent(code)}`
+    );
   }
 }
 

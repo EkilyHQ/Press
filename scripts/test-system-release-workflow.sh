@@ -167,6 +167,7 @@ assert.deepEqual(manifest.tierOrder.guard, [
   'pages-workflow',
   'pages-artifact',
   'code-quality-config',
+  'html-sink-policy',
   'vendor-manifest'
 ]);
 
@@ -181,6 +182,7 @@ assert.deepEqual(manifest.tierOrder.release, [
   'editor-main-sidebar-file-tree',
   'composer-app-services',
   'composer-service-registry',
+  'html-sink-policy',
   'press-system-surface',
   'editor-app-kernel',
   'provider-adapters',

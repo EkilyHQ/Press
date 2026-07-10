@@ -17,6 +17,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify release graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RUNNER_TEMP}/press-github-releases.json"
+          node scripts/test-release-graph.js
+          node scripts/release-graph.js --mode audit --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --check
+          bash scripts/test-system-release-workflow.sh
+
       - name: Enforce main safety rules
         run: |
           bash scripts/check-main-safety.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"

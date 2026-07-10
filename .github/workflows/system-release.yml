@@ -25,7 +25,13 @@ jobs:
           fetch-depth: 0
 
       - name: Verify release package boundary
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RUNNER_TEMP}/press-github-releases.json"
+          node scripts/test-release-graph.js
+          node scripts/release-graph.js --mode audit --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --check
           node scripts/sync-runtime-cache-keys.mjs --check
           node scripts/test-composer-action-contract.js
           node scripts/test-composer-root-contract.js
@@ -126,6 +132,16 @@ jobs:
             echo "archive_size=${archive_size}"
             echo "archive_sha256=${archive_sha256}"
           } >> "${GITHUB_OUTPUT}"
+
+      - name: Verify release graph candidate
+        if: steps.plan.outputs.should_release == 'true'
+        run: |
+          node scripts/release-graph.js \
+            --mode candidate \
+            --artifact-ref origin/release-artifacts \
+            --github-releases "${RUNNER_TEMP}/press-github-releases.json" \
+            --candidate-archive "${{ steps.package.outputs.archive_path }}" \
+            --check
 
       - name: Create draft release
         if: steps.plan.outputs.should_release == 'true'

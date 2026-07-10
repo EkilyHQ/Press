@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 workflow=".github/workflows/system-release.yml"
+main_workflow=".github/workflows/main-guard.yml"
 
 if [[ ! -f "${workflow}" ]]; then
   echo "expected ${workflow} to exist" >&2
@@ -210,6 +211,47 @@ fi
 
 if ! grep -F 'node scripts/test-release-intent.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify release intent helpers before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F "git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'" "${workflow}" >/dev/null; then
+  echo "system release workflow must fetch the versioned release artifact registry before graph verification" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-release-graph.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must run focused release graph policy tests before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--github-releases "${RUNNER_TEMP}/press-github-releases.json"' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify published GitHub Release objects" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/release-graph.js --mode audit --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --check' "${workflow}" >/dev/null; then
+  echo "system release workflow must audit the published release graph before planning a release" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-release-graph.js' "${main_workflow}" >/dev/null \
+  || ! grep -F 'node scripts/release-graph.js --mode audit --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --check' "${main_workflow}" >/dev/null \
+  || ! grep -F 'bash scripts/test-system-release-workflow.sh' "${main_workflow}" >/dev/null; then
+  echo "main guard must run focused release graph tests, live audit, and workflow wiring checks" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--mode candidate' "${workflow}" >/dev/null || ! grep -F -- '--candidate-archive "${{ steps.package.outputs.archive_path }}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the built candidate archive against the release graph" >&2
+  exit 1
+fi
+
+build_line="$(grep -nF -- '- name: Build system update package' "${workflow}" | cut -d: -f1)"
+candidate_line="$(grep -nF -- '- name: Verify release graph candidate' "${workflow}" | cut -d: -f1)"
+draft_line="$(grep -nF -- '- name: Create draft release' "${workflow}" | cut -d: -f1)"
+if [[ -z "${build_line}" || -z "${candidate_line}" || -z "${draft_line}"
+  || "${candidate_line}" -le "${build_line}" || "${candidate_line}" -ge "${draft_line}" ]]; then
+  echo "release graph candidate verification must run after package build and before draft release creation" >&2
   exit 1
 fi
 

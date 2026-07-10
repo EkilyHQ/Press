@@ -84,15 +84,22 @@ export function createEditorMainSidebarFileTree(options = {}) {
 
   const makeLi = (label, relPath) => {
     const li = documentRef.createElement('li');
+    const labelText = String(label ?? '');
+    const relPathText = String(relPath ?? '');
     li.className = 'file-item';
-    li.dataset.rel = relPath;
-    li.dataset.label = String(label || '').toLowerCase();
-    li.dataset.file = String(relPath || '').toLowerCase();
-    li.innerHTML = `
-        <div class="file-main">
-          <span class="file-label">${label}</span>
-          <span class="file-path">${relPath}</span>
-        </div>`;
+    li.dataset.rel = relPathText;
+    li.dataset.label = labelText.toLowerCase();
+    li.dataset.file = relPathText.toLowerCase();
+    const main = documentRef.createElement('div');
+    const labelNode = documentRef.createElement('span');
+    const pathNode = documentRef.createElement('span');
+    main.className = 'file-main';
+    labelNode.className = 'file-label';
+    pathNode.className = 'file-path';
+    labelNode.textContent = labelText;
+    pathNode.textContent = relPathText;
+    main.append(labelNode, pathNode);
+    li.appendChild(main);
     li.addEventListener('click', async () => {
       const url = toUrl(relPath);
       if (!url) return;

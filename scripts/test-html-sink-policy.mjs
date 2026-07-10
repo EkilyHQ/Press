@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectHtmlScriptElements, readHtmlAttribute } from '../assets/js/content-security-policy.mjs';
 import { scanJavaScriptSource, scanRepository, verifyInventory } from './check-html-sink-policy.mjs';
 import { resolveLanguageModuleUrl } from '../assets/js/i18n.js';
 import { resolveModuleEntry } from '../assets/js/theme-layout.js';
@@ -11,6 +12,67 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 async function read(relativePath) {
   return readFile(path.join(SCRIPT_DIR, relativePath), 'utf8');
 }
+
+const unusualScriptElements = collectHtmlScriptElements(
+  `<!-- <script>ignored()</script> -->
+   <script data-label=">">const marker = '</scriptx>'; safe();</script\t\n data-ignored>
+   <script src="./external.js"></script>`,
+  'script tokenizer fixture'
+);
+assert.equal(unusualScriptElements.length, 2, 'comments and tag-like script text must not distort script inventory');
+assert.equal(
+  unusualScriptElements[0].source,
+  "const marker = '</scriptx>'; safe();",
+  'script raw text must close only on a boundary-delimited script end tag'
+);
+assert.match(unusualScriptElements[0].attributes, /data-label=">"/u);
+assert.equal(unusualScriptElements[1].attributeMap.has('src'), true);
+assert.equal(readHtmlAttribute(' data-src="./not-a-script-source.js"', 'src'), '');
+assert.equal(readHtmlAttribute(' data-src="ignored" src="./external.js"', 'src'), './external.js');
+assert.equal(readHtmlAttribute(' data-type="module"', 'type'), '');
+assert.equal(readHtmlAttribute(' data-type="ignored" type="module"', 'type'), 'module');
+assert.equal(readHtmlAttribute(` data-x=" src='fake.js'"`, 'src'), '');
+assert.equal(readHtmlAttribute(` data-x=" type='module'"`, 'type'), '');
+assert.equal(readHtmlAttribute('\u00a0src="fake.js"', 'src'), '');
+assert.equal(readHtmlAttribute('\vtype="module"', 'type'), '');
+assert.equal(readHtmlAttribute('<meta data-name="ignored" name="viewport">', 'name'), 'viewport');
+assert.equal(
+  collectHtmlScriptElements('İ<ScRiPt>caseSafe()</ScRiPt data-ignored>', 'case fixture')[0].source,
+  'caseSafe()'
+);
+assert.equal(
+  collectHtmlScriptElements(
+    '<script data-src="./external.js">inlineSafe()</script>',
+    'data src fixture'
+  )[0].attributeMap.has('src'),
+  false
+);
+for (const source of ['<!-- x --!><script>danger()</script> -->', '<!--><script>danger()</script> -->']) {
+  assert.equal(collectHtmlScriptElements(source, 'comment edge fixture')[0].source, 'danger()');
+}
+for (const source of [
+  '<div foo=bar" ><script>MARK()</script> " >',
+  '<div foo" ><script>MARK()</script> " >',
+  '<div=" ><script>MARK()</script> " >',
+  '<div" ><script>MARK()</script> " >',
+  '</div" ><script>MARK()</script> " >'
+]) {
+  assert.equal(collectHtmlScriptElements(source, 'invalid quote fixture')[0].source, 'MARK()');
+}
+assert.deepEqual(
+  collectHtmlScriptElements(
+    '<script>safe()</script foo=bar" ><script>danger()</script> " >',
+    'closing tag quote fixture'
+  ).map(({ source }) => source),
+  ['safe()', 'danger()']
+);
+assert.throws(() => collectHtmlScriptElements('<script>missing close', 'missing close fixture'), /without an end tag/u);
+assert.throws(() => collectHtmlScriptElements('</script>', 'unmatched close fixture'), /unmatched script end tag/u);
+assert.throws(() => collectHtmlScriptElements('<!-- missing close', 'comment fixture'), /unterminated HTML comment/u);
+assert.throws(
+  () => collectHtmlScriptElements('<?x " ><script>danger()</script> " >', 'bogus declaration fixture'),
+  /unsupported HTML declaration syntax/u
+);
 
 const languageManifestUrl = new URL('https://example.test/assets/i18n/languages.json');
 assert.equal(
@@ -65,9 +127,10 @@ assert.deepEqual(
 assert.equal(positive.prohibited.length, 0, 'legitimate controls must not be reported as prohibited sinks');
 
 const negativePath = 'scripts/fixtures/html-sink-policy/negative.mjs';
+const negativeIntervalSource = ['window.set', 'Interval(`execute()`, 0);'].join('');
 const negative = scanJavaScriptSource({
   filePath: negativePath,
-  source: await read('fixtures/html-sink-policy/negative.mjs')
+  source: `${await read('fixtures/html-sink-policy/negative.mjs')}\n${negativeIntervalSource}\n`
 });
 assert.deepEqual(
   negative.prohibited.map(({ kind }) => kind).sort(),

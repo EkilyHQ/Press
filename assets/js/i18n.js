@@ -21,7 +21,7 @@ import enTranslations, { languageMeta as enLanguageMeta } from '../i18n/en.js';
 // Default language fallback when no user/browser preference is available.
 const DEFAULT_LANG = 'en';
 const STORAGE_KEY = 'lang';
-const FALLBACK_LANGUAGE_LABEL = enLanguageMeta && enLanguageMeta.label ? enLanguageMeta.label : 'English';
+const FALLBACK_LANGUAGE_LABEL = enLanguageMeta.label ? enLanguageMeta.label : 'English';
 
 // Export the default language constant for use by other modules
 export { DEFAULT_LANG };
@@ -798,16 +798,16 @@ function transformUnifiedContent(runtime, obj, lang) {
     if (!chosen || !chosen.location) continue;
     title = chosen.title || key;
     location = chosen.location;
-    const protectedValue = chosen && chosen.protected != null ? chosen.protected : val.protected;
+    const protectedValue = chosen.protected != null ? chosen.protected : val.protected;
     const meta = {
       location,
       image:
         resolveIndexImagePath(
-          (chosen && (chosen.image || chosen.cover || chosen.thumb)) || val.image || val.cover || val.thumb,
+          chosen.image || chosen.cover || chosen.thumb || val.image || val.cover || val.thumb,
           location
         ) || undefined,
       tag:
-        chosen && (chosen.tag != null || chosen.tags != null)
+        chosen.tag != null || chosen.tags != null
           ? chosen.tags != null
             ? chosen.tags
             : chosen.tag
@@ -816,11 +816,11 @@ function transformUnifiedContent(runtime, obj, lang) {
             : val.tags != null
               ? val.tags
               : undefined,
-      date: (chosen && chosen.date) || val.date || undefined,
+      date: chosen.date || val.date || undefined,
       // Prefer language-specific excerpt; fall back to top-level excerpt for legacy data
-      excerpt: (chosen && chosen.excerpt) || val.excerpt || undefined,
-      readTime: (chosen && chosen.readTime) || val.readTime || undefined,
-      versionLabel: (chosen && (chosen.versionLabel || chosen.version)) || val.versionLabel || val.version || undefined,
+      excerpt: chosen.excerpt || val.excerpt || undefined,
+      readTime: chosen.readTime || val.readTime || undefined,
+      versionLabel: chosen.versionLabel || chosen.version || val.versionLabel || val.version || undefined,
       protected: interpretTruthyFlag(protectedValue) || undefined,
       title
     };

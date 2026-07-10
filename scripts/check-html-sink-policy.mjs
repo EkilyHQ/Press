@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from '../assets/js/vendor/acorn.mjs';
 import { ancestor } from '../assets/js/vendor/acorn-walk.mjs';
+import { collectHtmlScriptElements } from '../assets/js/content-security-policy.mjs';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const SCRIPT_DIR = path.dirname(SCRIPT_PATH);
@@ -558,14 +559,11 @@ async function listJavaScriptFiles(relativeDirectory) {
 
 function extractInlineScripts(html, filePath) {
   const scripts = [];
-  const pattern = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu;
-  for (const match of html.matchAll(pattern)) {
-    const attributes = match[1] || '';
-    if (/\bsrc\s*=/iu.test(attributes)) continue;
-    const source = match[2] || '';
+  for (const element of collectHtmlScriptElements(html, filePath)) {
+    if (element.attributeMap.has('src')) continue;
+    const source = element.source || '';
     if (!source.trim()) continue;
-    const typeMatch = attributes.match(/\btype\s*=\s*["']([^"']+)["']/iu);
-    const sourceType = typeMatch?.[1]?.toLowerCase() === 'module' ? 'module' : 'script';
+    const sourceType = element.attributeMap.get('type')?.toLowerCase() === 'module' ? 'module' : 'script';
     scripts.push({
       filePath: `${filePath}#inline-script-${scripts.length + 1}`,
       source,

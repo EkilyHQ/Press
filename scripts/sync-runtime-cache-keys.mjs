@@ -10,8 +10,10 @@ import {
   PRESS_SYSTEM_SURFACE
 } from '../assets/js/press-system-surface.mjs';
 import {
+  collectHtmlScriptElements,
   EDITOR_INLINE_SCRIPT_SHA256_SOURCES,
-  MATERIALIZED_CONTENT_SECURITY_POLICIES
+  MATERIALIZED_CONTENT_SECURITY_POLICIES,
+  readHtmlAttribute
 } from '../assets/js/content-security-policy.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -298,14 +300,6 @@ function transformSource(rootDir, relPath, source, mode, cacheKeyValue = '') {
   return next;
 }
 
-function readHtmlAttribute(tag, name) {
-  const escapedName = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = String(tag || '').match(
-    new RegExp(`(?:^|\\s)${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\\x60]+))`, 'iu')
-  );
-  return match ? (match[1] ?? match[2] ?? match[3] ?? '') : '';
-}
-
 function collectHtmlTags(source, name) {
   const escapedName = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return [...String(source || '').matchAll(new RegExp(`<${escapedName}\\b[^>]*>`, 'giu'))].map((match) => ({
@@ -315,14 +309,9 @@ function collectHtmlTags(source, name) {
 }
 
 function collectInlineScripts(source, relPath) {
-  const text = String(source || '');
-  const scriptElements = [...text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu)];
-  const openCount = (text.match(/<script\b/giu) || []).length;
-  const closeCount = (text.match(/<\/script\s*>/giu) || []).length;
-  if (scriptElements.length !== openCount || scriptElements.length !== closeCount) {
-    throw new Error(`${relPath} contains malformed script elements`);
-  }
-  return scriptElements.filter((match) => !readHtmlAttribute(match[1], 'src')).map((match) => match[2]);
+  return collectHtmlScriptElements(source, relPath)
+    .filter(({ attributeMap }) => !attributeMap.has('src'))
+    .map(({ source: inlineSource }) => inlineSource);
 }
 
 function sha256Source(source) {

@@ -12,7 +12,6 @@ export async function executeUnreviewedMarkup(target, frame, range, source, modu
   Function(source);
   const timerSource = 'execute' + '()';
   setTimeout(timerSource, 0);
-  window.setInterval(`execute()`, 0);
   setTimeout(source, 0);
   window.setInterval(source, 0);
   return import('./' + moduleHref);

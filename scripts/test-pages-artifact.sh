@@ -6,7 +6,8 @@ tmp_dir="$(mktemp -d)"
 untracked_paths=()
 
 cleanup() {
-  for untracked_path in "${untracked_paths[@]}"; do
+  for untracked_path in "${untracked_paths[@]:-}"; do
+    [[ -n "${untracked_path}" ]] || continue
     rm -f "${repo_root}/${untracked_path}"
   done
   rm -rf "${tmp_dir}"
@@ -34,6 +35,60 @@ printf 'local\n' > wwwroot/__untracked-pages-artifact-probe.md
 
 if bash scripts/build-pages-artifact.sh "${repo_root}" "${version}" >/dev/null 2>&1; then
   echo "Pages artifact builder must reject the repository root as an output directory" >&2
+  exit 1
+fi
+
+alias_root="${tmp_dir}/repository-parent-alias"
+ln -s "$(dirname "${repo_root}")" "${alias_root}"
+alias_repo="${alias_root}/$(basename "${repo_root}")"
+if node scripts/resolve-pages-output-path.mjs "${alias_repo}" "${repo_root}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject a repository-root path through a symlinked parent" >&2
+  exit 1
+fi
+if [[ ! -d "${repo_root}/.git" || ! -f "${repo_root}/assets/press-system.json" ]]; then
+  echo "Pages artifact output validation must not remove the repository through a path alias" >&2
+  exit 1
+fi
+
+fake_repo="${tmp_dir}/symlinked-dist-repo"
+mkdir -p "${fake_repo}/assets/js"
+printf 'keep\n' > "${fake_repo}/assets/js/sentinel.txt"
+ln -s assets "${fake_repo}/dist"
+if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/js" "${fake_repo}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject dist symlinks into repository assets" >&2
+  exit 1
+fi
+if [[ ! -f "${fake_repo}/assets/js/sentinel.txt" ]]; then
+  echo "Pages artifact output validation must not remove tracked paths through a dist symlink" >&2
+  exit 1
+fi
+rm "${fake_repo}/dist"
+ln -s . "${fake_repo}/dist"
+if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/pages" "${fake_repo}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject dist symlinks to the repository root" >&2
+  exit 1
+fi
+rm "${fake_repo}/dist"
+mkdir -p "${fake_repo}/dist"
+ln -s ../assets/js "${fake_repo}/dist/pages"
+if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/pages" "${fake_repo}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject a symlinked dist/pages output" >&2
+  exit 1
+fi
+if [[ ! -f "${fake_repo}/assets/js/sentinel.txt" ]]; then
+  echo "Pages artifact output validation must preserve tracked files behind a dist/pages symlink" >&2
+  exit 1
+fi
+rm "${fake_repo}/dist/pages"
+mkdir -p "${tmp_dir}/redirected-pages-target"
+printf 'keep\n' > "${tmp_dir}/redirected-pages-target/sentinel.txt"
+ln -s "${tmp_dir}/redirected-pages-target" "${fake_repo}/dist/pages"
+if node scripts/resolve-pages-output-path.mjs "${fake_repo}/dist/pages" "${fake_repo}" >/dev/null 2>&1; then
+  echo "Pages artifact output validation must reject repo-local aliases even when they target the system temporary directory" >&2
+  exit 1
+fi
+if [[ ! -f "${tmp_dir}/redirected-pages-target/sentinel.txt" ]]; then
+  echo "Pages artifact output validation must preserve temporary files behind a repo-local output alias" >&2
   exit 1
 fi
 

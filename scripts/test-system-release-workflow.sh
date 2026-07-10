@@ -35,6 +35,11 @@ if [[ "$(grep -Fc 'git status --porcelain --untracked-files=all' "${full_workflo
   exit 1
 fi
 
+if ! grep -F 'fetch-depth: 0' "${full_workflow}" >/dev/null; then
+  echo "full test workflow must fetch historical tags required by compatibility tests" >&2
+  exit 1
+fi
+
 if grep -F 'pull-requests: write' "${workflow}" >/dev/null; then
   echo "system release workflow must not request pull request permissions" >&2
   exit 1
@@ -135,6 +140,7 @@ const manifest = require('./scripts/test-manifest.json');
 
 assert.deepEqual(manifest.tierOrder.guard, [
   'release-graph',
+  'recovery-updater-compatibility',
   'system-release-transaction',
   'system-release-package',
   'system-release-workflow',
@@ -163,6 +169,7 @@ assert.deepEqual(manifest.tierOrder.guard, [
 
 assert.deepEqual(manifest.tierOrder.release, [
   'release-graph',
+  'recovery-updater-compatibility',
   'system-release-transaction',
   'composer-action-contract',
   'composer-root-contract',
@@ -261,6 +268,31 @@ if grep -F '${{ steps.plan.outputs.changed_files }}' "${workflow}" >/dev/null \
   exit 1
 fi
 
+if grep -F 'Resume interrupted ${next_tag} release transaction' "${workflow}" >/dev/null; then
+  echo "release retries must regenerate the same changed-file list and presentation metadata as the initial attempt" >&2
+  exit 1
+fi
+
+if ! grep -F -- '- name: Prepare deterministic release presentation' "${workflow}" >/dev/null \
+  || ! grep -F "if: steps.plan.outputs.should_release == 'true' || steps.transaction.outputs.action == 'resume-promote'" "${workflow}" >/dev/null \
+  || ! grep -F 'steps.transaction.outputs.asset_digest' "${workflow}" >/dev/null \
+  || ! grep -F "typeof system.securityUpdate !== 'boolean'" "${workflow}" >/dev/null \
+  || ! grep -F 'release_title="Press Security Update ${NEXT_TAG}"' "${workflow}" >/dev/null \
+  || ! grep -F "echo '> [!IMPORTANT]'" "${workflow}" >/dev/null \
+  || ! grep -F "echo '> **Security update.** Apply this release promptly through the Press System Updates tool.'" "${workflow}" >/dev/null \
+  || ! grep -F 'RELEASE_TITLE: ${{ steps.presentation.outputs.release_title }}' "${workflow}" >/dev/null \
+  || [[ "$(grep -Fc 'draft release title or body does not match deterministic presentation metadata' "${workflow}")" -ne 2 ]] \
+  || [[ "$(grep -Fc 'published release title or body does not match deterministic presentation metadata' "${workflow}")" -ne 1 ]]; then
+  echo "securityUpdate must produce and revalidate deterministic title and warning metadata through promotion" >&2
+  exit 1
+fi
+
+if grep -E '^[[:space:]]+if:.*security(Update|_update)' "${workflow}" >/dev/null \
+  || grep -E 'security_update.*(should_release|validation_mode|graph_args)' "${workflow}" >/dev/null; then
+  echo "securityUpdate is presentation metadata and must never bypass release planning, graph validation, or tests" >&2
+  exit 1
+fi
+
 if grep -F 'node scripts/test-system-release-transaction.mjs' "${main_workflow}" >/dev/null \
   || grep -F 'bash scripts/test-system-release-package.sh' "${main_workflow}" >/dev/null; then
   echo "main guard local release tests must flow through the versioned manifest" >&2
@@ -280,10 +312,12 @@ fi
 
 build_line="$(grep -nF -- '- name: Build system update package' "${workflow}" | cut -d: -f1)"
 candidate_line="$(grep -nF -- '- name: Verify release graph candidate' "${workflow}" | cut -d: -f1)"
+presentation_line="$(grep -nF -- '- name: Prepare deterministic release presentation' "${workflow}" | cut -d: -f1)"
 draft_line="$(grep -nF -- '- name: Ensure draft release and asset' "${workflow}" | cut -d: -f1)"
-if [[ -z "${build_line}" || -z "${candidate_line}" || -z "${draft_line}"
-  || "${candidate_line}" -le "${build_line}" || "${candidate_line}" -ge "${draft_line}" ]]; then
-  echo "release graph candidate verification must run after package build and before draft release creation" >&2
+if [[ -z "${build_line}" || -z "${candidate_line}" || -z "${presentation_line}" || -z "${draft_line}"
+  || "${candidate_line}" -le "${build_line}" || "${presentation_line}" -le "${candidate_line}" \
+  || "${presentation_line}" -ge "${draft_line}" ]]; then
+  echo "release graph candidate verification and deterministic presentation must run after package build and before draft release creation" >&2
   exit 1
 fi
 
@@ -458,6 +492,11 @@ fi
 
 if ! grep -F '"upgradeFrom": system.get("upgradeFrom") or {}' "${workflow}" >/dev/null; then
   echo "system release manifest must publish upgradeFrom compatibility metadata" >&2
+  exit 1
+fi
+
+if ! grep -F '"securityUpdate": system.get("securityUpdate") is True' "${workflow}" >/dev/null; then
+  echo "system release manifest must publish the explicit securityUpdate classification" >&2
   exit 1
 fi
 

@@ -201,7 +201,6 @@ function explicitArticleVersionLabel(path) {
   const candidate = String(segments[segments.length - 1] || '').trim();
   if (!/^v\d+(?:\.\d+)*$/i.test(candidate)) return '';
   return candidate;
-  return '';
 }
 
 function versionLabel(path, index) {

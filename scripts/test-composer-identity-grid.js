@@ -3608,15 +3608,16 @@ function createMemoryStorage(seed = {}) {
     storage: localStorage,
     scopeKey: (key) => `${key}:scope`,
     keys: {
-      editorState: 'press_composer_editor_state'
+      editorState: 'press_composer_editor_state',
+      systemTreeExpanded: 'press_editor_system_tree_expanded'
     }
   });
-  assert.equal(typeof store.readLegacySystemTreeExpanded, 'undefined', 'cleanup release should not expose legacy system-tree readers');
+  assert.equal(store.readLegacySystemTreeExpanded(), true, 'Recovery should read the legacy system-tree state before a current snapshot exists');
   assert.equal(store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] }), true, 'current editor state should persist through the v3 store');
   assert.equal(
     localStorage.dump()['press_editor_system_tree_expanded:scope'],
-    '1',
-    'current editor-state writes should not mutate the retired legacy system-tree key'
+    undefined,
+    'Recovery should remove the legacy system-tree key only after the current state write succeeds'
   );
   assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 340, 'missing rail width should preserve the default width');
   localStorage.setItem('press_editor_rail_width', '420');
@@ -3634,12 +3635,48 @@ function createMemoryStorage(seed = {}) {
     windowRef: { localStorage, sessionStorage },
     scopeKey: (key) => `${key}:scope`
   });
-  assert.equal(store.getStoredConnectPublishSettings().mode, 'connect', 'retired legacy Connect opt-out should no longer change the current default mode');
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], undefined, 'retired legacy opt-out should not be normalized by the cleanup release');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], '0', 'cleanup release should leave retired legacy publish keys untouched');
+  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'Recovery should preserve the legacy Connect opt-out');
+  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'pat', 'Recovery should normalize the legacy opt-out into the current transport key');
+  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'Recovery should remove the legacy publish key only after writing the current mode');
   store.setStoredConnectPublishSettings({ baseUrl: 'http://127.0.0.1:8788' });
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'connect', 'saving current publish settings should write the current transport mode key');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], '0', 'saving current publish settings should not remove or rewrite the retired key');
+  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'pat', 'saving current publish settings should preserve the migrated transport mode');
+  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'saving current publish settings should not restore the retired key');
+}
+
+{
+  const data = new Map([['press_editor_system_tree_expanded:scope', '1']]);
+  const store = createEditorSessionStateStore({
+    storage: {
+      getItem: (key) => data.get(key) || null,
+      setItem: () => false,
+      removeItem: (key) => data.delete(key)
+    },
+    scopeKey: (key) => `${key}:scope`,
+    keys: {
+      editorState: 'press_composer_editor_state',
+      systemTreeExpanded: 'press_editor_system_tree_expanded'
+    }
+  });
+  assert.equal(store.writeEditorState({ v: 3 }), false);
+  assert.equal(data.get('press_editor_system_tree_expanded:scope'), '1', 'failed current-state writes must preserve the legacy editor key');
+}
+
+{
+  const data = new Map([['press_connect_publish_enabled:scope', '0']]);
+  const localStorage = {
+    getItem: (key) => data.get(key) || null,
+    setItem(key, value) {
+      if (key === 'press_publish_transport_mode:scope') throw new Error('storage full');
+      data.set(key, String(value));
+    },
+    removeItem: (key) => data.delete(key)
+  };
+  const store = createPublishSettingsStore({
+    windowRef: { localStorage, sessionStorage: createMemoryStorage() },
+    scopeKey: (key) => `${key}:scope`
+  });
+  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat');
+  assert.equal(data.get('press_connect_publish_enabled:scope'), '0', 'failed mode writes must preserve the legacy publish preference');
 }
 
 {
@@ -7795,10 +7832,10 @@ assert.match(
   'Connect publish settings should keep the current transport key and Connect presets explicit'
 );
 
-assert.doesNotMatch(
+assert.match(
   publishSettingsSource,
-  /CONNECT_PUBLISH_ENABLED_STORAGE_KEY|press_connect_publish_enabled|enabledRaw|migratedLegacyMode/,
-  'cleanup release should remove the retired Connect publish storage bridge'
+  /CONNECT_PUBLISH_ENABLED_STORAGE_KEY = 'press_connect_publish_enabled'[\s\S]*enabledRaw[\s\S]*migratedLegacyMode[\s\S]*storage\.setItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\), settings\.mode\)[\s\S]*storage\.removeItem\(scopedKey\(CONNECT_PUBLISH_ENABLED_STORAGE_KEY\)\)/,
+  'Recovery should migrate the legacy Connect preference with write-before-delete semantics'
 );
 
 assert.match(
@@ -7816,7 +7853,7 @@ assert.match(
 assert.match(
   publishSettingsSource,
   /mode: 'connect'[\s\S]*const modeRaw = storage\.getItem\(scopedKey\(PUBLISH_TRANSPORT_MODE_STORAGE_KEY\)\)[\s\S]*modeRaw === 'connect' \|\| modeRaw === 'pat'[\s\S]*function resolvePublishTransport/,
-  'Publish transport should default to Connect and read only the current transport mode key'
+  'Publish transport should default to Connect and prefer the current transport mode key'
 );
 
 assert.doesNotMatch(

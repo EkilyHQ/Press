@@ -204,14 +204,14 @@ class FakeDocument {
   const calls = [];
   const state = await loadInitialComposerState({
     t: key => key,
-    fetchTrackedSiteConfig: async () => ({ contentRoot: 'docs', siteTitle: 'Legacy' }),
+    fetchTrackedSiteConfig: async () => ({ contentRoot: 'docs', siteTitle: 'Legacy', defaultLanguage: 'chs' }),
     applyEffectiveSiteConfig: site => ({ ...site, contentRoot: site.contentRoot || 'wwwroot' }),
     fetchConfigWithYamlFallback: async (paths) => {
       calls.push(['fetchConfig', paths]);
       return {};
     },
-    loadContentModelMigration: async ({ contentRoot, indexRaw, tabsRaw }) => {
-      calls.push(['contentMigration', contentRoot, indexRaw, tabsRaw]);
+    loadContentModelMigration: async ({ contentRoot, indexRaw, tabsRaw, defaultLang }) => {
+      calls.push(['contentMigration', contentRoot, indexRaw, tabsRaw, defaultLang]);
       return {
         hasLegacyContentModel: true,
         indexRaw: {
@@ -231,7 +231,8 @@ class FakeDocument {
           {
             kind: 'content-model-migration',
             path: 'docs/index.en.yaml',
-            deleted: true
+            state: 'preserved',
+            deleted: false
           }
         ]
       };
@@ -249,8 +250,8 @@ class FakeDocument {
 
   assert.deepEqual(
     calls.find(call => call[0] === 'contentMigration'),
-    ['contentMigration', 'docs', {}, {}],
-    'composer bootstrap should offer the remote unified YAML as migration input'
+    ['contentMigration', 'docs', {}, {}, 'chs'],
+    'composer bootstrap should offer the remote unified YAML and effective site language as migration input'
   );
   assert.deepEqual(remoteBaseline.index, { preparedIndex: true });
   assert.deepEqual(state.index, {
@@ -273,15 +274,11 @@ class FakeDocument {
     false,
     'content migration metadata should not be enumerable editor state'
   );
-  assert.deepEqual(state.__contentModelMigration.legacyFiles, [
-    {
-      category: 'legacy-content-model',
-      state: 'deleted',
-      kind: 'content-model-migration',
-      path: 'docs/index.en.yaml',
-      deleted: true
-    }
-  ]);
+  assert.deepEqual(
+    state.__contentModelMigration.legacyFiles,
+    [],
+    'Recovery should stage unified base files without deleting preserved sidecars'
+  );
 }
 
 {

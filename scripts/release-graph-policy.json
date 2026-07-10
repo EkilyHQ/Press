@@ -10,17 +10,18 @@
     "updateStrategy": "latest-only"
   },
   "candidateGate": {
-    "mode": "recovery-required",
+    "mode": "direct",
     "baselineVersion": "3.4.133",
-    "reason": "The current latest-only updater cannot move every supported published source directly to v3.4.133.",
-    "removalCondition": "Publish a recovery transition whose upgradeFrom ranges directly admit every declared supported published source, then change this mode to direct."
+    "reason": "Recovery transition v3.4.134 directly admits every declared supported published source.",
+    "removalCondition": "Retain direct coverage while Press uses a latest-only update strategy; change this mode only with an explicit support-policy migration."
   },
   "legacyExceptions": [
     {
       "id": "v3.4.108-missing-predecessor",
       "from": "3.4.64",
       "to": "3.4.108",
-      "status": "recovery-required",
+      "status": "recovered",
+      "recoveredByVersion": "3.4.134",
       "unpublishedRange": ">3.4.64 <3.4.108",
       "targetRanges": [
         ">=3.4.107 <3.4.108"
@@ -29,7 +30,7 @@
         "3.4.107"
       ],
       "reason": "v3.4.108 requires v3.4.107, but releases v3.4.65 through v3.4.107 were never published.",
-      "removalCondition": "After a recovery transition restores a direct path from the support floor, set status to recovered and record recoveredByVersion while retaining this immutable history."
+      "removalCondition": "Retain this immutable exception while v3.4.64 remains inside the declared support domain."
     }
   ],
   "artifactLayout": {

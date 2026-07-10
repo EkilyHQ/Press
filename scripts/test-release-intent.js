@@ -10,8 +10,8 @@ const {
   getReleaseTargets
 } = require('./release-targets.js');
 
-function systemRelease(version = '3.4.62') {
-  return {
+function systemRelease(version = '3.4.62', options = {}) {
+  const release = {
     schemaVersion: 1,
     name: `v${version}`,
     tag: `v${version}`,
@@ -52,6 +52,10 @@ function systemRelease(version = '3.4.62') {
       latestUrl: 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json'
     }
   };
+  if (Object.prototype.hasOwnProperty.call(options, 'securityUpdate')) {
+    release.securityUpdate = options.securityUpdate;
+  }
+  return release;
 }
 
 test('buildReleaseIntent freezes Press release targets and artifact metadata', () => {
@@ -73,6 +77,7 @@ test('buildReleaseIntent freezes Press release targets and artifact metadata', (
   assert.equal(intent.latestSource, release.intent.latestUrl);
   assert.equal(intent.systemRelease.path, 'system-release.json');
   assert.equal(intent.systemRelease.digest, 'sha256:system');
+  assert.equal(intent.pressSystem.securityUpdate, false);
   assert.deepEqual(intent.pressSystem.themeContractUpgrade, release.themeContractUpgrade);
   assert.deepEqual(intent.pressSystem.contentModelUpgrade, release.contentModelUpgrade);
   assert.deepEqual(intent.targets.map((target) => target.key), getReleaseTargets().map((target) => target.key));
@@ -84,6 +89,45 @@ test('buildReleaseIntent freezes Press release targets and artifact metadata', (
   assert.equal(arcusTarget.observedChannels.demoLock.source, 'https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json');
   assert.equal(intent.targets[0].reconciler.idempotent, true);
   assert.deepEqual(validateReleaseIntent(intent, { systemRelease: release }), []);
+});
+
+test('securityUpdate is explicit from v3.4.134 and propagates into release intent', () => {
+  const ordinary = systemRelease('3.4.134', { securityUpdate: false });
+  const ordinaryIntent = buildReleaseIntent({ systemRelease: ordinary });
+  assert.equal(ordinaryIntent.pressSystem.securityUpdate, false);
+  assert.deepEqual(validateReleaseIntent(ordinaryIntent, { systemRelease: ordinary }), []);
+
+  const security = systemRelease('3.4.135', { securityUpdate: true });
+  const securityIntent = buildReleaseIntent({ systemRelease: security });
+  assert.equal(securityIntent.pressSystem.securityUpdate, true);
+  assert.deepEqual(validateReleaseIntent(securityIntent, { systemRelease: security }), []);
+});
+
+test('historical missing securityUpdate metadata normalizes to false', () => {
+  const release = systemRelease('3.4.133');
+  const intent = buildReleaseIntent({ systemRelease: release });
+
+  delete intent.pressSystem.securityUpdate;
+  assert.equal(validateReleaseIntent(intent, { systemRelease: release }).some((failure) => (
+    failure.includes('securityUpdate')
+  )), false);
+});
+
+test('v3.4.134 securityUpdate must be explicit and match system-release.json', () => {
+  const release = systemRelease('3.4.134', { securityUpdate: false });
+  const intent = buildReleaseIntent({ systemRelease: release });
+
+  intent.pressSystem.securityUpdate = true;
+  assert.match(
+    validateReleaseIntent(intent, { systemRelease: release }).join('\n'),
+    /release intent securityUpdate must match system-release\.json/u
+  );
+
+  delete intent.pressSystem.securityUpdate;
+  delete release.securityUpdate;
+  const failures = validateReleaseIntent(intent, { systemRelease: release }).join('\n');
+  assert.match(failures, /release intent pressSystem\.securityUpdate must be an explicit boolean/u);
+  assert.match(failures, /system-release\.json securityUpdate must be an explicit boolean/u);
 });
 
 test('buildReleaseIntent can point immutable intents at tag-scoped system release manifests', () => {

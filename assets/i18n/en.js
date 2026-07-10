@@ -912,11 +912,6 @@ const translations = {
             untitled: 'Untitled file'
           }
         },
-        dialogs: {
-          cancel: 'Cancel',
-          confirm: 'Confirm',
-          close: 'Close'
-        },
         addEntryPrompt: {
           hint: 'Use only English letters and numbers.',
           confirm: 'Add Entry',

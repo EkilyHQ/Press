@@ -57,13 +57,10 @@ function textResponse(text, options = {}) {
   });
   assert.deepEqual(
     getLegacyContentModelMigrationFiles(migration).map(file => [file.path, file.deleted]),
-    [
-      ['docs/index.en.yaml', true],
-      ['docs/index.chs.yaml', true],
-      ['docs/tabs.en.yaml', true],
-      ['docs/tabs.chs.yaml', true]
-    ]
+    [],
+    'Recovery should never stage destructive sidecar deletion automatically'
   );
+  assert.equal(migration.legacyFiles.every(file => file.deleted === false && file.state === 'preserved'), true);
   assert.equal(requests.includes('docs/index.ja.yaml'), true, 'registered/default sidecar languages should still be probed');
 }
 
@@ -137,9 +134,9 @@ function textResponse(text, options = {}) {
 
   assert.deepEqual(migration.indexRaw['Guide FR'].fr, 'posts/guide-fr.md');
   assert.equal(
-    getLegacyContentModelMigrationFiles(migration).some(file => file.path === 'docs/index.fr.yaml'),
+    migration.legacyFiles.some(file => file.path === 'docs/index.fr.yaml'),
     true,
-    'registered custom language sidecars should be migrated'
+    'registered custom language sidecars should be migrated without being deleted'
   );
 }
 
@@ -158,7 +155,9 @@ function textResponse(text, options = {}) {
     },
     fetchImpl: async (input) => {
       const url = String(input || '').split('?')[0];
+      if (url === 'docs/index.en.yaml') return textResponse('Guide: posts/sidecar-default.md\n');
       if (url === 'docs/index.chs.yaml') return textResponse('指南: posts/guide-zh.md\n');
+      if (url === 'docs/tabs.en.yaml') return textResponse('Docs: docs/sidecar-default.md\n');
       if (url === 'docs/tabs.chs.yaml') return textResponse('文档: docs/index-zh.md\n');
       return textResponse('', { ok: false, status: 404 });
     }
@@ -166,7 +165,7 @@ function textResponse(text, options = {}) {
 
   assert.deepEqual(migration.indexRaw.__order, ['Guide']);
   assert.deepEqual(migration.indexRaw.Guide, {
-    en: 'posts/guide.md',
+    en: 'posts/sidecar-default.md',
     chs: {
       title: '指南',
       location: 'posts/guide-zh.md'
@@ -176,13 +175,14 @@ function textResponse(text, options = {}) {
   assert.deepEqual(migration.tabsRaw.Docs, {
     en: {
       title: 'Docs',
-      location: 'docs/index.md'
+      location: 'docs/sidecar-default.md'
     },
     chs: {
       title: '文档',
       location: 'docs/index-zh.md'
     }
   });
+  assert.equal(migration.hasLegacyContentModel, true, 'authoritative default-language sidecars should replace flat-origin defaults during normalization');
 }
 
 {
@@ -219,6 +219,32 @@ function textResponse(text, options = {}) {
       location: 'docs/index.md'
     }
   });
+}
+
+{
+  const migration = await loadLegacyContentModelMigration({
+    contentRoot: 'docs',
+    currentLang: 'en',
+    defaultLang: 'en',
+    indexRaw: {
+      __order: ['Guide'],
+      Guide: { en: 'posts/guide.md' }
+    },
+    tabsRaw: {
+      __order: ['Docs'],
+      Docs: { en: { title: 'Docs', location: 'docs/index.md' } }
+    },
+    fetchImpl: async (input) => {
+      const url = String(input || '').split('?')[0];
+      if (url === 'docs/index.en.yaml') return textResponse('Guide: posts/guide.md\n');
+      if (url === 'docs/tabs.en.yaml') return textResponse('Docs: docs/index.md\n');
+      return textResponse('', { ok: false, status: 404 });
+    }
+  });
+
+  assert.equal(migration.hasLegacyContentModel, false, 'already-normalized base files should not stage a duplicate recovery migration');
+  assert.deepEqual(getLegacyContentModelMigrationFiles(migration), []);
+  assert.equal(migration.legacyFiles.length, 2, 'preserved sidecars should remain observable without becoming deletions');
 }
 
 console.log('content model migration tests passed');

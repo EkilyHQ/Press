@@ -70,6 +70,28 @@ async function fetchConfigWithYamlFallbackForRuntime(runtime, names) {
   return {};
 }
 
+// Recovery releases keep legacy per-language sidecars readable for sites that
+// update directly from the declared v3.4.64 support floor. This fallback may be
+// removed only after the support floor advances beyond sidecar-era sites.
+async function loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName, languageCandidates = null) {
+  const state = runtime.state;
+  const languages = (Array.isArray(languageCandidates)
+    ? languageCandidates
+    : [state.currentLang, state.baseDefaultLang, DEFAULT_LANG])
+    .map(normalizeLangKey)
+    .filter((value, index, list) => value && list.indexOf(value) === index);
+  for (const lang of languages) {
+    const raw = await fetchConfigWithYamlFallbackForRuntime(runtime, [
+      `${basePath}/${baseName}.${lang}.yaml`,
+      `${basePath}/${baseName}.${lang}.yml`
+    ]);
+    if (raw && typeof raw === 'object' && Object.keys(raw).length) {
+      return { lang, raw };
+    }
+  }
+  return null;
+}
+
 // Limit for concurrent front matter fetches when resolving simplified content entries.
 // Set to a positive integer to chunk requests; falsy values disable the limit.
 const FRONTMATTER_FETCH_BATCH_SIZE = 6;
@@ -880,8 +902,9 @@ async function loadContentFromFrontMatter(runtime, obj, lang) {
 }
 
 
-// Load unified YAML (`base.yaml`) or simplified content mappings. Legacy
-// per-language sidecars are intentionally retired by the content-model clean release.
+// Load unified YAML (`base.yaml`) or simplified content mappings. Recovery
+// reads the exact current-language sidecar over a flat base, or falls back to
+// a bounded sidecar search when no usable base exists.
 async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
   // YAML only (unified or simplified)
   let raw = null;
@@ -921,6 +944,12 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
       if (isSimplified) {
         // Handle simplified format - load metadata from front matter
         const current = getCurrentLangWithRuntime(runtime);
+        const legacy = await loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName, [current]);
+        if (legacy) {
+          const { entries } = await loadContentFromFrontMatter(runtime, legacy.raw, current);
+          setContentLangs(runtime, [legacy.lang]);
+          return { entries, raw };
+        }
         const { entries, availableLangs } = await loadContentFromFrontMatter(runtime, obj, current);
         setContentLangs(runtime, availableLangs);
         return { entries, raw };
@@ -934,7 +963,15 @@ async function loadContentJsonWithRawWithRuntime(runtime, basePath, baseName) {
         return { entries, raw };
       }
     }
-  } catch (_) { /* return empty content */ }
+  } catch (_) { /* try the bounded recovery fallback */ }
+
+  const legacy = await loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName);
+  if (legacy) {
+    const current = getCurrentLangWithRuntime(runtime);
+    const { entries } = await loadContentFromFrontMatter(runtime, legacy.raw, current);
+    setContentLangs(runtime, [legacy.lang]);
+    return { entries, raw };
+  }
 
   return { entries: {}, raw };
 }
@@ -1015,9 +1052,8 @@ function transformFlatTabs(obj) {
   return out;
 }
 
-// Load unified tabs YAML and the supported base flat tabs shape. Legacy
-// per-language sidecars are migrated by the transition editor release and are
-// not read by the clean runtime.
+// Load unified tabs YAML and the supported base flat tabs shape, with the same
+// bounded Recovery sidecar behavior used for index content.
 async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
   try {
     const obj = await fetchConfigWithYamlFallbackForRuntime(runtime, [
@@ -1042,11 +1078,30 @@ async function loadTabsJsonWithRuntime(runtime, basePath, baseName) {
       }
       const entries = transformFlatTabs(obj);
       if (entries && Object.keys(entries).length) {
+        const legacy = await loadRecoveryContentSidecarWithRuntime(
+          runtime,
+          basePath,
+          baseName,
+          [getCurrentLangWithRuntime(runtime)]
+        );
+        if (legacy) {
+          const legacyEntries = transformFlatTabs(legacy.raw);
+          if (Object.keys(legacyEntries).length) {
+            setContentLangs(runtime, [legacy.lang]);
+            return legacyEntries;
+          }
+        }
         setContentLangs(runtime, [normalizeLangKey(runtime.state.baseDefaultLang || 'en')]);
+        return entries;
       }
-      return entries;
     }
-  } catch (_) { /* return empty tabs */ }
+  } catch (_) { /* try the bounded recovery fallback */ }
+  const legacy = await loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName);
+  if (legacy) {
+    const entries = transformFlatTabs(legacy.raw);
+    if (Object.keys(entries).length) setContentLangs(runtime, [legacy.lang]);
+    return entries;
+  }
   return {};
 }
 

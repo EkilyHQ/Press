@@ -169,6 +169,9 @@ function cloneRawConfig(raw, options = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { __order: [] };
   const base = options.base === 'tabs' ? 'tabs' : 'index';
   const defaultLang = normalizeLanguageCode(options.defaultLang || 'en') || 'en';
+  const flatLanguageSlots = options.flatLanguageSlots instanceof Set
+    ? options.flatLanguageSlots
+    : null;
   const languageSet = new Set(getLegacyContentLanguageCandidates(options));
   const cloned = deepClone(raw) || {};
   if (!Array.isArray(cloned.__order)) {
@@ -180,11 +183,13 @@ function cloneRawConfig(raw, options = {}) {
     if (base === 'tabs') {
       if (!isUnifiedTabsEntry(value, languageSet)) {
         cloned[key] = { [defaultLang]: normalizeTabsDefaultValue(key, value) };
+        flatLanguageSlots?.add(`${key}\u0000${defaultLang}`);
       }
       return;
     }
     if (!isUnifiedIndexEntry(value, languageSet)) {
       cloned[key] = { [defaultLang]: normalizeIndexDefaultValue(key, value) };
+      flatLanguageSlots?.add(`${key}\u0000${defaultLang}`);
     }
   });
   return cloned;
@@ -279,11 +284,13 @@ function normalizeLegacyIndexValue(stableKey, sourceKey, value) {
   return deepClone(value);
 }
 
-function mergeLegacyIndex(raw, lang, parsed) {
+function mergeLegacyIndex(raw, lang, parsed, flatLanguageSlots = null) {
   orderedLegacyEntries(parsed).forEach(([key, value], position) => {
     const stableKey = chooseMergeKey(raw, key, value, position, getIndexValueLocation);
     const entry = ensureUnifiedEntry(raw, stableKey);
-    if (Object.prototype.hasOwnProperty.call(entry, lang)) return;
+    const slot = `${stableKey}\u0000${lang}`;
+    if (Object.prototype.hasOwnProperty.call(entry, lang)
+      && !(flatLanguageSlots && flatLanguageSlots.delete(slot))) return;
     entry[lang] = normalizeLegacyIndexValue(stableKey, key, value);
   });
 }
@@ -300,11 +307,13 @@ function normalizeLegacyTabsValue(key, value) {
   };
 }
 
-function mergeLegacyTabs(raw, lang, parsed) {
+function mergeLegacyTabs(raw, lang, parsed, flatLanguageSlots = null) {
   orderedLegacyEntries(parsed).forEach(([key, value], position) => {
     const stableKey = chooseMergeKey(raw, key, value, position, getTabsValueLocation);
     const entry = ensureUnifiedEntry(raw, stableKey);
-    if (Object.prototype.hasOwnProperty.call(entry, lang)) return;
+    const slot = `${stableKey}\u0000${lang}`;
+    if (Object.prototype.hasOwnProperty.call(entry, lang)
+      && !(flatLanguageSlots && flatLanguageSlots.delete(slot))) return;
     entry[lang] = normalizeLegacyTabsValue(key, value);
   });
 }
@@ -316,8 +325,8 @@ function legacyFileEntry(path) {
     category: 'legacy-content-model',
     label,
     path,
-    state: 'deleted',
-    deleted: true
+    state: 'preserved',
+    deleted: false
   };
 }
 
@@ -346,8 +355,20 @@ export async function loadLegacyContentModelMigration(options = {}) {
     currentLang: options.currentLang,
     defaultLang: options.defaultLang
   };
-  const indexRaw = cloneRawConfig(options.indexRaw, { ...languageOptions, base: 'index' });
-  const tabsRaw = cloneRawConfig(options.tabsRaw, { ...languageOptions, base: 'tabs' });
+  const flatIndexLanguageSlots = new Set();
+  const flatTabsLanguageSlots = new Set();
+  const baseIndexRaw = cloneRawConfig(options.indexRaw, {
+    ...languageOptions,
+    base: 'index',
+    flatLanguageSlots: flatIndexLanguageSlots
+  });
+  const baseTabsRaw = cloneRawConfig(options.tabsRaw, {
+    ...languageOptions,
+    base: 'tabs',
+    flatLanguageSlots: flatTabsLanguageSlots
+  });
+  const indexRaw = deepClone(baseIndexRaw);
+  const tabsRaw = deepClone(baseTabsRaw);
   const legacyFiles = [];
   if (!fetchImpl) {
     return {
@@ -366,12 +387,17 @@ export async function loadLegacyContentModelMigration(options = {}) {
     const result = await fetchYamlObject(fetchImpl, candidate.path);
     if (!result.found) continue;
     legacyFiles.push(legacyFileEntry(candidate.path));
-    if (candidate.base === 'tabs') mergeLegacyTabs(tabsRaw, candidate.lang, result.value);
-    else mergeLegacyIndex(indexRaw, candidate.lang, result.value);
+    if (candidate.base === 'tabs') {
+      mergeLegacyTabs(tabsRaw, candidate.lang, result.value, flatTabsLanguageSlots);
+    } else {
+      mergeLegacyIndex(indexRaw, candidate.lang, result.value, flatIndexLanguageSlots);
+    }
   }
 
   return {
-    hasLegacyContentModel: legacyFiles.length > 0,
+    hasLegacyContentModel: legacyFiles.length > 0
+      && (JSON.stringify(indexRaw) !== JSON.stringify(baseIndexRaw)
+        || JSON.stringify(tabsRaw) !== JSON.stringify(baseTabsRaw)),
     contentRoot,
     indexRaw,
     tabsRaw,
@@ -380,11 +406,14 @@ export async function loadLegacyContentModelMigration(options = {}) {
 }
 
 export function getLegacyContentModelMigrationFiles(migration) {
+  // Recovery writes the unified base model but preserves every sidecar source.
+  // Historical transition state may still carry explicit deletion records, so
+  // only honor entries that already opted into deletion semantics.
   const files = Array.isArray(migration && migration.legacyFiles)
     ? migration.legacyFiles
     : (Array.isArray(migration && migration.files) ? migration.files : []);
   return files
-    .filter(file => file && file.path)
+    .filter(file => file && file.path && (file.deleted === true || file.state === 'deleted'))
     .map(file => ({
       ...file,
       kind: file.kind || CONTENT_MODEL_MIGRATION_KIND,

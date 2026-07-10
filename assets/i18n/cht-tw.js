@@ -876,11 +876,6 @@ const translations = {
             untitled: '未命名檔案'
           }
         },
-        dialogs: {
-          cancel: '取消',
-          confirm: '確認',
-          close: '關閉'
-        },
         addEntryPrompt: {
           hint: '僅使用英文字母和數字。',
           confirm: '新增條目',

@@ -605,34 +605,24 @@ await run('theme controls ignore retired legacy DOM bridge hints from the active
   }
 });
 
-await run('theme controls keep current component contract during legacy theme module mount', async () => {
-  let mountedComponent = null;
-  let legacyTools = null;
-  const { mountThemeControls } = await freshThemeHelpers();
+await run('unsupported installed themes fall back to Native without executing legacy modules', async () => {
+  const requested = [];
   const { document } = installGlobals({
     savedPack: 'legacy',
     manifests: {
-      legacy: { ...makeManifest('legacy', ['modules/layout.js']), contractVersion: 1 }
+      legacy: { ...makeManifest('legacy', ['modules/legacy.js']), contractVersion: 1 },
+      native: { ...makeManifest('native', ['modules/native.js']), styles: ['theme.css'] }
     }
   });
-  window.__pressThemeModuleLoader = async () => ({
-    mount() {
-      const sidebar = document.createElement('aside');
-      sidebar.setAttribute('class', 'sidebar');
-      legacyTools = document.createElement('div');
-      legacyTools.setAttribute('id', 'tools');
-      sidebar.appendChild(legacyTools);
-      document.body.appendChild(sidebar);
-      mountedComponent = mountThemeControls({ variant: 'arcus' });
-    }
+  window.__pressThemeModuleLoader = async (_path, context = {}) => ({
+    mount() { requested.push(context.entry); }
   });
 
   const { ensureThemeLayout } = await freshThemeLayout();
-  await ensureThemeLayout({ pack: 'legacy', persist: false, reset: true });
-  assert.equal(mountedComponent && mountedComponent.tagName, 'PRESS-THEME-CONTROLS');
-  assert.equal(mountedComponent.getAttribute('contract-version'), null);
-  assert.equal(legacyTools.parentElement && legacyTools.parentElement.matches('.sidebar'), true);
-  assert.notEqual(legacyTools.parentElement.children[0], mountedComponent);
+  const context = await withQuietConsole(() => ensureThemeLayout({ pack: 'legacy', persist: false, reset: true }));
+  assert.equal(context.pack, 'native');
+  assert.equal(document.body.dataset.themeLayout, 'native');
+  assert.deepEqual(requested, ['modules/native.js']);
 });
 
 await run('theme controls hide language selector until public content languages resolve', async () => {

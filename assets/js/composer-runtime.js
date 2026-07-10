@@ -182,7 +182,8 @@ export function createComposerRuntime(options = {}) {
 
   function initializeEditorSessionState({
     editorSessionStateStore = null,
-    editorStateVersion = null
+    editorStateVersion = null,
+    legacySystemTreeNodeId = 'system'
   } = {}) {
     hasEditorStateV3Snapshot = false;
     try {
@@ -194,6 +195,14 @@ export function createComposerRuntime(options = {}) {
     } catch (_) {
       hasEditorStateV3Snapshot = false;
     }
+    try {
+      if (!hasEditorStateV3Snapshot
+        && editorSessionStateStore
+        && typeof editorSessionStateStore.readLegacySystemTreeExpanded === 'function'
+        && editorSessionStateStore.readLegacySystemTreeExpanded()) {
+        expandedEditorTreeNodeIds.add(String(legacySystemTreeNodeId || 'system'));
+      }
+    } catch (_) {}
     return hasEditorStateV3Snapshot;
   }
 

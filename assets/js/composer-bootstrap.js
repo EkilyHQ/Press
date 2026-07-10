@@ -233,7 +233,8 @@ export async function loadInitialComposerState({
         migration = await loadContentModelMigration({
           contentRoot: root,
           indexRaw: idx || {},
-          tabsRaw: tbs || {}
+          tabsRaw: tbs || {},
+          defaultLang: String(effectiveSite && effectiveSite.defaultLanguage || 'en')
         });
       } catch (err) {
         if (consoleRef && typeof consoleRef.warn === 'function') {

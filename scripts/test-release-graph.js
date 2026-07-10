@@ -7,6 +7,7 @@ const test = require('node:test');
 
 const {
   analyzeReleaseGraph,
+  compareSemver,
   expectedTargetMetadata,
   loadPublishedReleaseRegistry,
   satisfiesSemverRange,
@@ -60,13 +61,15 @@ function upgradeFrom(range) {
 }
 
 function candidateManifest(version, range) {
-  return {
+  const manifest = {
     schemaVersion: 1,
     type: 'press-system',
     version,
     tag: `v${version}`,
     upgradeFrom: upgradeFrom(range)
   };
+  if (compareSemver(version, '3.4.134') >= 0) manifest.securityUpdate = false;
+  return manifest;
 }
 
 function candidateArchive(candidate) {
@@ -106,6 +109,7 @@ function makePublishedRelease(version, range, policy, artifactPaths) {
     schemaVersion: 1,
     tag: `v${version}`,
     version,
+    ...(compareSemver(version, '3.4.134') >= 0 ? { securityUpdate: false } : {}),
     upgradeFrom: upgradeFrom(range),
     runtime,
     asset,
@@ -134,6 +138,7 @@ function makePublishedRelease(version, range, policy, artifactPaths) {
     pressSystem: {
       asset,
       runtime,
+      ...(compareSemver(version, '3.4.134') >= 0 ? { securityUpdate: false } : {}),
       upgradeFrom: manifest.upgradeFrom
     }
   };
@@ -209,6 +214,24 @@ function enableDirectRecovery(fixture, version = '3.4.134') {
   fixture.policy.candidateGate.mode = 'direct';
   fixture.policy.legacyExceptions[0].status = 'recovered';
   fixture.policy.legacyExceptions[0].recoveredByVersion = version;
+}
+
+function publishedRecoveryFixture() {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  const recoveryRelease = makePublishedRelease(
+    '3.4.134',
+    '>=3.4.64 <3.4.134',
+    fixture.policy,
+    fixture.artifactPaths
+  );
+  fixture.publishedReleases.push(recoveryRelease);
+  fixture.gitTags.add('v3.4.134');
+  fixture.githubReleases.set('v3.4.134', githubReleaseFor(recoveryRelease));
+  fixture.latestReleaseIntentText = recoveryRelease.intentText;
+  fixture.latestSystemReleaseText = recoveryRelease.manifestText;
+  fixture.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  return { fixture, recoveryRelease };
 }
 
 test('current v3.4.133 baseline is explicit recovery debt, not a healthy multi-hop graph', () => {
@@ -328,6 +351,71 @@ test('direct mode accepts a recovery candidate that admits every supported publi
   assert.deepEqual(result.directMissing, []);
 });
 
+test('direct mode requires continuous support-domain coverage, not an enumeration of published tags', () => {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  fixture.candidate = candidateManifest(
+    '3.4.134',
+    '=3.4.64 || =3.4.108 || =3.4.109 || =3.4.132 || =3.4.133'
+  );
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  fixture.validationMode = 'candidate';
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.deepEqual(result.directMissing, []);
+  assert.match(
+    result.failures.join('\n'),
+    /upgradeFrom must cover the complete declared support domain below the candidate/u
+  );
+});
+
+test('v3.4.134 and newer candidates require an explicit securityUpdate boolean', () => {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  fixture.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  delete fixture.candidate.securityUpdate;
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  fixture.validationMode = 'candidate';
+  const result = analyzeReleaseGraph(fixture);
+  const failures = result.failures.join('\n');
+
+  assert.match(failures, /candidate v3\.4\.134 securityUpdate must be an explicit boolean/u);
+  assert.match(failures, /archive Press system manifest securityUpdate must be an explicit boolean/u);
+});
+
+test('securityUpdate marks presentation only and cannot bypass direct recovery coverage', () => {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  fixture.candidate = candidateManifest('3.4.134', '>=3.4.133 <3.4.134');
+  fixture.candidate.securityUpdate = true;
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  fixture.validationMode = 'candidate';
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(result.failures.join('\n'), /lacks latest-only direct upgrade edges from: v3\.4\.64/u);
+  assert.ok(result.directMissing.includes('3.4.132'));
+});
+
+test('candidate ZIP securityUpdate must match the worktree source manifest', () => {
+  const fixture = baselineFixture();
+  enableDirectRecovery(fixture);
+  fixture.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  fixture.candidateArchive = candidateArchive(fixture.candidate);
+  fixture.candidateArchive.embeddedManifest.securityUpdate = true;
+  fixture.validationMode = 'candidate';
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(result.failures.join('\n'), /archive Press system manifest does not match the worktree candidate/u);
+});
+
+test('historical releases normalize a missing securityUpdate marker to false', () => {
+  const fixture = baselineFixture();
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.equal(fixture.publishedReleases.every((release) => !('securityUpdate' in release.manifest)), true);
+  assert.equal(result.failures.some((failure) => failure.includes('securityUpdate')), false);
+});
+
 test('auto mode audits the baseline and validates a newer worktree as a candidate', () => {
   const baseline = baselineFixture();
   baseline.validationMode = 'auto';
@@ -369,24 +457,44 @@ test('direct recovery must close the active debt state in the same candidate pol
 });
 
 test('recovered historical break remains auditable after the recovery release is published', () => {
-  const fixture = baselineFixture();
-  enableDirectRecovery(fixture);
-  const recoveryRelease = makePublishedRelease(
-    '3.4.134',
-    '>=3.4.64 <3.4.134',
-    fixture.policy,
-    fixture.artifactPaths
-  );
-  fixture.publishedReleases.push(recoveryRelease);
-  fixture.gitTags.add('v3.4.134');
-  fixture.githubReleases.set('v3.4.134', githubReleaseFor(recoveryRelease));
-  fixture.latestReleaseIntentText = recoveryRelease.intentText;
-  fixture.latestSystemReleaseText = recoveryRelease.manifestText;
-  fixture.candidate = candidateManifest('3.4.134', '>=3.4.64 <3.4.134');
+  const { fixture } = publishedRecoveryFixture();
   const result = analyzeReleaseGraph(fixture);
 
   assert.deepEqual(result.failures, []);
   assert.deepEqual(result.directMissing, []);
+});
+
+test('published source and system-release securityUpdate markers must match', () => {
+  const { fixture, recoveryRelease } = publishedRecoveryFixture();
+  recoveryRelease.sourceManifest.securityUpdate = true;
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(
+    result.failures.join('\n'),
+    /tagged Press system securityUpdate does not match system-release\.json/u
+  );
+});
+
+test('published system-release and release-intent securityUpdate markers must match', () => {
+  const { fixture, recoveryRelease } = publishedRecoveryFixture();
+  recoveryRelease.intent.pressSystem.securityUpdate = true;
+  const result = analyzeReleaseGraph(fixture);
+
+  assert.match(
+    result.failures.join('\n'),
+    /release intent securityUpdate does not match system-release\.json/u
+  );
+});
+
+test('published v3.4.134 manifests require explicit securityUpdate markers', () => {
+  const { fixture, recoveryRelease } = publishedRecoveryFixture();
+  delete recoveryRelease.manifest.securityUpdate;
+  delete recoveryRelease.intent.pressSystem.securityUpdate;
+  const result = analyzeReleaseGraph(fixture);
+  const failures = result.failures.join('\n');
+
+  assert.match(failures, /system-release securityUpdate must be an explicit boolean/u);
+  assert.match(failures, /release intent pressSystem securityUpdate must be an explicit boolean/u);
 });
 
 test('one explicit transient candidate tag can resume candidate validation without becoming latest', () => {

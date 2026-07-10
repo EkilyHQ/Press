@@ -1,6 +1,6 @@
 {
   "name": "@ekilyhq/press-theme-contract",
-  "version": "3.4.133",
+  "version": "3.4.134",
   "description": "Press theme contract helpers and packaged theme validation rules.",
   "type": "module",
   "license": "UNLICENSED",

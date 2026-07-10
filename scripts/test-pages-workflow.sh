@@ -110,6 +110,11 @@ if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --materialize-root "${out
   exit 1
 fi
 
+if ! grep -F 'node scripts/resolve-pages-output-path.mjs "${output_dir}" "${repo_root}"' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "Pages artifact builder must canonicalize and validate its output path before removal" >&2
+  exit 1
+fi
+
 if grep -F 'path: dist/system' "${workflow}" >/dev/null || grep -F 'path: dist/press-system' "${workflow}" >/dev/null; then
   echo "Pages workflow must not deploy a system update package directory because it excludes wwwroot site content" >&2
   exit 1
@@ -117,6 +122,11 @@ fi
 
 if ! grep -F 'scripts/build-pages-artifact.sh' assets/js/press-system-surface.mjs >/dev/null; then
   echo "Pages release-plan paths must include the shared Pages artifact builder" >&2
+  exit 1
+fi
+
+if ! grep -F 'scripts/resolve-pages-output-path.mjs' assets/js/press-system-surface.mjs >/dev/null; then
+  echo "Pages release-plan paths must include the output-path validator used by the artifact builder" >&2
   exit 1
 fi
 

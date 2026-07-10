@@ -1,4 +1,5 @@
 export const PRESS_SYSTEM_MANIFEST_PATH = 'assets/press-system.json';
+export const SECURITY_UPDATE_REQUIRED_VERSION = '3.4.134';
 
 export function normalizeSemver(value) {
   const raw = String(value || '').trim();
@@ -94,11 +95,16 @@ export function normalizePressSystemManifest(input) {
   if (!version || tag !== semverToTag(version)) {
     throw new Error('Press system manifest version and tag must be matching SemVer values.');
   }
+  if (compareSemver(version, SECURITY_UPDATE_REQUIRED_VERSION) >= 0
+    && typeof input.securityUpdate !== 'boolean') {
+    throw new Error(`Press system manifest securityUpdate must be an explicit boolean from v${SECURITY_UPDATE_REQUIRED_VERSION}.`);
+  }
   return {
     schemaVersion: 1,
     type: 'press-system',
     version,
     tag,
+    securityUpdate: input.securityUpdate === true,
     upgradeFrom: normalizeUpgradeFrom(input.upgradeFrom),
     themeContractUpgrade: normalizeThemeContractUpgrade(input.themeContractUpgrade),
     contentModelUpgrade: normalizeContentModelUpgrade(input.contentModelUpgrade)

@@ -8,6 +8,7 @@ const { isDeepStrictEqual } = require('node:util');
 const POLICY_TYPE = 'press-release-graph-policy';
 const RELEASE_INTENT_TYPE = 'press-release-intent';
 const SYSTEM_RELEASE_TYPE = 'press-system';
+const SECURITY_UPDATE_REQUIRED_VERSION = '3.4.134';
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 
 function normalizeSemver(value) {
@@ -33,6 +34,20 @@ function compareSemver(leftValue, rightValue) {
     return leftParts[index] > rightParts[index] ? 1 : -1;
   }
   return 0;
+}
+
+function normalizeSecurityUpdate(input = {}) {
+  const source = input && typeof input === 'object' ? input : {};
+  return source.securityUpdate === true;
+}
+
+function validateSecurityUpdate(input, versionValue, label) {
+  const version = normalizeSemver(versionValue);
+  if (!version || compareSemver(version, SECURITY_UPDATE_REQUIRED_VERSION) < 0) return [];
+  if (!input || typeof input !== 'object' || typeof input.securityUpdate !== 'boolean') {
+    return [`${label} securityUpdate must be an explicit boolean`];
+  }
+  return [];
 }
 
 function testComparator(version, token) {
@@ -312,13 +327,33 @@ function validateUpgradeFrom(upgradeFrom, targetVersion, label) {
 
 function validateDirectCandidateDomain(candidate, policy) {
   const failures = [];
+  const candidateVersion = normalizeSemver(candidate && candidate.version);
   const candidateRanges = normalizeUpgradeFrom(candidate && candidate.upgradeFrom).ranges;
+  const candidateIntervals = candidateRanges.flatMap(rangeIntervals);
   const supportIntervals = policy.support.sourceRanges.flatMap(rangeIntervals);
-  candidateRanges.flatMap(rangeIntervals).forEach((interval) => {
+  candidateIntervals.forEach((interval) => {
     if (!intervalIsCovered(interval, supportIntervals)) {
-      failures.push(`candidate v${normalizeSemver(candidate && candidate.version)} upgradeFrom admits versions outside policy support.sourceRanges`);
+      failures.push(`candidate v${candidateVersion} upgradeFrom admits versions outside policy support.sourceRanges`);
     }
   });
+  const candidateUpper = semverParts(candidateVersion);
+  if (candidateUpper) {
+    const requiredIntervals = supportIntervals.map((interval) => {
+      const upper = !interval.upper || compareParts(interval.upper, candidateUpper) > 0
+        ? candidateUpper
+        : interval.upper;
+      return {
+        lower: interval.lower,
+        upper,
+        empty: interval.empty || compareParts(interval.lower, upper) >= 0
+      };
+    }).filter((interval) => !interval.empty);
+    requiredIntervals.forEach((interval) => {
+      if (!intervalIsCovered(interval, candidateIntervals)) {
+        failures.push(`candidate v${candidateVersion} upgradeFrom must cover the complete declared support domain below the candidate`);
+      }
+    });
+  }
   return failures;
 }
 
@@ -347,6 +382,7 @@ function validatePublishedRelease(release, policy, artifactPaths, githubReleases
     failures.push(`${label} system-release version and tag must match ${expected.tag}`);
   }
   failures.push(...validateUpgradeFrom(manifest.upgradeFrom, version, label));
+  failures.push(...validateSecurityUpdate(manifest, version, `${label} system-release`));
   if (sourceManifest) {
     if (sourceManifest.schemaVersion !== 1
       || sourceManifest.type !== SYSTEM_RELEASE_TYPE
@@ -354,10 +390,14 @@ function validatePublishedRelease(release, policy, artifactPaths, githubReleases
       || sourceManifest.tag !== expected.tag) {
       failures.push(`${label} tagged Press system manifest identity is inconsistent`);
     }
+    failures.push(...validateSecurityUpdate(sourceManifest, version, `${label} tagged Press system manifest`));
     if (!jsonMatches(normalizeUpgradeFrom(sourceManifest.upgradeFrom), normalizeUpgradeFrom(manifest.upgradeFrom))
       || !jsonMatches(sourceManifest.themeContractUpgrade, manifest.themeContractUpgrade)
       || !jsonMatches(sourceManifest.contentModelUpgrade, manifest.contentModelUpgrade)) {
       failures.push(`${label} tagged Press system compatibility metadata does not match system-release.json`);
+    }
+    if (normalizeSecurityUpdate(sourceManifest) !== normalizeSecurityUpdate(manifest)) {
+      failures.push(`${label} tagged Press system securityUpdate does not match system-release.json`);
     }
   }
 
@@ -441,6 +481,7 @@ function validatePublishedRelease(release, policy, artifactPaths, githubReleases
       failures.push(`${label} release intent system-release digest does not match its manifest`);
     }
     const pressSystem = intent.pressSystem && typeof intent.pressSystem === 'object' ? intent.pressSystem : {};
+    failures.push(...validateSecurityUpdate(pressSystem, version, `${label} release intent pressSystem`));
     if (!jsonMatches(normalizeAsset(pressSystem.asset), asset)) {
       failures.push(`${label} release intent asset metadata does not match system-release.json`);
     }
@@ -453,6 +494,9 @@ function validatePublishedRelease(release, policy, artifactPaths, githubReleases
     if (!jsonMatches(pressSystem.themeContractUpgrade, manifest.themeContractUpgrade)
       || !jsonMatches(pressSystem.contentModelUpgrade, manifest.contentModelUpgrade)) {
       failures.push(`${label} release intent migration compatibility metadata does not match system-release.json`);
+    }
+    if (normalizeSecurityUpdate(pressSystem) !== normalizeSecurityUpdate(manifest)) {
+      failures.push(`${label} release intent securityUpdate does not match system-release.json`);
     }
   }
   return failures;
@@ -470,6 +514,7 @@ function validateCandidate(candidate, publishedByVersion) {
     failures.push(`${label} version and tag must be matching exact semantic versions`);
   }
   if (version) failures.push(...validateUpgradeFrom(candidate.upgradeFrom, version, label));
+  failures.push(...validateSecurityUpdate(candidate, version, label));
   if (normalizeUpgradeFrom(candidate.upgradeFrom).allowUnknownSource) {
     failures.push(`${label} must not allow an unknown source version`);
   }
@@ -479,6 +524,9 @@ function validateCandidate(candidate, publishedByVersion) {
       || !jsonMatches(candidate.themeContractUpgrade, published.manifest.themeContractUpgrade)
       || !jsonMatches(candidate.contentModelUpgrade, published.manifest.contentModelUpgrade)) {
       failures.push(`${label} does not match the published release compatibility metadata`);
+    }
+    if (normalizeSecurityUpdate(candidate) !== normalizeSecurityUpdate(published.manifest)) {
+      failures.push(`${label} securityUpdate does not match the published release`);
     }
   }
   return failures;
@@ -491,6 +539,7 @@ function normalizePressSystemCompatibility(input = {}) {
     type: String(source.type || '').trim(),
     version: normalizeSemver(source.version),
     tag: semverToTag(source.tag || source.version),
+    securityUpdate: normalizeSecurityUpdate(source),
     upgradeFrom: normalizeUpgradeFrom(source.upgradeFrom),
     themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
       ? source.themeContractUpgrade
@@ -525,6 +574,13 @@ function validateCandidateArchive(candidate, candidateArchive) {
   }
   const embeddedPath = `${expectedRoot}assets/press-system.json`;
   if (!entries.includes(embeddedPath)) failures.push(`${label} archive is missing ${embeddedPath}`);
+  if (candidateArchive.embeddedManifest) {
+    failures.push(...validateSecurityUpdate(
+      candidateArchive.embeddedManifest,
+      version,
+      `${label} archive Press system manifest`
+    ));
+  }
   if (!candidateArchive.embeddedManifest
     || !jsonMatches(
       normalizePressSystemCompatibility(candidateArchive.embeddedManifest),
@@ -801,9 +857,12 @@ function analyzeReleaseGraph(input = {}) {
     && latestPublishedVersion !== baselineVersion) {
     failures.push(`published latest v${latestPublishedVersion} does not match recovery baseline v${baselineVersion}`);
   } else if (validationMode === 'audit' && gate.mode === 'direct'
-    && (!worktreeCandidateVersion || compareSemver(worktreeCandidateVersion, latestPublishedVersion) <= 0)
-    && directMissing.length) {
-    failures.push(`candidateGate.mode cannot switch to direct without a newer recovery candidate; published latest v${latestPublishedVersion} lacks direct edges from: ${directMissing.map((version) => `v${version}`).join(', ')}`);
+    && (!worktreeCandidateVersion || compareSemver(worktreeCandidateVersion, latestPublishedVersion) <= 0)) {
+    failures.push(...validateDirectCandidatePrerequisites(targetCandidate));
+    failures.push(...validateDirectCandidateDomain(targetCandidate, policy));
+    if (directMissing.length) {
+      failures.push(`candidateGate.mode cannot switch to direct without a newer recovery candidate; published latest v${latestPublishedVersion} lacks direct edges from: ${directMissing.map((version) => `v${version}`).join(', ')}`);
+    }
   } else if (validationMode === 'candidate' && gate.mode === 'recovery-required') {
     failures.push(`candidate v${candidateVersion || 'unknown'} is blocked while candidateGate.mode is recovery-required; only published baseline v${baselineVersion} may pass`);
   } else if (validationMode === 'candidate' && gate.mode === 'direct') {

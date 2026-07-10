@@ -10,6 +10,7 @@ const {
 
 const DEFAULT_PRESS_REPOSITORY = 'EkilyHQ/Press';
 const RELEASE_INTENT_TYPE = 'press-release-intent';
+const SECURITY_UPDATE_REQUIRED_VERSION = '3.4.134';
 const THEME_DEMO_OBSERVED_CHANNELS = ['themeManifest', 'themePacks', 'demoLock'];
 
 function normalizeSemver(value) {
@@ -22,6 +23,29 @@ function normalizeSemver(value) {
 function semverToTag(value) {
   const version = normalizeSemver(value);
   return version ? `v${version}` : '';
+}
+
+function compareSemver(leftValue, rightValue) {
+  const left = normalizeSemver(leftValue);
+  const right = normalizeSemver(rightValue);
+  if (!left || !right) return null;
+  const leftParts = left.split('.').map(Number);
+  const rightParts = right.split('.').map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (leftParts[index] === rightParts[index]) continue;
+    return leftParts[index] > rightParts[index] ? 1 : -1;
+  }
+  return 0;
+}
+
+function normalizeSecurityUpdate(input = {}) {
+  const source = input && typeof input === 'object' ? input : {};
+  return source.securityUpdate === true;
+}
+
+function requiresExplicitSecurityUpdate(version) {
+  const comparison = compareSemver(version, SECURITY_UPDATE_REQUIRED_VERSION);
+  return comparison !== null && comparison >= 0;
 }
 
 function normalizeThemeContractUpgrade(input = {}) {
@@ -142,6 +166,7 @@ function normalizeSystemRelease(input = {}) {
     tag,
     version,
     publishedAt: String(source.publishedAt || source.published_at || '').trim(),
+    securityUpdate: normalizeSecurityUpdate(source),
     upgradeFrom: source.upgradeFrom && typeof source.upgradeFrom === 'object' ? source.upgradeFrom : {},
     themeContractUpgrade: source.themeContractUpgrade && typeof source.themeContractUpgrade === 'object'
       ? source.themeContractUpgrade
@@ -226,6 +251,7 @@ function buildReleaseIntent(options = {}) {
     pressSystem: {
       asset: systemRelease.asset,
       runtime: systemRelease.runtime,
+      securityUpdate: systemRelease.securityUpdate,
       upgradeFrom: systemRelease.upgradeFrom,
       themeContractUpgrade: systemRelease.themeContractUpgrade,
       contentModelUpgrade: systemRelease.contentModelUpgrade
@@ -274,6 +300,7 @@ function normalizeReleaseIntent(input = {}) {
         entryCount: Number(runtime.entryCount || 0),
         edgeCount: Number(runtime.edgeCount || 0)
       },
+      securityUpdate: normalizeSecurityUpdate(pressSystem),
       upgradeFrom: pressSystem.upgradeFrom && typeof pressSystem.upgradeFrom === 'object'
         ? pressSystem.upgradeFrom
         : {},
@@ -325,6 +352,12 @@ function validateReleaseIntent(intentInput, options = {}) {
   if (!intent.version || intent.tag !== semverToTag(intent.version)) failures.push('release intent must declare matching version and tag');
   if (!intent.createdAt) failures.push('release intent must declare createdAt');
   if (!intent.repository) failures.push('release intent must declare repository');
+  const rawPressSystem = intentInput && intentInput.pressSystem && typeof intentInput.pressSystem === 'object'
+    ? intentInput.pressSystem
+    : {};
+  if (requiresExplicitSecurityUpdate(intent.version) && typeof rawPressSystem.securityUpdate !== 'boolean') {
+    failures.push('release intent pressSystem.securityUpdate must be an explicit boolean');
+  }
   if (!intent.pressSystem.asset.name || !intent.pressSystem.asset.url || !intent.pressSystem.asset.digest || !(intent.pressSystem.asset.size > 0)) {
     failures.push('release intent pressSystem.asset must declare name, url, size, and digest');
   }
@@ -382,6 +415,10 @@ function validateReleaseIntent(intentInput, options = {}) {
 
   if (options.systemRelease) {
     const systemRelease = normalizeSystemRelease(options.systemRelease);
+    if (requiresExplicitSecurityUpdate(systemRelease.version)
+      && typeof options.systemRelease.securityUpdate !== 'boolean') {
+      failures.push('system-release.json securityUpdate must be an explicit boolean');
+    }
     if (systemRelease.version !== intent.version || systemRelease.tag !== intent.tag) {
       failures.push('release intent version and tag must match system-release.json');
     }
@@ -395,6 +432,9 @@ function validateReleaseIntent(intentInput, options = {}) {
       || systemRelease.runtime.entryCount !== intent.pressSystem.runtime.entryCount
       || systemRelease.runtime.edgeCount !== intent.pressSystem.runtime.edgeCount) {
       failures.push('release intent runtime metadata must match system-release.json');
+    }
+    if (systemRelease.securityUpdate !== intent.pressSystem.securityUpdate) {
+      failures.push('release intent securityUpdate must match system-release.json');
     }
     if (!themeContractUpgradesMatch(systemRelease.themeContractUpgrade, intent.pressSystem.themeContractUpgrade)) {
       failures.push('release intent themeContractUpgrade must match system-release.json');

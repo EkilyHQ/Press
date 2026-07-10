@@ -913,7 +913,7 @@ async function buildProductState(options = {}) {
       ? releaseIntentResult.source
       : '';
   const releaseIntentFailures = normalizedReleaseIntent
-    ? validateReleaseIntent(normalizedReleaseIntent, { systemRelease })
+    ? validateReleaseIntent(releaseIntentResult.value, { systemRelease })
     : [];
   const effectiveSources = clone(sources);
   if (normalizedReleaseIntent && !releaseIntentFailures.length) {

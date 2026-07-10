@@ -680,6 +680,23 @@ test('buildProductState preserves explicit security update markers for release i
   assert.equal(state.releaseIntent.status, 'ok');
   assert.equal(state.releaseIntent.problems, undefined);
 
+  const missingIntentMarker = clone(intent);
+  delete missingIntentMarker.pressSystem.securityUpdate;
+  const missingIntentState = await buildProductState({
+    sources: makeSources(),
+    loadJson: loader(makeFixtures({
+      'fixture:system': release,
+      'fixture:intent': missingIntentMarker
+    })),
+    generatedAt: '2026-05-25T00:00:00Z'
+  });
+
+  assert.equal(missingIntentState.releaseIntent.status, 'drift');
+  assert.match(
+    missingIntentState.releaseIntent.problems.join('\n'),
+    /release intent pressSystem\.securityUpdate must be an explicit boolean/u
+  );
+
   const missingMarker = clone(release);
   delete missingMarker.securityUpdate;
   const missingState = await buildProductState({

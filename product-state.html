@@ -45,7 +45,7 @@
     <header>
       <div>
         <h1>Ekily Product State</h1>
-        <p class="meta">Generated 2026-07-10T12:48:58.161Z</p>
+        <p class="meta">Generated 2026-07-10T13:21:02.362Z</p>
       </div>
       <span class="status drift">drift</span>
     </header>
@@ -57,7 +57,7 @@
       <div class="metric"><span>Catalog</span><strong>4 themes <span class="status ok">ok</span></strong></div>
       <div class="metric"><span>Connect</span><strong>ekily-connect <span class="status ok">ok</span></strong></div>
       <div class="metric"><span>Publish Telemetry</span><strong>0 ok / 0 failed <span class="status ok">ok</span></strong></div>
-      <div class="metric"><span>Blocking Problems</span><strong>5</strong></div>
+      <div class="metric"><span>Blocking Problems</span><strong>1</strong></div>
     </div>
 
     <section>
@@ -85,8 +85,8 @@
       <table>
 <thead><tr><th>Name</th><th>Status</th><th>Expected</th><th>Observed</th><th>Owner</th></tr></thead>
 <tbody>
-<tr><td>YAP starter runtime</td><td><span class="status pending">pending</span></td><td>v3.4.134</td><td>v3.4.133</td><td>EkilyHQ/YAP</td></tr>
-<tr><td>Theme starter marker</td><td><span class="status pending">pending</span></td><td>v3.4.134</td><td>v3.4.133</td><td>EkilyHQ/Press-Theme-Starter</td></tr>
+<tr><td>YAP starter runtime</td><td><span class="status ok">ok</span></td><td>v3.4.134</td><td>v3.4.134</td><td>EkilyHQ/YAP</td></tr>
+<tr><td>Theme starter marker</td><td><span class="status ok">ok</span></td><td>v3.4.134</td><td>v3.4.134</td><td>EkilyHQ/Press-Theme-Starter</td></tr>
 </tbody>
 </table>
     </section>
@@ -96,10 +96,10 @@
       <table>
 <thead><tr><th>Name</th><th>Status</th><th>Expected</th><th>Observed</th><th>Owner</th></tr></thead>
 <tbody>
-<tr><td>Arcus demo runtime</td><td><span class="status drift">drift</span></td><td>Press v3.4.134 / Theme v3.4.7</td><td>Press v3.4.133 / Theme v3.4.7</td><td>EkilyHQ/Press-Theme-Arcus</td></tr>
-<tr><td>Cartograph demo runtime</td><td><span class="status drift">drift</span></td><td>Press v3.4.134 / Theme v3.4.6</td><td>Press v3.4.133 / Theme v3.4.6</td><td>EkilyHQ/Press-Theme-Cartograph</td></tr>
-<tr><td>Glasswing demo runtime</td><td><span class="status drift">drift</span></td><td>Press v3.4.134 / Theme v0.1.15</td><td>Press v3.4.133 / Theme v0.1.15</td><td>EkilyHQ/Press-Theme-Glasswing</td></tr>
-<tr><td>Solstice demo runtime</td><td><span class="status drift">drift</span></td><td>Press v3.4.134 / Theme v3.4.6</td><td>Press v3.4.133 / Theme v3.4.6</td><td>EkilyHQ/Press-Theme-Solstice</td></tr>
+<tr><td>Arcus demo runtime</td><td><span class="status ok">ok</span></td><td>Press v3.4.134 / Theme v3.4.7</td><td>Press v3.4.134 / Theme v3.4.7</td><td>EkilyHQ/Press-Theme-Arcus</td></tr>
+<tr><td>Cartograph demo runtime</td><td><span class="status ok">ok</span></td><td>Press v3.4.134 / Theme v3.4.6</td><td>Press v3.4.134 / Theme v3.4.6</td><td>EkilyHQ/Press-Theme-Cartograph</td></tr>
+<tr><td>Glasswing demo runtime</td><td><span class="status ok">ok</span></td><td>Press v3.4.134 / Theme v0.1.15</td><td>Press v3.4.134 / Theme v0.1.15</td><td>EkilyHQ/Press-Theme-Glasswing</td></tr>
+<tr><td>Solstice demo runtime</td><td><span class="status ok">ok</span></td><td>Press v3.4.134 / Theme v3.4.6</td><td>Press v3.4.134 / Theme v3.4.6</td><td>EkilyHQ/Press-Theme-Solstice</td></tr>
 </tbody>
 </table>
     </section>
@@ -121,16 +121,6 @@
       <h2>Problems</h2>
       <ul class="problems">
 <li><strong>releaseIntent</strong> <span class="status error">error</span> <span>system-release.json securityUpdate must be an explicit boolean</span> <em>blocking</em></li>
-<li><strong>downstream.yap</strong> <span class="status warning">warning</span> <span>YAP starter runtime is 3.4.133, expected 3.4.134</span> <em>non-blocking</em></li>
-<li><strong>downstream.themeStarter</strong> <span class="status warning">warning</span> <span>Theme starter marker is 3.4.133, expected 3.4.134</span> <em>non-blocking</em></li>
-<li><strong>themeDemos.arcus</strong> <span class="status warning">warning</span> <span>Arcus demo runtime is 3.4.133, expected 3.4.134</span> <em>non-blocking</em></li>
-<li><strong>themeDemos.cartograph</strong> <span class="status warning">warning</span> <span>Cartograph demo runtime is 3.4.133, expected 3.4.134</span> <em>non-blocking</em></li>
-<li><strong>themeDemos.glasswing</strong> <span class="status warning">warning</span> <span>Glasswing demo runtime is 3.4.133, expected 3.4.134</span> <em>non-blocking</em></li>
-<li><strong>themeDemos.solstice</strong> <span class="status warning">warning</span> <span>Solstice demo runtime is 3.4.133, expected 3.4.134</span> <em>non-blocking</em></li>
-<li><strong>themeDemos.arcus.theme</strong> <span class="status error">error</span> <span>demo release lock Press system is 3.4.133, expected 3.4.134; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent</span> <em>blocking</em></li>
-<li><strong>themeDemos.cartograph.theme</strong> <span class="status error">error</span> <span>demo release lock Press system is 3.4.133, expected 3.4.134; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent</span> <em>blocking</em></li>
-<li><strong>themeDemos.glasswing.theme</strong> <span class="status error">error</span> <span>demo release lock Press system is 3.4.133, expected 3.4.134; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent</span> <em>blocking</em></li>
-<li><strong>themeDemos.solstice.theme</strong> <span class="status error">error</span> <span>demo release lock Press system is 3.4.133, expected 3.4.134; demo release lock Press asset name does not match system release; demo release lock Press asset url does not match system release; demo release lock Press asset size does not match system release; demo release lock Press asset digest does not match system release; demo release lock Press releaseIntent source does not match release intent</span> <em>blocking</em></li>
 </ul>
     </section>
   </main>

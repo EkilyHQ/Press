@@ -1,0 +1,4612 @@
+{
+  "schemaVersion": 1,
+  "typescriptVersion": "5.9.3",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "target": "ES2023",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "roots": {
+    "scope": "Git-tracked non-vendor assets/js .js/.mjs files",
+    "count": 228,
+    "hashAlgorithm": "sha256-lf-path-list-v1",
+    "sha256": "06562c8d4e201ee73a6973d704d788f93f7ab2e55c4235e7ccc2a5da017f5378"
+  },
+  "suppressions": {
+    "decision": "prohibited-zero-baseline",
+    "scanner": "TypeScript SourceFile commentDirectives/checkJsDirective",
+    "scannedFiles": 232,
+    "tsIgnore": 0,
+    "tsExpectError": 0,
+    "tsNocheck": 0,
+    "total": 0
+  },
+  "summary": {
+    "diagnostics": 1470,
+    "files": 87,
+    "firstPartyDiagnostics": 905,
+    "firstPartyFiles": 83,
+    "transitiveVendorDiagnostics": 565,
+    "transitiveVendorFiles": 4,
+    "globalDiagnostics": 0
+  },
+  "diagnosticMultiset": [
+    {
+      "path": "assets/js/annotate.js",
+      "code": 2339,
+      "message": "Property 'body' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/annotate.js",
+      "code": 2339,
+      "message": "Property 'context' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/annotate.js",
+      "code": 2339,
+      "message": "Property 'replyToId' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/cache-control.js",
+      "code": 2339,
+      "message": "Property 'cachePolicy' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/components.js",
+      "code": 2339,
+      "message": "Property 'blur' does not exist on type 'Element'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/components.js",
+      "code": 2339,
+      "message": "Property 'dataset' does not exist on type 'Element'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/components.js",
+      "code": 2339,
+      "message": "Property 'value' does not exist on type 'Element'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/composer-action-effects.js",
+      "code": 2339,
+      "message": "Property 'skipAutoSave' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'applyEffectiveSiteConfig' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'applyEffectiveSiteConfig' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'applyInferredRepoConfig' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'applyMode' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'bindWorkspaceUi' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'buildIndexUI' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'buildSiteUI' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'buildTabsUI' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'cloneSiteState' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'deepClone' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'documentRef' does not exist on type '{ consoleRef?: null; mountEditorSystemPanels?: () => void; initEditorOverlay?: () => void; initEditorRailResize?: () => void; initMobileEditorRail?: () => void; bindEditorStatePersistenceListeners?: () => void; ... 10 more ...; bindVerifySetup?: () => void; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'documentRef' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'documentRef' does not exist on type '{ t?: (key: any) => any; setMarkdownPushButton?: () => void; setMarkdownSaveButton?: () => void; setMarkdownProtectionButton?: () => void; setMarkdownDiscardButton?: () => void; getMarkdownPushButton?: () => any; ... 12 more ...; updateMarkdownDiscardButton?: () => void; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'fetchConfigWithYamlFallback' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'fetchTrackedSiteConfig' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'inferRepoConfigFromGitHubPagesUrl' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'loadDraftSnapshotsIntoState' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'notifyComposerChange' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'persistDynamicEditorState' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'prepareIndexState' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'prepareSiteState' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'prepareTabsState' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'refreshEditorContentTree' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'restoreDynamicEditorState' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'setAllowEditorStatePersist' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'setRemoteBaseline' does not exist on type '{ consoleRef?: null; t?: (key: any) => any; ensureSiteRepo?: () => void; getActiveDynamicTab?: () => any; updateMarkdownPushButton?: () => void; showStatus?: () => void; loadContentModelMigration?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2339,
+      "message": "Property 'state' does not exist on type '{ t?: (key: any) => any; getLocation?: () => any; updateMarkdownPushButton?: () => void; getActiveDynamicTab?: () => any; showStatus?: () => void; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2367,
+      "message": "This comparison appears to be unintentional because the types '\"index\"' and '\"tabs\"' have no overlap.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 29
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 7
+    },
+    {
+      "path": "assets/js/composer-bootstrap.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-content-staging.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 19
+    },
+    {
+      "path": "assets/js/composer-content-staging.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/composer-content-staging.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-content-staging.js",
+      "code": 2554,
+      "message": "Expected 0-2 arguments, but got 3.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-dialogs.js",
+      "code": 2339,
+      "message": "Property 'cancelLabel' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-dialogs.js",
+      "code": 2339,
+      "message": "Property 'confirm' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-dialogs.js",
+      "code": 2339,
+      "message": "Property 'confirmLabel' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-dialogs.js",
+      "code": 2339,
+      "message": "Property 'message' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-dialogs.js",
+      "code": 2339,
+      "message": "Property 'title' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-editor-workspace-feature.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'ai' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'date' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'draft' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'excerpt' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'image' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'protected' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'readTime' does not exist on type '{ location: any; }'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'tags' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'title' does not exist on type '{ location: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2339,
+      "message": "Property 'versionLabel' does not exist on type '{ location: any; }'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-index-publish-metadata.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/composer-index-tabs-language-menu.js",
+      "code": 2339,
+      "message": "Property 'onSelect' does not exist on type '{ tagName?: string; wrapperClass?: string; buttonClass?: string; menuClass?: string; label?: string; available?: undefined[]; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-index-tabs-ui.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'onSelect' does not exist in type '{ tagName?: string; wrapperClass?: string; buttonClass?: string; menuClass?: string; label?: string; available?: any[]; }'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'documentRef' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'getActiveDynamicTab' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'getActiveSiteRepoConfig' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'getCurrentMode' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'getManualMarkdownSaveState' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'hasMarkdownDraftContent' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'isMarkdownTabProtected' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'setButtonLabel' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-actions-ui.js",
+      "code": 2339,
+      "message": "Property 'translate' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-feature.js",
+      "code": 2339,
+      "message": "Property 'confirmLabel' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-feature.js",
+      "code": 2339,
+      "message": "Property 'draft' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-feature.js",
+      "code": 2339,
+      "message": "Property 'message' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-feature.js",
+      "code": 2339,
+      "message": "Property 'remote' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-feature.js",
+      "code": 2339,
+      "message": "Property 'remoteSignature' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-feature.js",
+      "code": 2339,
+      "message": "Property 'title' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'computeTextSignature' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'createMarkdownProtectionState' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'decryptProtectedMarkdownForTab' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'draftHasAssetDeletions' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'draftProtectionMessage' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'draftProtectionTitle' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'fetchContent' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'getContentRootSafe' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'getCurrentMode' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'getDefaultMarkdownForPath' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'isMarkdownTabProtected' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'normalizeMarkdownContent' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'normalizeRelPath' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'now' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'openProtectionMessage' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'openProtectionTitle' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'parseEncryptedMarkdownEnvelope' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'pushEditorCurrentFileInfo' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'refreshEditorContentTree' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'setMarkdownProtectionState' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'status' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-loader.js",
+      "code": 2339,
+      "message": "Property 'updateDynamicTabDirtyState' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'anchor' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'editorTreeNodeId' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'force' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'key' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'lang' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'lookupKey' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'node' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'nodeId' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-session.js",
+      "code": 2339,
+      "message": "Property 'source' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'enabled' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'encryptedDraft' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'encryptedRemote' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'password' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'passwordChanged' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'remoteCiphertext' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-state.js",
+      "code": 2339,
+      "message": "Property 'remoteSignature' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-markdown-workspace.js",
+      "code": 2339,
+      "message": "Property 'getMarkdownActionsUi' does not exist on type '{ getPrimaryEditorApi?: () => any; getCurrentMode?: () => any; getTabsEntry?: () => {}; getEditorTreeFileNodeByPath?: () => any; notifyComposerChange?: () => void; updateDynamicTabDirtyState?: () => void; inferMarkdownSourceFromPath?: () => string; buildCurrentFileBreadcrumb?: () => any[]; now?: () => number; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-workspace.js",
+      "code": 2339,
+      "message": "Property 'getMarkdownLoader' does not exist on type '{ getPrimaryEditorApi?: () => any; getCurrentMode?: () => any; getTabsEntry?: () => {}; getEditorTreeFileNodeByPath?: () => any; notifyComposerChange?: () => void; updateDynamicTabDirtyState?: () => void; inferMarkdownSourceFromPath?: () => string; buildCurrentFileBreadcrumb?: () => any[]; now?: () => number; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-workspace.js",
+      "code": 2339,
+      "message": "Property 'getMarkdownSessionController' does not exist on type '{ getPrimaryEditorApi?: () => any; getCurrentMode?: () => any; getTabsEntry?: () => {}; getEditorTreeFileNodeByPath?: () => any; notifyComposerChange?: () => void; updateDynamicTabDirtyState?: () => void; inferMarkdownSourceFromPath?: () => string; buildCurrentFileBreadcrumb?: () => any[]; now?: () => number; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-markdown-workspace.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 11
+    },
+    {
+      "path": "assets/js/composer-order-preview.js",
+      "code": 2339,
+      "message": "Property 'onMeasured' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-post-commit-state.js",
+      "code": 2339,
+      "message": "Property 'stagingRegistry' does not exist on type '{ getStateSlice?: () => any; getRemoteBaseline?: () => {}; setRemoteBaselineSlice?: () => void; deepClone?: (value: any) => any; prepareIndexState?: (state: any) => any; prepareTabsState?: (state: any) => any; ... 28 more ...; updateUnsyncedSummary?: () => void; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-post-commit-state.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 26
+    },
+    {
+      "path": "assets/js/composer-post-commit-state.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 18
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'connect' does not exist in type '{ fetchImpl?: any; translate?: (key: any) => any; onStatus?: any; setCancelHandler?: any; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'connect' does not exist in type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'transport' does not exist in type '{ windowRef?: any; documentRef?: any; fetchImpl?: any; translate?: (key: any) => any; }'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 10
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-publish-flow.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 2.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/composer-publish-settings-ui.js",
+      "code": 2339,
+      "message": "Property 'publishSettingsStore' does not exist on type '{ documentRef?: null; t?: (key: any) => any; getActiveSiteRepoConfig?: () => {}; applyMode?: () => void; showEditorSystemPanel?: () => void; refreshSyncCommitPanel?: () => void; scheduleSyncCommitPanelRefresh?: () => void; requestAnimationFrameRef?: null; setTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-publish-settings-ui.js",
+      "code": 2339,
+      "message": "Property 'then' does not exist on type 'void'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-publish-settings-ui.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/composer-publish-settings-ui.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-publish-settings-ui.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-seo-staging.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/composer-sync-commit-controller.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'currentMode' does not exist in type '{ setTimer?: () => void; refreshSyncCommitPanel?: () => void; setTimeoutRef?: any; clearTimeoutRef?: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-sync-commit-controller.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-sync-panel.js",
+      "code": 2339,
+      "message": "Property 'currentMode' does not exist on type '{ setTimer?: () => void; refreshSyncCommitPanel?: () => void; setTimeoutRef?: null; clearTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-sync-panel.js",
+      "code": 2339,
+      "message": "Property 'timer' does not exist on type '{ setTimer?: () => void; refreshSyncCommitPanel?: () => void; setTimeoutRef?: null; clearTimeoutRef?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer-sync-panel.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/composer.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'getMarkdownSessionController' does not exist in type '{ getPrimaryEditorApi?: () => any; getCurrentMode?: () => any; getTabsEntry?: () => {}; getEditorTreeFileNodeByPath?: () => any; notifyComposerChange?: () => void; updateDynamicTabDirtyState?: () => void; inferMarkdownSourceFromPath?: () => string; buildCurrentFileBreadcrumb?: () => any[]; now?: () => number; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/composer.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'storage' does not exist in type '{ keys?: {}; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/content-model.js",
+      "code": 2339,
+      "message": "Property 'location' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/content-model.js",
+      "code": 2339,
+      "message": "Property 'title' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/content-security-policy.mjs",
+      "code": 4104,
+      "message": "The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'any[]'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-app-runtime.js",
+      "code": 2339,
+      "message": "Property 'bubbles' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-app-runtime.js",
+      "code": 2339,
+      "message": "Property 'cancelable' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-app-runtime.js",
+      "code": 2339,
+      "message": "Property 'documentRef' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-app-runtime.js",
+      "code": 2339,
+      "message": "Property 'windowRef' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-active-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-active-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-body-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/editor-blocks-body-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-body-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-card-picker-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-code-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-code-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-code-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-code-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 5.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-command-session.js",
+      "code": 2339,
+      "message": "Property 'commandMenuInsertIndex' does not exist on type '{ blocks: any[]; }'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-command-session.js",
+      "code": 2339,
+      "message": "Property 'commandMenuOpen' does not exist on type '{ blocks: any[]; }'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 5.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-control-factory.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-control-factory.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-control-factory.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-focus-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-focus-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-head-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-head-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-image-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-image-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-image-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-image-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 5.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-command-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 4.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-command-session.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 3.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-command-session.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 4.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-editing-bridge.js",
+      "code": 2339,
+      "message": "Property 'bold' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-editing-bridge.js",
+      "code": 2339,
+      "message": "Property 'code' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-editing-bridge.js",
+      "code": 2339,
+      "message": "Property 'italic' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-editing-bridge.js",
+      "code": 2339,
+      "message": "Property 'link' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-editing-bridge.js",
+      "code": 2339,
+      "message": "Property 'linkTitle' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-editing-bridge.js",
+      "code": 2339,
+      "message": "Property 'strike' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-model.js",
+      "code": 2322,
+      "message": "Type 'number' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-model.js",
+      "code": 2339,
+      "message": "Property 'length' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-model.js",
+      "code": 2339,
+      "message": "Property 'length' does not exist on type 'string | { bold: boolean; } | { strike: boolean; } | { italic: boolean; }'. Property 'length' does not exist on type '{ bold: boolean; }'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-model.js",
+      "code": 2345,
+      "message": "Argument of type 'string | { bold: boolean; } | { strike: boolean; } | { italic: boolean; }' is not assignable to parameter of type 'string'. Type '{ bold: boolean; }' is not assignable to type 'string'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-model.js",
+      "code": 2345,
+      "message": "Argument of type 'string' is not assignable to parameter of type 'number'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-model.js",
+      "code": 2698,
+      "message": "Spread types may only be created from object types.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-toolbar-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-toolbar-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 7
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-toolbar-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-inline-toolbar-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 4.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'activeIndex' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'blocks' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'clearTimer' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'done' does not exist on type '{ el: any; dx: number; dy: number; }'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getBody' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getComputedStyle' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getDocumentElement' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getElementById' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getScrollingElement' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getViewportHeight' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'getViewportWidth' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'onWindow' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'prefersReducedMotion' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'reorderAnimating' does not exist on type '{}'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'requestFrame' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2339,
+      "message": "Property 'setTimer' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-layout-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-link-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-link-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 8
+    },
+    {
+      "path": "assets/js/editor-blocks-link-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 11
+    },
+    {
+      "path": "assets/js/editor-blocks-link-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 4.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-link-session.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 4.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-link-session.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 6.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-list-model.js",
+      "code": 2339,
+      "message": "Property 'indent' does not exist on type '{ listType: string; checked: boolean; text: string; indentText: string; indentColumn: number; marker: string; number?: undefined; delimiter?: undefined; } | { listType: string; text: string; indentText: string; ... 4 more ...; delimiter?: undefined; } | { ...; }'. Property 'indent' does not exist on type '{ listType: string; checked: boolean; text: string; indentText: string; indentColumn: number; marker: string; number?: undefined; delimiter?: undefined; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-list-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 8
+    },
+    {
+      "path": "assets/js/editor-blocks-list-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 19
+    },
+    {
+      "path": "assets/js/editor-blocks-list-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 18
+    },
+    {
+      "path": "assets/js/editor-blocks-list-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 5.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-list-session.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 2.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-list-session.js",
+      "code": 2554,
+      "message": "Expected 0-3 arguments, but got 4.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-markdown-serialize-model.js",
+      "code": 2322,
+      "message": "Type 'number' is not assignable to type 'never'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-markdown-serialize-model.js",
+      "code": 2339,
+      "message": "Property 'length' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-markdown-serialize-model.js",
+      "code": 2345,
+      "message": "Argument of type 'string' is not assignable to parameter of type 'number'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-math-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-math-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/editor-blocks-math-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/editor-blocks-math-session.js",
+      "code": 2554,
+      "message": "Expected 0-1 arguments, but got 4.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2339,
+      "message": "Property 'menu' does not exist on type '{ focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2339,
+      "message": "Property 'menu' does not exist on type '{ onReposition?: () => void; focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2339,
+      "message": "Property 'trigger' does not exist on type '{ focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2339,
+      "message": "Property 'trigger' does not exist on type '{ onReposition?: () => void; focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2339,
+      "message": "Property 'wrap' does not exist on type '{ focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2339,
+      "message": "Property 'wrap' does not exist on type '{ onReposition?: () => void; focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'wrap' does not exist in type '{ onReposition?: () => void; focusSelector?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-menu-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-pointer-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-pointer-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-rich-text-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-rich-text-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-rich-text-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 9
+    },
+    {
+      "path": "assets/js/editor-blocks-rich-text-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 4.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks-rich-text-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 5.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-source-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-source-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-source-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/editor-blocks-source-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 5.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-state.js",
+      "code": 2339,
+      "message": "Property 'holdUntil' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-state.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks-state.js",
+      "code": 18047,
+      "message": "'target' is possibly 'null'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/editor-blocks-table-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 8
+    },
+    {
+      "path": "assets/js/editor-blocks-table-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 2.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks-table-session.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 3.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/editor-blocks.js",
+      "code": 2322,
+      "message": "Type '(event: any, block: any, index: any, editable?: any, sync?: any) => boolean' is not assignable to type '() => boolean'. Type 'boolean' is not assignable to type 'false'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-blocks.js",
+      "code": 2322,
+      "message": "Type '{ targetIndex: number; block: any; }' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-blocks.js",
+      "code": 2719,
+      "message": "Type '() => boolean' is not assignable to type '() => boolean'. Two different types with this name exist, but they are unrelated. Type 'boolean' is not assignable to type 'false'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-drafts.js",
+      "code": 2339,
+      "message": "Property 'scopeKey' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-drafts.js",
+      "code": 2339,
+      "message": "Property 'storage' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-drafts.js",
+      "code": 2339,
+      "message": "Property 'storageKey' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-content-service.js",
+      "code": 2339,
+      "message": "Property 'contentRoot' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-main-content-service.js",
+      "code": 2339,
+      "message": "Property 'posts' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-content-service.js",
+      "code": 2339,
+      "message": "Property 'rawIndex' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-content-service.js",
+      "code": 2339,
+      "message": "Property 'relPath' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-content-service.js",
+      "code": 2339,
+      "message": "Property 'siteConfig' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-content-service.js",
+      "code": 2339,
+      "message": "Property 'url' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-current-file-session.js",
+      "code": 2345,
+      "message": "Argument of type '{ path: string; source: string; breadcrumb: any[]; status: any; dirty: boolean; draft: any; draftState: string; loaded: boolean; }' is not assignable to parameter of type 'Readonly<{ path: \"\"; source: \"\"; breadcrumb: any[]; status: any; dirty: false; draft: any; draftState: \"\"; loaded: false; }>'. Types of property 'path' are incompatible. Type 'string' is not assignable to type '\"\"'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-image-session.js",
+      "code": 2339,
+      "message": "Property 'blockId' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-image-session.js",
+      "code": 2339,
+      "message": "Property 'index' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-main-image-session.js",
+      "code": 2339,
+      "message": "Property 'replaceBlockId' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-image-session.js",
+      "code": 2339,
+      "message": "Property 'replaceIndex' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-image-session.js",
+      "code": 2339,
+      "message": "Property 'src' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-main-tabs-metadata-manager.js",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-preview-runtime.js",
+      "code": 2339,
+      "message": "Property 'imageResolution' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-session-state.js",
+      "code": 2339,
+      "message": "Property 'editorState' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/editor-session-state.js",
+      "code": 2339,
+      "message": "Property 'scopeKey' does not exist on type '{ keys?: {}; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-session-state.js",
+      "code": 2339,
+      "message": "Property 'storage' does not exist on type '{ keys?: {}; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/editor-session-state.js",
+      "code": 2339,
+      "message": "Property 'systemTreeExpanded' does not exist on type '{}'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/frontmatter-document.js",
+      "code": 2339,
+      "message": "Property 'parseFailed' does not exist on type '{ key: string; leadingLines: any[]; bodyLines: any[]; defId: any; isKnown: boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/frontmatter-document.js",
+      "code": 2339,
+      "message": "Property 'parsedValue' does not exist on type '{ key: string; leadingLines: any[]; bodyLines: any[]; defId: any; isKnown: boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/hieditor.js",
+      "code": 2339,
+      "message": "Property '__seoEditorGet' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/hieditor.js",
+      "code": 2339,
+      "message": "Property '__seoEditorSet' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/hieditor.js",
+      "code": 2339,
+      "message": "Property '__seoEditorToggleWrap' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/hieditor.js",
+      "code": 2339,
+      "message": "Property '__seoInitEditors' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/i18n.js",
+      "code": 2339,
+      "message": "Property 'versions' does not exist on type '{ title: any; location: string; image: any; tag: any; date: any; excerpt: any; versionLabel: any; readTime: any; ai: any; draft: any; protected: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/link-cards.js",
+      "code": 2367,
+      "message": "This comparison appears to be unintentional because the types 'string' and 'boolean' have no overlap.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/markdown.js",
+      "code": 2339,
+      "message": "Property 'depth' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/markdown.js",
+      "code": 2339,
+      "message": "Property 'imageResolution' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/markdown.js",
+      "code": 2339,
+      "message": "Property 'limits' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/markdown.js",
+      "code": 2339,
+      "message": "Property 'maxDepth' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/markdown.js",
+      "code": 2339,
+      "message": "Property 'maxInputLength' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/markdown.js",
+      "code": 2339,
+      "message": "Property 'maxLines' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'branch' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'branch' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'filePath' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'filename' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'folder' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'folderPath' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'name' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'owner' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'path' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/provider-adapters.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'connect' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'contentRoot' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'files' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'getCachedGrant' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'getCachedGrant' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'headline' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'onPublishState' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'onStatus' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'setCachedGrant' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'setCachedGrant' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2339,
+      "message": "Property 'transport' does not exist on type '{ windowRef?: null; documentRef?: null; fetchImpl?: null; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'connect' does not exist in type '{ fetchImpl?: any; translate?: (key: any) => any; onStatus?: any; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'connect' does not exist in type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'connect' does not exist in type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/commit-service.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'owner' does not exist in type '{ fetchImpl?: any; siteRepositoryProvider?: any; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'assetRelativePath' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'binary' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'branch' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'code' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'connect' does not exist on type 'object'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'contentRoot' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'deleted' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'files' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'headline' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'kind' does not exist on type 'object'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'label' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'markdownPath' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'message' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'mime' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'name' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'now' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'owner' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'path' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'provider' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'providerId' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'reason' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'runId' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'transport' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/publish-receipt.js",
+      "code": 2339,
+      "message": "Property 'warnings' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'connect' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'connect' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; setCancelHandler?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'connect' does not exist on type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'connect' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'contentRoot' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'files' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'getCachedGrant' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'grant' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'grant' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; setCancelHandler?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'headline' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'job' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; setCancelHandler?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'pendingPublishResult' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{ fetchImpl?: null; translate?: (key: any) => any; onStatus?: null; pollIntervalMs?: number; pollTimeoutMs?: number; sleepImpl?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'repo' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'response' does not exist on type 'Error'.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'setCachedGrant' does not exist on type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'setCachedGrant' does not exist on type '{ windowRef?: null; documentRef?: null; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2339,
+      "message": "Property 'status' does not exist on type 'Error'.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/publish/transports/connect-transport.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'connect' does not exist in type '{ windowRef?: any; documentRef?: any; translate?: (key: any) => any; messageType?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'branch' does not exist on type '{ fetchImpl?: null; siteRepositoryProvider?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'files' does not exist on type '{ fetchImpl?: null; siteRepositoryProvider?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'headline' does not exist on type '{ fetchImpl?: null; siteRepositoryProvider?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'name' does not exist on type '{ fetchImpl?: null; siteRepositoryProvider?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'onStatus' does not exist on type '{ fetchImpl?: null; siteRepositoryProvider?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'owner' does not exist on type '{ fetchImpl?: null; siteRepositoryProvider?: null; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'response' does not exist on type 'Error'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/publish/transports/github-pat-transport.js",
+      "code": 2339,
+      "message": "Property 'status' does not exist on type 'Error'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/safe-html.js",
+      "code": 2339,
+      "message": "Property '__press_content_root' does not exist on type 'Window & typeof globalThis'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/safe-html.js",
+      "code": 2339,
+      "message": "Property 'alreadySanitized' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/safe-html.js",
+      "code": 2339,
+      "message": "Property 'contentRoot' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/safe-html.js",
+      "code": 2339,
+      "message": "Property 'imageResolution' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/safe-html.js",
+      "code": 2339,
+      "message": "Property 'origin' does not exist on type 'object'.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/search.js",
+      "code": 2339,
+      "message": "Property '__press_get_home_slug' does not exist on type 'Window & typeof globalThis'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/search.js",
+      "code": 2339,
+      "message": "Property 'detail' does not exist on type 'Event'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'dateModified' does not exist on type '{ \"@context\": string; \"@type\": string; headline: any; description: any; url: any; author: { \"@type\": string; name: any; }; publisher: { \"@type\": string; name: any; logo: { \"@type\": string; url: string; }; }; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'datePublished' does not exist on type '{ \"@context\": string; \"@type\": string; headline: any; description: any; url: any; author: { \"@type\": string; name: any; }; publisher: { \"@type\": string; name: any; logo: { \"@type\": string; url: string; }; }; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'image' does not exist on type '{ \"@context\": string; \"@type\": string; headline: any; description: any; url: any; author: { \"@type\": string; name: any; }; publisher: { \"@type\": string; name: any; logo: { \"@type\": string; url: string; }; }; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'keywords' does not exist on type '{ \"@context\": string; \"@type\": string; headline: any; description: any; url: any; author: { \"@type\": string; name: any; }; publisher: { \"@type\": string; name: any; logo: { \"@type\": string; url: string; }; }; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'languages' does not exist on type 'object'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'potentialAction' does not exist on type '{ \"@context\": string; \"@type\": string; name: any; description: any; url: any; author: { \"@type\": string; name: any; }; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2339,
+      "message": "Property 'split' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2345,
+      "message": "Argument of type 'Date' is not assignable to parameter of type 'number'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/seo.js",
+      "code": 2740,
+      "message": "Type '{}' is missing the following properties from type '{ title: string; description: string; image: string; url: string; type: string; author: string; publishedTime: string; modifiedTime: string; tags: string[]; }': title, description, image, url, and 5 more.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'apiError' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'manifestError' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'pressContentModelUpgradeBlocked' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'pressThemeContractUpgradeBlocked' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'pressUpgradeBlocked' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'rateLimited' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/system-updates.js",
+      "code": 2339,
+      "message": "Property 'status' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-boot.js",
+      "code": 2339,
+      "message": "Property '__themePackHref' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-install-service.js",
+      "code": 2339,
+      "message": "Property 'buffer' does not exist on type '{ fileName?: string; registry?: undefined[]; releaseManifest?: null; source?: null; allowBuiltInUpdate?: boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-install-service.js",
+      "code": 2339,
+      "message": "Property 'catalogEntry' does not exist on type '{ registry?: undefined[]; allowBuiltInUpdate?: boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-install-service.js",
+      "code": 2339,
+      "message": "Property 'slug' does not exist on type '{ registry?: undefined[]; currentThemePack?: string; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-install-service.js",
+      "code": 2345,
+      "message": "Argument of type '{ kind: string; category: string; theme: string; label: string; path: string; state: string; content: string; }' is not assignable to parameter of type '{ kind: string; category: string; theme: string; label: string; path: string; state: string; deleted: boolean; }'. Property 'deleted' is missing in type '{ kind: string; category: string; theme: string; label: string; path: string; state: string; content: string; }' but required in type '{ kind: string; category: string; theme: string; label: string; path: string; state: string; deleted: boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-install-service.js",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'buffer' does not exist in type '{ fileName?: string; registry?: any[]; releaseManifest?: any; source?: any; allowBuiltInUpdate?: boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-layout.js",
+      "code": 2339,
+      "message": "Property '__pressThemeModuleLoader' does not exist on type 'Window & typeof globalThis'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme-layout.js",
+      "code": 2339,
+      "message": "Property '__press_themeDevMode' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-layout.js",
+      "code": 2339,
+      "message": "Property '__themePackHref' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-package-core.js",
+      "code": 2339,
+      "message": "Property 'importedAliases' does not exist on type 'Set<any>'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-package-core.js",
+      "code": 2339,
+      "message": "Property 'localAliases' does not exist on type 'Set<any>'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-route-guard.js",
+      "code": 2339,
+      "message": "Property 'paramIndex' does not exist on type 'never'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme-router-helpers.js",
+      "code": 2339,
+      "message": "Property 'page' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-router-helpers.js",
+      "code": 2339,
+      "message": "Property 'q' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme-router-helpers.js",
+      "code": 2339,
+      "message": "Property 'query' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-router-helpers.js",
+      "code": 2339,
+      "message": "Property 'tag' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme-router-helpers.js",
+      "code": 2339,
+      "message": "Property 'tagFilter' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme-settings.js",
+      "code": 2339,
+      "message": "Property 'configSchema' does not exist on type '{}'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme-settings.js",
+      "code": 2339,
+      "message": "Property 'themePack' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property '__press_softResetLang' does not exist on type 'Window & typeof globalThis'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property '__themePackHref' does not exist on type 'Window & typeof globalThis'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'context' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'detail' does not exist on type 'Event'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'editor' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'host' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'language' does not exist on type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'setCurrentPack' does not exist on type 'Element'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'setHiddenRoles' does not exist on type 'Element'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'setLanguages' does not exist on type 'Element'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'siteConfig' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'themeContext' does not exist on type 'object'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'value' does not exist on type 'HTMLElement'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/theme.js",
+      "code": 2339,
+      "message": "Property 'variant' does not exist on type 'object'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn-walk.mjs",
+      "code": 2339,
+      "message": "Property 'node' does not exist on type 'never'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 1313,
+      "message": "The body of an 'if' statement cannot be the empty statement.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'adaptDirectivePrologue' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'afterTrailingComma' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'braceIsBlock' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'canInsertSemicolon' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'catchStackOverflow' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkExpressionErrors' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkExpressionErrors' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkExpressionErrors' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkLValPattern' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkLValSimple' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkLValSimple' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkLValSimple' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkParams' does not exist on type 'parseFunctionBody'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkPatternErrors' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkPatternErrors' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkUnreserved' does not exist on type 'parseIdent'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkUnreserved' does not exist on type 'parsePropertyValue'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkYieldAwaitInDefaultParams' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkYieldAwaitInDefaultParams' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'checkYieldAwaitInDefaultParams' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'containsEsc' does not exist on type 'next'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'containsEsc' does not exist on type 'readRegexp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'context' does not exist on type 'parseIdentNode'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'context' does not exist on type 'updateContext'.",
+      "count": 15
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'copyNode' does not exist on type 'parsePropertyValue'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curContext' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curContext' does not exist on type 'updateContext'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curLine' does not exist on type 'readEscapedChar'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curLine' does not exist on type 'readInvalidTemplateToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curLine' does not exist on type 'readString'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curLine' does not exist on type 'readTmplToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curLine' does not exist on type 'skipBlockComment'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curLine' does not exist on type 'skipSpace'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curPosition' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curPosition' does not exist on type 'finishToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curPosition' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'curPosition' does not exist on type 'skipBlockComment'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'eat' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'eat' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'eat' does not exist on type 'parsePropertyValue'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'eat' does not exist on type 'parseSubscript'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'eat' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'end' does not exist on type 'next'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'end' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'endLoc' does not exist on type 'next'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterClassBody' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterScope' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterScope' does not exist on type 'parseArrowExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterScope' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterScope' does not exist on type 'parseClassStaticBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterScope' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'enterScope' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'exitClassBody' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'exitScope' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'exitScope' does not exist on type 'parseClassStaticBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'exitScope' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'expect' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'expect' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'expect' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'expect' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'expect' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseArrowExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseAwait'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseClass'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseClassStaticBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseIdent'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseSubscript'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNode' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishNodeAt' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishToken' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishToken' does not exist on type 'readInvalidTemplateToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishToken' does not exist on type 'readRegexp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishToken' does not exist on type 'readString'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'finishToken' does not exist on type 'readTmplToken'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'fullCharCodeAtPos' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'fullCharCodeAtPos' does not exist on type 'readWord1'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'inGenerator' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'inGeneratorContext' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'initFunction' does not exist on type 'parseArrowExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'initFunction' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'initFunction' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'initialContext' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'parseIdentNode'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'readEscapedChar'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'readInvalidTemplateToken'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'readRegexp'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'readString'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'readTmplToken'.",
+      "count": 7
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'readWord1'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'skipBlockComment'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'skipSpace'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'input' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'invalidStringToken' does not exist on type 'readEscapedChar'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'invalidStringToken' does not exist on type 'readWord1'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'isContextual' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'isSimpleParamList' does not exist on type 'parseFunctionBody'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokEnd' does not exist on type 'parseIdentNode'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokEnd' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokEnd' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokEndLoc' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokStart' does not exist on type 'parseIdentNode'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokStart' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'lastTokStart' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'loc' does not exist on type 'SyntaxError'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseAwait'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseClass'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseClassStaticBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseIdent'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'next' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'nextToken' does not exist on type 'Parser'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'nextToken' does not exist on type 'next'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'finishToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'next'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parseArrowExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parseFunction'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parseMethod'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parsePropertyValue'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'parseSubscript'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'readEscapedChar'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'readString'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'readTmplToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'readWord1'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'skipBlockComment'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'skipSpace'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'options' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseBindingList' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseBlock' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseClassElement' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseClassId' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseClassSuper' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseExprList' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseExpression' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseExpression' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseFunctionBody' does not exist on type 'parseArrowExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseFunctionBody' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseFunctionBody' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseFunctionParams' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseGetterSetter' does not exist on type 'parsePropertyValue'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseIdent' does not exist on type 'parseFunction'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseIdent' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseIdentNode' does not exist on type 'parseIdent'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeAssign' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeAssign' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeAssign' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeAssign' does not exist on type 'parsePropertyValue'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeAssign' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeConditional' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeDefault' does not exist on type 'parsePropertyValue'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMaybeUnary' does not exist on type 'parseAwait'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseMethod' does not exist on type 'parsePropertyValue'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseParenArrowList' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseParenExpression' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseParenItem' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parsePrivateIdent' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseRestBinding' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseStatement' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseStatement' does not exist on type 'parseClassStaticBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseSubscriptAsyncArrow' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseTemplate' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseTopLevel' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'parseYield' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'SyntaxError'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'finishToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'nextToken'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'readEscapedChar'.",
+      "count": 12
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'readInvalidTemplateToken'.",
+      "count": 9
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'readRegexp'.",
+      "count": 7
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'readString'.",
+      "count": 9
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'readTmplToken'.",
+      "count": 17
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'readWord1'.",
+      "count": 10
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'pos' does not exist on type 'skipSpace'.",
+      "count": 9
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'push' does not exist on type '(token: any) => any'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raise' does not exist on type 'parseSubscript'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raise' does not exist on type 'readInvalidTemplateToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raise' does not exist on type 'readRegexp'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raise' does not exist on type 'readString'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raise' does not exist on type 'readTmplToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raise' does not exist on type 'skipBlockComment'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raiseRecoverable' does not exist on type 'next'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raiseRecoverable' does not exist on type 'parseClass'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raiseRecoverable' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raiseRecoverable' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'raisedAt' does not exist on type 'SyntaxError'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readCodePoint' does not exist on type 'readEscapedChar'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readCodePoint' does not exist on type 'readWord1'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readEscapedChar' does not exist on type 'readString'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readEscapedChar' does not exist on type 'readTmplToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readHexChar' does not exist on type 'readEscapedChar'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readInvalidTemplateToken' does not exist on type 'tryReadTemplateToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readTmplToken' does not exist on type 'tryReadTemplateToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readToken' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'readWord1' does not exist on type 'readRegexp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'shouldParseArrow' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'shouldParseAsyncArrow' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'skipBlockComment' does not exist on type 'skipSpace'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'skipLineComment' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'skipLineComment' does not exist on type 'skipSpace'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'skipSpace' does not exist on type 'nextToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'next'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'parseAwait'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'parseMaybeAssign'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'parsePropertyValue'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'parseSubscript'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'readInvalidTemplateToken'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'readString'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'readTmplToken'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'start' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startLoc' does not exist on type 'next'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startLoc' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startLoc' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startLoc' does not exist on type 'parsePropertyValue'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'parseAwait'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'parseIdentNode'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'parseMethod'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNode' does not exist on type 'parseYield'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNodeAt' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNodeAt' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'startNodeAt' does not exist on type 'parseSubscript'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'strict' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'strict' does not exist on type 'readEscapedChar'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'strictDirective' does not exist on type 'Parser'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'strictDirective' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'toAssignable' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'toAssignableList' does not exist on type 'parseArrowExpression'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'treatFunctionsAsVar' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'next'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseClass'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseClassStaticBlock'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseFunction'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseFunctionBody'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseMaybeAssign'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parsePropertyValue'.",
+      "count": 6
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseSubscript'.",
+      "count": 4
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'parseYield'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'readTmplToken'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'type' does not exist on type 'updateContext'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'unexpected' does not exist on type 'parseFunction'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'unexpected' does not exist on type 'parseIdentNode'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'unexpected' does not exist on type 'parseParenAndDistinguishExpression'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'unexpected' does not exist on type 'parsePropertyValue'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'unexpected' does not exist on type 'readRegexp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'updateContext' does not exist on type 'finishToken'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'validateRegExpFlags' does not exist on type 'readRegexp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'validateRegExpPattern' does not exist on type 'readRegexp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'value' does not exist on type 'parseIdentNode'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'value' does not exist on type 'parseMaybeAssign'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2339,
+      "message": "Property 'value' does not exist on type 'updateContext'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2365,
+      "message": "Operator '+' cannot be applied to types 'undefined' and '2'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2365,
+      "message": "Operator '+=' cannot be applied to types 'undefined' and '2'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2367,
+      "message": "This comparison appears to be unintentional because the types 'number' and 'string' have no overlap.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/acorn.mjs",
+      "code": 2532,
+      "message": "Object is possibly 'undefined'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'c' does not exist on type 'Uint8Array<any>'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'c' does not exist on type 'Unzip'.",
+      "count": 11
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'captureStackTrace' does not exist on type 'ErrorConstructor'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'code' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'd' does not exist on type 'Unzip'.",
+      "count": 5
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'extra' does not exist on type 'Uint8Array<any>'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'f' does not exist on type 'Uint8Array<any>'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'm' does not exist on type 'Uint8Array<any>'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'o' does not exist on type 'Gzip'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'o' does not exist on type 'Uint8Array<any>'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'o' does not exist on type 'Zlib'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'AsyncDecompress'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'AsyncUnzipInflate'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'AsyncZipDeflate'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'Decompress'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'Gzip'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'Inflate | Gunzip | Unzlib'. Property 'ondata' does not exist on type 'Gunzip'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'UnzipInflate'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'UnzipPassThrough'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'ZipDeflate'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'ZipPassThrough'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondata' does not exist on type 'Zlib'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'ondrain' does not exist on type 'AsyncDecompress'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'onmember' does not exist on type 'Gunzip'.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 's' does not exist on type 'AsyncDecompress'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 's' does not exist on type 'Gzip'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 's' does not exist on type 'Zlib'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2339,
+      "message": "Property 'u' does not exist on type 'Uint8Array<any>'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2345,
+      "message": "Argument of type 'Uint8Array<ArrayBuffer>' is not assignable to parameter of type 'number'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2362,
+      "message": "The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2363,
+      "message": "The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.",
+      "count": 3
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2365,
+      "message": "Operator '+' cannot be applied to types 'boolean' and 'boolean'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2365,
+      "message": "Operator '+' cannot be applied to types 'number' and 'boolean'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2365,
+      "message": "Operator '+=' cannot be applied to types 'Uint8Array<ArrayBuffer>' and 'number'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2403,
+      "message": "Subsequent variable declarations must have the same type. Variable 'c' must be of type 'number', but here has type 'any'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2403,
+      "message": "Subsequent variable declarations must have the same type. Variable 'dt' must be of type 'Uint8Array<ArrayBuffer>', but here has type 'number'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2403,
+      "message": "Subsequent variable declarations must have the same type. Variable 'f' must be of type 'Uint8Array<any>', but here has type '{}'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2403,
+      "message": "Subsequent variable declarations must have the same type. Variable 'r' must be of type 'string', but here has type 'Uint8Array<any>'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/fflate.browser.js",
+      "code": 2769,
+      "message": "No overload matches this call. Overload 1 of 2, '(message: any, targetOrigin: string, transfer?: Transferable[]): void', gave the following error. Argument of type 'any[]' is not assignable to parameter of type 'string'. Overload 2 of 2, '(message: any, options?: WindowPostMessageOptions): void', gave the following error. Type 'any[]' has no properties in common with type 'WindowPostMessageOptions'.",
+      "count": 2
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 1313,
+      "message": "The body of an 'if' statement cannot be the empty statement.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 1534,
+      "message": "This backreference refers to a group that does not exist. There are no capturing groups in this regular expression.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2339,
+      "message": "Property '_walk' does not exist on type 'Function'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2339,
+      "message": "Property 'badRule' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2339,
+      "message": "Property 'exceptions' does not exist on type '{ when: (e: any) => boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2339,
+      "message": "Property 'languageName' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2339,
+      "message": "Property 'mode' does not exist on type 'Error'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2345,
+      "message": "Argument of type '{ begin: RegExp; end: RegExp; keywords: { $pattern: string; keyword: string[]; literal: string[]; }; contains: any[]; }' is not assignable to parameter of type '{ className: string; match: string; relevance?: undefined; } | { className: string; match: string; relevance: number; } | { match: RegExp; relevance: number; className?: undefined; } | { match: string; relevance: number; className?: undefined; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2741,
+      "message": "Property 'when' is missing in type '{}' but required in type '{ when: (e: any) => boolean; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2769,
+      "message": "No overload matches this call. Overload 1 of 2, '(...items: ConcatArray<RegExp>[]): RegExp[]', gave the following error. Argument of type 'string[]' is not assignable to parameter of type 'ConcatArray<RegExp>'. The types returned by 'slice(...)' are incompatible between these types. Type 'string[]' is not assignable to type 'RegExp[]'. Type 'string' is not assignable to type 'RegExp'. Overload 2 of 2, '(...items: (RegExp | ConcatArray<RegExp>)[]): RegExp[]', gave the following error. Argument of type 'string[]' is not assignable to parameter of type 'RegExp | ConcatArray<RegExp>'. Type 'string[]' is not assignable to type 'ConcatArray<RegExp>'. The types returned by 'slice(...)' are incompatible between these types. Type 'string[]' is not assignable to type 'RegExp[]'. Type 'string' is not assignable to type 'RegExp'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2769,
+      "message": "No overload matches this call. Overload 1 of 2, '(...items: ConcatArray<{ begin: RegExp; end: string; subLanguage: string; relevance: number; } | { variants: { begin: any; relevance: number; }[]; returnBegin: boolean; contains: ({ match: RegExp; ... 6 more ...; excludeEnd?: undefined; } | { ...; } | { ...; })[]; }>[]): ({ ...; } | { ...; })[]', gave the following error. Argument of type '{ className: string; contains: any[]; variants: { begin: RegExp; end: RegExp; }[]; }' is not assignable to parameter of type 'ConcatArray<{ begin: RegExp; end: string; subLanguage: string; relevance: number; } | { variants: { begin: any; relevance: number; }[]; returnBegin: boolean; contains: ({ match: RegExp; className?: undefined; ... 5 more ...; excludeEnd?: undefined; } | { ...; } | { ...; })[]; }>'. Type '{ className: string; contains: any[]; variants: { begin: RegExp; end: RegExp; }[]; }' is missing the following properties from type 'ConcatArray<{ begin: RegExp; end: string; subLanguage: string; relevance: number; } | { variants: { begin: any; relevance: number; }[]; returnBegin: boolean; contains: ({ match: RegExp; className?: undefined; ... 5 more ...; excludeEnd?: undefined; } | { ...; } | { ...; })[]; }>': length, join, slice Overload 2 of 2, '(...items: ({ begin: RegExp; end: string; subLanguage: string; relevance: number; } | { variants: { begin: any; relevance: number; }[]; returnBegin: boolean; contains: ({ match: RegExp; className?: undefined; ... 5 more ...; excludeEnd?: undefined; } | { ...; } | { ...; })[]; } | ConcatArray<...>)[]): ({ ...; } | { ...; })[]', gave the following error. Argument of type '{ className: string; contains: any[]; variants: { begin: RegExp; end: RegExp; }[]; }' is not assignable to parameter of type '{ begin: RegExp; end: string; subLanguage: string; relevance: number; } | { variants: { begin: any; relevance: number; }[]; returnBegin: boolean; contains: ({ match: RegExp; className?: undefined; ... 5 more ...; excludeEnd?: undefined; } | { ...; } | { ...; })[]; } | ConcatArray<...>'. Property 'returnBegin' is missing in type '{ className: string; contains: any[]; variants: { begin: RegExp; end: RegExp; }[]; }' but required in type '{ variants: { begin: any; relevance: number; }[]; returnBegin: boolean; contains: ({ match: RegExp; className?: undefined; relevance?: undefined; begin?: undefined; end?: undefined; excludeBegin?: undefined; returnEnd?: undefined; excludeEnd?: undefined; } | { ...; } | { ...; })[]; }'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2769,
+      "message": "No overload matches this call. Overload 1 of 2, '(...items: ConcatArray<{ className: string; contains: any[]; illegal: RegExp; variants: ({ begin: string; end: string; } | { begin: RegExp; end: RegExp; })[]; }>[]): { ...; }[]', gave the following error. Argument of type '{ begin: string; end: string; }' is not assignable to parameter of type 'ConcatArray<{ className: string; contains: any[]; illegal: RegExp; variants: ({ begin: string; end: string; } | { begin: RegExp; end: RegExp; })[]; }>'. Type '{ begin: string; end: string; }' is missing the following properties from type 'ConcatArray<{ className: string; contains: any[]; illegal: RegExp; variants: ({ begin: string; end: string; } | { begin: RegExp; end: RegExp; })[]; }>': length, join, slice Overload 2 of 2, '(...items: ({ className: string; contains: any[]; illegal: RegExp; variants: ({ begin: string; end: string; } | { begin: RegExp; end: RegExp; })[]; } | ConcatArray<{ className: string; contains: any[]; illegal: RegExp; variants: ({ ...; } | { ...; })[]; }>)[]): { ...; }[]', gave the following error. Argument of type '{ begin: string; end: string; }' is not assignable to parameter of type '{ className: string; contains: any[]; illegal: RegExp; variants: ({ begin: string; end: string; } | { begin: RegExp; end: RegExp; })[]; } | ConcatArray<{ className: string; contains: any[]; illegal: RegExp; variants: ({ ...; } | { ...; })[]; }>'.",
+      "count": 1
+    },
+    {
+      "path": "assets/js/vendor/highlightjs/highlight.min.js",
+      "code": 2769,
+      "message": "No overload matches this call. Overload 1 of 2, '(...items: ConcatArray<{ className: string; contains: any[]; variants: ({ begin: RegExp; end: RegExp; contains?: undefined; } | { begin: RegExp; end?: undefined; contains?: undefined; } | { ...; })[]; } | ... 12 more ... | { ...; }>[]): ({ ...; } | ... 12 more ... | { ...; })[]', gave the following error. Argument of type '{ begin: string; end: string; }' is not assignable to parameter of type 'ConcatArray<{ className: string; contains: any[]; variants: ({ begin: RegExp; end: RegExp; contains?: undefined; } | { begin: RegExp; end?: undefined; contains?: undefined; } | { begin: any; contains: any[]; end?: undefined; })[]; } | ... 12 more ... | { ...; }>'. Type '{ begin: string; end: string; }' is missing the following properties from type 'ConcatArray<{ className: string; contains: any[]; variants: ({ begin: RegExp; end: RegExp; contains?: undefined; } | { begin: RegExp; end?: undefined; contains?: undefined; } | { begin: any; contains: any[]; end?: undefined; })[]; } | ... 12 more ... | { ...; }>': length, join, slice Overload 2 of 2, '(...items: ({ className: string; contains: any[]; variants: ({ begin: RegExp; end: RegExp; contains?: undefined; } | { begin: RegExp; end?: undefined; contains?: undefined; } | { begin: any; contains: any[]; end?: undefined; })[]; } | ... 13 more ... | ConcatArray<...>)[]): ({ ...; } | ... 12 more ... | { ...; })[]', gave the following error. Argument of type '{ begin: string; end: string; }' is not assignable to parameter of type '{ className: string; contains: any[]; variants: ({ begin: RegExp; end: RegExp; contains?: undefined; } | { begin: RegExp; end?: undefined; contains?: undefined; } | { begin: any; contains: any[]; end?: undefined; })[]; } | ... 13 more ... | ConcatArray<...>'. Type '{ begin: string; end: string; }' is not assignable to type '{ className: string; contains: any[]; variants: ({ begin: RegExp; end: RegExp; contains?: undefined; } | { begin: RegExp; end?: undefined; contains?: undefined; } | { begin: any; contains: any[]; end?: undefined; })[]; } | ... 6 more ... | ConcatArray<...>'. Type '{ begin: string; end: string; }' is missing the following properties from type '{ begin: string; keywords: string; contains: { className: string; contains: any[]; illegal: RegExp; variants: ({ begin: string; end: string; } | { begin: RegExp; end: RegExp; })[]; }[]; ... 7 more ...; excludeEnd?: undefined; }': keywords, contains, relevance",
+      "count": 1
+    }
+  ]
+}

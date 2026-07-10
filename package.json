@@ -8,15 +8,18 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:debt-probe": "node scripts/probe-eslint-debt.mjs",
+    "types:probe:test": "node scripts/test-typescript-debt-probe.mjs",
+    "types:probe": "node scripts/probe-typescript-debt.mjs",
     "format:check": "node scripts/check-format.mjs",
     "vendor:check": "node scripts/test-vendor-manifest.mjs",
     "security:html-sinks": "node scripts/check-html-sink-policy.mjs",
-    "quality": "node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run format:check && npm run vendor:check && npm run security:html-sinks"
+    "quality": "node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "eslint": "10.6.0",
     "globals": "17.7.0",
-    "prettier": "3.9.4"
+    "prettier": "3.9.4",
+    "typescript": "5.9.3"
   }
 }

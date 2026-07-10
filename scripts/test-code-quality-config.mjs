@@ -3,13 +3,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { evaluateBaselineTransition } from './format-baseline-policy.mjs';
+import { TYPESCRIPT_COMPILER_OPTION_RECORD, validateDiagnosticEntries } from './typescript-debt-policy.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const EXPECTED_DEV_DEPENDENCIES = {
   '@eslint/js': '10.0.1',
   eslint: '10.6.0',
   globals: '17.7.0',
-  prettier: '3.9.4'
+  prettier: '3.9.4',
+  typescript: '5.9.3'
 };
 const EXPECTED_EXCLUDED_ESLINT_RULES = [
   'no-control-regex',
@@ -65,15 +67,46 @@ assert.equal(
   'format checks must use the incremental baseline guard'
 );
 assert.equal(
+  packageJson.scripts?.['types:probe:test'],
+  'node scripts/test-typescript-debt-probe.mjs',
+  'TypeScript debt transition policy must retain focused tests'
+);
+assert.equal(
+  packageJson.scripts?.['types:probe'],
+  'node scripts/probe-typescript-debt.mjs',
+  'TypeScript debt must retain a project-owned compiler API probe'
+);
+assert.equal(
   packageJson.scripts?.['security:html-sinks'],
   'node scripts/check-html-sink-policy.mjs',
   'HTML and executable sink growth must retain an AST-based policy guard'
 );
 assert.equal(
   packageJson.scripts?.quality,
-  'node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run format:check && npm run vendor:check && npm run security:html-sinks',
-  'the quality gate must cover lint, formatting, vendored dependency provenance, and sink policy'
+  'node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks',
+  'the quality gate must cover lint, type debt, formatting, vendored dependency provenance, and sink policy'
 );
+
+const packageLock = readJson('package-lock.json');
+assert.deepEqual(
+  packageLock.packages?.['']?.devDependencies,
+  EXPECTED_DEV_DEPENDENCIES,
+  'the lockfile root must exactly match the project development dependencies'
+);
+assert.deepEqual(packageLock.packages?.['node_modules/typescript'], {
+  version: '5.9.3',
+  resolved: 'https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz',
+  integrity: 'sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==',
+  dev: true,
+  license: 'Apache-2.0',
+  bin: {
+    tsc: 'bin/tsc',
+    tsserver: 'bin/tsserver'
+  },
+  engines: {
+    node: '>=14.17'
+  }
+});
 
 const htmlSinkPolicy = readJson('scripts/html-sink-policy.json');
 assert.equal(htmlSinkPolicy.schemaVersion, 1, 'the HTML sink policy must use schema version 1');
@@ -346,10 +379,19 @@ assert.equal(
   prettierBaseline.files.length,
   'the policy must publish the initial formatting-debt count'
 );
-assert.equal(policy.types?.decision, 'accepted-no-action', 'the current type-checking decision must be explicit');
+assert.equal(
+  policy.types?.decision,
+  'accepted-baseline-with-zero-growth',
+  'the current type-debt decision must be executable and growth-blocking'
+);
+assert.deepEqual(policy.types?.baseline, {
+  file: 'scripts/typescript-debt-baseline.json',
+  probeCommand: 'node scripts/probe-typescript-debt.mjs',
+  writeCommand: 'node scripts/probe-typescript-debt.mjs --write-baseline'
+});
 assert.equal(policy.types?.evidence?.typescriptVersion, '5.9.3');
-assert.match(policy.types?.evidence?.command || '', /tsc --allowJs --checkJs --noEmit/);
-assert.equal(policy.types?.evidence?.explicitInputFiles, 227);
+assert.match(policy.types?.evidence?.command || '', /node scripts\/probe-typescript-debt\.mjs/);
+assert.equal(policy.types?.evidence?.explicitInputFiles, 228);
 assert.ok(
   Number.isInteger(policy.types?.evidence?.diagnostics) && policy.types.evidence.diagnostics > 0,
   'the type-checking decision must record the measured diagnostic count'
@@ -366,7 +408,83 @@ assert.ok(
   typeof policy.types?.evidence?.reason === 'string' && policy.types.evidence.reason.trim().length >= 40,
   'the type-checking decision must retain an evidence-backed rationale'
 );
+assert.deepEqual(policy.types?.noGrowth, {
+  mechanism: 'exact-head-multiset-with-merge-base-zero-growth',
+  baseRefEnvironmentVariable: 'CODE_QUALITY_BASE_REF',
+  headShaEnvironmentVariable: 'CODE_QUALITY_HEAD_SHA',
+  policy:
+    'The checked-in baseline must exactly match the current deterministic root graph and diagnostics. CI rejects every new path/code/message key and any count growth relative to the merge base; intentional reductions are persisted only through the reviewed --write-baseline workflow.'
+});
+assert.deepEqual(policy.types?.suppressions, {
+  decision: 'prohibited-zero-baseline',
+  directives: ['@ts-ignore', '@ts-expect-error', '@ts-nocheck'],
+  scanner: 'TypeScript SourceFile commentDirectives/checkJsDirective',
+  count: 0,
+  policy:
+    'Every tracked probe root and every repository-local assets/js source loaded into the TypeScript program is parsed with TypeScript semantics. Real suppression comments fail closed; identical text in strings or ordinary prose is not a directive.'
+});
 requireNonEmptyStrings(policy.types?.revisitWhen, 'types.revisitWhen');
+
+const typescriptBaseline = readJson('scripts/typescript-debt-baseline.json');
+assert.equal(typescriptBaseline.schemaVersion, 1, 'the TypeScript debt baseline must use schema version 1');
+assert.equal(typescriptBaseline.typescriptVersion, '5.9.3', 'the baseline must match the locked compiler');
+assert.deepEqual(
+  typescriptBaseline.compilerOptions,
+  TYPESCRIPT_COMPILER_OPTION_RECORD,
+  'the baseline must publish the exact compiler API options'
+);
+assert.deepEqual(typescriptBaseline.roots, {
+  scope: 'Git-tracked non-vendor assets/js .js/.mjs files',
+  count: 228,
+  hashAlgorithm: 'sha256-lf-path-list-v1',
+  sha256: '06562c8d4e201ee73a6973d704d788f93f7ab2e55c4235e7ccc2a5da017f5378'
+});
+assert.deepEqual(typescriptBaseline.suppressions, {
+  decision: 'prohibited-zero-baseline',
+  scanner: 'TypeScript SourceFile commentDirectives/checkJsDirective',
+  scannedFiles: 232,
+  tsIgnore: 0,
+  tsExpectError: 0,
+  tsNocheck: 0,
+  total: 0
+});
+assert.deepEqual(typescriptBaseline.summary, {
+  diagnostics: 1470,
+  files: 87,
+  firstPartyDiagnostics: 905,
+  firstPartyFiles: 83,
+  transitiveVendorDiagnostics: 565,
+  transitiveVendorFiles: 4,
+  globalDiagnostics: 0
+});
+validateDiagnosticEntries(typescriptBaseline.diagnosticMultiset);
+assert.equal(
+  typescriptBaseline.diagnosticMultiset.reduce((sum, entry) => sum + entry.count, 0),
+  typescriptBaseline.summary.diagnostics,
+  'the TypeScript aggregate count must equal its deterministic diagnostic multiset'
+);
+assert.equal(policy.types.evidence.diagnostics, typescriptBaseline.summary.diagnostics);
+assert.equal(policy.types.evidence.files, typescriptBaseline.summary.files);
+assert.equal(policy.types.evidence.firstPartyDiagnostics, typescriptBaseline.summary.firstPartyDiagnostics);
+assert.equal(policy.types.evidence.firstPartyFiles, typescriptBaseline.summary.firstPartyFiles);
+assert.equal(policy.types.evidence.transitiveVendorDiagnostics, typescriptBaseline.summary.transitiveVendorDiagnostics);
+assert.equal(policy.types.evidence.transitiveVendorFiles, typescriptBaseline.summary.transitiveVendorFiles);
+const typescriptProbe = read('scripts/probe-typescript-debt.mjs');
+for (const token of [
+  "git', ['ls-files'",
+  'ts.createProgram',
+  'ts.getPreEmitDiagnostics',
+  'CODE_QUALITY_BASE_REF',
+  'CODE_QUALITY_HEAD_SHA',
+  "gitText(['merge-base'",
+  '--write-baseline',
+  'formatBaselineJson(actual)',
+  'collectTypeScriptSuppressions',
+  'assertNoTypeScriptSuppressions',
+  'assertNoGrowth'
+]) {
+  assert.ok(typescriptProbe.includes(token), `TypeScript debt probe must retain ${token}`);
+}
 
 const gitignore = read('.gitignore').split(/\r?\n/);
 assert.ok(gitignore.includes('node_modules/'), 'project-local dependencies must remain ignored');

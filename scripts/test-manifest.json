@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 181,
-    "physical": 182,
+    "logical": 182,
+    "physical": 183,
     "aliases": 1
   },
   "tierOrder": {
@@ -37,6 +37,7 @@
       "pages-workflow",
       "pages-artifact",
       "code-quality-config",
+      "typescript-debt-policy",
       "html-sink-policy",
       "vendor-manifest"
     ],
@@ -111,6 +112,16 @@
       "id": "code-quality-config",
       "file": "scripts/test-code-quality-config.mjs",
       "command": ["node", "scripts/test-code-quality-config.mjs"],
+      "tier": ["guard", "full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "typescript-debt-policy",
+      "file": "scripts/test-typescript-debt-probe.mjs",
+      "command": ["node", "scripts/test-typescript-debt-probe.mjs"],
       "tier": ["guard", "full"],
       "timeout": 180000,
       "exclusive": false,

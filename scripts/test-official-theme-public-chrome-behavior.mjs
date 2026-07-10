@@ -33,7 +33,7 @@ function loadPinnedFixtureSources() {
     assert.match(record.sha256 || '', /^[0-9a-f]{64}$/u, `${slug} fixture must pin a SHA-256 digest`);
     assert.equal(
       record.fixturePath,
-      `scripts/fixtures/official-theme-public-chrome/${slug}/interactions.js`,
+      `scripts/fixtures/official-theme-public-chrome/${slug}/interactions.js.txt`,
       `${slug} fixture path must stay inside the Press-owned fixture directory`
     );
     const fixturePath = resolve(pressRoot, record.fixturePath);

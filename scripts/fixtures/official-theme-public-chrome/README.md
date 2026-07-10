@@ -11,6 +11,11 @@ before choosing either the workspace source or the fallback fixture. Missing or
 modified fallback fixtures are test failures; the test must never pass by
 silently skipping unavailable theme source.
 
+Pinned JavaScript is stored as `interactions.js.txt`, not as repository-owned
+executable source. The test copies the verified bytes into a temporary
+`interactions.js` module before importing them. This preserves exact upstream
+provenance without asking Press code-quality checks to lint immutable snapshots.
+
 When refreshing a fixture, copy the named source file from a clean checkout at
 the recorded commit, then update both `sourceCommit` and `sha256` in
 `provenance.json`. Keep this directory test-only; it is not an installable theme

@@ -5,14 +5,14 @@
       "repository": "EkilyHQ/Press-Theme-Arcus",
       "sourceCommit": "2afa26d5e85121b5e7ed1f2c1a72e9b6f17a8d87",
       "sourcePath": "theme/modules/interactions.js",
-      "fixturePath": "scripts/fixtures/official-theme-public-chrome/arcus/interactions.js",
+      "fixturePath": "scripts/fixtures/official-theme-public-chrome/arcus/interactions.js.txt",
       "sha256": "4062583d4d0a2c32726dd35a004d7ce942991d788159c040191d563c3f1b980b"
     },
     "solstice": {
       "repository": "EkilyHQ/Press-Theme-Solstice",
       "sourceCommit": "d433a672f2bbb8ace1401937c031860172990494",
       "sourcePath": "theme/modules/interactions.js",
-      "fixturePath": "scripts/fixtures/official-theme-public-chrome/solstice/interactions.js",
+      "fixturePath": "scripts/fixtures/official-theme-public-chrome/solstice/interactions.js.txt",
       "sha256": "6f18ddd54977f19ef49811de656971dc5e4c61417d2a2ef15d270c81c80d64ab"
     }
   }

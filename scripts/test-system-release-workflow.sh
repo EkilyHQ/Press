@@ -165,7 +165,9 @@ assert.deepEqual(manifest.tierOrder.guard, [
   'dispatch-system-release',
   'product-state-ledger',
   'pages-workflow',
-  'pages-artifact'
+  'pages-artifact',
+  'code-quality-config',
+  'vendor-manifest'
 ]);
 
 assert.deepEqual(manifest.tierOrder.release, [

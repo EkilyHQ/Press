@@ -69,6 +69,9 @@ Personal Access Token fallback.
 Run the focused checks before merging:
 
 ```bash
+npm ci --ignore-scripts
+npm run quality
+node scripts/run-tests.mjs --check-manifest
 bash scripts/test-main-guard.sh
 bash scripts/test-frontmatter-roundtrip.sh
 bash scripts/test-system-release-package.sh
@@ -78,12 +81,16 @@ node scripts/test-editor-app-kernel.mjs
 node scripts/test-release-intent.js
 node scripts/test-product-state-ledger.js
 node scripts/test-product-state-dashboard.js
-node --experimental-default-type=module scripts/test-encrypted-content.js
-node --experimental-default-type=module scripts/test-system-updates.js
-node --experimental-default-type=module scripts/test-theme-manager.js
-node --experimental-default-type=module scripts/test-theme-contracts.js
+node scripts/test-encrypted-content.js
+node scripts/test-system-updates.mjs
+node scripts/test-theme-manager.mjs
+node scripts/test-theme-contracts.mjs
 node scripts/test-content-model.js
 ```
+
+`npm run quality` is the project-local code-quality gate. It runs the zero-warning ESLint correctness profile, remeasures the exact diagnostic/file counts for every reviewed excluded rule, checks incremental Prettier policy, and verifies vendored dependency provenance with the exact tool versions in `package-lock.json`. Existing unformatted first-party files are listed in `scripts/prettier-baseline.json`. After bootstrap, that baseline may retain only untouched paths or transfer an exact-content rename; touching a legacy file requires formatting it and removing it from the baseline. New candidate files must pass Prettier and must not be added to the historical baseline. After intentionally formatting a legacy file, regenerate the remaining set with `node scripts/check-format.mjs --write-baseline` and review that the diff only removes paths or records exact renames.
+
+Vendored browser dependencies are registered in `scripts/vendor-manifest.json` with their package version, canonical source and release URLs, upstream artifact integrity, local transformation notes, file inventory, and SHA-256 digests. When updating vendored bytes, update that provenance first, then run `node scripts/test-vendor-manifest.mjs --write-digests` followed by `npm run vendor:check`; the verifier rejects unowned, missing, altered, or version-mismatched files.
 
 ## System Releases
 

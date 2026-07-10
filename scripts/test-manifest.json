@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 177,
-    "physical": 178,
+    "logical": 179,
+    "physical": 180,
     "aliases": 1
   },
   "tierOrder": {
@@ -34,7 +34,9 @@
       "dispatch-system-release",
       "product-state-ledger",
       "pages-workflow",
-      "pages-artifact"
+      "pages-artifact",
+      "code-quality-config",
+      "vendor-manifest"
     ],
     "release": [
       "release-graph",
@@ -113,6 +115,24 @@
         "scripts/test-card-cover-error-state.js"
       ],
       "tier": [
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "code-quality-config",
+      "file": "scripts/test-code-quality-config.mjs",
+      "command": [
+        "node",
+        "scripts/test-code-quality-config.mjs"
+      ],
+      "tier": [
+        "guard",
         "full"
       ],
       "timeout": 180000,
@@ -1515,11 +1535,10 @@
     },
     {
       "id": "editor-blocks-roundtrip",
-      "file": "scripts/test-editor-blocks-roundtrip.js",
+      "file": "scripts/test-editor-blocks-roundtrip.mjs",
       "command": [
         "node",
-        "--experimental-default-type=module",
-        "scripts/test-editor-blocks-roundtrip.js"
+        "scripts/test-editor-blocks-roundtrip.mjs"
       ],
       "tier": [
         "full"
@@ -2251,11 +2270,10 @@
     },
     {
       "id": "frontmatter-roundtrip",
-      "file": "scripts/test-frontmatter-roundtrip.js",
+      "file": "scripts/test-frontmatter-roundtrip.mjs",
       "command": [
         "node",
-        "--experimental-default-type=module",
-        "scripts/test-frontmatter-roundtrip.js"
+        "scripts/test-frontmatter-roundtrip.mjs"
       ],
       "tier": [
         "full"
@@ -2271,11 +2289,10 @@
     },
     {
       "id": "i18n-content-raw",
-      "file": "scripts/test-i18n-content-raw.js",
+      "file": "scripts/test-i18n-content-raw.mjs",
       "command": [
         "node",
-        "--experimental-default-type=module",
-        "scripts/test-i18n-content-raw.js"
+        "scripts/test-i18n-content-raw.mjs"
       ],
       "tier": [
         "full"
@@ -2956,11 +2973,10 @@
     },
     {
       "id": "system-updates",
-      "file": "scripts/test-system-updates.js",
+      "file": "scripts/test-system-updates.mjs",
       "command": [
         "node",
-        "--experimental-default-type=module",
-        "scripts/test-system-updates.js"
+        "scripts/test-system-updates.mjs"
       ],
       "tier": [
         "release",
@@ -3012,11 +3028,10 @@
     },
     {
       "id": "theme-contracts",
-      "file": "scripts/test-theme-contracts.js",
+      "file": "scripts/test-theme-contracts.mjs",
       "command": [
         "node",
-        "--experimental-default-type=module",
-        "scripts/test-theme-contracts.js"
+        "scripts/test-theme-contracts.mjs"
       ],
       "tier": [
         "guard",
@@ -3049,11 +3064,10 @@
     },
     {
       "id": "theme-manager",
-      "file": "scripts/test-theme-manager.js",
+      "file": "scripts/test-theme-manager.mjs",
       "command": [
         "node",
-        "--experimental-default-type=module",
-        "scripts/test-theme-manager.js"
+        "scripts/test-theme-manager.mjs"
       ],
       "tier": [
         "full"
@@ -3146,6 +3160,25 @@
       "timeout": 180000,
       "exclusive": false,
       "requires": [
+        "node"
+      ],
+      "alias": []
+    },
+    {
+      "id": "vendor-manifest",
+      "file": "scripts/test-vendor-manifest.mjs",
+      "command": [
+        "node",
+        "scripts/test-vendor-manifest.mjs"
+      ],
+      "tier": [
+        "guard",
+        "full"
+      ],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": [
+        "git",
         "node"
       ],
       "alias": []

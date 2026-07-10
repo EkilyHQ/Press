@@ -158,12 +158,7 @@ export function validateManifest(manifest) {
     if (typeof entry.file === 'string' && command.length > 0) {
       const allowedCommands = entry.file.endsWith('.sh')
         ? [['bash', entry.file]]
-        : entry.file.endsWith('.mjs')
-          ? [['node', entry.file]]
-          : [
-              ['node', entry.file],
-              ['node', '--experimental-default-type=module', entry.file]
-            ];
+        : [['node', entry.file]];
       const isDirectCommand = allowedCommands.some((allowed) => (
         allowed.length === command.length
         && allowed.every((part, commandIndex) => part === command[commandIndex])

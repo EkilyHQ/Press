@@ -4605,7 +4605,7 @@ CORE_RUNTIME_FILES.forEach((file) => {
   path.join(root, 'scripts')
 ].flatMap((dir) => collectFiles(dir))
   .concat([path.join(root, 'index.html'), path.join(root, 'index_editor.html')])
-  .filter((file) => path.basename(file) !== 'test-theme-contracts.js')
+  .filter((file) => path.basename(file) !== 'test-theme-contracts.mjs')
   .forEach((file) => {
     const source = read(file);
     FORBIDDEN_SOURCE_PATTERNS.forEach(({ label, re }) => {

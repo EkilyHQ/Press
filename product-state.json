@@ -1,18 +1,25 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-07-10T15:02:00.052Z",
-  "status": "drift",
+  "generatedAt": "2026-07-10T16:28:16.048Z",
+  "status": "ok",
   "desired": {
-    "source": "press-system-release",
+    "source": "press-release-intent",
     "generatedFrom": {
       "repository": "EkilyHQ/Press",
-      "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/system-release.json",
+      "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
       "version": "3.4.134",
       "tag": "v3.4.134",
       "publishedAt": "2026-07-10T12:48:54Z"
     },
-    "releaseIntent": null,
+    "releaseIntent": {
+      "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
+      "immutableSource": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
+      "latestSource": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json",
+      "version": "3.4.134",
+      "tag": "v3.4.134",
+      "targetCount": 6
+    },
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "version": "3.4.134",
@@ -74,19 +81,22 @@
             "ref": "demo",
             "path": "assets/themes/arcus/theme.json",
             "type": "press-theme-manifest",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/arcus/theme.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/arcus/theme.json",
+            "required": true
           },
           "themePacks": {
             "ref": "demo",
             "path": "assets/themes/packs.json",
             "type": "press-theme-packs",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/assets/themes/packs.json",
+            "required": true
           },
           "demoLock": {
             "ref": "demo",
             "path": "demo-release-lock.json",
             "type": "theme-demo-release-lock",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Arcus/demo/demo-release-lock.json",
+            "required": true
           }
         },
         "reconciler": {
@@ -106,19 +116,22 @@
             "ref": "demo",
             "path": "assets/themes/cartograph/theme.json",
             "type": "press-theme-manifest",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/themes/cartograph/theme.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/themes/cartograph/theme.json",
+            "required": true
           },
           "themePacks": {
             "ref": "demo",
             "path": "assets/themes/packs.json",
             "type": "press-theme-packs",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/themes/packs.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/assets/themes/packs.json",
+            "required": true
           },
           "demoLock": {
             "ref": "demo",
             "path": "demo-release-lock.json",
             "type": "theme-demo-release-lock",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/demo-release-lock.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Cartograph/demo/demo-release-lock.json",
+            "required": true
           }
         },
         "reconciler": {
@@ -138,19 +151,22 @@
             "ref": "demo",
             "path": "assets/themes/glasswing/theme.json",
             "type": "press-theme-manifest",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/themes/glasswing/theme.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/themes/glasswing/theme.json",
+            "required": true
           },
           "themePacks": {
             "ref": "demo",
             "path": "assets/themes/packs.json",
             "type": "press-theme-packs",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/themes/packs.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/assets/themes/packs.json",
+            "required": true
           },
           "demoLock": {
             "ref": "demo",
             "path": "demo-release-lock.json",
             "type": "theme-demo-release-lock",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/demo-release-lock.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Glasswing/demo/demo-release-lock.json",
+            "required": true
           }
         },
         "reconciler": {
@@ -170,19 +186,22 @@
             "ref": "demo",
             "path": "assets/themes/solstice/theme.json",
             "type": "press-theme-manifest",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/solstice/theme.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/solstice/theme.json",
+            "required": true
           },
           "themePacks": {
             "ref": "demo",
             "path": "assets/themes/packs.json",
             "type": "press-theme-packs",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/packs.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/packs.json",
+            "required": true
           },
           "demoLock": {
             "ref": "demo",
             "path": "demo-release-lock.json",
             "type": "theme-demo-release-lock",
-            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/demo-release-lock.json"
+            "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/demo-release-lock.json",
+            "required": true
           }
         },
         "reconciler": {
@@ -248,6 +267,7 @@
     "tag": "v3.4.134",
     "version": "3.4.134",
     "publishedAt": "2026-07-10T12:48:54Z",
+    "securityUpdate": false,
     "upgradeFrom": {
       "ranges": [
         ">=3.4.64 <3.4.134"
@@ -282,14 +302,13 @@
   },
   "releaseIntent": {
     "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
-    "status": "drift",
+    "status": "ok",
     "required": true,
     "version": "3.4.134",
     "tag": "v3.4.134",
     "targetCount": 6,
-    "problems": [
-      "system-release.json securityUpdate must be an explicit boolean"
-    ]
+    "immutableSource": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
+    "latestSource": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json"
   },
   "downstream": {
     "yap": {
@@ -559,8 +578,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1783609323,
-        "until": 1783695723,
+        "since": 1783614501,
+        "until": 1783700901,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -573,18 +592,9 @@
     "service": "ekily-connect",
     "version": "0.3.0"
   },
-  "problems": [
-    {
-      "severity": "error",
-      "component": "releaseIntent",
-      "code": "release_intent_invalid",
-      "message": "system-release.json securityUpdate must be an explicit boolean",
-      "owner": "EkilyHQ/Press",
-      "blocking": true
-    }
-  ],
+  "problems": [],
   "observed": {
-    "checkedAt": "2026-07-10T15:02:00.052Z",
+    "checkedAt": "2026-07-10T16:28:16.048Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/system-release.json",
@@ -610,14 +620,13 @@
     },
     "releaseIntent": {
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
-      "status": "drift",
+      "status": "ok",
       "required": true,
       "version": "3.4.134",
       "tag": "v3.4.134",
       "targetCount": 6,
-      "problems": [
-        "system-release.json securityUpdate must be an explicit boolean"
-      ]
+      "immutableSource": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.134/release-intent.json",
+      "latestSource": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/release-intent.json"
     },
     "downstream": {
       "yap": {
@@ -887,8 +896,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1783609323,
-          "until": 1783695723,
+          "since": 1783614501,
+          "until": 1783700901,
           "seconds": 86400
         },
         "totalEvents": 0,
@@ -903,27 +912,18 @@
     }
   },
   "verdict": {
-    "status": "drift",
-    "converged": false,
+    "status": "ok",
+    "converged": true,
     "counts": {
-      "ok": 13,
+      "ok": 14,
       "pending": 0,
       "unknown": 0,
-      "drift": 1
+      "drift": 0
     },
-    "problemCount": 1,
-    "blockingProblemCount": 1,
+    "problemCount": 0,
+    "blockingProblemCount": 0,
     "nonBlockingProblemCount": 0,
-    "blockingProblems": [
-      {
-        "severity": "error",
-        "component": "releaseIntent",
-        "code": "release_intent_invalid",
-        "message": "system-release.json securityUpdate must be an explicit boolean",
-        "owner": "EkilyHQ/Press",
-        "blocking": true
-      }
-    ],
+    "blockingProblems": [],
     "nonBlockingProblems": []
   }
 }

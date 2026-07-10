@@ -68,7 +68,7 @@ assert.equal(
 );
 assert.equal(
   packageJson.scripts?.['types:probe:test'],
-  'node scripts/test-typescript-debt-probe.mjs',
+  'node scripts/verify-typescript-debt-policy.mjs',
   'TypeScript debt transition policy must retain focused tests'
 );
 assert.equal(
@@ -484,6 +484,21 @@ for (const token of [
   'assertNoGrowth'
 ]) {
   assert.ok(typescriptProbe.includes(token), `TypeScript debt probe must retain ${token}`);
+}
+const typescriptPolicyCore = read('scripts/typescript-debt-policy.mjs');
+assert.deepEqual(
+  [...typescriptPolicyCore.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)].map((match) => match[1]),
+  ['node:crypto'],
+  'the quality configuration policy core must use only declared Node built-ins'
+);
+assert.doesNotMatch(
+  typescriptPolicyCore,
+  /\bimport\s*\(/,
+  'the quality configuration policy core must not hide a runtime dependency behind dynamic import'
+);
+const typescriptRuntime = read('scripts/typescript-debt-runtime.mjs');
+for (const externalImport of ["from 'prettier'", "from 'typescript'"]) {
+  assert.ok(typescriptRuntime.includes(externalImport), `quality-only TypeScript runtime must load ${externalImport}`);
 }
 
 const gitignore = read('.gitignore').split(/\r?\n/);

@@ -168,7 +168,6 @@ assert.deepEqual(manifest.tierOrder.guard, [
   'pages-workflow',
   'pages-artifact',
   'code-quality-config',
-  'typescript-debt-policy',
   'html-sink-policy',
   'vendor-manifest'
 ]);

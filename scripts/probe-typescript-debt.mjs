@@ -9,15 +9,17 @@ import ts from 'typescript';
 import {
   TYPESCRIPT_COMPILER_OPTION_RECORD,
   TYPESCRIPT_DEBT_SCHEMA_VERSION,
-  assertNoTypeScriptSuppressions,
-  collectTypeScriptSuppressions,
   compareDiagnosticEntries,
   diagnosticIdentity,
   evaluateDiagnosticTransition,
   fingerprintRootFiles,
-  formatBaselineJson,
   validateDiagnosticEntries
 } from './typescript-debt-policy.mjs';
+import {
+  assertNoTypeScriptSuppressions,
+  collectTypeScriptSuppressions,
+  formatBaselineJson
+} from './typescript-debt-runtime.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');

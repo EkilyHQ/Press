@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import {
-  assertNoTypeScriptSuppressions,
-  collectTypeScriptSuppressions,
   compareDiagnosticEntries,
   diagnosticIdentity,
   evaluateDiagnosticTransition,
   fingerprintRootFiles,
-  formatBaselineJson,
   validateDiagnosticEntries
 } from './typescript-debt-policy.mjs';
+import {
+  assertNoTypeScriptSuppressions,
+  collectTypeScriptSuppressions,
+  formatBaselineJson
+} from './typescript-debt-runtime.mjs';
 
 const alpha = {
   path: 'assets/js/a.js',

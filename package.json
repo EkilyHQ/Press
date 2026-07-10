@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:debt-probe": "node scripts/probe-eslint-debt.mjs",
-    "types:probe:test": "node scripts/test-typescript-debt-probe.mjs",
+    "types:probe:test": "node scripts/verify-typescript-debt-policy.mjs",
     "types:probe": "node scripts/probe-typescript-debt.mjs",
     "format:check": "node scripts/check-format.mjs",
     "vendor:check": "node scripts/test-vendor-manifest.mjs",

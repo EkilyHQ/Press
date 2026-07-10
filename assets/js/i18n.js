@@ -77,7 +77,7 @@ async function fetchConfigWithYamlFallbackForRuntime(runtime, names) {
 }
 
 // Recovery releases keep legacy per-language sidecars readable for sites that
-// update directly from the declared v3.4.64 support floor. This fallback may be
+// update directly from the declared v3.4.63 support floor. This fallback may be
 // removed only after the support floor advances beyond sidecar-era sites.
 async function loadRecoveryContentSidecarWithRuntime(runtime, basePath, baseName, languageCandidates = null) {
   const state = runtime.state;

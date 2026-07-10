@@ -17,19 +17,33 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = realpathSync(resolve(here, '..'));
-const recoveryVersion = '3.4.134';
+const defaultHistoricalTags = ['v3.4.64', ...Array.from({ length: 26 }, (_, index) => `v3.4.${108 + index}`)];
+const recoveryVersion = String(process.env.PRESS_UPDATER_COMPAT_TARGET_VERSION || '3.4.134').trim();
+const expectedUpgradeRange = String(
+  process.env.PRESS_UPDATER_COMPAT_EXPECTED_RANGE || `>=3.4.64 <${recoveryVersion}`
+).trim();
+const compatibilityLabel = String(process.env.PRESS_UPDATER_COMPAT_LABEL || 'recovery updater compatibility').trim();
 const recoveryTag = `v${recoveryVersion}`;
 // Every published source in the declared Recovery support interval is tested.
 // Code-blob sampling is insufficient because the same updater implementation
 // can behave differently when paired with a different installed manifest.
-const historicalTags = [
-  'v3.4.64',
-  ...Array.from({ length: 26 }, (_, index) => `v3.4.${108 + index}`)
-];
+const historicalTags = process.env.PRESS_UPDATER_COMPAT_SOURCE_TAGS
+  ? process.env.PRESS_UPDATER_COMPAT_SOURCE_TAGS.split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+  : defaultHistoricalTags;
 const archiveName = `press-system-${recoveryTag}.zip`;
 const archiveUrl = `https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/${recoveryTag}/${archiveName}`;
 const manifestUrl = 'https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/system-release.json';
 const maxBuffer = 128 * 1024 * 1024;
+
+assert.match(recoveryVersion, /^\d+\.\d+\.\d+$/u, 'compatibility target must be an exact semantic version');
+assert(expectedUpgradeRange, 'compatibility proof must declare the expected upgrade range');
+assert(compatibilityLabel, 'compatibility proof must declare a label');
+assert(historicalTags.length > 0, 'compatibility proof must declare at least one frozen source tag');
+historicalTags.forEach((tag) => {
+  assert.match(tag, /^v\d+\.\d+\.\d+$/u, `invalid compatibility source tag: ${tag}`);
+});
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -118,7 +132,7 @@ function buildRecoveryArchive(outputDirectory) {
     assert.equal(manifest.securityUpdate, false, 'recovery release must remain classified as an ordinary release');
     assert.deepEqual(
       manifest.upgradeFrom && manifest.upgradeFrom.ranges,
-      [`>=3.4.64 <${recoveryVersion}`],
+      [expectedUpgradeRange],
       'recovery archive must directly admit the full supported source interval'
     );
     assert.equal(manifest.upgradeFrom && manifest.upgradeFrom.allowUnknownSource, false);
@@ -156,7 +170,9 @@ function buildRecoveryArchive(outputDirectory) {
 }
 
 function localHistoricalResponse(root, requestUrl) {
-  const clean = String(requestUrl || '').split(/[?#]/u, 1)[0].replace(/^\.?\//u, '');
+  const clean = String(requestUrl || '')
+    .split(/[?#]/u, 1)[0]
+    .replace(/^\.?\//u, '');
   if (!clean || clean.startsWith('/') || clean.includes('\\')) return null;
   const candidate = resolve(root, clean);
   const rel = relative(root, candidate);
@@ -282,17 +298,18 @@ async function verifyHistoricalUpdater({ archive, releaseManifest, tag, tempRoot
 }
 
 async function main() {
-  const missingTags = historicalTags.filter((tag) => (
-    !hasGitObject(`${tag}^{commit}`)
-    || !hasGitObject(`${tag}:assets/js/system-updates.js`)
-    || !hasGitObject(`${tag}:assets/press-system.json`)
-  ));
+  const missingTags = historicalTags.filter(
+    (tag) =>
+      !hasGitObject(`${tag}^{commit}`) ||
+      !hasGitObject(`${tag}:assets/js/system-updates.js`) ||
+      !hasGitObject(`${tag}:assets/press-system.json`)
+  );
   if (missingTags.length > 0) {
     if (isShallowCheckout()) {
-      console.log(`SKIP recovery updater compatibility: shallow checkout is missing ${missingTags.join(', ')}`);
+      console.log(`SKIP ${compatibilityLabel}: shallow checkout is missing ${missingTags.join(', ')}`);
       return;
     }
-    throw new Error(`recovery updater compatibility requires historical tags: ${missingTags.join(', ')}`);
+    throw new Error(`${compatibilityLabel} requires historical tags: ${missingTags.join(', ')}`);
   }
 
   const tempRoot = mkdtempSync(join(tmpdir(), 'press-recovery-updater-'));
@@ -302,7 +319,7 @@ async function main() {
     for (const tag of historicalTags) {
       await verifyHistoricalUpdater({ archive, releaseManifest, tag, tempRoot });
     }
-    console.log(`PASS recovery updater compatibility (${historicalTags.length} frozen updaters)`);
+    console.log(`PASS ${compatibilityLabel} (${historicalTags.length} frozen updaters)`);
   } finally {
     rmSync(tempRoot, { force: true, recursive: true });
   }

@@ -25,8 +25,13 @@ rm -rf "${output_dir}"
 mkdir -p "${output_dir}"
 
 while IFS= read -r -d '' file; do
+  if [[ ( "${file}" == ".press-pages-no-editor" || "${file}" == "site.yaml" ) && ( -L "${file}" || ! -f "${file}" ) ]]; then
+    echo "Pages policy file must be a regular file: ${file}" >&2
+    exit 1
+  fi
   mkdir -p "${output_dir}/$(dirname "${file}")"
   cp "${file}" "${output_dir}/${file}"
-done < <(git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot)
+done < <(git ls-files -z -- .nojekyll .press-pages-no-editor index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot)
 
 node scripts/sync-runtime-cache-keys.mjs --materialize-root "${output_dir}" --tag "${tag}"
+node scripts/pages-editor-exclusion.mjs --source-root "${repo_root}" --pages-root "${output_dir}"

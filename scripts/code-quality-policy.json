@@ -62,7 +62,7 @@
   "prettier": {
     "baseline": {
       "file": "scripts/prettier-baseline.json",
-      "initialFiles": 409
+      "initialFiles": 398
     },
     "noGrowth": {
       "mechanism": "merge-base-shrinking-file-baseline",

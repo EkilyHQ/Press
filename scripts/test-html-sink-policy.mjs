@@ -1,0 +1,445 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  collectHtmlScriptElements,
+  collectHtmlStartTags,
+  isJavascriptUrlAttributeValue,
+  readHtmlAttribute
+} from '../assets/js/content-security-policy.mjs';
+import { scanJavaScriptSource, scanRepository, verifyInventory } from './check-html-sink-policy.mjs';
+import { resolveLanguageModuleUrl } from '../assets/js/i18n.js';
+import { resolveModuleEntry } from '../assets/js/theme-layout.js';
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+
+async function read(relativePath) {
+  return readFile(path.join(SCRIPT_DIR, relativePath), 'utf8');
+}
+
+const unusualScriptElements = collectHtmlScriptElements(
+  `<!-- <script>ignored()</script> -->
+   <script data-label=">">const marker = '</scriptx>'; safe();</script\t\n data-ignored>
+   <script src="./external.js"></script>`,
+  'script tokenizer fixture'
+);
+assert.equal(unusualScriptElements.length, 2, 'comments and tag-like script text must not distort script inventory');
+assert.equal(
+  unusualScriptElements[0].source,
+  "const marker = '</scriptx>'; safe();",
+  'script raw text must close only on a boundary-delimited script end tag'
+);
+assert.match(unusualScriptElements[0].attributes, /data-label=">"/u);
+assert.equal(unusualScriptElements[1].attributeMap.has('src'), true);
+assert.equal(readHtmlAttribute(' data-src="./not-a-script-source.js"', 'src'), '');
+assert.equal(readHtmlAttribute(' data-src="ignored" src="./external.js"', 'src'), './external.js');
+assert.equal(readHtmlAttribute(' data-type="module"', 'type'), '');
+assert.equal(readHtmlAttribute(' data-type="ignored" type="module"', 'type'), 'module');
+assert.equal(readHtmlAttribute(` data-x=" src='fake.js'"`, 'src'), '');
+assert.equal(readHtmlAttribute(` data-x=" type='module'"`, 'type'), '');
+assert.equal(readHtmlAttribute('\u00a0src="fake.js"', 'src'), '');
+assert.equal(readHtmlAttribute('\vtype="module"', 'type'), '');
+assert.equal(readHtmlAttribute('<meta data-name="ignored" name="viewport">', 'name'), 'viewport');
+assert.deepEqual(
+  collectHtmlStartTags(
+    '<!-- <meta name="comment"> --><META name="description" content="one > zero"/><script>const fake = \'<meta name="fake">\';</script><style>.x::after { content: \'<meta name="style">\'; }</style><meta data-http-equiv="content-security-policy" name=\'viewport\'>',
+    'meta',
+    'meta tokenizer fixture'
+  ).map(({ tag, attributeMap }) => ({ tag, attributes: Object.fromEntries(attributeMap) })),
+  [
+    {
+      tag: '<META name="description" content="one > zero"/>',
+      attributes: { name: 'description', content: 'one > zero' }
+    },
+    {
+      tag: '<meta data-http-equiv="content-security-policy" name=\'viewport\'>',
+      attributes: { 'data-http-equiv': 'content-security-policy', name: 'viewport' }
+    }
+  ],
+  'meta collection must parse exact attributes and ignore comments plus raw text'
+);
+for (const value of [
+  'javascript:alert(1)',
+  'java&#x73;cript:alert(1)',
+  'jav&#97;script&colon;alert(1)',
+  'java&#x0a;script:alert(1)',
+  'java\tscript:alert(1)',
+  '&Tab;javascript:alert(1)'
+]) {
+  assert.equal(isJavascriptUrlAttributeValue(value), true, value);
+}
+for (const value of [
+  'https://example.test/?next=javascript:alert(1)',
+  'java script:alert(1)',
+  './javascript:file.js'
+]) {
+  assert.equal(isJavascriptUrlAttributeValue(value), false, value);
+}
+assert.deepEqual(
+  collectHtmlStartTags(
+    '<svg><title><a href="javascript:one">one</a></title><iframe><a href="javascript:two">two</a></iframe><script><a href="javascript:three">three</a></script><style><a href="javascript:four">four</a></style><plaintext><a href="javascript:five">five</a></plaintext><foreignObject><script>const fake = \'<a href="javascript:fake">\';</script></foreignObject></svg>',
+    'a',
+    'foreign namespace fixture'
+  ).map(({ attributeMap }) => attributeMap.get('href')),
+  ['javascript:one', 'javascript:two', 'javascript:three', 'javascript:four', 'javascript:five'],
+  'conservative collection must not apply HTML raw-text rules inside foreign content'
+);
+assert.deepEqual(
+  collectHtmlStartTags('<svg / ><iframe><a href="javascript:solidus">x</a></iframe></svg>', 'a').map(
+    ({ attributeMap }) => attributeMap.get('href')
+  ),
+  ['javascript:solidus'],
+  'a solidus followed by whitespace must not self-close a foreign-content boundary'
+);
+assert.equal(
+  collectHtmlStartTags('<svg/><iframe><a href="javascript:not-an-element">x</a></iframe>', 'a').length,
+  0,
+  'an immediate solidus must retain the browser self-closing boundary'
+);
+assert.equal(
+  collectHtmlScriptElements('İ<ScRiPt>caseSafe()</ScRiPt data-ignored>', 'case fixture')[0].source,
+  'caseSafe()'
+);
+assert.equal(
+  collectHtmlScriptElements(
+    '<script data-src="./external.js">inlineSafe()</script>',
+    'data src fixture'
+  )[0].attributeMap.has('src'),
+  false
+);
+for (const source of ['<!-- x --!><script>danger()</script> -->', '<!--><script>danger()</script> -->']) {
+  assert.equal(collectHtmlScriptElements(source, 'comment edge fixture')[0].source, 'danger()');
+}
+for (const source of [
+  '<div foo=bar" ><script>MARK()</script> " >',
+  '<div foo" ><script>MARK()</script> " >',
+  '<div=" ><script>MARK()</script> " >',
+  '<div" ><script>MARK()</script> " >',
+  '</div" ><script>MARK()</script> " >'
+]) {
+  assert.equal(collectHtmlScriptElements(source, 'invalid quote fixture')[0].source, 'MARK()');
+}
+assert.deepEqual(
+  collectHtmlScriptElements(
+    '<script>safe()</script foo=bar" ><script>danger()</script> " >',
+    'closing tag quote fixture'
+  ).map(({ source }) => source),
+  ['safe()', 'danger()']
+);
+assert.throws(() => collectHtmlScriptElements('<script>missing close', 'missing close fixture'), /without an end tag/u);
+assert.throws(() => collectHtmlScriptElements('</script>', 'unmatched close fixture'), /unmatched script end tag/u);
+assert.throws(() => collectHtmlScriptElements('<!-- missing close', 'comment fixture'), /unterminated HTML comment/u);
+assert.throws(
+  () => collectHtmlScriptElements('<?x " ><script>danger()</script> " >', 'bogus declaration fixture'),
+  /unsupported HTML declaration syntax/u
+);
+
+const languageManifestUrl = new URL('https://example.test/assets/i18n/languages.json');
+assert.equal(
+  resolveLanguageModuleUrl('./ja.js', languageManifestUrl)?.href,
+  'https://example.test/assets/i18n/ja.js',
+  'same-origin JavaScript language bundles must remain loadable'
+);
+assert.equal(
+  resolveLanguageModuleUrl('https://cdn.example.test/ja.js', languageManifestUrl),
+  null,
+  'cross-origin language bundle modules must be rejected'
+);
+assert.equal(
+  resolveLanguageModuleUrl('./ja.json', languageManifestUrl),
+  null,
+  'non-JavaScript language bundle modules must be rejected'
+);
+assert.equal(
+  resolveLanguageModuleUrl('https://user:secret@example.test/assets/i18n/ja.js', languageManifestUrl),
+  null,
+  'credential-bearing language bundle URLs must be rejected'
+);
+assert.equal(
+  resolveModuleEntry('example', 'modules/layout.js', { version: '1.2.3' }),
+  '../themes/example/modules/layout.js?v=1.2.3',
+  'safe same-origin theme module entries must remain loadable'
+);
+for (const unsafeEntry of [
+  '../escape.js',
+  './modules/layout.js',
+  '/modules/layout.js',
+  'modules/layout.mjs',
+  'modules/layout.json',
+  'modules/%2e%2e/escape.js',
+  'https://example.test/module.js',
+  'modules/layout.js?next=../escape.js'
+]) {
+  assert.equal(resolveModuleEntry('example', unsafeEntry, { version: '1.2.3' }), '', unsafeEntry);
+}
+assert.equal(resolveModuleEntry('..', 'modules/layout.js', { version: '1.2.3' }), '', 'unsafe theme pack');
+
+const positivePath = 'scripts/fixtures/html-sink-policy/positive.mjs';
+const positive = scanJavaScriptSource({
+  filePath: positivePath,
+  source: await read('fixtures/html-sink-policy/positive.mjs')
+});
+assert.deepEqual(
+  positive.approved.map(({ kind }) => kind).sort(),
+  ['dynamic-import', 'innerHTML-write', 'insertAdjacentHTML', 'serializer-read'],
+  'reviewed HTML rendering, serializer reads, functional timers, and literal imports must remain classifiable'
+);
+assert.equal(positive.prohibited.length, 0, 'legitimate controls must not be reported as prohibited sinks');
+
+const negativePath = 'scripts/fixtures/html-sink-policy/negative.mjs';
+const negativeIntervalSource = ['window.set', 'Interval(`execute()`, 0);'].join('');
+const negative = scanJavaScriptSource({
+  filePath: negativePath,
+  source: `${await read('fixtures/html-sink-policy/negative.mjs')}\n${negativeIntervalSource}\n`
+});
+assert.deepEqual(
+  negative.prohibited.map(({ kind }) => kind).sort(),
+  [
+    'DOMParser-text-html',
+    'DOMParser-unproven-mime',
+    'Function-constructor-call',
+    'createContextualFragment',
+    'document.write',
+    'eval',
+    'new-Function',
+    'non-literal-dynamic-import',
+    'outerHTML-write',
+    'setInterval-string',
+    'setInterval-unproven-callback',
+    'setTimeout-string',
+    'setTimeout-unproven-callback',
+    'srcdoc-setAttribute',
+    'srcdoc-write'
+  ].sort(),
+  'computed properties and every prohibited executable HTML sink class must be detected'
+);
+assert.equal(negative.approved.length, 0, 'prohibited fixture must not enter the approved baseline');
+
+const shadowedBindings = scanJavaScriptSource({
+  filePath: 'scripts/fixtures/html-sink-policy/shadowed-bindings.mjs',
+  source: `
+    const callback = () => {};
+    const mime = 'application/xml';
+    function run(callback, mime, parser, html) {
+      setTimeout(callback, 0);
+      parser.parseFromString(html, mime);
+    }
+    run('alert(1)', 'text/html', new DOMParser(), payload);
+  `
+});
+assert.deepEqual(
+  shadowedBindings.prohibited.map(({ kind }) => kind).sort(),
+  ['DOMParser-unproven-mime', 'setTimeout-unproven-callback'],
+  'nearest lexical parameters must shadow unrelated safe-looking outer bindings'
+);
+
+const opaqueAndMutatedBindings = scanJavaScriptSource({
+  filePath: 'scripts/fixtures/html-sink-policy/opaque-and-mutated-bindings.mjs',
+  source: `
+    import importedCallback from './callback.js';
+    const outerCallback = () => {};
+    function withLetShadow() {
+      let outerCallback;
+      setTimeout(outerCallback, 0);
+    }
+    function withDestructuring({ callback }) {
+      setTimeout(callback, 0);
+    }
+    let changedCallback = () => {};
+    changedCallback = importedCallback;
+    setTimeout(changedCallback, 0);
+    setTimeout(importedCallback, 0);
+    let forOfCallback = () => {};
+    for (forOfCallback of ['alert(1)']) {}
+    setTimeout(forOfCallback, 0);
+    let forInCallback = () => {};
+    for (forInCallback in { 'alert(1)': true }) {}
+    setTimeout(forInCallback, 0);
+    let destructuredLoopCallback = () => {};
+    for ([destructuredLoopCallback] of [['alert(1)']]) {}
+    setTimeout(destructuredLoopCallback, 0);
+  `
+});
+assert.deepEqual(
+  opaqueAndMutatedBindings.prohibited.map(({ kind }) => kind),
+  Array(7).fill('setTimeout-unproven-callback'),
+  'let shadows, destructured parameters, assignments, loop mutations, and imports must remain fail-closed timer callbacks'
+);
+
+const stableLetAndVarBindings = scanJavaScriptSource({
+  filePath: 'scripts/fixtures/html-sink-policy/stable-let-and-var-bindings.mjs',
+  source: `
+    function renderWithLet(target, payload) {
+      let property = 'innerHTML';
+      target[property] = payload;
+    }
+    function replaceWithVar(target, payload) {
+      var property = 'outerHTML';
+      target[property] = payload;
+    }
+  `
+});
+assert.deepEqual(
+  stableLetAndVarBindings.approved.map(({ kind }) => kind),
+  ['innerHTML-write'],
+  'unmutated initialized let bindings must retain definite reviewed sinks'
+);
+assert.deepEqual(
+  stableLetAndVarBindings.prohibited.map(({ kind }) => kind),
+  ['outerHTML-write'],
+  'unmutated initialized var bindings must retain definite prohibited sinks'
+);
+
+const scopedComputedProperties = scanJavaScriptSource({
+  filePath: 'scripts/fixtures/html-sink-policy/scoped-computed-properties.mjs',
+  source: `
+    export function render(target, payload) {
+      const property = 'innerHTML';
+      target[property] = payload;
+    }
+    export function replace(target, payload) {
+      const property = 'outerHTML';
+      target[property] = payload;
+    }
+  `
+});
+assert.deepEqual(
+  scopedComputedProperties.approved.map(({ kind }) => kind),
+  ['innerHTML-write'],
+  'same-named constants in separate lexical scopes must retain the reviewed innerHTML occurrence'
+);
+assert.deepEqual(
+  scopedComputedProperties.prohibited.map(({ kind }) => kind),
+  ['outerHTML-write'],
+  'same-named constants in separate lexical scopes must retain the prohibited outerHTML occurrence'
+);
+
+const policy = JSON.parse(await read('html-sink-policy.json'));
+const inventory = await scanRepository();
+assert.deepEqual(verifyInventory(inventory, policy), [], 'the versioned exact-fingerprint inventory must match');
+
+const unapprovedPath = 'scripts/fixtures/html-sink-policy/unapproved-markup.mjs';
+const unapproved = scanJavaScriptSource({
+  filePath: unapprovedPath,
+  source: await read('fixtures/html-sink-policy/unapproved-markup.mjs')
+});
+assert.deepEqual(
+  unapproved.approved.map(({ kind }) => kind).sort(),
+  [
+    'innerHTML-write',
+    'innerHTML-write',
+    'innerHTML-write',
+    'innerHTML-write',
+    'insertAdjacentHTML',
+    'insertAdjacentHTML'
+  ].sort(),
+  'dot, computed-property, and insertAdjacentHTML markup writes must all enter the review inventory'
+);
+assert.equal(unapproved.prohibited.length, 0, 'review-required markup is distinct from inherently forbidden sinks');
+const additionalSink = structuredClone(inventory);
+additionalSink.approved.push(...unapproved.approved);
+const additionalErrors = verifyInventory(additionalSink, policy);
+assert.equal(
+  additionalErrors.filter((message) => message.includes('unapproved sink fingerprint')).length,
+  6,
+  'each new markup occurrence must be rejected by its own exact fingerprint'
+);
+
+const changedSink = structuredClone(inventory);
+changedSink.approved[0].fingerprint = '0'.repeat(64);
+const changedErrors = verifyInventory(changedSink, policy);
+assert.ok(
+  changedErrors.some((message) => message.includes('unapproved sink fingerprint')) &&
+    changedErrors.some((message) => message.includes('approved sink changed or disappeared')),
+  'changing an approved sink must require an explicit manifest review'
+);
+
+function assertMetadataDrift(select, mutate, label) {
+  const changed = structuredClone(inventory);
+  const occurrence = changed.approved.find(select);
+  assert.ok(occurrence, `${label} fixture occurrence must exist`);
+  mutate(occurrence);
+  const errors = verifyInventory(changed, policy);
+  assert.ok(
+    errors.some((message) => message.includes('unapproved sink fingerprint')) &&
+      errors.some((message) => message.includes('approved sink changed or disappeared')),
+    `${label} metadata drift must invalidate the exact occurrence`
+  );
+}
+
+assertMetadataDrift(
+  ({ kind }) => kind === 'innerHTML-write',
+  (occurrence) => {
+    occurrence.empty = !occurrence.empty;
+  },
+  'empty classification'
+);
+assertMetadataDrift(
+  ({ kind }) => kind === 'serializer-read',
+  (occurrence) => {
+    occurrence.property = occurrence.property === 'innerHTML' ? 'outerHTML' : 'innerHTML';
+  },
+  'serializer property'
+);
+assertMetadataDrift(
+  ({ kind, literal }) => kind === 'dynamic-import' && typeof literal === 'string',
+  (occurrence) => {
+    occurrence.literal = `${occurrence.literal}?changed`;
+  },
+  'literal import'
+);
+assertMetadataDrift(
+  ({ kind, argument }) => kind === 'dynamic-import' && typeof argument === 'string',
+  (occurrence) => {
+    occurrence.argument = `${occurrence.argument}Changed`;
+  },
+  'non-literal import argument'
+);
+assertMetadataDrift(
+  ({ kind, executableExtensions }) => kind === 'dynamic-import' && Array.isArray(executableExtensions),
+  (occurrence) => {
+    occurrence.executableExtensions = ['.mjs'];
+  },
+  'non-literal import extensions'
+);
+assertMetadataDrift(
+  ({ kind, control }) => kind === 'dynamic-import' && control,
+  (occurrence) => {
+    occurrence.control.fingerprint = '0'.repeat(64);
+  },
+  'non-literal import control'
+);
+
+const reclassifiedPolicy = structuredClone(policy);
+reclassifiedPolicy.approved[0].rationale += ' Changed without regeneration.';
+assert.throws(
+  () => verifyInventory(inventory, reclassifiedPolicy),
+  /disposition hash must bind occurrence evidence, metadata, classification, and rationale/u,
+  'reclassification must require explicit disposition-hash regeneration'
+);
+
+const fabricatedEvidencePolicy = structuredClone(policy);
+fabricatedEvidencePolicy.approved[0].evidence = 'fabricated evidence';
+assert.throws(
+  () => verifyInventory(inventory, fabricatedEvidencePolicy),
+  /disposition hash must bind occurrence evidence, metadata, classification, and rationale/u,
+  'per-occurrence evidence tampering must invalidate the reviewed disposition'
+);
+
+const fabricatedRationalePolicy = structuredClone(policy);
+fabricatedRationalePolicy.rationale = 'fabricated top-level rationale';
+assert.throws(
+  () => verifyInventory(inventory, fabricatedRationalePolicy),
+  /sink policy rationale drift/u,
+  'top-level accepted-no-action rationale tampering must be rejected'
+);
+
+const executableSink = structuredClone(inventory);
+executableSink.prohibited.push(negative.prohibited[0]);
+assert.ok(
+  verifyInventory(executableSink, policy).some((message) => message.includes('prohibited sink')),
+  'a prohibited sink must fail even when approved counts remain unchanged'
+);
+
+console.log('HTML sink policy tests passed.');

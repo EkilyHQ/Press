@@ -30,21 +30,36 @@ assert(!packagePaths.includes('wwwroot'));
 assert(!packagePaths.includes('scripts'));
 
 assert.deepEqual(
-  execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'package-paths'], { encoding: 'utf8' }).trim().split('\n'),
+  execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'package-paths'], { encoding: 'utf8' })
+    .trim()
+    .split('\n'),
   packagePaths
 );
 assert.deepEqual(
-  execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'release-plan-paths'], { encoding: 'utf8' }).trim().split('\n'),
+  execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'release-plan-paths'], { encoding: 'utf8' })
+    .trim()
+    .split('\n'),
   getPressSystemReleasePlanPaths()
 );
 assert.deepEqual(
-  execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'pages-release-plan-paths'], { encoding: 'utf8' }).trim().split('\n'),
+  execFileSync(process.execPath, ['scripts/print-press-system-surface.mjs', 'pages-release-plan-paths'], {
+    encoding: 'utf8'
+  })
+    .trim()
+    .split('\n'),
   getPressSystemReleasePlanPaths({ includePagesMaterializer: true })
 );
 assert(!getPressSystemReleasePlanPaths().includes('scripts/build-pages-artifact.sh'));
 assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/build-pages-artifact.sh'));
+assert(!getPressSystemReleasePlanPaths().includes('scripts/pages-editor-exclusion.mjs'));
+assert(
+  getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/pages-editor-exclusion.mjs')
+);
 assert(!getPressSystemReleasePlanPaths().includes('scripts/resolve-pages-output-path.mjs'));
-assert(getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/resolve-pages-output-path.mjs'));
+assert(
+  getPressSystemReleasePlanPaths({ includePagesMaterializer: true }).includes('scripts/resolve-pages-output-path.mjs')
+);
+assert(getPressSystemReleasePlanPaths().includes('scripts/sync-runtime-cache-keys.mjs'));
 assert(!packagePaths.includes('scripts/resolve-pages-output-path.mjs'));
 assert(getPressSystemReleasePlanPaths().includes('packages/press-theme-contract'));
 assert(getPressSystemReleasePlanPaths().includes('scripts/build-theme-contract-package.mjs'));

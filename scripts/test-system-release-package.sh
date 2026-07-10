@@ -1040,6 +1040,234 @@ requireEdge('assets/themes/native/theme.css', 'assets/themes/native/base.css', '
 requireEdge('assets/themes/native/theme.json', 'assets/themes/native/modules/interactions.js', 'theme-module');
 NODE
 
+materialized_html_dir="${tmp_dir}/materialized-html"
+mkdir -p "${materialized_html_dir}"
+for html_path in index.html index_editor.html index_editor_preview.html; do
+  unzip -p "${zip_path}" "${package_root}/${html_path}" > "${materialized_html_dir}/${html_path}"
+done
+MATERIALIZED_HTML_DIR="${materialized_html_dir}" SOURCE_ROOT="${repo_root}" RUNTIME_MANIFEST_FILE="${runtime_manifest_file}" node <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const expectedEditorHashes = [
+  'sha256-7fumrKYNuNbU1bMOp1lfrFwq59C4I7qICkA4xSNfefQ=',
+  'sha256-78pVE5dzddjfImBn8Dh7Xu8/uUk4AqWtBgr0ofkwahs='
+];
+const common = [
+  "default-src 'self'",
+  "base-uri 'none'",
+  "object-src 'none'",
+  "script-src-attr 'none'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: http: https:",
+  "media-src 'self' data: blob: http: https:",
+  "font-src 'self' data: blob: http: https:"
+];
+function policy({ hashes = [], connect, frame }) {
+  return [
+    common[0],
+    common[1],
+    common[2],
+    `script-src ${["'self'", ...hashes.map((hash) => `'${hash}'`)].join(' ')}`,
+    ...common.slice(3),
+    `connect-src ${connect}`,
+    `frame-src ${frame}`,
+    "worker-src 'none'",
+    "form-action 'self'"
+  ].join('; ');
+}
+const remoteConnect = "'self' https: http://localhost:* http://127.0.0.1:*";
+const expected = {
+  'index.html': policy({ connect: remoteConnect, frame: "'none'" }),
+  'index_editor.html': policy({ hashes: expectedEditorHashes, connect: remoteConnect, frame: "'self'" }),
+  'index_editor_preview.html': policy({ connect: "'self'", frame: "'none'" })
+};
+function attr(tag, name) {
+  const match = tag.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])(.*?)\\1`, 'iu'));
+  return match ? match[2] : '';
+}
+function tags(html, name) {
+  return [...html.matchAll(new RegExp(`<${name}\\b[^>]*>`, 'giu'))];
+}
+function inlineScripts(html) {
+  return [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu)]
+    .filter((match) => !attr(match[1], 'src'))
+    .map((match) => match[2]);
+}
+function sha256(value) {
+  return `sha256-${crypto.createHash('sha256').update(value, 'utf8').digest('base64')}`;
+}
+const manifest = JSON.parse(fs.readFileSync(process.env.RUNTIME_MANIFEST_FILE, 'utf8'));
+for (const [file, expectedPolicy] of Object.entries(expected)) {
+  const html = fs.readFileSync(path.join(process.env.MATERIALIZED_HTML_DIR, file), 'utf8');
+  const source = fs.readFileSync(path.join(process.env.SOURCE_ROOT, file), 'utf8');
+  const csp = tags(html, 'meta').filter((match) => attr(match[0], 'http-equiv').toLowerCase() === 'content-security-policy');
+  if (csp.length !== 1) throw new Error(`${file} must contain one materialized CSP`);
+  if (attr(csp[0][0], 'content') !== expectedPolicy) throw new Error(`${file} CSP must match the reviewed policy`);
+  const viewport = tags(html, 'meta').filter((match) => attr(match[0], 'name').toLowerCase() === 'viewport');
+  if (viewport.length !== 1) throw new Error(`${file} must contain one viewport meta tag`);
+  const eol = html.includes('\r\n') ? '\r\n' : '\n';
+  const lineStart = html.lastIndexOf('\n', viewport[0].index) + 1;
+  const indent = html.slice(lineStart, viewport[0].index).match(/^[ \t]*/u)?.[0] || '';
+  const expectedTag = `<meta http-equiv="Content-Security-Policy" content="${expectedPolicy}">`;
+  if (!html.slice(viewport[0].index + viewport[0][0].length).startsWith(`${eol}${indent}${expectedTag}`)) {
+    throw new Error(`${file} CSP must immediately follow viewport`);
+  }
+  const hashes = inlineScripts(html).map(sha256);
+  const expectedHashes = file === 'index_editor.html' ? expectedEditorHashes : [];
+  if (JSON.stringify(hashes) !== JSON.stringify(expectedHashes)) {
+    throw new Error(`${file} inline script hashes must match the reviewed bytes`);
+  }
+  if (/\son[a-z][a-z0-9:-]*\s*=/iu.test(html)) throw new Error(`${file} must not contain script attributes`);
+  if (/\s(?:href|src|action|formaction|xlink:href)\s*=\s*(?:["']\s*)?javascript\s*:/iu.test(html)) {
+    throw new Error(`${file} must not contain javascript URLs`);
+  }
+  const sourceCsp = tags(source, 'meta').filter((match) => attr(match[0], 'http-equiv').toLowerCase() === 'content-security-policy');
+  if (sourceCsp.length !== 0) throw new Error(`${file} source must stay free of materialized CSP`);
+  const entry = manifest.entries.find((candidate) => candidate.path === file);
+  const bytes = fs.readFileSync(path.join(process.env.MATERIALIZED_HTML_DIR, file));
+  if (!entry || entry.size !== bytes.length || entry.sha256 !== crypto.createHash('sha256').update(bytes).digest('hex')) {
+    throw new Error(`${file} runtime manifest digest must cover the materialized CSP bytes`);
+  }
+}
+NODE
+
+idempotent_extract="${tmp_dir}/idempotent-extract"
+idempotent_snapshot="${tmp_dir}/idempotent-snapshot"
+mkdir -p "${idempotent_extract}"
+unzip -q "${zip_path}" -d "${idempotent_extract}"
+cp -R "${idempotent_extract}/${package_root}" "${idempotent_snapshot}"
+node scripts/sync-runtime-cache-keys.mjs --materialize-root "${idempotent_extract}/${package_root}" --tag "${version}" >/dev/null
+if ! diff -qr "${idempotent_snapshot}" "${idempotent_extract}/${package_root}" >/dev/null; then
+  echo "runtime CSP/cache materialization must be idempotent" >&2
+  exit 1
+fi
+
+assert_materializer_rejects_without_writes() {
+  local label="$1"
+  local fixture="$2"
+  local snapshot="${fixture}-before"
+  cp -R "${fixture}" "${snapshot}"
+  if node scripts/sync-runtime-cache-keys.mjs --materialize-root "${fixture}" --tag "${version}" >/dev/null 2>&1; then
+    echo "materializer must reject ${label}" >&2
+    exit 1
+  fi
+  if ! diff -qr "${snapshot}" "${fixture}" >/dev/null; then
+    echo "materializer validation failure must not partially write ${label}" >&2
+    exit 1
+  fi
+}
+
+prepare_materializer_fixture() {
+  local name="$1"
+  local fixture="${tmp_dir}/fixture-${name}"
+  cp -R "${idempotent_snapshot}" "${fixture}"
+  printf '%s\n' "${fixture}"
+}
+
+inline_growth_fixture="$(prepare_materializer_fixture inline-growth)"
+FIXTURE_ROOT="${inline_growth_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index_editor.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(file, source.replace('</body>', '<script>globalThis.__unexpected = true;</script>\n</body>'));
+NODE
+assert_materializer_rejects_without_writes "unexpected inline script growth" "${inline_growth_fixture}"
+
+hash_drift_fixture="$(prepare_materializer_fixture hash-drift)"
+FIXTURE_ROOT="${hash_drift_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index_editor.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(file, source.replace("var saved = localStorage.getItem('theme');", "var savedTheme = localStorage.getItem('theme');"));
+NODE
+assert_materializer_rejects_without_writes "inline script hash drift" "${hash_drift_fixture}"
+
+event_attribute_fixture="$(prepare_materializer_fixture event-attribute)"
+FIXTURE_ROOT="${event_attribute_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(file, source.replace('<body>', '<body data-label=">" onload="globalThis.__unexpected = true">'));
+NODE
+assert_materializer_rejects_without_writes "inline event attributes" "${event_attribute_fixture}"
+
+foreign_event_attribute_fixture="$(prepare_materializer_fixture foreign-event-attribute)"
+FIXTURE_ROOT="${foreign_event_attribute_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(
+  file,
+  source.replace('<body>', '<body><svg / ><iframe><img src=x onerror="globalThis.__unexpected = true"></iframe></svg>')
+);
+NODE
+assert_materializer_rejects_without_writes "foreign-namespace inline event attributes" "${foreign_event_attribute_fixture}"
+
+javascript_url_fixture="$(prepare_materializer_fixture javascript-url)"
+FIXTURE_ROOT="${javascript_url_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index_editor.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(file, source.replace('href="#"', 'data-label=">" href="java&#x73;cript:globalThis.__unexpected = true"'));
+NODE
+assert_materializer_rejects_without_writes "javascript URLs" "${javascript_url_fixture}"
+
+duplicate_csp_fixture="$(prepare_materializer_fixture duplicate-csp)"
+FIXTURE_ROOT="${duplicate_csp_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+const source = fs.readFileSync(file, 'utf8');
+const csp = source.match(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/iu)?.[0];
+if (!csp) throw new Error('missing CSP fixture');
+fs.writeFileSync(file, source.replace(csp, `${csp}\n  ${csp}`));
+NODE
+assert_materializer_rejects_without_writes "duplicate CSP tags" "${duplicate_csp_fixture}"
+
+stale_csp_fixture="$(prepare_materializer_fixture stale-csp)"
+FIXTURE_ROOT="${stale_csp_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(file, source.replace("default-src 'self'", "default-src 'none'"));
+NODE
+assert_materializer_rejects_without_writes "stale CSP policy" "${stale_csp_fixture}"
+
+malformed_csp_fixture="$(prepare_materializer_fixture malformed-csp)"
+FIXTURE_ROOT="${malformed_csp_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+const source = fs.readFileSync(file, 'utf8');
+const csp = source.match(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/iu)?.[0];
+if (!csp) throw new Error('missing CSP fixture');
+fs.writeFileSync(file, source.replace(csp, csp.replace(/\scontent="[^"]*"/u, '')));
+NODE
+assert_materializer_rejects_without_writes "malformed CSP policy" "${malformed_csp_fixture}"
+
+misleading_csp_fixture="$(prepare_materializer_fixture misleading-csp-content)"
+FIXTURE_ROOT="${misleading_csp_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+let source = fs.readFileSync(file, 'utf8');
+source = source.replace(/\n[ \t]*<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/iu, '');
+source = source.replace(
+  /(<meta name="viewport"[^>]*>)/iu,
+  '$1\n  <meta name="description" content="Content-Security-Policy is materialized when score > 0">'
+);
+fs.writeFileSync(file, source);
+NODE
+node scripts/sync-runtime-cache-keys.mjs --materialize-root "${misleading_csp_fixture}" --tag "${version}" >/dev/null
+MISLEADING_FIXTURE_ROOT="${misleading_csp_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const source = fs.readFileSync(`${process.env.MISLEADING_FIXTURE_ROOT}/index.html`, 'utf8');
+const exact = [...source.matchAll(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/giu)];
+if (exact.length !== 1) throw new Error('misleading meta content must not count as a CSP declaration');
+if (!source.includes('content="Content-Security-Policy is materialized when score > 0"')) {
+  throw new Error('materializer should preserve unrelated misleading content values');
+}
+NODE
+
 assert_zip_contains() {
   local path="$1"
   local needle="$2"

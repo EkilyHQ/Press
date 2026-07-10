@@ -21,7 +21,7 @@ import {
   createThemeRegionRegistry,
   ensureThemeRegionRegistry,
   getDefaultThemeRegionController,
-  mergeThemeRegions,
+  mergeThemeRegions
 } from './theme-regions.js';
 import {
   PRESS_THEME_CONTRACT,
@@ -29,10 +29,7 @@ import {
   getDefaultThemeStyles,
   getRequiredThemeContentShapes
 } from './theme-contract-surface.mjs';
-import {
-  applyThemeSettingsCssVariables,
-  resolveThemeSettings
-} from './theme-settings.js';
+import { applyThemeSettingsCssVariables, resolveThemeSettings } from './theme-settings.js';
 
 function createThemeLayoutState(options = {}) {
   return {
@@ -94,11 +91,13 @@ function isThemeDevMode() {
 
 function themeDevWarn(...args) {
   if (!isThemeDevMode()) return;
-  try { console.warn('[theme-dev]', ...args); } catch (_) {}
+  try {
+    console.warn('[theme-dev]', ...args);
+  } catch (_) {}
 }
 
 function asStringList(value) {
-  return Array.isArray(value) ? value.map(item => String(item || '').trim()).filter(Boolean) : [];
+  return Array.isArray(value) ? value.map((item) => String(item || '').trim()).filter(Boolean) : [];
 }
 
 function asObject(value) {
@@ -116,9 +115,7 @@ function reflectThemeRuntimeConfig(context, options = {}, themeSettings = null) 
   if (!context.theme || !context.theme.effects) return false;
   const effect = context.theme.effects.reflectThemeConfig;
   if (typeof effect !== 'function') return false;
-  const siteConfig = options && options.siteConfig && typeof options.siteConfig === 'object'
-    ? options.siteConfig
-    : {};
+  const siteConfig = options && options.siteConfig && typeof options.siteConfig === 'object' ? options.siteConfig : {};
   const documentRef = context.document || (typeof document !== 'undefined' ? document : null);
   const windowRef = (documentRef && documentRef.defaultView) || (typeof window !== 'undefined' ? window : null);
   try {
@@ -240,7 +237,9 @@ function getManifestCacheKey(pack, manifest) {
 }
 
 function safeThemeAssetPath(pack, entry, extension, manifest) {
-  const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
+  const safeEntry = String(entry || '')
+    .replace(/^[./]+/, '')
+    .trim();
   if (!safeEntry || safeEntry.includes('..') || safeEntry.includes('\\') || !safeEntry.endsWith(extension)) {
     return '';
   }
@@ -258,7 +257,9 @@ function applyManifestStyles(pack, manifest) {
   try {
     const link = document.getElementById('theme-pack');
     if (link && link.getAttribute('href') !== primary) link.setAttribute('href', primary);
-    try { window.__themePackHref = primary; } catch (_) {}
+    try {
+      window.__themePackHref = primary;
+    } catch (_) {}
   } catch (_) {}
   try {
     document.querySelectorAll('link[data-theme-pack-extra-style]').forEach((node) => node.remove());
@@ -290,8 +291,12 @@ function clearFailedThemeArtifacts(pack, options = {}) {
   try {
     document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
   } catch (_) {}
-  try { delete document.body.dataset.themeLayout; } catch (_) {}
-  try { getThemeRegionController(options).setThemeLayoutContext(null); } catch (_) {}
+  try {
+    delete document.body.dataset.themeLayout;
+  } catch (_) {}
+  try {
+    getThemeRegionController(options).setThemeLayoutContext(null);
+  } catch (_) {}
 }
 
 function clearMountedThemeArtifacts(options = {}) {
@@ -301,8 +306,12 @@ function clearMountedThemeArtifacts(options = {}) {
   try {
     document.querySelectorAll('[data-theme-root]').forEach((node) => node.remove());
   } catch (_) {}
-  try { delete document.body.dataset.themeLayout; } catch (_) {}
-  try { getThemeRegionController(options).setThemeLayoutContext(null); } catch (_) {}
+  try {
+    delete document.body.dataset.themeLayout;
+  } catch (_) {}
+  try {
+    getThemeRegionController(options).setThemeLayoutContext(null);
+  } catch (_) {}
 }
 
 function getThemeLayoutState(options = {}) {
@@ -360,7 +369,9 @@ function createThemeApi(pack, manifest) {
 
   const declaredViews = asObject(manifest && manifest.views);
   if (declaredViews) {
-    Object.keys(declaredViews).forEach((key) => { api.views[key] = null; });
+    Object.keys(declaredViews).forEach((key) => {
+      api.views[key] = null;
+    });
   }
 
   return api;
@@ -391,6 +402,7 @@ function extractThemeApi(mod) {
   if (!mod || typeof mod !== 'object') return null;
   const explicit = asObject(mod.theme) || asObject(mod.themeApi) || asObject(mod.api);
   const fromDefault = asObject(mod.default);
+  // prettier-ignore
   const direct = (
     asObject(mod.views)
     || asObject(mod.components)
@@ -402,12 +414,12 @@ function extractThemeApi(mod) {
   const source = explicit || fromDefault || direct;
   if (!source) return null;
   if (
-    typeof source.mount === 'function'
-    || typeof source.unmount === 'function'
-    || asObject(source.views)
-    || asObject(source.components)
-    || asObject(source.effects)
-    || asObject(source.regions)
+    typeof source.mount === 'function' ||
+    typeof source.unmount === 'function' ||
+    asObject(source.views) ||
+    asObject(source.components) ||
+    asObject(source.effects) ||
+    asObject(source.regions)
   ) {
     return source;
   }
@@ -425,7 +437,7 @@ async function loadManifest(pack) {
   }
   const list = Array.isArray(data.modules) ? data.modules : [];
   if (!list.length) throw new Error('Empty module list');
-  const manifest = { ...data, modules: list.map(x => String(x)) };
+  const manifest = { ...data, modules: list.map((x) => String(x)) };
   validateManifestContract(pack, manifest);
   return manifest;
 }
@@ -441,14 +453,27 @@ function appendImportCacheKey(entry, cacheKey) {
   return `${pathAndQuery}${joiner}v=${encodeURIComponent(key)}${hash}`;
 }
 
-function resolveModuleEntry(pack, entry, manifest) {
-  const safeEntry = String(entry || '').replace(/^[./]+/, '').trim();
-  if (!safeEntry) return '';
-  if (safeEntry.includes('..') || safeEntry.includes('\\')) return '';
+export function resolveModuleEntry(pack, entry, manifest) {
+  pack = String(pack || '')
+    .trim()
+    .toLowerCase();
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(pack)) return '';
+  const safeEntry = String(entry || '').trim();
+  if (!safeEntry || safeEntry.startsWith('.') || safeEntry.startsWith('/')) return '';
+  if (
+    safeEntry.includes('..') ||
+    safeEntry.includes('\\') ||
+    safeEntry.includes('%') ||
+    safeEntry.includes('?') ||
+    safeEntry.includes('#') ||
+    safeEntry.includes(':') ||
+    !safeEntry.toLowerCase().endsWith('.js') ||
+    safeEntry.split('/').some((segment) => !segment || segment === '.' || segment === '..')
+  )
+    return '';
   const cacheKey = pack === DEFAULT_PACK ? NATIVE_MODULE_CACHE_KEY : getManifestCacheKey(pack, manifest);
-  const moduleEntry = pack === DEFAULT_PACK
-    ? appendImportCacheKey(safeEntry, cacheKey)
-    : appendImportCacheKey(safeEntry, cacheKey);
+  const moduleEntry =
+    pack === DEFAULT_PACK ? appendImportCacheKey(safeEntry, cacheKey) : appendImportCacheKey(safeEntry, cacheKey);
   return `../themes/${encodeURIComponent(pack)}/${moduleEntry}`;
 }
 
@@ -469,26 +494,31 @@ function createThemeModuleLoadFailure(entry, error) {
 
 async function loadThemeModules(pack, manifest, options = {}) {
   const failFast = options.failFast === true;
-  return Promise.all(manifest.modules.map(async (entry) => {
-    try {
-      const loaded = await loadThemeModule(pack, entry, manifest);
-      return { entry, loaded };
-    } catch (error) {
-      if (failFast) throw createThemeModuleLoadFailure(entry, error);
-      return { entry, error };
-    }
-  }));
+  return Promise.all(
+    manifest.modules.map(async (entry) => {
+      try {
+        const loaded = await loadThemeModule(pack, entry, manifest);
+        return { entry, loaded };
+      } catch (error) {
+        if (failFast) throw createThemeModuleLoadFailure(entry, error);
+        return { entry, error };
+      }
+    })
+  );
 }
 
 async function mountLoadedModule(pack, entry, mod, context, manifest) {
   if (!mod) return;
   const modApi = extractThemeApi(mod);
   if (modApi) mergeThemeApi(context.theme, modApi);
-  const fn = typeof mod.mount === 'function'
-    ? mod.mount
-    : (modApi && typeof modApi.mount === 'function'
+  const fn =
+    typeof mod.mount === 'function'
+      ? mod.mount
+      : modApi && typeof modApi.mount === 'function'
         ? modApi.mount
-        : (typeof mod.default === 'function' ? mod.default : null));
+        : typeof mod.default === 'function'
+          ? mod.default
+          : null;
   if (!fn) return;
   context.regions = ensureThemeRegionRegistry(context.regions);
   const result = await fn(context);
@@ -534,12 +564,14 @@ async function mountPack(pack, allowFallback = true, options = {}) {
     moduleResults = await loadThemeModules(pack, manifest, { failFast: allowFallback && pack !== DEFAULT_PACK });
   } catch (failure) {
     if (!isCurrentMountGeneration(mountGeneration, options)) return null;
-    const entry = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'entry')
-      ? failure.entry
-      : '';
-    const error = failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'error')
-      ? failure.error
-      : failure;
+    const entry =
+      failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'entry')
+        ? failure.entry
+        : '';
+    const error =
+      failure && typeof failure === 'object' && Object.prototype.hasOwnProperty.call(failure, 'error')
+        ? failure.error
+        : failure;
     console.error('[theme] Failed to load module', entry, error);
     if (allowFallback && pack !== DEFAULT_PACK) {
       if (persist) {
@@ -653,17 +685,27 @@ async function ensureThemeLayoutWithState(themeLayoutState, options = {}) {
     themeLayoutState.latestLayoutOptions = options;
     return themeLayoutState.layoutPromise.then((context) => {
       if (!isCurrentMountGeneration(reuseGeneration, { themeLayoutState })) return context;
-      return refreshThemeLayoutRuntimeContext(context, themeLayoutState.latestLayoutOptions || options, themeLayoutState.regionController);
+      return refreshThemeLayoutRuntimeContext(
+        context,
+        themeLayoutState.latestLayoutOptions || options,
+        themeLayoutState.regionController
+      );
     });
   }
   themeLayoutState.activePack = pack;
   themeLayoutState.latestLayoutOptions = options;
-  themeLayoutState.layoutPromise = mountPack(pack, true, { ...options, mountGeneration, themeLayoutState }).then((context) => {
-    if (!isCurrentMountGeneration(mountGeneration, { themeLayoutState })) return context;
-    const resolvedPack = (context && context.pack) || document.body.dataset.themeLayout || DEFAULT_PACK;
-    themeLayoutState.activePack = resolvedPack;
-    return refreshThemeLayoutRuntimeContext(context, themeLayoutState.latestLayoutOptions || options, themeLayoutState.regionController);
-  });
+  themeLayoutState.layoutPromise = mountPack(pack, true, { ...options, mountGeneration, themeLayoutState }).then(
+    (context) => {
+      if (!isCurrentMountGeneration(mountGeneration, { themeLayoutState })) return context;
+      const resolvedPack = (context && context.pack) || document.body.dataset.themeLayout || DEFAULT_PACK;
+      themeLayoutState.activePack = resolvedPack;
+      return refreshThemeLayoutRuntimeContext(
+        context,
+        themeLayoutState.latestLayoutOptions || options,
+        themeLayoutState.regionController
+      );
+    }
+  );
   return themeLayoutState.layoutPromise;
 }
 

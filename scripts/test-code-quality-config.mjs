@@ -65,10 +65,33 @@ assert.equal(
   'format checks must use the incremental baseline guard'
 );
 assert.equal(
-  packageJson.scripts?.quality,
-  'node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run format:check && npm run vendor:check',
-  'the quality gate must cover lint, formatting, and vendored dependency provenance'
+  packageJson.scripts?.['security:html-sinks'],
+  'node scripts/check-html-sink-policy.mjs',
+  'HTML and executable sink growth must retain an AST-based policy guard'
 );
+assert.equal(
+  packageJson.scripts?.quality,
+  'node scripts/test-code-quality-config.mjs && npm run lint && npm run lint:debt-probe && npm run format:check && npm run vendor:check && npm run security:html-sinks',
+  'the quality gate must cover lint, formatting, vendored dependency provenance, and sink policy'
+);
+
+const htmlSinkPolicy = readJson('scripts/html-sink-policy.json');
+assert.equal(htmlSinkPolicy.schemaVersion, 1, 'the HTML sink policy must use schema version 1');
+assert.equal(
+  htmlSinkPolicy.decision,
+  'accepted-baseline-with-zero-growth',
+  'the HTML sink baseline must retain its reviewed no-growth disposition'
+);
+assert.deepEqual(htmlSinkPolicy.expected, {
+  dynamicImports: 12,
+  innerHTMLEmptyWrites: 65,
+  innerHTMLWrites: 112,
+  insertAdjacentHTML: 2,
+  prohibited: 0,
+  serializerReads: 4,
+  timerCallbackControls: 8
+});
+assert.equal(htmlSinkPolicy.approved.length, 138, 'all approved sink occurrences must retain exact fingerprints');
 
 const workflow = read('.github/workflows/code-quality.yml');
 assert.match(workflow, /^name: Code Quality$/m, 'the code-quality workflow must have a stable name');

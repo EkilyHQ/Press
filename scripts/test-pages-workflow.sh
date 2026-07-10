@@ -65,8 +65,8 @@ if grep -F 'git ls-files -z -- .nojekyll index.html index_editor.html index_edit
   exit 1
 fi
 
-if ! grep -F 'git ls-files -z -- .nojekyll index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot' scripts/build-pages-artifact.sh >/dev/null; then
-  echo "Pages artifact builder must copy the tracked site surface, including docs content and site metadata" >&2
+if ! grep -F 'git ls-files -z -- .nojekyll .press-pages-no-editor index.html index_editor.html index_editor_preview.html site.yaml robots.txt sitemap.xml assets wwwroot' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "Pages artifact builder must copy the tracked site surface and optional editor exclusion marker" >&2
   exit 1
 fi
 
@@ -110,6 +110,11 @@ if ! grep -F 'node scripts/sync-runtime-cache-keys.mjs --materialize-root "${out
   exit 1
 fi
 
+if ! grep -F 'node scripts/pages-editor-exclusion.mjs --source-root "${repo_root}" --pages-root "${output_dir}"' scripts/build-pages-artifact.sh >/dev/null; then
+  echo "Pages artifact builder must enforce the editor exclusion contract after materialization" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/resolve-pages-output-path.mjs "${output_dir}" "${repo_root}"' scripts/build-pages-artifact.sh >/dev/null; then
   echo "Pages artifact builder must canonicalize and validate its output path before removal" >&2
   exit 1
@@ -127,6 +132,11 @@ fi
 
 if ! grep -F 'scripts/resolve-pages-output-path.mjs' assets/js/press-system-surface.mjs >/dev/null; then
   echo "Pages release-plan paths must include the output-path validator used by the artifact builder" >&2
+  exit 1
+fi
+
+if ! grep -F 'scripts/pages-editor-exclusion.mjs' assets/js/press-system-surface.mjs >/dev/null; then
+  echo "Pages release-plan paths must include the editor exclusion policy used by the artifact builder" >&2
   exit 1
 fi
 

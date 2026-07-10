@@ -5,6 +5,12 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import {
+  inspectArtifactPagesEditorExclusion,
+  PAGES_EDITOR_ENTRY_PATHS,
+  PAGES_EDITOR_EXCLUSION_MARKER,
+  projectPagesRuntimeManifestWithoutEditor
+} from './pages-editor-exclusion.mjs';
 
 const RUNTIME_MANIFEST_PATH = 'assets/press-runtime-manifest.json';
 const REQUIRED_PAGES_FILES = Object.freeze([
@@ -21,6 +27,7 @@ const FORBIDDEN_PAGES_PATHS = Object.freeze([
   'wwwroot.local'
 ]);
 const FORBIDDEN_SYSTEM_PATHS = Object.freeze([
+  PAGES_EDITOR_EXCLUSION_MARKER,
   'site.yaml',
   'assets/themes/packs.json',
   'wwwroot'
@@ -86,8 +93,20 @@ function verifyPagesArtifact({ pagesRoot, systemArchive, explicitTag = '' }) {
     throw new Error(`Pages artifact tag ${tag} must match expected tag ${explicitTag}`);
   }
 
-  REQUIRED_PAGES_FILES.forEach((relPath) => assertExists(path.join(pagesRoot, relPath), `Pages artifact must include ${relPath}`));
-  FORBIDDEN_PAGES_PATHS.forEach((relPath) => assertNotExists(path.join(pagesRoot, relPath), `Pages artifact must not include ${relPath}`));
+  REQUIRED_PAGES_FILES.forEach((relPath) =>
+    assertExists(path.join(pagesRoot, relPath), `Pages artifact must include ${relPath}`)
+  );
+  FORBIDDEN_PAGES_PATHS.forEach((relPath) =>
+    assertNotExists(path.join(pagesRoot, relPath), `Pages artifact must not include ${relPath}`)
+  );
+  const editorPolicy = inspectArtifactPagesEditorExclusion(pagesRoot);
+  PAGES_EDITOR_ENTRY_PATHS.forEach((relPath) => {
+    if (editorPolicy.excludeEditor) {
+      assertNotExists(path.join(pagesRoot, relPath), `Pages artifact must exclude ${relPath}`);
+    } else {
+      assertFile(path.join(pagesRoot, relPath), `Pages artifact must include ${relPath}`);
+    }
+  });
 
   const packageRoot = `press-system-${tag}`;
   const archiveEntries = listZipEntries(systemArchive);
@@ -97,10 +116,24 @@ function verifyPagesArtifact({ pagesRoot, systemArchive, explicitTag = '' }) {
       throw new Error(`system archive must not include Pages-owned path ${relPath}`);
     }
   });
+  PAGES_EDITOR_ENTRY_PATHS.forEach((relPath) => {
+    if (!archiveEntries.includes(`${packageRoot}/${relPath}`)) {
+      throw new Error(`system archive must retain ${relPath}`);
+    }
+  });
 
   const pagesRuntimeManifest = readJson(path.join(pagesRoot, RUNTIME_MANIFEST_PATH));
   const systemRuntimeManifest = JSON.parse(readZipText(systemArchive, `${packageRoot}/${RUNTIME_MANIFEST_PATH}`));
-  assert.deepEqual(pagesRuntimeManifest, systemRuntimeManifest, 'Pages and system archive runtime manifests must match');
+  const expectedPagesRuntimeManifest = editorPolicy.excludeEditor
+    ? projectPagesRuntimeManifestWithoutEditor(systemRuntimeManifest)
+    : systemRuntimeManifest;
+  assert.deepEqual(
+    pagesRuntimeManifest,
+    expectedPagesRuntimeManifest,
+    editorPolicy.excludeEditor
+      ? 'Pages runtime manifest must remove only editor entry nodes and their outgoing edges'
+      : 'Pages and system archive runtime manifests must match'
+  );
 
   verifyRuntimeManifest(pagesRoot, pagesRuntimeManifest, tag);
   console.log('ok - pages artifact');
@@ -158,7 +191,9 @@ function verifyRuntimeManifest(rootDir, manifest, tag) {
 }
 
 function normalizeRelPath(value) {
-  const clean = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  const clean = String(value || '')
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '');
   if (!clean || clean.includes('\0')) return '';
   const parts = clean.split('/');
   if (parts.some((part) => part === '.' || part === '..')) return '';

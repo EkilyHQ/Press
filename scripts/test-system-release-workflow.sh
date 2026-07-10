@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 workflow=".github/workflows/system-release.yml"
+main_workflow=".github/workflows/main-guard.yml"
 
 if [[ ! -f "${workflow}" ]]; then
   echo "expected ${workflow} to exist" >&2
@@ -213,6 +214,75 @@ if ! grep -F 'node scripts/test-release-intent.js' "${workflow}" >/dev/null; the
   exit 1
 fi
 
+if ! grep -F "git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'" "${workflow}" >/dev/null; then
+  echo "system release workflow must fetch the versioned release artifact registry before graph verification" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-release-graph.js' "${workflow}" >/dev/null; then
+  echo "system release workflow must run focused release graph policy tests before publishing" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--github-releases "${RUNNER_TEMP}/press-github-releases.json"' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify published GitHub Release objects" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--mode audit' "${workflow}" >/dev/null \
+  || ! grep -F 'node scripts/release-graph.js "${graph_args[@]}"' "${workflow}" >/dev/null; then
+  echo "system release workflow must audit the published release graph before planning a release" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-release-graph.js' "${main_workflow}" >/dev/null \
+  || ! grep -F 'candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"' "${main_workflow}" >/dev/null \
+  || ! grep -F 'node scripts/release-graph.js --mode "${validation_mode}" --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --candidate-archive "${candidate_archive}" --check' "${main_workflow}" >/dev/null \
+  || ! grep -F 'bash scripts/test-system-release-workflow.sh' "${main_workflow}" >/dev/null; then
+  echo "main guard must run focused release graph tests, package the worktree, validate audit-or-candidate state, and check workflow wiring" >&2
+  exit 1
+fi
+if ! grep -F 'validation_mode="candidate"' "${main_workflow}" >/dev/null \
+  || ! grep -F 'github.event.pull_request.base.sha' "${main_workflow}" >/dev/null \
+  || ! grep -F 'release_plan_paths[@]' "${main_workflow}" >/dev/null; then
+  echo "main guard must force candidate validation whenever the release-plan surface changes" >&2
+  exit 1
+fi
+if grep -F '${{ steps.plan.outputs.changed_files }}' "${workflow}" >/dev/null \
+  || ! grep -F 'dist/release-changed-files.txt' "${workflow}" >/dev/null; then
+  echo "release notes must pass changed paths through a file instead of shell expression interpolation" >&2
+  exit 1
+fi
+
+if ! grep -F 'node scripts/test-system-release-transaction.mjs' "${main_workflow}" >/dev/null; then
+  echo "main guard must run the append-only release transaction tests" >&2
+  exit 1
+fi
+if ! grep -F 'bash scripts/test-system-release-package.sh' "${main_workflow}" >/dev/null; then
+  echo "main guard must prove system packages are reproducible before merge" >&2
+  exit 1
+fi
+if grep -F 'git push' "${main_workflow}" >/dev/null; then
+  echo "main guard transient tag handling must remain read-only on the remote" >&2
+  exit 1
+fi
+
+if ! grep -F -- '--mode candidate' "${workflow}" >/dev/null \
+  || ! grep -F -- '--candidate-archive "${CANDIDATE_ARCHIVE}"' "${workflow}" >/dev/null \
+  || ! grep -F 'steps.package.outputs.archive_path || steps.staged_package.outputs.archive_path' "${workflow}" >/dev/null; then
+  echo "system release workflow must verify the built candidate archive against the release graph" >&2
+  exit 1
+fi
+
+build_line="$(grep -nF -- '- name: Build system update package' "${workflow}" | cut -d: -f1)"
+candidate_line="$(grep -nF -- '- name: Verify release graph candidate' "${workflow}" | cut -d: -f1)"
+draft_line="$(grep -nF -- '- name: Ensure draft release and asset' "${workflow}" | cut -d: -f1)"
+if [[ -z "${build_line}" || -z "${candidate_line}" || -z "${draft_line}"
+  || "${candidate_line}" -le "${build_line}" || "${candidate_line}" -ge "${draft_line}" ]]; then
+  echo "release graph candidate verification must run after package build and before draft release creation" >&2
+  exit 1
+fi
+
 if ! grep -F 'node scripts/test-dispatch-system-release.js' "${workflow}" >/dev/null; then
   echo "system release workflow must verify release dispatch helpers before publishing" >&2
   exit 1
@@ -258,8 +328,8 @@ if grep -F 'releases/tags/${NEXT_TAG}' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'steps.create.outputs.release_id' "${workflow}" >/dev/null; then
-  echo "system release workflow must validate and publish the draft release by release id" >&2
+if ! grep -F 'repos/${GITHUB_REPOSITORY}/releases/${release_id}' "${workflow}" >/dev/null; then
+  echo "system release workflow must validate and publish the draft release by immutable release id" >&2
   exit 1
 fi
 
@@ -293,28 +363,28 @@ if ! grep -F 'uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_i
   exit 1
 fi
 
-if ! grep -F 'stale-draft-release-ids.txt' "${workflow}" >/dev/null; then
-  echo "system release workflow must clean stale draft releases for retry safety" >&2
+if ! grep -F 'node scripts/system-release-transaction.mjs inspect' "${workflow}" >/dev/null \
+  || ! grep -F 'node scripts/test-system-release-transaction.mjs' "${workflow}" >/dev/null; then
+  echo "release workflows must run the tested append-only transaction state machine" >&2
   exit 1
 fi
 
-if grep -F 'release.get("name") == next_tag' "${workflow}" >/dev/null; then
-  echo "system release workflow must identify stale releases by tag_name, not editable release names" >&2
+transaction_step_line="$(grep -nF -- '- name: Inspect release transaction' "${workflow}" | head -n 1 | cut -d: -f1)"
+graph_audit_step_line="$(grep -nF -- '- name: Verify release package boundary' "${workflow}" | head -n 1 | cut -d: -f1)"
+if [[ -z "${transaction_step_line}" || -z "${graph_audit_step_line}" \
+  || "${transaction_step_line}" -ge "${graph_audit_step_line}" ]]; then
+  echo "system release workflow must classify retries before graph audit" >&2
   exit 1
 fi
 
-if ! grep -F 'release.get("tag_name") == next_tag' "${workflow}" >/dev/null; then
-  echo "system release workflow must match stale draft releases by tag_name" >&2
+if ! grep -F -- '--transient-candidate-version "${CANDIDATE_VERSION}"' "${workflow}" >/dev/null; then
+  echo "interrupted transactions must audit the canonical baseline without promoting the candidate" >&2
   exit 1
 fi
 
-if ! grep -F 'git push --delete origin "${next_tag}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must delete stale release tags before retrying" >&2
-  exit 1
-fi
-
-if ! grep -F 'git tag -d "${next_tag}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must delete stale local release tags before retrying" >&2
+if grep -F -- '--method DELETE' "${workflow}" >/dev/null \
+  || grep -F 'git push --delete' "${workflow}" >/dev/null; then
+  echo "system release retries must never delete Release or tag state" >&2
   exit 1
 fi
 
@@ -323,8 +393,26 @@ if grep -F 'Update static release manifest' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'Publish fetchable artifact' "${workflow}" >/dev/null; then
-  echo "system release workflow must publish a CORS-readable system package artifact" >&2
+if ! grep -F 'Stage candidate artifact' "${workflow}" >/dev/null \
+  || ! grep -F 'Promote latest release artifacts' "${workflow}" >/dev/null; then
+  echo "system release workflow must stage candidate bytes separately from latest promotion" >&2
+  exit 1
+fi
+
+stage_step="$(awk '
+  /- name: Stage candidate artifact/ { in_step = 1 }
+  /- name: Publish release/ { in_step = 0 }
+  in_step { print }
+' "${workflow}")"
+if grep -F 'system-release.json' <<< "${stage_step}" >/dev/null \
+  || grep -F 'release-intent.json' <<< "${stage_step}" >/dev/null \
+  || grep -F 'product-state' <<< "${stage_step}" >/dev/null; then
+  echo "candidate staging must not expose final manifests or root latest pointers" >&2
+  exit 1
+fi
+if ! grep -F 'release-candidate.json' <<< "${stage_step}" >/dev/null \
+  || ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${receipt_path}"' <<< "${stage_step}" >/dev/null; then
+  echo "candidate staging must commit only the ZIP and its transaction receipt" >&2
   exit 1
 fi
 
@@ -338,27 +426,22 @@ if ! grep -F 'artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITOR
   exit 1
 fi
 
-if ! grep -F 'manifest_path="system-release.json"' "${workflow}" >/dev/null; then
-  echo "system release workflow must publish the static manifest at the release-artifacts root" >&2
-  exit 1
-fi
-
 if ! grep -F 'immutable_manifest_path="${tag}/system-release.json"' "${workflow}" >/dev/null; then
   echo "system release workflow must publish an immutable tag-scoped system-release manifest" >&2
   exit 1
 fi
 
-if ! grep -F 'release_intent_path="release-intent.json"' "${workflow}" >/dev/null || ! grep -F 'immutable_release_intent_path="${tag}/release-intent.json"' "${workflow}" >/dev/null; then
+if ! grep -F 'immutable_release_intent_path="${tag}/release-intent.json"' "${workflow}" >/dev/null; then
   echo "system release workflow must publish latest and immutable release intent manifests" >&2
   exit 1
 fi
 
-if ! grep -F 'product_state_path="product-state.json"' "${workflow}" >/dev/null; then
+if ! grep -F 'cp dist/product-state.json artifacts-worktree/product-state.json' "${workflow}" >/dev/null; then
   echo "system release workflow must publish the product-state ledger at the release-artifacts root" >&2
   exit 1
 fi
 
-if ! grep -F 'product_state_dashboard_path="product-state.html"' "${workflow}" >/dev/null; then
+if ! grep -F 'cp dist/product-state.html artifacts-worktree/product-state.html' "${workflow}" >/dev/null; then
   echo "system release workflow must publish the product-state dashboard at the release-artifacts root" >&2
   exit 1
 fi
@@ -380,6 +463,12 @@ fi
 
 if ! grep -F '"version": version' "${workflow}" >/dev/null; then
   echo "system release manifest must publish the explicit Press version" >&2
+  exit 1
+fi
+
+if ! grep -F '"publishedAt": published_at' "${workflow}" >/dev/null \
+  || grep -F 'release.get("published_at") or release.get("created_at")' "${workflow}" >/dev/null; then
+  echo "final immutable manifests must record the actual GitHub publication time" >&2
   exit 1
 fi
 
@@ -458,7 +547,7 @@ if ! grep -F -- '--out dist/product-state.html' "${workflow}" >/dev/null; then
   exit 1
 fi
 
-if ! grep -F 'cp dist/system-release.json "artifacts-worktree/${manifest_path}"' "${workflow}" >/dev/null; then
+if ! grep -F 'cp dist/system-release.json artifacts-worktree/system-release.json' "${workflow}" >/dev/null; then
   echo "system release workflow must copy the manifest into release-artifacts" >&2
   exit 1
 fi
@@ -468,36 +557,58 @@ if ! grep -F 'cp dist/system-release.json "artifacts-worktree/${immutable_manife
   exit 1
 fi
 
-if ! grep -F 'cp dist/release-intent.json "artifacts-worktree/${immutable_release_intent_path}"' "${workflow}" >/dev/null || ! grep -F 'cp dist/release-intent.json "artifacts-worktree/${release_intent_path}"' "${workflow}" >/dev/null; then
+if ! grep -F 'cp dist/release-intent.json "artifacts-worktree/${immutable_release_intent_path}"' "${workflow}" >/dev/null || ! grep -F 'cp dist/release-intent.json artifacts-worktree/release-intent.json' "${workflow}" >/dev/null; then
   echo "system release workflow must copy immutable and latest release intent manifests into release-artifacts" >&2
   exit 1
 fi
 
-if ! grep -F 'cp dist/product-state.json "artifacts-worktree/${product_state_path}"' "${workflow}" >/dev/null; then
+if ! grep -F 'cp dist/product-state.json artifacts-worktree/product-state.json' "${workflow}" >/dev/null; then
   echo "system release workflow must copy the product-state ledger into release-artifacts" >&2
   exit 1
 fi
 
-if ! grep -F 'cp dist/product-state.html "artifacts-worktree/${product_state_dashboard_path}"' "${workflow}" >/dev/null; then
+if ! grep -F 'cp dist/product-state.html artifacts-worktree/product-state.html' "${workflow}" >/dev/null; then
   echo "system release workflow must copy the product-state dashboard into release-artifacts" >&2
   exit 1
 fi
 
-if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${immutable_manifest_path}" "${immutable_release_intent_path}" "${release_intent_path}" "${product_state_path}" "${product_state_dashboard_path}"' "${workflow}" >/dev/null; then
-  echo "system release workflow must commit the ZIP, manifest, release intent, product-state ledger, and dashboard together on release-artifacts" >&2
+if ! grep -F 'git -C artifacts-worktree add "${artifact_path}" "${receipt_path}"' "${workflow}" >/dev/null \
+  || ! grep -F 'git -C artifacts-worktree add \' "${workflow}" >/dev/null; then
+  echo "system release workflow must use separate candidate-stage and latest-promotion commits" >&2
   exit 1
 fi
 
 publish_line="$(grep -nF -- '- name: Publish release' "${workflow}" | head -n 1 | cut -d: -f1)"
-artifact_line="$(grep -nF -- '- name: Publish fetchable artifact' "${workflow}" | head -n 1 | cut -d: -f1)"
+artifact_line="$(grep -nF -- '- name: Stage candidate artifact' "${workflow}" | head -n 1 | cut -d: -f1)"
+promote_line="$(grep -nF -- '- name: Promote latest release artifacts' "${workflow}" | head -n 1 | cut -d: -f1)"
 dispatch_line="$(grep -nF -- '- name: Dispatch release targets' "${workflow}" | head -n 1 | cut -d: -f1)"
 theme_contract_package_line="$(grep -nF -- '- name: Publish theme contract package' "${workflow}" | head -n 1 | cut -d: -f1)"
-if [[ -z "${publish_line}" || -z "${artifact_line}" || -z "${dispatch_line}" || "${publish_line}" -ge "${artifact_line}" || "${artifact_line}" -ge "${dispatch_line}" ]]; then
-  echo "system release workflow must publish the release-artifacts manifest after release publication and before release dispatches" >&2
+if [[ -z "${publish_line}" || -z "${artifact_line}" || -z "${promote_line}" || -z "${dispatch_line}" \
+  || "${artifact_line}" -ge "${publish_line}" || "${publish_line}" -ge "${promote_line}" \
+  || "${promote_line}" -ge "${dispatch_line}" ]]; then
+  echo "system release workflow must stage, publish, promote, then dispatch in order" >&2
   exit 1
 fi
-if [[ -z "${theme_contract_package_line}" || "${theme_contract_package_line}" -ge "${publish_line}" ]]; then
-  echo "system release workflow must publish the theme contract package before publishing the GitHub Release" >&2
+if [[ -z "${theme_contract_package_line}" || "${theme_contract_package_line}" -ge "${artifact_line}" ]]; then
+  echo "system release workflow must publish the theme contract package before staging release artifacts" >&2
+  exit 1
+fi
+
+if ! grep -F '{"draft":false,"make_latest":"true"}' "${workflow}" >/dev/null \
+  || grep -F -- '- name: Mark GitHub Release latest' "${workflow}" >/dev/null \
+  || grep -F -- '- name: Reconcile finalized GitHub latest' "${workflow}" >/dev/null; then
+  echo "immutable GitHub Releases must choose latest status in the publication request" >&2
+  exit 1
+fi
+if ! grep -F 'published candidate GitHub Release must be immutable' scripts/system-release-transaction.mjs >/dev/null; then
+  echo "root promotion must require the repository immutable-release policy" >&2
+  exit 1
+fi
+if ! grep -F -- '--artifact-ref "${promotion_commit}"' "${workflow}" >/dev/null \
+  || ! grep -F 'releases-before-artifact-push.json' "${workflow}" >/dev/null \
+  || ! grep -F -- '--atomic' "${workflow}" >/dev/null \
+  || ! grep -F -- '--force-with-lease="refs/tags/${tag}:${tag_ref_oid}"' "${workflow}" >/dev/null; then
+  echo "local promotion must pass a fresh full audit and atomically assert the release tag before push" >&2
   exit 1
 fi
 
@@ -660,9 +771,8 @@ if grep -F 'git push origin "HEAD:${GITHUB_REF_NAME}"' "${workflow}" >/dev/null;
   exit 1
 fi
 
-stale_cleanup_line="$(grep -nF 'stale-draft-release-ids.txt' "${workflow}" | head -n 1 | cut -d: -f1)"
-tag_refusal_line="$(grep -nF 'Refusing to overwrite existing tag' "${workflow}" | head -n 1 | cut -d: -f1)"
-if [[ -n "${tag_refusal_line}" && -n "${stale_cleanup_line}" && "${tag_refusal_line}" -lt "${stale_cleanup_line}" ]]; then
-  echo "system release workflow must clean stale drafts and tags before refusing an existing tag" >&2
+if ! grep -F 'candidate receipt' scripts/system-release-transaction.mjs >/dev/null \
+  || ! grep -F 'manual recovery is required' scripts/system-release-transaction.mjs >/dev/null; then
+  echo "unsafe or ambiguous retry states must fail closed with a manual recovery signal" >&2
   exit 1
 fi

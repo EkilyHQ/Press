@@ -24,8 +24,45 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify release package boundary
+      - name: Inspect release transaction
+        id: transaction
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          mkdir -p dist
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          git fetch --force --tags origin
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RUNNER_TEMP}/press-github-releases.json"
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref origin/release-artifacts \
+            --releases "${RUNNER_TEMP}/press-github-releases.json" \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --github-output "${GITHUB_OUTPUT}" \
+            > dist/release-transaction.json
+
+      - name: Verify release package boundary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRANSACTION_ACTION: ${{ steps.transaction.outputs.action }}
+          CANDIDATE_VERSION: ${{ steps.transaction.outputs.version }}
+        run: |
+          set -euo pipefail
+          node scripts/test-release-graph.js
+          node scripts/test-system-release-transaction.mjs
+          graph_args=(
+            --mode audit
+            --artifact-ref origin/release-artifacts
+            --github-releases "${RUNNER_TEMP}/press-github-releases.json"
+            --check
+          )
+          case "${TRANSACTION_ACTION}" in
+            resume-stage|resume-publish|resume-promote)
+              graph_args+=(--transient-candidate-version "${CANDIDATE_VERSION}")
+              ;;
+          esac
+          node scripts/release-graph.js "${graph_args[@]}"
           node scripts/sync-runtime-cache-keys.mjs --check
           node scripts/test-composer-action-contract.js
           node scripts/test-composer-root-contract.js
@@ -58,63 +95,73 @@ jobs:
       - name: Plan release
         id: plan
         env:
-          GH_TOKEN: ${{ github.token }}
+          TRANSACTION_ACTION: ${{ steps.transaction.outputs.action }}
+          TRANSACTION_ROOT_TAG: ${{ steps.transaction.outputs.root_tag }}
+          TRANSACTION_TAG: ${{ steps.transaction.outputs.tag }}
         run: |
           set -euo pipefail
-
-          latest_tag="$(gh release view --json tagName -q '.tagName' 2>/dev/null || true)"
-          if [[ -z "${latest_tag}" ]]; then
-            latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1 || true)"
-          fi
-
-          source_version="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) { throw new Error('assets/press-system.json must declare matching version and tag'); } process.stdout.write(version);")"
+          latest_tag="${TRANSACTION_ROOT_TAG}"
+          source_version="$(node -e "const manifest = require('./assets/press-system.json'); const version = String(manifest.version || '').trim(); const tag = String(manifest.tag || '').trim(); if (!/^\\d+\\.\\d+\\.\\d+$/.test(version) || tag !== \`v\${version}\`) throw new Error('assets/press-system.json must declare matching version and tag'); process.stdout.write(version);")"
           next_tag="v${source_version}"
 
-          release_plan_paths_file="$(mktemp)"
-          if ! node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"; then
-            echo "Failed to read Press system release-plan paths" >&2
-            exit 1
-          fi
-          release_plan_paths=()
-          while IFS= read -r release_plan_path; do
-            release_plan_paths+=("${release_plan_path}")
-          done < "${release_plan_paths_file}"
-          if [[ "${#release_plan_paths[@]}" -eq 0 ]]; then
-            echo "Press system release-plan path list is empty" >&2
-            exit 1
-          fi
-          if [[ -n "${latest_tag}" ]]; then
-            changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- "${release_plan_paths[@]}")"
-          else
-            changed_files="$(git ls-files -- "${release_plan_paths[@]}")"
-          fi
+          case "${TRANSACTION_ACTION}" in
+            resume-stage|resume-publish)
+              changed_files="Resume interrupted ${next_tag} release transaction"
+              ;;
+            resume-promote|dispatch)
+              {
+                echo "should_release=false"
+                echo "latest_tag=${latest_tag}"
+                echo "next_tag=${next_tag}"
+                echo "asset_name=press-system-${next_tag}.zip"
+              } >> "${GITHUB_OUTPUT}"
+              exit 0
+              ;;
+            new|settled)
+              release_plan_paths_file="$(mktemp)"
+              node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"
+              release_plan_paths=()
+              while IFS= read -r release_plan_path; do
+                release_plan_paths+=("${release_plan_path}")
+              done < "${release_plan_paths_file}"
+              if [[ "${#release_plan_paths[@]}" -eq 0 ]]; then
+                echo "Press system release-plan path list is empty" >&2
+                exit 1
+              fi
+              changed_files="$(git diff --name-only "${latest_tag}..HEAD" -- "${release_plan_paths[@]}")"
+              ;;
+            *)
+              echo "Unknown release transaction action: ${TRANSACTION_ACTION}" >&2
+              exit 1
+              ;;
+          esac
+
+          mkdir -p dist
+          printf '%s\n' "${changed_files}" > dist/release-changed-files.txt
 
           if [[ -z "${changed_files}" ]]; then
             {
               echo "should_release=false"
               echo "latest_tag=${latest_tag}"
+              echo "next_tag=${next_tag}"
+              echo "asset_name=press-system-${next_tag}.zip"
             } >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
-          if [[ -n "${latest_tag}" ]]; then
-            export LATEST_TAG="${latest_tag}"
-            export NEXT_TAG="${next_tag}"
-            node -e "function parse(tag) { const match = String(tag || '').match(/^v(\\d+)\\.(\\d+)\\.(\\d+)$/); if (!match) throw new Error(\`invalid release tag: \${tag}\`); return match.slice(1).map(Number); } const latest = parse(process.env.LATEST_TAG); const next = parse(process.env.NEXT_TAG); for (let i = 0; i < 3; i += 1) { if (next[i] > latest[i]) process.exit(0); if (next[i] < latest[i]) break; } throw new Error(\`assets/press-system.json version \${process.env.NEXT_TAG} must be greater than latest release \${process.env.LATEST_TAG}\`);"
-          fi
+          export LATEST_TAG="${latest_tag}"
+          export NEXT_TAG="${next_tag}"
+          node -e "function parse(tag) { const match = String(tag || '').match(/^v(\\d+)\\.(\\d+)\\.(\\d+)$/); if (!match) throw new Error(\`invalid release tag: \${tag}\`); return match.slice(1).map(Number); } const latest = parse(process.env.LATEST_TAG); const next = parse(process.env.NEXT_TAG); for (let i = 0; i < 3; i += 1) { if (next[i] > latest[i]) process.exit(0); if (next[i] < latest[i]) break; } throw new Error(\`assets/press-system.json version \${process.env.NEXT_TAG} must be greater than latest release \${process.env.LATEST_TAG}\`);"
 
           {
             echo "should_release=true"
             echo "latest_tag=${latest_tag}"
             echo "next_tag=${next_tag}"
             echo "asset_name=press-system-${next_tag}.zip"
-            echo "changed_files<<EOF"
-            printf '%s\n' "${changed_files}"
-            echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Build system update package
-        if: steps.plan.outputs.should_release == 'true'
+        if: steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage')
         id: package
         run: |
           set -euo pipefail
@@ -127,153 +174,139 @@ jobs:
             echo "archive_sha256=${archive_sha256}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Create draft release
-        if: steps.plan.outputs.should_release == 'true'
-        id: create
+      - name: Load staged system update package
+        if: steps.transaction.outputs.action == 'resume-publish'
+        id: staged_package
         env:
-          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.transaction.outputs.tag }}
+          ASSET_NAME: ${{ steps.transaction.outputs.asset_name }}
         run: |
           set -euo pipefail
-          next_tag="${{ steps.plan.outputs.next_tag }}"
-          latest_tag="${{ steps.plan.outputs.latest_tag }}"
-          asset_name="${{ steps.plan.outputs.asset_name }}"
+          archive_path="dist/${ASSET_NAME}"
+          git show "origin/release-artifacts:${TAG}/${ASSET_NAME}" > "${archive_path}"
+          archive_size="$(wc -c < "${archive_path}" | tr -d ' ')"
+          archive_sha256="$(shasum -a 256 "${archive_path}" | awk '{print $1}')"
+          {
+            echo "archive_path=${archive_path}"
+            echo "archive_size=${archive_size}"
+            echo "archive_sha256=${archive_sha256}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Verify release graph candidate
+        if: steps.plan.outputs.should_release == 'true'
+        env:
+          TRANSACTION_ACTION: ${{ steps.transaction.outputs.action }}
+          CANDIDATE_VERSION: ${{ steps.transaction.outputs.version }}
+          CANDIDATE_ARCHIVE: ${{ steps.package.outputs.archive_path || steps.staged_package.outputs.archive_path }}
+        run: |
+          set -euo pipefail
+          graph_args=(
+            --mode candidate
+            --artifact-ref origin/release-artifacts
+            --github-releases "${RUNNER_TEMP}/press-github-releases.json"
+            --candidate-archive "${CANDIDATE_ARCHIVE}"
+            --check
+          )
+          case "${TRANSACTION_ACTION}" in
+            resume-stage|resume-publish)
+              graph_args+=(--transient-candidate-version "${CANDIDATE_VERSION}")
+              ;;
+          esac
+          node scripts/release-graph.js "${graph_args[@]}"
+
+      - name: Ensure draft release and asset
+        if: steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage')
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT_TAG: ${{ steps.plan.outputs.next_tag }}
+          LATEST_TAG: ${{ steps.plan.outputs.latest_tag }}
+          ASSET_NAME: ${{ steps.plan.outputs.asset_name }}
+          ARCHIVE_PATH: ${{ steps.package.outputs.archive_path }}
+          ARCHIVE_SIZE: ${{ steps.package.outputs.archive_size }}
+          ARCHIVE_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
           notes_file="dist/release-notes.md"
-          export NEXT_TAG="${next_tag}"
-
-          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-before-create.json
-          python3 - <<'PY' > dist/stale-draft-release-ids.txt
-          import json
-          import os
-
-          next_tag = os.environ["NEXT_TAG"]
-          with open("dist/releases-before-create.json", "r", encoding="utf-8") as fh:
-              releases = json.load(fh)
-
-          for release in releases:
-              if release.get("draft") and release.get("tag_name") == next_tag:
-                  print(release["id"])
-          PY
-
-          while IFS= read -r draft_release_id; do
-            [[ -n "${draft_release_id}" ]] || continue
-            echo "Deleting stale draft release ${draft_release_id}"
-            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${draft_release_id}" >/dev/null
-          done < dist/stale-draft-release-ids.txt
-
-          if [[ -s dist/stale-draft-release-ids.txt ]]; then
-            if git ls-remote --exit-code --tags origin "refs/tags/${next_tag}" >/dev/null 2>&1; then
-              echo "Deleting stale remote tag ${next_tag}"
-              git push --delete origin "${next_tag}"
-            fi
-            if git rev-parse -q --verify "refs/tags/${next_tag}" >/dev/null; then
-              echo "Deleting stale local tag ${next_tag}"
-              git tag -d "${next_tag}"
-            fi
-          fi
-
-          if git rev-parse -q --verify "refs/tags/${next_tag}" >/dev/null; then
-            echo "Refusing to overwrite existing tag ${next_tag}" >&2
-            exit 1
-          fi
-          if git ls-remote --exit-code --tags origin "refs/tags/${next_tag}" >/dev/null 2>&1; then
-            echo "Refusing to overwrite existing remote tag ${next_tag}" >&2
-            exit 1
-          fi
-
           {
             echo "## Migration Guide"
             echo
-            echo "Use the System Updates tool in Markdown Editor to download and apply \`${asset_name}\`."
+            echo "Use the System Updates tool in Markdown Editor to download and apply \`${ASSET_NAME}\`."
             echo
             echo "## System Package"
             echo
-            echo "- Asset: \`${asset_name}\`"
-            echo "- SHA-256: \`${{ steps.package.outputs.archive_sha256 }}\`"
+            echo "- Asset: \`${ASSET_NAME}\`"
+            echo "- SHA-256: \`${ARCHIVE_SHA256}\`"
             echo
             echo "## Changed System Files"
             echo
-            printf '%s\n' "${{ steps.plan.outputs.changed_files }}" | sed 's/^/- /'
-            if [[ -n "${latest_tag}" ]]; then
-              echo
-              echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${latest_tag}...${next_tag}"
-            fi
+            while IFS= read -r changed_file; do
+              printf -- '- %s\n' "${changed_file}"
+            done < dist/release-changed-files.txt
+            echo
+            echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${LATEST_TAG}...${NEXT_TAG}"
           } > "${notes_file}"
 
-          export RELEASE_NOTES_FILE="${notes_file}"
-          python3 - <<'PY' > dist/create-release.json
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          git fetch --force --tags origin
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-before-draft.json
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref origin/release-artifacts \
+            --releases dist/releases-before-draft.json \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            > dist/pre-draft-transaction.json
+          current_action="$(node -e "const state = require('./dist/pre-draft-transaction.json'); process.stdout.write(state.action);")"
+          release_id="$(node -e "const state = require('./dist/pre-draft-transaction.json'); process.stdout.write(String(state.releaseId || ''));")"
+
+          if [[ "${current_action}" == "new" ]]; then
+            export RELEASE_NOTES_FILE="${notes_file}"
+            python3 - <<'PY' > dist/create-release.json
           import json
           import os
           from pathlib import Path
 
-          next_tag = os.environ["NEXT_TAG"]
-          notes_file = Path(os.environ["RELEASE_NOTES_FILE"])
           print(json.dumps({
-              "tag_name": next_tag,
+              "tag_name": os.environ["NEXT_TAG"],
               "target_commitish": os.environ["GITHUB_SHA"],
-              "name": next_tag,
-              "body": notes_file.read_text(encoding="utf-8"),
+              "name": os.environ["NEXT_TAG"],
+              "body": Path(os.environ["RELEASE_NOTES_FILE"]).read_text(encoding="utf-8"),
               "draft": True,
               "prerelease": False
           }))
           PY
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/releases" --input dist/create-release.json > dist/release-created.json
+            release_id="$(node -e "const release = require('./dist/release-created.json'); if (!Number.isInteger(release.id)) throw new Error('release creation response did not include a numeric id'); process.stdout.write(String(release.id));")"
+          elif [[ "${current_action}" != "resume-stage" || -z "${release_id}" ]]; then
+            echo "Expected a new or resumable draft transaction, found ${current_action}" >&2
+            exit 1
+          fi
 
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/releases" --input dist/create-release.json > dist/release-created.json
-          release_id="$(python3 - <<'PY'
-          import json
-          import sys
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-before-asset.json
+          asset_count="$(EXPECTED_ASSET="${ASSET_NAME}" node -e "const release = require('./dist/release-before-asset.json'); const matches = (release.assets || []).filter((asset) => asset.name === process.env.EXPECTED_ASSET); process.stdout.write(String(matches.length));")"
+          if [[ "${asset_count}" == "0" ]]; then
+            curl --fail-with-body --silent --show-error --request POST \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --header "Content-Type: application/zip" \
+              --data-binary @"${ARCHIVE_PATH}" \
+              "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${ASSET_NAME}&label=Press%20system%20update%20package" \
+              > dist/release-asset.json
+          elif [[ "${asset_count}" != "1" ]]; then
+            echo "Expected at most one ${ASSET_NAME} on draft ${release_id}, found ${asset_count}" >&2
+            exit 1
+          fi
 
-          with open("dist/release-created.json", "r", encoding="utf-8") as fh:
-              release = json.load(fh)
-
-          release_id = release.get("id")
-          if not isinstance(release_id, int):
-              sys.exit("release creation response did not include a numeric id")
-          print(release_id)
-          PY
-          )"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-draft.json
+          tag_commit="$(git rev-parse -q --verify "${NEXT_TAG}^{commit}" 2>/dev/null || true)"
+          node scripts/system-release-transaction.mjs create-receipt \
+            --repository "${GITHUB_REPOSITORY}" \
+            --source-commit "${GITHUB_SHA}" \
+            --release dist/release-draft.json \
+            --archive "${ARCHIVE_PATH}" \
+            --tag-commit "${tag_commit}" \
+            --out dist/release-candidate.json
           echo "release_id=${release_id}" >> "${GITHUB_OUTPUT}"
-
-          curl --fail-with-body --silent --show-error --request POST \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header "Accept: application/vnd.github+json" \
-            --header "Content-Type: application/zip" \
-            --data-binary @"${{ steps.package.outputs.archive_path }}" \
-            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?name=${asset_name}&label=Press%20system%20update%20package" \
-            > dist/release-asset.json
-
-      - name: Validate release asset
-        if: steps.plan.outputs.should_release == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_ASSET: ${{ steps.plan.outputs.asset_name }}
-          EXPECTED_SIZE: ${{ steps.package.outputs.archive_size }}
-          EXPECTED_SHA256: ${{ steps.package.outputs.archive_sha256 }}
-        run: |
-          set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" > dist/release.json
-          python3 - <<'PY'
-          import json
-          import os
-          import sys
-
-          with open("dist/release.json", "r", encoding="utf-8") as fh:
-              release = json.load(fh)
-
-          expected_name = os.environ["EXPECTED_ASSET"]
-          expected_size = int(os.environ["EXPECTED_SIZE"])
-          expected_sha = os.environ["EXPECTED_SHA256"].lower()
-          assets = [asset for asset in release.get("assets", []) if asset.get("name") == expected_name]
-          if len(assets) != 1:
-              sys.exit(f"expected exactly one release asset named {expected_name}, found {len(assets)}")
-
-          asset = assets[0]
-          if int(asset.get("size") or 0) != expected_size:
-              sys.exit(f"asset size mismatch: expected {expected_size}, got {asset.get('size')}")
-
-          digest = str(asset.get("digest") or "").lower()
-          if digest and digest != f"sha256:{expected_sha}":
-              sys.exit(f"asset digest mismatch: expected sha256:{expected_sha}, got {digest}")
-          PY
 
       - name: Publish theme contract package
         if: steps.plan.outputs.should_release == 'true'
@@ -294,62 +327,140 @@ jobs:
             npm pack "@ekilyhq/press-theme-contract@${package_version}" --json --pack-destination "${published_pack_dir}" --registry=https://npm.pkg.github.com > dist/theme-contract-package-published.json
             published_tarball="$(node -e 'const fs = require("fs"); const path = require("path"); const data = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); console.log(path.join(process.argv[2], data[0].filename));' dist/theme-contract-package-published.json "${published_pack_dir}")"
             node scripts/compare-theme-contract-package.mjs "${built_tarball}" "${published_tarball}"
-            echo "@ekilyhq/press-theme-contract@${package_version} is already published and matches this build."
           else
             npm publish "${built_tarball}" --registry=https://npm.pkg.github.com
           fi
 
-      - name: Publish release
-        if: steps.plan.outputs.should_release == 'true'
+      - name: Stage candidate artifact
+        if: steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage')
         env:
-          GH_TOKEN: ${{ github.token }}
-          NEXT_TAG: ${{ steps.plan.outputs.next_tag }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY' > dist/publish-release.json
-          import json
-          import os
-
-          print(json.dumps({
-              "tag_name": os.environ["NEXT_TAG"],
-              "target_commitish": os.environ["GITHUB_SHA"],
-              "name": os.environ["NEXT_TAG"],
-              "draft": False,
-              "make_latest": "true"
-          }))
-          PY
-          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" --input dist/publish-release.json >/dev/null
-
-      - name: Publish fetchable artifact
-        if: steps.plan.outputs.should_release == 'true'
-        id: artifact
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_ASSET: ${{ steps.plan.outputs.asset_name }}
-          EXPECTED_SIZE: ${{ steps.package.outputs.archive_size }}
-          EXPECTED_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+          TAG: ${{ steps.plan.outputs.next_tag }}
+          ASSET_NAME: ${{ steps.plan.outputs.asset_name }}
           ARCHIVE_PATH: ${{ steps.package.outputs.archive_path }}
         run: |
           set -euo pipefail
+          artifact_branch="release-artifacts"
+          artifact_path="${TAG}/${ASSET_NAME}"
+          receipt_path="${TAG}/release-candidate.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${artifact_branch}"
+          rm -rf artifacts-worktree
+          git worktree add artifacts-worktree "origin/${artifact_branch}"
+          if [[ -e "artifacts-worktree/${artifact_path}" || -e "artifacts-worktree/${receipt_path}" ]]; then
+            echo "Candidate staging paths already exist; rerun so transaction inspection can validate them" >&2
+            exit 1
+          fi
+          mkdir -p "artifacts-worktree/${TAG}"
+          cp "${ARCHIVE_PATH}" "artifacts-worktree/${artifact_path}"
+          cp dist/release-candidate.json "artifacts-worktree/${receipt_path}"
+          git -C artifacts-worktree add "${artifact_path}" "${receipt_path}"
+          git -C artifacts-worktree commit -m "Stage ${ASSET_NAME}"
+          git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
+          git worktree remove artifacts-worktree --force
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+
+      - name: Publish release
+        if: steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage' || steps.transaction.outputs.action == 'resume-publish')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
           tag="${{ steps.plan.outputs.next_tag }}"
-          asset="${{ steps.plan.outputs.asset_name }}"
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          git fetch --force --tags origin
+          git show "origin/release-artifacts:${tag}/release-candidate.json" > dist/release-candidate.json
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-before-publish.json
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref origin/release-artifacts \
+            --releases dist/releases-before-publish.json \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            > dist/pre-publish-transaction.json
+          publish_action="$(node -e "const state = require('./dist/pre-publish-transaction.json'); process.stdout.write(state.action);")"
+          release_id="$(node -e "const state = require('./dist/pre-publish-transaction.json'); process.stdout.write(String(state.releaseId || ''));")"
+
+          if [[ "${publish_action}" == "resume-publish" ]]; then
+            gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-before-publish.json
+            tag_commit="$(git rev-parse -q --verify "${tag}^{commit}" 2>/dev/null || true)"
+            node scripts/system-release-transaction.mjs verify-release \
+              --release dist/release-before-publish.json \
+              --receipt dist/release-candidate.json \
+              --expected-state draft \
+              --tag-commit "${tag_commit}"
+            printf '%s\n' '{"draft":false,"make_latest":"true"}' > dist/publish-release.json
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --input dist/publish-release.json >/dev/null
+          elif [[ "${publish_action}" != "resume-promote" ]]; then
+            echo "Expected staged draft or published candidate, found ${publish_action}" >&2
+            exit 1
+          fi
+
+          git fetch --force --tags origin
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-after-publish.json
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref origin/release-artifacts \
+            --releases dist/releases-after-publish.json \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            > dist/post-publish-transaction.json
+          post_action="$(node -e "const state = require('./dist/post-publish-transaction.json'); process.stdout.write(state.action);")"
+          if [[ "${post_action}" != "resume-promote" ]]; then
+            echo "Published candidate did not converge to resume-promote; found ${post_action}" >&2
+            exit 1
+          fi
+
+      - name: Promote latest release artifacts
+        if: (steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage' || steps.transaction.outputs.action == 'resume-publish')) || steps.transaction.outputs.action == 'resume-promote'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.transaction.outputs.tag }}"
+          asset="${{ steps.transaction.outputs.asset_name }}"
+          if [[ -z "${tag}" || -z "${asset}" ]]; then
+            tag="${{ steps.plan.outputs.next_tag }}"
+            asset="${{ steps.plan.outputs.asset_name }}"
+          fi
           artifact_branch="release-artifacts"
           artifact_path="${tag}/${asset}"
-          manifest_path="system-release.json"
+          receipt_path="${tag}/release-candidate.json"
           immutable_manifest_path="${tag}/system-release.json"
-          release_intent_path="release-intent.json"
           immutable_release_intent_path="${tag}/release-intent.json"
-          product_state_path="product-state.json"
-          product_state_dashboard_path="product-state.html"
           artifact_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${artifact_path}"
           system_release_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${immutable_manifest_path}"
           release_intent_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${immutable_release_intent_path}"
-          latest_release_intent_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/${release_intent_path}"
+          latest_release_intent_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${artifact_branch}/release-intent.json"
           export FETCHABLE_ASSET_URL="${artifact_url}"
           export RELEASE_INTENT_URL="${release_intent_url}"
           export LATEST_RELEASE_INTENT_URL="${latest_release_intent_url}"
 
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${{ steps.create.outputs.release_id }}" > dist/release-published.json
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          git fetch --force --tags origin
+          git show "origin/release-artifacts:${receipt_path}" > dist/release-candidate.json
+          git show "origin/release-artifacts:${artifact_path}" > dist/staged-system-release.zip
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-before-promotion.json
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref origin/release-artifacts \
+            --releases dist/releases-before-promotion.json \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            > dist/pre-promotion-transaction.json
+          promotion_action="$(node -e "const state = require('./dist/pre-promotion-transaction.json'); process.stdout.write(state.action);")"
+          release_id="$(node -e "const state = require('./dist/pre-promotion-transaction.json'); process.stdout.write(String(state.releaseId || ''));")"
+          if [[ "${promotion_action}" != "resume-promote" ]]; then
+            echo "Expected resume-promote before latest promotion, found ${promotion_action}" >&2
+            exit 1
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" > dist/release-published.json
+          tag_commit="$(git rev-parse --verify "${tag}^{commit}")"
+          node scripts/system-release-transaction.mjs verify-release \
+            --release dist/release-published.json \
+            --receipt dist/release-candidate.json \
+            --expected-state published \
+            --tag-commit "${tag_commit}"
+
+          export ARCHIVE_PATH="dist/staged-system-release.zip"
+          export EXPECTED_ASSET="${asset}"
           python3 - <<'PY'
           import json
           import os
@@ -357,48 +468,35 @@ jobs:
           import zipfile
           from pathlib import Path
 
-          with open("dist/release-published.json", "r", encoding="utf-8") as fh:
-              release = json.load(fh)
-          with open("assets/press-system.json", "r", encoding="utf-8") as fh:
-              system = json.load(fh)
-
-          expected_name = os.environ["EXPECTED_ASSET"]
-          expected_size = int(os.environ["EXPECTED_SIZE"])
-          expected_sha = os.environ["EXPECTED_SHA256"].lower()
+          release = json.loads(Path("dist/release-published.json").read_text(encoding="utf-8"))
+          receipt = json.loads(Path("dist/release-candidate.json").read_text(encoding="utf-8"))
+          system = json.loads(Path("assets/press-system.json").read_text(encoding="utf-8"))
           version = str(system.get("version") or "").strip()
           tag = str(system.get("tag") or "").strip()
-          if not version or tag != f"v{version}" or tag != str(release.get("tag_name") or ""):
-              sys.exit("assets/press-system.json version must match the published release tag")
-          assets = [asset for asset in release.get("assets", []) if asset.get("name") == expected_name]
-          if len(assets) != 1:
-              sys.exit(f"expected exactly one release asset named {expected_name}, found {len(assets)}")
-
-          asset = assets[0]
-          digest = str(asset.get("digest") or "").lower() or f"sha256:{expected_sha}"
+          published_at = str(release.get("published_at") or "").strip()
+          if not published_at:
+              sys.exit("published GitHub Release is missing published_at")
+          if tag != f"v{version}" or tag != release.get("tag_name") or tag != receipt.get("tag"):
+              sys.exit("source manifest, candidate receipt, and GitHub Release tag must match")
+          asset = receipt["asset"]
           runtime_manifest_path = "assets/press-runtime-manifest.json"
-          runtime = {}
           with zipfile.ZipFile(os.environ["ARCHIVE_PATH"]) as archive:
-              runtime_name = f"press-system-{tag}/{runtime_manifest_path}"
-              try:
-                  runtime = json.loads(archive.read(runtime_name).decode("utf-8"))
-              except KeyError:
-                  sys.exit(f"release archive is missing {runtime_manifest_path}")
+              runtime = json.loads(archive.read(f"press-system-{tag}/{runtime_manifest_path}").decode("utf-8"))
           runtime_entries = runtime.get("entries") if isinstance(runtime.get("entries"), list) else []
           runtime_graph = runtime.get("graph") if isinstance(runtime.get("graph"), dict) else {}
           runtime_edges = runtime_graph.get("edges") if isinstance(runtime_graph.get("edges"), list) else []
-          expected_cache_key = f"press-system-{tag}"
           if runtime.get("schemaVersion") != 1 or runtime.get("type") != "press-runtime-assets":
               sys.exit("runtime manifest must use the press-runtime-assets schema")
-          if runtime.get("version") != version or runtime.get("tag") != tag or runtime.get("cacheKey") != expected_cache_key:
+          if runtime.get("version") != version or runtime.get("tag") != tag or runtime.get("cacheKey") != f"press-system-{tag}":
               sys.exit("runtime manifest version, tag, and cacheKey must match the release")
           if not runtime_entries or not runtime_edges:
               sys.exit("runtime manifest must include file inventory and asset graph edges")
           manifest = {
               "schemaVersion": 1,
-              "name": release.get("name") or release.get("tag_name") or "",
-              "tag": release.get("tag_name") or "",
+              "name": release.get("name") or tag,
+              "tag": tag,
               "version": version,
-              "publishedAt": release.get("published_at") or release.get("created_at") or "",
+              "publishedAt": published_at,
               "notes": release.get("body") or "",
               "upgradeFrom": system.get("upgradeFrom") or {},
               "themeContractUpgrade": system.get("themeContractUpgrade") or {},
@@ -413,10 +511,10 @@ jobs:
               },
               "htmlUrl": release.get("html_url") or "",
               "asset": {
-                  "name": asset.get("name") or expected_name,
+                  "name": asset["name"],
                   "url": os.environ["FETCHABLE_ASSET_URL"],
-                  "size": int(asset.get("size") or expected_size),
-                  "digest": digest
+                  "size": asset["size"],
+                  "digest": asset["digest"]
               },
               "intent": {
                   "type": "press-release-intent",
@@ -426,10 +524,7 @@ jobs:
                   "latestUrl": os.environ["LATEST_RELEASE_INTENT_URL"]
               }
           }
-          Path("dist/system-release.json").write_text(
-              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8"
-          )
+          Path("dist/system-release.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           PY
           node scripts/release-intent.js \
             --system-release dist/system-release.json \
@@ -452,44 +547,109 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "${artifact_branch}" || true
+          git fetch origin "${artifact_branch}"
           rm -rf artifacts-worktree
-          if git show-ref --verify --quiet "refs/remotes/origin/${artifact_branch}"; then
-            git worktree add artifacts-worktree "origin/${artifact_branch}"
-          else
-            git worktree add --detach artifacts-worktree
-            git -C artifacts-worktree checkout --orphan "${artifact_branch}"
-            git -C artifacts-worktree rm -rf . >/dev/null 2>&1 || true
+          git worktree add artifacts-worktree "origin/${artifact_branch}"
+          current_root_tag="$(node -e "const manifest = require('./artifacts-worktree/system-release.json'); process.stdout.write(String(manifest.tag || ''));")"
+          expected_root_tag="${{ steps.transaction.outputs.root_tag }}"
+          if [[ "${current_root_tag}" != "${expected_root_tag}" ]]; then
+            echo "release-artifacts latest moved from ${expected_root_tag} to ${current_root_tag}; refusing promotion" >&2
+            exit 1
           fi
-
-          mkdir -p "artifacts-worktree/${tag}"
-          cp "${{ steps.package.outputs.archive_path }}" "artifacts-worktree/${artifact_path}"
-          cp dist/system-release.json "artifacts-worktree/${manifest_path}"
+          if [[ -e "artifacts-worktree/${immutable_manifest_path}" || -e "artifacts-worktree/${immutable_release_intent_path}" ]]; then
+            echo "Final immutable manifests already exist before promotion; rerun for transaction inspection" >&2
+            exit 1
+          fi
           cp dist/system-release.json "artifacts-worktree/${immutable_manifest_path}"
           cp dist/release-intent.json "artifacts-worktree/${immutable_release_intent_path}"
-          cp dist/release-intent.json "artifacts-worktree/${release_intent_path}"
-          cp dist/product-state.json "artifacts-worktree/${product_state_path}"
-          cp dist/product-state.html "artifacts-worktree/${product_state_dashboard_path}"
-          git -C artifacts-worktree add "${artifact_path}" "${manifest_path}" "${immutable_manifest_path}" "${immutable_release_intent_path}" "${release_intent_path}" "${product_state_path}" "${product_state_dashboard_path}"
-          if git -C artifacts-worktree diff --cached --quiet; then
-            echo "Artifact ${artifact_path}, ${manifest_path}, release intent, ${product_state_path}, and ${product_state_dashboard_path} are already published."
-          else
-            git -C artifacts-worktree commit -m "Publish ${asset}"
-            git -C artifacts-worktree push origin "HEAD:${artifact_branch}"
+          cp dist/system-release.json artifacts-worktree/system-release.json
+          cp dist/release-intent.json artifacts-worktree/release-intent.json
+          cp dist/product-state.json artifacts-worktree/product-state.json
+          cp dist/product-state.html artifacts-worktree/product-state.html
+          git -C artifacts-worktree add \
+            "${immutable_manifest_path}" \
+            "${immutable_release_intent_path}" \
+            system-release.json \
+            release-intent.json \
+            product-state.json \
+            product-state.html
+          git -C artifacts-worktree commit -m "Promote ${asset}"
+          promotion_commit="$(git -C artifacts-worktree rev-parse HEAD)"
+
+          git fetch --force --tags origin
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-before-artifact-push.json
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref "${promotion_commit}" \
+            --releases dist/releases-before-artifact-push.json \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            > dist/pre-push-transaction.json
+          pre_push_action="$(node -e "const state = require('./dist/pre-push-transaction.json'); process.stdout.write(state.action);")"
+          if [[ "${pre_push_action}" != "dispatch" ]]; then
+            echo "Local promotion candidate did not converge to dispatch; found ${pre_push_action}" >&2
+            exit 1
           fi
+          node scripts/release-graph.js \
+            --mode audit \
+            --artifact-ref "${promotion_commit}" \
+            --github-releases dist/releases-before-artifact-push.json \
+            --check
+
+          tag_ref_oid="$(git rev-parse "refs/tags/${tag}")"
+          git -C artifacts-worktree push \
+            --atomic \
+            --force-with-lease="refs/tags/${tag}:${tag_ref_oid}" \
+            origin \
+            "HEAD:${artifact_branch}" \
+            "refs/tags/${tag}:refs/tags/${tag}"
           git worktree remove artifacts-worktree --force
-          echo "url=${artifact_url}" >> "${GITHUB_OUTPUT}"
+
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          git fetch --force --tags origin
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > dist/releases-after-promotion.json
+          node scripts/system-release-transaction.mjs inspect \
+            --artifact-ref origin/release-artifacts \
+            --releases dist/releases-after-promotion.json \
+            --source-commit "${GITHUB_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            > dist/post-promotion-transaction.json
+          post_action="$(node -e "const state = require('./dist/post-promotion-transaction.json'); process.stdout.write(state.action);")"
+          if [[ "${post_action}" != "dispatch" ]]; then
+            echo "Promoted transaction did not converge to dispatch; found ${post_action}" >&2
+            exit 1
+          fi
+          node scripts/release-graph.js \
+            --mode audit \
+            --artifact-ref origin/release-artifacts \
+            --github-releases dist/releases-after-promotion.json \
+            --check
+
+      - name: Prepare release dispatch
+        if: (steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage' || steps.transaction.outputs.action == 'resume-publish')) || steps.transaction.outputs.action == 'resume-promote' || steps.transaction.outputs.action == 'dispatch'
+        id: dispatch_state
+        env:
+          TAG: ${{ steps.transaction.outputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="${TAG:-${{ steps.plan.outputs.next_tag }}}"
+          if [[ ! -f dist/system-release.json ]]; then
+            git show "origin/release-artifacts:${tag}/system-release.json" > dist/system-release.json
+          fi
+          if [[ ! -f dist/release-intent.json ]]; then
+            git show "origin/release-artifacts:${tag}/release-intent.json" > dist/release-intent.json
+          fi
+          SYSTEM_RELEASE_PATH=dist/system-release.json node -e "const release = require('./' + process.env.SYSTEM_RELEASE_PATH); const digest = String(release.asset && release.asset.digest || '').replace(/^sha256:/, ''); if (!release.tag || !release.asset || !release.asset.name || !release.asset.size || !/^[0-9a-f]{64}$/.test(digest)) throw new Error('final system release manifest has incomplete dispatch metadata'); console.log('tag=' + release.tag); console.log('asset_name=' + release.asset.name); console.log('asset_size=' + release.asset.size); console.log('asset_sha256=' + digest);" >> "${GITHUB_OUTPUT}"
 
       - name: Dispatch release targets
-        if: steps.plan.outputs.should_release == 'true'
+        if: (steps.plan.outputs.should_release == 'true' && (steps.transaction.outputs.action == 'new' || steps.transaction.outputs.action == 'resume-stage' || steps.transaction.outputs.action == 'resume-publish')) || steps.transaction.outputs.action == 'resume-promote' || steps.transaction.outputs.action == 'dispatch'
         env:
           EKILY_RELEASE_APP_ID: ${{ vars.EKILY_RELEASE_APP_ID }}
           EKILY_RELEASE_PRIVATE_KEY: ${{ secrets.EKILY_RELEASE_PRIVATE_KEY }}
           RELEASE_DISPATCH_TARGETS: ${{ vars.RELEASE_DISPATCH_TARGETS }}
-          NEXT_TAG: ${{ steps.plan.outputs.next_tag }}
-          ASSET_NAME: ${{ steps.plan.outputs.asset_name }}
-          ASSET_SIZE: ${{ steps.package.outputs.archive_size }}
-          ASSET_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+          NEXT_TAG: ${{ steps.dispatch_state.outputs.tag }}
+          ASSET_NAME: ${{ steps.dispatch_state.outputs.asset_name }}
+          ASSET_SIZE: ${{ steps.dispatch_state.outputs.asset_size }}
+          ASSET_SHA256: ${{ steps.dispatch_state.outputs.asset_sha256 }}
           PRESS_RELEASE_INTENT_JSON: dist/release-intent.json
         run: |
           set -euo pipefail

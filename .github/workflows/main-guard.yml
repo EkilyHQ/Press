@@ -17,6 +17,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify release graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --no-tags origin '+refs/heads/release-artifacts:refs/remotes/origin/release-artifacts'
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RUNNER_TEMP}/press-github-releases.json"
+          candidate_tag="$(node -e "const manifest = require('./assets/press-system.json'); process.stdout.write(String(manifest.tag || '').trim());")"
+          node scripts/test-release-graph.js
+          node scripts/test-system-release-transaction.mjs
+          candidate_archive="$(PRESS_PACKAGE_SOURCE=worktree bash scripts/package-system-release.sh "${candidate_tag}" "${RUNNER_TEMP}/release-graph-candidate")"
+          release_plan_paths_file="$(mktemp)"
+          node scripts/print-press-system-surface.mjs release-plan-paths > "${release_plan_paths_file}"
+          release_plan_paths=()
+          while IFS= read -r release_plan_path; do
+            release_plan_paths+=("${release_plan_path}")
+          done < "${release_plan_paths_file}"
+          if [[ "${#release_plan_paths[@]}" -eq 0 ]]; then
+            echo "Press system release-plan path list is empty" >&2
+            exit 1
+          fi
+          validation_mode="auto"
+          if [[ -n "$(git diff --name-only "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" -- "${release_plan_paths[@]}")" ]]; then
+            validation_mode="candidate"
+          fi
+          node scripts/release-graph.js --mode "${validation_mode}" --artifact-ref origin/release-artifacts --github-releases "${RUNNER_TEMP}/press-github-releases.json" --candidate-archive "${candidate_archive}" --check
+          bash scripts/test-system-release-package.sh
+          bash scripts/test-system-release-workflow.sh
+
       - name: Enforce main safety rules
         run: |
           bash scripts/check-main-safety.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"

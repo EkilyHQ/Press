@@ -33,7 +33,7 @@ const maxBuffer = 128 * 1024 * 1024;
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {
-    cwd: repoRoot,
+    cwd: options.cwd || repoRoot,
     encoding: options.encoding,
     env: options.env || process.env,
     input: options.input,
@@ -96,41 +96,63 @@ function extractHistoricalRuntime(tag, destination) {
 }
 
 function buildRecoveryArchive(outputDirectory) {
-  const manifestPath = join(repoRoot, 'assets/press-system.json');
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  assert.equal(manifest.version, recoveryVersion, `worktree must target recovery version ${recoveryVersion}`);
-  assert.equal(manifest.tag, recoveryTag, `worktree must target recovery tag ${recoveryTag}`);
-  assert.deepEqual(
-    manifest.upgradeFrom && manifest.upgradeFrom.ranges,
-    [`>=3.4.64 <${recoveryVersion}`],
-    'recovery archive must directly admit the full supported source interval'
-  );
-  assert.equal(manifest.upgradeFrom && manifest.upgradeFrom.allowUnknownSource, false);
-  assert.equal(
-    Object.prototype.hasOwnProperty.call(manifest, 'themeContractUpgrade'),
-    false,
-    'recovery archive must not retain a theme cleanup prerequisite'
-  );
-  assert.equal(
-    Object.prototype.hasOwnProperty.call(manifest, 'contentModelUpgrade'),
-    false,
-    'recovery archive must not retain a content cleanup prerequisite'
-  );
-
-  run('bash', [join(repoRoot, 'scripts/package-system-release.sh'), recoveryTag, outputDirectory], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      PRESS_PACKAGE_SOURCE: 'worktree'
+  const worktreeManifest = JSON.parse(readFileSync(join(repoRoot, 'assets/press-system.json'), 'utf8'));
+  const usesRecoveryWorktree = worktreeManifest.version === recoveryVersion;
+  let sourceRoot = repoRoot;
+  let attachedRecoveryWorktree = false;
+  try {
+    if (!usesRecoveryWorktree) {
+      assert.equal(
+        hasGitObject(`${recoveryTag}^{commit}`),
+        true,
+        `published recovery verification requires ${recoveryTag}`
+      );
+      sourceRoot = join(outputDirectory, 'recovery-source');
+      run('git', ['worktree', 'add', '--detach', sourceRoot, recoveryTag]);
+      attachedRecoveryWorktree = true;
     }
-  });
 
-  const archivePath = join(outputDirectory, archiveName);
-  assert.equal(existsSync(archivePath), true, `expected recovery archive at ${archivePath}`);
-  return {
-    archive: readFileSync(archivePath),
-    manifest
-  };
+    const manifest = JSON.parse(readFileSync(join(sourceRoot, 'assets/press-system.json'), 'utf8'));
+    assert.equal(manifest.version, recoveryVersion, `recovery source must target version ${recoveryVersion}`);
+    assert.equal(manifest.tag, recoveryTag, `recovery source must target tag ${recoveryTag}`);
+    assert.equal(manifest.securityUpdate, false, 'recovery release must remain classified as an ordinary release');
+    assert.deepEqual(
+      manifest.upgradeFrom && manifest.upgradeFrom.ranges,
+      [`>=3.4.64 <${recoveryVersion}`],
+      'recovery archive must directly admit the full supported source interval'
+    );
+    assert.equal(manifest.upgradeFrom && manifest.upgradeFrom.allowUnknownSource, false);
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(manifest, 'themeContractUpgrade'),
+      false,
+      'recovery archive must not retain a theme cleanup prerequisite'
+    );
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(manifest, 'contentModelUpgrade'),
+      false,
+      'recovery archive must not retain a content cleanup prerequisite'
+    );
+
+    run('bash', [join(sourceRoot, 'scripts/package-system-release.sh'), recoveryTag, outputDirectory], {
+      cwd: sourceRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PRESS_PACKAGE_SOURCE: usesRecoveryWorktree ? 'worktree' : 'head'
+      }
+    });
+
+    const archivePath = join(outputDirectory, archiveName);
+    assert.equal(existsSync(archivePath), true, `expected recovery archive at ${archivePath}`);
+    return {
+      archive: readFileSync(archivePath),
+      manifest
+    };
+  } finally {
+    if (attachedRecoveryWorktree) {
+      run('git', ['worktree', 'remove', '--force', sourceRoot]);
+    }
+  }
 }
 
 function localHistoricalResponse(root, requestUrl) {

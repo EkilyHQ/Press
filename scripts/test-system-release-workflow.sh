@@ -141,6 +141,7 @@ const manifest = require('./scripts/test-manifest.json');
 assert.deepEqual(manifest.tierOrder.guard, [
   'release-graph',
   'recovery-updater-compatibility',
+  'support-floor-updater-compatibility',
   'system-release-transaction',
   'system-release-package',
   'system-release-workflow',
@@ -174,6 +175,7 @@ assert.deepEqual(manifest.tierOrder.guard, [
 assert.deepEqual(manifest.tierOrder.release, [
   'release-graph',
   'recovery-updater-compatibility',
+  'support-floor-updater-compatibility',
   'system-release-transaction',
   'composer-action-contract',
   'composer-root-contract',

@@ -159,10 +159,11 @@ function normalizeYamlLines(source) {
         throw new Error(`site.yaml line ${index + 1} must not use tabs for indentation`);
       }
       const text = stripYamlComment(raw).trimEnd();
+      const content = text.trim();
       return {
         index,
         indent: text.match(/^ */u)[0].length,
-        content: text.trim()
+        content: /^(?:---|\.\.\.)$/u.test(content) && !text.startsWith(' ') ? '' : content
       };
     });
 }

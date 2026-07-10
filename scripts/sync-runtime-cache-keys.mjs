@@ -11,9 +11,10 @@ import {
 } from '../assets/js/press-system-surface.mjs';
 import {
   collectHtmlScriptElements,
+  collectHtmlStartTags,
   EDITOR_INLINE_SCRIPT_SHA256_SOURCES,
-  MATERIALIZED_CONTENT_SECURITY_POLICIES,
-  readHtmlAttribute
+  isJavascriptUrlAttributeValue,
+  MATERIALIZED_CONTENT_SECURITY_POLICIES
 } from '../assets/js/content-security-policy.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -300,14 +301,6 @@ function transformSource(rootDir, relPath, source, mode, cacheKeyValue = '') {
   return next;
 }
 
-function collectHtmlTags(source, name) {
-  const escapedName = String(name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return [...String(source || '').matchAll(new RegExp(`<${escapedName}\\b[^>]*>`, 'giu'))].map((match) => ({
-    tag: match[0],
-    index: match.index
-  }));
-}
-
 function collectInlineScripts(source, relPath) {
   return collectHtmlScriptElements(source, relPath)
     .filter(({ attributeMap }) => !attributeMap.has('src'))
@@ -332,26 +325,32 @@ function assertExpectedInlineScripts(source, relPath) {
 }
 
 function assertNoScriptAttributesOrJavascriptUrls(source, relPath) {
-  const startTags = [...String(source || '').matchAll(/<[a-z][a-z0-9:-]*\b[^>]*>/giu)].map((match) => match[0]);
-  for (const tag of startTags) {
-    if (/\son[a-z][a-z0-9:-]*\s*=/iu.test(tag)) {
-      throw new Error(`${relPath} contains an inline script event attribute`);
-    }
-    if (/\s(?:href|src|action|formaction|xlink:href)\s*=\s*(?:["']\s*)?javascript\s*:/iu.test(tag)) {
-      throw new Error(`${relPath} contains a javascript URL`);
+  const urlAttributes = new Set(['action', 'formaction', 'href', 'src', 'xlink:href']);
+  for (const { attributeMap } of collectHtmlStartTags(source, '', relPath)) {
+    for (const [name, value] of attributeMap) {
+      if (/^on[a-z][a-z0-9:-]*$/u.test(name)) {
+        throw new Error(`${relPath} contains an inline script event attribute`);
+      }
+      if (urlAttributes.has(name) && isJavascriptUrlAttributeValue(value)) {
+        throw new Error(`${relPath} contains a javascript URL`);
+      }
     }
   }
 }
 
-function findContentSecurityPolicyMeta(source) {
-  return collectHtmlTags(source, 'meta').filter(({ tag }) => {
-    return readHtmlAttribute(tag, 'http-equiv').trim().toLowerCase() === 'content-security-policy';
+function findContentSecurityPolicyMeta(source, relPath = 'HTML') {
+  return collectHtmlStartTags(source, 'meta', relPath).filter(({ attributeMap }) => {
+    return (
+      String(attributeMap.get('http-equiv') || '')
+        .trim()
+        .toLowerCase() === 'content-security-policy'
+    );
   });
 }
 
 function viewportMeta(source, relPath) {
-  const matches = collectHtmlTags(source, 'meta').filter(({ tag }) => {
-    return readHtmlAttribute(tag, 'name').toLowerCase() === 'viewport';
+  const matches = collectHtmlStartTags(source, 'meta', relPath).filter(({ attributeMap }) => {
+    return String(attributeMap.get('name') || '').toLowerCase() === 'viewport';
   });
   if (matches.length !== 1) throw new Error(`${relPath} must contain exactly one viewport meta tag`);
   return matches[0];
@@ -364,7 +363,7 @@ function expectedCspMetaTag(relPath) {
 }
 
 function assertMaterializedContentSecurityPolicy(source, relPath) {
-  const candidates = findContentSecurityPolicyMeta(source);
+  const candidates = findContentSecurityPolicyMeta(source, relPath);
   if (candidates.length !== 1) {
     throw new Error(`${relPath} must contain exactly one materialized Content-Security-Policy meta tag`);
   }
@@ -385,7 +384,7 @@ function assertMaterializedContentSecurityPolicy(source, relPath) {
 function assertHtmlSecurityBoundary(source, relPath, { materialized }) {
   assertExpectedInlineScripts(source, relPath);
   assertNoScriptAttributesOrJavascriptUrls(source, relPath);
-  const candidates = findContentSecurityPolicyMeta(source);
+  const candidates = findContentSecurityPolicyMeta(source, relPath);
   if (materialized) {
     assertMaterializedContentSecurityPolicy(source, relPath);
   } else if (candidates.length !== 0) {
@@ -396,7 +395,7 @@ function assertHtmlSecurityBoundary(source, relPath, { materialized }) {
 function materializeContentSecurityPolicy(source, relPath) {
   assertExpectedInlineScripts(source, relPath);
   assertNoScriptAttributesOrJavascriptUrls(source, relPath);
-  const candidates = findContentSecurityPolicyMeta(source);
+  const candidates = findContentSecurityPolicyMeta(source, relPath);
   if (candidates.length > 0) {
     assertMaterializedContentSecurityPolicy(source, relPath);
     return source;

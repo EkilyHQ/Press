@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { collectHtmlScriptElements, readHtmlAttribute } from '../assets/js/content-security-policy.mjs';
+import {
+  collectHtmlScriptElements,
+  collectHtmlStartTags,
+  isJavascriptUrlAttributeValue,
+  readHtmlAttribute
+} from '../assets/js/content-security-policy.mjs';
 import { scanJavaScriptSource, scanRepository, verifyInventory } from './check-html-sink-policy.mjs';
 import { resolveLanguageModuleUrl } from '../assets/js/i18n.js';
 import { resolveModuleEntry } from '../assets/js/theme-layout.js';
@@ -36,6 +41,62 @@ assert.equal(readHtmlAttribute(` data-x=" type='module'"`, 'type'), '');
 assert.equal(readHtmlAttribute('\u00a0src="fake.js"', 'src'), '');
 assert.equal(readHtmlAttribute('\vtype="module"', 'type'), '');
 assert.equal(readHtmlAttribute('<meta data-name="ignored" name="viewport">', 'name'), 'viewport');
+assert.deepEqual(
+  collectHtmlStartTags(
+    '<!-- <meta name="comment"> --><META name="description" content="one > zero"/><script>const fake = \'<meta name="fake">\';</script><style>.x::after { content: \'<meta name="style">\'; }</style><meta data-http-equiv="content-security-policy" name=\'viewport\'>',
+    'meta',
+    'meta tokenizer fixture'
+  ).map(({ tag, attributeMap }) => ({ tag, attributes: Object.fromEntries(attributeMap) })),
+  [
+    {
+      tag: '<META name="description" content="one > zero"/>',
+      attributes: { name: 'description', content: 'one > zero' }
+    },
+    {
+      tag: '<meta data-http-equiv="content-security-policy" name=\'viewport\'>',
+      attributes: { 'data-http-equiv': 'content-security-policy', name: 'viewport' }
+    }
+  ],
+  'meta collection must parse exact attributes and ignore comments plus raw text'
+);
+for (const value of [
+  'javascript:alert(1)',
+  'java&#x73;cript:alert(1)',
+  'jav&#97;script&colon;alert(1)',
+  'java&#x0a;script:alert(1)',
+  'java\tscript:alert(1)',
+  '&Tab;javascript:alert(1)'
+]) {
+  assert.equal(isJavascriptUrlAttributeValue(value), true, value);
+}
+for (const value of [
+  'https://example.test/?next=javascript:alert(1)',
+  'java script:alert(1)',
+  './javascript:file.js'
+]) {
+  assert.equal(isJavascriptUrlAttributeValue(value), false, value);
+}
+assert.deepEqual(
+  collectHtmlStartTags(
+    '<svg><title><a href="javascript:one">one</a></title><iframe><a href="javascript:two">two</a></iframe><script><a href="javascript:three">three</a></script><style><a href="javascript:four">four</a></style><plaintext><a href="javascript:five">five</a></plaintext><foreignObject><script>const fake = \'<a href="javascript:fake">\';</script></foreignObject></svg>',
+    'a',
+    'foreign namespace fixture'
+  ).map(({ attributeMap }) => attributeMap.get('href')),
+  ['javascript:one', 'javascript:two', 'javascript:three', 'javascript:four', 'javascript:five'],
+  'conservative collection must not apply HTML raw-text rules inside foreign content'
+);
+assert.deepEqual(
+  collectHtmlStartTags('<svg / ><iframe><a href="javascript:solidus">x</a></iframe></svg>', 'a').map(
+    ({ attributeMap }) => attributeMap.get('href')
+  ),
+  ['javascript:solidus'],
+  'a solidus followed by whitespace must not self-close a foreign-content boundary'
+);
+assert.equal(
+  collectHtmlStartTags('<svg/><iframe><a href="javascript:not-an-element">x</a></iframe>', 'a').length,
+  0,
+  'an immediate solidus must retain the browser self-closing boundary'
+);
 assert.equal(
   collectHtmlScriptElements('İ<ScRiPt>caseSafe()</ScRiPt data-ignored>', 'case fixture')[0].source,
   'caseSafe()'

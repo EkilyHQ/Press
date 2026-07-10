@@ -1189,16 +1189,28 @@ FIXTURE_ROOT="${event_attribute_fixture}" node <<'NODE'
 const fs = require('node:fs');
 const file = `${process.env.FIXTURE_ROOT}/index.html`;
 const source = fs.readFileSync(file, 'utf8');
-fs.writeFileSync(file, source.replace('<body>', '<body onload="globalThis.__unexpected = true">'));
+fs.writeFileSync(file, source.replace('<body>', '<body data-label=">" onload="globalThis.__unexpected = true">'));
 NODE
 assert_materializer_rejects_without_writes "inline event attributes" "${event_attribute_fixture}"
+
+foreign_event_attribute_fixture="$(prepare_materializer_fixture foreign-event-attribute)"
+FIXTURE_ROOT="${foreign_event_attribute_fixture}" node <<'NODE'
+const fs = require('node:fs');
+const file = `${process.env.FIXTURE_ROOT}/index.html`;
+const source = fs.readFileSync(file, 'utf8');
+fs.writeFileSync(
+  file,
+  source.replace('<body>', '<body><svg / ><iframe><img src=x onerror="globalThis.__unexpected = true"></iframe></svg>')
+);
+NODE
+assert_materializer_rejects_without_writes "foreign-namespace inline event attributes" "${foreign_event_attribute_fixture}"
 
 javascript_url_fixture="$(prepare_materializer_fixture javascript-url)"
 FIXTURE_ROOT="${javascript_url_fixture}" node <<'NODE'
 const fs = require('node:fs');
 const file = `${process.env.FIXTURE_ROOT}/index_editor.html`;
 const source = fs.readFileSync(file, 'utf8');
-fs.writeFileSync(file, source.replace('href="#"', 'href="javascript:globalThis.__unexpected = true"'));
+fs.writeFileSync(file, source.replace('href="#"', 'data-label=">" href="java&#x73;cript:globalThis.__unexpected = true"'));
 NODE
 assert_materializer_rejects_without_writes "javascript URLs" "${javascript_url_fixture}"
 
@@ -1241,7 +1253,7 @@ let source = fs.readFileSync(file, 'utf8');
 source = source.replace(/\n[ \t]*<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/iu, '');
 source = source.replace(
   /(<meta name="viewport"[^>]*>)/iu,
-  '$1\n  <meta name="description" content="Content-Security-Policy is materialized at release time">'
+  '$1\n  <meta name="description" content="Content-Security-Policy is materialized when score > 0">'
 );
 fs.writeFileSync(file, source);
 NODE
@@ -1251,7 +1263,7 @@ const fs = require('node:fs');
 const source = fs.readFileSync(`${process.env.MISLEADING_FIXTURE_ROOT}/index.html`, 'utf8');
 const exact = [...source.matchAll(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/giu)];
 if (exact.length !== 1) throw new Error('misleading meta content must not count as a CSP declaration');
-if (!source.includes('content="Content-Security-Policy is materialized at release time"')) {
+if (!source.includes('content="Content-Security-Policy is materialized when score > 0"')) {
   throw new Error('materializer should preserve unrelated misleading content values');
 }
 NODE

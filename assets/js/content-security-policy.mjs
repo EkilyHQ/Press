@@ -13,6 +13,21 @@ const REMOTE_CONNECT_SOURCES = "'self' https: http://localhost:* http://127.0.0.
 const ASCII_WHITESPACE = new Set(['\t', '\n', '\f', '\r', ' ']);
 const INVALID_ATTRIBUTE_NAME_CHARACTERS = new Set(["'", '"', '<', '>', '\0']);
 const INVALID_UNQUOTED_ATTRIBUTE_VALUE_CHARACTERS = new Set(["'", '"', '`', '=', '<', '>', '\0']);
+const RAW_TEXT_ELEMENT_NAMES = new Set([
+  'iframe',
+  'noembed',
+  'noframes',
+  'script',
+  'style',
+  'textarea',
+  'title',
+  'xmp'
+]);
+const URL_CHARACTER_REFERENCE_NAMES = new Map([
+  ['colon', ':'],
+  ['newline', '\n'],
+  ['tab', '\t']
+]);
 
 function isTagNameBoundary(char) {
   return char === '>' || char === '/' || ASCII_WHITESPACE.has(char);
@@ -27,7 +42,7 @@ function isAsciiWhitespace(char) {
   return ASCII_WHITESPACE.has(char);
 }
 
-export function parseHtmlAttributes(source, label = 'HTML tag') {
+function parseHtmlAttributeDetails(source, label = 'HTML tag') {
   let text = String(source || '');
   if (text.startsWith('<')) {
     const nameStart = text[1] === '/' ? 2 : 1;
@@ -41,15 +56,18 @@ export function parseHtmlAttributes(source, label = 'HTML tag') {
     text = text.slice(nameEnd, end);
   }
   const attributes = new Map();
+  let selfClosing = false;
   let cursor = 0;
   while (cursor < text.length) {
     while (cursor < text.length && isAsciiWhitespace(text[cursor])) cursor += 1;
     if (cursor >= text.length) break;
     if (text[cursor] === '/') {
       cursor += 1;
-      while (cursor < text.length && isAsciiWhitespace(text[cursor])) cursor += 1;
-      if (cursor !== text.length) throw new Error(`${label} contains content after a self-closing marker`);
-      break;
+      if (cursor === text.length) {
+        selfClosing = true;
+        break;
+      }
+      continue;
     }
 
     const nameStart = cursor;
@@ -90,11 +108,48 @@ export function parseHtmlAttributes(source, label = 'HTML tag') {
     }
     if (!attributes.has(name)) attributes.set(name, value);
   }
-  return attributes;
+  return { attributes, selfClosing };
+}
+
+export function parseHtmlAttributes(source, label = 'HTML tag') {
+  return parseHtmlAttributeDetails(source, label).attributes;
 }
 
 export function readHtmlAttribute(source, name) {
   return parseHtmlAttributes(source).get(String(name || '').toLowerCase()) || '';
+}
+
+function decodeUrlCharacterReference(match, hex, decimal, named) {
+  if (named) return URL_CHARACTER_REFERENCE_NAMES.get(named.toLowerCase()) || match;
+  const codePoint = Number.parseInt(hex || decimal, hex ? 16 : 10);
+  if (!Number.isInteger(codePoint) || codePoint <= 0 || codePoint > 0x10ffff) return '\ufffd';
+  if (codePoint >= 0xd800 && codePoint <= 0xdfff) return '\ufffd';
+  return String.fromCodePoint(codePoint);
+}
+
+function trimAsciiControlAndSpace(value) {
+  let start = 0;
+  let end = value.length;
+  while (start < end) {
+    const code = value.charCodeAt(start);
+    if (code < 1 || code > 32) break;
+    start += 1;
+  }
+  while (end > start) {
+    const code = value.charCodeAt(end - 1);
+    if (code < 1 || code > 32) break;
+    end -= 1;
+  }
+  return value.slice(start, end);
+}
+
+export function isJavascriptUrlAttributeValue(value) {
+  const decoded = String(value || '').replace(
+    /&(?:#x([0-9a-f]+)|#([0-9]+)|([a-z][a-z0-9]+));?/giu,
+    decodeUrlCharacterReference
+  );
+  const normalized = trimAsciiControlAndSpace(decoded.replace(/[\t\n\r]/gu, ''));
+  return /^javascript\s*:/iu.test(normalized);
 }
 
 function skipHtmlComment(text, offset, label) {
@@ -212,6 +267,99 @@ function findScriptEndTag(text, offset, label) {
     cursor = start + 1;
   }
   throw new Error(`${label} contains a script element without an end tag`);
+}
+
+function findRawTextEndTag(text, offset, label, name) {
+  let cursor = offset;
+  while (cursor < text.length) {
+    const start = text.indexOf('<', cursor);
+    if (start < 0) throw new Error(`${label} contains a ${name} element without an end tag`);
+    if (text[start + 1] === '/' && startsWithTagName(text, start + 2, name)) {
+      return findTagEnd(text, start + name.length + 2, label);
+    }
+    cursor = start + 1;
+  }
+  throw new Error(`${label} contains a ${name} element without an end tag`);
+}
+
+export function collectHtmlStartTags(source, name = '', label = 'HTML') {
+  const expectedName = String(name || '')
+    .trim()
+    .toLowerCase();
+  if (expectedName && !/^[a-z][a-z0-9:-]*$/u.test(expectedName)) {
+    throw new Error('HTML start-tag collection requires one ASCII tag name');
+  }
+  const text = String(source || '');
+  const tags = [];
+  const namespaceBoundaries = [];
+  let cursor = 0;
+  while (cursor < text.length) {
+    const tagStart = text.indexOf('<', cursor);
+    if (tagStart < 0) break;
+    if (text.startsWith('<!--', tagStart)) {
+      cursor = skipHtmlComment(text, tagStart + 4, label);
+      continue;
+    }
+    if (startsWithTagName(text, tagStart + 2, 'doctype') && text[tagStart + 1] === '!') {
+      cursor = findTagEnd(text, tagStart + '<!doctype'.length, label, 'tag-name') + 1;
+      continue;
+    }
+    if (text[tagStart + 1] === '!' || text[tagStart + 1] === '?') {
+      throw new Error(`${label} contains unsupported HTML declaration syntax`);
+    }
+    if (text[tagStart + 1] === '/') {
+      const closeNameStart = tagStart + 2;
+      let closeNameEnd = closeNameStart;
+      while (closeNameEnd < text.length && !isTagNameBoundary(text[closeNameEnd])) closeNameEnd += 1;
+      const closeName = text.slice(closeNameStart, closeNameEnd).toLowerCase();
+      const closeEnd = findTagEnd(text, closeNameStart, label, 'tag-name');
+      for (let index = namespaceBoundaries.length - 1; index >= 0; index -= 1) {
+        if (namespaceBoundaries[index].name !== closeName) continue;
+        namespaceBoundaries.length = index;
+        break;
+      }
+      cursor = closeEnd + 1;
+      continue;
+    }
+    if (!/[A-Za-z]/u.test(text[tagStart + 1] || '')) {
+      cursor = tagStart + 1;
+      continue;
+    }
+
+    const nameStart = tagStart + 1;
+    let nameEnd = nameStart;
+    while (nameEnd < text.length && !isTagNameBoundary(text[nameEnd])) nameEnd += 1;
+    const tagName = text.slice(nameStart, nameEnd).toLowerCase();
+    const tagEnd = findTagEnd(text, nameEnd, label, 'tag-name');
+    const attributes = text.slice(nameEnd, tagEnd);
+    const parsedAttributes = parseHtmlAttributeDetails(attributes, `${label} ${tagName} tag`);
+    const { selfClosing } = parsedAttributes;
+    const htmlNamespace = namespaceBoundaries.length === 0 || namespaceBoundaries.at(-1).html;
+    if (!expectedName || tagName === expectedName) {
+      tags.push({
+        tag: text.slice(tagStart, tagEnd + 1),
+        attributes,
+        attributeMap: parsedAttributes.attributes,
+        start: tagStart,
+        end: tagEnd + 1,
+        index: tagStart
+      });
+    }
+    if (htmlNamespace && RAW_TEXT_ELEMENT_NAMES.has(tagName)) {
+      cursor = findRawTextEndTag(text, tagEnd + 1, label, tagName) + 1;
+      continue;
+    }
+    if (htmlNamespace && tagName === 'plaintext') break;
+    if (!selfClosing) {
+      if (htmlNamespace && (tagName === 'svg' || tagName === 'math')) {
+        namespaceBoundaries.push({ name: tagName, html: false });
+      } else if (!htmlNamespace && tagName === 'foreignobject') {
+        namespaceBoundaries.push({ name: tagName, html: true });
+      }
+    }
+    cursor = tagEnd + 1;
+  }
+  return tags;
 }
 
 export function collectHtmlScriptElements(source, label = 'HTML') {

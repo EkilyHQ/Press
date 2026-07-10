@@ -390,6 +390,14 @@ const runtimeConfig = parseYAML(fs.readFileSync(process.argv[3], 'utf8'));
 assert.equal(runtimeConfig.features.editorEntry.enabled, true);
 NODE
 assert_policy_rejected "runtime-divergent editorEntry indentation"
+printf '%s\n' '---' 'features:' '  editorEntry:' '    enabled: false' '...' > "${scenario_repo}/site.yaml"
+node --input-type=module - "${repo_root}/scripts/pages-editor-exclusion.mjs" "${scenario_repo}/site.yaml" <<'NODE'
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+
+const { readExplicitEditorEntryEnabled } = await import(pathToFileURL(process.argv[2]).href);
+assert.equal(readExplicitEditorEntryEnabled(process.argv[3]), false);
+NODE
 printf 'features:\n  editorEntry:\n    enabled: false\n' > "${scenario_repo}/site.yaml"
 
 (

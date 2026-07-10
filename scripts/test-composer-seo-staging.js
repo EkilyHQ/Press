@@ -65,6 +65,12 @@ assert.ok(
   indexFile.content.includes(`<meta http-equiv="Content-Security-Policy" content="${PUBLIC_CONTENT_SECURITY_POLICY}">`),
   'SEO staging fallback should preserve the materialized public CSP contract'
 );
+assert.ok(
+  indexFile.content.includes(
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <meta http-equiv="Content-Security-Policy" content="${PUBLIC_CONTENT_SECURITY_POLICY}">`
+  ),
+  'SEO staging fallback should keep the materialized CSP immediately after viewport'
+);
 assert.ok(robotsFile, 'SEO staging should include generated robots.txt when remote is missing');
 assert.match(
   robotsFile.content,

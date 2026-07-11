@@ -12,6 +12,7 @@ const files = [
   ['assets/js/theme-package-core.js', 'assets/js/theme-package-core.js'],
   ['assets/js/theme-settings.js', 'assets/js/theme-settings.js'],
   ['assets/js/theme-route-guard.js', 'assets/js/theme-route-guard.js'],
+  ['assets/js/theme-route-guard-html.js', 'assets/js/theme-route-guard-html.js'],
   ['assets/js/vendor/acorn.mjs', 'assets/js/vendor/acorn.mjs'],
   ['assets/js/vendor/acorn-walk.mjs', 'assets/js/vendor/acorn-walk.mjs'],
   ['assets/js/vendor/fflate.browser.js', 'assets/js/vendor/fflate.browser.js']
@@ -38,7 +39,7 @@ if (await exists(path.join(packageDir, 'assets/js/theme-package-core.js'))) {
   process.exit(0);
 }
 
-if (!await exists(path.join(sourceRoot, 'assets/js/theme-package-core.js'))) {
+if (!(await exists(path.join(sourceRoot, 'assets/js/theme-package-core.js')))) {
   throw new Error('Cannot prepare @ekilyhq/press-theme-contract assets outside a Press source checkout.');
 }
 

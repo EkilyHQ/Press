@@ -8,6 +8,8 @@
   "scripts": {
     "composer-identity:check": "node scripts/check-composer-identity-ownership.mjs",
     "composer-identity:policy-test": "node scripts/test-composer-identity-ownership.mjs",
+    "theme-route-guard:check": "node scripts/check-theme-route-guard-ownership.mjs",
+    "theme-route-guard:policy-test": "node scripts/test-theme-route-guard-ownership.mjs",
     "lint": "eslint . --max-warnings 0",
     "lint:inline-config": "node scripts/verify-eslint-inline-config.mjs",
     "lint:debt-probe:test": "node scripts/test-eslint-debt-policy.mjs",
@@ -18,7 +20,7 @@
     "vendor:check": "node scripts/test-vendor-manifest.mjs",
     "security:html-sinks:test": "node scripts/test-html-sink-policy.mjs",
     "security:html-sinks": "node scripts/check-html-sink-policy.mjs",
-    "quality": "node scripts/test-code-quality-config.mjs && npm run composer-identity:policy-test && npm run composer-identity:check && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks"
+    "quality": "node scripts/test-code-quality-config.mjs && npm run composer-identity:policy-test && npm run composer-identity:check && npm run theme-route-guard:policy-test && npm run theme-route-guard:check && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

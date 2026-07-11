@@ -19726,59 +19726,9 @@
       "path": "assets/js/theme-package-core.js",
       "messageId": "unusedVar",
       "message": "'_' is defined but never used.",
-      "owner": "function:decodeUrlQueryKey",
-      "ownerPath": "body:FunctionDeclaration:decodeUrlQueryKey#1/body/body:TryStatement:try:[ReturnStatement]:catch:{\"name\":\"_\",\"type\":\"Identifier\"}:finally:no#1/handler/param",
-      "fingerprint": "sha256:ca5349837eea88601fa33e6a6f12f65fb31eb90229308945e771febf80a8c8d4",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unusedVar",
-      "message": "'_' is defined but never used.",
       "owner": "function:themeFilesFromManifest/variable:{\"name\":\"add\",\"type\":\"Identifier\"}",
       "ownerPath": "body:export:FunctionDeclaration:themeFilesFromManifest#1/declaration/body/body:VariableDeclaration:const:{\"name\":\"add\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init/body/body:TryStatement:try:[VariableDeclaration:const:{\"name\":\"normalized\",\"type\":\"Identifier\"},IfStatement:{\"name\":\"normalized\",\"type\":\"Identifier\"}]:catch:{\"name\":\"_\",\"type\":\"Identifier\"}:finally:no#1/handler/param",
       "fingerprint": "sha256:7d0e62d275f6c495195602e769fd70efa086cc5651adce9aac0de20d602ea975",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unusedVar",
-      "message": "'aliasAlternation' is defined but never used.",
-      "owner": "function:aliasAlternation",
-      "ownerPath": "body:FunctionDeclaration:aliasAlternation#1/id",
-      "fingerprint": "sha256:09d23e87ecb3da6b01935adce18e2e110bc72643b55e8cec328b903e22c9cdd8",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unusedVar",
-      "message": "'baseFactorySet' is assigned a value but never used.",
-      "owner": "function:collectRouteUrlVariables",
-      "ownerPath": "body:FunctionDeclaration:collectRouteUrlVariables#1/body/body:VariableDeclaration:const:{\"name\":\"baseFactorySet\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
-      "fingerprint": "sha256:fa8ae354e910fbb8e699f32228618d457d74324ffa68175a3200255479a8653e",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unusedVar",
-      "message": "'routeUrlFactoryAliases' is assigned a value but never used.",
-      "owner": "function:containsForbiddenShadowedExternalAliasRouteCode",
-      "ownerPath": "body:FunctionDeclaration:containsForbiddenShadowedExternalAliasRouteCode#1/params:AssignmentPattern#1/left",
-      "fingerprint": "sha256:2914c1f7f52d369996822db487647fc619f7305f40f518650590dac4c2f34e10",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unusedVar",
-      "message": "'target' is assigned a value but never used.",
-      "owner": "function:containsRouteKeyWriteForOwner",
-      "ownerPath": "body:FunctionDeclaration:containsRouteKeyWriteForOwner#1/body/body:VariableDeclaration:const:{\"name\":\"target\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
-      "fingerprint": "sha256:75809ffe70855d76b7b6b9b7552b8630b5712fe93795d4a8a30b3cd2737513eb",
       "occurrence": 1
     },
     {
@@ -23743,56 +23693,6 @@
     },
     {
       "rule": "no-unused-vars",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unusedVar",
-      "message": "'_' is defined but never used.",
-      "owner": "function:decodeUrlQueryKey",
-      "ownerPath": "body:FunctionDeclaration:decodeUrlQueryKey#1/body/body:TryStatement:try:[ReturnStatement]:catch:{\"name\":\"_\",\"type\":\"Identifier\"}:finally:no#1/handler/param",
-      "fingerprint": "sha256:e45f2daf4900407e6c00e4c399c82bc3857f68a61e7518b61f92dc1cf44577b6",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unusedVar",
-      "message": "'aliasAlternation' is defined but never used.",
-      "owner": "function:aliasAlternation",
-      "ownerPath": "body:FunctionDeclaration:aliasAlternation#1/id",
-      "fingerprint": "sha256:9b2f10b93083d5433093f65c59a62a622066c23445e89dff6d1f3bcf8f2dd4cd",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unusedVar",
-      "message": "'baseFactorySet' is assigned a value but never used.",
-      "owner": "function:collectRouteUrlVariables",
-      "ownerPath": "body:FunctionDeclaration:collectRouteUrlVariables#1/body/body:VariableDeclaration:const:{\"name\":\"baseFactorySet\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
-      "fingerprint": "sha256:7108efca39074cc2fe081138cd734b86795b095dfeef7fec730126bb2cb89f53",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unusedVar",
-      "message": "'routeUrlFactoryAliases' is assigned a value but never used.",
-      "owner": "function:containsForbiddenShadowedExternalAliasRouteCode",
-      "ownerPath": "body:FunctionDeclaration:containsForbiddenShadowedExternalAliasRouteCode#1/params:AssignmentPattern#1/left",
-      "fingerprint": "sha256:eae57814cea59305bfdfd7d27883de98a24e7adc13fdd8996bf73539de3288d4",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unusedVar",
-      "message": "'target' is assigned a value but never used.",
-      "owner": "function:containsRouteKeyWriteForOwner",
-      "ownerPath": "body:FunctionDeclaration:containsRouteKeyWriteForOwner#1/body/body:VariableDeclaration:const:{\"name\":\"target\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
-      "fingerprint": "sha256:c09addee8590db8c0b467d766431e091bb3353244d017ba9d711884178218c56",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-unused-vars",
       "path": "scripts/test-theme-runtime.js",
       "messageId": "unusedVar",
       "message": "'layoutContext' is defined but never used.",
@@ -24323,16 +24223,6 @@
     },
     {
       "rule": "no-useless-assignment",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryAssignment",
-      "message": "The value assigned to 'value' is not used in subsequent statements.",
-      "owner": "function:normalizeStaticObjectPropertyKey",
-      "ownerPath": "body:FunctionDeclaration:normalizeStaticObjectPropertyKey#1/body/body:VariableDeclaration:let:{\"name\":\"value\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
-      "fingerprint": "sha256:6bb5ae14eaa88bf8a3a25c9344b7ab7988dbfdc3c694bcdc7f9fd4c252c0e4b3",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-assignment",
       "path": "assets/js/theme.js",
       "messageId": "unnecessaryAssignment",
       "message": "The value assigned to 'popup' is not used in subsequent statements.",
@@ -24379,16 +24269,6 @@
       "owner": "<module>",
       "ownerPath": "body:VariableDeclaration:let:{\"name\":\"siteConfigResult\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
       "fingerprint": "sha256:2ce177a8e4e71834f4e15de6a347685c6d6ab84e4fb49e497d57b1b487a19cce",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-assignment",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryAssignment",
-      "message": "The value assigned to 'value' is not used in subsequent statements.",
-      "owner": "function:normalizeStaticObjectPropertyKey",
-      "ownerPath": "body:FunctionDeclaration:normalizeStaticObjectPropertyKey#1/body/body:VariableDeclaration:let:{\"name\":\"value\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/id",
-      "fingerprint": "sha256:a988874a1b30b6ab25b530b6fbe707644a2449542aacd70fd97f3404b313c62e",
       "occurrence": 1
     },
     {
@@ -24863,66 +24743,6 @@
     },
     {
       "rule": "no-useless-escape",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\[.",
-      "owner": "function:addBindingNamesFromPattern/anonymous:ArrowFunctionExpression/callback:text.split({\"type\":\"Literal\",\"value\":\",\"}).forEach(<callback>)#1",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:ExpressionStatement:call:text.split({\"type\":\"Literal\",\"value\":\",\"}).forEach(<callback:ArrowFunctionExpression>)#1/expression/arguments:ArrowFunctionExpression#1/body/body:VariableDeclaration:const:{\"name\":\"clean\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init/arguments:Literal#1",
-      "fingerprint": "sha256:8f2cb748be04d33c2b88ba134ec230fe45247191cdc06a08728a592df11355dc",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\[.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:2bb1178b63672b126b87754b47ac9311160fadbaca4f728df5e5bbe3d6a9b1b6",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\[.",
-      "owner": "function:routeGuardPreviousTokenAllowsRegex",
-      "ownerPath": "body:FunctionDeclaration:routeGuardPreviousTokenAllowsRegex#1/body/body:IfStatement:{\"arguments\":[{\"name\":\"ch\",\"type\":\"Identifier\"}],\"callee\":{\"computed\":false,\"object\":{\"regex\":{\"flags\":\"\",\"pattern\":\"[({\\\\[=,:;!?&|+*%~^<>-]\"},\"type\":\"Literal\",\"value\":{}},\"optional\":false,\"property\":{\"name\":\"test\",\"type\":\"Identifier\"},\"type\":\"MemberExpression\"},\"optional\":false,\"type\":\"CallExpression\"}#1/test/callee/object",
-      "fingerprint": "sha256:96d9cbcef782004731c48628aec39442acef3fba0e14254b1ab6e7d47ce943df",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\{.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:87c7e2a853f424061c708bf817c7a8d6ae3cb9159c69037274f0f839db1bcc33",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\}.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:7b5b7363bc63e9ed2753872d8dcb6faa26ea4d9efe0def32b7287968c136206c",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "assets/js/theme-package-core.js",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\}.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:7b5b7363bc63e9ed2753872d8dcb6faa26ea4d9efe0def32b7287968c136206c",
-      "occurrence": 2
-    },
-    {
-      "rule": "no-useless-escape",
       "path": "assets/js/theme-route-guard.js",
       "messageId": "unnecessaryEscape",
       "message": "Unnecessary escape character: \\[.",
@@ -25129,66 +24949,6 @@
       "owner": "anonymous:ArrowFunctionExpression/callback:run({\"type\":\"Literal\",\"value\":\"content parser recognizes quoted boolean front matter values\"}, <callback>)#2",
       "ownerPath": "body:ExpressionStatement:call:run({\"type\":\"Literal\",\"value\":\"content parser recognizes quoted boolean front matter values\"}, <callback:ArrowFunctionExpression>)#1/expression/arguments:ArrowFunctionExpression#1/body/body:VariableDeclaration:const:{\"name\":\"source\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init/callee/object/elements:Literal#4",
       "fingerprint": "sha256:e0d6a5b6b610b43e9f22d5c1fbcdab28c51256c25c594a6cb79106f179eb78fe",
-      "occurrence": 2
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\[.",
-      "owner": "function:addBindingNamesFromPattern/anonymous:ArrowFunctionExpression/callback:text.split({\"type\":\"Literal\",\"value\":\",\"}).forEach(<callback>)#1",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:ExpressionStatement:call:text.split({\"type\":\"Literal\",\"value\":\",\"}).forEach(<callback:ArrowFunctionExpression>)#1/expression/arguments:ArrowFunctionExpression#1/body/body:VariableDeclaration:const:{\"name\":\"clean\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init/arguments:Literal#1",
-      "fingerprint": "sha256:62fa81da1792492f0c2547fe3b27909bec3c6ae5ee8b3c7ab6f3f3013a1dc8ab",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\[.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:b350bf134d956a608df4ad89df2640f491d3ff3a0af353ffba487bc6f994389e",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\[.",
-      "owner": "function:routeGuardPreviousTokenAllowsRegex",
-      "ownerPath": "body:FunctionDeclaration:routeGuardPreviousTokenAllowsRegex#1/body/body:IfStatement:{\"arguments\":[{\"name\":\"ch\",\"type\":\"Identifier\"}],\"callee\":{\"computed\":false,\"object\":{\"regex\":{\"flags\":\"\",\"pattern\":\"[({\\\\[=,:;!?&|+*%~^<>-]\"},\"type\":\"Literal\",\"value\":{}},\"optional\":false,\"property\":{\"name\":\"test\",\"type\":\"Identifier\"},\"type\":\"MemberExpression\"},\"optional\":false,\"type\":\"CallExpression\"}#1/test/callee/object",
-      "fingerprint": "sha256:c73530df5df75b268bcdf7455fbab667d4cf4e1393c605578a31dcbd62e59c99",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\{.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:1f99ab7c7b6b6a0a528dad0b165c4ad52192a4fc4bbab5f5458dd3491b4fe308",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\}.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:55c0cd7a8f85b2eab13a4eda566b7e9bbbedd9527f1d3a1201791d29c646b699",
-      "occurrence": 1
-    },
-    {
-      "rule": "no-useless-escape",
-      "path": "scripts/test-theme-contracts.mjs",
-      "messageId": "unnecessaryEscape",
-      "message": "Unnecessary escape character: \\}.",
-      "owner": "function:addBindingNamesFromPattern",
-      "ownerPath": "body:FunctionDeclaration:addBindingNamesFromPattern#1/body/body:VariableDeclaration:const:{\"name\":\"shorthandRe\",\"type\":\"Identifier\"}#1/declarations:VariableDeclarator#1/init",
-      "fingerprint": "sha256:55c0cd7a8f85b2eab13a4eda566b7e9bbbedd9527f1d3a1201791d29c646b699",
       "occurrence": 2
     },
     {

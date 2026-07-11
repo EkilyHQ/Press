@@ -4,9 +4,10 @@ import process from 'node:process';
 
 const root = process.cwd();
 const outArg = process.argv.indexOf('--out');
-const outRoot = outArg >= 0 && process.argv[outArg + 1]
-  ? path.resolve(process.argv[outArg + 1])
-  : path.join(root, 'dist', 'theme-contract-package');
+const outRoot =
+  outArg >= 0 && process.argv[outArg + 1]
+    ? path.resolve(process.argv[outArg + 1])
+    : path.join(root, 'dist', 'theme-contract-package');
 const packageRoot = path.join(outRoot, 'package');
 const sourceRoot = path.join(root, 'packages', 'press-theme-contract');
 const packageManifestPath = path.join(sourceRoot, 'package.json');
@@ -33,6 +34,7 @@ const files = [
   ['assets/js/theme-package-core.js', 'assets/js/theme-package-core.js'],
   ['assets/js/theme-settings.js', 'assets/js/theme-settings.js'],
   ['assets/js/theme-route-guard.js', 'assets/js/theme-route-guard.js'],
+  ['assets/js/theme-route-guard-html.js', 'assets/js/theme-route-guard-html.js'],
   ['assets/js/vendor/acorn.mjs', 'assets/js/vendor/acorn.mjs'],
   ['assets/js/vendor/acorn-walk.mjs', 'assets/js/vendor/acorn-walk.mjs'],
   ['assets/js/vendor/fflate.browser.js', 'assets/js/vendor/fflate.browser.js']

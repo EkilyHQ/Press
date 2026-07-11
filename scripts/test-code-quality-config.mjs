@@ -66,6 +66,16 @@ assert.equal(
   'node scripts/test-composer-identity-ownership.mjs',
   'Composer identity ownership must retain adversarial policy regressions'
 );
+assert.equal(
+  packageJson.scripts?.['theme-route-guard:check'],
+  'node scripts/check-theme-route-guard-ownership.mjs',
+  'Theme route-guard ownership must retain its executable exact-tree check'
+);
+assert.equal(
+  packageJson.scripts?.['theme-route-guard:policy-test'],
+  'node scripts/test-theme-route-guard-ownership.mjs',
+  'Theme route-guard ownership must retain adversarial no-regrowth regressions'
+);
 assert.equal(packageJson.scripts?.lint, 'eslint . --max-warnings 0', 'ESLint must enforce a zero-warning baseline');
 assert.equal(
   packageJson.scripts?.['lint:inline-config'],
@@ -109,8 +119,8 @@ assert.equal(
 );
 assert.equal(
   packageJson.scripts?.quality,
-  'node scripts/test-code-quality-config.mjs && npm run composer-identity:policy-test && npm run composer-identity:check && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks',
-  'the quality gate must cover identity ownership, lint, type debt, formatting, vendored dependency provenance, and sink policy'
+  'node scripts/test-code-quality-config.mjs && npm run composer-identity:policy-test && npm run composer-identity:check && npm run theme-route-guard:policy-test && npm run theme-route-guard:check && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks',
+  'the quality gate must cover Composer and route-guard ownership, lint, type debt, formatting, vendored dependency provenance, and sink policy'
 );
 
 const packageLock = readJson('package-lock.json');
@@ -142,7 +152,7 @@ assert.equal(
   'the HTML sink baseline must retain its reviewed no-growth disposition'
 );
 assert.deepEqual(htmlSinkPolicy.expected, {
-  computedPropertyControls: 391,
+  computedPropertyControls: 366,
   dynamicImports: 12,
   innerHTMLEmptyWrites: 65,
   innerHTMLWrites: 112,
@@ -152,7 +162,7 @@ assert.deepEqual(htmlSinkPolicy.expected, {
   serializerReads: 4,
   timerCallbackControls: 11
 });
-assert.equal(htmlSinkPolicy.approved.length, 538, 'all approved sink occurrences must retain exact identities');
+assert.equal(htmlSinkPolicy.approved.length, 513, 'all approved sink occurrences must retain exact identities');
 
 const workflow = read('.github/workflows/code-quality.yml');
 assert.match(workflow, /^name: Code Quality$/m, 'the code-quality workflow must have a stable name');
@@ -518,7 +528,7 @@ assert.deepEqual(policy.types?.baseline, {
 });
 assert.equal(policy.types?.evidence?.typescriptVersion, '5.9.3');
 assert.match(policy.types?.evidence?.command || '', /node scripts\/probe-typescript-debt\.mjs/);
-assert.equal(policy.types?.evidence?.explicitInputFiles, 223);
+assert.equal(policy.types?.evidence?.explicitInputFiles, 224);
 assert.ok(
   Number.isInteger(policy.types?.evidence?.diagnostics) && policy.types.evidence.diagnostics > 0,
   'the type-checking decision must record the measured diagnostic count'
@@ -527,8 +537,8 @@ assert.ok(
   Number.isInteger(policy.types?.evidence?.files) && policy.types.evidence.files > 0,
   'the type-checking decision must record the measured file count'
 );
-assert.equal(policy.types?.evidence?.firstPartyDiagnostics, 905);
-assert.equal(policy.types?.evidence?.firstPartyFiles, 83);
+assert.equal(policy.types?.evidence?.firstPartyDiagnostics, 903);
+assert.equal(policy.types?.evidence?.firstPartyFiles, 82);
 assert.equal(policy.types?.evidence?.transitiveVendorDiagnostics, 565);
 assert.equal(policy.types?.evidence?.transitiveVendorFiles, 4);
 assert.ok(
@@ -562,24 +572,24 @@ assert.deepEqual(
 );
 assert.deepEqual(typescriptBaseline.roots, {
   scope: 'Git-tracked non-vendor assets/js .js/.mjs files',
-  count: 223,
+  count: 224,
   hashAlgorithm: 'sha256-lf-path-list-v1',
-  sha256: '6ad4606598f2c07187845f818eec77dd59e542d132bd33520550b8b218f3434d'
+  sha256: 'f31a9e7b685a9a19607d82d3f2fe8c527cdb7fa930a30d10a8c424c9fbe57d62'
 });
 assert.deepEqual(typescriptBaseline.suppressions, {
   decision: 'prohibited-zero-baseline',
   scanner: 'TypeScript SourceFile commentDirectives/checkJsDirective',
-  scannedFiles: 227,
+  scannedFiles: 228,
   tsIgnore: 0,
   tsExpectError: 0,
   tsNocheck: 0,
   total: 0
 });
 assert.deepEqual(typescriptBaseline.summary, {
-  diagnostics: 1470,
-  files: 87,
-  firstPartyDiagnostics: 905,
-  firstPartyFiles: 83,
+  diagnostics: 1468,
+  files: 86,
+  firstPartyDiagnostics: 903,
+  firstPartyFiles: 82,
   transitiveVendorDiagnostics: 565,
   transitiveVendorFiles: 4,
   globalDiagnostics: 0

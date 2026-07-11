@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "type": "press-theme-route-guard-ownership-policy",
+  "legacy": {
+    "baseCommit": "10fa9b1eb61854f5b526363bc9f479a054f8f202",
+    "corePath": "assets/js/theme-package-core.js",
+    "declarationRanges": [
+      {
+        "startLine": 37,
+        "endLine": 49,
+        "kinds": ["variable"]
+      },
+      {
+        "startLine": 100,
+        "endLine": 3951,
+        "kinds": ["function", "variable"]
+      }
+    ],
+    "expectedIdentifierCount": 141,
+    "orderedIdentifierSha256": "edee7d8987858e022592ab7ac55708fa3438e4f016d2f745eba7b9ef9af68730",
+    "forbiddenInternalApis": [
+      "canParseV4RouteGuardSource",
+      "collectV4RouteGuardFacts",
+      "containsForbiddenV4RouteConstructionAst"
+    ],
+    "nonOwnerDeclarationAllowlist": {
+      "assets/js/editor-shell-contract.js": ["escapeRegExp"],
+      "assets/js/provider-adapters.js": ["escapeRegExp"]
+    }
+  },
+  "publicExport": "containsForbiddenV4RouteConstruction",
+  "paths": {
+    "facade": "assets/js/theme-route-guard.js",
+    "htmlOwner": "assets/js/theme-route-guard-html.js",
+    "core": "assets/js/theme-package-core.js",
+    "corpus": "scripts/theme-route-guard-corpus.mjs",
+    "contractTest": "scripts/test-theme-contracts.mjs",
+    "packageTest": "scripts/test-theme-contract-package.mjs",
+    "packageIndex": "packages/press-theme-contract/index.mjs"
+  },
+  "owners": [
+    {
+      "path": "assets/js/theme-route-guard.js",
+      "role": "facade-js-owner",
+      "maxLines": 3600
+    },
+    {
+      "path": "assets/js/theme-route-guard-html.js",
+      "role": "html-owner",
+      "maxLines": 400
+    }
+  ],
+  "caps": {
+    "assets/js/theme-package-core.js": 650,
+    "scripts/theme-route-guard-corpus.mjs": 2500,
+    "scripts/test-theme-contracts.mjs": 1000
+  },
+  "packageLists": [
+    {
+      "path": "packages/press-theme-contract/package.json",
+      "kind": "package-files",
+      "ownerLiteralOccurrences": 1
+    },
+    {
+      "path": "packages/press-theme-contract/scripts/sync-assets.mjs",
+      "kind": "javascript-literals",
+      "ownerLiteralOccurrences": 2
+    },
+    {
+      "path": "scripts/build-theme-contract-package.mjs",
+      "kind": "javascript-literals",
+      "ownerLiteralOccurrences": 2
+    },
+    {
+      "path": "scripts/test-theme-contract-package.mjs",
+      "kind": "javascript-literals",
+      "ownerLiteralOccurrences": 1
+    }
+  ],
+  "coreRegexLiteralBaseline": [
+    {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "flags": "",
+      "count": 1
+    },
+    {
+      "pattern": "^press-theme-[a-z0-9_-]+-v\\d+\\.\\d+\\.\\d+\\.zip$",
+      "flags": "i",
+      "count": 1
+    },
+    {
+      "pattern": "^[a-f0-9]{64}$",
+      "flags": "",
+      "count": 1
+    },
+    {
+      "pattern": "\\s+",
+      "flags": "g",
+      "count": 1
+    },
+    {
+      "pattern": "[^a-z0-9_-]",
+      "flags": "g",
+      "count": 1
+    },
+    {
+      "pattern": "\\\\+",
+      "flags": "g",
+      "count": 3
+    },
+    {
+      "pattern": "^[a-z]:\\/",
+      "flags": "i",
+      "count": 2
+    },
+    {
+      "pattern": "^[a-z][a-z0-9+.-]*:\\/\\/",
+      "flags": "i",
+      "count": 2
+    },
+    {
+      "pattern": "^\\/+",
+      "flags": "",
+      "count": 1
+    },
+    {
+      "pattern": "^press-theme-([a-z0-9_-]+)-v",
+      "flags": "i",
+      "count": 1
+    }
+  ]
+}

@@ -8,27 +8,27 @@
       "excludedRules": [
         {
           "rule": "no-unused-vars",
-          "observedDiagnostics": 1517,
-          "observedAffectedFiles": 186,
-          "evidence": "1517 findings are dominated by dynamic service, options, browser callback, and test-harness signatures; enabling it would require a semantic cleanup campaign rather than a correctness gate."
+          "observedDiagnostics": 1497,
+          "observedAffectedFiles": 184,
+          "evidence": "1497 findings are dominated by dynamic service, options, browser callback, and test-harness signatures; enabling it would require a semantic cleanup campaign rather than a correctness gate."
         },
         {
           "rule": "no-empty",
-          "observedDiagnostics": 862,
-          "observedAffectedFiles": 133,
-          "evidence": "862 findings primarily represent intentional best-effort browser cleanup and storage fallbacks whose failure must not replace the primary operation."
+          "observedDiagnostics": 861,
+          "observedAffectedFiles": 132,
+          "evidence": "861 findings primarily represent intentional best-effort browser cleanup and storage fallbacks whose failure must not replace the primary operation."
         },
         {
           "rule": "no-useless-escape",
-          "observedDiagnostics": 80,
-          "observedAffectedFiles": 20,
-          "evidence": "80 findings occur in regular-expression and fixture literals where mechanical edits create churn without strengthening runtime correctness."
+          "observedDiagnostics": 68,
+          "observedAffectedFiles": 18,
+          "evidence": "68 findings occur in regular-expression and fixture literals where mechanical edits create churn without strengthening runtime correctness."
         },
         {
           "rule": "no-regex-spaces",
-          "observedDiagnostics": 10,
-          "observedAffectedFiles": 4,
-          "evidence": "10 findings are deliberate regular-expression literals; the repository contract tests cover the accepted inputs more directly."
+          "observedDiagnostics": 8,
+          "observedAffectedFiles": 3,
+          "evidence": "8 findings are deliberate regular-expression literals; the repository contract tests cover the accepted inputs more directly."
         },
         {
           "rule": "no-control-regex",
@@ -38,9 +38,9 @@
         },
         {
           "rule": "no-useless-assignment",
-          "observedDiagnostics": 59,
-          "observedAffectedFiles": 33,
-          "evidence": "59 findings arise in stateful parser, DOM, and compatibility flows where a repository-wide rewrite is not an incremental lint boundary."
+          "observedDiagnostics": 57,
+          "observedAffectedFiles": 32,
+          "evidence": "57 findings arise in stateful parser, DOM, and compatibility flows where a repository-wide rewrite is not an incremental lint boundary."
         },
         {
           "rule": "preserve-caught-error",
@@ -72,7 +72,7 @@
   "prettier": {
     "baseline": {
       "file": "scripts/prettier-baseline.json",
-      "initialFiles": 377
+      "initialFiles": 374
     },
     "noGrowth": {
       "mechanism": "merge-base-shrinking-file-baseline",
@@ -110,14 +110,14 @@
     "evidence": {
       "typescriptVersion": "5.9.3",
       "command": "node scripts/probe-typescript-debt.mjs using allowJs/checkJs/noEmit/skipLibCheck, ES2023, Preserve modules, Bundler resolution, and ES2023/DOM/DOM.Iterable libs",
-      "explicitInputFiles": 223,
-      "diagnostics": 1470,
-      "files": 87,
-      "firstPartyDiagnostics": 905,
-      "firstPartyFiles": 83,
+      "explicitInputFiles": 224,
+      "diagnostics": 1468,
+      "files": 86,
+      "firstPartyDiagnostics": 903,
+      "firstPartyFiles": 82,
       "transitiveVendorDiagnostics": 565,
       "transitiveVendorFiles": 4,
-      "reason": "Repository-wide checkJs would create a second large suppression baseline across dynamic browser boundaries; even after separating transitive vendor output, first-party code retains 905 diagnostics in 83 files."
+      "reason": "Repository-wide checkJs would create a second large suppression baseline across dynamic browser boundaries; even after separating transitive vendor output, first-party code retains 903 diagnostics in 82 files."
     },
     "noGrowth": {
       "mechanism": "exact-head-multiset-with-merge-base-zero-growth",

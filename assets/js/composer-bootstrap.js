@@ -1,12 +1,91 @@
 import { createEditorAppKernel } from './editor-app-kernel.js';
 import { createDomEffects } from './editor-effects.js';
 import { EDITOR_SHELL_IDS, EDITOR_SHELL_SELECTORS } from './editor-shell-contract.js';
-import {
-  CONTENT_MODEL_MIGRATION_STATE_KEY,
-  getLegacyContentModelMigrationFiles
-} from './content-model-migration.js';
+import { CONTENT_MODEL_MIGRATION_STATE_KEY, getLegacyContentModelMigrationFiles } from './content-model-migration.js';
+import { injectComposerRuntimeStyles } from './composer-runtime-styles.js';
 
 function noop() {}
+
+const NOOP_LOGGER = Object.freeze({
+  warn: noop,
+  error: noop
+});
+
+function createComposerAppOptions(options = {}) {
+  const editorRuntime = options.editorRuntime || {};
+  const documentRef = options.documentRef || editorRuntime.documentRef || null;
+  const windowRef = options.windowRef || editorRuntime.windowRef || null;
+  const consoleRef = options.consoleRef || NOOP_LOGGER;
+  const composerStateStore = options.composerStateStore || {};
+  const composerSystemThemeBridge = options.composerSystemThemeBridge || null;
+  const markdownToolbar = options.markdownToolbar || {};
+  const initialState = options.initialState || {};
+  const workspace = options.workspace || {};
+  const workspaceUi = options.workspaceUi || {};
+  const extraFeatures = [];
+
+  if (composerSystemThemeBridge && typeof composerSystemThemeBridge.createLifecycleFeature === 'function') {
+    extraFeatures.push(composerSystemThemeBridge.createLifecycleFeature());
+  }
+  if (Array.isArray(options.extraFeatures)) extraFeatures.push(...options.extraFeatures);
+
+  return {
+    documentRef,
+    onDocumentReady: options.onDocumentReady || editorRuntime.onDocumentReady,
+    setActiveComposerState: (state) =>
+      typeof composerStateStore.setActiveState === 'function' ? composerStateStore.setActiveState(state) : undefined,
+    markdownToolbar: {
+      ...markdownToolbar
+    },
+    initialState: {
+      ensureSiteRepo: () =>
+        typeof editorRuntime.ensureSiteRepo === 'function' ? editorRuntime.ensureSiteRepo() : undefined,
+      windowRef,
+      consoleRef,
+      ...initialState,
+      setRemoteBaseline: (kind, value) =>
+        typeof composerStateStore.setRemoteBaseline === 'function'
+          ? composerStateStore.setRemoteBaseline(kind, value)
+          : undefined
+    },
+    workspace: {
+      documentRef,
+      windowRef,
+      getLocation: () => (typeof editorRuntime.getLocation === 'function' ? editorRuntime.getLocation() : null),
+      bindWorkspaceUi: () =>
+        bindComposerWorkspaceUi({
+          documentRef,
+          consoleRef,
+          ...workspaceUi
+        }),
+      setAllowEditorStatePersist: (value) =>
+        typeof editorRuntime.setAllowEditorStatePersist === 'function'
+          ? editorRuntime.setAllowEditorStatePersist(value)
+          : undefined,
+      setTimeoutRef: (handler, delay) =>
+        typeof editorRuntime.setTimer === 'function' ? editorRuntime.setTimer(handler, delay) : undefined,
+      ...workspace
+    },
+    extraFeatures
+  };
+}
+
+export function startComposerApp(options = {}) {
+  const composerActions = options.composerActions || null;
+  if (!composerActions || typeof composerActions.assertReady !== 'function') {
+    throw new Error('Composer startup requires ready action effects');
+  }
+  composerActions.assertReady();
+
+  const appOptions = createComposerAppOptions(options);
+  const initializeComposerAppRef =
+    typeof options.initializeComposerApp === 'function' ? options.initializeComposerApp : initializeComposerApp;
+  const injectRuntimeStyles =
+    typeof options.injectRuntimeStyles === 'function' ? options.injectRuntimeStyles : injectComposerRuntimeStyles;
+  const bootstrapHandler = initializeComposerAppRef(appOptions);
+  injectRuntimeStyles({ documentRef: appOptions.documentRef });
+  return bootstrapHandler;
+}
 
 function setToolbarBusyState(button, busy, text, setButtonLabel = noop) {
   if (!button) return;
@@ -183,7 +262,7 @@ export function bindComposerWorkspaceUi({
       const summaryEntries = computeUnsyncedSummary();
       const activeKind = getActiveComposerFile();
       const normalizedActive = activeKind === 'tabs' ? 'tabs' : 'index';
-      const entry = summaryEntries.find(item => item && item.kind === normalizedActive);
+      const entry = summaryEntries.find((item) => item && item.kind === normalizedActive);
       if (entry) openComposerDiffModal(entry.kind);
     });
   }
@@ -234,7 +313,7 @@ export async function loadInitialComposerState({
           contentRoot: root,
           indexRaw: idx || {},
           tabsRaw: tbs || {},
-          defaultLang: String(effectiveSite && effectiveSite.defaultLanguage || 'en')
+          defaultLang: String((effectiveSite && effectiveSite.defaultLanguage) || 'en')
         });
       } catch (err) {
         if (consoleRef && typeof consoleRef.warn === 'function') {
@@ -244,12 +323,8 @@ export async function loadInitialComposerState({
       }
     }
     const hasContentModelMigration = !!(migration && migration.hasLegacyContentModel);
-    const migratedIndex = hasContentModelMigration
-      ? prepareIndexState(migration.indexRaw || idx || {})
-      : remoteIndex;
-    const migratedTabs = hasContentModelMigration
-      ? prepareTabsState(migration.tabsRaw || tbs || {})
-      : remoteTabs;
+    const migratedIndex = hasContentModelMigration ? prepareIndexState(migration.indexRaw || idx || {}) : remoteIndex;
+    const migratedTabs = hasContentModelMigration ? prepareTabsState(migration.tabsRaw || tbs || {}) : remoteTabs;
     setRemoteBaseline('index', deepClone(remoteIndex));
     setRemoteBaseline('tabs', deepClone(remoteTabs));
     setRemoteBaseline('site', cloneSiteState(remoteSite));
@@ -321,10 +396,7 @@ export function assembleComposerWorkspace({
   const restoredDrafts = loadDraftSnapshotsIntoState(state);
   let inferredSiteRepoApplied = false;
   try {
-    inferredSiteRepoApplied = applyInferredRepoConfig(
-      state.site,
-      inferRepoConfigFromGitHubPagesUrl(getLocation())
-    );
+    inferredSiteRepoApplied = applyInferredRepoConfig(state.site, inferRepoConfigFromGitHubPagesUrl(getLocation()));
   } catch (_) {
     inferredSiteRepoApplied = false;
   }
@@ -333,10 +405,12 @@ export function assembleComposerWorkspace({
 
   if (restoredDrafts.length) {
     const label = restoredDrafts
-      .map(k => (k === 'tabs' ? 'tabs.yaml' : k === 'site' ? 'site.yaml' : 'index.yaml'))
+      .map((k) => (k === 'tabs' ? 'tabs.yaml' : k === 'site' ? 'site.yaml' : 'index.yaml'))
       .join(' & ');
     showStatus(t('editor.composer.statusMessages.restoredDraft', { label }));
-    scheduleTimer(() => { showStatus(''); }, 1800);
+    scheduleTimer(() => {
+      showStatus('');
+    }, 1800);
   } else {
     showStatus('');
   }
@@ -368,10 +442,7 @@ export function assembleComposerWorkspace({
 }
 
 export async function initializeComposerOnDomReady(options = {}) {
-  const {
-    documentRef,
-    setActiveComposerState = noop
-  } = options;
+  const { documentRef, setActiveComposerState = noop } = options;
 
   const context = {
     documentRef,
@@ -387,7 +458,7 @@ export async function initializeComposerOnDomReady(options = {}) {
   createComposerBootstrapFeatures({
     ...options,
     setActiveComposerState
-  }).forEach(feature => kernel.registerFeature(feature));
+  }).forEach((feature) => kernel.registerFeature(feature));
 
   const runResult = await kernel.run();
   const result = runResult.context.result;
@@ -402,13 +473,7 @@ export async function initializeComposerOnDomReady(options = {}) {
 }
 
 export function createComposerBootstrapFeatures(options = {}) {
-  const {
-    markdownToolbar,
-    initialState,
-    workspace,
-    extraFeatures,
-    setActiveComposerState = noop
-  } = options;
+  const { markdownToolbar, initialState, workspace, extraFeatures, setActiveComposerState = noop } = options;
 
   const features = [
     {
@@ -464,15 +529,16 @@ export function initializeComposerApp(options = {}) {
   };
   handler.dispose = async () => {
     if (typeof readyCleanup === 'function') {
-      try { readyCleanup(); } catch (_) {}
+      try {
+        readyCleanup();
+      } catch (_) {}
     }
     if (!runPromise) return false;
     const result = await runPromise;
     return result && typeof result.dispose === 'function' ? result.dispose() : false;
   };
-  const onDocumentReady = typeof options.onDocumentReady === 'function'
-    ? options.onDocumentReady
-    : (readyHandler) => readyHandler();
+  const onDocumentReady =
+    typeof options.onDocumentReady === 'function' ? options.onDocumentReady : (readyHandler) => readyHandler();
   readyCleanup = onDocumentReady(handler);
   return handler;
 }

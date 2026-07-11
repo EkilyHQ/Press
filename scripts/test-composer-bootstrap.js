@@ -9,7 +9,8 @@ import {
   createComposerBootstrapFeatures,
   initializeComposerApp,
   initializeComposerOnDomReady,
-  loadInitialComposerState
+  loadInitialComposerState,
+  startComposerApp
 } from '../assets/js/composer-bootstrap.js';
 
 class FakeClassList {
@@ -110,10 +111,10 @@ class FakeDocument {
   bindComposerMarkdownToolbar({
     documentRef,
     t: (key) => key,
-    setMarkdownPushButton: button => calls.push(['setPush', button.id]),
-    setMarkdownSaveButton: button => calls.push(['setSave', button.id]),
-    setMarkdownProtectionButton: button => calls.push(['setProtect', button.id]),
-    setMarkdownDiscardButton: button => calls.push(['setDiscard', button.id]),
+    setMarkdownPushButton: (button) => calls.push(['setPush', button.id]),
+    setMarkdownSaveButton: (button) => calls.push(['setSave', button.id]),
+    setMarkdownProtectionButton: (button) => calls.push(['setProtect', button.id]),
+    setMarkdownDiscardButton: (button) => calls.push(['setDiscard', button.id]),
     getMarkdownPushButton: () => push,
     getActiveDynamicTab: () => activeTab,
     getButtonLabel: () => 'Push',
@@ -123,32 +124,47 @@ class FakeDocument {
       calls.push(['label', label]);
     },
     showToast: (kind, message) => calls.push(['toast', kind, message]),
-    openMarkdownPushOnGitHub: async tab => calls.push(['pushGithub', tab.path]),
-    updateMarkdownPushButton: tab => calls.push(['updatePush', tab && tab.path || null]),
-    updateMarkdownProtectionButton: tab => calls.push(['updateProtect', tab && tab.path || null]),
-    manualSaveActiveMarkdown: button => calls.push(['save', button.id]),
-    handleMarkdownProtectionButton: button => calls.push(['protect', button.id]),
+    openMarkdownPushOnGitHub: async (tab) => calls.push(['pushGithub', tab.path]),
+    updateMarkdownPushButton: (tab) => calls.push(['updatePush', (tab && tab.path) || null]),
+    updateMarkdownProtectionButton: (tab) => calls.push(['updateProtect', (tab && tab.path) || null]),
+    manualSaveActiveMarkdown: (button) => calls.push(['save', button.id]),
+    handleMarkdownProtectionButton: (button) => calls.push(['protect', button.id]),
     discardMarkdownLocalChanges: (_tab, button) => calls.push(['discard', button.id]),
-    updateMarkdownSaveButton: tab => calls.push(['updateSave', tab && tab.path || null]),
-    updateMarkdownDiscardButton: tab => calls.push(['updateDiscard', tab && tab.path || null])
+    updateMarkdownSaveButton: (tab) => calls.push(['updateSave', (tab && tab.path) || null]),
+    updateMarkdownDiscardButton: (tab) => calls.push(['updateDiscard', (tab && tab.path) || null])
   });
 
   await push.click();
-  assert.deepEqual(calls.find(call => call[0] === 'toast'), ['toast', 'info', 'editor.toasts.markdownOpenBeforePush']);
+  assert.deepEqual(
+    calls.find((call) => call[0] === 'toast'),
+    ['toast', 'info', 'editor.toasts.markdownOpenBeforePush']
+  );
 
   activeTab = { path: 'post/doc.md' };
   await push.click();
   assert.equal(push.disabled, false, 'push button should leave busy state after push');
   assert.equal(push.attrs['aria-disabled'], 'false');
   assert.equal(push.classList.contains('is-busy'), false);
-  assert.equal(calls.some(call => call[0] === 'pushGithub' && call[1] === 'post/doc.md'), true);
+  assert.equal(
+    calls.some((call) => call[0] === 'pushGithub' && call[1] === 'post/doc.md'),
+    true
+  );
 
   await save.click();
   await protect.click();
   await discard.click();
-  assert.equal(calls.some(call => call[0] === 'save' && call[1] === 'btnSaveMarkdown'), true);
-  assert.equal(calls.some(call => call[0] === 'protect' && call[1] === 'btnProtectMarkdown'), true);
-  assert.equal(calls.some(call => call[0] === 'discard' && call[1] === 'btnDiscardMarkdown'), true);
+  assert.equal(
+    calls.some((call) => call[0] === 'save' && call[1] === 'btnSaveMarkdown'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'protect' && call[1] === 'btnProtectMarkdown'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'discard' && call[1] === 'btnDiscardMarkdown'),
+    true
+  );
 }
 
 {
@@ -171,41 +187,65 @@ class FakeDocument {
     initEditorRailResize: () => calls.push(['resize']),
     initMobileEditorRail: () => calls.push(['mobile']),
     bindEditorStatePersistenceListeners: () => calls.push(['persistListeners']),
-    openEditorOverlay: mode => calls.push(['openOverlay', mode]),
-    applyMode: mode => calls.push(['applyMode', mode]),
+    openEditorOverlay: (mode) => calls.push(['openOverlay', mode]),
+    applyMode: (mode) => calls.push(['applyMode', mode]),
     setComposerFile: (name, options = {}) => calls.push(['setFile', name, !!options.immediate]),
     getInitialComposerFile: () => 'index',
     getActiveComposerFile: () => 'tabs',
-    addComposerEntry: kind => calls.push(['add', kind]),
+    addComposerEntry: (kind) => calls.push(['add', kind]),
     handleComposerDiscard: () => calls.push(['discard']),
     handleComposerRefresh: () => calls.push(['refresh']),
     computeUnsyncedSummary: () => [{ kind: 'tabs' }],
-    openComposerDiffModal: kind => calls.push(['diff', kind]),
+    openComposerDiffModal: (kind) => calls.push(['diff', kind]),
     bindVerifySetup: () => calls.push(['verify'])
   });
 
-  assert.deepEqual(calls.slice(0, 6).map(call => call[0]), ['mount', 'overlay', 'resize', 'mobile', 'persistListeners', 'setFile']);
-  assert.equal(calls.some(call => call[0] === 'setFile' && call[1] === 'index' && call[2] === true), true);
+  assert.deepEqual(
+    calls.slice(0, 6).map((call) => call[0]),
+    ['mount', 'overlay', 'resize', 'mobile', 'persistListeners', 'setFile']
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'setFile' && call[1] === 'index' && call[2] === true),
+    true
+  );
   await syncMode.click();
   await editorMode.click();
   await fileLink.click();
   await add.click();
   await review.click();
-  assert.equal(calls.some(call => call[0] === 'openOverlay' && call[1] === 'sync'), true);
-  assert.equal(calls.some(call => call[0] === 'applyMode' && call[1] === 'editor'), true);
-  assert.equal(calls.some(call => call[0] === 'setFile' && call[1] === 'tabs'), true);
-  assert.equal(calls.some(call => call[0] === 'add' && call[1] === 'tabs'), true);
-  assert.equal(calls.some(call => call[0] === 'diff' && call[1] === 'tabs'), true);
-  assert.equal(calls.some(call => call[0] === 'verify'), true);
+  assert.equal(
+    calls.some((call) => call[0] === 'openOverlay' && call[1] === 'sync'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'applyMode' && call[1] === 'editor'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'setFile' && call[1] === 'tabs'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'add' && call[1] === 'tabs'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'diff' && call[1] === 'tabs'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'verify'),
+    true
+  );
 }
 
 {
   const remoteBaseline = {};
   const calls = [];
   const state = await loadInitialComposerState({
-    t: key => key,
+    t: (key) => key,
     fetchTrackedSiteConfig: async () => ({ contentRoot: 'docs', siteTitle: 'Legacy', defaultLanguage: 'chs' }),
-    applyEffectiveSiteConfig: site => ({ ...site, contentRoot: site.contentRoot || 'wwwroot' }),
+    applyEffectiveSiteConfig: (site) => ({ ...site, contentRoot: site.contentRoot || 'wwwroot' }),
     fetchConfigWithYamlFallback: async (paths) => {
       calls.push(['fetchConfig', paths]);
       return {};
@@ -237,11 +277,11 @@ class FakeDocument {
         ]
       };
     },
-    prepareSiteState: value => ({ ...value, preparedSite: true }),
-    prepareIndexState: value => ({ ...value, preparedIndex: true }),
-    prepareTabsState: value => ({ ...value, preparedTabs: true }),
-    cloneSiteState: value => ({ ...value, clonedSite: true }),
-    deepClone: value => JSON.parse(JSON.stringify(value || {})),
+    prepareSiteState: (value) => ({ ...value, preparedSite: true }),
+    prepareIndexState: (value) => ({ ...value, preparedIndex: true }),
+    prepareTabsState: (value) => ({ ...value, preparedTabs: true }),
+    cloneSiteState: (value) => ({ ...value, clonedSite: true }),
+    deepClone: (value) => JSON.parse(JSON.stringify(value || {})),
     setRemoteBaseline: (kind, value) => {
       remoteBaseline[kind] = value;
     },
@@ -249,7 +289,7 @@ class FakeDocument {
   });
 
   assert.deepEqual(
-    calls.find(call => call[0] === 'contentMigration'),
+    calls.find((call) => call[0] === 'contentMigration'),
     ['contentMigration', 'docs', {}, {}, 'chs'],
     'composer bootstrap should offer the remote unified YAML and effective site language as migration input'
   );
@@ -298,34 +338,34 @@ class FakeDocument {
     initialState: {
       windowRef: { location: 'https://deemoe404.github.io/site/index_editor.html' },
       consoleRef: { warn: (...args) => calls.push(['warn', ...args]) },
-      t: key => key,
+      t: (key) => key,
       fetchTrackedSiteConfig: async () => ({ contentRoot: 'content', siteTitle: 'Remote' }),
-      applyEffectiveSiteConfig: site => ({ ...site, contentRoot: site.contentRoot || 'wwwroot' }),
-      fetchConfigWithYamlFallback: async paths => ({ __order: [paths[0]] }),
-      prepareSiteState: value => ({ ...value, preparedSite: true }),
-      prepareIndexState: value => ({ ...value, preparedIndex: true }),
-      prepareTabsState: value => ({ ...value, preparedTabs: true }),
-      cloneSiteState: value => ({ ...value, clonedSite: true }),
-      deepClone: value => JSON.parse(JSON.stringify(value)),
+      applyEffectiveSiteConfig: (site) => ({ ...site, contentRoot: site.contentRoot || 'wwwroot' }),
+      fetchConfigWithYamlFallback: async (paths) => ({ __order: [paths[0]] }),
+      prepareSiteState: (value) => ({ ...value, preparedSite: true }),
+      prepareIndexState: (value) => ({ ...value, preparedIndex: true }),
+      prepareTabsState: (value) => ({ ...value, preparedTabs: true }),
+      cloneSiteState: (value) => ({ ...value, clonedSite: true }),
+      deepClone: (value) => JSON.parse(JSON.stringify(value)),
       setRemoteBaseline: (kind, value) => {
         remoteBaseline[kind] = value;
       },
       updateMarkdownPushButton: () => calls.push(['updatePush']),
-      showStatus: message => calls.push(['status', message])
+      showStatus: (message) => calls.push(['status', message])
     },
     workspace: {
       documentRef,
       windowRef: { location: 'https://deemoe404.github.io/site/index_editor.html' },
-      t: (key, params = {}) => params.label ? `${key}:${params.label}` : key,
+      t: (key, params = {}) => (params.label ? `${key}:${params.label}` : key),
       loadDraftSnapshotsIntoState: () => ['site'],
       applyInferredRepoConfig: (site) => {
         site.repo = { owner: 'deemoe404', name: 'site', branch: 'main' };
         return true;
       },
       inferRepoConfigFromGitHubPagesUrl: () => ({ owner: 'deemoe404', name: 'site', branch: 'main' }),
-      applyEffectiveSiteConfig: site => calls.push(['applySite', site.repo.name]),
+      applyEffectiveSiteConfig: (site) => calls.push(['applySite', site.repo.name]),
       updateMarkdownPushButton: () => calls.push(['workspaceUpdatePush']),
-      showStatus: message => calls.push(['workspaceStatus', message]),
+      showStatus: (message) => calls.push(['workspaceStatus', message]),
       bindWorkspaceUi: () => calls.push(['bindWorkspace']),
       buildIndexUI: (root, state) => calls.push(['buildIndex', root.id, state.index.preparedIndex]),
       buildTabsUI: (root, state) => calls.push(['buildTabs', root.id, state.tabs.preparedTabs]),
@@ -333,12 +373,12 @@ class FakeDocument {
       notifyComposerChange: (kind, options) => calls.push(['notify', kind, options]),
       refreshEditorContentTree: () => calls.push(['refreshTree']),
       restoreDynamicEditorState: () => false,
-      applyMode: mode => calls.push(['applyMode', mode]),
-      setAllowEditorStatePersist: value => {
+      applyMode: (mode) => calls.push(['applyMode', mode]),
+      setAllowEditorStatePersist: (value) => {
         allowPersist = value;
       },
       persistDynamicEditorState: () => calls.push(['persist']),
-      setTimeoutRef: handler => {
+      setTimeoutRef: (handler) => {
         calls.push(['timer']);
         handler();
       }
@@ -350,12 +390,27 @@ class FakeDocument {
   assert.equal(remoteBaseline.tabs.preparedTabs, true);
   assert.equal(remoteBaseline.site.clonedSite, true);
   assert.equal(activeState.site.repo.name, 'site');
-  assert.equal(calls.some(call => call[0] === 'bindWorkspace'), true);
-  assert.equal(calls.some(call => call[0] === 'buildIndex' && call[1] === 'composerIndex'), true);
-  assert.deepEqual(calls.find(call => call[0] === 'notify' && call[1] === 'site'), ['notify', 'site', {}]);
-  assert.equal(calls.some(call => call[0] === 'applyMode' && call[1] === 'editor'), true);
+  assert.equal(
+    calls.some((call) => call[0] === 'bindWorkspace'),
+    true
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'buildIndex' && call[1] === 'composerIndex'),
+    true
+  );
+  assert.deepEqual(
+    calls.find((call) => call[0] === 'notify' && call[1] === 'site'),
+    ['notify', 'site', {}]
+  );
+  assert.equal(
+    calls.some((call) => call[0] === 'applyMode' && call[1] === 'editor'),
+    true
+  );
   assert.equal(allowPersist, true);
-  assert.equal(calls.some(call => call[0] === 'persist'), true);
+  assert.equal(
+    calls.some((call) => call[0] === 'persist'),
+    true
+  );
   assert.equal(typeof result.dispose, 'function');
   assert.equal(await result.dispose(), true);
 }
@@ -369,31 +424,34 @@ class FakeDocument {
   assembleComposerWorkspace({
     documentRef,
     state: { index: {}, tabs: {}, site: {} },
-    t: (key, params = {}) => params.label ? `${key}:${params.label}` : key,
+    t: (key, params = {}) => (params.label ? `${key}:${params.label}` : key),
     loadDraftSnapshotsIntoState: () => ['index'],
     applyInferredRepoConfig: () => false,
     inferRepoConfigFromGitHubPagesUrl: () => null,
     getLocation: () => null,
     applyEffectiveSiteConfig: () => calls.push(['applySite']),
     updateMarkdownPushButton: () => calls.push(['updatePush']),
-    showStatus: message => calls.push(['status', message]),
+    showStatus: (message) => calls.push(['status', message]),
     bindWorkspaceUi: () => calls.push(['bindWorkspace']),
     buildIndexUI: () => calls.push(['buildIndex']),
     buildTabsUI: () => calls.push(['buildTabs']),
     buildSiteUI: () => calls.push(['buildSite']),
-    notifyComposerChange: kind => calls.push(['notify', kind]),
+    notifyComposerChange: (kind) => calls.push(['notify', kind]),
     refreshEditorContentTree: () => calls.push(['refreshTree']),
     restoreDynamicEditorState: () => false,
-    applyMode: mode => calls.push(['applyMode', mode]),
-    setAllowEditorStatePersist: value => calls.push(['allowPersist', value]),
+    applyMode: (mode) => calls.push(['applyMode', mode]),
+    setAllowEditorStatePersist: (value) => calls.push(['allowPersist', value]),
     persistDynamicEditorState: () => calls.push(['persist'])
   });
   assert.deepEqual(
-    calls.filter(call => call[0] === 'status'),
+    calls.filter((call) => call[0] === 'status'),
     [['status', 'editor.composer.statusMessages.restoredDraft:index.yaml']],
     'composer bootstrap should not run delayed status clearing without an injected timer'
   );
-  assert.equal(calls.some(call => call[0] === 'persist'), true);
+  assert.equal(
+    calls.some((call) => call[0] === 'persist'),
+    true
+  );
 }
 
 {
@@ -411,6 +469,66 @@ class FakeDocument {
 }
 
 {
+  const calls = [];
+  const documentRef = new FakeDocument();
+  const bootstrapHandler = () => 'bootstrapped';
+  const result = startComposerApp({
+    editorRuntime: {
+      documentRef,
+      windowRef: { id: 'window' },
+      onDocumentReady: (handler) => calls.push(['ready', typeof handler]),
+      ensureSiteRepo: () => calls.push(['ensureRepo']),
+      getLocation: () => ({ href: 'https://example.test/' }),
+      setAllowEditorStatePersist: (value) => calls.push(['allowPersist', value]),
+      setTimer: (handler, delay) => calls.push(['timer', typeof handler, delay])
+    },
+    composerStateStore: {
+      setActiveState: (state) => calls.push(['activeState', state]),
+      setRemoteBaseline: (kind, value) => calls.push(['baseline', kind, value])
+    },
+    composerActions: {
+      assertReady: () => calls.push(['actionsReady'])
+    },
+    composerSystemThemeBridge: {
+      createLifecycleFeature: () => ({ name: 'composer.systemThemeBridge' })
+    },
+    workspaceUi: {
+      mountEditorSystemPanels: () => calls.push(['mount'])
+    },
+    initializeComposerApp(options) {
+      calls.push(['bootstrap', options.extraFeatures.map((feature) => feature.name)]);
+      options.setActiveComposerState({ ok: true });
+      options.initialState.ensureSiteRepo();
+      options.initialState.setRemoteBaseline('site', { title: 'Site' });
+      assert.deepEqual(options.workspace.getLocation(), { href: 'https://example.test/' });
+      options.workspace.setAllowEditorStatePersist(false);
+      options.workspace.setTimeoutRef(() => {}, 30);
+      options.workspace.bindWorkspaceUi();
+      return bootstrapHandler;
+    },
+    injectRuntimeStyles: ({ documentRef: styledDocument }) => calls.push(['styles', styledDocument === documentRef])
+  });
+
+  assert.equal(result, bootstrapHandler);
+  assert.deepEqual(calls, [
+    ['actionsReady'],
+    ['bootstrap', ['composer.systemThemeBridge']],
+    ['activeState', { ok: true }],
+    ['ensureRepo'],
+    ['baseline', 'site', { title: 'Site' }],
+    ['allowPersist', false],
+    ['timer', 'function', 30],
+    ['mount'],
+    ['styles', true]
+  ]);
+  assert.throws(
+    () => startComposerApp({}),
+    /Composer startup requires ready action effects/,
+    'composer startup should fail before DOM binding when action effects are incomplete'
+  );
+}
+
+{
   const documentRef = new FakeDocument();
   documentRef.addElement(new FakeElement('composerIndex'));
   documentRef.addElement(new FakeElement('composerTabs'));
@@ -422,15 +540,15 @@ class FakeDocument {
       ensureSiteRepo: () => {},
       fetchTrackedSiteConfig: async () => ({}),
       fetchConfigWithYamlFallback: async () => ({}),
-      applyEffectiveSiteConfig: site => site || {},
-      prepareSiteState: value => value || {},
-      prepareIndexState: value => value || {},
-      prepareTabsState: value => value || {},
-      cloneSiteState: value => ({ ...(value || {}) }),
-      deepClone: value => JSON.parse(JSON.stringify(value || {})),
+      applyEffectiveSiteConfig: (site) => site || {},
+      prepareSiteState: (value) => value || {},
+      prepareIndexState: (value) => value || {},
+      prepareTabsState: (value) => value || {},
+      cloneSiteState: (value) => ({ ...(value || {}) }),
+      deepClone: (value) => JSON.parse(JSON.stringify(value || {})),
       setRemoteBaseline: () => {},
       updateMarkdownPushButton: () => {},
-      t: key => key
+      t: (key) => key
     },
     workspace: {
       loadDraftSnapshotsIntoState: () => [],
@@ -470,7 +588,7 @@ class FakeDocument {
 {
   const features = createComposerBootstrapFeatures({});
   assert.deepEqual(
-    features.map(feature => feature.name),
+    features.map((feature) => feature.name),
     ['composer.markdownToolbar', 'composer.initialState', 'composer.workspace'],
     'composer bootstrap should expose an explicit feature lifecycle'
   );
@@ -489,7 +607,7 @@ class FakeDocument {
     ]
   });
   assert.deepEqual(
-    features.map(feature => feature.name),
+    features.map((feature) => feature.name),
     ['composer.markdownToolbar', 'composer.initialState', 'composer.workspace', 'composer.systemThemeBridge'],
     'composer bootstrap should append bridge/features that participate in the shared lifecycle'
   );
@@ -498,21 +616,26 @@ class FakeDocument {
 {
   const here = dirname(fileURLToPath(import.meta.url));
   const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
-  const controllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
   const bootstrapSource = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
   assert.doesNotMatch(composerSource, /document\.addEventListener\('DOMContentLoaded'/);
   assert.doesNotMatch(composerSource, /function bindComposerUI\(/);
-  assert.match(composerSource, /from '\.\/composer-controller-graph\.js'/);
-  assert.doesNotMatch(composerSource, /from '\.\/composer-bootstrap\.js'|from '\.\/composer-lifecycle\.js'/);
-  assert.match(controllerGraphSource, /from '\.\/composer-bootstrap\.js'/);
-  assert.match(controllerGraphSource, /from '\.\/composer-lifecycle\.js'/);
+  assert.match(composerSource, /from '\.\/composer-bootstrap\.js'/);
+  assert.doesNotMatch(
+    composerSource,
+    /from '\.\/composer-(?:controller-graph|lifecycle|service-registry|app-services|root-contract)\.js'/
+  );
   assert.match(bootstrapSource, /from '\.\/editor-app-kernel\.js'/);
   assert.match(bootstrapSource, /createComposerBootstrapFeatures/);
+  assert.match(bootstrapSource, /export function startComposerApp/);
   assert.match(bootstrapSource, /documentRef: context\.documentRef/);
   assert.match(bootstrapSource, /context\.initialComposerState = state/);
-  assert.doesNotMatch(bootstrapSource, /initSystemThemeBridge/, 'system/theme bridge init should be an explicit lifecycle feature, not workspace binding side effect');
-  assert.match(bootstrapSource, /const onDocumentReady = typeof options\.onDocumentReady === 'function'/);
-  assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m);
+  assert.doesNotMatch(
+    bootstrapSource,
+    /initSystemThemeBridge/,
+    'system/theme bridge init should be an explicit lifecycle feature, not workspace binding side effect'
+  );
+  assert.match(bootstrapSource, /const onDocumentReady =\s*typeof options\.onDocumentReady === 'function'/);
+  assert.doesNotMatch(bootstrapSource, /documentRef\.addEventListener\('DOMContentLoaded'|(^|[^.])\bsetTimeout\s*\(/m);
   assert.doesNotMatch(
     bootstrapSource,
     /consoleRef\s*=\s*console|setTimeoutRef\s*=\s*\([^)]*handler/,

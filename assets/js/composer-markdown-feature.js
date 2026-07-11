@@ -26,37 +26,47 @@ const noop = () => {};
 
 function safeCall(fn, ...args) {
   if (typeof fn !== 'function') return undefined;
-  try { return fn(...args); }
-  catch (_) { return undefined; }
+  try {
+    return fn(...args);
+  } catch (_) {
+    return undefined;
+  }
 }
 
 export function createComposerMarkdownFeature(options = {}) {
   const editorRuntime = options.editorRuntime || {};
   const documentRef = options.documentRef || null;
   const t = typeof options.t === 'function' ? options.t : (key) => String(key || '');
-  const tComposer = typeof options.tComposer === 'function' ? options.tComposer : (suffix) => `editor.composer.${suffix}`;
+  const tComposer =
+    typeof options.tComposer === 'function' ? options.tComposer : (suffix) => `editor.composer.${suffix}`;
   const consoleRef = options.consoleRef || { error: noop, warn: noop };
   const markdownWorkspace = options.markdownWorkspace || {};
-  const serviceLifecycle = options.serviceLifecycle || {};
   const draftStore = options.markdownDraftStore || null;
-  const normalizeRelPath = typeof options.normalizeRelPath === 'function' ? options.normalizeRelPath : (value) => String(value || '').replace(/[\\]/g, '/');
+  const normalizeRelPath =
+    typeof options.normalizeRelPath === 'function'
+      ? options.normalizeRelPath
+      : (value) => String(value || '').replace(/[\\]/g, '/');
   const dirnameFromPath = typeof options.dirnameFromPath === 'function' ? options.dirnameFromPath : () => '';
   const basenameFromPath = typeof options.basenameFromPath === 'function' ? options.basenameFromPath : () => '';
   const getContentRootSafe = typeof options.getContentRootSafe === 'function' ? options.getContentRootSafe : () => '';
-  const getDefaultMarkdownForPath = typeof options.getDefaultMarkdownForPath === 'function' ? options.getDefaultMarkdownForPath : () => '';
+  const getDefaultMarkdownForPath =
+    typeof options.getDefaultMarkdownForPath === 'function' ? options.getDefaultMarkdownForPath : () => '';
   const getStateSlice = typeof options.getStateSlice === 'function' ? options.getStateSlice : () => ({});
   const getCurrentMode = typeof options.getCurrentMode === 'function' ? options.getCurrentMode : () => null;
-  const getActiveSiteRepoConfig = typeof options.getActiveSiteRepoConfig === 'function' ? options.getActiveSiteRepoConfig : () => null;
+  const getActiveSiteRepoConfig =
+    typeof options.getActiveSiteRepoConfig === 'function' ? options.getActiveSiteRepoConfig : () => null;
   const isDynamicMode = typeof options.isDynamicMode === 'function' ? options.isDynamicMode : () => false;
-  const updateUnsyncedSummary = typeof options.updateUnsyncedSummary === 'function' ? options.updateUnsyncedSummary : noop;
-  const refreshEditorContentTree = typeof options.refreshEditorContentTree === 'function' ? options.refreshEditorContentTree : noop;
+  const updateUnsyncedSummary =
+    typeof options.updateUnsyncedSummary === 'function' ? options.updateUnsyncedSummary : noop;
+  const refreshEditorContentTree =
+    typeof options.refreshEditorContentTree === 'function' ? options.refreshEditorContentTree : noop;
   const showToast = typeof options.showToast === 'function' ? options.showToast : noop;
-  const requestMarkdownProtectionPassword = typeof options.requestMarkdownProtectionPassword === 'function'
-    ? options.requestMarkdownProtectionPassword
-    : async () => '';
-  const showComposerDiscardConfirm = typeof options.showComposerDiscardConfirm === 'function'
-    ? options.showComposerDiscardConfirm
-    : async () => false;
+  const requestMarkdownProtectionPassword =
+    typeof options.requestMarkdownProtectionPassword === 'function'
+      ? options.requestMarkdownProtectionPassword
+      : async () => '';
+  const showComposerDiscardConfirm =
+    typeof options.showComposerDiscardConfirm === 'function' ? options.showComposerDiscardConfirm : async () => false;
 
   let draftController = null;
   let loader = null;
@@ -69,21 +79,15 @@ export function createComposerMarkdownFeature(options = {}) {
   }
 
   function getActiveDynamicTab() {
-    return typeof markdownWorkspace.getActiveDynamicTab === 'function'
-      ? markdownWorkspace.getActiveDynamicTab()
-      : null;
+    return typeof markdownWorkspace.getActiveDynamicTab === 'function' ? markdownWorkspace.getActiveDynamicTab() : null;
   }
 
   function getDynamicEditorTabs() {
-    return typeof markdownWorkspace.getDynamicEditorTabs === 'function'
-      ? markdownWorkspace.getDynamicEditorTabs()
-      : [];
+    return typeof markdownWorkspace.getDynamicEditorTabs === 'function' ? markdownWorkspace.getDynamicEditorTabs() : [];
   }
 
   function getPrimaryEditorApi() {
-    return typeof markdownWorkspace.getPrimaryEditorApi === 'function'
-      ? markdownWorkspace.getPrimaryEditorApi()
-      : null;
+    return typeof markdownWorkspace.getPrimaryEditorApi === 'function' ? markdownWorkspace.getPrimaryEditorApi() : null;
   }
 
   function loadDynamicTabContent(tab) {
@@ -103,7 +107,8 @@ export function createComposerMarkdownFeature(options = {}) {
   }
 
   function writeMarkdownDraftStore(store) {
-    if (draftController && typeof draftController.writeDraftStore === 'function') draftController.writeDraftStore(store);
+    if (draftController && typeof draftController.writeDraftStore === 'function')
+      draftController.writeDraftStore(store);
   }
 
   function getMarkdownDraftEntry(path) {
@@ -129,11 +134,13 @@ export function createComposerMarkdownFeature(options = {}) {
   }
 
   function clearMarkdownDraftForTab(tab) {
-    if (draftController && typeof draftController.clearDraftForTab === 'function') draftController.clearDraftForTab(tab);
+    if (draftController && typeof draftController.clearDraftForTab === 'function')
+      draftController.clearDraftForTab(tab);
   }
 
   function scheduleMarkdownDraftSave(tab) {
-    if (draftController && typeof draftController.scheduleDraftSave === 'function') draftController.scheduleDraftSave(tab);
+    if (draftController && typeof draftController.scheduleDraftSave === 'function')
+      draftController.scheduleDraftSave(tab);
   }
 
   function flushMarkdownDraft(tab) {
@@ -149,7 +156,11 @@ export function createComposerMarkdownFeature(options = {}) {
   }
 
   function hasUnsavedMarkdownDrafts() {
-    return !!(draftController && typeof draftController.hasUnsavedDrafts === 'function' && draftController.hasUnsavedDrafts());
+    return !!(
+      draftController &&
+      typeof draftController.hasUnsavedDrafts === 'function' &&
+      draftController.hasUnsavedDrafts()
+    );
   }
 
   function collectDynamicMarkdownDraftStates() {
@@ -167,9 +178,10 @@ export function createComposerMarkdownFeature(options = {}) {
         editorRuntime.events.emitWindow('press-editor-asset-preview', detail);
       }
     },
-    addWindowListener: (type, handler, listenerOptions) => editorRuntime.events && typeof editorRuntime.events.onWindow === 'function'
-      ? editorRuntime.events.onWindow(type, handler, listenerOptions)
-      : noop,
+    addWindowListener: (type, handler, listenerOptions) =>
+      editorRuntime.events && typeof editorRuntime.events.onWindow === 'function'
+        ? editorRuntime.events.onWindow(type, handler, listenerOptions)
+        : noop,
     fetchContent,
     getContentRootSafe,
     getStateSlice,
@@ -179,9 +191,10 @@ export function createComposerMarkdownFeature(options = {}) {
     readMarkdownDraftStore,
     writeMarkdownDraftStore,
     getMarkdownDraftEntry,
-    findDynamicTabByPath: (path) => typeof markdownWorkspace.findDynamicTabByPath === 'function'
-      ? markdownWorkspace.findDynamicTabByPath(path)
-      : null,
+    findDynamicTabByPath: (path) =>
+      typeof markdownWorkspace.findDynamicTabByPath === 'function'
+        ? markdownWorkspace.findDynamicTabByPath(path)
+        : null,
     scheduleMarkdownDraftSave,
     updateUnsyncedSummary,
     showToast
@@ -302,25 +315,24 @@ export function createComposerMarkdownFeature(options = {}) {
     setMarkdownProtectionState,
     getDynamicEditorTabs,
     getCurrentMode,
-    pushEditorCurrentFileInfo: (tab) => typeof markdownWorkspace.pushEditorCurrentFileInfo === 'function'
-      ? markdownWorkspace.pushEditorCurrentFileInfo(tab)
-      : undefined,
-    updateMarkdownPushButton: (tab) => typeof markdownWorkspace.updateMarkdownPushButton === 'function'
-      ? markdownWorkspace.updateMarkdownPushButton(tab)
-      : undefined,
+    pushEditorCurrentFileInfo: (tab) =>
+      typeof markdownWorkspace.pushEditorCurrentFileInfo === 'function'
+        ? markdownWorkspace.pushEditorCurrentFileInfo(tab)
+        : undefined,
+    updateMarkdownPushButton: (tab) =>
+      typeof markdownWorkspace.updateMarkdownPushButton === 'function'
+        ? markdownWorkspace.updateMarkdownPushButton(tab)
+        : undefined,
     updateComposerMarkdownDraftIndicators,
     refreshEditorContentTree,
     updateUnsyncedSummary: () => updateUnsyncedSummary({ preserveStructure: true }),
     showToast,
     t,
     consoleRef,
-    setTimeoutRef: (handler, delay) => typeof editorRuntime.setTimer === 'function' ? editorRuntime.setTimer(handler, delay) : null,
+    setTimeoutRef: (handler, delay) =>
+      typeof editorRuntime.setTimer === 'function' ? editorRuntime.setTimer(handler, delay) : null,
     clearTimeoutRef: (id) => safeCall(editorRuntime.clearTimer, id)
   });
-  if (typeof serviceLifecycle.setMarkdownDraftController === 'function') {
-    serviceLifecycle.setMarkdownDraftController(draftController);
-  }
-
   loader = createComposerMarkdownLoader({
     getContentRootSafe,
     normalizeRelPath,
@@ -335,9 +347,10 @@ export function createComposerMarkdownFeature(options = {}) {
     getDefaultMarkdownForPath,
     updateDynamicTabDirtyState,
     getCurrentMode,
-    pushEditorCurrentFileInfo: (tab) => typeof markdownWorkspace.pushEditorCurrentFileInfo === 'function'
-      ? markdownWorkspace.pushEditorCurrentFileInfo(tab)
-      : undefined,
+    pushEditorCurrentFileInfo: (tab) =>
+      typeof markdownWorkspace.pushEditorCurrentFileInfo === 'function'
+        ? markdownWorkspace.pushEditorCurrentFileInfo(tab)
+        : undefined,
     refreshEditorContentTree,
     fetchContent,
     draftProtectionTitle: () => t('editor.composer.markdown.protection.draftTitle'),
@@ -345,10 +358,6 @@ export function createComposerMarkdownFeature(options = {}) {
     openProtectionTitle: () => t('editor.composer.markdown.protection.openTitle'),
     openProtectionMessage: () => t('editor.composer.markdown.protection.openMessage')
   });
-  if (typeof serviceLifecycle.setMarkdownLoader === 'function') {
-    serviceLifecycle.setMarkdownLoader(loader);
-  }
-
   actionsUi = createComposerMarkdownActionsUi({
     documentRef,
     translate: t,
@@ -360,12 +369,9 @@ export function createComposerMarkdownFeature(options = {}) {
     isMarkdownTabProtected,
     setButtonLabel: options.setButtonLabel
   });
-  if (typeof serviceLifecycle.setMarkdownActionsUi === 'function') {
-    serviceLifecycle.setMarkdownActionsUi(actionsUi);
-  }
-
   function handleBeforeUnload(event) {
-    if (draftController && typeof draftController.handleBeforeUnload === 'function') draftController.handleBeforeUnload(event);
+    if (draftController && typeof draftController.handleBeforeUnload === 'function')
+      draftController.handleBeforeUnload(event);
   }
   if (editorRuntime.events && typeof editorRuntime.events.onWindow === 'function') {
     editorRuntime.events.onWindow('beforeunload', handleBeforeUnload);
@@ -475,8 +481,9 @@ export function createComposerMarkdownFeature(options = {}) {
     if (indicatorOptions.element) return;
 
     selectors.forEach((sel) => {
-      try { Array.from(documentRef.querySelectorAll(`${sel}[data-md-path]`)).forEach(updateElement); }
-      catch (_) {}
+      try {
+        Array.from(documentRef.querySelectorAll(`${sel}[data-md-path]`)).forEach(updateElement);
+      } catch (_) {}
     });
     refreshEditorContentTree({ preserveStructure: isDynamicMode(getCurrentMode()) });
   }
@@ -484,7 +491,8 @@ export function createComposerMarkdownFeature(options = {}) {
   function createActionsController(actionOptions = {}) {
     return createComposerMarkdownActionsController({
       consoleRef,
-      confirmRef: (message) => typeof editorRuntime.confirmAction === 'function' ? editorRuntime.confirmAction(message) : true,
+      confirmRef: (message) =>
+        typeof editorRuntime.confirmAction === 'function' ? editorRuntime.confirmAction(message) : true,
       clearTimeoutRef: (id) => safeCall(editorRuntime.clearTimer, id),
       t,
       getCurrentMode,

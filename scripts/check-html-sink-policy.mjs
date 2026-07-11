@@ -80,7 +80,7 @@ const POLICY_CLASSIFICATIONS = {
 const POLICY_RATIONALE =
   'A universal sanitizer is not applicable because Press intentionally renders several trusted templates and separately sanitized renderer outputs. Owner-bound semantic identities make every existing HTML serializer, executable import, and dynamic computed-property operation reviewable without freezing whitespace-only formatting. Computed-property uncertainty is an exact merge-base-proven inventory that may only shrink, while concrete direct, aliased, descriptor, reflective, and parser sinks remain at zero.';
 const EXPECTED_COUNTS = {
-  computedPropertyControls: 403,
+  computedPropertyControls: 391,
   dynamicImports: 12,
   innerHTMLEmptyWrites: 65,
   innerHTMLWrites: 112,

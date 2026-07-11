@@ -12,7 +12,7 @@ const sourceManifest = JSON.parse(
 
 assert.equal(sourceManifest.name, '@ekilyhq/press-theme-contract');
 assert.equal(sourceManifest.version, system.version);
-assert.equal(system.version, '3.4.137');
+assert.equal(system.version, '3.4.138');
 assert.equal(system.tag, `v${system.version}`);
 assert.equal(sourceManifest.publishConfig && sourceManifest.publishConfig.registry, 'https://npm.pkg.github.com');
 

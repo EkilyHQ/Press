@@ -1,8 +1,5 @@
 import './cache-control.js';
-import {
-  fetchConfigWithYamlFallback,
-  parseYAML
-} from './yaml.js';
+import { fetchConfigWithYamlFallback, parseYAML } from './yaml.js';
 import { escapeHtml } from './utils.js';
 import { t, getAvailableLangs, getCurrentLang, getLanguageLabel } from './i18n.js';
 import {
@@ -32,18 +29,13 @@ import {
   toSiteYaml,
   writeYamlValue
 } from './composer-site-model.js';
-import {
-  createScopedStorageKey,
-  resolveEditorStorageScope
-} from './editor-storage.js';
+import { createScopedStorageKey, resolveEditorStorageScope } from './editor-storage.js';
 import { createScopedDraftStore } from './editor-drafts.js';
 import { createEditorSessionStateStore } from './editor-session-state.js';
-import {
-  COMPOSER_RUNTIME_EVENTS,
-  createComposerRuntime
-} from './composer-runtime.js';
+import { COMPOSER_RUNTIME_EVENTS, createComposerRuntime } from './composer-runtime.js';
 import { createComposerActionEffects } from './composer-action-effects.js';
-import { createComposerControllerGraph } from './composer-controller-graph.js';
+import { startComposerApp } from './composer-bootstrap.js';
+import { createComposerMarkdownWorkspaceFacade } from './composer-markdown-workspace-facade.js';
 import { createComposerFilePanelController } from './composer-file-panel-controller.js';
 import { createComposerNotificationController } from './composer-notifications.js';
 import { createComposerDialogController } from './composer-dialogs.js';
@@ -53,9 +45,7 @@ import { createComposerSetupVerifier } from './composer-setup-verifier.js';
 import { createComposerModeController, isComposerSystemMode } from './composer-mode-controller.js';
 import { createComposerUnsyncedSummaryController } from './composer-unsynced-summary.js';
 import { createComposerSystemThemeBridge } from './composer-system-theme-bridge.js';
-import {
-  createComposerUiMotionController
-} from './composer-ui-motion.js';
+import { createComposerUiMotionController } from './composer-ui-motion.js';
 import {
   applyInferredRepoConfig,
   createComposerSiteConfigController,
@@ -110,18 +100,14 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   // Utility helpers
   const $ = (selector, root = composerDocument) => {
     try {
-      return root && typeof root.querySelector === 'function'
-        ? root.querySelector(selector)
-        : null;
+      return root && typeof root.querySelector === 'function' ? root.querySelector(selector) : null;
     } catch (_) {
       return null;
     }
   };
   const $$ = (selector, root = composerDocument) => {
     try {
-      return root && typeof root.querySelectorAll === 'function'
-        ? Array.from(root.querySelectorAll(selector))
-        : [];
+      return root && typeof root.querySelectorAll === 'function' ? Array.from(root.querySelectorAll(selector)) : [];
     } catch (_) {
       return [];
     }
@@ -190,26 +176,23 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     safeString,
     isLanguageCode
   });
-  const {
-    displayLangName,
-    langFlag,
-    sortLangKeys,
-    toIndexYaml,
-    toTabsYaml
-  } = composerYamlFeature;
+  const { displayLangName, langFlag, sortLangKeys, toIndexYaml, toTabsYaml } = composerYamlFeature;
   let composerYamlRuntime = null;
 
   // --- Persisted UI state keys ---
   const LS_KEYS = {
-    cfile: 'press_composer_file',           // 'index' | 'tabs' | 'site'
+    cfile: 'press_composer_file', // 'index' | 'tabs' | 'site'
     editorState: 'press_composer_editor_state', // persisted dynamic editor info
     systemTreeExpanded: 'press_editor_system_tree_expanded'
   };
   const EDITOR_STATE_VERSION = 3;
 
   const EDITOR_STORAGE_SCOPE = (() => {
-    try { return resolveEditorStorageScope(editorRuntime.getLocation()); }
-    catch (_) { return 'unknown'; }
+    try {
+      return resolveEditorStorageScope(editorRuntime.getLocation());
+    } catch (_) {
+      return 'unknown';
+    }
   })();
 
   function scopedEditorStorageKey(key) {
@@ -231,13 +214,8 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     openWindowRef: (href, target, features) => editorRuntime.openWindow(href, target, features),
     consoleRef: composerLogger
   });
-  const {
-    showToast,
-    preparePopupWindow,
-    closePopupWindow,
-    finalizePopupWindow,
-    handlePopupBlocked
-  } = composerNotifications;
+  const { showToast, preparePopupWindow, closePopupWindow, finalizePopupWindow, handlePopupBlocked } =
+    composerNotifications;
   const composerDialogs = createComposerDialogController({
     documentRef: composerDocument,
     t,
@@ -267,23 +245,14 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     storageKey: MARKDOWN_DRAFT_STORAGE_KEY,
     scopeKey: scopedEditorStorageKey
   });
-  const composerControllerGraph = createComposerControllerGraph({
-    serviceRegistry: {
-      onDiagnostic: (diagnostic) => {
-        composerLogger.warn('Composer service diagnostic', diagnostic);
-      }
-    }
+  let markdownSessionController = null;
+  let markdownWorkspaceController = null;
+  let modeController = null;
+  let unsyncedSummaryController = null;
+  const markdownWorkspace = createComposerMarkdownWorkspaceFacade({
+    getController: () => markdownWorkspaceController
   });
   const {
-    composerServices,
-    composerServiceLifecycle,
-    markdownWorkspace
-  } = composerControllerGraph;
-  const {
-    getMarkdownActionsUi,
-    getMarkdownDraftController,
-    getMarkdownLoader,
-    getMarkdownSessionController,
     getPrimaryEditorApi,
     restorePrimaryEditorMarkdownView,
     ensurePrimaryEditorListener,
@@ -330,7 +299,6 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     tComposer,
     consoleRef: composerLogger,
     markdownWorkspace,
-    serviceLifecycle: composerServiceLifecycle,
     markdownDraftStore,
     normalizeRelPath,
     dirnameFromPath,
@@ -397,9 +365,10 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     getStateSlice,
     setStateSlice,
     notifyComposerChange,
-    getStagedContentCommitFiles: () => getLegacyContentModelMigrationFiles(
-      composerStateStore.getActiveState() && composerStateStore.getActiveState()[CONTENT_MODEL_MIGRATION_STATE_KEY]
-    ),
+    getStagedContentCommitFiles: () =>
+      getLegacyContentModelMigrationFiles(
+        composerStateStore.getActiveState() && composerStateStore.getActiveState()[CONTENT_MODEL_MIGRATION_STATE_KEY]
+      ),
     updateUnsyncedSummary: () => composerActions.refreshSystemThemeState({ preserveStructure: true }),
     refreshEditorContentTree: (options) => composerActions.refreshEditorContentTree(options)
   });
@@ -451,9 +420,10 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     computeIndexDiff,
     recomputeDiff,
     listMarkdownAssetDeletions,
-    getContentModelMigrationFiles: () => getLegacyContentModelMigrationFiles(
-      composerStateStore.getActiveState() && composerStateStore.getActiveState()[CONTENT_MODEL_MIGRATION_STATE_KEY]
-    ),
+    getContentModelMigrationFiles: () =>
+      getLegacyContentModelMigrationFiles(
+        composerStateStore.getActiveState() && composerStateStore.getActiveState()[CONTENT_MODEL_MIGRATION_STATE_KEY]
+      ),
     draftHasAssetDeletions,
     textWithFallback,
     getRemoteBaselineSite: () => composerStateStore.getRemoteBaseline('site'),
@@ -575,7 +545,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     refreshSyncCommitPanel,
     readMarkdownDraftStore,
     collectDynamicMarkdownDraftStates,
-    getMarkdownSessionController,
+    getMarkdownSessionController: () => markdownSessionController,
     getComposerDiff: (kind) => composerStateStore.getDiff(kind),
     getRemoteBaseline: (kind) => composerStateStore.getRemoteBaseline(kind),
     recomputeDiff,
@@ -625,7 +595,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     setEditorDetailPanelMode,
     setEditorStructurePanelVisible
   } = composerEditorWorkspaceFeature;
-  composerServiceLifecycle.setMarkdownSessionController(createComposerMarkdownSessionController({
+  markdownSessionController = createComposerMarkdownSessionController({
     editorStateVersion: EDITOR_STATE_VERSION,
     editorSessionStateStore,
     normalizeRelPath,
@@ -664,12 +634,12 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     detachPrimaryEditorListeners,
     updateMarkdownActionsForTab,
     updateComposerMarkdownDraftIndicators
-  }));
-  composerServiceLifecycle.setMarkdownWorkspaceController(createComposerMarkdownWorkspaceController({
+  });
+  markdownWorkspaceController = createComposerMarkdownWorkspaceController({
     getPrimaryEditorApi: () => editorRuntime.globals.getPrimaryEditorApi(),
-    getMarkdownSessionController,
-    getMarkdownActionsUi,
-    getMarkdownLoader,
+    getMarkdownSessionController: () => markdownSessionController,
+    getMarkdownActionsUi: () => composerMarkdownFeature.actionsUi,
+    getMarkdownLoader: () => composerMarkdownFeature.loader,
     getCurrentMode: () => getCurrentComposerMode(),
     getTabsEntry,
     getEditorTreeFileNodeByPath,
@@ -677,8 +647,8 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     updateDynamicTabDirtyState,
     inferMarkdownSourceFromPath,
     buildCurrentFileBreadcrumb
-  }));
-  composerServiceLifecycle.setModeController(createComposerModeController({
+  });
+  modeController = createComposerModeController({
     documentRef: composerDocument,
     getDynamicEditorTabs: () => getDynamicEditorTabs(),
     isDynamicMode,
@@ -711,10 +681,12 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     requestAnimationFrameRef: (handler) => editorRuntime.requestFrame(handler),
     alertRef: (message) => editorRuntime.showAlert(message),
     consoleRef: composerLogger
-  }));
+  });
 
   function getCurrentComposerMode() {
-    return composerServices.getCurrentMode();
+    return modeController && typeof modeController.getCurrentMode === 'function'
+      ? modeController.getCurrentMode()
+      : null;
   }
 
   function shouldPreserveEditorStructureForMode(mode) {
@@ -740,7 +712,9 @@ export function createComposerController(editorRuntime = createComposerRuntime()
         else setComposerOrderPreviewActiveKind(normalized);
       } catch (_) {}
       const summaryOptions = normalized === 'site' ? { immediate: true } : undefined;
-      try { updateUnsyncedSummary(summaryOptions); } catch (_) {}
+      try {
+        updateUnsyncedSummary(summaryOptions);
+      } catch (_) {}
     }
   });
   const composerSiteConfigController = createComposerSiteConfigController({
@@ -856,7 +830,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     handleComposerDiscard,
     handleComposerRefresh
   } = composerYamlRuntime;
-  composerServiceLifecycle.setUnsyncedSummaryController(createComposerUnsyncedSummaryController({
+  unsyncedSummaryController = createComposerUnsyncedSummaryController({
     documentRef: composerDocument,
     getDynamicEditorTabs: () => getDynamicEditorTabs(),
     normalizeRelPath,
@@ -879,7 +853,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     shouldPreserveEditorStructure: () => shouldPreserveEditorStructureForMode(getCurrentComposerMode()),
     refreshComposerInlineMeta,
     scheduleSyncCommitPanelRefresh
-  }));
+  });
 
   function getActiveComposerFile() {
     return composerFilePanelController.getActiveComposerFile();
@@ -978,7 +952,10 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   editorRuntime.events.onDocument('press-editor-language-applied', refreshEditorLanguageUi);
 
   function getUnsyncedSummaryController() {
-    return composerServices.getUnsyncedSummaryController();
+    if (!unsyncedSummaryController) {
+      throw new Error('Unsynced summary controller is not initialized');
+    }
+    return unsyncedSummaryController;
   }
 
   function collectUnsyncedMarkdownEntries() {
@@ -1137,7 +1114,9 @@ export function createComposerController(editorRuntime = createComposerRuntime()
   }
 
   function rawApplyMode(mode, options = {}) {
-    composerServices.applyMode(mode, options);
+    if (!modeController || typeof modeController.applyMode !== 'function') return false;
+    const result = modeController.applyMode(mode, options);
+    return result === undefined ? false : result;
   }
 
   function applyMode(mode, options = {}) {
@@ -1161,9 +1140,15 @@ export function createComposerController(editorRuntime = createComposerRuntime()
 
   // Apply initial state as early as possible to avoid flash on reload
   (() => {
-    try { applyMode('editor'); } catch (_) {}
-    try { applyComposerFile(getInitialComposerFile(), { immediate: true, force: true }); } catch (_) {}
-    try { updateDynamicTabsGroupState(); } catch (_) {}
+    try {
+      applyMode('editor');
+    } catch (_) {}
+    try {
+      applyComposerFile(getInitialComposerFile(), { immediate: true, force: true });
+    } catch (_) {}
+    try {
+      updateDynamicTabsGroupState();
+    } catch (_) {}
   })();
 
   // Robust clipboard helper available to all composer flows
@@ -1214,7 +1199,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     updateUnsyncedSummary();
   }
 
-  const composerStartup = composerControllerGraph.createStartup({
+  const composerStartupOptions = {
     editorRuntime,
     documentRef: composerDocument,
     windowRef: composerWindow,
@@ -1248,12 +1233,13 @@ export function createComposerController(editorRuntime = createComposerRuntime()
       fetchTrackedSiteConfig: fetchComposerTrackedSiteConfig,
       applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,
       fetchConfigWithYamlFallback,
-      loadContentModelMigration: (options) => loadLegacyContentModelMigration({
-        ...options,
-        languages: getAvailableLangs(),
-        currentLang: getCurrentLang(),
-        fetchImpl: (url, fetchOptions) => editorRuntime.fetchContent(url, fetchOptions)
-      }),
+      loadContentModelMigration: (options) =>
+        loadLegacyContentModelMigration({
+          ...options,
+          languages: getAvailableLangs(),
+          currentLang: getCurrentLang(),
+          fetchImpl: (url, fetchOptions) => editorRuntime.fetchContent(url, fetchOptions)
+        }),
       prepareSiteState,
       prepareIndexState,
       prepareTabsState,
@@ -1301,10 +1287,25 @@ export function createComposerController(editorRuntime = createComposerRuntime()
       openComposerDiffModal,
       bindVerifySetup
     }
-  });
+  };
+
+  function assertComposerControllersReady() {
+    const missing = [
+      ['markdown session', markdownSessionController],
+      ['markdown workspace', markdownWorkspaceController],
+      ['mode', modeController],
+      ['unsynced summary', unsyncedSummaryController]
+    ]
+      .filter(([, controller]) => !controller)
+      .map(([name]) => name);
+    if (missing.length) {
+      throw new Error(`Composer controllers are not initialized: ${missing.join(', ')}`);
+    }
+  }
 
   function start() {
-    return composerStartup.start();
+    assertComposerControllersReady();
+    return startComposerApp(composerStartupOptions);
   }
 
   return { start };

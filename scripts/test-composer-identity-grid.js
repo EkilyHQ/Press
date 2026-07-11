@@ -50,7 +50,10 @@ const composerSiteSettingsConfigGridsPath = resolve(here, '../assets/js/composer
 const composerSiteSettingsControlsPath = resolve(here, '../assets/js/composer-site-settings-controls.js');
 const composerSiteSettingsLanguageMenuPath = resolve(here, '../assets/js/composer-site-settings-language-menu.js');
 const composerSiteSettingsLinkListPath = resolve(here, '../assets/js/composer-site-settings-link-list.js');
-const composerSiteSettingsLocalizedFieldsPath = resolve(here, '../assets/js/composer-site-settings-localized-fields.js');
+const composerSiteSettingsLocalizedFieldsPath = resolve(
+  here,
+  '../assets/js/composer-site-settings-localized-fields.js'
+);
 const composerSiteSettingsRepoSectionPath = resolve(here, '../assets/js/composer-site-settings-repo-section.js');
 const composerSiteSettingsSchemaPath = resolve(here, '../assets/js/composer-site-settings-schema.js');
 const composerSiteSettingsSectionNavPath = resolve(here, '../assets/js/composer-site-settings-section-nav.js');
@@ -67,15 +70,14 @@ const composerModeControllerPath = resolve(here, '../assets/js/composer-mode-con
 const composerUnsyncedSummaryPath = resolve(here, '../assets/js/composer-unsynced-summary.js');
 const composerRuntimeStylesPath = resolve(here, '../assets/js/composer-runtime-styles.js');
 const composerSystemThemeBridgePath = resolve(here, '../assets/js/composer-system-theme-bridge.js');
-const composerControllerGraphPath = resolve(here, '../assets/js/composer-controller-graph.js');
 const composerBootstrapPath = resolve(here, '../assets/js/composer-bootstrap.js');
-const composerLifecyclePath = resolve(here, '../assets/js/composer-lifecycle.js');
 const composerRuntimePath = resolve(here, '../assets/js/composer-runtime.js');
-const composerServiceRegistryPath = resolve(here, '../assets/js/composer-service-registry.js');
-const composerAppServicesPath = resolve(here, '../assets/js/composer-app-services.js');
 const composerEditorTreeStatePath = resolve(here, '../assets/js/composer-editor-tree-state.js');
 const composerFilePanelControllerPath = resolve(here, '../assets/js/composer-file-panel-controller.js');
-const composerEditorDetailPanelControllerPath = resolve(here, '../assets/js/composer-editor-detail-panel-controller.js');
+const composerEditorDetailPanelControllerPath = resolve(
+  here,
+  '../assets/js/composer-editor-detail-panel-controller.js'
+);
 const composerUiMotionPath = resolve(here, '../assets/js/composer-ui-motion.js');
 const composerSiteConfigPath = resolve(here, '../assets/js/composer-site-config.js');
 const editorContentTreeControllerPath = resolve(here, '../assets/js/editor-content-tree-controller.js');
@@ -239,12 +241,8 @@ const composerModeControllerSource = readFileSync(composerModeControllerPath, 'u
 const composerUnsyncedSummarySource = readFileSync(composerUnsyncedSummaryPath, 'utf8');
 const composerRuntimeStylesSource = readFileSync(composerRuntimeStylesPath, 'utf8');
 const composerSystemThemeBridgeSource = readFileSync(composerSystemThemeBridgePath, 'utf8');
-const composerControllerGraphSource = readFileSync(composerControllerGraphPath, 'utf8');
 const composerBootstrapSource = readFileSync(composerBootstrapPath, 'utf8');
-const composerLifecycleSource = readFileSync(composerLifecyclePath, 'utf8');
 const composerRuntimeSource = readFileSync(composerRuntimePath, 'utf8');
-const composerServiceRegistrySource = readFileSync(composerServiceRegistryPath, 'utf8');
-const composerAppServicesSource = readFileSync(composerAppServicesPath, 'utf8');
 const composerEditorTreeStateSource = readFileSync(composerEditorTreeStatePath, 'utf8');
 const composerFilePanelControllerSource = readFileSync(composerFilePanelControllerPath, 'utf8');
 const composerEditorDetailPanelControllerSource = readFileSync(composerEditorDetailPanelControllerPath, 'utf8');
@@ -369,7 +367,12 @@ const composerSiteSettingsRuntimeSource = [
   composerSiteSettingsSectionNavSource,
   composerSiteSettingsSingleGridsSource
 ].join('\n');
-const siteSettingsSource = [source, composerSiteSettingsRuntimeSource, composerRuntimeStylesSource, composerUiMotionSource].join('\n');
+const siteSettingsSource = [
+  source,
+  composerSiteSettingsRuntimeSource,
+  composerRuntimeStylesSource,
+  composerUiMotionSource
+].join('\n');
 
 function extractFunctionBody(text, name) {
   const start = text.indexOf(`function ${name}(`);
@@ -1646,7 +1649,7 @@ assert.match(
 
 assert.match(
   composerMarkdownFeatureSource,
-  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*emitMarkdownAssetPreview: \(detail\) => \{[\s\S]*editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\);[\s\S]*addWindowListener: \(type, handler, listenerOptions\) => editorRuntime\.events && typeof editorRuntime\.events\.onWindow === 'function'[\s\S]*fetchContent,[\s\S]*\}\);/,
+  /const markdownAssetManager = createComposerMarkdownAssetManager\(\{[\s\S]*emitMarkdownAssetPreview: \(detail\) => \{[\s\S]*editorRuntime\.events\.emitWindow\('press-editor-asset-preview', detail\);[\s\S]*addWindowListener: \(type, handler, listenerOptions\) =>\s*editorRuntime\.events && typeof editorRuntime\.events\.onWindow === 'function'[\s\S]*fetchContent,[\s\S]*\}\);/,
   'Markdown feature should inject Markdown asset preview events, editor asset listeners, and repository fetches through the runtime boundary'
 );
 
@@ -1699,10 +1702,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  [
-    composerEditorShellSource,
-    composerSystemPanelSource
-  ].join('\n'),
+  [composerEditorShellSource, composerSystemPanelSource].join('\n'),
   /\bwindowRef\b|typeof window\b|typeof (?:requestAnimationFrame|setTimeout|clearTimeout)\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame)\s*\(|documentRef\.(?:addEventListener|removeEventListener)\(/m,
   'editor shell and system panel should receive window, scheduling, media, viewport, scroll, and document listener effects through explicit runtime adapters'
 );
@@ -1804,9 +1804,9 @@ assert.match(
 );
 
 assert.match(
-  composerControllerGraphSource,
-  /from '\.\/composer-service-registry\.js'/,
-  'composer controller graph should cache-bust the explicit composer service registry boundary'
+  source,
+  /from '\.\/composer-markdown-workspace-facade\.js'/,
+  'composer should cache-bust the narrow late-bound Markdown workspace facade'
 );
 
 assert.match(
@@ -1900,7 +1900,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
- [
+  [
     composerSiteConfigSource,
     composerYamlSiteFeatureSource,
     composerYamlActionsSource,
@@ -1916,50 +1916,26 @@ assert.doesNotMatch(
 
 assert.match(
   source,
-  /const composerControllerGraph = createComposerControllerGraph\(\{[\s\S]*serviceRegistry:[\s\S]*onDiagnostic:[\s\S]*Composer service diagnostic[\s\S]*\}\s*\}\);[\s\S]*const composerMarkdownFeature = createComposerMarkdownFeature\(\{[\s\S]*serviceLifecycle: composerServiceLifecycle,[\s\S]*\}\);[\s\S]*composerServiceLifecycle\.setMarkdownSessionController\(createComposerMarkdownSessionController\(\{[\s\S]*composerServiceLifecycle\.setMarkdownWorkspaceController\(createComposerMarkdownWorkspaceController\(\{[\s\S]*composerServiceLifecycle\.setModeController\(createComposerModeController\(\{[\s\S]*composerServiceLifecycle\.setUnsyncedSummaryController\(createComposerUnsyncedSummaryController\(\{/,
-  'composer should register root-level late-bound controllers through the explicit composer service lifecycle and delegate Markdown feature internals to the feature boundary'
+  /let markdownSessionController = null;[\s\S]*let markdownWorkspaceController = null;[\s\S]*let modeController = null;[\s\S]*let unsyncedSummaryController = null;[\s\S]*createComposerMarkdownWorkspaceFacade\(\{[\s\S]*getController: \(\) => markdownWorkspaceController[\s\S]*const composerMarkdownFeature = createComposerMarkdownFeature\(\{[\s\S]*markdownSessionController = createComposerMarkdownSessionController\(\{[\s\S]*markdownWorkspaceController = createComposerMarkdownWorkspaceController\(\{[\s\S]*modeController = createComposerModeController\(\{[\s\S]*unsyncedSummaryController = createComposerUnsyncedSummaryController\(\{/,
+  'composer should make the four genuinely late-bound controller references explicit and keep Markdown internals inside the feature boundary'
 );
 
-assert.match(
+assert.doesNotMatch(
   composerMarkdownFeatureSource,
-  /serviceLifecycle\.setMarkdownDraftController\(draftController\);[\s\S]*serviceLifecycle\.setMarkdownLoader\(loader\);[\s\S]*serviceLifecycle\.setMarkdownActionsUi\(actionsUi\);/,
-  'Markdown feature should register draft, loader, and actions UI controllers through the explicit composer service lifecycle'
-);
-
-assert.match(
-  composerControllerGraphSource,
-  /from '\.\/composer-service-registry\.js'[\s\S]*from '\.\/composer-app-services\.js'[\s\S]*from '\.\/composer-markdown-workspace-facade\.js'[\s\S]*export function createComposerControllerGraph\(options = \{\}\)[\s\S]*const composerServices = createServiceRegistry[\s\S]*const composerServiceLifecycle = createServiceLifecycle\(composerServices[\s\S]*const markdownWorkspace = createMarkdownWorkspaceFacade\(\{[\s\S]*services: composerServices/,
-  'composer controller graph should own service registry, lifecycle, and Markdown workspace facade construction'
+  /serviceLifecycle|composerServiceLifecycle|composerServices/,
+  'Markdown feature should return its owned controllers directly instead of registering them in a generic service container'
 );
 
 assert.doesNotMatch(
   source,
-  /let\s+(?:markdownLoader|markdownActionsUi|markdownDraftController|markdownSessionController|markdownWorkspaceController|modeController|unsyncedSummaryController)\s*=|(?:markdownLoader|markdownActionsUi|markdownDraftController|markdownSessionController|markdownWorkspaceController|modeController|unsyncedSummaryController)\s*=\s*create/,
-  'composer should not own ad hoc late-bound controller slots at the root'
-);
-
-assert.match(
-  composerAppServicesSource,
-  /export const COMPOSER_SERVICE_PLAN = Object\.freeze\(\[[\s\S]*slot: 'markdownDraftController'[\s\S]*slot: 'markdownLoader'[\s\S]*slot: 'markdownActionsUi'[\s\S]*slot: 'markdownSessionController'[\s\S]*slot: 'markdownWorkspaceController'[\s\S]*slot: 'modeController'[\s\S]*slot: 'unsyncedSummaryController'[\s\S]*\]\);/,
-  'composer app service plan should name every allowed late-bound composer dependency'
-);
-
-assert.match(
-  composerServiceRegistrySource,
-  /import \{ COMPOSER_SERVICE_PLAN, COMPOSER_SERVICE_SLOTS \} from '\.\/composer-app-services\.js';[\s\S]*export const COMPOSER_SERVICE_CALLS = Object\.freeze\(\{[\s\S]*getCurrentMode: Object\.freeze\(\{[\s\S]*slot: 'modeController',[\s\S]*method: 'getCurrentMode',[\s\S]*fallback: null[\s\S]*getCurrentMode: \(\) => call\(COMPOSER_SERVICE_CALLS\.getCurrentMode\),[\s\S]*getMarkdownDraftController: \(\) => requireService\('markdownDraftController', labelsBySlot\.get\('markdownDraftController'\)\),[\s\S]*getMarkdownWorkspaceController: \(\) => requireService\('markdownWorkspaceController', labelsBySlot\.get\('markdownWorkspaceController'\)\),[\s\S]*setModeController: \(service\) => set\('modeController', service\),/,
-  'composer service registry should expose explicit service call descriptors, getters, and setters instead of anonymous root slots'
-);
-
-assert.match(
-  composerServiceRegistrySource,
-  /function createDiagnostic\(entry = \{\}, labelsBySlot = new Map\(\)\)[\s\S]*reason[\s\S]*export function createComposerServiceRegistry\(options = \{\}\)[\s\S]*clearDiagnostics: \(\) => \{[\s\S]*diagnostics\.splice[\s\S]*getDiagnostics: \(\) => diagnostics\.slice\(\)/,
-  'composer service registry should report contract diagnostics instead of silently returning fallbacks for mismatched services'
+  /composer-(?:app-services|controller-graph|lifecycle|root-contract|service-registry)\.js|composerServiceLifecycle|composerServices/,
+  'composer should not retain the generic service-registry, controller-graph, duplicate-lifecycle, or root-contract ceremony'
 );
 
 assert.match(
   source,
-  /function rawApplyMode\(mode, options = \{\}\) \{\s*composerServices\.applyMode\(mode, options\);\s*\}[\s\S]*function applyMode\(mode, options = \{\}\) \{\s*return composerActions\.applyMode\(mode, options\);[\s\S]*\}/,
-  'composer applyMode should delegate through the explicit action contract into the service registry'
+  /function rawApplyMode\(mode, options = \{\}\) \{[\s\S]*modeController\.applyMode\(mode, options\);[\s\S]*function applyMode\(mode, options = \{\}\) \{\s*return composerActions\.applyMode\(mode, options\);[\s\S]*\}/,
+  'composer applyMode should delegate through the action contract into the focused mode controller'
 );
 
 assert.match(
@@ -1976,7 +1952,7 @@ assert.match(
 
 assert.match(
   source,
-  /composerServiceLifecycle\.setModeController\(createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\)\);/,
+  /modeController = createComposerModeController\(\{[\s\S]*documentRef: composerDocument,[\s\S]*requestAnimationFrameRef: \(handler\) => editorRuntime\.requestFrame\(handler\),[\s\S]*alertRef: \(message\) => editorRuntime\.showAlert\(message\),[\s\S]*consoleRef: composerLogger[\s\S]*\}\);/,
   'composer should inject mode-controller frame scheduling, alerts, and logging through the runtime boundary'
 );
 
@@ -2012,20 +1988,14 @@ assert.match(
 
 assert.match(
   source,
-  /from '\.\/composer-controller-graph\.js'/,
-  'composer should cache-bust the extracted controller graph and startup boundary'
+  /from '\.\/composer-bootstrap\.js'/,
+  'composer should cache-bust the focused bootstrap boundary directly'
 );
 
 assert.match(
-  composerControllerGraphSource,
-  /from '\.\/composer-lifecycle\.js'/,
-  'composer controller graph should cache-bust the extracted controller lifecycle boundary'
-);
-
-assert.match(
-  composerLifecycleSource,
+  composerBootstrapSource,
   /from '\.\/composer-runtime-styles\.js'/,
-  'composer lifecycle should cache-bust the extracted runtime style boundary'
+  'composer bootstrap should cache-bust the extracted runtime style boundary'
 );
 
 assert.doesNotMatch(
@@ -2035,9 +2005,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  composerLifecycleSource,
-  /name: 'composer\.runtimeStyles'[\s\S]*requires: \['documentRef', 'runtimeStyles', 'composerDomBootstrap'\][\s\S]*context\.injectRuntimeStyles\(\{ documentRef: context\.documentRef \}\);/,
-  'composer should delegate runtime style injection through the shared lifecycle and runtime document ref'
+  composerBootstrapSource,
+  /export function startComposerApp\(options = \{\}\)[\s\S]*composerActions\.assertReady\(\);[\s\S]*const bootstrapHandler = initializeComposerAppRef\(appOptions\);[\s\S]*injectRuntimeStyles\(\{ documentRef: appOptions\.documentRef \}\);/,
+  'composer should delegate action readiness, DOM bootstrap, and runtime styles to the focused bootstrap owner'
 );
 
 assert.match(
@@ -2861,8 +2831,8 @@ assert.match(
 );
 
 assert.match(
-  `${source}\n${composerEditorWorkspaceFeatureSource}\n${composerControllerGraphSource}`,
-  /getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*setAllowEditorStatePersist: \(value\) => getFunction\(editorRuntime, 'setAllowEditorStatePersist'\)\(value\)/,
+  `${source}\n${composerEditorWorkspaceFeatureSource}\n${composerBootstrapSource}`,
+  /getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*getAllowEditorStatePersist: \(\) => editorRuntime\.getAllowEditorStatePersist\(\)[\s\S]*setAllowEditorStatePersist: \(value\) =>\s*typeof editorRuntime\.setAllowEditorStatePersist === 'function'[\s\S]*editorRuntime\.setAllowEditorStatePersist\(value\)/,
   'composer should route editor-state persistence gates through the explicit composer runtime'
 );
 
@@ -2981,7 +2951,7 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  `${source}\n${composerControllerGraphSource}`,
+  `${source}\n${composerBootstrapSource}`,
   /const composerSystemThemeBridge = createComposerSystemThemeBridge\(\{[\s\S]*consoleRef: composerLogger,[\s\S]*localStorageRef: editorRuntime\.storage\.native,[\s\S]*getStateSlice,[\s\S]*setStateSlice,[\s\S]*notifyComposerChange,[\s\S]*updateUnsyncedSummary: \(\) => composerActions\.refreshSystemThemeState\(\{ preserveStructure: true \}\)[\s\S]*refreshEditorContentTree: \(options\) => composerActions\.refreshEditorContentTree\(options\)[\s\S]*\}\);[\s\S]*registerExternalStagingProviders: \(registry\) => composerSystemThemeBridge\.registerStagingProviders\(registry\)[\s\S]*composerSystemThemeBridge\.hasSystemUpdateEntries\(\)[\s\S]*composerSystemThemeBridge\.hasThemeEntries\(\)[\s\S]*composerSystemThemeBridge\.createLifecycleFeature\(\)/,
   'composer should delegate system/theme staging, status, and initialization through bridge lifecycle callbacks'
 );
@@ -3059,9 +3029,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  composerControllerGraphSource,
-  /from '\.\/composer-lifecycle\.js'[\s\S]*from '\.\/composer-bootstrap\.js'[\s\S]*export function createComposerControllerStartup\(options = \{\}\)/,
-  'composer should cache-bust the extracted DOM bootstrap, workspace assembly, and controller lifecycle boundaries'
+  source,
+  /const composerStartupOptions = \{[\s\S]*composerSystemThemeBridge,[\s\S]*function start\(\) \{[\s\S]*assertComposerControllersReady\(\);[\s\S]*return startComposerApp\(composerStartupOptions\);/,
+  'composer should pass explicit controller wiring into the focused DOM/bootstrap owner'
 );
 
 assert.match(
@@ -3078,20 +3048,20 @@ assert.doesNotMatch(
 
 assert.match(
   composerBootstrapSource,
-  /export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*ensureSiteRepo\(\)[\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*getLocation\(\)[\s\S]*restoreDynamicEditorState[\s\S]*export async function initializeComposerOnDomReady\(options = \{\}\)[\s\S]*createComposerBootstrapFeatures\(\{[\s\S]*setActiveComposerState[\s\S]*\}\)\.forEach\(feature => kernel\.registerFeature\(feature\)\);[\s\S]*export function createComposerBootstrapFeatures\(options = \{\}\)[\s\S]*extraFeatures[\s\S]*return features\.concat\(Array\.isArray\(extraFeatures\) \? extraFeatures : \[\]\);[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*const onDocumentReady = typeof options\.onDocumentReady === 'function'[\s\S]*onDocumentReady\(handler\)/,
+  /export function startComposerApp\(options = \{\}\)[\s\S]*composerActions\.assertReady\(\);[\s\S]*export function bindComposerMarkdownToolbar\([\s\S]*btnPushMarkdown[\s\S]*export function bindComposerWorkspaceUi\([\s\S]*mountEditorSystemPanels[\s\S]*export async function loadInitialComposerState\([\s\S]*ensureSiteRepo\(\)[\s\S]*fetchTrackedSiteConfig[\s\S]*export function assembleComposerWorkspace\([\s\S]*getLocation\(\)[\s\S]*restoreDynamicEditorState[\s\S]*export async function initializeComposerOnDomReady\(options = \{\}\)[\s\S]*createComposerBootstrapFeatures\(\{[\s\S]*setActiveComposerState[\s\S]*\}\)\.forEach\(\(feature\) => kernel\.registerFeature\(feature\)\);[\s\S]*export function createComposerBootstrapFeatures\(options = \{\}\)[\s\S]*extraFeatures[\s\S]*return features\.concat\(Array\.isArray\(extraFeatures\) \? extraFeatures : \[\]\);[\s\S]*export function initializeComposerApp\(options = \{\}\)[\s\S]*const onDocumentReady =\s*typeof options\.onDocumentReady === 'function'[\s\S]*onDocumentReady\(handler\)/,
   'bootstrap module should own Markdown toolbar binding, initial config loading, workspace assembly, and extension features through runtime callbacks'
 );
 
 assert.match(
-  composerLifecycleSource,
-  /from '\.\/editor-app-kernel\.js'[\s\S]*export function createComposerLifecycle\(options = \{\}\)[\s\S]*name: 'composer-controller'[\s\S]*name: 'composer\.controllerServices'[\s\S]*context\.composerServiceLifecycle\.assertReady\(\);[\s\S]*context\.composerActions\.assertReady\(\);[\s\S]*name: 'composer\.domBootstrap'[\s\S]*context\.initializeComposerApp\(\{[\s\S]*name: 'composer\.runtimeStyles'/,
-  'composer lifecycle should run controller readiness, DOM bootstrap, and runtime styles through the shared app kernel'
+  composerBootstrapSource,
+  /from '\.\/editor-app-kernel\.js'[\s\S]*export function startComposerApp\(options = \{\}\)[\s\S]*composerActions\.assertReady\(\);[\s\S]*initializeComposerAppRef\(appOptions\);[\s\S]*injectRuntimeStyles\(\{ documentRef: appOptions\.documentRef \}\);[\s\S]*export async function initializeComposerOnDomReady\(options = \{\}\)[\s\S]*createEditorAppKernel\(/,
+  'composer bootstrap should check action readiness and then use the shared app kernel for DOM workspace phases'
 );
 
 assert.doesNotMatch(
   composerBootstrapSource,
-  /documentRef\.addEventListener\('DOMContentLoaded'|\bwindowRef\b|(^|[^.])\bsetTimeout\s*\(/m,
-  'bootstrap module should not rediscover DOM ready, location, or timers outside injected runtime callbacks'
+  /documentRef\.addEventListener\('DOMContentLoaded'|(^|[^.])\bsetTimeout\s*\(/m,
+  'bootstrap module should not rediscover DOM ready or timers outside injected runtime callbacks'
 );
 
 assert.doesNotMatch(
@@ -3348,7 +3318,7 @@ assert.match(
 
 assert.match(
   composerMarkdownFeatureSource,
-  /createComposerMarkdownActionsController\(\{[\s\S]*consoleRef,[\s\S]*confirmRef: \(message\) => typeof editorRuntime\.confirmAction === 'function' \? editorRuntime\.confirmAction\(message\) : true,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\),/,
+  /createComposerMarkdownActionsController\(\{[\s\S]*consoleRef,[\s\S]*confirmRef: \(message\) =>\s*typeof editorRuntime\.confirmAction === 'function' \? editorRuntime\.confirmAction\(message\) : true,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\),/,
   'Markdown feature should inject Markdown action dialogs, logging, and timer clearing through the runtime boundary'
 );
 
@@ -3420,7 +3390,7 @@ assert.match(
 
 assert.match(
   composerMarkdownFeatureSource,
-  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef,[\s\S]*setTimeoutRef: \(handler, delay\) => typeof editorRuntime\.setTimer === 'function' \? editorRuntime\.setTimer\(handler, delay\) : null,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\)[\s\S]*\}\)/,
+  /createComposerMarkdownDraftController\(\{[\s\S]*consoleRef,[\s\S]*setTimeoutRef: \(handler, delay\) =>\s*typeof editorRuntime\.setTimer === 'function' \? editorRuntime\.setTimer\(handler, delay\) : null,[\s\S]*clearTimeoutRef: \(id\) => safeCall\(editorRuntime\.clearTimer, id\)[\s\S]*\}\)/,
   'Markdown feature should inject Markdown draft logging and autosave timers explicitly'
 );
 
@@ -3519,7 +3489,11 @@ protectedStagingRegistry.registerStagingProvider({
   getCommitFiles: () => [protectedPlaintextEntry]
 });
 const protectedStagedResult = await protectedStagingRegistry.getCommitFiles();
-assert.equal(protectedStagedResult.files[0].plaintextContent, 'plain text baseline', 'staging registry should preserve protected markdown plaintext baselines');
+assert.equal(
+  protectedStagedResult.files[0].plaintextContent,
+  'plain text baseline',
+  'staging registry should preserve protected markdown plaintext baselines'
+);
 assert.equal(
   Object.prototype.propertyIsEnumerable.call(protectedStagedResult.files[0], 'plaintextContent'),
   false,
@@ -3574,9 +3548,21 @@ assert.match(
   'editor storage helper should build scoped local storage keys'
 );
 
-assert.match(source, /createEditorSessionStateStore\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*keys: LS_KEYS/, 'editor session state should use site-scoped browser storage');
-assert.match(source, /createScopedDraftStore\(\{[\s\S]*storageKey: DRAFT_STORAGE_KEY,[\s\S]*scopeKey: scopedEditorStorageKey[\s\S]*createScopedDraftStore\(\{[\s\S]*storageKey: MARKDOWN_DRAFT_STORAGE_KEY,[\s\S]*scopeKey: scopedEditorStorageKey/, 'composer and markdown draft stores should use site-scoped browser storage');
-assert.match(source, /scopedEditorStorageKey\(LS_KEYS\.cfile\)/, 'active composer file storage should remain site-scoped');
+assert.match(
+  source,
+  /createEditorSessionStateStore\(\{[\s\S]*scopeKey: scopedEditorStorageKey,[\s\S]*keys: LS_KEYS/,
+  'editor session state should use site-scoped browser storage'
+);
+assert.match(
+  source,
+  /createScopedDraftStore\(\{[\s\S]*storageKey: DRAFT_STORAGE_KEY,[\s\S]*scopeKey: scopedEditorStorageKey[\s\S]*createScopedDraftStore\(\{[\s\S]*storageKey: MARKDOWN_DRAFT_STORAGE_KEY,[\s\S]*scopeKey: scopedEditorStorageKey/,
+  'composer and markdown draft stores should use site-scoped browser storage'
+);
+assert.match(
+  source,
+  /scopedEditorStorageKey\(LS_KEYS\.cfile\)/,
+  'active composer file storage should remain site-scoped'
+);
 
 assert.match(
   publishSettingsSource,
@@ -3593,9 +3579,13 @@ assert.doesNotMatch(
 function createMemoryStorage(seed = {}) {
   const data = new Map(Object.entries(seed));
   return {
-    getItem: (key) => data.has(key) ? data.get(key) : null,
-    setItem: (key, value) => { data.set(key, String(value)); },
-    removeItem: (key) => { data.delete(key); },
+    getItem: (key) => (data.has(key) ? data.get(key) : null),
+    setItem: (key, value) => {
+      data.set(key, String(value));
+    },
+    removeItem: (key) => {
+      data.delete(key);
+    },
     dump: () => Object.fromEntries(data.entries())
   };
 }
@@ -3612,18 +3602,34 @@ function createMemoryStorage(seed = {}) {
       systemTreeExpanded: 'press_editor_system_tree_expanded'
     }
   });
-  assert.equal(store.readLegacySystemTreeExpanded(), true, 'Recovery should read the legacy system-tree state before a current snapshot exists');
-  assert.equal(store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] }), true, 'current editor state should persist through the v3 store');
+  assert.equal(
+    store.readLegacySystemTreeExpanded(),
+    true,
+    'Recovery should read the legacy system-tree state before a current snapshot exists'
+  );
+  assert.equal(
+    store.writeEditorState({ v: 3, mode: 'editor', expandedNodeIds: ['system'] }),
+    true,
+    'current editor state should persist through the v3 store'
+  );
   assert.equal(
     localStorage.dump()['press_editor_system_tree_expanded:scope'],
     undefined,
     'Recovery should remove the legacy system-tree key only after the current state write succeeds'
   );
-  assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 340, 'missing rail width should preserve the default width');
+  assert.equal(
+    store.readUnscopedNumber('press_editor_rail_width', 340),
+    340,
+    'missing rail width should preserve the default width'
+  );
   localStorage.setItem('press_editor_rail_width', '420');
   assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 420, 'stored rail width should be restored');
   localStorage.setItem('press_editor_rail_width', 'invalid');
-  assert.equal(store.readUnscopedNumber('press_editor_rail_width', 340), 340, 'invalid rail width should fall back to the default width');
+  assert.equal(
+    store.readUnscopedNumber('press_editor_rail_width', 340),
+    340,
+    'invalid rail width should fall back to the default width'
+  );
 }
 
 {
@@ -3635,12 +3641,32 @@ function createMemoryStorage(seed = {}) {
     windowRef: { localStorage, sessionStorage },
     scopeKey: (key) => `${key}:scope`
   });
-  assert.equal(store.getStoredConnectPublishSettings().mode, 'pat', 'Recovery should preserve the legacy Connect opt-out');
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'pat', 'Recovery should normalize the legacy opt-out into the current transport key');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'Recovery should remove the legacy publish key only after writing the current mode');
+  assert.equal(
+    store.getStoredConnectPublishSettings().mode,
+    'pat',
+    'Recovery should preserve the legacy Connect opt-out'
+  );
+  assert.equal(
+    localStorage.dump()['press_publish_transport_mode:scope'],
+    'pat',
+    'Recovery should normalize the legacy opt-out into the current transport key'
+  );
+  assert.equal(
+    localStorage.dump()['press_connect_publish_enabled:scope'],
+    undefined,
+    'Recovery should remove the legacy publish key only after writing the current mode'
+  );
   store.setStoredConnectPublishSettings({ baseUrl: 'http://127.0.0.1:8788' });
-  assert.equal(localStorage.dump()['press_publish_transport_mode:scope'], 'pat', 'saving current publish settings should preserve the migrated transport mode');
-  assert.equal(localStorage.dump()['press_connect_publish_enabled:scope'], undefined, 'saving current publish settings should not restore the retired key');
+  assert.equal(
+    localStorage.dump()['press_publish_transport_mode:scope'],
+    'pat',
+    'saving current publish settings should preserve the migrated transport mode'
+  );
+  assert.equal(
+    localStorage.dump()['press_connect_publish_enabled:scope'],
+    undefined,
+    'saving current publish settings should not restore the retired key'
+  );
 }
 
 {
@@ -3658,7 +3684,11 @@ function createMemoryStorage(seed = {}) {
     }
   });
   assert.equal(store.writeEditorState({ v: 3 }), false);
-  assert.equal(data.get('press_editor_system_tree_expanded:scope'), '1', 'failed current-state writes must preserve the legacy editor key');
+  assert.equal(
+    data.get('press_editor_system_tree_expanded:scope'),
+    '1',
+    'failed current-state writes must preserve the legacy editor key'
+  );
 }
 
 {
@@ -3676,7 +3706,11 @@ function createMemoryStorage(seed = {}) {
     scopeKey: (key) => `${key}:scope`
   });
   assert.equal(store.getStoredConnectPublishSettings().mode, 'pat');
-  assert.equal(data.get('press_connect_publish_enabled:scope'), '0', 'failed mode writes must preserve the legacy publish preference');
+  assert.equal(
+    data.get('press_connect_publish_enabled:scope'),
+    '0',
+    'failed mode writes must preserve the legacy publish preference'
+  );
 }
 
 {
@@ -3830,7 +3864,7 @@ assert.equal(
 
 assert.match(
   source,
-  /export function createComposerController\(editorRuntime = createComposerRuntime\(\)\)[\s\S]*const composerStartup = composerControllerGraph\.createStartup\(\{[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildIndexUI,[\s\S]*buildTabsUI,[\s\S]*buildSiteUI,[\s\S]*function start\(\) \{\s*return composerStartup\.start\(\);\s*\}[\s\S]*createComposerController\(\)\.start\(\);/,
+  /export function createComposerController\(editorRuntime = createComposerRuntime\(\)\)[\s\S]*const composerStartupOptions = \{[\s\S]*loadDraftSnapshotsIntoState,[\s\S]*applyInferredRepoConfig,[\s\S]*inferRepoConfigFromGitHubPagesUrl,[\s\S]*applyEffectiveSiteConfig: applyComposerEffectiveSiteConfig,[\s\S]*buildIndexUI,[\s\S]*buildTabsUI,[\s\S]*buildSiteUI,[\s\S]*function start\(\) \{[\s\S]*return startComposerApp\(composerStartupOptions\);[\s\S]*createComposerController\(\)\.start\(\);/,
   'composer should wire inferred starter repository config into the extracted workspace assembly before rendering through YAML feature ports'
 );
 
@@ -3841,9 +3875,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-  composerControllerGraphSource,
-  /export function createComposerControllerBootstrapOptions\(options = \{\}\)[\s\S]*ensureSiteRepo: \(\) => getFunction\(editorRuntime, 'ensureSiteRepo'\)\(\)[\s\S]*getLocation: \(\) => getFunction\(editorRuntime, 'getLocation'\)\(\)[\s\S]*bindWorkspaceUi: \(\) => bindWorkspaceUi\(\{[\s\S]*setAllowEditorStatePersist: \(value\) => getFunction\(editorRuntime, 'setAllowEditorStatePersist'\)\(value\)[\s\S]*setTimeoutRef: \(handler, delay\) => getFunction\(editorRuntime, 'setTimer'\)\(handler, delay\)/,
-  'composer controller graph should own runtime-backed bootstrap defaults for site repo, location, workspace UI, persistence, and timers'
+  composerBootstrapSource,
+  /function createComposerAppOptions\(options = \{\}\)[\s\S]*ensureSiteRepo: \(\) =>\s*typeof editorRuntime\.ensureSiteRepo === 'function'[\s\S]*getLocation: \(\) =>\s*\(?typeof editorRuntime\.getLocation === 'function'[\s\S]*bindWorkspaceUi: \(\) =>\s*bindComposerWorkspaceUi\(\{[\s\S]*setAllowEditorStatePersist: \(value\) =>\s*typeof editorRuntime\.setAllowEditorStatePersist === 'function'[\s\S]*setTimeoutRef: \(handler, delay\) =>\s*typeof editorRuntime\.setTimer === 'function'/,
+  'composer bootstrap should own explicit runtime-backed defaults for site repo, location, workspace UI, persistence, and timers'
 );
 
 assert.match(
@@ -3920,7 +3954,7 @@ assert.match(
 
 assert.match(
   source,
-  /const \{[\s\S]*markdownWorkspace[\s\S]*\} = composerControllerGraph;[\s\S]*restorePrimaryEditorMarkdownView,[\s\S]*= markdownWorkspace;/,
+  /const markdownWorkspace = createComposerMarkdownWorkspaceFacade\(\{[\s\S]*getController: \(\) => markdownWorkspaceController[\s\S]*\}\);[\s\S]*restorePrimaryEditorMarkdownView,[\s\S]*= markdownWorkspace;/,
   'composer should route markdown view restoration through the workspace facade'
 );
 
@@ -5620,10 +5654,10 @@ assert.match(
 );
 
 assert.ok(
-  hiEditorSource.includes("const isClassOk = (cls) => (")
-    && hiEditorSource.includes("/^syntax-[a-z-]+$/.test(cls)")
-    && hiEditorSource.includes("/^hljs-[A-Za-z0-9_-]+$/.test(cls)")
-    && hiEditorSource.includes("/^[A-Za-z]+_+$/.test(cls)"),
+  hiEditorSource.includes('const isClassOk = (cls) => (') &&
+    hiEditorSource.includes('/^syntax-[a-z-]+$/.test(cls)') &&
+    hiEditorSource.includes('/^hljs-[A-Za-z0-9_-]+$/.test(cls)') &&
+    hiEditorSource.includes('/^[A-Za-z]+_+$/.test(cls)'),
   'hi-editor safe renderer should accept Highlight.js classes plus Press syntax classes'
 );
 
@@ -5634,8 +5668,7 @@ assert.match(
 );
 
 assert.ok(
-  hiEditorSource.includes(".replace(/&#x([0-9a-fA-F]+);/g")
-    && hiEditorSource.includes(".replace(/&#([0-9]+);/g"),
+  hiEditorSource.includes('.replace(/&#x([0-9a-fA-F]+);/g') && hiEditorSource.includes('.replace(/&#([0-9]+);/g'),
   'hi-editor safe renderer should decode numeric entities so highlighted mirror text keeps textarea wrapping'
 );
 
@@ -5970,11 +6003,7 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  [
-    composerSyncOverlaySource,
-    composerPublishSummarySource,
-    composerSyncPanelSource
-  ].join('\n'),
+  [composerSyncOverlaySource, composerPublishSummarySource, composerSyncPanelSource].join('\n'),
   /windowRef\.|options\.windowRef|\bwindowRef\b|(^|[^.])\b(?:setTimeout|clearTimeout|requestAnimationFrame)\s*\(/m,
   'publish/sync overlay, summary, and refresh panel should use injected runtime timer, frame, and media adapters'
 );
@@ -6130,11 +6159,7 @@ assert.doesNotMatch(
   'notification boundary should not fall back to ambient window APIs for alerts, timers, frames, or popups'
 );
 
-assert.match(
-  source,
-  /from '\.\/composer-dialogs\.js'/,
-  'composer should cache-bust the extracted dialog boundary'
-);
+assert.match(source, /from '\.\/composer-dialogs\.js'/, 'composer should cache-bust the extracted dialog boundary');
 
 assert.doesNotMatch(
   source,
@@ -6321,12 +6346,7 @@ assert.match(
 );
 
 assert.match(
-  [
-    enI18nSource,
-    chsI18nSource,
-    chtTwI18nSource,
-    jaI18nSource
-  ].join('\n'),
+  [enI18nSource, chsI18nSource, chtTwI18nSource, jaI18nSource].join('\n'),
   /addArticle: '\+ New article'[\s\S]*addArticle: '\+ 新建文章'[\s\S]*addArticle: '\+ 新增文章'[\s\S]*addArticle: '\+ 新規記事'/,
   'root article actions should be explicit add actions in every UI language'
 );
@@ -6980,11 +7000,7 @@ assert.match(
   );
 });
 
-assert.doesNotMatch(
-  editorSource,
-  /id="modeDynamicTabs"/,
-  'editor should not render visible dynamic markdown tabs'
-);
+assert.doesNotMatch(editorSource, /id="modeDynamicTabs"/, 'editor should not render visible dynamic markdown tabs');
 
 assert.doesNotMatch(
   editorSource,
@@ -7059,9 +7075,10 @@ assert.doesNotMatch(
 );
 
 const initialBootIndex = source.indexOf('Apply initial state as early as possible');
-const initialBootBlock = initialBootIndex >= 0
-  ? source.slice(initialBootIndex, source.indexOf('// Robust clipboard helper', initialBootIndex))
-  : '';
+const initialBootBlock =
+  initialBootIndex >= 0
+    ? source.slice(initialBootIndex, source.indexOf('// Robust clipboard helper', initialBootIndex))
+    : '';
 assert.doesNotMatch(
   initialBootBlock,
   /applyMode\('composer'\)/,
@@ -7544,13 +7561,17 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  composerDragListSource.match(/function makeDragList\(container, onReorder, dragOptions = \{\}\) \{[\s\S]*?container\.addEventListener\('pointerdown', onPointerDown\);/)[0],
+  composerDragListSource.match(
+    /function makeDragList\(container, onReorder, dragOptions = \{\}\) \{[\s\S]*?container\.addEventListener\('pointerdown', onPointerDown\);/
+  )[0],
   /const (?:li|item) = target\.closest\(keySelector\);/,
   'composer entry reordering should not treat the entire card as a drag source'
 );
 
 assert.doesNotMatch(
-  composerIndexTabsUiSource.match(/function buildIndexUI\(root, state\) \{[\s\S]*?\n  function buildTabsUI\(root, state\) \{/)[0],
+  composerIndexTabsUiSource.match(
+    /function buildIndexUI\(root, state\) \{[\s\S]*?\n  function buildTabsUI\(root, state\) \{/
+  )[0],
   /bodyInner\.appendChild\(addLangWrap\);/,
   'index add-language control should not render at the bottom of the expanded language list'
 );
@@ -7748,7 +7769,10 @@ assert.match(
 );
 
 assert.doesNotMatch(
-  composerPublishSettingsUiSource.slice(composerPublishSettingsUiSource.indexOf('function renderFineGrainedTokenSettings(host) {'), composerPublishSettingsUiSource.indexOf('function renderPublishTransportSettings(host) {')),
+  composerPublishSettingsUiSource.slice(
+    composerPublishSettingsUiSource.indexOf('function renderFineGrainedTokenSettings(host) {'),
+    composerPublishSettingsUiSource.indexOf('function renderPublishTransportSettings(host) {')
+  ),
   /documentRef\.createElement\('button'\)|document\.createElement\('button'\)/,
   'token clear control should avoid native button chrome'
 );

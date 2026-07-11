@@ -13,9 +13,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(here, '..');
 const DEFAULT_POLICY_PATH = path.join(here, 'theme-route-guard-ownership-policy.json');
 const NODE_SOURCE_PATTERN = /\.(?:cjs|js|mjs)$/iu;
-const LOCKED_POLICY_SHA256 = '8d207cd54fadb8a58d7a2f1f095e899ec5df9bdb1a3cffe5018f2c6bd954564c';
+const LOCKED_POLICY_SHA256 = 'cd5b8c5a729d07c709967a6b5a772cf71b39febc56c0816904ba282f46d369c1';
 const LOCKED_FACADE_REFERENCES = ['./theme-route-guard-html.js', './vendor/acorn-walk.mjs', './vendor/acorn.mjs'];
 const LOCKED_HTML_EXPORTS = ['containsForbiddenV4HtmlRouteConstruction', 'isV4HtmlRouteGuardSource'];
+const IMPLICIT_REGEX_METHODS = new Set(['match', 'matchAll', 'search']);
 const PUBLIC_ROUTE_NAME_PATTERN =
   /(?:theme[-_.]?route|route[-_.]?theme).*(?:analy[sz]er|construction|guard)|(?:analy[sz]er|guard).*(?:theme[-_.]?route)/iu;
 
@@ -35,6 +36,21 @@ function lines(source) {
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function canonicalAst(value) {
+  if (Array.isArray(value)) return value.map(canonicalAst);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .filter((key) => !['end', 'loc', 'start'].includes(key))
+      .sort()
+      .map((key) => [key, canonicalAst(value[key])])
+  );
+}
+
+function astSha256(node) {
+  return sha256(JSON.stringify(canonicalAst(node)));
 }
 
 function parseModule(source, label, failures) {
@@ -188,6 +204,60 @@ function collectDynamicRegexes(ast) {
   return references;
 }
 
+function collectImplicitRegexCalls(ast) {
+  const calls = [];
+  walk(ast, (node) => {
+    if (node.type !== 'CallExpression' || !node.callee || node.callee.type !== 'MemberExpression') return;
+    const method = node.callee.computed ? staticString(node.callee.property) : node.callee.property?.name;
+    const argument = node.arguments[0];
+    if (!IMPLICIT_REGEX_METHODS.has(method) || (argument?.type === 'Literal' && argument.regex)) return;
+    calls.push({ method, pattern: staticString(argument) });
+  });
+  return calls;
+}
+
+function collectRouteScannerStrings(ast) {
+  const values = new Set();
+  walk(ast, (node) => {
+    if (!['BinaryExpression', 'Literal', 'TemplateLiteral'].includes(node.type)) return;
+    const value = staticString(node);
+    if (value != null && routeRegexSignature(value)) values.add(value);
+  });
+  return [...values].sort();
+}
+
+function exportedFrozenObject(ast, name) {
+  for (const node of (ast && ast.body) || []) {
+    if (node.type !== 'ExportNamedDeclaration' || node.declaration?.type !== 'VariableDeclaration') continue;
+    for (const declaration of node.declaration.declarations) {
+      if (declaration.id?.type !== 'Identifier' || declaration.id.name !== name) continue;
+      let value = declaration.init;
+      if (
+        value?.type === 'CallExpression' &&
+        value.callee?.type === 'MemberExpression' &&
+        !value.callee.computed &&
+        value.callee.object?.type === 'Identifier' &&
+        value.callee.object.name === 'Object' &&
+        value.callee.property?.type === 'Identifier' &&
+        value.callee.property.name === 'freeze' &&
+        value.arguments.length === 1
+      ) {
+        [value] = value.arguments;
+      }
+      if (value?.type !== 'ObjectExpression') return null;
+      const object = {};
+      for (const property of value.properties) {
+        if (property.type !== 'Property' || property.computed || property.kind !== 'init') return null;
+        const key = property.key.type === 'Identifier' ? property.key.name : staticString(property.key);
+        if (typeof key !== 'string' || property.value.type !== 'Literal') return null;
+        object[key] = property.value.value;
+      }
+      return object;
+    }
+  }
+  return null;
+}
+
 function collectOwnedCalls(ast, ownerName, calleeName) {
   const owners = ((ast && ast.body) || [])
     .map(unwrapTopLevel)
@@ -300,6 +370,7 @@ function routeRegexSignature(value) {
   const text = String(value || '');
   return (
     (text.includes('[?&]') && text.includes('=')) ||
+    ['?tab=', '?id=', '&tab=', '&id='].some((literal) => text.includes(literal)) ||
     text.includes('(?:tab|id)') ||
     text.includes('tab|id') ||
     text.includes('<script') ||
@@ -536,6 +607,29 @@ export function checkThemeRouteGuardOwnership(options = {}) {
     return ast;
   };
 
+  const corpusSource = readSource(policy.paths.corpus);
+  const corpusSourceDigest = sha256(corpusSource);
+  if (corpusSourceDigest !== policy.corpusLock?.sourceSha256) {
+    failures.push(
+      `${policy.paths.corpus} source digest mismatch: expected ${policy.corpusLock?.sourceSha256}, found ${corpusSourceDigest}`
+    );
+  }
+  const corpusAst = readAst(policy.paths.corpus);
+  if (corpusAst) {
+    const actualCorpusLock = exportedFrozenObject(corpusAst, 'THEME_ROUTE_GUARD_CORPUS_LOCK');
+    const expectedCorpusLock = policy.corpusLock
+      ? {
+          cases: policy.corpusLock.cases,
+          reject: policy.corpusLock.reject,
+          allow: policy.corpusLock.allow,
+          labelContentSha256: policy.corpusLock.labelContentSha256
+        }
+      : null;
+    if (JSON.stringify(actualCorpusLock) !== JSON.stringify(expectedCorpusLock)) {
+      failures.push(`${policy.paths.corpus} embedded lock must match the external ownership policy corpus lock`);
+    }
+  }
+
   const legacyScanFiles = [
     policy.paths.core,
     policy.paths.contractTest,
@@ -588,7 +682,8 @@ export function checkThemeRouteGuardOwnership(options = {}) {
     );
     if (localPublicDeclarations.length)
       failures.push(`${policy.paths.core} must not redeclare the public route-guard facade`);
-    const coreDelegation = collectOwnedCalls(coreAst, 'validateThemeRouteHelperContract', policy.publicExport);
+    const coreFunctionName = policy.coreDelegation?.function;
+    const coreDelegation = collectOwnedCalls(coreAst, coreFunctionName, policy.publicExport);
     if (
       coreDelegation.owners.length !== 1 ||
       coreDelegation.calls.length !== 1 ||
@@ -596,11 +691,31 @@ export function checkThemeRouteGuardOwnership(options = {}) {
       !isForEachDelegation(coreDelegation.calls[0], 'entries')
     ) {
       failures.push(
-        `${policy.paths.core} validateThemeRouteHelperContract must call the unshadowed imported public facade exactly once`
+        `${policy.paths.core} ${coreFunctionName || 'delegation owner'} must call the unshadowed imported public facade exactly once`
       );
+    }
+    const coreDelegationOwner = coreDelegation.owners[0];
+    if (!coreDelegationOwner || astSha256(coreDelegationOwner) !== policy.coreDelegation?.astSha256) {
+      failures.push(`${policy.paths.core} route-guard delegation AST differs from the locked owner structure`);
     }
     if (collectDynamicRegexes(coreAst).length)
       failures.push(`${policy.paths.core} must not construct dynamic regular expressions`);
+    const implicitRegexes = collectImplicitRegexCalls(coreAst);
+    if (implicitRegexes.length) {
+      failures.push(
+        `${policy.paths.core} contains implicit regular-expression APIs outside the reviewed literal baseline: ${implicitRegexes
+          .map(({ method, pattern }) => `.${method}(${pattern == null ? '<dynamic>' : JSON.stringify(pattern)})`)
+          .join(', ')}`
+      );
+    }
+    const routeScannerStrings = collectRouteScannerStrings(coreAst);
+    if (routeScannerStrings.length) {
+      failures.push(
+        `${policy.paths.core} contains route-scanner string literals outside the owner facade: ${JSON.stringify(
+          routeScannerStrings
+        )}`
+      );
+    }
     if (JSON.stringify(actualRegexMultiset(coreAst)) !== JSON.stringify(expectedRegexMultiset(policy))) {
       failures.push(`${policy.paths.core} regular-expression inventory differs from the non-route baseline`);
     }

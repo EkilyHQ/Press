@@ -38,6 +38,17 @@
     "packageTest": "scripts/test-theme-contract-package.mjs",
     "packageIndex": "packages/press-theme-contract/index.mjs"
   },
+  "corpusLock": {
+    "cases": 349,
+    "reject": 262,
+    "allow": 87,
+    "labelContentSha256": "8a19013fe4179c31d062f40871cb5e521f8baa1bd1fe8bdd5dc457aa72c572d1",
+    "sourceSha256": "68e5cda2a5437acc03655d8685eb839c43ae8237858e6d8056817e5a54852f4a"
+  },
+  "coreDelegation": {
+    "function": "validateThemeRouteHelperContract",
+    "astSha256": "4086f4fd44fa221a1a3b943a5bea2f832c90c93d9de8aeb26e6cfb6275936356"
+  },
   "owners": [
     {
       "path": "assets/js/theme-route-guard.js",

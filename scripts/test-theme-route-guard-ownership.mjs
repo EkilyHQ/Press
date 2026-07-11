@@ -17,6 +17,12 @@ const policy = loadThemeRouteGuardOwnershipPolicy();
 const legacyIdentifiers = loadLegacyThemeRouteGuardInventory(root, policy);
 const facadePath = policy.paths.facade;
 const htmlOwnerPath = policy.paths.htmlOwner;
+const corpusSource = fs.readFileSync(path.join(root, policy.paths.corpus), 'utf8');
+const productionCoreSource = fs.readFileSync(path.join(root, policy.paths.core), 'utf8');
+const coreDelegationStart = productionCoreSource.indexOf('function validateThemeRouteHelperContract(');
+const coreDelegationEnd = productionCoreSource.indexOf('\n\nfunction normalizeRegistrySource(', coreDelegationStart);
+assert.ok(coreDelegationStart >= 0 && coreDelegationEnd > coreDelegationStart);
+const coreDelegationSource = productionCoreSource.slice(coreDelegationStart, coreDelegationEnd);
 
 const CORE_REGEX_BASELINE = String.raw`
 void /^[a-z0-9][a-z0-9_-]{0,63}$/;
@@ -73,21 +79,12 @@ import { containsForbiddenV4RouteConstruction } from './theme-route-guard.js';
 
 export { containsForbiddenV4RouteConstruction };
 ${CORE_REGEX_BASELINE}
-function validateThemeRouteHelperContract(entries) {
-  entries.forEach((entry) => {
-    if (containsForbiddenV4RouteConstruction(entry.source, entry)) throw new Error('forbidden');
-  });
-}
+${coreDelegationSource}
 
 void validateThemeRouteHelperContract;
 `
     ],
-    [
-      policy.paths.corpus,
-      String.raw`
-export const THEME_ROUTE_GUARD_CASES = Object.freeze([]);
-`
-    ],
+    [policy.paths.corpus, corpusSource],
     [
       policy.paths.contractTest,
       String.raw`
@@ -244,6 +241,14 @@ expectPolicyRejected('core regex inventory cannot bless a new scanner', (candida
   candidate.coreRegexLiteralBaseline.push({ pattern: '[?&]tab=', flags: '', count: 1 });
 });
 
+expectPolicyRejected('external corpus lock cannot be retargeted', (candidate) => {
+  candidate.corpusLock.labelContentSha256 = '0'.repeat(64);
+});
+
+expectPolicyRejected('core delegation AST lock cannot be retargeted', (candidate) => {
+  candidate.coreDelegation.astSha256 = '0'.repeat(64);
+});
+
 expectPolicyRejected('non-owner declaration allowlist cannot be widened', (candidate) => {
   candidate.legacy.nonOwnerDeclarationAllowlist['assets/js/generic-helper.js'] = ['collectRouteKeyAliases'];
 });
@@ -253,6 +258,19 @@ expectRejected('equal-count missing-plus-duplicate owner paths fail closed', nul
     return Array.from(fixture.keys()).map((file) => (file === htmlOwnerPath ? facadePath : file));
   }
 });
+
+expectRejected(
+  'corpus content cannot drift even when its embedded lock is also edited',
+  (fixture) =>
+    fixture.set(
+      policy.paths.corpus,
+      fixture
+        .get(policy.paths.corpus)
+        .replace('assigned URLSearchParams route builder', 'retargeted URLSearchParams route builder')
+        .replace(policy.corpusLock.labelContentSha256, '0'.repeat(64))
+    ),
+  /corpus\.mjs source digest mismatch/u
+);
 
 expectRejected(
   'an exact legacy identifier cannot regrow in core',
@@ -275,6 +293,56 @@ expectRejected(
   'dynamic RegExp construction cannot regrow in core',
   (fixture) => fixture.set(policy.paths.core, `${fixture.get(policy.paths.core)}\nvoid new RegExp("route");\n`),
   /must not construct dynamic regular expressions/u
+);
+
+expectRejected(
+  'string-driven implicit regular expression cannot regrow in core',
+  (fixture) =>
+    fixture.set(
+      policy.paths.core,
+      fixture
+        .get(policy.paths.core)
+        .replace(
+          '    if (containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles })) {',
+          "    if (source.search('[?&](?:tab|id)=') >= 0 || containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles })) {"
+        )
+    ),
+  /implicit regular-expression APIs outside the reviewed literal baseline/u
+);
+
+expectRejected(
+  'core delegation cannot add a non-regex fallback scanner',
+  (fixture) =>
+    fixture.set(
+      policy.paths.core,
+      fixture
+        .get(policy.paths.core)
+        .replace(
+          '    if (containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles })) {',
+          "    if (source.includes('?id=') || containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles })) {"
+        )
+    ),
+  /delegation AST differs from the locked owner structure/u
+);
+
+expectRejected(
+  'core cannot hide a route scanner outside the delegation owner',
+  (fixture) =>
+    fixture.set(
+      policy.paths.core,
+      `${fixture.get(policy.paths.core)}\nfunction hiddenRouteScan(source) { return source.includes('?id='); }\nvoid hiddenRouteScan;\n`
+    ),
+  /route-scanner string literals outside the owner facade/u
+);
+
+expectRejected(
+  'core cannot compose a route scanner string outside the delegation owner',
+  (fixture) =>
+    fixture.set(
+      policy.paths.core,
+      `${fixture.get(policy.paths.core)}\nfunction hiddenRouteScan(source) { return source.includes('?' + 'id='); }\nvoid hiddenRouteScan;\n`
+    ),
+  /route-scanner string literals outside the owner facade/u
 );
 
 for (const source of [
@@ -335,8 +403,8 @@ expectRejected(
       fixture
         .get(policy.paths.core)
         .replace(
-          'function validateThemeRouteHelperContract(entries) {',
-          'function validateThemeRouteHelperContract(entries) {\n  const containsForbiddenV4RouteConstruction = () => false;'
+          'function validateThemeRouteHelperContract(entries, contractVersion) {',
+          'function validateThemeRouteHelperContract(entries, contractVersion) {\n  const containsForbiddenV4RouteConstruction = () => false;'
         )
     ),
   /must call the unshadowed imported public facade exactly once/u
@@ -350,8 +418,8 @@ expectRejected(
       fixture
         .get(policy.paths.core)
         .replace(
-          'entries.forEach((entry) => {\n    if (containsForbiddenV4RouteConstruction(entry.source, entry))',
-          'entries.forEach((entry) => {\n    function unused() { return containsForbiddenV4RouteConstruction(entry.source, entry); }\n    void unused;\n    if (false)'
+          '    if (containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles })) {',
+          '    function unused() { return containsForbiddenV4RouteConstruction(source, { path: entry.path, files: routeGuardFiles }); }\n    void unused;\n    if (false) {'
         )
     ),
   /must call the unshadowed imported public facade exactly once/u

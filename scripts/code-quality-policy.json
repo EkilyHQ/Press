@@ -57,6 +57,12 @@
       "command": "eslint . --max-warnings 0",
       "policy": "All enabled rules have a zero-violation baseline; any new error or warning fails CI. Excluded rules are explicit accepted-no-action decisions whose exact diagnostic and affected-file counts are remeasured on every quality run."
     },
+    "inlineConfiguration": {
+      "decision": "prohibited",
+      "mechanism": "linterOptions.noInlineConfig",
+      "probeCommand": "node scripts/verify-eslint-inline-config.mjs",
+      "policy": "Source comments cannot disable project lint rules. The quality-only real-config probe proves a used eslint-disable-next-line cannot hide no-undef while a clean sample remains at zero errors and warnings."
+    },
     "removalCondition": "Re-evaluate an excluded rule only when its evidence no longer applies; do not replace repository contract tests with generic lint unless the same invariant remains covered."
   },
   "prettier": {
@@ -73,11 +79,16 @@
     "removalCondition": "Remove a path after formatting that file intentionally; avoid release-bearing mass reformat commits."
   },
   "types": {
-    "decision": "accepted-no-action",
+    "decision": "accepted-baseline-with-zero-growth",
+    "baseline": {
+      "file": "scripts/typescript-debt-baseline.json",
+      "probeCommand": "node scripts/probe-typescript-debt.mjs",
+      "writeCommand": "node scripts/probe-typescript-debt.mjs --write-baseline"
+    },
     "evidence": {
       "typescriptVersion": "5.9.3",
-      "command": "tsc --allowJs --checkJs --noEmit --skipLibCheck --target ES2023 --module preserve --moduleResolution bundler --lib ES2023,DOM,DOM.Iterable with 227 non-vendor assets/js JS/MJS root inputs",
-      "explicitInputFiles": 227,
+      "command": "node scripts/probe-typescript-debt.mjs using allowJs/checkJs/noEmit/skipLibCheck, ES2023, Preserve modules, Bundler resolution, and ES2023/DOM/DOM.Iterable libs",
+      "explicitInputFiles": 228,
       "diagnostics": 1470,
       "files": 87,
       "firstPartyDiagnostics": 905,
@@ -85,6 +96,19 @@
       "transitiveVendorDiagnostics": 565,
       "transitiveVendorFiles": 4,
       "reason": "Repository-wide checkJs would create a second large suppression baseline across dynamic browser boundaries; even after separating transitive vendor output, first-party code retains 905 diagnostics in 83 files."
+    },
+    "noGrowth": {
+      "mechanism": "exact-head-multiset-with-merge-base-zero-growth",
+      "baseRefEnvironmentVariable": "CODE_QUALITY_BASE_REF",
+      "headShaEnvironmentVariable": "CODE_QUALITY_HEAD_SHA",
+      "policy": "The checked-in baseline must exactly match the current deterministic root graph and diagnostics. CI rejects every new path/code/message key and any count growth relative to the merge base; intentional reductions are persisted only through the reviewed --write-baseline workflow."
+    },
+    "suppressions": {
+      "decision": "prohibited-zero-baseline",
+      "directives": ["@ts-ignore", "@ts-expect-error", "@ts-nocheck"],
+      "scanner": "TypeScript SourceFile commentDirectives/checkJsDirective",
+      "count": 0,
+      "policy": "Every tracked probe root and every repository-local assets/js source loaded into the TypeScript program is parsed with TypeScript semantics. Real suppression comments fail closed; identical text in strings or ordinary prose is not a directive."
     },
     "revisitWhen": [
       "Composer and editor modules have been grouped behind stable directory and service boundaries",

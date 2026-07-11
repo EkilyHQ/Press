@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 177,
-    "physical": 178,
+    "logical": 197,
+    "physical": 198,
     "aliases": 1
   },
   "tierOrder": {
@@ -16,6 +16,7 @@
       "system-release-workflow",
       "composer-action-contract",
       "composer-root-boundaries",
+      "composer-identity-ownership",
       "editor-effects-boundary",
       "editor-main-sidebar-file-tree",
       "press-system-surface",
@@ -44,6 +45,7 @@
       "system-release-transaction",
       "composer-action-contract",
       "composer-root-boundaries",
+      "composer-identity-ownership",
       "editor-effects-boundary",
       "editor-main-sidebar-file-tree",
       "html-sink-policy",
@@ -202,9 +204,209 @@
       "alias": []
     },
     {
-      "id": "composer-identity-grid",
-      "file": "scripts/test-composer-identity-grid.js",
-      "command": ["node", "scripts/test-composer-identity-grid.js"],
+      "id": "composer-identity-app-runtime",
+      "file": "scripts/test-composer-identity-app-runtime.mjs",
+      "command": ["node", "scripts/test-composer-identity-app-runtime.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-article-paths",
+      "file": "scripts/test-composer-identity-article-paths.mjs",
+      "command": ["node", "scripts/test-composer-identity-article-paths.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-blocks-foundations",
+      "file": "scripts/test-composer-identity-blocks-foundations.mjs",
+      "command": ["node", "scripts/test-composer-identity-blocks-foundations.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-blocks-inline",
+      "file": "scripts/test-composer-identity-blocks-inline.mjs",
+      "command": ["node", "scripts/test-composer-identity-blocks-inline.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-blocks-preview",
+      "file": "scripts/test-composer-identity-blocks-preview.mjs",
+      "command": ["node", "scripts/test-composer-identity-blocks-preview.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-blocks-runtime",
+      "file": "scripts/test-composer-identity-blocks-runtime.mjs",
+      "command": ["node", "scripts/test-composer-identity-blocks-runtime.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-blocks-session-wiring",
+      "file": "scripts/test-composer-identity-blocks-session-wiring.mjs",
+      "command": ["node", "scripts/test-composer-identity-blocks-session-wiring.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-blocks-structured",
+      "file": "scripts/test-composer-identity-blocks-structured.mjs",
+      "command": ["node", "scripts/test-composer-identity-blocks-structured.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-composer-editor-root",
+      "file": "scripts/test-composer-identity-composer-editor-root.mjs",
+      "command": ["node", "scripts/test-composer-identity-composer-editor-root.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-document-blocks",
+      "file": "scripts/test-composer-identity-document-blocks.mjs",
+      "command": ["node", "scripts/test-composer-identity-document-blocks.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-editor-main-services",
+      "file": "scripts/test-composer-identity-editor-main-services.mjs",
+      "command": ["node", "scripts/test-composer-identity-editor-main-services.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-feature-boundaries",
+      "file": "scripts/test-composer-identity-feature-boundaries.mjs",
+      "command": ["node", "scripts/test-composer-identity-feature-boundaries.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-markdown-storage",
+      "file": "scripts/test-composer-identity-markdown-storage.mjs",
+      "command": ["node", "scripts/test-composer-identity-markdown-storage.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-metadata-tree",
+      "file": "scripts/test-composer-identity-metadata-tree.mjs",
+      "command": ["node", "scripts/test-composer-identity-metadata-tree.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-ownership",
+      "file": "scripts/test-composer-identity-ownership.mjs",
+      "command": ["node", "scripts/test-composer-identity-ownership.mjs"],
+      "tier": ["guard", "release", "full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node", "git"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-publish-sync",
+      "file": "scripts/test-composer-identity-publish-sync.mjs",
+      "command": ["node", "scripts/test-composer-identity-publish-sync.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-shell-navigation",
+      "file": "scripts/test-composer-identity-shell-navigation.mjs",
+      "command": ["node", "scripts/test-composer-identity-shell-navigation.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-site-settings-interactions",
+      "file": "scripts/test-composer-identity-site-settings-interactions.mjs",
+      "command": ["node", "scripts/test-composer-identity-site-settings-interactions.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-site-settings-publishing",
+      "file": "scripts/test-composer-identity-site-settings-publishing.mjs",
+      "command": ["node", "scripts/test-composer-identity-site-settings-publishing.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-yaml-i18n-frontmatter",
+      "file": "scripts/test-composer-identity-yaml-i18n-frontmatter.mjs",
+      "command": ["node", "scripts/test-composer-identity-yaml-i18n-frontmatter.mjs"],
+      "tier": ["full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "composer-identity-yaml-models",
+      "file": "scripts/test-composer-identity-yaml-models.mjs",
+      "command": ["node", "scripts/test-composer-identity-yaml-models.mjs"],
       "tier": ["full"],
       "timeout": 180000,
       "exclusive": false,

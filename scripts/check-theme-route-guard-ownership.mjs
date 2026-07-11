@@ -176,18 +176,16 @@ function collectRegexLiterals(ast) {
 }
 
 function collectDynamicRegexes(ast) {
-  const nodes = [];
+  const references = [];
   walk(ast, (node) => {
-    if (
-      (node.type === 'CallExpression' || node.type === 'NewExpression') &&
-      node.callee &&
-      node.callee.type === 'Identifier' &&
-      node.callee.name === 'RegExp'
-    ) {
-      nodes.push(node);
+    if (node.type === 'Identifier' && node.name === 'RegExp') {
+      references.push(node);
+    } else if (node.type === 'MemberExpression') {
+      const property = node.computed ? staticString(node.property) : node.property && node.property.name;
+      if (property === 'RegExp') references.push(node);
     }
   });
-  return nodes;
+  return references;
 }
 
 function collectOwnedCalls(ast, ownerName, calleeName) {

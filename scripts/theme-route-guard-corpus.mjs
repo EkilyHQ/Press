@@ -2443,24 +2443,24 @@ export function assertThemeRouteGuardNestedHtmlResolution(label, implementation)
 export function assertThemeRouteGuardBrowserDifferentials(label, implementation) {
   if (typeof implementation !== 'function') throw new TypeError(`${label} must be a function`);
   const htmlContext = { path: 'views/probe.html', files: [] };
-  const executableLegacyTypes = [
-    'application/x-ecmascript',
-    'text/javascript1.0',
-    'text/javascript1.1',
-    'text/javascript1.2',
-    'text/javascript1.3',
-    'text/javascript1.4',
-    'text/javascript1.5',
-    'text/livescript',
-    'text/x-ecmascript',
-    'text/x-javascript'
-  ];
+  const executableLegacyTypes =
+    'application/x-ecmascript text/javascript1.0 text/javascript1.1 text/javascript1.2 text/javascript1.3 text/javascript1.4 text/javascript1.5 text/livescript text/x-ecmascript text/x-javascript'.split(
+      ' '
+    );
   const cases = [
     ['numeric TAB in HTML URL', '<a href="?t&#9;ab=posts">posts</a>', htmlContext],
     ['named TAB in HTML URL', '<a href="?t&Tab;ab=posts">posts</a>', htmlContext],
     ['named newline in HTML URL', '<a href="?t&NewLine;ab=posts">posts</a>', htmlContext],
     ['raw TAB in HTML URL', '<a href="?t\tab=posts">posts</a>', htmlContext],
     ['SVG xlink route URL', '<svg><a xlink:href="?tab=posts">posts</a></svg>', htmlContext],
+    ['abrupt empty-comment close before route link', '<!--><a href="?id=post.md">post</a>', htmlContext],
+    ['dash empty-comment close before route link', '<!---><a href="?id=post.md">post</a>', htmlContext],
+    ['bang comment close before route link', '<!-- safe --!><a href="?id=post.md">post</a>', htmlContext],
+    [
+      'self-closing script end before route link',
+      '<script type="application/json">{}</script/><a href="?id=post.md">post</a>',
+      htmlContext
+    ],
     ['escaped TAB in JavaScript URL', 'const href = "?t\\tab=posts";', { path: 'modules/probe.js', files: [] }],
     ...executableLegacyTypes.map((type) => [
       `legacy executable script MIME ${type}`,
@@ -2473,17 +2473,27 @@ export function assertThemeRouteGuardBrowserDifferentials(label, implementation)
     .map(([caseLabel]) => caseLabel);
   const pathlessCases = [
     ['pathless JavaScript comparison before route literal', 'if (a < b > c) {} const href = "?tab=posts";'],
-    [
-      'pathless JavaScript comparison before location route',
-      'const ok = a < button > c; location.search = "?id=post.md";'
-    ],
+    ['pathless JavaScript comparison before location route', 'const ok=a<button>c; location.search="?id=x";'],
     ['pathless HTML route link', '<a href="?tab=posts">posts</a>'],
     ['pathless HTML route script', '<script>location.search = "?id=post.md";</script>']
   ];
   failures.push(
     ...pathlessCases.filter(([, source]) => implementation(source) !== true).map(([caseLabel]) => caseLabel)
   );
+  if (implementation('<img srcset="data:image/svg+xml,%3Csvg%3E?id=decorative 1x">', htmlContext) !== false) {
+    failures.push('external data URL srcset comma remains one URL');
+  }
+  const importAliases =
+    String.raw`./config.js?cache=1|modules/config.js ./config.js#owner|modules/config.js ./%63onfig.js|modules/config.js .\\config.js|modules/config.js ./config%23safe.js|modules/config#safe.js ./config%3Fsafe.js|modules/config?safe.js`
+      .split(' ')
+      .map((entry) => entry.split('|'));
+  importAliases.forEach(([specifier, importedPath]) => {
+    const source = `import { key } from "${specifier}"; const url = new URL(location.href); url.searchParams.set(key, post.location);`;
+    const files = [{ path: importedPath, source: 'export const key = "id";' }];
+    if (implementation(source, { path: 'modules/layout.js', files }) !== true) {
+      failures.push(`browser URL import alias ${specifier}`);
+    }
+  });
   if (failures.length) throw new Error(`${label} missed browser-differential cases: ${failures.join('; ')}`);
 }
-
 assertThemeRouteGuardCorpusIntegrity();

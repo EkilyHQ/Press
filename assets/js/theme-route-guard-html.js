@@ -74,9 +74,41 @@ function candidateContainsRelativeRoute(value) {
 function attributeContainsRelativeRoute(name, value) {
   const decoded = decodeHtmlAttributeValue(value);
   if (name === 'srcset') {
-    return decoded.split(',').some((candidate) => candidateContainsRelativeRoute(candidate.trim().split(/\s+/u)[0]));
+    return srcsetUrls(decoded).some((candidate) => candidateContainsRelativeRoute(candidate));
   }
   return candidateContainsRelativeRoute(decoded);
+}
+
+function srcsetUrls(value) {
+  const input = normalizeBrowserUrlString(value);
+  const urls = [];
+  let index = 0;
+  while (index < input.length) {
+    while (index < input.length && (isSpace(input[index]) || input[index] === ',')) index += 1;
+    if (index >= input.length) break;
+    const start = index;
+    while (index < input.length && !isSpace(input[index])) index += 1;
+    let url = input.slice(start, index);
+    let separated = false;
+    while (url.endsWith(',')) {
+      url = url.slice(0, -1);
+      separated = true;
+    }
+    if (url) urls.push(url);
+    if (separated) continue;
+    let parentheses = 0;
+    while (index < input.length) {
+      const char = input[index];
+      if (char === '(') parentheses += 1;
+      else if (char === ')' && parentheses > 0) parentheses -= 1;
+      else if (char === ',' && parentheses === 0) {
+        index += 1;
+        break;
+      }
+      index += 1;
+    }
+  }
+  return urls;
 }
 
 function isSpace(char) {
@@ -143,12 +175,22 @@ function findClosingScript(source, start) {
   let index = lower.indexOf('</script', start);
   while (index >= 0) {
     const boundary = source[index + 8];
-    if (!boundary || boundary === '>' || isSpace(boundary)) {
+    if (!boundary || boundary === '>' || boundary === '/' || isSpace(boundary)) {
       return { start: index, end: findTagEnd(source, index + 8) };
     }
     index = lower.indexOf('</script', index + 8);
   }
   return null;
+}
+
+function findClosingComment(source, start) {
+  if (source[start + 4] === '>') return start + 5;
+  if (source[start + 4] === '-' && source[start + 5] === '>') return start + 6;
+  const standard = source.indexOf('-->', start + 4);
+  const bang = source.indexOf('--!>', start + 4);
+  if (standard < 0) return bang < 0 ? source.length : bang + 4;
+  if (bang < 0) return standard + 3;
+  return standard < bang ? standard + 3 : bang + 4;
 }
 
 function scriptTypeAllowsScan(attributes) {
@@ -176,8 +218,7 @@ export function containsForbiddenV4HtmlRouteConstruction(source, options = {}) {
     const open = text.indexOf('<', index);
     if (open < 0) break;
     if (text.startsWith('<!--', open)) {
-      const close = text.indexOf('-->', open + 4);
-      index = close < 0 ? text.length : close + 3;
+      index = findClosingComment(text, open);
       continue;
     }
     if (text[open + 1] === '/' || text[open + 1] === '!' || text[open + 1] === '?') {

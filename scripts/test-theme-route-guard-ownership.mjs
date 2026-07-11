@@ -277,6 +277,23 @@ expectRejected(
   /must not construct dynamic regular expressions/u
 );
 
+for (const source of [
+  'const R = RegExp; void new R("route");',
+  'void new globalThis.RegExp("route");',
+  'void Reflect.construct(RegExp, ["route"]);',
+  'void Reflect["construct"](globalThis["RegExp"], ["route"]);',
+  'const { RegExp: R } = globalThis; void new R("route");',
+  'let R; ({ RegExp: R } = globalThis); void new R("route");',
+  'const G = globalThis; const R = G.RegExp; void new R("route");',
+  'const G = globalThis; const { RegExp: R } = G; void new R("route");'
+]) {
+  expectRejected(
+    `indirect RegExp construction cannot regrow in core: ${source}`,
+    (fixture) => fixture.set(policy.paths.core, `${fixture.get(policy.paths.core)}\n${source}\n`),
+    /must not construct dynamic regular expressions/u
+  );
+}
+
 expectRejected(
   'core cannot wrap the facade with a fallback engine',
   (fixture) =>

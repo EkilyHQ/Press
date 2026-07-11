@@ -619,7 +619,13 @@ function newUrlHasStaticExternalArg(node, constructorAliases = new Set()) {
 }
 
 function resolveImportPath(fromPath, specifier) {
-  const spec = safeString(specifier).trim();
+  let spec = safeString(specifier).trim().replace(/\\+/g, '/');
+  spec = spec.replace(/[?#][\s\S]*$/u, '');
+  try {
+    spec = decodeURIComponent(spec);
+  } catch {
+    return '';
+  }
   if (!spec.startsWith('.')) return '';
   const fromDir = safeString(fromPath).split('/').slice(0, -1).join('/');
   const normalized = `${fromDir ? `${fromDir}/` : ''}${spec}`.split('/');

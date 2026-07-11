@@ -844,7 +844,9 @@ export function validateManifestBindings(policy, manifest) {
     }
   }
   const actual = tests.filter((entry) => expectedFiles.has(entry.file));
-  if (actual.length !== expectedFiles.size)
+  const actualFiles = actual.map((entry) => entry.file).sort();
+  const expectedFileList = [...expectedFiles].sort();
+  if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFileList))
     fail('test manifest must bind every identity owner and ownership test exactly once');
   for (const entry of actual) {
     if (

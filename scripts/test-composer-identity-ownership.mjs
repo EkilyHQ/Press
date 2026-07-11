@@ -230,6 +230,20 @@ rejects(
   /bind every identity owner/u
 );
 
+const duplicateForMissingManifest = clone(manifest);
+const missingOwner = policy.owners.find((entry) => entry.file !== owner.file);
+duplicateForMissingManifest.tests = duplicateForMissingManifest.tests.filter(
+  (entry) => entry.file !== missingOwner.file
+);
+duplicateForMissingManifest.tests.push(
+  clone(duplicateForMissingManifest.tests.find((entry) => entry.file === owner.file))
+);
+rejects(
+  'equal-count duplicate and missing manifest binding',
+  () => validateManifestBindings(policy, duplicateForMissingManifest),
+  /bind every identity owner/u
+);
+
 const indirectManifest = clone(manifest);
 const indirectEntry = indirectManifest.tests.find((entry) => entry.file === owner.file);
 indirectEntry.command = ['node', 'scripts/run-tests.mjs'];

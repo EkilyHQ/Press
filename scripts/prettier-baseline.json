@@ -221,8 +221,6 @@
     "index_editor.html",
     "index_editor_preview.html",
     "packages/press-theme-contract/index.mjs",
-    "packages/press-theme-contract/scripts/sync-assets.mjs",
-    "scripts/build-theme-contract-package.mjs",
     "scripts/compare-theme-contract-package.mjs",
     "scripts/dispatch-system-release.js",
     "scripts/print-press-system-surface.mjs",

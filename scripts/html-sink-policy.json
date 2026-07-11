@@ -22,7 +22,7 @@
     "entrypoints": ["index.html", "index_editor.html", "index_editor_preview.html"]
   },
   "expected": {
-    "computedPropertyControls": 366,
+    "computedPropertyControls": 365,
     "dynamicImports": 12,
     "innerHTMLEmptyWrites": 65,
     "innerHTMLWrites": 112,
@@ -6002,21 +6002,6 @@
       "classification": "reviewed-computed-property-control",
       "rationale": "This existing dynamic property operation is retained as exact uncertainty debt; any new identity is blocked and the inventory may only shrink.",
       "dispositionHash": "1aa225a251446c61ae773ab1ce2c68a96f81970192b5e9ce9aa348081409f98b"
-    },
-    {
-      "path": "assets/js/theme-route-guard-html.js",
-      "owner": "function:findTagEnd:params:[{\"name\":\"source\",\"type\":\"Identifier\"},{\"name\":\"start\",\"type\":\"Identifier\"}]",
-      "context": "Program.body:FunctionDeclaration:findTagEnd#1>FunctionDeclaration.body>BlockStatement.body:ForStatement:{\"init\":{\"declarations\":[{\"id\":{\"name\":\"index\",\"type\":\"Identifier\"},\"init\":{\"name\":\"start\",\"type\":\"Identifier\"},\"type\":\"VariableDeclarator\"}],\"kind\":\"let\",\"type\":\"VariableDeclaration\"},\"test\":{\"left\":{\"name\":\"index\",\"type\":\"Identifier\"},\"operator\":\"<\",\"right\":{\"computed\":false,\"object\":{\"name\":\"source\",\"type\":\"Identifier\"},\"optional\":false,\"property\":{\"name\":\"length\",\"type\":\"Identifier\"},\"type\":\"MemberExpression\"},\"type\":\"BinaryExpression\"},\"update\":{\"left\":{\"name\":\"index\",\"type\":\"Identifier\"},\"operator\":\"+=\",\"right\":{\"type\":\"Literal\",\"value\":1},\"type\":\"AssignmentExpression\"}}#1>ForStatement.body|loop:{\"init\":{\"declarations\":[{\"id\":{\"name\":\"index\",\"type\":\"Identifier\"},\"init\":{\"name\":\"start\",\"type\":\"Identifier\"},\"type\":\"VariableDeclarator\"}],\"kind\":\"let\",\"type\":\"VariableDeclaration\"},\"test\":{\"left\":{\"name\":\"index\",\"type\":\"Identifier\"},\"operator\":\"<\",\"right\":{\"computed\":false,\"object\":{\"name\":\"source\",\"type\":\"Identifier\"},\"optional\":false,\"property\":{\"name\":\"length\",\"type\":\"Identifier\"},\"type\":\"MemberExpression\"},\"type\":\"BinaryExpression\"},\"update\":{\"left\":{\"name\":\"index\",\"type\":\"Identifier\"},\"operator\":\"+=\",\"right\":{\"type\":\"Literal\",\"value\":1},\"type\":\"AssignmentExpression\"}}>BlockStatement.body:IfStatement:{\"left\":{\"left\":{\"name\":\"char\",\"type\":\"Identifier\"},\"operator\":\"===\",\"right\":{\"type\":\"Literal\",\"value\":\"\\\"\"},\"type\":\"BinaryExpression\"},\"operator\":\"||\",\"right\":{\"left\":{\"name\":\"char\",\"type\":\"Identifier\"},\"operator\":\"===\",\"right\":{\"type\":\"Literal\",\"value\":\"'\"},\"type\":\"BinaryExpression\"},\"type\":\"LogicalExpression\"}#1>IfStatement.consequent|test:{\"left\":{\"left\":{\"name\":\"char\",\"type\":\"Identifier\"},\"operator\":\"===\",\"right\":{\"type\":\"Literal\",\"value\":\"\\\"\"},\"type\":\"BinaryExpression\"},\"operator\":\"||\",\"right\":{\"left\":{\"name\":\"char\",\"type\":\"Identifier\"},\"operator\":\"===\",\"right\":{\"type\":\"Literal\",\"value\":\"'\"},\"type\":\"BinaryExpression\"},\"type\":\"LogicalExpression\"}>BlockStatement.body:ExpressionStatement:assignment:=:{\"name\":\"quote\",\"type\":\"Identifier\"}#1>ExpressionStatement.expression",
-      "kind": "computed-property-control",
-      "line": 80,
-      "column": 7,
-      "fingerprint": "33b6266407ce4b1a52267af2e26e514abcf28f8136d230644871519331f19856",
-      "semanticFingerprint": "518c1398e2ac8329637ba623ef9a017520b17b33bd20c840f6b81431d2e36844",
-      "evidence": "quote = char",
-      "operation": "html-call-unproven-property",
-      "classification": "reviewed-computed-property-control",
-      "rationale": "This existing dynamic property operation is retained as exact uncertainty debt; any new identity is blocked and the inventory may only shrink.",
-      "dispositionHash": "7d05d57a083878583b1fd3e89f45ecbdab6da5992897377913efe0fdda90189b"
     },
     {
       "path": "assets/js/theme-settings.js",

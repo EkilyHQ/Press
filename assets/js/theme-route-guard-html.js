@@ -123,8 +123,12 @@ function findTagEnd(source, start) {
       if (char === quote) quote = '';
       continue;
     }
-    if (char === '"' || char === "'") {
-      quote = char;
+    if (char === '"') {
+      quote = '"';
+      continue;
+    }
+    if (char === "'") {
+      quote = "'";
       continue;
     }
     if (char === '>') return index;

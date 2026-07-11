@@ -152,7 +152,7 @@ assert.equal(
   'the HTML sink baseline must retain its reviewed no-growth disposition'
 );
 assert.deepEqual(htmlSinkPolicy.expected, {
-  computedPropertyControls: 366,
+  computedPropertyControls: 365,
   dynamicImports: 12,
   innerHTMLEmptyWrites: 65,
   innerHTMLWrites: 112,
@@ -162,7 +162,7 @@ assert.deepEqual(htmlSinkPolicy.expected, {
   serializerReads: 4,
   timerCallbackControls: 11
 });
-assert.equal(htmlSinkPolicy.approved.length, 513, 'all approved sink occurrences must retain exact identities');
+assert.equal(htmlSinkPolicy.approved.length, 512, 'all approved sink occurrences must retain exact identities');
 
 const workflow = read('.github/workflows/code-quality.yml');
 assert.match(workflow, /^name: Code Quality$/m, 'the code-quality workflow must have a stable name');

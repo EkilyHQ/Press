@@ -6,6 +6,8 @@ import { ESLint } from 'eslint';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const eslint = new ESLint({ cwd: repoRoot });
 const virtualFile = path.join(repoRoot, 'scripts', 'inline-config-policy-probe.mjs');
+const rootModuleProbe = path.join(repoRoot, 'root-eslint-policy-probe.mjs');
+const rootJavaScriptProbe = path.join(repoRoot, 'root-eslint-policy-probe.js');
 
 const [suppressionAttempt] = await eslint.lintText('// eslint-disable-next-line no-undef\nmissingReference();\n', {
   filePath: virtualFile
@@ -23,5 +25,13 @@ assert.deepEqual(
 const [clean] = await eslint.lintText('const answer = 42;\nconsole.log(answer);\n', { filePath: virtualFile });
 assert.equal(clean.errorCount, 0, 'the inline-config probe clean sample must have zero errors');
 assert.equal(clean.warningCount, 0, 'the inline-config probe clean sample must have zero warnings');
+
+for (const rootProbe of [rootModuleProbe, rootJavaScriptProbe]) {
+  const [rootTooling] = await eslint.lintText('missingRootReference();\n', { filePath: rootProbe });
+  assert.ok(
+    rootTooling.messages.some((message) => message.ruleId === 'no-undef' && message.severity === 2),
+    `recommended rules must apply to root tooling through ${path.basename(rootProbe)}`
+  );
+}
 
 console.log('ESLint inline configuration policy passed.');

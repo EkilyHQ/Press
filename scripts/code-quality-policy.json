@@ -49,13 +49,17 @@
           "evidence": "4 findings are compatibility error translations; the public error contract is tested and does not expose Error.cause."
         }
       ],
-      "observedAtCommit": "40d441f84ff17fd2a0edf17d00d27f42e62a8390",
-      "probeCommand": "node scripts/probe-eslint-debt.mjs"
+      "historicalCountsObservedAtCommit": "40d441f84ff17fd2a0edf17d00d27f42e62a8390",
+      "exactBaselineBootstrapMergeBase": "796a9696237c9268e33eb1cff9bf312b0177e0ea",
+      "file": "scripts/eslint-debt-baseline.json",
+      "probeCommand": "node scripts/probe-eslint-debt.mjs",
+      "testCommand": "node scripts/test-eslint-debt-policy.mjs",
+      "writeCommand": "node scripts/probe-eslint-debt.mjs --write-baseline"
     },
     "noGrowth": {
-      "mechanism": "zero-baseline",
+      "mechanism": "enabled-rules-zero-plus-excluded-rules-exact-occurrence-baseline",
       "command": "eslint . --max-warnings 0",
-      "policy": "All enabled rules have a zero-violation baseline; any new error or warning fails CI. Excluded rules are explicit accepted-no-action decisions whose exact diagnostic and affected-file counts are remeasured on every quality run."
+      "policy": "All enabled rules have a zero-violation baseline. Every excluded-rule diagnostic is bound to its rule, repository path, semantic lexical owner, stable local structural context, diagnostic message, rule-specific semantic anchor, and duplicate occurrence. The checked-in head inventory must match exactly; merge-base comparison rejects new debt, cross-callback moves, changed dead-assignment sources, and equal-count remove-and-add swaps while allowing unrelated sibling insertion, formatting-only changes, and intentional debt reduction."
     },
     "inlineConfiguration": {
       "decision": "prohibited",

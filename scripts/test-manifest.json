@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 181,
-    "physical": 182,
+    "logical": 182,
+    "physical": 183,
     "aliases": 1
   },
   "tierOrder": {
@@ -112,6 +112,16 @@
       "file": "scripts/test-code-quality-config.mjs",
       "command": ["node", "scripts/test-code-quality-config.mjs"],
       "tier": ["guard", "full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "eslint-debt-policy",
+      "file": "scripts/test-eslint-debt-policy.mjs",
+      "command": ["node", "scripts/test-eslint-debt-policy.mjs"],
+      "tier": ["full"],
       "timeout": 180000,
       "exclusive": false,
       "requires": ["node"],

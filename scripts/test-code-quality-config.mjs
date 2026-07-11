@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { diagnosticKey, validateBaseline } from './eslint-debt-policy.mjs';
 import { evaluateBaselineTransition } from './format-baseline-policy.mjs';
 import { TYPESCRIPT_COMPILER_OPTION_RECORD, validateDiagnosticEntries } from './typescript-debt-policy.mjs';
 
@@ -62,6 +63,11 @@ assert.equal(
   'the real project config must retain its inline-suppression regression probe'
 );
 assert.equal(
+  packageJson.scripts?.['lint:debt-probe:test'],
+  'node scripts/test-eslint-debt-policy.mjs',
+  'excluded ESLint debt must retain focused occurrence-policy tests'
+);
+assert.equal(
   packageJson.scripts?.['lint:debt-probe'],
   'node scripts/probe-eslint-debt.mjs',
   'excluded ESLint rules must retain an executable evidence probe'
@@ -82,13 +88,18 @@ assert.equal(
   'TypeScript debt must retain a project-owned compiler API probe'
 );
 assert.equal(
+  packageJson.scripts?.['security:html-sinks:test'],
+  'node scripts/test-html-sink-policy.mjs',
+  'HTML sink policy must retain executable adversarial regressions'
+);
+assert.equal(
   packageJson.scripts?.['security:html-sinks'],
   'node scripts/check-html-sink-policy.mjs',
   'HTML and executable sink growth must retain an AST-based policy guard'
 );
 assert.equal(
   packageJson.scripts?.quality,
-  'node scripts/test-code-quality-config.mjs && npm run lint:inline-config && npm run lint && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks',
+  'node scripts/test-code-quality-config.mjs && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks',
   'the quality gate must cover lint, type debt, formatting, vendored dependency provenance, and sink policy'
 );
 
@@ -121,15 +132,17 @@ assert.equal(
   'the HTML sink baseline must retain its reviewed no-growth disposition'
 );
 assert.deepEqual(htmlSinkPolicy.expected, {
+  computedPropertyControls: 403,
   dynamicImports: 12,
   innerHTMLEmptyWrites: 65,
   innerHTMLWrites: 112,
   insertAdjacentHTML: 2,
   prohibited: 0,
+  reflectionControls: 6,
   serializerReads: 4,
-  timerCallbackControls: 8
+  timerCallbackControls: 11
 });
-assert.equal(htmlSinkPolicy.approved.length, 138, 'all approved sink occurrences must retain exact fingerprints');
+assert.equal(htmlSinkPolicy.approved.length, 550, 'all approved sink occurrences must retain exact identities');
 
 const workflow = read('.github/workflows/code-quality.yml');
 assert.match(workflow, /^name: Code Quality$/m, 'the code-quality workflow must have a stable name');
@@ -230,6 +243,8 @@ for (const activePath of [
 }
 
 const eslintConfig = read('eslint.config.mjs');
+assert.match(eslintConfig, /'\*\.js'/u, 'recommended rules must cover root JavaScript tooling');
+assert.match(eslintConfig, /'\*\.mjs'/u, 'recommended rules must cover root ES module tooling');
 for (const ignoredPath of [
   'assets/js/vendor/**',
   'dist/**',
@@ -296,16 +311,49 @@ for (const { rule, evidence, observedDiagnostics, observedAffectedFiles } of exc
   assert.ok(Number.isInteger(observedDiagnostics) && observedDiagnostics > 0, `${rule} must record diagnostics`);
   assert.ok(Number.isInteger(observedAffectedFiles) && observedAffectedFiles > 0, `${rule} must record files`);
 }
-assert.equal(policy.eslint?.baseline?.observedAtCommit, '40d441f84ff17fd2a0edf17d00d27f42e62a8390');
+assert.equal(policy.eslint?.baseline?.historicalCountsObservedAtCommit, '40d441f84ff17fd2a0edf17d00d27f42e62a8390');
+assert.equal(policy.eslint?.baseline?.exactBaselineBootstrapMergeBase, '796a9696237c9268e33eb1cff9bf312b0177e0ea');
+assert.equal(policy.eslint?.baseline?.file, 'scripts/eslint-debt-baseline.json');
 assert.equal(policy.eslint?.baseline?.probeCommand, 'node scripts/probe-eslint-debt.mjs');
+assert.equal(policy.eslint?.baseline?.testCommand, 'node scripts/test-eslint-debt-policy.mjs');
+assert.equal(policy.eslint?.baseline?.writeCommand, 'node scripts/probe-eslint-debt.mjs --write-baseline');
+const eslintDebtBaseline = readJson('scripts/eslint-debt-baseline.json');
+assert.doesNotThrow(() => validateBaseline(eslintDebtBaseline, EXPECTED_EXCLUDED_ESLINT_RULES));
+assert.ok(
+  eslintDebtBaseline.diagnostics.length <=
+    excludedRuleRecords.reduce((total, record) => total + record.observedDiagnostics, 0),
+  'the exact ESLint debt baseline may shrink but must not exceed the reviewed historical ceiling'
+);
+assert.equal(
+  new Set(eslintDebtBaseline.diagnostics.map(diagnosticKey)).size,
+  eslintDebtBaseline.diagnostics.length,
+  'ESLint debt occurrence identities must be unique'
+);
+for (const { rule, observedDiagnostics, observedAffectedFiles } of excludedRuleRecords) {
+  const diagnostics = eslintDebtBaseline.diagnostics.filter((entry) => entry.rule === rule);
+  assert.ok(diagnostics.length <= observedDiagnostics, `${rule} occurrence inventory exceeded its historical ceiling`);
+  assert.ok(
+    new Set(diagnostics.map((entry) => entry.path)).size <= observedAffectedFiles,
+    `${rule} affected-file inventory exceeded its historical ceiling`
+  );
+}
 const eslintDebtProbe = read('scripts/probe-eslint-debt.mjs');
-for (const token of ['observedDiagnostics', 'observedAffectedFiles', 'unexpected rule']) {
+for (const token of ['compareExact', 'compareNoGrowth', 'scanCommitDiagnostics', 'format=tar']) {
   assert.match(eslintDebtProbe, new RegExp(token), `ESLint debt probe must enforce ${token}`);
+}
+assert.match(
+  read('scripts/eslint-debt-policy.mjs'),
+  /diagnosticFingerprint/u,
+  'ESLint debt occurrence identity must bind owner-aware local source fingerprints'
+);
+const inlinePolicyProbe = read('scripts/verify-eslint-inline-config.mjs');
+for (const token of ['rootModuleProbe', 'rootJavaScriptProbe']) {
+  assert.ok(inlinePolicyProbe.includes(token), `root tooling lint proof must retain ${token}`);
 }
 assert.equal(
   policy.eslint?.noGrowth?.mechanism,
-  'zero-baseline',
-  'all enabled recommended rules must enforce a zero-error baseline'
+  'enabled-rules-zero-plus-excluded-rules-exact-occurrence-baseline',
+  'enabled and excluded rules must both enforce their reviewed occurrence policies'
 );
 assert.equal(
   policy.eslint?.noGrowth?.command,

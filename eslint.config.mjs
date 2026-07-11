@@ -2,6 +2,8 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 const FIRST_PARTY_JAVASCRIPT = [
+  '*.js',
+  '*.mjs',
   'assets/**/*.js',
   'assets/**/*.mjs',
   'packages/**/*.js',

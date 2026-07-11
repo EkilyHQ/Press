@@ -1,6 +1,14 @@
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { Linter } from 'eslint';
+
+const require = createRequire(import.meta.url);
+let Linter;
+
+function createLinter() {
+  if (!Linter) ({ Linter } = require('eslint'));
+  return new Linter({ configType: 'flat' });
+}
 
 export const BASELINE_DECISION = 'exact-semantic-owner-context-baseline-with-zero-growth';
 
@@ -279,7 +287,7 @@ export function normalizeDiagnostics(rows, reviewedRules, repoRoot) {
   for (const row of rows) {
     const relativePath = normalizePath(row.filePath, repoRoot);
     if (!row.messages?.length) continue;
-    const linter = new Linter({ configType: 'flat' });
+    const linter = createLinter();
     linter.verify(row.source, [{ languageOptions: { ecmaVersion: 'latest', sourceType: 'module' } }], {
       filename: relativePath
     });

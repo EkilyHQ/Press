@@ -176,7 +176,7 @@ export function createComposerController(editorRuntime = createComposerRuntime()
     safeString,
     isLanguageCode
   });
-  const { displayLangName, langFlag, sortLangKeys, toIndexYaml, toTabsYaml } = composerYamlFeature;
+  const { displayLangName, sortLangKeys, toIndexYaml, toTabsYaml } = composerYamlFeature;
   let composerYamlRuntime = null;
 
   // --- Persisted UI state keys ---

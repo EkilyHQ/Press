@@ -1818,10 +1818,10 @@ assert.notEqual(
   'mutated producer assignment control paths must invalidate an HTML disposition'
 );
 const nestedStaticProducerSink = ownedSink(
-  `function render() { const data = 'safe'; target.innerHTML = \`<p>\${data}</p>\`; }`
+  "function render() { const data = 'safe'; target.innerHTML = `<p>${data}</p>`; }"
 );
 const nestedDynamicProducerSink = ownedSink(
-  `function render() { const data = userInput; target.innerHTML = \`<p>\${data}</p>\`; }`
+  'function render() { const data = userInput; target.innerHTML = `<p>${data}</p>`; }'
 );
 assert.notEqual(
   nestedStaticProducerSink.producerSemanticFingerprint,

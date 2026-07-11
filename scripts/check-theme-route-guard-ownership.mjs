@@ -227,7 +227,7 @@ function collectRouteScannerStrings(ast) {
 }
 
 function exportedFrozenObject(ast, name) {
-  for (const node of (ast && ast.body) || []) {
+  for (const node of ast?.body || []) {
     if (node.type !== 'ExportNamedDeclaration' || node.declaration?.type !== 'VariableDeclaration') continue;
     for (const declaration of node.declaration.declarations) {
       if (declaration.id?.type !== 'Identifier' || declaration.id.name !== name) continue;

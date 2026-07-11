@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const composerSource = readFileSync(resolve(here, '../assets/js/composer.js'), 'utf8');
-const controllerGraphSource = readFileSync(resolve(here, '../assets/js/composer-controller-graph.js'), 'utf8');
+const bootstrapSource = readFileSync(resolve(here, '../assets/js/composer-bootstrap.js'), 'utf8');
 const bridgeSource = readFileSync(resolve(here, '../assets/js/composer-system-theme-bridge.js'), 'utf8');
 
 assert.match(
@@ -39,7 +39,7 @@ assert.match(
 );
 
 assert.match(
-  controllerGraphSource,
+  bootstrapSource,
   /composerSystemThemeBridge\.createLifecycleFeature\(\)/,
   'system/theme module initialization should join the shared composer lifecycle as an explicit feature'
 );
@@ -144,7 +144,9 @@ const bridge = createComposerSystemThemeBridge({
     dispose: () => calls.push(['theme-dispose'])
   },
   getStateSlice: (key) => state[key],
-  setStateSlice: (key, value) => { state[key] = value; },
+  setStateSlice: (key, value) => {
+    state[key] = value;
+  },
   notifyComposerChange: (key) => calls.push(['notify', key]),
   updateUnsyncedSummary: () => calls.push(['unsynced']),
   refreshEditorContentTree: (options) => calls.push(['tree', options])
@@ -156,9 +158,7 @@ assert.deepEqual(bridge.getSystemSummaryEntries(), [
 assert.deepEqual(bridge.getThemeSummaryEntries(), [
   { label: 'Theme CSS', path: 'assets/themes/arcus/theme.css', kind: 'system', category: 'theme' }
 ]);
-assert.deepEqual(bridge.getSystemCommitFiles(), [
-  { path: 'assets/main.js', content: 'export {};', kind: 'system' }
-]);
+assert.deepEqual(bridge.getSystemCommitFiles(), [{ path: 'assets/main.js', content: 'export {};', kind: 'system' }]);
 assert.deepEqual(bridge.getThemeCommitFiles(), [
   { path: 'assets/themes/arcus/theme.css', content: ':root{}', kind: 'system', category: 'theme' }
 ]);
@@ -200,9 +200,10 @@ const feature = bridge.createLifecycleFeature();
 assert.equal(feature.name, 'composer.systemThemeBridge');
 feature.start(featureContext);
 assert.equal(featureContext.systemThemeBridge, bridge);
-assert.equal(calls.filter(call => call[0] === 'system-init').length, 1, 'bridge lifecycle feature should not double-init an initialized bridge');
+assert.equal(
+  calls.filter((call) => call[0] === 'system-init').length,
+  1,
+  'bridge lifecycle feature should not double-init an initialized bridge'
+);
 feature.dispose();
-assert.deepEqual(calls.slice(-2), [
-  ['system-dispose'],
-  ['theme-dispose']
-]);
+assert.deepEqual(calls.slice(-2), [['system-dispose'], ['theme-dispose']]);

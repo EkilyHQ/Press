@@ -9,8 +9,8 @@ execFileSync(process.execPath, [path.join(root, 'scripts/test-recovery-updater-c
   cwd: root,
   env: {
     ...process.env,
-    PRESS_UPDATER_COMPAT_TARGET_VERSION: '3.4.137',
-    PRESS_UPDATER_COMPAT_EXPECTED_RANGE: '>=3.4.63 <3.4.137',
+    PRESS_UPDATER_COMPAT_TARGET_VERSION: '3.4.138',
+    PRESS_UPDATER_COMPAT_EXPECTED_RANGE: '>=3.4.63 <3.4.138',
     PRESS_UPDATER_COMPAT_SOURCE_TAGS: 'v3.4.63',
     PRESS_UPDATER_COMPAT_LABEL: 'support-floor updater compatibility'
   },

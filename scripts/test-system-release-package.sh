@@ -282,11 +282,6 @@ if ! grep -qx "press-system-${version}/assets/js/composer-action-effects.js" "${
   exit 1
 fi
 
-if ! grep -qx "press-system-${version}/assets/js/composer-root-contract.js" "${entries_file}"; then
-  echo "expected package to include composer root contract code" >&2
-  exit 1
-fi
-
 if ! grep -qx "press-system-${version}/assets/js/composer-markdown-workspace-facade.js" "${entries_file}"; then
   echo "expected package to include composer Markdown workspace facade code" >&2
   exit 1
@@ -737,16 +732,6 @@ if ! grep -qx "press-system-${version}/assets/js/publish/publish-receipt.js" "${
   exit 1
 fi
 
-if ! grep -qx "press-system-${version}/assets/js/composer-service-registry.js" "${entries_file}"; then
-  echo "expected package to include composer service registry code" >&2
-  exit 1
-fi
-
-if ! grep -qx "press-system-${version}/assets/js/composer-app-services.js" "${entries_file}"; then
-  echo "expected package to include composer app service lifecycle code" >&2
-  exit 1
-fi
-
 if ! grep -qx "press-system-${version}/assets/js/composer-action-contract.js" "${entries_file}"; then
   echo "expected package to include composer action contract code" >&2
   exit 1
@@ -772,20 +757,22 @@ if ! grep -qx "press-system-${version}/assets/js/composer-yaml-panels-controller
   exit 1
 fi
 
-if ! grep -qx "press-system-${version}/assets/js/composer-controller-graph.js" "${entries_file}"; then
-  echo "expected package to include composer controller graph code" >&2
-  exit 1
-fi
-
 if ! grep -qx "press-system-${version}/assets/js/composer-bootstrap.js" "${entries_file}"; then
   echo "expected package to include composer bootstrap and workspace assembly code" >&2
   exit 1
 fi
 
-if ! grep -qx "press-system-${version}/assets/js/composer-lifecycle.js" "${entries_file}"; then
-  echo "expected package to include composer controller lifecycle code" >&2
-  exit 1
-fi
+for removed_composer_module in \
+  composer-app-services.js \
+  composer-controller-graph.js \
+  composer-lifecycle.js \
+  composer-root-contract.js \
+  composer-service-registry.js; do
+  if grep -qx "press-system-${version}/assets/js/${removed_composer_module}" "${entries_file}"; then
+    echo "expected package to exclude retired Composer meta-framework module ${removed_composer_module}" >&2
+    exit 1
+  fi
+done
 
 if ! grep -qx "press-system-${version}/assets/js/editor-app-kernel.js" "${entries_file}"; then
   echo "expected package to include editor app lifecycle kernel code" >&2

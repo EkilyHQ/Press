@@ -132,7 +132,7 @@ assert.equal(
   'the HTML sink baseline must retain its reviewed no-growth disposition'
 );
 assert.deepEqual(htmlSinkPolicy.expected, {
-  computedPropertyControls: 403,
+  computedPropertyControls: 391,
   dynamicImports: 12,
   innerHTMLEmptyWrites: 65,
   innerHTMLWrites: 112,
@@ -142,7 +142,7 @@ assert.deepEqual(htmlSinkPolicy.expected, {
   serializerReads: 4,
   timerCallbackControls: 11
 });
-assert.equal(htmlSinkPolicy.approved.length, 550, 'all approved sink occurrences must retain exact identities');
+assert.equal(htmlSinkPolicy.approved.length, 538, 'all approved sink occurrences must retain exact identities');
 
 const workflow = read('.github/workflows/code-quality.yml');
 assert.match(workflow, /^name: Code Quality$/m, 'the code-quality workflow must have a stable name');
@@ -468,7 +468,7 @@ assert.deepEqual(policy.types?.baseline, {
 });
 assert.equal(policy.types?.evidence?.typescriptVersion, '5.9.3');
 assert.match(policy.types?.evidence?.command || '', /node scripts\/probe-typescript-debt\.mjs/);
-assert.equal(policy.types?.evidence?.explicitInputFiles, 228);
+assert.equal(policy.types?.evidence?.explicitInputFiles, 223);
 assert.ok(
   Number.isInteger(policy.types?.evidence?.diagnostics) && policy.types.evidence.diagnostics > 0,
   'the type-checking decision must record the measured diagnostic count'
@@ -512,14 +512,14 @@ assert.deepEqual(
 );
 assert.deepEqual(typescriptBaseline.roots, {
   scope: 'Git-tracked non-vendor assets/js .js/.mjs files',
-  count: 228,
+  count: 223,
   hashAlgorithm: 'sha256-lf-path-list-v1',
-  sha256: '06562c8d4e201ee73a6973d704d788f93f7ab2e55c4235e7ccc2a5da017f5378'
+  sha256: '6ad4606598f2c07187845f818eec77dd59e542d132bd33520550b8b218f3434d'
 });
 assert.deepEqual(typescriptBaseline.suppressions, {
   decision: 'prohibited-zero-baseline',
   scanner: 'TypeScript SourceFile commentDirectives/checkJsDirective',
-  scannedFiles: 232,
+  scannedFiles: 227,
   tsIgnore: 0,
   tsExpectError: 0,
   tsNocheck: 0,

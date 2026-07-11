@@ -13,14 +13,14 @@
   },
   "roots": {
     "scope": "Git-tracked non-vendor assets/js .js/.mjs files",
-    "count": 228,
+    "count": 223,
     "hashAlgorithm": "sha256-lf-path-list-v1",
-    "sha256": "06562c8d4e201ee73a6973d704d788f93f7ab2e55c4235e7ccc2a5da017f5378"
+    "sha256": "6ad4606598f2c07187845f818eec77dd59e542d132bd33520550b8b218f3434d"
   },
   "suppressions": {
     "decision": "prohibited-zero-baseline",
     "scanner": "TypeScript SourceFile commentDirectives/checkJsDirective",
-    "scannedFiles": 232,
+    "scannedFiles": 227,
     "tsIgnore": 0,
     "tsExpectError": 0,
     "tsNocheck": 0,

@@ -72,7 +72,7 @@
   "prettier": {
     "baseline": {
       "file": "scripts/prettier-baseline.json",
-      "initialFiles": 395
+      "initialFiles": 377
     },
     "noGrowth": {
       "mechanism": "merge-base-shrinking-file-baseline",
@@ -92,7 +92,7 @@
     "evidence": {
       "typescriptVersion": "5.9.3",
       "command": "node scripts/probe-typescript-debt.mjs using allowJs/checkJs/noEmit/skipLibCheck, ES2023, Preserve modules, Bundler resolution, and ES2023/DOM/DOM.Iterable libs",
-      "explicitInputFiles": 228,
+      "explicitInputFiles": 223,
       "diagnostics": 1470,
       "files": 87,
       "firstPartyDiagnostics": 905,

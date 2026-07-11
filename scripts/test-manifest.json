@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 182,
-    "physical": 183,
+    "logical": 177,
+    "physical": 178,
     "aliases": 1
   },
   "tierOrder": {
@@ -15,12 +15,9 @@
       "system-release-package",
       "system-release-workflow",
       "composer-action-contract",
-      "composer-root-contract",
       "composer-root-boundaries",
       "editor-effects-boundary",
       "editor-main-sidebar-file-tree",
-      "composer-app-services",
-      "composer-service-registry",
       "press-system-surface",
       "editor-app-kernel",
       "provider-adapters",
@@ -46,12 +43,9 @@
       "support-floor-updater-compatibility",
       "system-release-transaction",
       "composer-action-contract",
-      "composer-root-contract",
       "composer-root-boundaries",
       "editor-effects-boundary",
       "editor-main-sidebar-file-tree",
-      "composer-app-services",
-      "composer-service-registry",
       "html-sink-policy",
       "press-system-surface",
       "editor-app-kernel",
@@ -138,16 +132,6 @@
       "alias": []
     },
     {
-      "id": "composer-app-services",
-      "file": "scripts/test-composer-app-services.js",
-      "command": ["node", "scripts/test-composer-app-services.js"],
-      "tier": ["guard", "release", "full"],
-      "timeout": 180000,
-      "exclusive": false,
-      "requires": ["node"],
-      "alias": []
-    },
-    {
       "id": "composer-bootstrap",
       "file": "scripts/test-composer-bootstrap.js",
       "command": ["node", "scripts/test-composer-bootstrap.js"],
@@ -171,16 +155,6 @@
       "id": "composer-content-staging",
       "file": "scripts/test-composer-content-staging.js",
       "command": ["node", "scripts/test-composer-content-staging.js"],
-      "tier": ["full"],
-      "timeout": 180000,
-      "exclusive": false,
-      "requires": ["node"],
-      "alias": []
-    },
-    {
-      "id": "composer-controller-graph",
-      "file": "scripts/test-composer-controller-graph.js",
-      "command": ["node", "scripts/test-composer-controller-graph.js"],
       "tier": ["full"],
       "timeout": 180000,
       "exclusive": false,
@@ -231,16 +205,6 @@
       "id": "composer-identity-grid",
       "file": "scripts/test-composer-identity-grid.js",
       "command": ["node", "scripts/test-composer-identity-grid.js"],
-      "tier": ["full"],
-      "timeout": 180000,
-      "exclusive": false,
-      "requires": ["node"],
-      "alias": []
-    },
-    {
-      "id": "composer-lifecycle",
-      "file": "scripts/test-composer-lifecycle.js",
-      "command": ["node", "scripts/test-composer-lifecycle.js"],
       "tier": ["full"],
       "timeout": 180000,
       "exclusive": false,
@@ -428,16 +392,6 @@
       "alias": []
     },
     {
-      "id": "composer-root-contract",
-      "file": "scripts/test-composer-root-contract.js",
-      "command": ["node", "scripts/test-composer-root-contract.js"],
-      "tier": ["guard", "release", "full"],
-      "timeout": 180000,
-      "exclusive": false,
-      "requires": ["node"],
-      "alias": []
-    },
-    {
       "id": "composer-runtime-styles",
       "file": "scripts/test-composer-runtime-styles.js",
       "command": ["node", "scripts/test-composer-runtime-styles.js"],
@@ -462,16 +416,6 @@
       "file": "scripts/test-composer-seo-staging.js",
       "command": ["node", "scripts/test-composer-seo-staging.js"],
       "tier": ["full"],
-      "timeout": 180000,
-      "exclusive": false,
-      "requires": ["node"],
-      "alias": []
-    },
-    {
-      "id": "composer-service-registry",
-      "file": "scripts/test-composer-service-registry.js",
-      "command": ["node", "scripts/test-composer-service-registry.js"],
-      "tier": ["guard", "release", "full"],
       "timeout": 180000,
       "exclusive": false,
       "requires": ["node"],

@@ -1,36 +1,20 @@
 export function createComposerMarkdownWorkspaceFacade(options = {}) {
-  const services = options.services || null;
-
-  function getMarkdownSessionController() {
-    return services.getMarkdownSessionController();
-  }
-
-  function getMarkdownActionsUi() {
-    return services.getMarkdownActionsUi();
-  }
-
-  function getMarkdownLoader() {
-    return services.getMarkdownLoader();
-  }
-
-  function getMarkdownDraftController() {
-    return services.getMarkdownDraftController();
-  }
+  const getController =
+    typeof options.getController === 'function' ? options.getController : () => options.controller || null;
 
   function getMarkdownWorkspaceController() {
-    return services.getMarkdownWorkspaceController();
+    const controller = getController();
+    if (!controller) throw new Error('Markdown workspace controller is not initialized');
+    return controller;
   }
 
   return {
-    getMarkdownActionsUi,
-    getMarkdownDraftController,
-    getMarkdownLoader,
-    getMarkdownSessionController,
-    getMarkdownWorkspaceController,
     getPrimaryEditorApi: () => getMarkdownWorkspaceController().getPrimaryEditorApi(),
-    restorePrimaryEditorMarkdownView: (editorApi) => getMarkdownWorkspaceController().restorePrimaryEditorMarkdownView(editorApi),
+    restorePrimaryEditorMarkdownView: (editorApi) =>
+      getMarkdownWorkspaceController().restorePrimaryEditorMarkdownView(editorApi),
     ensurePrimaryEditorListener: () => getMarkdownWorkspaceController().ensurePrimaryEditorListener(),
-    ensurePrimaryEditorTabsMetadataListener: () => getMarkdownWorkspaceController().ensurePrimaryEditorTabsMetadataListener(),
+    ensurePrimaryEditorTabsMetadataListener: () =>
+      getMarkdownWorkspaceController().ensurePrimaryEditorTabsMetadataListener(),
     getDynamicEditorTabs: () => getMarkdownWorkspaceController().getDynamicEditorTabs(),
     getDynamicTabByMode: (mode) => getMarkdownWorkspaceController().getDynamicTabByMode(mode),
     isDynamicMode: (mode) => getMarkdownWorkspaceController().isDynamicMode(mode),
@@ -62,10 +46,13 @@ export function createComposerMarkdownWorkspaceFacade(options = {}) {
     updateMarkdownProtectionButton: (tab) => getMarkdownWorkspaceController().updateMarkdownProtectionButton(tab),
     pushEditorCurrentFileInfo: (tab) => getMarkdownWorkspaceController().pushEditorCurrentFileInfo(tab),
     setDynamicTabStatus: (tab, status) => getMarkdownWorkspaceController().setDynamicTabStatus(tab, status),
-    closeDynamicTab: (modeId, closeOptions = {}) => getMarkdownWorkspaceController().closeDynamicTab(modeId, closeOptions),
-    getOrCreateDynamicMode: (path, createOptions = {}) => getMarkdownWorkspaceController().getOrCreateDynamicMode(path, createOptions),
+    closeDynamicTab: (modeId, closeOptions = {}) =>
+      getMarkdownWorkspaceController().closeDynamicTab(modeId, closeOptions),
+    getOrCreateDynamicMode: (path, createOptions = {}) =>
+      getMarkdownWorkspaceController().getOrCreateDynamicMode(path, createOptions),
     loadDynamicTabContent: (tab) => getMarkdownWorkspaceController().loadDynamicTabContent(tab),
-    openMarkdownInEditor: (path, openOptions = {}) => getMarkdownWorkspaceController().openMarkdownInEditor(path, openOptions),
+    openMarkdownInEditor: (path, openOptions = {}) =>
+      getMarkdownWorkspaceController().openMarkdownInEditor(path, openOptions),
     findDynamicTabByPath: (path) => getMarkdownWorkspaceController().findDynamicTabByPath(path)
   };
 }

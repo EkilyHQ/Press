@@ -56,6 +56,16 @@ assert.deepEqual(
 for (const [name, version] of Object.entries(packageJson.devDependencies)) {
   assert.match(version, /^\d+\.\d+\.\d+$/, `${name} must use an exact semantic version`);
 }
+assert.equal(
+  packageJson.scripts?.['composer-identity:check'],
+  'node scripts/check-composer-identity-ownership.mjs',
+  'Composer identity ownership must retain its executable exact-tree check'
+);
+assert.equal(
+  packageJson.scripts?.['composer-identity:policy-test'],
+  'node scripts/test-composer-identity-ownership.mjs',
+  'Composer identity ownership must retain adversarial policy regressions'
+);
 assert.equal(packageJson.scripts?.lint, 'eslint . --max-warnings 0', 'ESLint must enforce a zero-warning baseline');
 assert.equal(
   packageJson.scripts?.['lint:inline-config'],
@@ -99,8 +109,8 @@ assert.equal(
 );
 assert.equal(
   packageJson.scripts?.quality,
-  'node scripts/test-code-quality-config.mjs && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks',
-  'the quality gate must cover lint, type debt, formatting, vendored dependency provenance, and sink policy'
+  'node scripts/test-code-quality-config.mjs && npm run composer-identity:policy-test && npm run composer-identity:check && npm run lint:inline-config && npm run lint && npm run lint:debt-probe:test && npm run lint:debt-probe && npm run types:probe:test && npm run types:probe && npm run format:check && npm run vendor:check && npm run security:html-sinks:test && npm run security:html-sinks',
+  'the quality gate must cover identity ownership, lint, type debt, formatting, vendored dependency provenance, and sink policy'
 );
 
 const packageLock = readJson('package-lock.json');
@@ -265,6 +275,16 @@ assert.match(
   eslintConfig,
   /reportUnusedDisableDirectives:\s*'error'/,
   'stale ESLint disable directives must fail the gate'
+);
+assert.match(
+  eslintConfig,
+  /files:\s*\['scripts\/test-composer-identity-\*\.mjs'\][\s\S]*?'max-lines': \['error', \{ max: 1800 \}\]/,
+  'Composer identity owners must retain the 1,800-line ESLint cap'
+);
+assert.match(
+  eslintConfig,
+  /files:\s*\['scripts\/composer-identity-test-support\.mjs'\][\s\S]*?'max-lines': \['error', \{ max: 300 \}\]/,
+  'Composer identity shared support must retain the 300-line ESLint cap'
 );
 for (const rule of EXPECTED_EXCLUDED_ESLINT_RULES) {
   const escapedRule = rule.replaceAll('-', '\\-');
@@ -456,6 +476,36 @@ assert.equal(
   prettierBaseline.files.length,
   'the policy must publish the initial formatting-debt count'
 );
+assert.deepEqual(policy.composerIdentityOwnership, {
+  decision: 'domain-owned-exact-scenario-baseline-with-zero-growth',
+  policyFile: 'scripts/composer-identity-ownership-policy.json',
+  checkCommand: 'node scripts/check-composer-identity-ownership.mjs',
+  testCommand: 'node scripts/test-composer-identity-ownership.mjs',
+  ownerFileMaxLines: 1800,
+  ownerSourceMax: 24,
+  supportFile: 'scripts/composer-identity-test-support.mjs',
+  supportFileMaxLines: 300,
+  migration: {
+    legacyFile: 'scripts/test-composer-identity-grid.js',
+    legacyAssertions: 1289,
+    scenarioStatements: 1274,
+    domainOwners: 20,
+    deletions: 0
+  },
+  policy:
+    'Every Composer identity scenario, setup block, helper assertion, literal product-source dependency, and manifest owner is bound to an exact reviewed identity. Domain owners are ordinary non-symlink files with bounded lines and source fan-in; dynamic loaders, direct filesystem reads, owner-to-owner imports, unlisted files, cap loosening, and equal-count inventory swaps fail closed.'
+});
+const composerIdentityPolicy = readJson('scripts/composer-identity-ownership-policy.json');
+assert.equal(composerIdentityPolicy.schemaVersion, 1);
+assert.deepEqual(composerIdentityPolicy.caps, {
+  ownerLines: 1800,
+  ownerSources: 24,
+  supportLines: 300
+});
+assert.equal(composerIdentityPolicy.owners.length, 20);
+assert.equal(composerIdentityPolicy.migration.totalAssertions, 1289);
+assert.equal(composerIdentityPolicy.migration.totalScenarioStatements, 1274);
+assert.equal(composerIdentityPolicy.migration.allowedNormalizations.length, 2);
 assert.equal(
   policy.types?.decision,
   'accepted-baseline-with-zero-growth',

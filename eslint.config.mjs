@@ -43,5 +43,17 @@ export default [
       'no-useless-escape': 'off',
       'preserve-caught-error': 'off'
     }
+  },
+  {
+    files: ['scripts/test-composer-identity-*.mjs'],
+    rules: {
+      'max-lines': ['error', { max: 1800 }]
+    }
+  },
+  {
+    files: ['scripts/composer-identity-test-support.mjs'],
+    rules: {
+      'max-lines': ['error', { max: 300 }]
+    }
   }
 ];

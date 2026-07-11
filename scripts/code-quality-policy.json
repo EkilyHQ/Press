@@ -82,6 +82,24 @@
     },
     "removalCondition": "Remove a path after formatting that file intentionally; avoid release-bearing mass reformat commits."
   },
+  "composerIdentityOwnership": {
+    "decision": "domain-owned-exact-scenario-baseline-with-zero-growth",
+    "policyFile": "scripts/composer-identity-ownership-policy.json",
+    "checkCommand": "node scripts/check-composer-identity-ownership.mjs",
+    "testCommand": "node scripts/test-composer-identity-ownership.mjs",
+    "ownerFileMaxLines": 1800,
+    "ownerSourceMax": 24,
+    "supportFile": "scripts/composer-identity-test-support.mjs",
+    "supportFileMaxLines": 300,
+    "migration": {
+      "legacyFile": "scripts/test-composer-identity-grid.js",
+      "legacyAssertions": 1289,
+      "scenarioStatements": 1274,
+      "domainOwners": 20,
+      "deletions": 0
+    },
+    "policy": "Every Composer identity scenario, setup block, helper assertion, literal product-source dependency, and manifest owner is bound to an exact reviewed identity. Domain owners are ordinary non-symlink files with bounded lines and source fan-in; dynamic loaders, direct filesystem reads, owner-to-owner imports, unlisted files, cap loosening, and equal-count inventory swaps fail closed."
+  },
   "types": {
     "decision": "accepted-baseline-with-zero-growth",
     "baseline": {

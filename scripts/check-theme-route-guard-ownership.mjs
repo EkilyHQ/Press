@@ -13,7 +13,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(here, '..');
 const DEFAULT_POLICY_PATH = path.join(here, 'theme-route-guard-ownership-policy.json');
 const NODE_SOURCE_PATTERN = /\.(?:cjs|js|mjs)$/iu;
-const LOCKED_POLICY_SHA256 = 'cd5b8c5a729d07c709967a6b5a772cf71b39febc56c0816904ba282f46d369c1';
+const LOCKED_POLICY_SHA256 = '5da44071e0df448dd43465ffe60572cdd72bc23641fd4b0cb16e619e25ce3f09';
 const LOCKED_FACADE_REFERENCES = ['./theme-route-guard-html.js', './vendor/acorn-walk.mjs', './vendor/acorn.mjs'];
 const LOCKED_HTML_EXPORTS = ['containsForbiddenV4HtmlRouteConstruction', 'isV4HtmlRouteGuardSource'];
 const IMPLICIT_REGEX_METHODS = new Set(['match', 'matchAll', 'search']);
@@ -643,6 +643,13 @@ export function checkThemeRouteGuardOwnership(options = {}) {
     if (hits.length) failures.push(`${file} retains forbidden legacy route-guard identifiers: ${hits.join(', ')}`);
   });
 
+  const coreSource = readSource(policy.paths.core);
+  const coreSourceDigest = sha256(coreSource);
+  if (coreSourceDigest !== policy.coreDelegation?.sourceSha256) {
+    failures.push(
+      `${policy.paths.core} source digest mismatch: expected ${policy.coreDelegation?.sourceSha256}, found ${coreSourceDigest}`
+    );
+  }
   const coreAst = readAst(policy.paths.core);
   if (coreAst) {
     const ownerImports = coreAst.body.filter(

@@ -47,7 +47,8 @@
   },
   "coreDelegation": {
     "function": "validateThemeRouteHelperContract",
-    "astSha256": "4086f4fd44fa221a1a3b943a5bea2f832c90c93d9de8aeb26e6cfb6275936356"
+    "astSha256": "4086f4fd44fa221a1a3b943a5bea2f832c90c93d9de8aeb26e6cfb6275936356",
+    "sourceSha256": "195b18264f8314423a18ca1d71a8200182251814e6815809698a08ae303ca9ba"
   },
   "owners": [
     {

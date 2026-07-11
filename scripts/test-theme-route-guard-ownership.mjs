@@ -19,10 +19,6 @@ const facadePath = policy.paths.facade;
 const htmlOwnerPath = policy.paths.htmlOwner;
 const corpusSource = fs.readFileSync(path.join(root, policy.paths.corpus), 'utf8');
 const productionCoreSource = fs.readFileSync(path.join(root, policy.paths.core), 'utf8');
-const coreDelegationStart = productionCoreSource.indexOf('function validateThemeRouteHelperContract(');
-const coreDelegationEnd = productionCoreSource.indexOf('\n\nfunction normalizeRegistrySource(', coreDelegationStart);
-assert.ok(coreDelegationStart >= 0 && coreDelegationEnd > coreDelegationStart);
-const coreDelegationSource = productionCoreSource.slice(coreDelegationStart, coreDelegationEnd);
 
 const CORE_REGEX_BASELINE = String.raw`
 void /^[a-z0-9][a-z0-9_-]{0,63}$/;
@@ -72,18 +68,7 @@ export function containsForbiddenV4HtmlRouteConstruction() {
 }
 `
     ],
-    [
-      policy.paths.core,
-      String.raw`
-import { containsForbiddenV4RouteConstruction } from './theme-route-guard.js';
-
-export { containsForbiddenV4RouteConstruction };
-${CORE_REGEX_BASELINE}
-${coreDelegationSource}
-
-void validateThemeRouteHelperContract;
-`
-    ],
+    [policy.paths.core, productionCoreSource],
     [policy.paths.corpus, corpusSource],
     [
       policy.paths.contractTest,
@@ -249,6 +234,10 @@ expectPolicyRejected('core delegation AST lock cannot be retargeted', (candidate
   candidate.coreDelegation.astSha256 = '0'.repeat(64);
 });
 
+expectPolicyRejected('core source lock cannot be retargeted', (candidate) => {
+  candidate.coreDelegation.sourceSha256 = '0'.repeat(64);
+});
+
 expectPolicyRejected('non-owner declaration allowlist cannot be widened', (candidate) => {
   candidate.legacy.nonOwnerDeclarationAllowlist['assets/js/generic-helper.js'] = ['collectRouteKeyAliases'];
 });
@@ -343,6 +332,16 @@ expectRejected(
       `${fixture.get(policy.paths.core)}\nfunction hiddenRouteScan(source) { return source.includes('?' + 'id='); }\nvoid hiddenRouteScan;\n`
     ),
   /route-scanner string literals outside the owner facade/u
+);
+
+expectRejected(
+  'core source lock rejects aliased implicit regex and joined pattern assembly',
+  (fixture) =>
+    fixture.set(
+      policy.paths.core,
+      `${fixture.get(policy.paths.core)}\nfunction hiddenScanner(source) {\n  const method = source['se' + 'arch'].bind(source);\n  const pieces = ['[?', '&]', 'i', 'd', '='];\n  return method(pieces.join('')) >= 0;\n}\nvoid hiddenScanner;\n`
+    ),
+  /theme-package-core\.js source digest mismatch/u
 );
 
 for (const source of [

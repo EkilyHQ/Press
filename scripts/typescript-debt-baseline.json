@@ -13,24 +13,24 @@
   },
   "roots": {
     "scope": "Git-tracked non-vendor assets/js .js/.mjs files",
-    "count": 223,
+    "count": 224,
     "hashAlgorithm": "sha256-lf-path-list-v1",
-    "sha256": "6ad4606598f2c07187845f818eec77dd59e542d132bd33520550b8b218f3434d"
+    "sha256": "f31a9e7b685a9a19607d82d3f2fe8c527cdb7fa930a30d10a8c424c9fbe57d62"
   },
   "suppressions": {
     "decision": "prohibited-zero-baseline",
     "scanner": "TypeScript SourceFile commentDirectives/checkJsDirective",
-    "scannedFiles": 227,
+    "scannedFiles": 228,
     "tsIgnore": 0,
     "tsExpectError": 0,
     "tsNocheck": 0,
     "total": 0
   },
   "summary": {
-    "diagnostics": 1470,
-    "files": 87,
-    "firstPartyDiagnostics": 905,
-    "firstPartyFiles": 83,
+    "diagnostics": 1468,
+    "files": 86,
+    "firstPartyDiagnostics": 903,
+    "firstPartyFiles": 82,
     "transitiveVendorDiagnostics": 565,
     "transitiveVendorFiles": 4,
     "globalDiagnostics": 0
@@ -2518,18 +2518,6 @@
       "path": "assets/js/theme-layout.js",
       "code": 2339,
       "message": "Property '__themePackHref' does not exist on type 'Window & typeof globalThis'.",
-      "count": 1
-    },
-    {
-      "path": "assets/js/theme-package-core.js",
-      "code": 2339,
-      "message": "Property 'importedAliases' does not exist on type 'Set<any>'.",
-      "count": 1
-    },
-    {
-      "path": "assets/js/theme-package-core.js",
-      "code": 2339,
-      "message": "Property 'localAliases' does not exist on type 'Set<any>'.",
       "count": 1
     },
     {

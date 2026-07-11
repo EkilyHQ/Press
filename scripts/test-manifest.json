@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "timeoutUnit": "milliseconds",
   "expected": {
-    "logical": 197,
-    "physical": 198,
+    "logical": 198,
+    "physical": 199,
     "aliases": 1
   },
   "tierOrder": {
@@ -28,6 +28,7 @@
       "site-features",
       "official-theme-public-chrome-behavior",
       "theme-contracts",
+      "theme-route-guard-ownership",
       "release-targets",
       "release-intent",
       "dispatch-system-release",
@@ -58,6 +59,7 @@
       "site-features",
       "official-theme-public-chrome-behavior",
       "theme-contracts",
+      "theme-route-guard-ownership",
       "system-release-package",
       "system-release-workflow",
       "pages-workflow",
@@ -1971,6 +1973,16 @@
       "timeout": 180000,
       "exclusive": false,
       "requires": ["node"],
+      "alias": []
+    },
+    {
+      "id": "theme-route-guard-ownership",
+      "file": "scripts/test-theme-route-guard-ownership.mjs",
+      "command": ["node", "scripts/test-theme-route-guard-ownership.mjs"],
+      "tier": ["guard", "release", "full"],
+      "timeout": 180000,
+      "exclusive": false,
+      "requires": ["git", "node"],
       "alias": []
     },
     {

@@ -1,6 +1,6 @@
 {
   "name": "@ekilyhq/press-theme-contract",
-  "version": "3.4.138",
+  "version": "3.4.139",
   "description": "Press theme contract helpers and packaged theme validation rules.",
   "type": "module",
   "license": "UNLICENSED",
@@ -27,6 +27,7 @@
     "assets/js/theme-package-core.js",
     "assets/js/theme-settings.js",
     "assets/js/theme-route-guard.js",
+    "assets/js/theme-route-guard-html.js",
     "assets/js/vendor/acorn.mjs",
     "assets/js/vendor/acorn-walk.mjs",
     "assets/js/vendor/fflate.browser.js"

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "type": "ekily-product-state",
-  "generatedAt": "2026-07-16T18:33:11.777Z",
-  "status": "unknown",
+  "generatedAt": "2026-07-16T20:12:30.846Z",
+  "status": "ok",
   "desired": {
     "source": "press-release-intent",
     "generatedFrom": {
@@ -430,7 +430,7 @@
       }
     },
     "solstice": {
-      "status": "unknown",
+      "status": "ok",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
       "expectedVersion": "3.4.139",
       "observedVersion": "3.4.139",
@@ -446,20 +446,19 @@
         "observedTag": "v3.4.139"
       },
       "installedTheme": {
-        "status": "unknown",
-        "expectedVersion": "",
-        "expectedDigest": "",
-        "observedVersion": "",
-        "observedTag": "",
-        "observedDigest": "",
+        "status": "ok",
+        "expectedVersion": "3.4.6",
+        "expectedTag": "v3.4.6",
+        "expectedDigest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130",
+        "observedVersion": "3.4.6",
+        "observedTag": "v3.4.6",
+        "observedDigest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130",
         "sources": {
           "manifest": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/solstice/theme.json",
           "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/packs.json",
           "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/demo-release-lock.json"
         },
-        "problems": [
-          "expected theme release is unavailable or invalid"
-        ]
+        "problems": []
       }
     }
   },
@@ -525,14 +524,24 @@
         "label": "Solstice",
         "repository": "EkilyHQ/Press-Theme-Solstice",
         "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json",
-        "status": "unknown",
-        "version": "",
-        "contractVersion": null,
-        "engines": {},
-        "release": {},
-        "artifact": {},
-        "problems": [],
-        "error": "unable to fetch https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json: 400"
+        "status": "ok",
+        "version": "3.4.6",
+        "contractVersion": 4,
+        "engines": {
+          "press": ">=3.4.130 <4.0.0"
+        },
+        "release": {
+          "tag": "v3.4.6",
+          "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Solstice/releases/tag/v3.4.6",
+          "publishedAt": "2026-07-08T05:57:05Z"
+        },
+        "artifact": {
+          "name": "press-theme-solstice-v3.4.6.zip",
+          "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/release-artifacts/v3.4.6/press-theme-solstice-v3.4.6.zip",
+          "size": 24678,
+          "digest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130"
+        },
+        "problems": []
       },
       {
         "slug": "glasswing",
@@ -569,8 +578,8 @@
       "status": "ok",
       "migrationRequired": false,
       "window": {
-        "since": 1784140395,
-        "until": 1784226795,
+        "since": 1784146354,
+        "until": 1784232754,
         "seconds": 86400
       },
       "totalEvents": 0,
@@ -583,26 +592,9 @@
     "service": "ekily-connect",
     "version": "0.3.0"
   },
-  "problems": [
-    {
-      "severity": "warning",
-      "component": "themes.solstice",
-      "code": "theme_release_unreachable",
-      "message": "unable to fetch https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json: 400",
-      "owner": "EkilyHQ/Press-Theme-Solstice",
-      "blocking": false
-    },
-    {
-      "severity": "error",
-      "component": "themeDemos.solstice.theme",
-      "code": "theme_demo_theme_unknown",
-      "message": "expected theme release is unavailable or invalid",
-      "owner": "EkilyHQ/Press-Theme-Solstice",
-      "blocking": true
-    }
-  ],
+  "problems": [],
   "observed": {
-    "checkedAt": "2026-07-16T18:33:11.777Z",
+    "checkedAt": "2026-07-16T20:12:30.846Z",
     "pressSystem": {
       "repository": "EkilyHQ/Press",
       "source": "https://raw.githubusercontent.com/EkilyHQ/Press/release-artifacts/v3.4.139/system-release.json",
@@ -756,7 +748,7 @@
         }
       },
       "solstice": {
-        "status": "unknown",
+        "status": "ok",
         "source": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/press-system.json",
         "expectedVersion": "3.4.139",
         "observedVersion": "3.4.139",
@@ -772,20 +764,19 @@
           "observedTag": "v3.4.139"
         },
         "installedTheme": {
-          "status": "unknown",
-          "expectedVersion": "",
-          "expectedDigest": "",
-          "observedVersion": "",
-          "observedTag": "",
-          "observedDigest": "",
+          "status": "ok",
+          "expectedVersion": "3.4.6",
+          "expectedTag": "v3.4.6",
+          "expectedDigest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130",
+          "observedVersion": "3.4.6",
+          "observedTag": "v3.4.6",
+          "observedDigest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130",
           "sources": {
             "manifest": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/solstice/theme.json",
             "packs": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/assets/themes/packs.json",
             "lock": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/demo/demo-release-lock.json"
           },
-          "problems": [
-            "expected theme release is unavailable or invalid"
-          ]
+          "problems": []
         }
       }
     },
@@ -851,14 +842,24 @@
           "label": "Solstice",
           "repository": "EkilyHQ/Press-Theme-Solstice",
           "manifestUrl": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json",
-          "status": "unknown",
-          "version": "",
-          "contractVersion": null,
-          "engines": {},
-          "release": {},
-          "artifact": {},
-          "problems": [],
-          "error": "unable to fetch https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json: 400"
+          "status": "ok",
+          "version": "3.4.6",
+          "contractVersion": 4,
+          "engines": {
+            "press": ">=3.4.130 <4.0.0"
+          },
+          "release": {
+            "tag": "v3.4.6",
+            "htmlUrl": "https://github.com/EkilyHQ/Press-Theme-Solstice/releases/tag/v3.4.6",
+            "publishedAt": "2026-07-08T05:57:05Z"
+          },
+          "artifact": {
+            "name": "press-theme-solstice-v3.4.6.zip",
+            "url": "https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/release-artifacts/v3.4.6/press-theme-solstice-v3.4.6.zip",
+            "size": 24678,
+            "digest": "sha256:4f5e4df93f5e993271c045cc0734647828b77ac695d5289cbe4dd4a9f81fa130"
+          },
+          "problems": []
         },
         {
           "slug": "glasswing",
@@ -895,8 +896,8 @@
         "status": "ok",
         "migrationRequired": false,
         "window": {
-          "since": 1784140395,
-          "until": 1784226795,
+          "since": 1784146354,
+          "until": 1784232754,
           "seconds": 86400
         },
         "totalEvents": 0,
@@ -911,36 +912,18 @@
     }
   },
   "verdict": {
-    "status": "unknown",
-    "converged": false,
+    "status": "ok",
+    "converged": true,
     "counts": {
-      "ok": 12,
+      "ok": 14,
       "pending": 0,
-      "unknown": 2,
+      "unknown": 0,
       "drift": 0
     },
-    "problemCount": 2,
-    "blockingProblemCount": 1,
-    "nonBlockingProblemCount": 1,
-    "blockingProblems": [
-      {
-        "severity": "error",
-        "component": "themeDemos.solstice.theme",
-        "code": "theme_demo_theme_unknown",
-        "message": "expected theme release is unavailable or invalid",
-        "owner": "EkilyHQ/Press-Theme-Solstice",
-        "blocking": true
-      }
-    ],
-    "nonBlockingProblems": [
-      {
-        "severity": "warning",
-        "component": "themes.solstice",
-        "code": "theme_release_unreachable",
-        "message": "unable to fetch https://raw.githubusercontent.com/EkilyHQ/Press-Theme-Solstice/main/theme-release.json: 400",
-        "owner": "EkilyHQ/Press-Theme-Solstice",
-        "blocking": false
-      }
-    ]
+    "problemCount": 0,
+    "blockingProblemCount": 0,
+    "nonBlockingProblemCount": 0,
+    "blockingProblems": [],
+    "nonBlockingProblems": []
   }
 }
